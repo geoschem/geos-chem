@@ -42,9 +42,12 @@ MODULE History_Util_Mod
   !
   ! 0 = Copy       data from source pointer to the HISTORY ITEM data array
   ! 1 = Accumulate data from source pointer to the HISTORY ITEM data array
+  ! 2 = Total      data from source pointer to the HISTORY ITEM data array
+  !     (similar to accumulate, but do not divide by the number of updates)
   !-------------------------------------------------------------------------
   INTEGER,          PARAMETER, PUBLIC :: COPY_FROM_SOURCE   = 0
   INTEGER,          PARAMETER, PUBLIC :: ACCUM_FROM_SOURCE  = 1
+  INTEGER,          PARAMETER, PUBLIC :: TOTAL_FROM_SOURCE  = 2
 
   !-------------------------------------------------------------------------
   ! ROUNDING AND NUMERICAL TESTING PARAMETRS
@@ -75,6 +78,7 @@ MODULE History_Util_Mod
 !  17 Aug 2017 - R. Yantosca - Renamed to history_util_mod.F90; added routine
 !                              Compute_Julian_Date
 !  21 Aug 2017 - R. Yantosca - Removed some parameters that weren't needed
+!  22 Jan 2018 - R. Yantosca - Add TOTAL_FROM_SOURCE parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC

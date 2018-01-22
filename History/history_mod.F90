@@ -164,7 +164,7 @@ CONTAINS
     !=======================================================================
     CALL History_Netcdf_Init( am_I_Root, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "HistoryNetCdfInit"!'
+       ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -187,7 +187,7 @@ CONTAINS
     CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
                                      State_Diag, State_Met, RC              )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
+       ErrMsg = 'Error encountered in "History_ReadCollectionData"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -798,13 +798,19 @@ CONTAINS
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
              WRITE( 6, 200   ) 
  200         FORMAT( 'GEOS-Chem ERROR: One or more collection ',             &
-                     'attributes do not correspond',                      /  &
+                     'attributes do not correspond', /                       &
                      'to any of these defined collection names '             &
-                     'in the "HISTORY.rc" input file:'                      )
+                     'in the "HISTORY.rc" input file:', /                   )
+
              DO N = 1, CollectionCount
                 WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
  210            FORMAT( i3, ') ', a )
              ENDDO
+
+             WRITE( 6, 220 ) 
+ 220         FORMAT( /, 'Please check the HISTORY.rc file for any ',         &
+                     'missing ":" or "," characters', /,                     &
+                     'in the collection attributes.'                        )
              WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
              
              ! Write error message and then return
@@ -812,7 +818,7 @@ CONTAINS
                       ' Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF
+          ENDIF 
 
           ! Zero the counter of items
           ItemCount = 0
@@ -831,6 +837,8 @@ CONTAINS
           SELECT CASE( TmpMode )
              CASE( 'TIME-AVERAGED', 'TIMEAVERAGED' )
                 Operation = ACCUM_FROM_SOURCE
+             CASE( 'TOTAL')
+                Operation = TOTAL_FROM_SOURCE
              CASE DEFAULT
                 Operation = COPY_FROM_SOURCE
 
@@ -930,7 +938,7 @@ CONTAINS
           ELSE
 
              !--------------------------------------------------------------
-             ! %%%% TIME-AVERAGED COLLECTION %%%%
+             ! %%%% TIME-AVERAGED OR TOTAL COLLECTION %%%%
              !
              ! Define the "Update" interval
              !
@@ -1062,23 +1070,16 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( SimLengthSec < Container%FileWriteAlarm ) THEN
 
-             ! Construct first part of error message
+             ! Construct error message
              ErrMsg =                                                        &
                 'No diagnostic output will be created for collection: "'  // &
-                 TRIM( CollectionName(C) ) // '"!  Make sure that the'
-
-             ! Then add the correct text for instantaneous or time-averaged
-             IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-                ErrMsg = TRIM ( ErrMsg ) // ' "frequency"'
-             ELSE
-                ErrMsg = TRIM ( ErrMsg ) // ' "acc_interval"'
-             ENDIF
-
-             ! Then continue the message
-             ErrMsg = TRIM( ErrMsg )                                      // &
-                ' interval in HISTORY.rc is not shorter than the length ' // &
-                'of the simulation (check start & end times in '          // &
-                'input.geos).'
+                 TRIM( CollectionName(C) ) // '"!  Make sure that the '   // &
+                'length of the simulation as specified in "input.geos" '  // &
+                '(check the start and end times) is not shorter than '    // &
+                'the frequency setting in HISTORY.rc!  For example, if '  // &
+                'the frequency is 010000 (1 hour) but the simulation '    // &
+                'is set up to run for only 20 minutes, then this error '  // &
+                'will occur.'
 
              ! Return error
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1278,6 +1279,7 @@ CONTAINS
              DO N = 1, CollectionCount
                 WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
              ENDDO
+             WRITE( 6, 220 )
              WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
 
              ! Write error message and then return
@@ -1953,6 +1955,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -1963,6 +1968,9 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d = Item%Source_3d_8
+                      Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
                       Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
@@ -1975,6 +1983,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_4
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
+                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -1985,6 +1996,9 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_I
+                      Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
                       Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
@@ -2004,6 +2018,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d
+                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -2015,6 +2032,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_8
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
+                      Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2026,6 +2046,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_4
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
+                      Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2037,6 +2060,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_I
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
+                      Item%nUpdates = 1.0_f8 
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2055,6 +2081,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d
+                      Item%nUpdates = 1.0_f8 
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2066,6 +2095,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_8
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
+                      Item%nUpdates = 1.0_f8  
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8  
@@ -2077,6 +2109,9 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_4
                       Item%nUpdates = 1.0_f8
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
+                      Item%nUpdates = 1.0_f8  
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8  
@@ -2087,6 +2122,9 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_I
+                      Item%nUpdates = 1.0_f8 
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
                       Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
@@ -2106,10 +2144,13 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d_8
                       Item%nUpdates = 1.0_f8
-                   ELSE 
+                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
+                      Item%nUpdates = 1.0_f8 
+                   ELSE  
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
-                   ENDIF
+                  ENDIF
 
                 ENDIF
 

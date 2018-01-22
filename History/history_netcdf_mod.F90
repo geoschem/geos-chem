@@ -273,19 +273,7 @@ CONTAINS
        ! Reset the current time slice index
        Container%CurrTimeSlice = 0
 
-       IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
-
-          !-----------------------------
-          ! TIME-AVERAGED COLLECTIONS
-          !----------------------------- 
-
-          ! Subtract the file write alarm interval that we added to
-          ! the current date/time (CurrentJd) field at initialization
-          Container%ReferenceJd = Container%CurrentJd                        &
-                                - ( Container%FileWriteIvalSec /             &
-                                    SECONDS_PER_DAY                         )
-
-       ELSE
+       IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
 
           !-----------------------------
           ! INSTANTANEOUS COLLECTIONS
@@ -303,6 +291,19 @@ CONTAINS
           ELSE
              Container%ReferenceJd = Container%CurrentJd
           ENDIF
+
+       ELSE
+
+          !-----------------------------
+          ! TIME-AVERAGED COLLECTIONS
+          ! or TOTAL COLLECTIONS
+          !----------------------------- 
+
+          ! Subtract the file write alarm interval that we added to
+          ! the current date/time (CurrentJd) field at initialization
+          Container%ReferenceJd = Container%CurrentJd                        &
+                                - ( Container%FileWriteIvalSec /             &
+                                    SECONDS_PER_DAY                         )
 
        ENDIF
 
@@ -714,7 +715,8 @@ CONTAINS
 
     ! For time-averaged collections, offset the timestamp 
     ! by 1/2 of the file averaging interval in minutes
-    IF ( Container%Operation == ACCUM_FROM_SOURCE ) THEN
+    IF ( Container%Operation == ACCUM_FROM_SOURCE  .or.                      &
+         Container%Operation == TOTAL_FROM_SOURCE ) THEN
        Container%TimeStamp = Container%TimeStamp -                           &
                              ( Container%FileWriteIvalSec * 0.5_f8 )
     ENDIF
@@ -758,12 +760,12 @@ CONTAINS
        Item => Current%Item
 
        !--------------------------------------------------------------------
-       ! For instantaneous diagnostic quantities:
+       ! For INSTANTANEOUS or TOTAL diagnostic quantities:
        ! (1) Copy the Item's data array to the 4-byte local array
        ! (2) Zero the Item's data array
        ! (3) Zero the Item's update counter
        !
-       ! For time-averaged diagnostic quantities:
+       ! For TIME-AVERAGED diagnostic quantities:
        ! (1) Divide the Item's data array by the number diagnostic updates
        ! (2) Copy the Item's data array to the 4-byte local array
        ! (3) Zero the Item's data array
@@ -785,12 +787,12 @@ CONTAINS
              ALLOCATE( NcData_3d( Dim1, Dim2, Dim3 ), STAT=RC )
 
              ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+             IF ( Item%Operation == ACCUM_FROM_SOURCE ) THEN 
+                Item%Data_3d  = Item%Data_3d / Item%nUpdates
                 NcData_3d     = Item%Data_3d
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0
              ELSE
-                Item%Data_3d  = Item%Data_3d / Item%nUpdates
                 NcData_3d     = Item%Data_3d
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0
@@ -819,12 +821,12 @@ CONTAINS
              ALLOCATE( NcData_2d( Dim1, Dim2 ), STAT=RC )
  
              ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
+             IF ( Item%Operation == ACCUM_FROM_SOURCE ) THEN
+                Item%Data_2d  = Item%Data_2d / Item%nUpdates
                 NcData_2d     = Item%Data_2d
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0
              ELSE
-                Item%Data_2d  = Item%Data_2d / Item%nUpdates
                 NcData_2d     = Item%Data_2d
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0
@@ -852,17 +854,16 @@ CONTAINS
              ALLOCATE( NcData_1d( Dim1 ), STAT=RC )
 
              ! Copy or average the data and store in a REAL*4 array
-             IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
-                NcData_1d     = Item%Data_1d
-                Item%Data_1d  = 0.0_f8
-                Item%nUpdates = 0
-             ELSE
+             IF ( Item%Operation == ACCUM_FROM_SOURCE ) THEN
                 Item%Data_1d  = Item%Data_1d / Item%nUpdates
                 NcData_1d     = Item%Data_1d
                 Item%Data_1d  = 0.0_f8
                 Item%nUpdates = 0
+             ELSE
+                NcData_1d     = Item%Data_1d
+                Item%Data_1d  = 0.0_f8
+                Item%nUpdates = 0
              ENDIF
-
 
              ! Compute start and count fields
              St2d = (/ 1,    Container%CurrTimeSlice /)

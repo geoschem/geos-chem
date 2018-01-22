@@ -447,8 +447,11 @@ CONTAINS
     IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
        TempStr        = 'instantaneous'
        Item%AvgMethod = TempStr
+    ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
+       TempStr        = 'total'
+       Item%AvgMethod = TempStr
     ELSE
-       TempStr        = 'time-averaged'
+       TempStr        = 'mean'
        Item%AvgMethod = TempStr
     ENDIF
 
