@@ -837,8 +837,6 @@ CONTAINS
           SELECT CASE( TmpMode )
              CASE( 'TIME-AVERAGED', 'TIMEAVERAGED' )
                 Operation = ACCUM_FROM_SOURCE
-             CASE( 'TOTAL')
-                Operation = TOTAL_FROM_SOURCE
              CASE DEFAULT
                 Operation = COPY_FROM_SOURCE
 
@@ -938,7 +936,7 @@ CONTAINS
           ELSE
 
              !--------------------------------------------------------------
-             ! %%%% TIME-AVERAGED OR TOTAL COLLECTION %%%%
+             ! %%%% TIME-AVERAGED COLLECTION %%%%
              !
              ! Define the "Update" interval
              !
@@ -1955,9 +1953,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d
-                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -1968,9 +1963,6 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d = Item%Source_3d_8
-                      Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
                       Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_8
@@ -1983,9 +1975,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_4
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
-                      Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -1996,9 +1985,6 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_3d  = Item%Source_3d_I
-                      Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
                       Item%nUpdates = 1.0_f8
                    ELSE
                       Item%Data_3d  = Item%Data_3d  + Item%Source_3d_I
@@ -2018,9 +2004,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d
-                      Item%nUpdates = 1.0_f8
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d
                       Item%nUpdates = Item%nUpdates + 1.0_f8
@@ -2032,9 +2015,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_8
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
-                      Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2046,9 +2026,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_4
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
-                      Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_2d  = Item%Data_2d + Item%Source_2d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2060,9 +2037,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_2d  = Item%Source_2d_I
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
-                      Item%nUpdates = 1.0_f8 
                    ELSE 
                       Item%Data_2d  = Item%Data_2d  + Item%Source_2d_I
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2081,9 +2055,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d
-                      Item%nUpdates = 1.0_f8 
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
@@ -2095,9 +2066,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_8
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
-                      Item%nUpdates = 1.0_f8  
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8  
@@ -2109,9 +2077,6 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_4
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
-                      Item%nUpdates = 1.0_f8  
                    ELSE 
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_4
                       Item%nUpdates = Item%nUpdates + 1.0_f8  
@@ -2122,9 +2087,6 @@ CONTAINS
 
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_1d  = Item%Source_1d_I
-                      Item%nUpdates = 1.0_f8 
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
                       Item%nUpdates = 1.0_f8 
                    ELSE
                       Item%Data_1d  = Item%Data_1d  + Item%Source_1d_I
@@ -2144,13 +2106,10 @@ CONTAINS
                    IF ( Item%Operation == COPY_FROM_SOURCE ) THEN
                       Item%Data_0d  = Item%Source_0d_8
                       Item%nUpdates = 1.0_f8
-                   ELSE IF ( Item%Operation == TOTAL_FROM_SOURCE ) THEN
-                      Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
-                      Item%nUpdates = 1.0_f8 
-                   ELSE  
+                   ELSE 
                       Item%Data_0d  = Item%Data_0d  + Item%Source_0d_8
                       Item%nUpdates = Item%nUpdates + 1.0_f8 
-                  ENDIF
+                   ENDIF
 
                 ENDIF
 

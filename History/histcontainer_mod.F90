@@ -753,7 +753,7 @@ CONTAINS
 
     ELSE
 
-       ! %%% TIME-AVERAGED or TOTAL %%%
+       ! %%% TIME-AVERAGED %%%
        ! Set the initial file close/reopen time to the first write time.
        ! (We will subtract this off later, when computing the reference
        ! date and time for the netCDF file.)
@@ -814,10 +814,9 @@ CONTAINS
     CHARACTER(LEN=255)          :: DimStr
 
     ! String arrays
-    CHARACTER(LEN=22)           :: OpCode(0:2) =                             &
-                                     (/ 'Copy from source      ',            &
-                                        'Accumulate from source',            &
-                                        'Total from source     '           /)
+    CHARACTER(LEN=22)           :: OpCode(0:1) =                  &
+                                     (/ 'Copy from source      ',  &
+                                        'Accumulate from source' /)
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
