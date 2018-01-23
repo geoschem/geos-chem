@@ -285,47 +285,53 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd quantities
-    LOGICAL, SAVE     :: FIRST      = .TRUE.
-    INTEGER, SAVE     :: LASTMONTH  = -99
+    LOGICAL, SAVE      :: FIRST      = .TRUE.
+    INTEGER, SAVE      :: LASTMONTH  = -99
 
     ! Flags for simulation types
-    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL           :: IT_IS_A_TAGO3_SIM
-    LOGICAL           :: IT_IS_A_H2HD_SIM
+    LOGICAL            :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL            :: IT_IS_A_TAGO3_SIM
+    LOGICAL            :: IT_IS_A_H2HD_SIM
 
     ! Scalars
-    LOGICAL           :: prtDebug
-    CHARACTER(LEN=16) :: STAMP
-    INTEGER           :: I,    J,       L,   N
-    INTEGER           :: NN,   nAdvect, NA
-    REAL(fp)          :: dt,   P,       k,   M0,  RC,     M
-    REAL(fp)          :: TK,   RDLOSS,  T1L, mOH, BryTmp
-    REAL(fp)          :: BOXVL
-    LOGICAL           :: LLINOZ
-    LOGICAL           :: LSYNOZ
-    LOGICAL           :: LPRT
-    LOGICAL           :: LBRGCCM
-    LOGICAL           :: LRESET, LCYCLE
-    LOGICAL           :: ISBR2 
-    CHARACTER(LEN=63) :: OrigUnit
+    LOGICAL            :: prtDebug
+    INTEGER            :: I,    J,       L,   N
+    INTEGER            :: NN,   nAdvect, NA
+    REAL(fp)           :: dt,   P,       k,   M0,  RC,     M
+    REAL(fp)           :: TK,   RDLOSS,  T1L, mOH, BryTmp
+    REAL(fp)           :: BOXVL
+    LOGICAL            :: LLINOZ
+    LOGICAL            :: LSYNOZ
+    LOGICAL            :: LPRT
+    LOGICAL            :: LBRGCCM
+    LOGICAL            :: LRESET, LCYCLE
+    LOGICAL            :: ISBR2 
+
+    ! Strings
+    CHARACTER(LEN=16)  :: STAMP
+    CHARACTER(LEN=63)  :: OrigUnit
+    CHARACTER(LEN=255) :: ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
 
     ! Arrays
-    REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR                  )
+    REAL(fp)           :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+    REAL(fp)           :: BEFORE(IIPAR,JJPAR,LLPAR                  )
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-    REAL(fp), POINTER :: AD (:,:,:  )
-    REAL(fp), POINTER :: T  (:,:,:  )
+    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    REAL(fp), POINTER  :: AD (:,:,:  )
+    REAL(fp), POINTER  :: T  (:,:,:  )
 
     !=======================================================================
     ! DO_STRAT_CHEM begins here!
     !=======================================================================
 
-    ! Assume Success
-    errCode              = GC_SUCCESS
-
     ! Initialize
+    errCode = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Do_Strat_Chem (in module GeosCore/strat_chem_mod.F90)'
+
+    ! Initialize further
     LLINOZ               = Input_Opt%LLINOZ
     LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
@@ -366,12 +372,24 @@ CONTAINS
           ! Get pointers to Bry fields via HEMCO
           CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
                                  State_Chm, State_Met, errCode )
-          IF ( errCode /= GC_SUCCESS ) RETURN
+
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_BryPointers"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
 
           ! Get pointers to prod/loss fields via HEMCO
           CALL Set_PLVEC ( am_I_Root, Input_Opt,                &
                            State_Chm, State_Met, errCode )
-          IF ( errCode /= GC_SUCCESS ) RETURN
+
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_PlVec"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
     ENDIF
 
@@ -388,7 +406,13 @@ CONTAINS
     IF ( .NOT. Minit_Is_Set ) THEN
        CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
                        State_Chm, errCode )
-       IF ( errCode /= GC_SUCCESS ) RETURN
+
+       ! Trap potential errors
+       IF ( errCode /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Set_Minit"!'
+          CALL GC_Error( ErrMsg, errCode, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 #endif
 
@@ -722,9 +746,11 @@ CONTAINS
           CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                                   State_Chm, 'v/v dry', errCode,   &
                                   OrigUnit=OrigUnit )
+
+          ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
-              CALL GC_Error('Unit conversion error', errCode,    &
-                           'DO_STRAT_CHEM in strat_chem_mod.F')
+             ErrMsg = 'Unit conversion error (forward) in "Convert_Spc_Units"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
              RETURN
           ENDIF
 
@@ -740,9 +766,11 @@ CONTAINS
          ! Convert species units back to original unit 
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                                  State_Chm, OrigUnit,  errCode )
+
+          ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
-             CALL GC_Error('Unit conversion error', errCode,     &
-                           'DO_STRAT_CHEM in strat_chem_mod.F')
+             ErrMsg = 'Unit conversion error (backward) in "Convert_Spc_Units"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
              RETURN
           ENDIF
 
@@ -784,14 +812,20 @@ CONTAINS
     ! but would need to be tested.
     !======================================================================
     ELSE
-       IF ( am_I_Root ) THEN
-          WRITE( 6, '(a)' ) 'Linearized strat chemistry needs to be ' // &
-                            'activated for your simulation type.'
-          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90 ' // &
-                            'or disable in input.geos'
-       ENDIF
-       CALL GEOS_CHEM_STOP()
-       
+
+       ! Free pointers
+       Spc => NULL()
+       AD  => NULL()
+       T   => NULL() 
+
+       ! Exit with error if strat chemistry is not activated
+       ErrMsg = 'Linearized strat chemistry needs to be activated for '   // &
+                'activated for your simulation type.  Please see      '   // &
+                'module see GeosCore/strat_chem_mod.F90 or disable    '   // &
+                'stratospheric chemistry in your "input.geos" file.'
+       CALL GC_Error( ErrMsg, errCode, ThisLoc )
+       RETURN
+
     ENDIF
 
     ! Set first-time flag to false
@@ -823,7 +857,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -853,21 +886,21 @@ CONTAINS
 !
     ! Scalars
     CHARACTER(LEN=16)   :: ThisName
-    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME
-    CHARACTER(LEN=1023) :: MSG
+    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME, ThisLoc
+    CHARACTER(LEN=1024) :: ErrMsg
     INTEGER             :: N
 
     !=================================================================
     ! Set_BryPointers begins here 
     !=================================================================
 
-    ! Construct error message
-    MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
-          'is expected to be listed in the HEMCO configuration '   // &
-          'file. This error occured when trying to get field'
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Set_BryPointers (in module GeosCore/strat_chem_mod.F90)'
 
     ! Do for every Bry species
-    DO N = 1,6
+    DO N = 1, 6
 
        ! Skip if species is not defined    
        IF ( GC_Bry_TrID(N) <= 0 ) CYCLE
@@ -883,17 +916,29 @@ CONTAINS
        ! Day
        FIELDNAME = TRIM(PREFIX) // '_DAY'
        CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
-                            'Set_BryPointers (start_chem_mod.F90)' )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get pointer from HEMCO! Stratospheric Bry data '//&
+                   'is expected to be listed in the HEMCO configuration '  //&
+                  'file. This error occured when trying to get field '     //&
+                  TRIM( FieldName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Night
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
        CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
-                            'Set_BryPointers (start_chem_mod.F90)' )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get pointer from HEMCO! Stratospheric Bry data '//&
+                   'is expected to be listed in the HEMCO configuration '  //&
+                   'file. This error occured when trying to get field '    //&
+                   TRIM( FieldName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
     ENDDO !N
@@ -917,13 +962,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE Set_PLVEC( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -958,36 +1002,36 @@ CONTAINS
     ! Scalars
     CHARACTER(LEN=16)   :: ThisName
     CHARACTER(LEN=255)  :: FIELDNAME
-    CHARACTER(LEN=1023) :: MSG, ERR
     INTEGER             :: N, TRCID
     LOGICAL             :: FND
     LOGICAL             :: Is_UCX_Spc
-
     INTEGER             :: I, J, L
     REAL(fp)            :: BOXVL, AIRDENS
     REAL(f4)            :: SpcConc
+
+    ! Strings
     CHARACTER(LEN=63)   :: OrigUnit
-    CHARACTER(LEN=255)  :: Err_Msg
+    CHARACTER(LEN=255)  :: ThisLoc
+    CHARACTER(LEN=1024) :: ErrMsg
 
     !=================================================================
     ! Set_PLVEC begins here 
     !=================================================================
 
-    ! Assume error until success
-    RC = GC_FAILURE
-
-    ! Construct error message
-    ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
-          'expected to be listed in the HEMCO configuration file. '// &
-          'This error occured when trying to get field'
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Set_PlVec (in module GeosCore/strat_chem_mod.F90)'
 
     ! Convert species to [molec/cm3]
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
                             State_Chm, 'molec/cm3', RC, &
                             OrigUnit=OrigUnit )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       Err_Msg = 'Unit conversion error!'
-       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90')
+       ErrMsg = 'Unit conversion error in "Convert_Spc_Units"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF 
 
@@ -1048,19 +1092,28 @@ CONTAINS
        ELSE
           FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
        ENDIF
+
+       ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%PROD, RC,       FOUND=FND )
+
+       ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
-                            'Set_PLVEC (start_chem_mod.F90)' )
+          ErrMsg = 'Cannot get pointer from HEMCO! GMI or UCX prod/loss ' // &
+                   'data is expected to be listed in the HEMCO '          // &
+                   'configuration file. This error occured when trying '  // &
+                   'to get field ' // TRIM( FIELDNAME )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          MSG = 'Cannot find archived GMI production rates for ' // &
-                TRIM(ThisName) // ' - will use value of 0.0. '   // &
-                'To use archived rates, add the following field '// &
-                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
-          WRITE(6,*) TRIM(MSG)
+          ErrMsg = 'Cannot find archived GMI production rates for '       // &
+                    TRIM(ThisName) // ' - will use value of 0.0. '        // &
+                   'To use archived rates, add the following field '      // &
+                   'to the HEMCO configuration file: '// TRIM( FIELDNAME )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
        ENDIF
 
        ! Loss frequency [s-1]
@@ -1069,19 +1122,29 @@ CONTAINS
        ELSE
           FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
        ENDIF
+       
+       ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%LOSS, RC,       FOUND=FND )
+
+       ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
-                            'Set_PLVEC (start_chem_mod.F90)' )
+          ErrMsg = 'Cannot get pointer from HEMCO! GMI or UCX prod/loss ' // &
+                   'data is expected to be listed in the HEMCO '          // &
+                   'configuration file. This error occured when trying '  // &
+                   'to get field ' // TRIM( FIELDNAME )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
           RETURN
        ENDIF
+
+       ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          MSG = 'Cannot find archived GMI loss frequencies for ' // &
-                TRIM(ThisName) // ' - will use value of 0.0. '   // &
-                'To use archived rates, add the following field '// &
-                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
-          WRITE(6,*) TRIM(MSG)
+          ErrMsg= 'Cannot find archived GMI loss frequencies for '        // &
+                  TRIM(ThisName) // ' - will use value of 0.0. '          // &
+                  'To use archived rates, add the following field '       // &
+                  'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
        ENDIF
 
        ! UCX rates are in molec/cm3/s; need to convert to expected units
@@ -1125,20 +1188,24 @@ CONTAINS
     ! Convert species back to original units (ewl, 8/16/16)
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                             State_Chm, OrigUnit,  RC )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       Err_Msg = 'Unit conversion error!'
-       CALL GC_Error( Err_Msg, RC, 'flexchem_mod.F90' )
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
        RETURN
     ENDIF  
 
     ! Get pointer to STRAT_OH
     CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
                      STRAT_OH,  RC,        FOUND=FND )
+
+    ! Trap potential errors
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
-       MSG = 'Cannot find monthly archived strat. OH field '    // &
-             '`STRAT_OH`. Please add a corresponding entry to ' // &
-             'the HEMCO configuration file.'
-       CALL ERROR_STOP ( TRIM(MSG), 'Set_PLVEC (strat_chem_mod.F90)' )
+       ErrMsg = 'Cannot find monthly archived strat. OH field '           // &
+                '`STRAT_OH`. Please add a corresponding entry to '        // &
+                'the HEMCO configuration file.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
