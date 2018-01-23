@@ -1135,7 +1135,6 @@ CONTAINS
                    'to get field ' // TRIM( FIELDNAME )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
-          RETURN
        ENDIF
 
        ! Warning message
@@ -1149,6 +1148,7 @@ CONTAINS
 
        ! UCX rates are in molec/cm3/s; need to convert to expected units
        IF ( Is_UCX_Spc ) THEN
+
           ! Do not parellelize for now -- this may be replaced in v11-02e
           ! (also we need to include loop over N)
           !!!$OMP PARALLEL DO &
