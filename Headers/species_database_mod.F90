@@ -769,7 +769,7 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Br2',                     &
                               FullName      = 'Dibromomethane',             &
-                              Formula       = 'CH3Br2',                     &
+                              Formula       = 'CH2Br2',                     &
                               MW_g          = 174.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
