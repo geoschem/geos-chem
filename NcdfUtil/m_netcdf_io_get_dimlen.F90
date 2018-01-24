@@ -78,7 +78,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: dimid
     integer             :: ierr
 
@@ -141,7 +141,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
     integer             :: udimid
 !

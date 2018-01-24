@@ -125,7 +125,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (len=128) :: err_msg
+    CHARACTER (len=512) :: err_msg
     INTEGER :: ierr
 !
     ierr = Nf_Def_Dim (ncid, name, len, id)
@@ -194,7 +194,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer ::  ierr
     logical ::  doStop
     ! Compression settings
@@ -288,7 +288,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = LEN(att_val)
@@ -344,7 +344,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
@@ -400,7 +400,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = 1
@@ -456,7 +456,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  mylen, ierr
 !
     mylen = 1
@@ -513,7 +513,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -569,7 +569,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -625,7 +625,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             ::  mylen, ierr
 !
     mylen = size( att_val )
@@ -682,7 +682,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  mylen, ierr
 !
     mylen = len(att_val)
@@ -739,7 +739,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = 1
@@ -796,7 +796,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
@@ -853,7 +853,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
@@ -911,7 +911,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -968,7 +968,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -1025,7 +1025,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -1078,7 +1078,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             ::  mylen, ierr
 !
     ierr = Nf_Set_Fill (ncid, NF_NOFILL, omode)
@@ -1128,7 +1128,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  ierr
 !
     ierr = Nf_Enddef (ncid)
@@ -1178,7 +1178,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
 !
     ierr = Nf_Redef (ncid)

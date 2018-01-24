@@ -3409,6 +3409,7 @@ CONTAINS
 !                              routine (i.e. to define variables afterwards)
 !  24 Aug 2017 - R. Yantosca - Added nIlev and iLevId variables so that we can
 !                               create the iLev dimension (level interfaces)
+!  24 Jan 2018 - R. Yantosca - Add update frequency as an optional global attr
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3573,7 +3574,7 @@ CONTAINS
                          DataType,  VarCt,        DefMode,      Compress,    & 
                          AddOffset, MissingValue, ScaleFactor,  Calendar,    &
                          Axis,      StandardName, FormulaTerms, AvgMethod,   &
-                         Positive,  iLevId                                  )
+                         Positive,  iLevId,       nUpdates                  )
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -3601,6 +3602,8 @@ CONTAINS
     CHARACTER(LEN=*), OPTIONAL      :: FormulaTerms ! Formula for vert coords
     CHARACTER(LEN=*), OPTIONAL      :: AvgMethod    ! Averaging method
     CHARACTER(LEN=*), OPTIONAL      :: Positive     ! Positive dir (up or down)
+    REAL*4,           OPTIONAL      :: nUpdates     ! # of updates (for time-
+                                                    !  averaged fields only)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3789,6 +3792,14 @@ CONTAINS
        IF ( LEN_TRIM( FormulaTerms ) > 0 ) THEN
           Att = 'formula_terms'
           CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(FormulaTerms))
+       ENDIF
+    ENDIF
+
+    ! Number of updates
+    IF ( PRESENT( nUpdates ) ) THEN
+       IF ( nUpdates > 0.0 ) THEN
+          Att = 'number_of_updates'
+          CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), nUpdates )
        ENDIF
     ENDIF
 

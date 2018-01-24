@@ -109,7 +109,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
       real*4              :: varrd_scal_tmp
@@ -176,7 +176,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -252,7 +252,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
       logical             :: dostop
@@ -348,7 +348,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
       logical             :: dostop
@@ -444,7 +444,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
       logical             :: dostop
@@ -538,7 +538,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -605,7 +605,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -672,7 +672,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -741,7 +741,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -810,7 +810,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -879,7 +879,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -948,7 +948,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1017,7 +1017,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1086,7 +1086,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1156,7 +1156,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1225,7 +1225,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1294,7 +1294,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1363,7 +1363,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1433,7 +1433,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1503,7 +1503,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1571,7 +1571,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
@@ -1639,7 +1639,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-      character (len=128) :: err_msg
+      character (len=512) :: err_msg
       integer             :: ierr
       integer             :: varid
 !
