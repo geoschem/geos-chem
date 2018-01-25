@@ -149,6 +149,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
       INTEGER                                  :: IOS
       CHARACTER(LEN=40)                        :: FTI
       CHARACTER(LEN=80)                        :: TMP_TITLE
@@ -202,6 +203,7 @@
       ! Copy value of TMP_TITLE to TITLE for return 
       IF ( PRESENT( TITLE ) ) TITLE = TMP_TITLE
 
+#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_READ
 !EOC
@@ -251,6 +253,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+
       INTEGER           :: IOS
       CHARACTER(LEN=80) :: TMP_TITLE
 
@@ -280,6 +284,7 @@
       ! Write the top-of-file title to disk
       CALL BPCH2_HDR( IUNIT, TMP_TITLE )
 
+#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_WRITE
 !EOC
@@ -324,6 +329,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+
       INTEGER                       :: IOS
       CHARACTER(LEN=40)             :: FTI = 'CTM bin 02'
 
@@ -338,6 +345,8 @@
 
       WRITE ( IUNIT, IOSTAT=IOS ) TITLE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'bpch2_hdr:2' )
+
+#endif
 
       ! Return to calling program    
       END SUBROUTINE BPCH2_HDR
@@ -401,6 +410,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -443,6 +453,7 @@
       !=================================================================
       ! Return to calling program      
       !=================================================================
+#endif
       END SUBROUTINE BPCH2
 !EOC
 !------------------------------------------------------------------------------
@@ -521,6 +532,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -663,9 +675,10 @@
       !=================================================================
       CLOSE( IU_FILE )
 
+#endif
+
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

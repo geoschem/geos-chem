@@ -898,9 +898,11 @@
      &      JFIRST,  JLAST,    NG,      MG,      nAdvect, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
-     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24x,   ND25x,   
-     &      ND26x                                         ) 
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS,
+#if defined( BPCH_DIAG )
+     &      p_MFLEW, p_MFLNS,  p_MFLUP,
+#endif
+     &      p_A_M2,  ND24x,    ND25x,   ND26x                    ) 
 
       ! Free pointer memory
       p_UWND   => NULL()  

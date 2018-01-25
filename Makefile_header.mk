@@ -434,50 +434,35 @@ ifndef BPCH_DIAG
   BPCH_DIAG          :=yes
 endif
 
+# %%%%% Always use bpch I/O for TPCORE BC's (for nested grids) %%%%%
+# %%%%% Bpch I/O will eventually be disabled                   %%%%%
+ifndef BPCH_TPBC
+  BPCH_TPBC          :=yes
+endif
+
 # %%%%% Never use netCDF diagnostics unless explicitly specified %%%%%
 # %%%%% netCDF diagnostics will eventually become the default    %%%%%
 ifndef NC_DIAG
   NC_DIAG            :=no
 endif
 
-# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
+# %%%%% BPCH_DIAG (for using old BPCH diagnostic output) %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DBPCH_DIAG
-  IS_BPCH_DIAG       :=1
+endif
+
+## %%%%% BPCH_TPBC (for using BPCH I/O for nested-grid TPCORE BC's %%%%%
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DBPCH_TPBC
 endif
 
 # %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNC_DIAG
-  IS_NC_DIAG         :=1
 endif
-
-# %%%%% Test if bpch diagnostics are activated %%%%%
-REGEXP               :=-DBPCH_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_BPCH_DIAG       :=1
-else
-  IS_BPCH_DIAG       :=0
-endif
-
-# %%%%% Test if netCDF diagnostics are activated %%%%%
-REGEXP               :=-DNC_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_NC_DIAG         :=1
-else
-  IS_NC_DIAG         :=0
-endif
-
-# Disable for testing (bmy, 7/14/17)
-## %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-## %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-#ifeq ($(IS_BPCH_DIAG),1)
-#  ifeq ($(IS_NC_DIAG),1)
-#    $(error $(ERR_DIAG))
-#  endif
-#endif 
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -668,11 +653,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0625
+      USER_DEFS      += -DBPCH_TPBC -DGRID05x0625 
     endif
   endif
 
@@ -687,11 +674,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID025x03125
+      USER_DEFS      += -DBPCH_TPBC -DGRID025x03125
     endif
   endif
 
@@ -1551,7 +1540,5 @@ export TIMERS
 #	@@echo "NC_INC_CMD      : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD     : $(NC_LINK_CMD)"
 #	@@echo "NC_DIAG         : $(NC_DIAG)"
-#	@@echo "IS_NC_DIAG      : $(IS_NC_DIAG)"	
 #	@@echo "BPCH_DIAG       : $(BPCH_DIAG)"
-#	@@echo "IS_BPCH_DIAG    : $(IS_BPCH_DIAG)"
 #	@@echo "NO_REDUCED      : $(NO_REDUCED)"
