@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Mon Nov 27 13:27:09 2017
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Thu Jan 25 09:55:19 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.v11-02/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -570,9 +570,9 @@ SUBROUTINE Update_RCONST ( )
   RCONST(85) = (GCARR(6.00E-12,0.0E+00,410.0))
   RCONST(86) = (GCJPLPR(9.00E-28,8.9E+00,0.0,7.7E-12,0.2,0.0,0.6,0.0,0.0))
   RCONST(87) = (GCJPLEQ(9.00E-29,0.0E+00,14000.0,9.00E-28,8.9E0,0.0,7.7E-12,0.2,0.,0.6,0.,0.))
-  RCONST(88) = (GCJPLPR(1.21E-11,1.1E+00,0.0,7.7E-12,0.2,0.0,0.6,0.0,0.0))
+  RCONST(88) = (GCJPLPR(9.00E-28,8.9E+00,0.0,7.7E-12,0.2,0.0,0.6,0.0,0.0))
   RCONST(89) = (GCJPLPR(9.00E-28,8.9E+00,0.0,7.7E-12,0.2,0.0,0.6,0.0,0.0))
-  RCONST(90) = (GCJPLEQ(1.60E+16,0.0E+00,-13486.0,9.00E-28,8.9E0,0.0,7.7E-12,0.2,0.,0.6,0.,0.))
+  RCONST(90) = (GCJPLEQ(9.00E-29,0.0E+00,14000.0,9.00E-28,8.9E0,0.0,7.7E-12,0.2,0.,0.6,0.,0.))
   RCONST(91) = (GCJPLEQ(9.00E-29,0.0E+00,14000.0,9.00E-28,8.9E0,0.0,7.7E-12,0.2,0.,0.6,0.,0.))
   RCONST(92) = (GCARR(6.70E-12,0.0E+00,340.0))
   RCONST(93) = (GCARR(6.70E-12,0.0E+00,340.0))
