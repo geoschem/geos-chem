@@ -209,7 +209,7 @@
 
          ! Pre-save the molecuar weight of HgP [s]
          IF ( id_HgP > 0 ) THEN
-            EmMW_g_HgP = State_Chm%SpcData(id_Hg2)%Info%EmMW_g
+            EmMW_g_HgP = State_Chm%SpcData(id_HgP)%Info%EmMW_g
          ENDIF
 
          ! Are certain diagnostics turned on?
@@ -276,7 +276,7 @@
                !--------------------------------------------------------
                ! Reactive gaseous mercury (RGM), [pptv]
                !--------------------------------------------------------
-               IF ( id_Hg2 > 0 ) THEN
+               IF ( N == id_Hg2 ) THEN
                   AD03_RGM(I,J,L) = AD03_RGM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_Hg2)
      &                            * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
@@ -285,7 +285,7 @@
                !--------------------------------------------------------
                ! Reactive particulate mercury (RGM), [pptv]
                !--------------------------------------------------------
-               IF ( id_HgP > 0 ) THEN
+               IF ( N == id_HgP ) THEN
                   AD03_PBM(I,J,L) = AD03_PBM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_HgP)
      &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
