@@ -84,39 +84,50 @@ CONTAINS
 !BOC
 
     ! Write separator
-    WRITE( 6, '(/,a,/,"!!")' ) REPEAT( '!', 79 )
+    WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
     
     ! Write error message
-    WRITE( 6,'("!! ",a)' ) TRIM( err_msg )
+    WRITE( 6,'(a)' ) TRIM( err_msg )
 
     ! Write error codes
     IF ( err_num_ints == 1 ) THEN
-       WRITE( 6,'("!! ", i10)'   ) err_int1
+       WRITE( 6,'(i10)'   ) err_int1
     ELSE IF ( err_num_ints == 2 ) then
-       WRITE( 6, '("!! ", 2i10)' ) err_int1, err_int2
-    END IF
+       WRITE( 6, '(2i10)' ) err_int1, err_int2
+    ENDIF
 
     IF ( err_num_reals == 1 ) THEN
-       WRITE( 6, '("!! ", f13.6  )' ) err_real1
+       WRITE( 6, '(f13.6  )' ) err_real1
     ELSE IF ( err_num_reals == 2 ) THEN
-       WRITE( 6, '("!! ", 2f13.6 )' ) err_real1, err_real2
-    END IF
+       WRITE( 6, '(2f13.6 )' ) err_real1, err_real2
+    ENDIF
 
     ! Write separator
-    WRITE( 6, '("!!",/,a,/"!!")' ) REPEAT( '!', 79 )
+    WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
 
     ! Flush the buffer
     CALL Flush( 6 )
 
     ! Stop with error (if requested)
     ! NOTE: We should pass back the error code to the main routine
-    IF ( err_do_stop ) THEN
-       WRITE( 6, 100 )
- 100   FORMAT( '!! Code stopped from DO_ERR_OUT (in module NcdfUtil/m_do_err_out.F90' )
-       WRITE( 6, '("!!",/,a)' ) REPEAT( '!', 79 )
-       CALL Flush(6)
-       CALL EXIT( 999 )
-    END IF
+    IF ( err_do_stop ) THEN 
+        WRITE( 6, '(a,/)' ) 'Code stopped from DO_ERR_OUT '               // &
+                            '(in module NcdfUtil/m_do_err_out.F90) '
+        WRITE( 6, '(a)'   ) 'This is an error that was encountered '      // &
+                            'in one of the netCDF I/O modules,'
+        WRITE( 6, '(a)'   ) 'which indicates an error in writing to '     // &
+                            'or reading from a netCDF file!'
+
+        ! Write separator
+        WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
+
+        ! Flush stdout buffer
+        CALL Flush( 6 )
+
+        ! NOTE: Should not exit but pass error code up
+        ! work on this for a future version
+        CALL Exit( 999 )
+    ENDIF
 
     RETURN
 
