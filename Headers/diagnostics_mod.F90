@@ -41,6 +41,15 @@ MODULE Diagnostics_Mod
   PRIVATE :: Init_DiagItem
   PRIVATE :: InsertBeginning_DiagList
   PRIVATE :: Search_DiagList
+
+  ! Private collection list in Init_DiagList
+  ! Make public for more widespread use?
+  PRIVATE :: Init_ColItem
+  PRIVATE :: Set_ColItem
+  PRIVATE :: InsertBeginning_ColList
+  PRIVATE :: Search_ColList
+  PRIVATE :: Print_ColList
+  PRIVATE :: Cleanup_ColList
 !
 ! !PUBLIC DATA TYPES:
 !
@@ -63,6 +72,7 @@ MODULE Diagnostics_Mod
      CHARACTER(LEN=7)       :: wildcard
      LOGICAL                :: isTagged
      CHARACTER(LEN=63)      :: tag
+     ! could also add a list of collections this diagnostic is part of
      TYPE(DgnItem), POINTER :: next
   END TYPE DgnItem
 
@@ -71,10 +81,35 @@ MODULE Diagnostics_Mod
   !=========================================================================
   CHARACTER(LEN=5), PUBLIC :: RadWL(3)    ! Wavelengths configured in rad menu
   LOGICAL,          PUBLIC :: IsFullChem  ! Is this a fullchem simulation?
+! 
+! !PRIVATE DATA TYPES:
+! 
+  !=========================================================================
+  ! Derived type for Collections List
+  !=========================================================================
+  TYPE, PRIVATE :: ColList
+     TYPE(ColItem), POINTER  :: head
+  END TYPE ColList
+
+  !=========================================================================
+  ! Derived type for Collections Item (uncommented in HISTORY.rc)
+  !=========================================================================
+  TYPE, PRIVATE :: ColItem
+     CHARACTER(LEN=63)      :: cname 
+     CHARACTER(LEN=63)      :: ctemplate
+     CHARACTER(LEN=63)      :: cformat 
+     CHARACTER(LEN=63)      :: cfrequency 
+     CHARACTER(LEN=63)      :: cduration
+     CHARACTER(LEN=63)      :: cmode
+     ! Could add more based on what MAPL is capable of
+     TYPE(ColItem), POINTER :: next
+  END TYPE ColItem
+
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
 !  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
+!  25 Jan 2018 - E. Lundgren - Add collection items and linked list
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -126,6 +161,8 @@ CONTAINS
 !  22 Sep 2017 - E. Lundgren - initial version
 !  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
 !  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
+!  26 Jan 2018 - E. Lundgren - Read collection names and skip collection diags
+!                              where HISTORY.rc declared col name commented out
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -139,8 +176,14 @@ CONTAINS
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
     CHARACTER(LEN=255)      :: wildcard, tag, name, state
     CHARACTER(LEN=255)      :: metadataID, registryID, registryIDprefix
+    CHARACTER(LEN=255)      :: collname, ctemplate, cformat, cfrequency
+    CHARACTER(LEN=255)      :: cduration, cmode    
     LOGICAL                 :: EOF, found, isWildcard, isTagged
+    TYPE(ColList)           :: CollList
+
+    ! Pointer
     TYPE(DgnItem),  POINTER :: NewDiagItem
+    TYPE(ColItem),  POINTER :: NewCollItem
 
     !=======================================================================
     ! Init_DiagList begins here
@@ -158,6 +201,13 @@ CONTAINS
 
     ! Create DiagList object
     DiagList%head => NULL()
+
+    ! Create ColList object
+    ! This is a bit messy right. Want to attach this to the history
+    ! object but need to think more about how best to do that.
+    ! Since putting this together requires reading HISTORY.rc it is
+    ! just in Init_DiagList for now.
+    CollList%head  => NULL()
 
     !=======================================================================
     ! Read the input.geos configuration file to find out:
@@ -234,21 +284,117 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+       IF ( Line(1:1) == '#' ) CYCLE
 
-       ! Skip line if GIGCchem not present
-       IF ( INDEX( line, 'GIGCchem' ) .le. 0 ) CYCLE
-    
-       ! Remove commas, spaces, and tabs
-       Line = CleanText( Line )    
+       !====================================================================
+       ! Set collection name list (uncommented names only)
+       !====================================================================
+       IF ( INDEX( Line, 'COLLECTIONS:' ) .gt. 0 ) THEN
 
-       ! Skip if the line is commented out
-       IF ( Line(1:1) == "#"  ) CYCLE
+          ! Get the first collection name; remove commas, apost, and whitespace
+          CALL StrSplit( Line, ":", SubStrs, N )
+          collname = CleanText( SubStrs(2) )
+
+          ! Read through file until end of COLLECTIONS section
+          DO WHILE ( INDEX( Line, '::' ) .le. 0 )
+ 
+             ! Add name to collection list if not commented out
+             IF ( collname(1:1) /= "#"  ) THEN
+                CALL Init_ColItem( am_I_Root, NewCollItem, collname )
+                CALL InsertBeginning_ColList( am_I_Root, NewCollItem, &
+                                              CollList, RC )
+             ENDIF
+
+             ! Read the next line and strip leading/trailing spaces
+             Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+
+             IF ( IOS > 0 .OR. EOF ) THEN
+                ErrMsg = 'Unexpected end-of-file in "'       // &
+                          TRIM( historyConfigFile ) // '" (2)!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Get next collection name
+             collname = CleanText( Line )    
+
+          ENDDO
+          CALL Print_ColList( am_I_Root, CollList, RC )
+          CYCLE
+       ENDIF
+
+       !====================================================================
+       ! Skip collection section if not in collection name list
+       !====================================================================
+       IF ( INDEX( Line, '.template' ) .gt. 0 ) THEN
+
+          ! Check if collection was uncommented in the COLLECTIONS section
+          CALL StrSplit( Line, ".", SubStrs, N )
+          collname = CleanText( SubStrs(1) )
+          CALL Search_ColList( am_I_Root, CollList, collname, Found, RC )
+
+          ! Skip this collection if not found in list
+          IF ( .NOT. Found ) THEN
+             DO WHILE ( INDEX( Line, '::' ) .le. 0 ) 
+                Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                IF ( IOS > 0 .OR. EOF ) THEN
+                   ErrMsg = 'Unexpected end-of-file in "'       // &
+                             TRIM( historyConfigFile ) // '" (4)!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
+                ENDIF
+             ENDDO
+             CYCLE
+          ELSE
+
+             !! Get name
+             !CALL StrSplit( Line, ":", SubStrs, N )
+             !ctemplate = TRIM ( ADJUSTL( SubStrs(2) ) )
+             !
+             !! Read next several lines to set additional metadata
+             !DO WHILE ( INDEX( Line, '::' ) .le. 0 ) 
+             !   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+             !   IF ( IOS > 0 .OR. EOF ) THEN
+             !      ErrMsg = 'Unexpected end-of-file in "'       // &
+             !                TRIM( historyConfigFile ) // '" (3) !'
+             !      CALL GC_Error( ErrMsg, RC, ThisLoc )
+             !      RETURN
+             !   ENDIF
+             !   !CALL StrSplit( Line, ":", SubStrs, N )
+             !   !IF ( INDEX( Line, 'frequency' ) .gt. 0 ) THEN
+             !   !   cfrequency = CleanText( SubStrs(2) )
+             !   !ELSEIF ( INDEX( Line, 'format' ) .gt. 0 ) THEN
+             !   !   cformat    = CleanText( SubStrs(2) )
+             !   !ELSEIF ( INDEX( Line, 'duration' ) .gt. 0 ) THEN
+             !   !   cduration  = CleanText( SubStrs(2) )
+             !   !ELSEIF ( INDEX( Line, 'mode' ) .gt. 0 ) THEN
+             !   !   cmode      = CleanText( SubStrs(2) )
+             !   !ENDIF
+             !ENDDO
+             !!CALL Set_ColItem( am_I_Root, collname, CollList, &
+             !!     ctemplate  = ctemplate,        &
+             !!                  cfrequency = cfrequency,       &
+             !!                  cformat    = cformat,          &
+             !!                  cduration  = cduration,        &
+             !!                  cmode      = cmode,            &
+             !!                  Found      = Found,            &
+             !!                  RC         = RC )
+             !!IF ( RC /= GC_SUCCESS ) THEN
+             !!   ErrMsg = 'Problem setting collection metadata for ' // &
+             !!            TRIM(collname)
+             !!   CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+             !!   RETURN
+             !!ENDIF
+          ENDIF
+       ENDIF
 
        !====================================================================
        ! Add unique diagnostic names to diag list
        !==================================================================== 
+   
        ! Skip line if GIGCchem not present
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
+
        ! Get diagnostic name
        CALL StrSplit( Line, " ", SubStrs, N )
        IF ( INDEX(Line, '.fields') > 0 .AND. N > 1 ) THEN
@@ -259,9 +405,11 @@ CONTAINS
 
        ! Skip if diagnostic name is commented out
        IF ( name(1:1) == '#' ) CYCLE
+
        ! Skip if name is already in diag list
        CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
        IF ( Found ) CYCLE
+
        ! Set GC state
        nameAllCaps = To_Uppercase( TRIM(name) )
        IF ( nameAllCaps(1:4) == 'MET_' ) THEN
@@ -336,11 +484,6 @@ CONTAINS
           I = INDEX( TRIM(metadataID), '_' ) 
           metadataID = metadataID(1:I-1)
        ENDIF
-       ! Skip if already encountered entry with same full name
-       ! TODO: make this into a function that returns true or false
-       ! Have a series of functions that do quality checks too
-       CALL Search_DiagList( am_I_Root, DiagList, name, found, RC )
-       IF ( found ) CYCLE
 
        ! For registryID and metdataID, handle special case of AOD wavelength 
        ! taken from the radiation menu of input.geos
@@ -403,6 +546,9 @@ CONTAINS
     !====================================================================
     CLOSE( fId )
 
+    ! Get rid of collection list since local in this subroutine
+    ! If collections later get stored in diaglist then do not cleanup here!
+    CALL Cleanup_ColList( am_I_Root, CollList, RC )
 
   END SUBROUTINE Init_DiagList
 !EOC
@@ -473,6 +619,197 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Init_ColItem
+!
+! !DESCRIPTION: Initializes a ColItem object, which contains information
+!  about a single GEOS-Chem collection.  Several ColItem objects will be
+!  linked together in the master collections list (ColList).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_ColItem ( am_I_Root, NewCollItem, cname, RC  )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,       INTENT(IN) :: am_I_Root
+    TYPE(ColItem), POINTER    :: NewCollItem
+    CHARACTER(LEN=*)          :: cname
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       OPTIONAL   :: RC
+!
+! !REVISION HISTORY:
+!  25 Jan 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255) :: thisLoc
+
+    ! ================================================================
+    ! Init_ColItem begins here
+    ! ================================================================
+    thisLoc = 'Init_ColItem (diagnostics_mod.F90)'
+
+    ALLOCATE(NewCollItem)
+    NewCollItem%cname      = TRIM(cname)
+    NewCollItem%ctemplate  = ''
+    NewCollItem%cformat    = ''
+    NewCollItem%cfrequency = ''
+    NewCollItem%cduration  = ''
+    NewCollItem%cmode      = ''
+
+  END SUBROUTINE Init_ColItem
+!EOC
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Get_ColItem
+!!
+!! !DESCRIPTION: Gets a pointer to a collection (ColItem) object
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Get_ColItem ( am_I_Root, CollName, CollList, CollItem, Found, RC )
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,          INTENT(IN) :: am_I_Root
+!    CHARACTER(LEN=*), INTENT(IN) :: CollName
+!    TYPE(ColList),    INTENT(IN) :: CollList
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    TYPE(ColItem),    POINTER    :: CollItem
+!    LOGICAL,          OPTIONAL   :: Found
+!    INTEGER,          OPTIONAL   :: RC
+!!
+!! !REVISION HISTORY:
+!!  25 Jan 2018 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    TYPE(ColItem), POINTER :: current
+!    CHARACTER(LEN=255)     :: thisLoc
+!
+!    ! ================================================================
+!    ! Get_ColList begins here
+!    ! ================================================================
+!
+!    ! Initialize
+!    thisLoc = 'Get_ColItem (diagnostics_mod.F90)'
+!    IF ( PRESENT( Found ) ) Found = .FALSE.
+!
+!    ! Search for name in list
+!    current => CollList%head
+!    DO WHILE ( ASSOCIATED( current ) )
+!       IF ( current%cname == CollName ) THEN
+!          IF ( PRESENT( Found ) ) Found = .TRUE.
+!          CollItem = current
+!          EXIT
+!       ENDIF
+!       current => current%next    
+!    ENDDO
+!    current => NULL()
+!
+!  END SUBROUTINE Get_ColItem
+!!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_ColItem
+!
+! !DESCRIPTION: Sets a ColItem object, which contains information
+!  about a single GEOS-Chem collection.  Several ColItem objects will be
+!  linked together in the master collections list (ColList).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_ColItem ( am_I_Root, Collname,   CollList,  ctemplate, &
+                           cformat,   cfrequency, cduration, cmode,     &
+                           Found,     RC  )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(IN) :: am_I_Root
+    CHARACTER(LEN=*)             :: CollName
+    TYPE(ColList)                :: CollList
+    CHARACTER(LEN=*), OPTIONAL   :: ctemplate
+    CHARACTER(LEN=*), OPTIONAL   :: cformat
+    CHARACTER(LEN=*), OPTIONAL   :: cfrequency
+    CHARACTER(LEN=*), OPTIONAL   :: cduration
+    CHARACTER(LEN=*), OPTIONAL   :: cmode
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          OPTIONAL   :: Found
+    INTEGER,          OPTIONAL   :: RC
+!
+! !REVISION HISTORY:
+!  25 Jan 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=255)     :: thisLoc
+    TYPE(ColItem), POINTER :: current
+
+    ! ================================================================
+    ! Set_ColList begins here
+    ! ================================================================
+
+    ! Initialize
+    thisLoc = 'Set_ColItem (diagnostics_mod.F90)'
+    IF ( PRESENT( Found ) ) Found = .FALSE.
+
+    ! Search for name in list
+    current => CollList%head
+    DO WHILE ( ASSOCIATED( current ) )
+       IF ( current%cname == CollName ) THEN
+          IF ( PRESENT( Found ) ) Found = .TRUE.
+          EXIT
+       ENDIF
+       current => current%next    
+    ENDDO
+
+    ! Exit with error if no collection matches the input name
+    IF ( .NOT. FOUND ) THEN
+       CALL GC_ERROR("Error setting collection item", RC, ThisLoc)
+       RETURN
+    ENDIF
+
+    ! Set the metadata
+    IF ( PRESENT(ctemplate  ) ) current%ctemplate  = TRIM(ctemplate  )
+    IF ( PRESENT(cformat    ) ) current%cformat    = TRIM(cformat    )
+    IF ( PRESENT(cfrequency ) ) current%cfrequency = TRIM(cfrequency )
+    IF ( PRESENT(cduration  ) ) current%cduration  = TRIM(cduration  )
+    IF ( PRESENT(cmode      ) ) current%cmode      = TRIM(cmode      )
+
+    ! Null pointer
+    current => NULL()
+
+  END SUBROUTINE Set_ColItem
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: InsertBeginning_DiagList 
 !
 ! !DESCRIPTION: Inserts a new node at the beginning of the DiagList linked
@@ -526,6 +863,59 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: InsertBeginning_ColList 
+!
+! !DESCRIPTION: Inserts a new node at the beginning of the ColList linked
+!  list object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InsertBeginning_ColList ( am_I_Root, CollItem, CollList, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN)    :: am_I_Root
+    TYPE(ColItem),   POINTER       :: CollItem
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ColList),   INTENT(INOUT) :: CollList
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT)   :: RC
+!
+! !REVISION HISTORY:
+!  25 Jan 2018 - E. Lundgren - initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ColItem),  POINTER :: NewCollItem
+    CHARACTER(LEN=255)      :: thisLoc
+
+    ! ================================================================
+    ! InsertBeginning_ColList begins here
+    ! ================================================================
+    thisLoc = 'InsertBeginning_ColList (diagnostics_mod.F90)'
+
+    ! Add new object to the beginning of the linked list
+    CollItem%next => CollList%head
+    CollList%head => CollItem
+
+  END SUBROUTINE InsertBeginning_ColList
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Search_DiagList
 !
 ! !DESCRIPTION: Searches for a given diagnostic name within the DiagList
@@ -565,8 +955,9 @@ CONTAINS
     ! Search for name in list
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
-       IF ( current%name == name ) THEN
+       IF ( TRIM(current%name) == TRIM(name) ) THEN
           found = .TRUE.
+          current=> NULL()
           EXIT
        ENDIF
        current => current%next    
@@ -574,6 +965,60 @@ CONTAINS
     current => NULL()
 
   END SUBROUTINE Search_DiagList
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Search_ColList
+!
+! !DESCRIPTION: Searches for a given collection name within the ColList
+!  collection list object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Search_ColList ( am_I_Root, CollList, name, found, RC )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN) :: am_I_Root
+    TYPE(ColList),     INTENT(IN) :: CollList
+    CHARACTER(LEN=*),  INTENT(IN) :: name
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(OUT) :: found
+    INTEGER,           INTENT(OUT) :: RC 
+!
+! !REVISION HISTORY:
+!  25 Jan 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ColItem), POINTER :: current
+    CHARACTER(LEN=255)     :: thisLoc
+
+    ! Initialize
+    thisLoc = 'Search_ColList (diagnostics_mod.F90)'
+    found = .FALSE.
+
+    ! Search for name in list
+    current => CollList%head
+    DO WHILE ( ASSOCIATED( current ) )
+       IF ( TRIM(current%cname) == TRIM(name) ) THEN
+          found = .TRUE.
+          EXIT
+       ENDIF
+       current => current%next    
+    ENDDO
+    current => NULL()
+
+  END SUBROUTINE Search_ColList
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -716,12 +1161,78 @@ CONTAINS
 
     ! cleanup
     current => NULL()
-    IF ( am_I_Root ) THEN
-       PRINT *, "===================="
-       PRINT *, " "
-    ENDIF
+    IF ( am_I_Root ) PRINT *, " "
 
   END SUBROUTINE Print_DiagList
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_ColList 
+!
+! !DESCRIPTION: Subroutine Print_ColList prints information for all
+!  ColItem members in a ColList linked list.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_ColList( am_I_Root, CollList, RC )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+    TYPE(ColList),     INTENT(IN)    :: CollList
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(INOUT) :: RC            ! Success?
+!
+! !REVISION HISTORY:
+!  25 Jan 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ColItem), POINTER :: current
+    CHARACTER(LEN=255)     :: thisLoc
+
+    ! ================================================================
+    ! Print_ColList begins here (come back to replace with write instead)
+    ! ================================================================
+    thisLoc = 'Print_ColList (diagnostics_mod.F90)'
+    current => CollList%head
+
+    IF ( am_I_Root ) THEN
+       PRINT *, " "
+       PRINT *, "======================"
+       PRINT *, "Contents of  CollList"
+       PRINT *, " "
+    ENDIF
+    DO WHILE ( ASSOCIATED( current ) )
+
+       ! Print info
+       IF ( am_I_Root ) THEN
+          PRINT *, TRIM(current%cname)
+          !PRINT *, "   template:  ", TRIM(current%ctemplate)
+          !PRINT *, "   format:    ", TRIM(current%cformat)
+          !PRINT *, "   frequency: ", TRIM(current%cfrequency)
+          !PRINT *, "   duration:  ", TRIM(current%cduration)
+          !PRINT *, "   mode:      ", TRIM(current%cmode)
+       ENDIF
+          
+       ! Set up for next item
+       current => current%next    
+    ENDDO
+
+    ! cleanup
+    current => NULL()
+    IF ( am_I_Root ) PRINT *, " "
+
+  END SUBROUTINE Print_ColList
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -784,5 +1295,67 @@ CONTAINS
     next    => NULL()
 
   END SUBROUTINE Cleanup_DiagList
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Cleanup_ColList 
+!
+! !DESCRIPTION: Subroutine Cleanup_ColList deallocates a ColList
+!  object and all of its member objects including the linked list of
+!  ColItem objects.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Cleanup_ColList ( am_I_Root, CollList, RC )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root     ! root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ColList),     INTENT(INOUT) :: CollList
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC            ! Success?
+!
+! !REVISION HISTORY:
+!  21 Sep 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ColItem), POINTER :: current
+    TYPE(ColItem), POINTER :: next
+    CHARACTER(LEN=255)     :: thisLoc
+
+    ! ================================================================
+    ! Cleanup_ColList begins here
+    ! ================================================================
+    thisLoc = 'Cleanup_ColList (diagnostics_mod.F90)'
+
+    ! Deallocate each item in the linked list of collection objects
+    current => CollList%head
+    IF ( ASSOCIATED( current ) ) next => current%next
+    DO WHILE ( ASSOCIATED( current ) )
+       DEALLOCATE( current, STAT=RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       IF ( .NOT. ASSOCIATED ( next ) ) EXIT
+       current => next
+       next => current%next
+    ENDDO
+
+    ! Final cleanup
+    current => NULL()
+    next    => NULL()
+
+  END SUBROUTINE Cleanup_ColList
 !EOC
 END MODULE Diagnostics_Mod
