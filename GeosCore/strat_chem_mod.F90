@@ -2233,32 +2233,13 @@ CONTAINS
     DO J = J30S, J30N 
        DO I = 1,    IIPAR
 
-          !==============================================================
-          ! L70mb is the 1st layer where pressure is equal to
-          ! or smaller than 70 mb 
-          !==============================================================
-
-          !--------------------------------------------------------------
-          ! Comment out for now (bmy, 10/2/07)
-          ! replace L70mb with Tropopause pressure if the later is 
-          ! lower -PHS #### still Beta testing ####
-          !IF ( Input_Opt%LVARTROP ) THEN
-          !   PTP = State_Met%TROPP(I,J)
-          !   IF ( PTP < P70mb ) THEN
-          !      P70mb = PTP
-          !      !#### TESTING ####
-          !      write(6,*)'#### RAISED bottom of O3 release region'
-          !      write(6,*)'at ', i, j
-          !      first=.true.
-          !   ENDIF
-          !ENDIF
-          !--------------------------------------------------------------
-
           DO L = 1, LLPAR
 
              ! P2 = pressure [hPa] at the sigma center of level L70mb
              P2 = State_Met%PMID(I,J,L) 
 
+             ! L70mb is the 1st layer where pressure is equal to
+             ! or smaller than 70 mb 
              IF ( P2 < P70mb ) THEN
                 L70mb = L
                 EXIT

@@ -99,7 +99,7 @@
       !=================================================================
       ! Diagnostic counters & time variables
       !=================================================================
-      INTEGER :: KDA48, NJDAY(366)
+      INTEGER :: KDA48
 
       !=================================================================
       ! Variables for the number of levels in multi-level diagnostics  

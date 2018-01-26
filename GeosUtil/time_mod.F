@@ -3510,12 +3510,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
+      FUNCTION ITS_TIME_FOR_BPCH( Input_Opt ) RESULT( DO_BPCH )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD  ! NJDAY
-      USE CMN_SIZE_MOD  ! Size parameters
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -3547,9 +3550,9 @@
       ! Look up appropriate value of NJDAY array.  We may need to add a
       ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
       IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
-         THIS_NJDAY = NJDAY( DOY + 1 ) 
+         THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 ) 
       ELSE
-         THIS_NJDAY = NJDAY( DOY )
+         THIS_NJDAY = Input_Opt%NJDAY( DOY )
       ENDIF
 
       ! Test if this is the day & time to write to the BPCH file!

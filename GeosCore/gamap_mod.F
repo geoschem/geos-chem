@@ -7584,7 +7584,12 @@
       IF ( ND72 > 0 .or. DO_TIMESERIES ) THEN
 
          ! Number of tracers
-         NTRAC(72) = (NSPECRADMENU+1)*PD72R
+         IF ( Input_Opt%LUCX ) THEN
+            NTRAC(72) = (NSPECRADMENU+1)*PD72R
+         ELSE
+            ! Skip strat aer
+            NTRAC(72) = (NSPECRADMENU)*PD72R
+         ENDIF
 
          ! Loop over tracers
          DO T = 1, NTRAC(72)
@@ -7594,8 +7599,15 @@
             MOLC (T,72) = 1
             MWT  (T,72) = 0e0
             SCALE(T,72) = 1e0
+
             !get number of current flux type
-            T0 = ((T-1)/(NSPECRADMENU+1))+1
+            IF ( Input_Opt%LUCX ) THEN
+               T0 = ((T-1)/(NSPECRADMENU+1))+1
+            ELSE
+               ! Skip strat aer
+               T0 = ((T-1)/(NSPECRADMENU))+1
+            ENDIF
+
             SELECT CASE( T0 )
                CASE( 1  )
                   NAME0       = 'FSW'
@@ -7668,7 +7680,13 @@
             END SELECT
 
             ! Get name long-name (and sometimes, unit)
-            T1=MOD((T-1),(NSPECRADMENU+1))+1
+            IF ( Input_Opt%LUCX ) THEN
+               T1=MOD((T-1),(NSPECRADMENU+1))+1
+            ELSE
+               ! Skip strat aer
+               T1=MOD((T-1),(NSPECRADMENU))+1
+            ENDIF
+
             SELECT CASE( T1 )
                CASE( 1  )
                   NAME (T,72) = TRIM(NAME0) // 'BA' // TRIM(NAME1)
@@ -7719,7 +7737,6 @@
                   FNAME(T,72) = 'Strat aer ' // TRIM(FNAME0)
                   UNIT (T,72) = 'W/m2'
                END SELECT
-
 
           ENDDO
       ENDIF

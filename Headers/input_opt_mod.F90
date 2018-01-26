@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -64,7 +63,6 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: RES_DIR
      CHARACTER(LEN=255)          :: GEOS_FP_DIR        
      CHARACTER(LEN=255)          :: MERRA2_DIR          
-     CHARACTER(LEN=255)          :: DATA_DIR_1x1       
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
      INTEGER                     :: NESTED_I0          
@@ -754,7 +752,6 @@ CONTAINS
     Input_Opt%RES_DIR                = './'
     Input_Opt%GEOS_FP_DIR            = './'
     Input_Opt%MERRA2_DIR             = './'
-    Input_Opt%DATA_DIR_1x1           = './'      ! NOTE: Now deprecated!
     Input_Opt%LCAPTROP               = .FALSE.
     Input_Opt%OZONOPAUSE             = -999.0 
     Input_Opt%NESTED_I0              = 0

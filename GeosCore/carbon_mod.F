@@ -7656,7 +7656,6 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
-      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
 #endif

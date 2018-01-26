@@ -6379,9 +6379,17 @@
       IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
          write(6,*) 'NWVSELECT',NWVSELECT
+
          ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
-         NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
+
+         ! Number of output species plus baseline
+         IF ( Input_Opt%LUCX ) THEN
+            NSPECOUT=NSPECRADMENU+1
+         ELSE
+            NSPECOUT=NSPECRADMENU
+         ENDIF
+
          DO M = 1, TMAX(72)
             N  = TINDEX(72,M)
             

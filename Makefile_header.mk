@@ -494,6 +494,7 @@ REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 # %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
@@ -529,6 +530,7 @@ REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Custom
   IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 # %%%%%  Default setting %%%%%
@@ -541,6 +543,7 @@ endif
 ifeq ($(IS_CHEM_SET),0)
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 #------------------------------------------------------------------------------

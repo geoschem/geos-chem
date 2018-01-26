@@ -249,12 +249,12 @@
       INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
       INTEGER, PARAMETER :: NALBD   = 2
       INTEGER, PARAMETER :: NEMISS  = 16
+      INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
 
-      ! Now set the following in Init_CMN_FJX below (mps, 1/3/8)
+      ! Now set the following in Init_CMN_FJX below (mps, 1/3/18)
       INTEGER            :: NSPAA            !number of species in LUT
       INTEGER            :: NASPECRAD        !aerosol species in RT
       INTEGER            :: NSPECRAD         !aerosol+gas species in RT
-      INTEGER            :: NSPECRADMENU     !number of choices for RT flux
 
       ! New optical arrays
       REAL*8, ALLOCATABLE :: WVAA(:,:)
@@ -289,8 +289,8 @@
       REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
       REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
       CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
-      INTEGER, ALLOCATABLE :: LSPECRADMENU(:) !indices for number of species on
-                                              !input menu 
+      INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species
+                                                ! on input menu 
       INTEGER, ALLOCATABLE :: SPECMASK(:) !list of binary switches for different
                                           !species flux output
 
@@ -376,7 +376,6 @@
          NSPAA        = 8   ! number of species in LUT
          NASPECRAD    = 16  ! aerosol species in RT
          NSPECRAD     = 18  ! aerosol+gas species in RT
-         NSPECRADMENU = 11  ! number of choices for RT flux
       ELSE
          AN_          = 35  ! # of separate aerosols per layer
          W_           = 12  ! # of wavelength bins 
@@ -385,7 +384,6 @@
          NSPAA        = 6   ! number of species in LUT
          NASPECRAD    = 14  ! aerosol species in RT
          NSPECRAD     = 16  ! aerosol+gas species in RT
-         NSPECRADMENU = 10  ! number of choices for RT flux
       ENDIF
 
       !-----------------------------------------------------------------------
@@ -472,10 +470,6 @@
       ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PHAA = 0d0
-
-      ALLOCATE( LSPECRADMENU(NSPECRADMENU), STAT=RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      LSPECRADMENU = 0
 
       ALLOCATE( SPECMASK(NSPECRAD), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN

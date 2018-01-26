@@ -43,7 +43,6 @@
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
-      USE REGRID_A2A_MOD        ! For horizontal regridding
       USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
       USE State_Diag_Mod        ! Derived type for Diagnostics State object
@@ -314,37 +313,24 @@
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
       CHARACTER(LEN=255)       :: historyConfigFile
+
+#if defined( RRTMG )
       ! Set cloud flag for RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
-      INTEGER                  :: RR
+      INTEGER                  :: RADSPEC
+#endif
 
       ! Arrays
       INTEGER                  :: DATE(2)
 
       ! Derived type objects
       TYPE(MapWeight), POINTER :: mapping(:,:)
-
-      !-----------------------------------------------------------------
-      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
-      !
-      ! We must declare the Chemistry State (State_Chm), Meteorology
-      ! State (State_Met), and Input Options (Input_Opt) objects
-      ! for use with the GEOS-Chem High Performance code. 
-      !
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
       TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
-      !
-      ! Also define NI, NJ, NL for more consistent naming w/r/t the 
-      ! ESMF interface.  Initialize these from IIPAR, JJPAR, JJPAR
-      ! (bmy, 11/9/12)
-      !
-      INTEGER                  :: NI          ! # of longitudes 
-      INTEGER                  :: NJ          ! # of latitudes
-      INTEGER                  :: NL          ! # of levels
-      !
+
       ! When connecting G-C to an external GCM, we need to only write 
       ! to stdout if we are on the root CPU.  Otherwise this will slow
       ! down the code.  This is why we introduced the am_I_Root logical
@@ -358,9 +344,8 @@
       ! down to all of the lower-level routines.  The main.F routine
       ! is not called when connecting G-C to an external GCM.
       ! (mlong, bmy, 7/30/12)
-      !
       LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
-      !
+
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
       LOGICAL                  :: ITS_A_CH4_SIM
@@ -412,29 +397,16 @@
       CALL FLUSH(6)
 #endif
 
-      !-----------------------------------------------------------------
-      ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
-      !
-      !
       ! Assume a successful return until otherwise
-      !
       RC                      = GC_SUCCESS
-      !
+
       ! For error trapping
-      !
       ErrMsg                  = ''
       ThisLoc                 = 'GEOS-Chem (in GeosCore/main.F)'
-      !
-      ! Define NI, NJ, NL dimensions for use below
-      !
-      NI                      = IIPAR
-      NJ                      = JJPAR
-      NL                      = LLPAR
-      !
+
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
-      !
       Input_Opt%MAX_DIAG      = MAX_DIAG
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
       Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
@@ -443,27 +415,16 @@
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
       Input_Opt%RootCPU       = .TRUE.
-      !
-      ! Call the routine GC_Allocate_All (located in module file
-      ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
-      ! allocatable arrays used by GEOS-Chem, as well as the Input 
-      ! Options object.  The IIPAR and JJPAR dimensions are not 
-      ! declared as PARAMETERs, but are module variables that are 
-      ! initialized in this call.
-      !
-      CALL GC_Allocate_All( am_I_root, Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) GOTO 9999
-      !-----------------------------------------------------------------
-      
+
+      ! Initialize pointers
+      mapping => NULL()
+
       ! Display current grid resolution and data set type
       CALL DISPLAY_GRID_AND_MODEL
 
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
       !=================================================================
-
-      ! Initialize pointers
-      mapping => NULL()
 
 #if defined( USE_TIMERS )
       ! Call timer initilization
@@ -501,17 +462,28 @@
       CALL GEOS_Timer_Start( "Initialization",     RC )
 #endif
 
-      ! Read input file and call init routines from other modules
+      ! Initialize fields of the Input Options object
+      CALL Set_Input_Opt( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered within call to "Set_Input_Opt"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+      ! Read GEOS-Chem input file at very beginning of simulation
       CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Read_Input_File"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Initialize the regridding module by storing shadow copies
-      CALL Initialize_Regridding( am_I_Root, Input_Opt, RC )
+      ! Call the routine GC_Allocate_All (located in module file
+      ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
+      ! allocatable arrays used by GEOS-Chem.  The IIPAR and JJPAR
+      ! dimensions are not declared as PARAMETERs, but are module
+      ! variables that are initialized in this call.
+      CALL GC_Allocate_All( am_I_root, Input_Opt, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Initialize_Regridding"!'
+         ErrMsg = 'Error encountered in "GC_Allocate_All"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
@@ -591,14 +563,21 @@
       !### Print diagnostic list if needed for debugging 
       CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
-      ! Initialize Input_Opt, State_Chm, State_Diag, State_Met objects
-      CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
+      ! Initialize State_Met, State_Chm, and State_Diag objects
+      CALL GC_Init_StateObj( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Init_All!"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-      !
+
+      ! Initialize GEOS-Chem horizontal grid structure
+      CALL GC_Init_Grid( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error in "GC_Init_Grid"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
       ! SULFATE_MOD).  This removes the init calls from the run stage,
@@ -611,7 +590,13 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      !
+      ! Initialize the regridding module by storing shadow copies
+      CALL GC_Init_Regridding( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Initialize_Regridding"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
@@ -622,7 +607,7 @@
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
       id_H2O   = Ind_('H2O'  ,'A')
-      !
+
       !-----------------------------------------------------------------
 
 #if   defined( RRTMG )
@@ -884,9 +869,7 @@
 
 !-----------------------------------------------------------------------------
 
-      !=================================================================
-      !      ***** INITIALIZE GEOS-CHEM DIAGNOSTICS AND RESTARTS ***** 
-      !=================================================================      
+      ! Initialize GEOS-CHEM restarts
       CALL INIT_GC_RESTART( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if defined( USE_TIMERS )
@@ -1002,7 +985,7 @@
          CALL GEOS_Timer_End( "HEMCO", RC )
 #endif
          ! Original diagnostics
-         IF ( ITS_TIME_FOR_BPCH() ) THEN
+         IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
             ! Set time at end of diagnostic timestep
             CALL SET_DIAGe( TAU )
@@ -1086,7 +1069,7 @@
          ! Make land restart file: for GTMM runs only, beginning of each 
          ! month but not start of the run.
          IF ( LGTMM .AND. ITS_A_NEW_MONTH() .AND. NYMD /= NYMDb ) THEN
-            IF (.NOT.( ITS_TIME_FOR_BPCH() )) THEN
+            IF (.NOT.( ITS_TIME_FOR_BPCH( Input_Opt ) )) THEN
 
                ! Get the species ID (NNN) from the wetdep ID (N)
                N   = 1
@@ -1700,6 +1683,13 @@
                ENDIF
 
                !Second call with aerosols or ozone if requested
+               IF ( Input_Opt%LUCX ) THEN
+                  RADSPEC = NSPECRADMENU
+               ELSE
+                  ! Skip strat aer
+                  RADSPEC = NSPECRADMENU - 1
+               ENDIF
+
                DO N = 1, NSPECRADMENU
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
@@ -2634,86 +2624,6 @@
       ENDIF
 
       END SUBROUTINE GET_OVERHEAD_O3_FOR_FASTJ
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: initialize_regridding
-!
-! !DESCRIPTION: Internal subroutine Initialize\_Regridding passes several
-!  variables to regrid\_a2a\_mod.F90, where they are locally shadowed.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Initialize_Regridding( am_I_Root, Input_Opt, RC )
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-! 
-! !REMARKS:
-!  This routine is a wrapper for Init_Map_A2A in regrid_a2a_mod.F90.  
-!  Passing variables via Init_Map_A2A helps us to remove dependencies on
-!  other GEOS-Chem routines from regrid_a2a_mod.F90.  This in turn 
-!  facilitates the implementation of the HEMCO emissions package.
-!
-! !REVISION HISTORY: 
-!  15 Jul 2014 - R. Yantosca - Initial version
-!  05 Mar 2015 - R. Yantosca - Now read data w/r/t ExtData/HEMCO
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!     
-      ! Scalars
-      INTEGER            :: I, J
-      CHARACTER(LEN=255) :: DIR
-
-      ! Arrays
-      REAL(fpp)          :: LONEDG(IIPAR+1       )  ! W longitude edges [deg]
-      REAL(fpp)          :: LATSIN(       JJPAR+1)  ! SIN(Lat edges)    [1  ]
-      REAL(fpp)          :: AREAS (IIPAR, JJPAR  )  ! Surface Areas     [m2 ]
-
-      !================================================================
-      ! Initialize_Regridding begins here!
-      !================================================================
-
-      ! Assume success
-      RC  = GC_SUCCESS
-
-      ! Directory where netCDF ifles are found
-      DIR = TRIM( Input_Opt%DATA_DIR ) // 'HEMCO/MAP_A2A/v2014-07/'
-
-      ! Initialize longitudes [deg]
-      DO I = 1, IIPAR+1
-         LONEDG(I) = GET_XEDGE( I, 1, 1 )
-      ENDDO
-
-      ! Initialize sines of latitude [1]
-      DO J = 1, JJPAR+1
-         LATSIN(J) = GET_YSIN( 1, J, 1 )
-      ENDDO
-
-      ! Initialize surface areas [m2]
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         AREAS(I,J) = GET_AREA_M2( I, J, 1 )
-      ENDDO
-      ENDDO
-
-      ! Pass to regrid_a2a_mod.F90, where these will be shadowed locally
-      CALL Init_Map_A2A( IIPAR, JJPAR, LONEDG, LATSIN, AREAS, DIR )
-      
-      END SUBROUTINE Initialize_Regridding
 !EOC
       END PROGRAM GEOS_CHEM
 #endif
