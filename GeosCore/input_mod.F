@@ -1112,7 +1112,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, TS_DYN, TS_CHEM
+      INTEGER            :: N
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1136,7 +1136,8 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) TS_DYN
+      READ( SUBSTRS(1:N), * ) Input_Opt%TS_DYN
+      Input_Opt%TS_CONV = Input_Opt%TS_DYN
 
       ! Chemistry/emissions timestep
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TS_CHEM', RC )
@@ -1144,7 +1145,8 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) TS_CHEM
+      READ( SUBSTRS(1:N), * ) Input_Opt%TS_CHEM
+      Input_Opt%TS_EMIS = Input_Opt%TS_CHEM
 
       ! Separator line                          
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
@@ -1152,36 +1154,6 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! In an ESMF environment, all time steps must become defined 
-      ! externally previous to the READ_INPUT_FILE call!
-      ! (ckeller, 11/24/14)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Current practice in the standard GEOS-Chem is to initialize 
-      ! the fields Input_Opt%TS_DYN, Input_Opt%TS_CHEM with the values
-      ! read in from input.geos. (bmy, 12/6/12)
-      !
-      ! For the centralizing chemistry timestep modification:
-      !  convection should be done at the same time as dynamics
-      !  emissions  should be done at the same time as chemistry
-      !-----------------------------------------------------------------
-      Input_Opt%TS_DYN  = TS_DYN
-      Input_Opt%TS_CONV = TS_DYN
-      Input_Opt%TS_CHEM = TS_CHEM
-      Input_Opt%TS_EMIS = TS_CHEM
-#endif
 
       !=================================================================
       ! Print to screen
@@ -1217,10 +1189,9 @@
 !
 ! !USES:
 !
-      USE CHARPAK_MOD,   ONLY : ISDIGIT
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput, Set_Input_Opt_Extra
 !
 ! !INPUT PARAMETERS:
 !
@@ -1258,6 +1229,9 @@
 !  28 Jul 2016 - M. Sulprizio- Rename TRACER MENU to ADVECTED SPECIES MENU;
 !                              Remove ID, MW, and member columns from menu
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  26 Jan 2018 - M. Sulprizio- Remove line for setting N_ADVECT and instead
+!                              count the number of advected species listed in
+!                              this menu and set N_ADVECT accordingly
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1265,7 +1239,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N,  T
+      INTEGER            :: N, T
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1302,46 +1276,11 @@
       Input_Opt%ITS_A_TAGCO_SIM        = ( Input_Opt%SIM_TYPE == 7  )
       Input_Opt%ITS_A_C2H6_SIM         = ( Input_Opt%SIM_TYPE == 8  )
       Input_Opt%ITS_A_CH4_SIM          = ( Input_Opt%SIM_TYPE == 9  )
-      Input_Opt%ITS_NOT_COPARAM_OR_CH4 = ( Input_Opt%SIM_TYPE /= 9  )
       Input_Opt%ITS_AN_AEROSOL_SIM     = ( Input_Opt%SIM_TYPE == 10 )
       Input_Opt%ITS_A_MERCURY_SIM      = ( Input_Opt%SIM_TYPE == 11 )
       Input_Opt%ITS_A_CO2_SIM          = ( Input_Opt%SIM_TYPE == 12 )
       Input_Opt%ITS_A_H2HD_SIM         = ( Input_Opt%SIM_TYPE == 13 )
       Input_Opt%ITS_A_POPS_SIM         = ( Input_Opt%SIM_TYPE == 14 )
-
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to FALSE, which will skip
-      ! reading/allocating T_FULLGRID and AIRDEN_FULLGRID arrays.
-      ! These are only needed for the offline "specialty" simulations
-      ! so that the OH fields can be regridded properly. (bmy, 10/28/13)
-      !-----------------------------------------------------------------
-      Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Set Input_Opt%ITS_A_SPECIALTY_SIM to TRUE if we are performing
-      ! any of the offline (non-full-chemistry) simulations that use
-      ! offline OH fields.  This will cause both the T_FULLGRID and 
-      ! AIRDEN_FULLGRID arrays to be allocated. (bmy, 10/28/13)
-      !-----------------------------------------------------------------
-      Input_Opt%ITS_A_SPECIALTY_SIM    =
-     &     ( Input_Opt%ITS_A_CH3I_SIM      .or.
-     &       Input_Opt%ITS_A_HCN_SIM       .or.
-     &       Input_Opt%ITS_A_TAGO3_SIM     .or.
-     &       Input_Opt%ITS_A_TAGCO_SIM     .or.
-     &       Input_Opt%ITS_A_C2H6_SIM      .or.
-     &       Input_Opt%ITS_A_CH4_SIM       .or.
-     &       Input_Opt%ITS_AN_AEROSOL_SIM  .or.
-     &       Input_Opt%ITS_A_MERCURY_SIM   .or.
-     &       Input_Opt%ITS_A_CO2_SIM       .or.
-     &       Input_Opt%ITS_A_H2HD_SIM      .or.
-     &       Input_Opt%ITS_A_POPS_SIM      .or.
-     &       Input_Opt%ITS_A_RnPbBe_SIM         )
-#endif
 
       ! Also pick a name corresponding to each simulation type
       ! This replaces function GET_SIM_NAME from tracer_mod.F
@@ -1378,18 +1317,6 @@
             Input_Opt%SIM_NAME = 'UNKNOWN'
        END SELECT
 
-      !=================================================================
-      ! Read the # of advected species
-      !=================================================================
-
-      ! Number of advected species
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'N_ADVECT', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%N_ADVECT
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1397,22 +1324,36 @@
          RETURN
       ENDIF
 
-      ! Input_Opt vectors are of length MAX_SPC. Make sure that
-      ! # of advected species does not exceed length of these vectors.
-      IF ( Input_Opt%N_ADVECT > Input_Opt%MAX_SPC ) THEN
-         ErrMsg = 'Error: N_ADVECT > MAX_SPC!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
       !=================================================================
       ! Read advected species name
       !=================================================================
-      DO T = 1, Input_Opt%N_ADVECT
 
-         ! Split line into substrings
+      ! Initialize counter
+      T = 0
+
+      ! Do until exit
+      DO
+
+         ! Read species name
          CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'species', RC )
          IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Exit here if separator line is encountered
+         IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
+
+         ! Increase number of advected species by one
+         T = T + 1
+
+         ! Stop simulation and print warning if we exceed maximum number
+         ! of species currently hardcoded for Input_Opt%AdvectSpc_Name in
+         ! input_opt_mod.F90. Eventually we need to think of a better way
+         ! to do this. (mps, 1/26/18)
+         IF ( T > 600 ) THEN
+            ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &             'must be read in first!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -1422,12 +1363,8 @@
 
       ENDDO
 
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
+      ! Total number of advected species
+      Input_Opt%N_ADVECT = T
 
       !=================================================================
       ! Call setup routines from other F90 modules
@@ -1455,6 +1392,9 @@
          Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )
 
       ENDIF
+
+      ! Initialize arrays in Input_Opt that depend on N_ADVECT
+      CALL Set_Input_Opt_Extra( am_I_Root, Input_Opt, RC )
 
       ! Set menu counter
       CT1 = CT1 + 1
@@ -5028,7 +4968,7 @@
          Input_Opt%TMAX(M)         = TMAX(M)
 
          ! Loop over tracers per diagnostic
-         DO N = 1, Input_Opt%MAX_SPC
+         DO N = 1, Input_Opt%N_ADVECT
             Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
          ENDDO
       ENDDO
@@ -6660,7 +6600,6 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
       USE ErrCode_Mod
       USE gckpp_Parameters,   ONLY : NFAM
       USE gckpp_Monitor,      ONLY : FAM_NAMES

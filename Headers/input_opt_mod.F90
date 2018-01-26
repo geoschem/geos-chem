@@ -23,6 +23,7 @@ MODULE Input_Opt_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Set_Input_Opt
+  PUBLIC :: Set_Input_Opt_Extra
   PUBLIC :: Cleanup_Input_Opt
 !
 ! !PUBLIC DATA MEMBERS:
@@ -46,7 +47,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      INTEGER                     :: MAX_DIAG
      INTEGER                     :: MAX_FAM
-     INTEGER                     :: MAX_SPC
      INTEGER                     :: MAX_PASV
 
      !----------------------------------------
@@ -102,8 +102,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_H2HD_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_SPECIALTY_SIM
-     LOGICAL                     :: ITS_NOT_COPARAM_OR_CH4
 
      !----------------------------------------
      ! AEROSOL MENU fields
@@ -658,7 +656,6 @@ CONTAINS
 ! !REMARKS:
 !  Set the following fields of Input_Opt outside of this routine:
 !  (1 ) Input_Opt%MAX_DIAG      : Max # of diagnostics
-!  (2 ) Input_Opt%MAX_SPC       : Max # of species
 !  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
 !  (4 ) Input_Opt%MAX_FAM       : Max # of P/L diagnostic families
 !  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
@@ -716,7 +713,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_FAM, MAX_SPC, MAX_PASV
+    INTEGER :: MAX_DIAG, MAX_FAM, MAX_PASV
 
     ! Assume success
     RC                               = GC_SUCCESS
@@ -734,7 +731,6 @@ CONTAINS
     !----------------------------------------
     MAX_DIAG                         = Input_Opt%MAX_DIAG
     MAX_FAM                          = Input_Opt%MAX_FAM
-    MAX_SPC                          = Input_Opt%MAX_SPC
     MAX_PASV                         = Input_Opt%MAX_PASV
   
     !----------------------------------------
@@ -780,7 +776,12 @@ CONTAINS
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%AdvectSpc_Name( MAX_SPC ), STAT=RC )
+
+    ! Hardcode maximum number of advected species to a large
+    ! value for now and add check in READ_SIMULATION_MENU (input_mod.F)
+    ! to make sure we don't exceed this value. Eventually we need to
+    ! think of a better way to do this. (mps, 1/26/18)
+    ALLOCATE( Input_Opt%AdvectSpc_Name( 600 ), STAT=RC )
 
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
@@ -800,8 +801,6 @@ CONTAINS
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_SPECIALTY_SIM    = .FALSE.
-    Input_Opt%ITS_NOT_COPARAM_OR_CH4 = .FALSE.
 
     !----------------------------------------
     ! AEROSOL MENU fields
@@ -960,7 +959,6 @@ CONTAINS
     Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TINDEX( MAX_DIAG, MAX_SPC ), STAT=RC )
     ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG          ), STAT=RC )
     ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG          ), STAT=RC )
 
@@ -1150,8 +1148,6 @@ CONTAINS
     !----------------------------------------
     ! ND49 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND49_TRACERS( MAX_SPC ), STAT=RC )
-
     Input_Opt%DO_ND49                = .FALSE.
     Input_Opt%ND49_FILE              = ''
     Input_Opt%ND49_TRACERS           = 0
@@ -1166,8 +1162,6 @@ CONTAINS
     !----------------------------------------
     ! ND50 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND50_TRACERS( MAX_SPC ), STAT=RC )
-
     Input_Opt%DO_ND50                = .FALSE.
     Input_Opt%ND50_FILE              = ''
     Input_Opt%LND50_HDF              = .FALSE.
@@ -1182,8 +1176,6 @@ CONTAINS
     !----------------------------------------
     ! ND51 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51_TRACERS( MAX_SPC ), STAT=RC )
-
     Input_Opt%DO_ND51                = .FALSE.
     Input_Opt%ND51_FILE              = ''
     Input_Opt%LND51_HDF              = .FALSE.
@@ -1200,8 +1192,6 @@ CONTAINS
     !----------------------------------------
     ! ND51b MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND51b_TRACERS( MAX_SPC ), STAT=RC )
-
     Input_Opt%DO_ND51b               = .FALSE.
     Input_Opt%ND51b_FILE             = ''
     Input_Opt%LND51b_HDF             = .FALSE.
@@ -1218,8 +1208,6 @@ CONTAINS
     !----------------------------------------
     ! ND63 MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%ND63_TRACERS( MAX_SPC ), STAT=RC )
-
     Input_Opt%DO_ND63                = .FALSE.
     Input_Opt%ND63_FILE              = ''
     Input_Opt%ND63_TRACERS           = 0
@@ -1349,6 +1337,59 @@ CONTAINS
     Input_Opt%LINOZ_TPARM            = 0e+0_fp
 
   END SUBROUTINE Set_Input_Opt
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_Input_Opt_Extra
+!
+! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_EXTRA intializes all GEOS-Chem
+!  options carried in Input Options derived type object that depend on
+!  the number of advected species (Input_Opt%N_ADVECT).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_Input_Opt_Extra( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  26 Jan 2018 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ALLOCATE( Input_Opt%TINDEX(Input_Opt%MAX_DIAG,Input_Opt%N_ADVECT), STAT=RC )
+
+    ALLOCATE( Input_Opt%ND49_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
+    ALLOCATE( Input_Opt%ND50_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
+    ALLOCATE( Input_Opt%ND51b_TRACERS( Input_Opt%N_ADVECT ), STAT=RC )
+    ALLOCATE( Input_Opt%ND63_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
+
+  END SUBROUTINE Set_Input_Opt_Extra
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

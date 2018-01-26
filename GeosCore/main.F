@@ -353,7 +353,6 @@
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
       LOGICAL                  :: ITS_A_CH3I_SIM
-      LOGICAL                  :: ITS_A_SPECIALTY_SIM
       LOGICAL                  :: DO_DIAG_WRITE
       LOGICAL                  :: LCHEM
       LOGICAL                  :: LCONV
@@ -409,7 +408,6 @@
       ! file so these are just placeholder values (bmy, 11/7/12)
       Input_Opt%MAX_DIAG      = MAX_DIAG
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
-      Input_Opt%MAX_SPC       = 500      ! Set to large placeholder value
       Input_Opt%MAX_PASV      = 50       ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
@@ -502,7 +500,6 @@
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
       ITS_A_CH3I_SIM      =  Input_Opt%ITS_A_CH3I_SIM
-      ITS_A_SPECIALTY_SIM =  Input_Opt%ITS_A_SPECIALTY_SIM
       DO_DIAG_WRITE       =  Input_Opt%DO_DIAG_WRITE
       LCHEM               =  Input_Opt%LCHEM
       LCONV               =  Input_Opt%LCONV

@@ -327,7 +327,6 @@ CONTAINS
     IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
     IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
     IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
-    IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
     
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
