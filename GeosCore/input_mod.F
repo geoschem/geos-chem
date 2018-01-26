@@ -753,10 +753,14 @@
       USE GC_GRID_MOD,        ONLY : SET_XOFFSET, SET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
-      USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
-      USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TIME_MOD,           ONLY : SET_CURRENT_TIME
+      USE TIME_MOD,           ONLY : GET_TAU
       USE TIME_MOD,           ONLY : YMD_EXTRACT
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
+#if defined( BPCH_DIAG )
+      USE TIME_MOD,           ONLY : SET_DIAGb
+      USE TIME_MOD,           ONLY : SET_NDIAGTIME
+#endif
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
@@ -1158,13 +1162,15 @@
 
 #endif
 
+#if defined( BPCH_DIAG )
       ! Set the time of day for writing bpch files
       NDIAGTIME = NHMSe !### test
       CALL SET_NDIAGTIME( NDIAGTIME )
 
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
-     
+#endif     
+
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
       CALL SET_YOFFSET( Input_OPt%NESTED_J0 )
