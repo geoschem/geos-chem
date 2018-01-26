@@ -233,10 +233,6 @@
       ! LVOLC      : Number of volcanic levels (20)   [unitless]
       !========================================================================
 
-      ! Diagnostic flags
-      LOGICAL                :: Archive_DryDepChm
-      LOGICAL                :: Archive_DryDep
-
       ! Time variable
       INTEGER                :: ELAPSED_SEC
 
@@ -303,9 +299,9 @@
       INTEGER                :: DRYNITd4
 
       ! Diagnostic flags
+      LOGICAL                :: Archive_DryDepChm
+      LOGICAL                :: Archive_DryDep
       LOGICAL                :: Archive_LossHNO3onSeaSalt
-      LOGICAL                :: Archive_LossNO3byDMS
-      LOGICAL                :: Archive_LossOHbyDMS
       LOGICAL                :: Archive_ProdMSAfromDMS
       LOGICAL                :: Archive_ProdNITfromHNO3UptakeOnDust
       LOGICAL                :: Archive_ProdSO2fromDMS
@@ -321,6 +317,7 @@
       LOGICAL                :: Archive_ProdSO4fromSRHOBr
       LOGICAL                :: Archive_ProdSO4fromSRO3
       LOGICAL                :: Archive_ProdSO4fromUptakeOfH2SO4g
+      LOGICAL                :: Archive_HPlus
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -2244,11 +2241,15 @@
      &                    ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-            ! Store L(OH) by DMS [kg OH/timestep]
-            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
-            
-            ! Store L(NO3) by DMS [kg NO3/timestep]
-            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+!--------------------------------------------------------------------------
+! Prior to 1/26/18:
+! NOTE: These will always be zero, so remove (bmy, 1/26/18)
+!            ! Store L(OH) by DMS [kg OH/timestep]
+!            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
+!            
+!            ! Store L(NO3) by DMS [kg NO3/timestep]
+!            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+!--------------------------------------------------------------------------
 
          ENDIF
 #endif
@@ -2294,16 +2295,6 @@
          IF ( Archive_ProdMSAfromDMS ) THEN
             State_Diag%ProdMSAfromDMS(I,J,L) =
      &         ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
-         ENDIF
-
-         ! Store L(OH) by DMS [kg OH/timestep]
-         IF ( Archive_LossOHbyDMS ) THEN
-            State_Diag%LossOHbyDMS(I,J,L) = LOH
-         ENDIF
-
-         ! Store L(NO3) by DMS [kg NO3/timestep]
-         IF ( Archive_LossNO3byDMS ) THEN
-            State_Diag%LossNO3byDMS(I,J,L) = LNO3
          ENDIF
 #endif
 
@@ -3764,7 +3755,7 @@
 
             ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
             IF ( Archive_ProdSO4fromO3InCloud ) THEN
-               State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
+               State_Diag%ProdSO4fromO3InCloud(I,J,L) =
      &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S )
             ENDIF
 
@@ -3787,7 +3778,7 @@
 
             ! P(SO4) by SRhobr
             IF ( Archive_ProdSO4fromSRHOBr ) THEN
-               State_Diag%ProdSO4fromSRO3(I,J,L) = 
+               State_Diag%ProdSO4fromSRHOBr(I,J,L) = 
      &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S)
             ENDIF
 
@@ -3797,6 +3788,45 @@
      &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S )
             ENDIF
 
+            ! HPLUS (aka Cloud pH) [unitless]
+            IF ( Archive_HPlus ) THEN
+               State_Diag%HPlus(I,J,L) = HPlus
+            ENDIF
+
+            !-----------------------------------------------------------
+            ! Diagnostics for acid uptake on dust aerosol simulations
+            !-----------------------------------------------------------
+            IF ( LDSTUP ) THEN
+
+               ! Zero
+               PSO4d_tot   = 0.e+0_fp
+               PH2SO4d_tot = 0.e+0_fp
+               PNITd_tot   = 0.e+0_fp
+
+               DO IBIN = 1, NDSTBIN
+                  PSO4d_tot   = PSO4d_tot   + PSO4_d(IBIN)
+                  PNITd_tot   = PNITd_tot   + PNIT_d(IBIN)
+                  PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
+               END DO
+
+               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+               IF ( Archive_ProdSO4fromOxidationOnDust ) THEN
+                  State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = 
+     &               ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ENDIF
+
+               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+               IF ( Archive_ProdNITfromHNO3uptakeOnDust ) THEN
+                  State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) =
+     &               ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N )
+               ENDIF
+
+               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+               IF ( Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
+                  State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) =
+     &               ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ENDIF
+            ENDIF
          ENDIF
 #endif
 
@@ -7899,14 +7929,8 @@
       Archive_LossHNO3onSeaSalt =
      &     ASSOCIATED( State_Diag%LossHNO3onSeaSalt           )
 
-      Archive_LossNO3byDMS =
-     &     ASSOCIATED( State_Diag%LossNO3byDMS                )
-
-      Archive_LossOHbyDMS =
-     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
-
       Archive_ProdMSAfromDMS =
-     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
+     &     ASSOCIATED( State_Diag%ProdMSAFromDMS              )
 
       Archive_ProdNITfromHNO3uptakeOnDust =
      &     ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust )
@@ -7938,7 +7962,7 @@
       Archive_ProdSO4fromO3s = 
      &     ASSOCIATED( State_Diag%ProdSO4fromO3s              )
 
-      Archive_ProdSO4fromOxidationOnDust= 
+      Archive_ProdSO4fromOxidationOnDust = 
      &     ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  )
 
       Archive_ProdSO4fromSRO3 = 
@@ -7947,8 +7971,11 @@
       Archive_ProdSO4fromSRHOBr =
      &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr           )
 
-      Archive_ProdSO4fromUptakeOfH2SO4g =
+      Archive_ProdSO4fromUptakeOfH2SO4g = 
      &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
+
+      Archive_HPlus =
+     &     ASSOCIATED( State_Diag%HPlus                       )
 
       !=================================================================
       ! Allocate arrays
