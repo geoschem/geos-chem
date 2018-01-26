@@ -125,18 +125,20 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
 !  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
+!  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: fId, IOS, N, I, J
+    INTEGER                 :: fId, IOS, N, N1, N2, N3, I, J
+    INTEGER                 :: IWLMAX, IWLMAXLOC(1), IWL(3)
     INTEGER                 :: numSpcWords, numIDWords
     CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
     CHARACTER(LEN=255)      :: wildcard, tag, name, state
-    CHARACTER(LEN=255)      :: metadataID, registryID
+    CHARACTER(LEN=255)      :: metadataID, registryID, registryIDprefix
     LOGICAL                 :: EOF, found, isWildcard, isTagged
     TYPE(DgnItem),  POINTER :: NewDiagItem
 
@@ -151,12 +153,60 @@ CONTAINS
     EOF           = .FALSE.
     found         = .FALSE.
     NewDiagItem   => NULL()
-    RadWL(:)      =  [ 'WL1  ','WL2  ','WL3  ']
+    RadWL(:)      =  ''
     IsFullChem    =  .FALSE.
 
     ! Create DiagList object
     DiagList%head => NULL()
 
+    !=======================================================================
+    ! Read the input.geos configuration file to find out:
+    ! (1) Which wavelength has been selected for optical depth diag output
+    ! (2) If this is a fullchem simulation
+    !=======================================================================
+
+    ! Open input.geos file
+    fId = FindFreeLun()
+    OPEN( fId, FILE=TRIM('input.geos'), STATUS='OLD', IOSTAT=RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( 'Could not open input.geos!', RC, ThisLoc )
+       RETURN
+    ENDIF
+    
+    ! Read data from the input.geos file
+    DO    
+       ! Read line and strip leading/trailing spaces
+       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       IF ( EOF ) EXIT
+       IF ( IOS > 0 ) THEN
+          ErrMsg = 'Unexpected end-of-file input.geos!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    
+       ! Find out if this is a full-chemistry simulation
+       IF ( INDEX( Line, 'Type of simulation' ) > 0 ) THEN
+          CALL StrSplit( Line, ':', SubStrs, N )
+          IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
+       ENDIF
+
+       ! Update wavelength(s) with string in file
+       IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
+          I = INDEX( Line, ':' )
+          CALL StrSplit( Line(I:), ' ', SubStrs, N )
+          DO J = 1, N-1
+             WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
+             RadWL(J) = ADJUSTL( RadWL(J) )
+          ENDDO
+
+          ! Exit the search
+          EXIT
+       ENDIF
+    ENDDO
+    
+    ! Close the file
+    CLOSE( fId )
+    
     !=======================================================================
     ! Read data from the HISTORY.rc configuration file
     !=======================================================================
@@ -165,20 +215,22 @@ CONTAINS
     fId = FindFreeLun()
     OPEN( fId, FILE=TRIM(historyConfigFile), STATUS='OLD', IOSTAT=RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Could not open "' //TRIM(historyConfigFile) // '"!'
+       errMsg = 'Could not open "' // TRIM(historyConfigFile) // '"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-    ! Read data from history config file
+    !====================================================================
+    ! Read history config file line by line in a loop
+    !====================================================================
     DO
     
-       ! Read line and strip leading/trailing spaces
+       ! Read line and strip leading/trailing spaces. Skip if commented out
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
        IF ( EOF ) EXIT
        IF ( IOS > 0 ) THEN
           ErrMsg = 'Unexpected end-of-file in "'       // &
-                    TRIM( historyConfigFile ) // '"!'
+                    TRIM( historyConfigFile ) // '" (1)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -192,16 +244,26 @@ CONTAINS
        ! Skip if the line is commented out
        IF ( Line(1:1) == "#"  ) CYCLE
 
-       ! Get the item name
+       !====================================================================
+       ! Add unique diagnostic names to diag list
+       !==================================================================== 
+       ! Skip line if GIGCchem not present
+       IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
+       ! Get diagnostic name
        CALL StrSplit( Line, " ", SubStrs, N )
-       IF ( INDEX(line, '.fields') > 0 .AND. N > 1 ) THEN
-          name = TRIM(SubStrs(2))
+       IF ( INDEX(Line, '.fields') > 0 .AND. N > 1 ) THEN
+          name = CleanText( SubStrs(2) )
        ELSE
-          name = TRIM(SubStrs(1))
+          name = CleanText( SubStrs(1) )
        ENDIF
-       nameAllCaps = To_Uppercase( TRIM(name) )
 
+       ! Skip if diagnostic name is commented out
+       IF ( name(1:1) == '#' ) CYCLE
+       ! Skip if name is already in diag list
+       CALL Search_DiagList( am_I_Root, DiagList, name, Found, RC )
+       IF ( Found ) CYCLE
        ! Set GC state
+       nameAllCaps = To_Uppercase( TRIM(name) )
        IF ( nameAllCaps(1:4) == 'MET_' ) THEN
           state = 'MET'
        ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
@@ -249,13 +311,13 @@ CONTAINS
 
        ! Get registryID - start with the full name in HISTORY.rc
        registryID = TRIM(nameAllCaps)
-       ! Strip off the state prefix, if any
+       ! Then strip off the state prefix, if any
        IF ( TRIM(state) == 'MET' ) THEN
           registryID = registryID(5:)
        ELSE IF ( TRIM(state) == 'CHEM' ) THEN
           registryID = registryID(6:)
        ENDIF
-       ! Strip off the wildcard, if any
+       ! Then strip off the wildcard, if any
        IF ( isWildcard ) THEN
           I = INDEX( TRIM(registryID), '_' ) 
           IF ( I .le. 0 ) THEN
@@ -269,19 +331,49 @@ CONTAINS
 
        ! Get metadataID - start with the registry ID
        metadataID = registryID
-       ! Strip off the tag suffix, if any
+       ! Then strip off the tag suffix, if any
        IF ( isTagged ) THEN
           I = INDEX( TRIM(metadataID), '_' ) 
           metadataID = metadataID(1:I-1)
        ENDIF
-       
        ! Skip if already encountered entry with same full name
        ! TODO: make this into a function that returns true or false
        ! Have a series of functions that do quality checks too
        CALL Search_DiagList( am_I_Root, DiagList, name, found, RC )
        IF ( found ) CYCLE
 
+       ! For registryID and metdataID, handle special case of AOD wavelength 
+       ! taken from the radiation menu of input.geos
+       ! Update registryID
+       IWL(1) = INDEX( TRIM(registryID), 'WL1' )
+       IWL(2) = INDEX( TRIM(registryID), 'WL2' )
+       IWL(3) = INDEX( TRIM(registryID), 'WL3' )
+       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
+       IF ( IWLMAX > 0 ) THEN
+          IWLMAXLOC = MAXLOC(IWL)
+          registryIDprefix = registryID(1:IWL(IWLMAXLOC(1))-1) // &
+                             TRIM(RadWL(IWLMAXLOC(1))) // 'nm'
+          I = INDEX( TRIM(registryID), '_' )
+          IF ( I > 0 ) THEN
+             registryID = TRIM(registryIDprefix) // registryID(I:)
+          ELSE
+             registryID = registryIDprefix
+          ENDIF
+       ENDIF
+       ! Update metadataID
+       IWL(1) = INDEX( TRIM(metadataID), 'WL1' )
+       IWL(2) = INDEX( TRIM(metadataID), 'WL2' )
+       IWL(3) = INDEX( TRIM(metadataID), 'WL3' )
+       IWLMAX = MAX(IWL(1),IWL(2),IWL(3))
+       IF ( IWLMAX > 0 ) THEN
+          IWLMAXLOC = MAXLOC(IWL(:))
+          metadataID = metadataID(1:IWL(IWLMAXLOC(1))-1) //  &
+                       TRIM(RadWL(IWLMAXLOC(1))) // 'nm'
+       ENDIF
+
+       !====================================================================
        ! Create a new DiagItem object
+       !====================================================================
        CALL Init_DiagItem( am_I_Root, NewDiagItem, &
                            name=name,              &
                            state=state,            &
@@ -298,64 +390,20 @@ CONTAINS
           RETURN
        ENDIF
     
+       !====================================================================
        ! Add new DiagItem to linked list
+       !====================================================================
        CALL InsertBeginning_DiagList( am_I_Root, NewDiagItem, DiagList, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDDO
     
+    !====================================================================
     ! Close the file
+    !====================================================================
     CLOSE( fId )
 
-    !=======================================================================
-    ! Read the input.geos configuration file to find out:
-    ! (1) Which wavelength has been selected for optical depth diag output
-    ! (2) If this is a fullchem simulation
-    !=======================================================================
 
-    ! Open input.geos file
-    fId = FindFreeLun()
-    OPEN( fId, FILE=TRIM('input.geos'), STATUS='OLD', IOSTAT=RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Could not open "' //TRIM('input.geos') // '"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-    
-    ! Read data from the input.geos file
-    DO    
-       ! Read line and strip leading/trailing spaces
-       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
-       IF ( EOF ) EXIT
-       IF ( IOS > 0 ) THEN
-          ErrMsg = 'Unexpected end-of-file in "'       // &
-                    TRIM('input.geos') // '"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    
-       ! Find out if this is a full-chemistry simulation
-       IF ( INDEX( Line, 'Type of simulation' ) > 0 ) THEN
-          CALL StrSplit( Line, ':', SubStrs, N )
-          IsFullChem = ( TRIM( ADJUSTL( SubStrs(2) ) ) == '3' )
-       ENDIF
-
-       ! Update wavelength(s) with string in file
-       IF ( INDEX( Line, 'AOD Wavelength' ) > 0 ) THEN
-          I = INDEX( Line, ':' )
-          CALL StrSplit( Line(I:), ' ', SubStrs, N )
-          DO J = 1, N-1
-             WRITE ( RadWL(J), "(a5)" ) SubStrs(J+1)
-          ENDDO
-
-          ! Exit the search
-          EXIT
-       ENDIF
-    ENDDO
-    
-    ! Close the file
-    CLOSE( fId )
-    
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------
