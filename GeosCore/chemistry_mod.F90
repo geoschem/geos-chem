@@ -274,7 +274,6 @@ CONTAINS
     LOGICAL            :: IT_IS_A_POPS_SIM
     LOGICAL            :: LCARB
     LOGICAL            :: LCHEM
-    LOGICAL            :: LCRYST
     LOGICAL            :: LDUST
     LOGICAL            :: LSCHEM
     LOGICAL            :: LPRT
@@ -306,7 +305,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     LCARB                    = Input_Opt%LCARB                        
     LCHEM                    = Input_Opt%LCHEM
-    LCRYST                   = Input_Opt%LCRYST
     LDUST                    = Input_Opt%LDUST
     LSCHEM                   = Input_Opt%LSCHEM
     LPRT                     = Input_Opt%LPRT
@@ -708,16 +706,14 @@ CONTAINS
 
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) THEN
-                   CALL Do_RPMARES( am_I_Root, Input_Opt,                    &
-                                    State_Met, State_Chm, RC )
+                CALL Do_RPMARES( am_I_Root, Input_Opt,                    &
+                                 State_Met, State_Chm, RC )
 
-                   ! Trap potential errors
-                   IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Error encountered in "Do_RPMARES"!'
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
-                      RETURN
-                   ENDIF
+                ! Trap potential errors
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Do_RPMARES"!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
                 ENDIF
              ENDIF
           ENDIF
@@ -740,7 +736,7 @@ CONTAINS
           !-------------------
           ! Sulfate aerosols
           !-------------------
-          IF ( LSULF .or. LCRYST ) THEN
+          IF ( LSULF ) THEN
  
              ! Do sulfate chemistry
              CALL ChemSulfate( am_I_Root, Input_Opt,  State_Met,             &
@@ -1071,7 +1067,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
-    LOGICAL            :: LCARB, LCHEM,  LCRYST,     LDUST
+    LOGICAL            :: LCARB, LCHEM,  LDUST
     LOGICAL            :: LPRT,  LSSALT, LSULF,      LSOA
     INTEGER            :: MONTH, YEAR,   WAVELENGTH
 
@@ -1094,7 +1090,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     LCARB                = Input_Opt%LCARB 
     LCHEM                = Input_Opt%LCHEM
-    LCRYST               = Input_Opt%LCRYST
     LDUST                = Input_Opt%LDUST
     LPRT                 = Input_Opt%LPRT
     LSSALT               = Input_Opt%LSSALT

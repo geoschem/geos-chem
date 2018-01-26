@@ -447,7 +447,6 @@
 
       ! Scalars                
       LOGICAL                  :: aIR
-      LOGICAL                  :: LCRYST
       LOGICAL                  :: LPRT
       LOGICAL                  :: LGRAVSTRAT
       LOGICAL                  :: LDSTUP
@@ -476,7 +475,6 @@
      & ' -> at CHEMSULFATE (in module GeosCore/sulfate_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       LDSTUP               = Input_Opt%LDSTUP

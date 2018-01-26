@@ -248,7 +248,6 @@
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)

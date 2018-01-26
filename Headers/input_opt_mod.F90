@@ -107,7 +107,6 @@ MODULE Input_Opt_Mod
      ! AEROSOL MENU fields
      !----------------------------------------
      LOGICAL                     :: LSULF              
-     LOGICAL                     :: LCRYST             
      LOGICAL                     :: LCARB
      LOGICAL                     :: LBRC              
      LOGICAL                     :: LSOA
@@ -118,7 +117,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDEAD              
      LOGICAL                     :: LSSALT             
      LOGICAL                     :: LDSTUP
-     LOGICAL                     :: LDICARB            
      REAL(fp),           POINTER :: SALA_REDGE_um(:)   
      REAL(fp),           POINTER :: SALC_REDGE_um(:)   
      LOGICAL                     :: LGRAVSTRAT
@@ -809,7 +807,6 @@ CONTAINS
     ALLOCATE( Input_Opt%SALC_REDGE_um( 2 ), STAT=RC )     
     
     Input_Opt%LSULF                  = .FALSE.
-    Input_Opt%LCRYST                 = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.
@@ -820,7 +817,6 @@ CONTAINS
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
-    Input_Opt%LDICARB                = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0e+0_fp
     Input_Opt%SALC_REDGE_um          = 0e+0_fp
     Input_Opt%LGRAVSTRAT             = .FALSE.

@@ -2110,43 +2110,6 @@
            ENDIF
          ENDDO    
 
-         !==============================================================
-         ! If we are using the crystalline sulfate tracers (LCRYST=T),
-         ! then also save out the extra ND21 diagnostics:
-         !
-         ! #28: Opt depth for HYSTERESIS CASE            [unitless]
-         ! #29: Opt depth for SOLID CASE                 [unitless]
-         ! #30: Opt depth for LIQUID CASE                [unitless]
-         ! #31: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
-         ! #32: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
-         ! #33: Radiative forcing                        [W/m2    ]    
-         !==============================================================
-         IF ( Input_Opt%LCRYST ) THEN
-            
-            ! Category
-            CATEGORY = 'OD-MAP-$'
-
-            ! Loop over extra 
-            DO N = 1, 6               
-
-               ! Define unit string
-               IF ( N == 6 ) THEN
-                  UNIT = 'W/m2'
-               ELSE
-                  UNIT = 'unitless'
-               ENDIF
-
-               ! Scale by chemistry timestep
-               ARRAY(:,:,1) = AD21_cr(:,:,N) / SCALECHEM
-
-               ! Save to BPCH file
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, N+PD21,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDDO
-         ENDIF
       ENDIF
 !
 !******************************************************************************

@@ -1470,20 +1470,14 @@
 !  08 Jul 2015 - E. Lundgren - Added LMPOA option for marine organic aerosols
 !  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
 !  22 Jun 2016 - R. Yantosca - Move error checks to DO_ERROR_CHECKS routine
+!  26 Jan 2018 - M. Sulprizio- Remove obsolete options for LCRYST and LDICARB
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSULF,      LCARB,      LBRC,  LSOA
-      LOGICAL            :: LSVPOA,     LDUST,      LDSTUP
-      LOGICAL            :: LSSALT,     LCRYST,     LDICARB
-      LOGICAL            :: LGRAVSTRAT, LHOMNUCNAT, LSOLIDPSC
-      LOGICAL            :: LPSCCHEM,   LSTRATOD,   LMPOA, LISOPOA
-      INTEGER            :: N,          T,          I 
-      CHARACTER(LEN=255) :: MSG,        LOCATION
-      REAL(fp)           :: T_NAT_SUPERCOOL, P_ICE_SUPERSAT
+      INTEGER            :: N, T
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1515,15 +1509,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSULF
-
-      ! Use crystalline sulfate aerosols?  
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCRYST', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) LCRYST
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSULF
 
       ! Use online carbon aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCARB', RC )
@@ -1531,7 +1517,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LCARB
+      READ( SUBSTRS(1:N), * ) Input_Opt%LCARB
       
       ! Use brown carbon aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBRC', RC )
@@ -1539,7 +1525,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LBRC
+      READ( SUBSTRS(1:N), * ) Input_Opt%LBRC
 
       ! Use secondary organic aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOA', RC )
@@ -1547,7 +1533,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSOA
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSOA
 
       ! SOAupdate: Add Semi-volatile POA switch (hotp 8/9/09)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSVPOA', RC )
@@ -1555,7 +1541,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSVPOA
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSVPOA
 
       ! Use mechanistic isoprene OA (eam, 08/2015):
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LISOPOA', RC )
@@ -1563,7 +1549,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LISOPOA
+      READ( SUBSTRS(1:N), * ) Input_Opt%LISOPOA
 
       ! Use online dust aerosols ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDUST', RC )
@@ -1571,16 +1557,15 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LDUST
+      READ( SUBSTRS(1:N), * ) Input_Opt%LDUST
 
-      !tdf
       ! Use SO2 and HNO3 uptake on dust aerosols 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDSTUP', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LDSTUP
+      READ( SUBSTRS(1:N), * ) Input_Opt%LDSTUP
 
       ! Use online sea-salt aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSSALT', RC )
@@ -1588,7 +1573,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSSALT      
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSSALT      
 
       ! Accum mode seasalt radii bin edges [um]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'SALA_REDGE_um', RC )
@@ -1616,16 +1601,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LMPOA
-
-      ! Switch to comment the SOG condensation in carbon_mod.f (ccc, 3/10/09)
-      ! Use online dicarbonyl chemistry 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDICARB', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) LDICARB
+      READ( SUBSTRS(1:N), * ) Input_Opt%LMPOA
 
       ! Apply gravitational settling in stratosphere?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGRAVSTRAT', RC )
@@ -1633,7 +1609,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LGRAVSTRAT  
+      READ( SUBSTRS(1:N), * ) Input_Opt%LGRAVSTRAT  
 
       ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOLIDPSC', RC )
@@ -1641,7 +1617,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSOLIDPSC   
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSOLIDPSC   
 
       ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LHOMNUCNAT', RC )
@@ -1649,7 +1625,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LHOMNUCNAT 
+      READ( SUBSTRS(1:N), * ) Input_Opt%LHOMNUCNAT 
 
       ! NAT supercooling requirement (K)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'T_NAT_SUPERCOOL', RC )
@@ -1657,7 +1633,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) T_NAT_SUPERCOOL
+      READ( SUBSTRS(1:N), * ) Input_Opt%T_NAT_SUPERCOOL
 
       ! Ice supersaturation ratio requirement
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'P_ICE_SUPERSAT', RC )
@@ -1665,7 +1641,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) P_ICE_SUPERSAT
+      READ( SUBSTRS(1:N), * ) Input_Opt%P_ICE_SUPERSAT
 
       ! Perform PSC-related heterogeneous chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPSCCHEM', RC )
@@ -1673,7 +1649,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LPSCCHEM 
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPSCCHEM 
 
       ! Include stratospheric aerosols optical depths?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTRATOD', RC )
@@ -1681,7 +1657,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSTRATOD
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSTRATOD
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
@@ -1705,45 +1681,16 @@
       ! Turn off switches for simulations that don't use aerosols
       IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
      &     ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
-         LSULF  = .FALSE.
-         LCRYST = .FALSE.
-         LCARB  = .FALSE.
-         LBRC   = .FALSE.
-         LSOA   = .FALSE.
-         LDUST  = .FALSE.
-         LSSALT = .FALSE.
-         LMPOA  = .FALSE.
-         LSVPOA = .FALSE.
-         LISOPOA= .FALSE.
+         Input_Opt%LSULF  = .FALSE.
+         Input_Opt%LCARB  = .FALSE.
+         Input_Opt%LBRC   = .FALSE.
+         Input_Opt%LSOA   = .FALSE.
+         Input_Opt%LDUST  = .FALSE.
+         Input_Opt%LSSALT = .FALSE.
+         Input_Opt%LMPOA  = .FALSE.
+         Input_Opt%LSVPOA = .FALSE.
+         Input_Opt%LISOPOA= .FALSE.
       ENDIF
-
-      !%%% The cryst/aq code is currently under development so make
-      !%%% sure that LCRYST = FALSE for now until further notice
-      !%%% (rjp, bmy, 3/15/05)
-      LCRYST = .FALSE.
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LSULF              = LSULF  
-      Input_Opt%LCRYST             = LCRYST
-      Input_Opt%LCARB              = LCARB
-      Input_Opt%LBRC               = LBRC
-      Input_Opt%LSOA               = LSOA 
-      Input_Opt%LSVPOA             = LSVPOA
-      Input_Opt%LISOPOA            = LISOPOA
-      Input_Opt%LDUST              = LDUST 
-      Input_Opt%LDSTUP             = LDSTUP
-      Input_Opt%LSSALT             = LSSALT
-      Input_Opt%LMPOA              = LMPOA 
-      Input_Opt%LDICARB            = LDICARB  
-      Input_Opt%LGRAVSTRAT         = LGRAVSTRAT
-      Input_Opt%LSOLIDPSC          = LSOLIDPSC
-      Input_Opt%LHOMNUCNAT         = LHOMNUCNAT
-      Input_Opt%T_NAT_SUPERCOOL    = T_NAT_SUPERCOOL ! NAT supercooling (K)
-      Input_Opt%P_ICE_SUPERSAT     = P_ICE_SUPERSAT  ! Ice supersaturation (-)
-      Input_Opt%LPSCCHEM           = LPSCCHEM
-      Input_Opt%LSTRATOD           = LSTRATOD
 
       ! Return success
       RC = GC_SUCCESS
@@ -1754,39 +1701,51 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', LSULF
-         WRITE( 6, 100     ) 'Online CRYST & AQ AEROSOLS? : ', LCRYST
-         WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ', LCARB
-         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ', LBRC
-         WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ', LSOA
-         WRITE( 6, 100     ) 'Semivolatile POA?           : ', LSVPOA
-         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ', LISOPOA
-         WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ', LDUST
-         WRITE( 6, 100     ) 'Acid uptake on dust?        : ', LDSTUP
-         WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ', LSSALT
+         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', 
+     &                        Input_Opt%LSULF
+         WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ',
+     &                        Input_Opt%LCARB
+         WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ',
+     &                        Input_Opt%LBRC
+         WRITE( 6, 100     ) 'Online COMPLEX SOA?         : ',
+     &                        Input_Opt%LSOA
+         WRITE( 6, 100     ) 'Semivolatile POA?           : ',
+     &                        Input_Opt%LSVPOA
+         WRITE( 6, 100     ) 'Mechanistic isoprene OA?    : ',
+     &                        Input_Opt%LISOPOA
+         WRITE( 6, 100     ) 'Online DUST AEROSOLS?       : ',
+     &                        Input_Opt%LDUST
+         WRITE( 6, 100     ) 'Acid uptake on dust?        : ',
+     &                        Input_Opt%LDSTUP
+         WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ',
+     &                        Input_Opt%LSSALT
          WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
      &                        Input_Opt%SALA_REDGE_um(1), 
      &                        Input_Opt%SALA_REDGE_um(2)
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
      &                        Input_Opt%SALC_REDGE_um(1), 
      &                        Input_Opt%SALC_REDGE_um(2)
-         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ', LMPOA
-         WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',LGRAVSTRAT
-         WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',LSOLIDPSC
-         WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',LHOMNUCNAT
+         WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ',
+     &                        Input_Opt%LMPOA
+         WRITE( 6, 100     ) 'Settle strat. aerosols?     : ',
+     &                        Input_Opt%LGRAVSTRAT
+         WRITE( 6, 100     ) 'Online SOLID PSC aerosols?  : ',
+     &                        Input_Opt%LSOLIDPSC
+         WRITE( 6, 100     ) 'Allow hom. NAT nucleation?  : ',
+     &                        Input_Opt%LHOMNUCNAT
          WRITE( 6, 120     ) 'NAT supercooling requirement: ',
-     &                                                 T_NAT_SUPERCOOL
+     &                        Input_Opt%T_NAT_SUPERCOOL
          WRITE( 6, 120     ) 'Ice supersaturation req.    : ',
-     &                                     ((P_ICE_SUPERSAT-1)*1.e+2_fp)
-         WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',LPSCCHEM
-         WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ', LSTRATOD
+     &                        ((Input_Opt%P_ICE_SUPERSAT-1)*1.e+2_fp)
+         WRITE( 6, 100     ) 'Perform PSC het. chemistry? : ',
+     &                        Input_Opt%LPSCCHEM
+         WRITE( 6, 100     ) 'Use strat. aerosol OD?      : ',
+     &                        Input_Opt%LSTRATOD
       ENDIF
 
  100  FORMAT( A, L5     )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
  120  FORMAT( A, f6.2, 'K' )
- 105  FORMAT( A, f6.2 )
- 130  FORMAT( A, A   )
 
       END SUBROUTINE READ_AEROSOL_MENU
 !EOC
@@ -8897,29 +8856,6 @@
             RETURN
          ENDIF
 
-      ENDIF
-
-      !=================================================================
-      ! Error check CRYST /AQ AEROSOLS
-      !=================================================================
-      I = MAX( Ind_('AS'   ,'A'), 0 )
-     &  + MAX( Ind_('AHS'  ,'A'), 0 )
-     &  + MAX( Ind_('LET'  ,'A'), 0 )
-     &  + MAX( Ind_('NH4aq','A'), 0 )
-     &  + MAX( Ind_('SO4aq','A'), 0 )
-
-      IF ( Input_Opt%LCRYST ) THEN
-         IF ( I == 0 ) THEN
-            MSG = 'LCRYST=T but ONLINE CRYST/AQ AEROSOLS are undefined!'
-            CALL GC_Error( Msg, RC, Location )
-            RETURN
-         ENDIF
-      ELSE
-         IF ( I > 0 ) THEN
-            MSG = 'Cannot use ONLINE CRYST/AQ AEROSOLS if LCRYST=F!'
-            CALL GC_Error( Msg, RC, Location )
-            RETURN
-         ENDIF
       ENDIF
 
       !=================================================================

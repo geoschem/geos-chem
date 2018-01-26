@@ -67,7 +67,6 @@
 
       ! For ND21 -- Optical Depth diagnostic
       REAL*4,  ALLOCATABLE :: AD21(:,:,:,:)
-      REAL*4,  ALLOCATABLE :: AD21_cr(:,:,:)
 
       ! For ND22 -- J-value diagnostic
       REAL*4,  ALLOCATABLE :: AD22(:,:,:,:)      
@@ -346,7 +345,6 @@
       IF ( ALLOCATED( AD17        ) ) DEALLOCATE( AD17        )
       IF ( ALLOCATED( AD18        ) ) DEALLOCATE( AD18        )
       IF ( ALLOCATED( AD21        ) ) DEALLOCATE( AD21        )
-      IF ( ALLOCATED( AD21_cr     ) ) DEALLOCATE( AD21_cr     )
       IF ( ALLOCATED( AD22        ) ) DEALLOCATE( AD22        ) 
       IF ( ALLOCATED( AD30        ) ) DEALLOCATE( AD30        ) 
       IF ( ALLOCATED( AD31        ) ) DEALLOCATE( AD31        ) 
