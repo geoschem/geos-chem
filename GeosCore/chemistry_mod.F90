@@ -690,7 +690,7 @@ CONTAINS
 #if   !defined( NO_ISORROPIA )
                 ! ISOROPIA takes Na+, Cl- into account
                 CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,        &
-     &                              State_Chm, State_Diag, RC               )
+                                    State_Chm, State_Diag, RC               )
 #endif
 
                 ! Trap potential errors
@@ -772,7 +772,7 @@ CONTAINS
 
              ! Do dust aerosol chemistry
              CALL ChemDust( am_I_Root, Input_Opt,  State_Met,                &
-     &                      State_Chm, State_Diag, RC                       )
+                            State_Chm, State_Diag, RC                       )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN

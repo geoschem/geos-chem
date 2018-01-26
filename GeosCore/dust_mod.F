@@ -76,6 +76,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Mar 2017 - R. Yantosca - Remove reference to Input_Opt fields
 !  02 Nov 2017 - R. Yantosca - Add modifications for netCDF diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -85,6 +86,12 @@
       ! Diagnostic flags
       LOGICAL               :: Archive_DryDepChm
       LOGICAL               :: Archive_DryDep
+      LOGICAL               :: Archive_AerSurfAreaDust
+      LOGICAL               :: Archive_AOD
+      LOGICAL               :: Archive_AODDust
+      LOGICAL               :: Archive_AODDustWL1
+      LOGICAL               :: Archive_AODDustWL2
+      LOGICAL               :: Archive_AODDustWL3
 
       ! Species ID flags
       INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
@@ -1064,6 +1071,7 @@
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  15 Nov 2017 - E. Lundgren - Implement optical depth netcdf diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1089,9 +1097,11 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
+#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
       LOGICAL             :: LINTERPARR(NWVSELECT)
+#endif
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1382,13 +1392,8 @@
 !#############################################################################
       ENDIF
 #endif
-
 #if defined( NC_DIAG )
-      IF ( ( ASSOCIATED( State_Diag%ODDust ).OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL1 ) .OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL2 ) .OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) .AND.
-     &       ODSWITCH .EQ. 1 ) THEN
+      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD(:,:,:,:,:) = 0.0_fp
@@ -1440,14 +1445,14 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ASSOCIATED( State_Diag%ODDust ) ) THEN
+         IF ( ARCHIVE_AODDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
             DO L = 1, LLCHEM
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               State_Diag%ODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
+               State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
             ENDDO
             ENDDO
             ENDDO
@@ -1457,16 +1462,32 @@
          !---------------------------------------------------
          ! Set size-resolved dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL1 ) ) THEN
-            State_Diag%ODDustBinsWL1(:,:,:,:) = tempOD(:,:,:,1,:)
+         IF ( ARCHIVE_AODDustWL1 ) THEN
+            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
          ENDIF
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL2 ) ) THEN
-            State_Diag%ODDustBinsWL2(:,:,:,:) = tempOD(:,:,:,2,:)
+         IF ( ARCHIVE_AODDustWL2 ) THEN
+            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
          ENDIF
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
-            State_Diag%ODDustBinsWL3(:,:,:,:) = tempOD(:,:,:,3,:)
+         IF ( ARCHIVE_AODDustWL3 ) THEN
+            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
          ENDIF
 
+      ENDIF
+
+      ! Archive total dust surface area (sum across all bins)
+      IF ( Archive_AerSurfAreaDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            State_Diag%AerSurfAreaDust(I,J,L) =  
+     &                                  SUM( TAREA(I,J,L,1:NDUST) )
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 #endif 
 
@@ -1616,6 +1637,7 @@
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  25 Jan 2018 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1644,6 +1666,12 @@
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+
+#if defined( NC_DIAG )
+      ! For diagnostics
+      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
+      LOGICAL             :: LINTERPARR(NWVSELECT)
+#endif
 
       !=================================================================
       ! RDUST begins here!
@@ -1960,6 +1988,105 @@
             ENDDO
             ENDDO
             ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+#endif
+#if defined( NC_DIAG )
+      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+         
+         ! Initialize local arrays
+         tempOD(:,:,:,:,:) = 0.0_fp
+         LINTERPARR(:) = .FALSE.
+
+         ! Interpolate?
+         DO W = 1, NWVSELECT
+            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+               LINTERPARR(W) =.FALSE.
+            ELSE
+               LINTERPARR(W) =.TRUE.
+            ENDIF
+         ENDDO
+
+         ! Loop over dust bins, # of wavelengths, and all grid cells
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+         DO N = 1, NDUST
+         DO W = 1, NWVSELECT
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR               
+            IF ( .not. LINTERPARR(W) ) THEN
+               tempOD(I,J,L,W,N) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
+            ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
+                !Dont add anything to diagnostic
+            ELSE
+               ! Interpolate using angstrom exponent between
+               ! closest available wavelengths (coefs pre-calculated 
+               ! in CALC_AOD)
+               ! AOD sometimes zero (if Q zero), must catch this!
+               tempOD(I,J,L,W,N) = 
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+            ENDIF
+         ENDDO ! longitude
+         ENDDO ! latitude
+         ENDDO ! level
+         ENDDO ! wavelength
+         ENDDO ! bin
+!$OMP END PARALLEL DO
+
+         !---------------------------------------------------
+         ! Set dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ARCHIVE_AODDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L = 1, LLCHEM
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !---------------------------------------------------
+         ! Set size-resolved dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ARCHIVE_AODDustWL1 ) THEN
+            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
+         ENDIF
+         IF ( ARCHIVE_AODDustWL2 ) THEN
+            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
+         ENDIF
+         IF ( ARCHIVE_AODDustWL3 ) THEN
+            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
+         ENDIF
+
+      ENDIF
+
+      !------------------------------------------------------
+      ! Archive total dust surface area (sum across all bins)
+      !------------------------------------------------------
+      IF ( Archive_AerSurfAreaDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            State_Diag%AerSurfAreaDust(I,J,L) =  
+     &                                  SUM( TAREA(I,J,L,1:NDUST) )
+         ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -2557,10 +2684,23 @@
       !=================================================================
 
       ! Initialize
-      RC                =  GC_SUCCESS
-      SpcInfo           => NULL()
-      Archive_DryDepChm =  ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDep    =  ASSOCIATED( State_Diag%DryDep    )
+      RC                 =  GC_SUCCESS
+      SpcInfo            => NULL()
+
+#if defined( NC_DIAG )
+      ! Are certain diagnostics turned on?
+      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm )
+      Archive_DryDep          = ASSOCIATED( State_Diag%DryDep    )
+      Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
+      Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
+      Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
+      Archive_AODDustWL2      = ASSOCIATED( State_Diag%AODDustWL2 )
+      Archive_AODDustWL3      = ASSOCIATED( State_Diag%AODDustWL3 )
+      Archive_AOD             = Archive_AODDust 
+     &                     .OR. Archive_AODDustWL1 
+     &                     .OR. Archive_AODDustWL2 
+     &                     .OR. Archive_AODDustWL3
+#endif
 
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION

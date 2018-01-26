@@ -523,6 +523,7 @@ CONTAINS
 !  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
 !  29 Sep 2017 - R. Yantosca - Now get the starting and ending date/time info
 !                              from the Input_Opt object
+!  24 Jan 2018 - E. Lundgren - Allow diagnostic names to include input params
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -564,6 +565,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: TmpMode,        Contact
     CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
     CHARACTER(LEN=255)           :: tagId,          tagName
+    CHARACTER(LEN=255)           :: OutputName
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -1168,8 +1170,9 @@ CONTAINS
                 
                 ! Add each tagged name as a separate item in the collection
                 DO N = 1, nTags
-
                    ! Construct the item name
+
+                   ! Get tag, if any
                    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                                      N=N, tagName=tagName )
                    IF ( RC /= GC_SUCCESS ) THEN
@@ -1179,8 +1182,11 @@ CONTAINS
                       RETURN
                    ENDIF
 
-                   ! Append the tag name to the item name
+                   ! Append the tag name to the output name
                    ItemName = TRIM( ItemPrefix ) // TRIM( tagName )
+
+                   ! Update the ItemName if dependent on input parameters
+                   CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
@@ -1196,14 +1202,14 @@ CONTAINS
                             Collection   = Container,                        &
                             CollectionId = C,                                &
                            !SubsetDims   = CollectionSubsetDims(C),          &
-                            ItemName     = ItemName,                         &
+                            ItemName     = OutputName,                       &
                             ItemCount    = ItemCount,                        &
                             RC           = RC                               )
                 
                    ! Error checking
                    IF ( RC /= GC_SUCCESS ) THEN
                       ErrMsg = 'Could not add diagnostic "'               // &
-                               TRIM( ItemName ) // '" to collection: '    // &
+                               TRIM( OutputName ) // '" to collection: '  // &
                                TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
@@ -1215,6 +1221,9 @@ CONTAINS
                 !-----------------------------------------------------------
                 ! Item name does not have wildcards; no special handling
                 !-----------------------------------------------------------
+
+                ! Update the ItemName if dependent on input parameters
+                CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
 
                 ! Increment the number of HISTORY items
                 ItemCount = ItemCount + 1
@@ -1230,13 +1239,13 @@ CONTAINS
                          Collection   = Container,                           &
                          CollectionId = C,                                   &
                         !SubsetDims   = CollectionSubsetDims(C),             &
-                         ItemName     = ItemName,                            &
+                         ItemName     = OutputName,                          &
                          ItemCount    = ItemCount,                           &
                          RC           = RC                                  )
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not add diagnostic "' // TRIM( ItemName ) &
+                   ErrMsg = 'Could not add diagnostic "' // TRIM( OutputName ) &
                             // '" to collection: ' // TRIM( CollectionName(C) ) 
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN

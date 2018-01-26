@@ -41,6 +41,7 @@ MODULE FlexChem_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
 !                              us remove arrays in CMN_O3_SIZE_mod.F
+!  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -345,6 +346,13 @@ CONTAINS
        CALL AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,                  &
                           State_Chm, State_Diag, RC                         )
 
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !=======================================================================
@@ -397,6 +405,13 @@ CONTAINS
                 State_Chm, State_Diag, RC,         &
                 MONTH,     YEAR,       WAVELENGTH )
 
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "RDAER"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !### Debug
     IF ( prtDebug ) THEN 
        CALL DEBUG_MSG( '### Do_FlexChem: after RDAER' )
@@ -414,6 +429,14 @@ CONTAINS
     IF ( LDUST ) THEN
        CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
                           State_Diag, SOILDUST,  WAVELENGTH, RC             )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 #if !defined( TOMAS )
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -426,6 +449,13 @@ CONTAINS
        ! std code (win, bmy, 1/25/10)
        CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Met, State_Chm,      &
                            State_Diag, MONTH,     YEAR,      WAVELENGTH, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "RDUST_OFFLINE"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 #endif
     ENDIF
 
@@ -471,6 +501,13 @@ CONTAINS
     !=======================================================================
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
                   State_Met,  State_Chm,  State_Diag, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "FAST_JX"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !### Debug
     IF ( prtDebug ) THEN
