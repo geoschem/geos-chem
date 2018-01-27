@@ -3582,8 +3582,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_STRAT_AER( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CALC_STRAT_AER( am_I_Root, Input_Opt,  State_Met, 
+     &                           State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -3596,6 +3596,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3606,6 +3607,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !      
@@ -3629,6 +3631,7 @@
 !  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID flags
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer removal code
+!  03 Jan 2018 - C. Keller     - Now pass State_Diag, added surface area diagns.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3723,6 +3726,8 @@
       LOGICAL                 :: LHOMNUCNAT
       LOGICAL                 :: LSOLIDPSC
       LOGICAL                 :: LACTIVEH2O
+      LOGICAL                 :: Archive_SADS
+      LOGICAL                 :: Archive_SADL
 
       ! Local variables for quantities from species database
       REAL(fp)                :: NIT_MW_G, HNO3_MW_G, H2O_MW_G
@@ -3765,6 +3770,10 @@
       IF ( prtDebug ) THEN
          CALL DEBUG_MSG( '### UCX: start CALC_STRAT_AER' )
       ENDIF
+
+      ! Write out diagnostics?
+      Archive_SADS = ASSOCIATED(State_Diag%StratSADS)
+      Archive_SADL = ASSOCIATED(State_Diag%StratSADL)
 
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
@@ -4074,6 +4083,11 @@
                NDENS_AER(I,J,L,I_SPA)= NDENS_AER_BOX!#/m3
                SAD_AER(I,J,L,I_SPA)  = SAD_AER_BOX ! cm2/cm3
 
+               ! Eventually add to State_Diag
+               IF ( Archive_SADS ) THEN
+                  State_Diag%StratSADS(I,J,L) = SAD_AER_BOX
+               ENDIF
+
                ! Repartition NIT and HNO3 in strat/meso
                IF (LSOLIDPSC.and.IS_STRAT) THEN
 
@@ -4294,6 +4308,10 @@
                NDENS_AER(I,J,L,I_SLA)= NDENS_AER_BOX    ! #/m3
                SAD_AER(I,J,L,I_SLA)  = SAD_AER_BOX      ! cm2/cm3
 
+               ! Eventually add to State_Diag
+               IF ( Archive_SADL ) THEN
+                  State_Diag%StratSADL(I,J,L) = SAD_AER_BOX
+               ENDIF
          ENDDO
       ENDDO
       ENDDO

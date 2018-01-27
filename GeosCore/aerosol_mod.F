@@ -162,6 +162,13 @@
 
       ! Diagnostic flags
       LOGICAL :: Archive_PM25
+      LOGICAL :: Archive_PM25su
+      LOGICAL :: Archive_PM25ni
+      LOGICAL :: Archive_PM25du
+      LOGICAL :: Archive_PM25ss
+      LOGICAL :: Archive_PM25oc
+      LOGICAL :: Archive_PM25bc
+      LOGICAL :: Archive_PM25soa
       LOGICAL :: Archive_TerpeneSOA
       LOGICAL :: Archive_IsopreneSOA
       LOGICAL :: Archive_AromaticSOA
@@ -344,6 +351,16 @@
       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
       IS_SOAGX   = ( id_SOAGX > 0 )
       IS_SOAMG   = ( id_SOAMG > 0 )
+
+      ! Need to archive PM2.5 in diagnostics state?
+      Archive_PM25    = ASSOCIATED( State_Diag%PM25    )
+      Archive_PM25su  = ASSOCIATED( State_Diag%PM25su  )
+      Archive_PM25ni  = ASSOCIATED( State_Diag%PM25ni  )
+      Archive_PM25oc  = ASSOCIATED( State_Diag%PM25oc  )
+      Archive_PM25bc  = ASSOCIATED( State_Diag%PM25bc  )
+      Archive_PM25du  = ASSOCIATED( State_Diag%PM25du  )
+      Archive_PM25ss  = ASSOCIATED( State_Diag%PM25ss  )
+      Archive_PM25soa = ASSOCIATED( State_Diag%PM25soa )
 
       ! Convert species to [kg] for this routine
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
@@ -961,6 +978,65 @@
          ! PM2.5 concentration at STP [ug/m3]
          IF ( Archive_PM25 ) THEN
             State_Diag%PM25(I,J,L) = ( PM25(I,J,L) * 1.0e+9_fp )
+         ENDIF
+         ! PM2.5 sulfates 
+         IF ( Archive_PM25su ) THEN
+            State_Diag%PM25su(I,J,L) = ( SO4(I,J,L) * SIA_GROWTH  )
+     &                               * ( 1013.25_fp / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)   / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 nitrates 
+         IF ( Archive_PM25ni ) THEN
+            State_Diag%PM25ni(I,J,L) = ( NH4(I,J,L) * SIA_GROWTH
+     &                               +   NIT(I,J,L) * SIA_GROWTH  )
+     &                               * ( 1013.25_fp / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)   / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 BC
+         IF ( Archive_PM25bc  ) THEN
+            State_Diag%PM25bc(I,J,L) = ( BCPI(I,J,L) + BCPO(I,J,L) )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 OC
+         IF ( Archive_PM25oc  ) THEN
+            State_Diag%PM25oc(I,J,L) = ( OCPO(I,J,L)             
+     &                               +   OCPI(I,J,L) * ORG_GROWTH  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 dust
+         IF ( Archive_PM25du  ) THEN
+            State_Diag%PM25du(I,J,L) = ( SOILDUST(I,J,L,1)
+     &                               +   SOILDUST(I,J,L,2)
+     &                               +   SOILDUST(I,J,L,3)
+     &                               +   SOILDUST(I,J,L,4)
+     &                               +   SOILDUST(I,J,L,5) * 0.38  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 sea salt
+         IF ( Archive_PM25ss  ) THEN
+            State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * ORG_GROWTH  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) ) 
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 SOA      
+         IF ( Archive_PM25soa ) THEN
+            State_Diag%PM25soa(I,J,L) = ( TSOA(I,J,L)   * ORG_GROWTH
+     &                                +   ISOA(I,J,L)   * ORG_GROWTH
+     &                                +   ASOA(I,J,L)   * ORG_GROWTH
+     &                                +   SOAS(I,J,L)   * ORG_GROWTH
+     &                                +   ISOAAQ(I,J,L) * ORG_GROWTH  )
+     &                                * ( 1013.25_fp    / PMID(I,J,L) ) 
+     &                                * ( T(I,J,L)      / 298.0_fp    )
+     &                                * 1.0e+9_fp
          ENDIF
 #endif
 
