@@ -191,6 +191,8 @@ CONTAINS
     Dct%Cat          = -999
     Dct%Hier         = -999
     Dct%Oper         = 1
+    Dct%levScalID1   = -1
+    Dct%levScalID2   = -1
     Dct%nScalID      = 0
     Dct%Scal_cID_set = .FALSE. 
 
