@@ -215,9 +215,9 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: LTRAN
      LOGICAL                     :: LFILL
-     LOGICAL                     :: TPCORE_IORD
-     LOGICAL                     :: TPCORE_JORD
-     LOGICAL                     :: TPCORE_KORD
+     INTEGER                     :: TPCORE_IORD
+     INTEGER                     :: TPCORE_JORD
+     INTEGER                     :: TPCORE_KORD
      INTEGER                     :: TS_DYN
 
      !----------------------------------------
@@ -437,18 +437,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: NFAM
      CHARACTER(LEN=255), POINTER :: FAM_NAME(:)
      CHARACTER(LEN=255), POINTER :: FAM_TYPE(:)
-
-     !----------------------------------------
-     ! UNIX CMDS fields
-     !----------------------------------------
-     CHARACTER(LEN=255)          :: BACKGROUND
-     CHARACTER(LEN=255)          :: REDIRECT
-     CHARACTER(LEN=255)          :: REMOVE_CMD
-     CHARACTER(LEN=255)          :: SEPARATOR
-     CHARACTER(LEN=255)          :: WILD_CARD
-     CHARACTER(LEN=255)          :: UNZIP_CMD
-     CHARACTER(LEN=255)          :: ZIP_SUFFIX
-     CHARACTER(LEN=1)            :: SPACE
 
      !----------------------------------------
      ! NESTED GRID MENU fields
@@ -1225,17 +1213,6 @@ CONTAINS
     Input_Opt%NFAM                   = 0
     Input_Opt%FAM_NAME               = ''
     Input_Opt%FAM_TYPE               = ''
-
-    !----------------------------------------
-    ! UNIX CMDS fields
-    !----------------------------------------
-    Input_Opt%BACKGROUND             = ''
-    Input_Opt%REDIRECT               = ''  
-    Input_Opt%REMOVE_CMD             = ''
-    Input_Opt%SEPARATOR              = ''
-    Input_Opt%WILD_CARD              = ''
-    Input_Opt%UNZIP_CMD              = ''
-    Input_Opt%ZIP_SUFFIX             = ''
 
     !----------------------------------------
     ! NESTED GRID MENU fields

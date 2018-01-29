@@ -28,7 +28,6 @@
       PUBLIC  :: DO_TRANSPORT
       PUBLIC  :: INIT_TRANSPORT
       PUBLIC  :: INIT_WINDOW_TRANSPORT
-      PUBLIC  :: SET_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -96,15 +95,12 @@
       ! (1 ) Ap     (REAL(fp) ) : Vertical coordinate array for TPCORE
       ! (2 ) A_M2   (REAL(fp) ) : Grid box surface areas [m2]
       ! (3 ) Bp     (REAL(fp) ) : Vertical coordinate array for TPCORE
-      ! (4 ) IORD   (REAL(fp) ) : TPCORE E/W option flag
-      ! (5 ) JORD   (REAL(fp) ) : TPCORE N/S option flag
-      ! (6 ) KORD   (REAL(fp) ) : TPCORE vertical option flag
       ! (7 ) JLAST  (INTEGER)   : For fvDAS TPCORE
       ! (8 ) MG     (INTEGER)   : For fvDAS TPCORE
       ! (9 ) NG     (INTEGER)   : For fvDAS TPCORE
       ! (10) N_ADJ  (INTEGER)   : For fvDAS TPCORE
       !=================================================================
-      INTEGER                       :: IORD,  JORD, KORD, JFIRST 
+      INTEGER                       :: JFIRST 
       INTEGER                       :: JLAST, NG,   MG,   N_ADJ
       REAL(fp), ALLOCATABLE         :: Ap(:)
       REAL(fp), ALLOCATABLE         :: Bp(:)
@@ -410,6 +406,7 @@
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
+      INTEGER            :: IORD, JORD, KORD
       INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
       REAL(fp)           :: D_DYN
 
@@ -441,6 +438,9 @@
       LFILL       =  Input_Opt%LFILL
       LPRT        =  Input_Opt%LPRT
       LWINDO      =  Input_Opt%LWINDO
+      IORD        =  Input_Opt%TPCORE_IORD
+      JORD        =  Input_Opt%TPCORE_JORD
+      KORD        =  Input_Opt%TPCORE_KORD
       nAdvect     =  State_Chm%nAdvect
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
@@ -669,6 +669,7 @@
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
+      INTEGER            :: IORD,  JORD,  KORD
       INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN 
       INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
       INTEGER            :: I,     J,     L,     L2,      N
@@ -706,6 +707,9 @@
       LFILL       =  Input_Opt%LFILL
       LPRT        =  Input_Opt%LPRT
       LWINDO      =  Input_Opt%LWINDO
+      IORD        =  Input_Opt%TPCORE_IORD
+      JORD        =  Input_Opt%TPCORE_JORD
+      KORD        =  Input_Opt%TPCORE_KORD
       nAdvect     =  State_Chm%nAdvect
 
       ! Initialize pointers
@@ -915,39 +919,6 @@
       ENDIF
 
       END SUBROUTINE DO_WINDOW_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: set_transport
-!
-! !DESCRIPTION: Subroutine SET\_TRANSPORT passes IORD, JORD, KORD values 
-!  from "input\_mod.f".
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_TRANSPORT( I_ORD, J_ORD, K_ORD )
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: I_ORD  ! IORD option for E/W advection
-      INTEGER, INTENT(IN) :: J_ORD  ! JORD option for N/S advection
-      INTEGER, INTENT(IN) :: K_ORD  ! KORD option for vertical diffusion
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IORD = I_ORD
-      JORD = J_ORD
-      KORD = K_ORD 
-
-      END SUBROUTINE SET_TRANSPORT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
