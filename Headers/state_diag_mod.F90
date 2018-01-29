@@ -648,8 +648,9 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following diagnostic quantities are only relevant for the 
-    ! Rn-Pb-Be radionuclide simulation
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! THE Rn-Pb-Be-PASV SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
 
@@ -724,8 +725,9 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following diagnostic quantities are only relevant for simulations
-    ! with the RRTMG radiative transfer model turned on.
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! THE RRTMG RADIATIVE TRANSFER SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%LRAD ) THEN
 
@@ -920,7 +922,10 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following quantities are only relevant for fullchem simulations
+    ! The following diagnostic quantities are only relevant for:
+    ! 
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
@@ -1177,8 +1182,12 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following quantities are only relevant for either fullchem
-    ! or CH4 simulations.
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    !
+    ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
 
@@ -1227,8 +1236,12 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following quantities are only relevant for fullchem simulations
-    ! or aerosol-only simulations
+    ! The following diagnostic quantities are only relevant for:
+    ! 
+    ! ALL FULL-CHEMISTRY SIMULATIONS 
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    !
+    ! and THE AEROSOL-ONLY SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
@@ -1450,6 +1463,24 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Loss of HNO3 on sea salt
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossHNO3onSeaSalt'
+       diagID  = 'LossHNO3onSeaSalt'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossHNO3onSeaSalt( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossHNO3onSeaSalt = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossHNO3onSeaSalt,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! PM25, particulate matter with radius < 2.5 um
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%PM25'
@@ -1514,7 +1545,8 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AromaticSOA = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%AromaticSOA,    &
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AromaticSOA,                   &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1530,7 +1562,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 16
+       DO N = 1, 17
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1558,13 +1590,15 @@ CONTAINS
                 diagID = 'ProdSO4fromSRO3'
              CASE( 12 )                
                 diagID = 'ProdSO4fromO3s'
-             CASE( 13 )                
-                diagID = 'PM25'
+             CASE( 13 )
+                diagID = 'LossHNO3onSeaSalt'
              CASE( 14 )                
-                diagID = 'TerpeneSOA'
+                diagID = 'PM25'
              CASE( 15 )                
-                diagID = 'IsopreneSOA'
+                diagID = 'TerpeneSOA'
              CASE( 16 )                
+                diagID = 'IsopreneSOA'
+             CASE( 17 )                
                 diagID = 'AromaticSOA'
           END SELECT
 
@@ -1581,8 +1615,9 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following quantities are only relevant for 
-    ! aerosol-only simulations
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! THE AEROSOL-ONLY SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
@@ -1700,7 +1735,7 @@ CONTAINS
              CASE( 4  ) 
                 diagID = 'ProdSO2fromDMSandOH'
              CASE( 5  ) 
-                diagID = 'State_Diag%ProdSO4fromGasPhase'
+                diagID = 'ProdSO4fromGasPhase'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -1718,9 +1753,13 @@ CONTAINS
 
     !=======================================================================
     ! The production and loss diagnostics are only relevant for:
-    ! (1) All full-chemistry simulations with FlexChem/KP
-    ! (2) Tagged CO simulations
-    ! (3) Tagged O3 simulations
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    !
+    ! and THE TAGGED CO SPECIALTY SIMULATION
+    !
+    ! and THE TAGGED O3 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                  &
          Input_Opt%ITS_A_TAGCO_SIM    .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
@@ -1800,8 +1839,10 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The production and loss diagnostics are only relevant for:
-    ! (1) Acid uptake on dust aerosols
+    ! These diagnostics are only relevant for:
+    !
+    ! THE FULL-CHEMISTRY SIMULATION WITH ACID UPTAKE ON DUST SPECIES
+    ! (aka "aciduptake")
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LDSTUP ) THEN
 
@@ -1859,24 +1900,6 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Loss of HNO3 on sea salt
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%LossHNO3onSeaSalt'
-       diagID  = 'LossHNO3onSeaSalt'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossHNO3onSeaSalt( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%LossHNO3onSeaSalt = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%LossHNO3onSeaSalt,             &
-                                   State_Chm, State_Diag, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
     ELSE
 
        !-------------------------------------------------------------------
@@ -1888,7 +1911,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 4
+       DO N = 1, 3
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1898,8 +1921,6 @@ CONTAINS
                 diagID  = 'ProdNITfromHNO3uptakeOnDust'
              CASE( 3 )
                 diagID  = 'ProdSO4fromUptakeOfH2SO4g'
-             CASE( 4 )
-                diagID  = 'LossHNO3onSeaSalt'
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
