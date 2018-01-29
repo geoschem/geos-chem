@@ -189,7 +189,7 @@
       LOGICAL :: Archive_AODPSCWL3
 
       ! Index to map between NRHAER and species database hygroscopic species
-      ! Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
+      ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
       ! a new hygroscopic species) requires manual update of this mapping
       ! (ewl, 1/23/17)
       INTEGER :: Map_NRHAER(5)
@@ -1145,6 +1145,8 @@
 !                              and use SpcData%Info%Density to populate MSDENS
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  17 Jan 2018 - E. Lundgren - Implement netcdf cloud diagnostics (eq to ND21)
+!  17 Jan 2018 - E. Lundgren - Fix bpch diagnostic indexing for aer aq volume
+!                              and SOA AOD from aq isoprene (34->58; 35->59)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1291,10 +1293,18 @@
       WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
       WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
+#if defined( BPCH_DIAG )
+      IF ( ND21 > 0 ) THEN
+         ! Define certain bpch ND21 diagnostic indexes
+         IISOPAOD  = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 1
+         IAERAQVOL = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 2
+      ENDIF
+#endif
+
 # if defined( NC_DIAG )
+      ! Initialize the mapping between hygroscopic species in the
+      ! species database and the species order in NRHAER
       IF ( FIRST ) THEN
-         ! Initialize the mapping between hygroscopic species in the
-         ! species database and the species order in NRHAER
          DO I = 1, NRHAER
             
             ! Get the species database index from the species database 
@@ -1327,6 +1337,9 @@
       ENDIF
 #endif
 
+      !=================================================================
+      ! S U L F A T E   A E R O S O L S
+      !
       ! If LSULF = TRUE, then take the lumped SO4, NH4, NIT 
       ! concentrations [kg/m3] computed by AEROSOL_CONC, and save 
       ! into WAERSL(:,:,:,1) for use w/ FAST-J and hetchem.  This is 
@@ -1537,7 +1550,8 @@
                ! but add on any others required 
                IF (IIWV.LE.30) THEN
                   !index of RRTMG wavelengths starts after the standard NWVAA0
-                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat LUT)
+                  !(currently NWVAA0=11, set in CMN_FJX_mod based on the
+                  ! .dat LUT)
                   IWV = IIWV+NWVAA0
                ELSE
                   !now we calculate at wvs for the requested AOD
@@ -1613,7 +1627,7 @@
 !$OMP+PRIVATE( I,        J,       L,        IRH                 )
 !$OMP+PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      )
 !$OMP+PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      )
-!$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA             )
+!$OMP+PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA,  TAERVOL   )
 !$OMP+PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM              )
 #if defined( RRTMG )
 !$OMP+PRIVATE( IR                                               )
@@ -1710,46 +1724,47 @@
 #if defined( UCX )
             IF (N.LE.NRHAER) THEN
 #endif
-            !calculate optics for hyrdophillic aerosol here
-            !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
-            ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
-     &                         * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
-     &                         ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-
-            IF ((N.eq.2).or.(N.eq.3)) THEN
-               !now combine with hydrophilic OD as before
-               ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
-     &                             0.75d0 * BXHEIGHT(I,J,L) *
-     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
-     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
-
-            ! Get the AOD contribution from isoprene SOA
-            ! only (eam, 2014):
-            IF ((N.eq.3) .and. LSOA ) THEN
-               ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
-     &                           * State_Met%BXHEIGHT(I,J,L) 
-     &                           * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
-     &                           ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
+               !calculate optics for hyrdophillic aerosol here
+               !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
+               ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
+     &                            * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
+     &                            ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               
+               IF ((N.eq.2).or.(N.eq.3)) THEN
+                  !now combine with hydrophilic OD as before
+                  ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                                0.75d0 * BXHEIGHT(I,J,L) *
+     &                                DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)/
+     &                                ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+               
+               ! Get the AOD contribution from isoprene SOA
+               ! only (eam, 2014):
+               IF ((N.eq.3) .and. LSOA ) THEN
+                  ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
+     &                              * State_Met%BXHEIGHT(I,J,L) 
+     &                              * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
+     &                              ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
 
 #if defined( UCX )
             ELSE           
-            ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
-
-            ! SDE 2014-02-04
-            ! The calculation used for the aerosols above
-            ! is essentially a roundabout way of deriving
-            ! the cross-sectional area. For log-normally
-            ! distributed aerosols, this is much easier,
-            ! and a direct query prevents the possibility
-            ! of dividing a small mass by a small calculated
-            ! radius and blowing up
-
-            ! Aerosol optical depth
-            ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
-     &                           * QQAA(IWV,1,N)
+               ! Get aerosol effective radius
+               CALL GET_STRAT_OPT(I, J, L, ISTRAT, RAER, REFF,
+     &                            SADSTRAT, XSASTRAT)
+               
+               ! SDE 2014-02-04
+               ! The calculation used for the aerosols above
+               ! is essentially a roundabout way of deriving
+               ! the cross-sectional area. For log-normally
+               ! distributed aerosols, this is much easier,
+               ! and a direct query prevents the possibility
+               ! of dividing a small mass by a small calculated
+               ! radius and blowing up
+               
+               ! Aerosol optical depth
+               ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
+     &                              * QQAA(IWV,1,N)
             ENDIF
 
 #endif
@@ -1765,13 +1780,13 @@
                   RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N)
                ENDDO
             ELSE
-                !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1) 
-                !If strat aerosol switched on (UCX) then this will
-                !automatically be added after the standard aerosol
-                !(NRHAER+1,2) but before dust
-                RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
-                RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
-                RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
+               !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1) 
+               !If strat aerosol switched on (UCX) then this will
+               !automatically be added after the standard aerosol
+               !(NRHAER+1,2) but before dust
+               RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
+               RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+               RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
             ENDIF
 #endif
 
@@ -1880,7 +1895,7 @@
                !----------------------------------------------------
                ! ND21 bpch diagnostics computed here:
                !  #59  Aqueous aerosol volume ( (RADIUS*AREA)/3 )
-               IF ( ND21 > 0 .AND. N.EQ.1 ) THEN 
+               IF ( ND21 > 0 .AND. N .EQ. 1 ) THEN 
                   ! Initialize:
                   TAERVOL = 0d0
 
@@ -1889,7 +1904,6 @@
      &                        TAREA(I,J,L, N+NDUST) ) / 3.D0
 
                   ! Add to diagnostic:
-                  IAERAQVOL = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 2
                   AD21(I,J,L,IAERAQVOL) = AD21(I,J,L,IAERAQVOL)+TAERVOL
                ENDIF
 #endif
@@ -2066,7 +2080,6 @@
       !==============================================================
 #if defined( BPCH_DIAG )
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
-         IISOPAOD = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 1
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, LINTERP, IOUT )
@@ -2139,24 +2152,40 @@
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                   ENDIF
 
-                  !-----------------------------------------------------
-                  ! ND21 bpch diagnostics computed here:
-                  !  #8  Sulfate Surface Area                      [cm2/cm3 ]
-                  !  #11 Black Carbon (hydrophilic) Surface Area   [cm2/cm3 ]
-                  !  #14 Organic Carbon (hydrophilic) Surface Area [cm2/cm3 ]
-                  !  #17 Sea Salt (accum) Surface Area             [cm2/cm3 ]
-                  !  #20 Sea Salt (coarse) Surface Area            [cm2/cm3 ]
-                  IF ( W .EQ. 1 ) THEN
-                     AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT+2) +
-     &                                  TAREA(I,J,L,N+NDUST)
-                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
 
-               ENDDO
-               ENDDO
-               ENDDO
             ENDDO ! end loop over wavelengths
-         ENDDO ! end of loop over hygroscopic aerosols
-!$OMP END PARALLEL DO      
+
+            !------------------------------------
+            ! Aerosol Surface Areas [cm2/cm3]
+            !------------------------------------
+            !-----------------------------------------------------
+            ! ND21 bpch diagnostics computed here:
+            !  #8  Sulfate Surface Area                      [cm2/cm3 ]
+            !  #11 Black Carbon (hydrophilic) Surface Area   [cm2/cm3 ]
+            !  #14 Organic Carbon (hydrophilic) Surface Area [cm2/cm3 ]
+            !  #17 Sea Salt (accum) Surface Area             [cm2/cm3 ]
+            !  #20 Sea Salt (coarse) Surface Area            [cm2/cm3 ]
+            DO L = 1, LD21
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+
+               ! Get 3-D grid box indices
+               IOUT = 5 + (3*(N-1)) + 3
+
+               ! Add aerosol surface areas
+               AD21(I,J,L,IOUT) = AD21(I,J,L,IOUT) +
+     &                            TAREA(I,J,L,N+NDUST)
+
+            ENDDO
+            ENDDO
+            ENDDO
+
+         ENDDO ! end loop over hygroscopic aerosols
+!$OMP END PARALLEL DO 
+     
       ENDIF
 #endif
 #if defined( NC_DIAG )
@@ -2259,23 +2288,41 @@
                      ENDIF
                   ENDIF
 
-                  !----------------------------------------------------
-                  ! Netcdf diagnostics computed here:
-                  !  Sulfate Surface Area                       [cm2/cm3]
-                  !  Black Carbon (hydrophilic) Surface Area    [cm2/cm3]
-                  !  Organic Carbon (hydrophilic) Surface Area  [cm2/cm3]
-                  !  Sea Salt (accum) Surface Area              [cm2/cm3]
-                  !  Sea Salt (coarse) Surface Area             [cm2/cm3]
-                  IF ( Archive_AerSurfAreaHyg .AND. W .EQ. 1 ) THEN
-                      State_Diag%AerSurfAreaHyg(I,J,L,Map_NRHAER(N)) =
-     &                                        TAREA(I,J,L,N+NDUST)
-                  ENDIF
+               ENDDO
+               ENDDO
+               ENDDO
 
-               ENDDO
-               ENDDO
-               ENDDO
-            ENDDO ! end loop over wavelengths         
-         ENDDO ! end loop over hygroscopic aerosols
+            ENDDO ! end loop over wavelengths
+         ENDDO ! end of loop over hygroscopic aerosols
+!$OMP END PARALLEL DO
+      ENDIF
+
+      !------------------------------------
+      ! Aerosol Surface Areas
+      !------------------------------------
+      IF ( Archive_AerSurfAreaHyg .AND. ODSWITCH .EQ. 1) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N )
+!$OMP+SCHEDULE( DYNAMIC )
+         ! Loop over hydroscopic aerosols
+         DO N = 1, NRHAER 
+            !----------------------------------------------------
+            ! Netcdf diagnostics computed here:
+            !  Sulfate Surface Area                       [cm2/cm3]
+            !  Black Carbon (hydrophilic) Surface Area    [cm2/cm3]
+            !  Organic Carbon (hydrophilic) Surface Area  [cm2/cm3]
+            !  Sea Salt (accum) Surface Area              [cm2/cm3]
+            !  Sea Salt (coarse) Surface Area             [cm2/cm3]
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               State_Diag%AerSurfAreaHyg(I,J,L,Map_NRHAER(N)) =
+     &                                   TAREA(I,J,L,N+NDUST)
+            ENDDO
+            ENDDO
+            ENDDO
+         ENDDO ! end of loop over hygroscopic aerosols
 !$OMP END PARALLEL DO
       ENDIF
 #endif
@@ -2436,8 +2483,7 @@
       Archive_AerSurfAreaHyg = ASSOCIATED(State_Diag%AerSurfAreaHyg)
       
       ! Special flags if combinations the above are turned on
-      Archive_AOD          = Archive_AerSurfAreaHyg
-     &                  .OR. Archive_AODHygWL1
+      Archive_AOD          = Archive_AODHygWL1
      &                  .OR. Archive_AODHygWL2
      &                  .OR. Archive_AODHygWL3
      &                  .OR. Archive_AODSOAWL1

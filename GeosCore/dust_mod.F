@@ -76,15 +76,17 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Mar 2017 - R. Yantosca - Remove reference to Input_Opt fields
 !  02 Nov 2017 - R. Yantosca - Add modifications for netCDF diagnostics
-!  15 Nov 2017 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+#if defined( NC_DIAG )
       ! Diagnostic flags
       LOGICAL               :: Archive_DryDepChm
+      LOGICAL               :: Archive_DryDepTot
       LOGICAL               :: Archive_DryDep
       LOGICAL               :: Archive_AerSurfAreaDust
       LOGICAL               :: Archive_AOD
@@ -92,6 +94,7 @@
       LOGICAL               :: Archive_AODDustWL1
       LOGICAL               :: Archive_AODDustWL2
       LOGICAL               :: Archive_AODDustWL3
+#endif
 
       ! Species ID flags
       INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
@@ -340,7 +343,6 @@
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      LOGICAL                :: Do_Diag
       INTEGER                :: N, BIN, I, J, L, NN, IDISP
       REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
       REAL(fp)               :: DIF, FLUXN, FLUXD
@@ -361,7 +363,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      Do_Diag = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -458,19 +459,18 @@
 !debug-----
             ENDDO
 
+#if defined( BPCH_DIAG )
             !=========================================================== 
             !  Dry deposition diagnostic [#/cm2/s] (bpch)
             !===========================================================
-            IF ( Do_Diag ) THEN
+            IF ( ND44 > 0 ) THEN
 
-#if defined( BPCH_DIAG )
                !--------------------------------------------------------
                ! ND44 DIAGNOSTIC (bpch) 
                ! Dry deposition flux loss [#/cm2/s]
                !
                ! NOTE: Bpch diagnostics are being phased out.
                !--------------------------------------------------------
-
                !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
                !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
                AD44(I,J,TOMAS_IDDEP(BIN),1) = 
@@ -751,7 +751,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                :: Do_Diag
       INTEGER                :: I,        J,     L
       INTEGER                :: N,        NA,    ND
       REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
@@ -759,8 +758,7 @@
       REAL(fp)               :: NUM,      LAMDA, FLUX
       REAL(fp)               :: AREA_CM2, TC0(LLPAR)
       REAL(fp)               :: TOT1,     TOT2
-      INTEGER                :: ND44x
-      
+
       ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
       REAL(fp)               :: P 
 
@@ -785,6 +783,7 @@
       ! Pointers
       TYPE(Species), POINTER :: ThisSpc
       REAL(fp),      POINTER :: TC(:,:,:,:)
+
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -801,17 +800,6 @@
       RC        =  GC_SUCCESS
       ThisSpc   => NULL()
       TC        => State_Chm%Species
-
-      ! Define a shadow variable for ND44
-#if defined( BPCH_DIAG )
-      ND44x     = ND44
-#else
-      ND44x     = 0
-#endif
-      
-      ! Set a flag if we are archiving drydep diagnostics
-      Do_Diag   = ( ND44x > 0         .or.
-     &              Archive_DryDepChm .or. Archive_DryDep )
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -926,8 +914,44 @@
                !========================================================      
                ! Dry deposition diagnostic [molec/cm2/s]
                !========================================================
-               IF ( Do_Diag ) THEN
+#if defined( BPCH_DIAG )
+               !-----------------------------------------------------
+               ! ND44 DIAGNOSTIC (bpch)
+               ! Dry deposition flux loss [molec/cm2/s]
+               !-----------------------------------------------------
+               IF ( ND44 > 0 ) THEN
 
+                  ! Initialize
+                  TOT1 = 0e+0_fp
+                  TOT2 = 0e+0_fp
+                  
+                  ! Compute column totals of TCO(:) and TC(I,J,:,N)
+                  DO L = 1, LLPAR
+                     TOT1 = TOT1 + TC0(L)
+                     TOT2 = TOT2 + TC(I,J,L,NA)
+                  ENDDO
+                  
+                  ! Convert dust flux from [kg/s] to [molec/cm2/s]
+                  FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
+                  FLUX = FLUX * AVO * ( AIRMW / 
+!     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
+     &                    ThisSpc%emMw_g    ) /
+     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
+                  
+                  ! For bpch diagnostic, save in global array AD44
+                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
+               ENDIF
+#endif
+
+#if defined( NC_DIAG )
+               IF ( Archive_DryDep ) THEN
+                  !-----------------------------------------------------
+                  ! HISTORY (aka netCDF diagnostics)
+                  ! Dry deposition flux loss [molec/cm2/s]
+                  !
+                  ! NOTE: Eventually think about converting this
+                  ! diagnostic to more standard units [kg/m2/s]
+                  !-----------------------------------------------------
                   ! Initialize
                   TOT1 = 0e+0_fp
                   TOT2 = 0e+0_fp
@@ -945,39 +969,17 @@
      &                    ThisSpc%emMw_g    ) /
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND44 DIAGNOSTIC (bpch)
-                  ! Dry deposition flux loss [molec/cm2/s]
-                  !
-                  ! NOTE: Bpch diagnostics are being phased out.
-                  !-----------------------------------------------------
-
-                  ! For bpch diagnostic, save in global array AD44
-                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
-#endif
-
-#if defined( NC_DIAG )
-                  !-----------------------------------------------------
-                  ! HISTORY (aka netCDF diagnostics)
-                  ! Dry deposition flux loss [molec/cm2/s]
-                  !
-                  ! NOTE: Eventually think about converting this
-                  ! diagnostic to more standard units [kg/m2/s]
-                  !-----------------------------------------------------
-
                   ! Drydep flux in chemistry only
                   IF ( Archive_DryDepChm ) THEN
                      State_Diag%DryDepChm(I,J,1,ND) = FLUX
                   ENDIF
 
                   ! Total drydep flux
-                  IF ( Archive_DryDep ) THEN
+                  IF ( Archive_DryDepTot ) THEN
                      State_Diag%DryDep(I,J,1,ND) = FLUX
                   ENDIF
-#endif
                ENDIF
-
+#endif
             ENDDO 
          ENDDO    
 
@@ -1070,8 +1072,7 @@
 !                              IIPAR instead.
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  15 Nov 2017 - E. Lundgren - Implement optical depth netcdf diagnostics
-!  15 Nov 2017 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1637,7 +1638,7 @@
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  25 Jan 2018 - E. Lundgren - Implement optical depth / dust SA  nc diagnostics
+!  25 Jan 2018 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2690,7 +2691,8 @@
 #if defined( NC_DIAG )
       ! Are certain diagnostics turned on?
       Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDep          = ASSOCIATED( State_Diag%DryDep    )
+      Archive_DryDepTot       = ASSOCIATED( State_Diag%DryDep    )
+      Archive_DryDep          = Archive_DryDepChm .OR. Archive_DryDepTot
       Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
       Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
       Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
