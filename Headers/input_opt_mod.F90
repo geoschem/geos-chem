@@ -181,13 +181,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
-     ! FUTURE MENU fields
-     !----------------------------------------
-     LOGICAL                     :: LFUTURE
-     INTEGER                     :: FUTURE_YEAR
-     CHARACTER(LEN=255)          :: FUTURE_SCEN
-
-     !----------------------------------------
      ! CHEMISTRY MENU fields
      !----------------------------------------
      LOGICAL                     :: LCHEM
@@ -866,13 +859,6 @@ CONTAINS
     Input_Opt%LFOSSILTAG             = .FALSE.
     Input_Opt%LSHIPTAG               = .FALSE.
     Input_Opt%LPLANETAG              = .FALSE.
-
-    !----------------------------------------
-    ! FUTURE MENU fields
-    !----------------------------------------
-    Input_Opt%LFUTURE                = .FALSE.
-    Input_Opt%FUTURE_YEAR            = 0
-    Input_Opt%FUTURE_SCEN            = ''
 
     !----------------------------------------
     ! CHEMISTRY MENU fields

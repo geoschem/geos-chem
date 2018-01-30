@@ -35,7 +35,6 @@
       PRIVATE :: READ_ADVECTED_SPECIES_MENU
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
-      PRIVATE :: READ_FUTURE_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
       PRIVATE :: READ_RADIATION_MENU
       PRIVATE :: READ_TRANSPORT_MENU
@@ -356,14 +355,6 @@
                RETURN
             ENDIF
 
-         ELSE IF ( INDEX( LINE, 'FUTURE MENU'      ) > 0 ) THEN
-            CALL READ_FUTURE_MENU( am_I_Root, Input_Opt, RC ) 
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error in "Read_Future_Menu"!'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
-                                                   
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
             CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1766,6 +1757,7 @@
       ENDIF
 
  100  FORMAT( A, L5     )
+ 105  FORMAT( A, f6.2 )
  110  FORMAT( A, f6.2, ' - ', f6.2 )
  120  FORMAT( A, f6.2, 'K' )
 
@@ -2455,142 +2447,6 @@
  100  FORMAT( A, L5 )
 
       END SUBROUTINE READ_CO2_SIM_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_future_menu
-!
-! !DESCRIPTION: Subroutine READ\_FUTURE\_MENU reads the FUTURE MENU section 
-!  of the GEOS-Chem input file; this defines IPCC future emissions options.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_FUTURE_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE FUTURE_EMISSIONS_MOD, ONLY : DO_FUTURE_EMISSIONS
-      USE Input_Opt_Mod,        ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  01 Jun 2006 - S. Wu       - Initial version
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  23 Jun 2014 - R. Yantosca - Removed reference to logical_mod.F
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER            :: N
-
-      ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-      ! Arrays
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_FUTURE_MENU begins here!
-      !=================================================================
-
-      ! Initialize
-      RC      = GC_SUCCESS
-      ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
-     &   ' -> at Read_Future_Menu (in module GeosCore/input_mod.F)'
-
-      ! Use IPCC future emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LFUTURE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LFUTURE
-
-      ! Future emission year
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'FUTURE_YEAR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%FUTURE_YEAR
-
-      ! Future emission scenario
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'FUTURE_SCEN', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%FUTURE_SCEN
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'FUTURE MENU'
-         WRITE( 6, '(  a)' ) '-----------'
-         WRITE( 6, 100 ) 'Use IPCC future emissions   : ',
-     &                    Input_Opt%LFUTURE
-         WRITE( 6, 110 ) 'Future emissions for year   : ',
-     &                    Input_Opt%FUTURE_YEAR 
-         WRITE( 6, 120 ) 'Future emissions scenario   : ',  
-     &                    TRIM( Input_Opt%FUTURE_SCEN )
-      ENDIF
-
-      ! FORMAT statements
- 100  FORMAT( A, L5  )
- 110  FORMAT( A, I4  )
- 120  FORMAT( A, A   )
-    
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize
-      IF ( Input_Opt%LFUTURE ) THEN
-         CALL DO_FUTURE_EMISSIONS( am_I_Root, Input_Opt,
-     &                             Input_Opt%FUTURE_YEAR,
-     &                             Input_Opt%FUTURE_SCEN,
-     &                             RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "Do_Future_Emissions"!'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-
-      END SUBROUTINE READ_FUTURE_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3830,8 +3686,7 @@
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_DIAG_MOD        ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE CMN_SIZE_MOD        ! Size parameters
-      USE DIAG03_MOD,    ONLY : ND03,      PD03
-      USE DIAG03_MOD,    ONLY : PD03_PL    !eds 9/9/10
+      USE DIAG03_MOD,    ONLY : ND03,      PD03,      PD03_PL
       USE DIAG04_MOD,    ONLY : ND04,      PD04
       USE DIAG41_MOD,    ONLY : ND41,      PD41
       USE DIAG42_MOD,    ONLY : ND42,      PD42

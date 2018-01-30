@@ -113,7 +113,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
     USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
@@ -305,40 +304,6 @@ CONTAINS
        ENDIF
     ENDIF
     
-!------------------------------------------------------------------------------
-! Prior to 1/18/18:
-! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
-!    !-----------------------------------------------------------------------
-!    ! Initialize global concentration of CH4
-!    !-----------------------------------------------------------------------
-!    IF ( FIRSTCHEM ) THEN
-!
-!       ! Check that CH4 is not an advected species
-!       ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
-!       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. ( CH4_YEAR /= YEAR ) ) THEN
-!
-!          ! If CH4 is a species, then call GET_GLOBAL_CH4
-!          ! to return the globally-varying CH4 conc. as a function of
-!          ! year and latitude bin. (bnd, bmy, 7/1/03)
-!          !
-!          ! If we are using the future emissions, then get the CH4
-!          ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
-!          ! concentrations for the current met field year. 
-!          ! (swu, havala, bmy, 1/24/08)
-!          IF ( Input_Opt%LFUTURE ) THEN
-!             CH4_YEAR = GET_FUTURE_YEAR()
-!          ELSE
-!             CH4_YEAR = YEAR
-!          ENDIF
-!
-!          ! Get CH4 [ppbv] in 4 latitude bins for each year
-!          CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S, &
-!                               C0030S,    C0030N,  C3090N, & 
-!                               am_I_Root, Input_Opt        )
-!       ENDIF
-!    ENDIF
-!------------------------------------------------------------------------------
-
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
     ! for FAST-JX and optical depth diagnostics
