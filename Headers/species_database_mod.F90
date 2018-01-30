@@ -775,9 +775,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               RC            = RC )
 
           CASE( 'CH2O', 'HCHO' )
@@ -824,9 +822,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               RC            = RC )
 
           CASE( 'CHCL3' )
@@ -3239,9 +3235,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.90e-5_f8 * To_M_atm,        &
                               Henry_CR      = 1600.0_f8,                    &
@@ -3992,9 +3986,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               Is_HygroGrowth= T,                            &
                               Density       = 1700.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
@@ -6541,11 +6533,7 @@ CONTAINS
                                  Name          = NameAllCaps,               &
                                  FullName      = 'Excited atomic oxygen (1D)',&
                                  Formula       = 'O(1D)',                   &
-#if defined( UCX )
                                  BackgroundVV  = 1.0e-15_fp,                &
-#else
-                                 BackgroundVV  = 4.0e-22_fp,                &
-#endif
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
                                  Is_Drydep     = F,                         &

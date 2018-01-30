@@ -46,7 +46,6 @@
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
                           PUBLIC :: NDENS_AER ! See below
-      INTEGER,            PUBLIC :: CFCYEAR ! Year for CFC emissions
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -462,8 +461,7 @@
       LOGICAL            :: LSETH2SO4
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
-!      LOGICAL            :: LBASICEMIS
-      Real(fp)           :: MWTemp
+      INTEGER            :: CFCYEAR
 
       ! Pointers
       REAL(fp), POINTER  :: Spc (:,:,:,:)
@@ -483,7 +481,7 @@
       LSETH2SO4    = Input_Opt%LSETH2SO4
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
-!      LBASICEMIS   = Input_Opt%LBASICEMIS
+      CFCYEAR      = Input_Opt%CFCYEAR
 
       ! Set module variable
 
@@ -508,7 +506,7 @@
       WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
 
       ! Error trap: make sure CFCYEAR is properly initialized
-      IF ( CFCYEAR < 0 ) CFCYEAR = GET_YEAR()
+      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
       ! Are we using 2D data?
       ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
@@ -1187,7 +1185,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GC_GRID_MOD,        ONLY : GET_YMID
@@ -1361,7 +1358,7 @@
 
          ! Calculate daylight fraction
          DAYFRAC = State_Met%SUNCOSmid(I,J)
-         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met )
          CycleBox = (L.le.LMinPhot)
 
          ! Are the pre-calculated J-rates zero (ie in darkness)?
@@ -1827,10 +1824,10 @@
          ! is at the *top* of the atmosphere
          VERTCOUNT = 51
          EXTRAP = .TRUE.
-         LSTART = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LSTART = GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met )
 
          DO L = LSTART, LLPAR
-            IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+            IF (ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met)) CYCLE
 
             ! Pressure at center of cell
             PCENTER = State_Met%PMID(I,J,L)
@@ -2182,7 +2179,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,          INTENT(INOUT)  :: RC       ! Failure or success
+      INTEGER,        INTENT(INOUT) :: RC          ! Failure or success
 !
 ! !REMARKS:
 !  
@@ -2212,6 +2209,7 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
+      INTEGER              :: CFCYEAR
 
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
@@ -2225,6 +2223,7 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
+      CFCYEAR   = Input_Opt%CFCYEAR
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -2328,15 +2327,21 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)           :: YLAT
-      REAL(fp)           :: MR90S,MR30S,MR30N,MR90N
+      REAL(fp)         :: YLAT
+      REAL(fp)         :: MR90S,MR30S,MR30N,MR90N
       INTEGER          :: I, N, TARG_LINE, J
       CHARACTER(LEN=20):: LOCAL_NAME
       INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
+      ! Local variables for quantities from Input_Opt
+      INTEGER          :: CFCYEAR
+
       !=================================================================
       ! READ_SFC begins here!
       !=================================================================
+
+      ! Copy fields from INPUT_OPT
+      CFCYEAR   = Input_Opt%CFCYEAR
 
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0e+0_fp
@@ -2425,25 +2430,25 @@
             SELECT CASE (LOCAL_NAME)
                CASE ('CFC113')
                   LOCAL_NAME = TRIM('CFC113')
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
                CASE ('CFC114')
                   LOCAL_NAME = TRIM('CFC114')
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
                CASE ('CFC115')
                   LOCAL_NAME = TRIM('CFC115')
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
                CASE ('HCFC141b')
                   LOCAL_NAME = TRIM('HCFC141b')
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
                CASE ('HCFC142b')
                   LOCAL_NAME = TRIM('HCFC142b')
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
                   ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL(LOCAL_NAME,
-     &                         CFCYEAR+OFFSETYEAR-1949,N)
+     &                         CFCYEAR+OFFSETYEAR-1949,N,Input_Opt)
                CASE ('OCS')
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = OCS_MR
@@ -2481,7 +2486,7 @@
                   ! in main.F (mps, 1/18/18)
                CASE DEFAULT
                   ! Standard 1:1
-                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N)
+                  CALL SET_MONTREAL(LOCAL_NAME,TARG_LINE,N,Input_Opt)
             END SELECT
          ENDDO
       ENDIF
@@ -2639,15 +2644,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_MONTREAL (TRAC_NAME,TARG_LINE,N)
+      SUBROUTINE SET_MONTREAL (TRAC_NAME,TARG_LINE,N,Input_Opt)
 !
 ! !USES:
+!
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
       CHARACTER(LEN=20),INTENT(IN)   :: TRAC_NAME
       INTEGER,INTENT(IN)             :: TARG_LINE
       INTEGER,INTENT(IN)             :: N
+      TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input options
 !
 ! !REVISION HISTORY: 
 !  10 Oct 2013 - S. D. Eastham - Wrapper built from edges of original GET
@@ -2663,7 +2671,7 @@
       ! SET_MONTREAL begins here!
       !=================================================================
 
-      YY = CFCYEAR+OFFSETYEAR
+      YY = Input_Opt%CFCYEAR+OFFSETYEAR
       MM = SFC_MONTH
       GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + SFCMR_GET(TRAC_NAME,YY,MM)
 
@@ -2906,7 +2914,7 @@
 
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
-               IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) THEN
+               IF (ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met)) THEN
                   RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
@@ -5868,7 +5876,7 @@
          DAYCOLUMN = (GMU.gt.0e+0_fp)
 
          IF (DAYCOLUMN) THEN
-            LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+            LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met )
 
             ! Retrieve photolysis rate as a fraction of gaseous SO4
             PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
@@ -6648,7 +6656,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN) :: State_Diag  ! Diagnostics State object
 !
@@ -6694,7 +6702,6 @@
       LOGICAL            :: LSETBRSTRAT
       LOGICAL            :: LSETNOYSTRAT
       LOGICAL            :: LSETN2O
-!      LOGICAL            :: LBASICEMIS
 
       ! Return code
       INTEGER :: RC
@@ -6721,7 +6728,6 @@
       LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
       LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
       LSETN2O      = Input_Opt%LSETN2O
-!      LBASICEMIS   = Input_Opt%LBASICEMIS
 
       ! Set module variable doPrint for use in internal functions
       doPrint      = LPRT .AND. am_I_Root
@@ -6930,7 +6936,7 @@
       SFC_MONTH = 0
       OFFSETYEAR = 0
       IF (.not.LFUTURECFC) THEN
-         CFCYEAR = GET_YEAR()
+         Input_Opt%CFCYEAR = GET_YEAR()
       ENDIF
 
       ! Determine which species are to be emitted

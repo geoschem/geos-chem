@@ -624,7 +624,21 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               wetscav_mod.o
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
-                              vdiff_pre_mod.o
+                              aerosol_mod.o           benchmark_mod.o        \
+                              c2h6_mod.o              carbon_mod.o           \
+                              chemgrid_mod.o          co2_mod.o              \
+                              depo_mercury_mod.o      diag03_mod.o           \
+                              diag20_mod.o            diag_oh_mod.o          \
+                              drydep_mod.o            dust_mod.o             \
+                              gamap_mod.o             get_ndep_mod.o         \
+                              global_ch4_mod.o        input_mod.o            \
+                              linoz_mod.o             land_mercury_mod.o     \
+                              mercury_mod.o           modis_lai_mod.o        \
+                              ocean_mercury_mod.o     pops_mod.o             \
+                              seasalt_mod.o           sulfate_mod.o          \
+                              tagged_co_mod.o         tagged_o3_mod.o        \
+                              toms_mod.o              tpcore_bc_mod.o        \
+                              vdiff_pre_mod.o         wetscav_mod.o          \
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o               diag_mod.o

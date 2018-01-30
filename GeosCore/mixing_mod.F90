@@ -659,7 +659,7 @@ CONTAINS
 
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN
-             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, Input_Opt, State_Met )
              EMIS_TOP = MIN(LLPAR,EMIS_TOP)
           ELSE
              EMIS_TOP = LLPAR

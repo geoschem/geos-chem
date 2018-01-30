@@ -27,8 +27,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      CHARACTER(LEN=255), PUBLIC :: INITIAL_FILE ! File w/ initial species mass
-      CHARACTER(LEN=255), PUBLIC :: FINAL_FILE   ! File w/ final   species mass
 !
 ! !REVISION HISTORY:
 !  (1 ) Now expand date & time tokens in filenames (bmy, 1/31/05)
@@ -39,6 +37,8 @@
 !  05 Nov 2014 - M. Yannetti - PRECISION_MOD Changed REAL*8 to REAL(fp)
 !  19 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  29 Nov 2016 - M. Sulprizio- Convert species locally from kg/kg to kg
+!  30 Jan 2018 - M. Sulprizio- Remove INITIAL_FILE and FINAL_FILE and get from
+!                              Input_Opt instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,10 +183,10 @@
       ! Define filename for beginning or end of benchmark run
       IF ( LBEGIN ) THEN
          TITLE    = 'GEOS-CHEM Benchmark: Initial Species Mass'
-         FILENAME = INITIAL_FILE
+         FILENAME = Input_Opt%STDRUN_INIT_FILE
       ELSE
          TITLE    = 'GEOS-CHEM Benchmark: Final Species Mass'
-         FILENAME = FINAL_FILE
+         FILENAME = Input_Opt%STDRUN_FINAL_FILE
       ENDIF
            
       ! Expand any date tokens in the filename

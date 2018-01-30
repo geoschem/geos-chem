@@ -62,7 +62,7 @@
       INTEGER, PARAMETER :: PD60=1
       INTEGER, PARAMETER :: PD61=0
 #endif
-      INTEGER, PARAMETER :: PD64=W_
+      INTEGER            :: PD64
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=7
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
@@ -99,7 +99,7 @@
       !=================================================================
       ! Diagnostic counters & time variables
       !=================================================================
-      INTEGER :: KDA48, NJDAY(366)
+      INTEGER :: KDA48
 
       !=================================================================
       ! Variables for the number of levels in multi-level diagnostics  
@@ -247,6 +247,7 @@
       
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 
+      PD64 = W_
 
       END SUBROUTINE Init_CMN_DIAG
 !EOC

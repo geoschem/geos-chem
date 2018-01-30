@@ -1070,8 +1070,7 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+            IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
 #if defined( BPCH_DIAG )
                !--------------------------------------------------------
@@ -1106,7 +1105,7 @@
       ! (4) Save OH concentrations for printing of global mean [OH] and
       !     CH3CCLl3 at end of simulation.
       !=================================================================
-      CALL CH4_OHSAVE( State_Met, State_Chm )
+      CALL CH4_OHSAVE( Input_Opt, State_Met, State_Chm )
 
       !=================================================================
       ! (5) If multi-CH4 species, we store the CH4 total conc. to
@@ -1131,7 +1130,7 @@
       !=================================================================
       ! (6) calculate rate of decay of CH4 by OH oxidation.
       !=================================================================
-      CALL CH4_DECAY( State_Met, State_Chm )
+      CALL CH4_DECAY( Input_Opt,  State_Met, State_Chm )
 
       !=================================================================
       ! (7) calculate CH4 chemistry in layers above tropopause.
@@ -1211,7 +1210,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_DECAY( State_Met, State_Chm )
+      SUBROUTINE CH4_DECAY( Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -1219,6 +1218,7 @@
       USE CMN_SIZE_MOD
       USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE DIAG_MOD,           ONLY : AD19   	      
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
@@ -1226,6 +1226,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1297,8 +1298,8 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         ! Only consider tropospheric boxes
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         ! Only consider chemistry grid boxes
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
@@ -1372,7 +1373,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CH4_OHSAVE( State_Met, State_Chm )
+      SUBROUTINE CH4_OHSAVE( Input_Opt, State_Met, State_Chm )
 !
 ! !USES:
 !
@@ -1380,12 +1381,14 @@
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input options
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
 ! 
@@ -1440,8 +1443,8 @@
       DO J = 1, JJPAR 
       DO I = 1, IIPAR 
 
-         ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         ! Only process chemistry grid boxes
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met ) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1672,7 +1675,7 @@
          DO L = BASELEV, LLPAR 
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
+            IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
@@ -1876,28 +1879,28 @@
       WRITE(189,1990)
  1990 FORMAT('Tropospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,Input_Opt,State_Met)
       WRITE(189,20)NTP,NTP/SpcCONV
 
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,Input_Opt,State_Met)
       WRITE(189,21)NTP2,NTP2/SpcCONV
 
       WRITE(189,18)
       WRITE(189,1991)
  1991 FORMAT('Stratospheric Burden')
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,Input_Opt,State_Met)
       WRITE(189,20) NTP,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,Input_Opt,State_Met)
       WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks   jsw has checked correctness of code for sinks.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1,State_Met)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,1,Input_Opt,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,3,3,0,Input_Opt,State_Met)
       SINKS=NTP+NTQ
 
       WRITE(189,22) NTP,NTP/SINKS*100.e+0_fp,NTP/SpcCONV
@@ -1908,26 +1911,26 @@
       WRITE(189,30)
 
       ! Sources
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,4,4,1,Input_Opt,State_Met)
       SOURCES=NTP
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,5,5,1,Input_Opt,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,9,9,1,Input_Opt,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,6,6,1,Input_Opt,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,7,7,1,Input_Opt,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,8,8,1,Input_Opt,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       !jsw Following lines added by jsw.
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,1,10,10,1,Input_Opt,State_Met)
       WRITE(189,35) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
       SINKS=SINKS-NTP  !Minus sign because soil absorption is negative.
@@ -1936,10 +1939,10 @@
       WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,State_Met)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,1,Input_Opt,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,1,Input_Opt,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,1,1,0,Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR,1,LLPAR,2,2,0,Input_Opt,State_Met)
       WRITE(189,18)
       WRITE(189,288) NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS,
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
@@ -1962,32 +1965,33 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,Input_Opt,State_Met)
       WRITE(189,20) NTP,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,Input_Opt,State_Met)
       WRITE(189,21) NTP,NTP/SpcCONV
 
       WRITE(189,18)
       WRITE(189,1991)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,Input_Opt,State_Met)
       WRITE(189,20) NTP,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,Input_Opt,State_Met)
       WRITE(189,21) NTP,NTP/SpcCONV
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF( NTP > 0e+0_fp) SINKS = SINKS + NTP
 
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/
-     &     2+1,1,LLPAR,11,11,0,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &             Input_Opt,State_Met)
       IF( NTP2 > 0e+0_fp ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,Input_Opt,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/SpcCONV
@@ -2006,48 +2010,52 @@
       WRITE(189,30)
       
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,5,9,1,Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,Input_Opt,State_Met)
       SOURCES=NTQ+NTQ2
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          SOURCES=SOURCES-NTP
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          SOURCES=SOURCES-NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,State_Met)
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,1,Input_Opt,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,4,4,0,Input_Opt,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,5,5,1,Input_Opt,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,6,6,1,Input_Opt,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,7,7,1,Input_Opt,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,8,8,1,Input_Opt,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,1,9,9,1,Input_Opt,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          WRITE(189,270) -NTP,-NTP/SOURCES*100.e+0_fp,-NTP/SpcCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,
-     &     JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &             Input_Opt,State_Met)
       IF( NTP2 > 0e+0_fp ) SINKS = SINKS + NTP2      
 
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,1,Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,3,3,0,Input_Opt,State_Met)
       SINKS=SINKS+NTQ+NTQ2
       WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
 
@@ -2059,10 +2067,10 @@
       WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
       
-      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,State_Met)
-      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,1,Input_Opt,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,1,Input_Opt,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,1,1,0,Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,1,JJPAR/2,1,LLPAR,2,2,0,Input_Opt,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
@@ -2085,33 +2093,41 @@
       WRITE(189,19)
       WRITE(189,1990)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,
+     &            Input_Opt,State_Met)
       WRITE(189,20) NTP,NTP/SpcCONV
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,
+     &            Input_Opt,State_Met)
       WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,1991)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,
+     &            Input_Opt,State_Met)
       WRITE(189,20) NTP,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,
+     &            Input_Opt,State_Met)
       WRITE(189,21) NTP,NTP/SpcCONV
       
       WRITE(189,18)
       WRITE(189,31)
 
       ! Sinks
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,1,
+     &            Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,3,3,0,
+     &             Input_Opt,State_Met)
       SINKS=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          SINKS=SINKS-NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          SINKS=SINKS-NTP
       ENDIF
@@ -2119,12 +2135,14 @@
       WRITE(189,22) NTQ,NTQ/SINKS*100.e+0_fp,NTQ/SpcCONV
       WRITE(189,220) NTQ2,NTQ2/SINKS*100.e+0_fp,NTQ2/SpcCONV
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          WRITE(189,270) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/SpcCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
       IF(NTP.LT.0.e+0_fp) THEN
          WRITE(189,2700) -NTP,-NTP/SINKS*100.e+0_fp,-NTP/SpcCONV
       ENDIF
@@ -2135,44 +2153,51 @@
       WRITE(189,30)
 
       ! Sources
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,5,9,1,
+     &            Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,
+     &             Input_Opt,State_Met)
       SOURCES=NTQ+NTQ2
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,Input_Opt,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,,State_Met0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,1,
+     &            Input_Opt,State_Met)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,4,4,0,
+     &            Input_Opt,State_Met)
       
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,5,5,1,Input_Opt,State_Met)
       WRITE(189,24) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,6,6,1,Input_Opt,State_Met)
       WRITE(189,39) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,7,7,1,Input_Opt,State_Met)
       WRITE(189,25) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,8,8,1,Input_Opt,State_Met)
       WRITE(189,26) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,1,9,9,1,Input_Opt,State_Met)
       WRITE(189,27) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,1,
+     &            Input_Opt,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
          WRITE(189,270) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       ENDIF
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,
+     &            Input_Opt,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
          WRITE(189,2700) NTP,NTP/SOURCES*100.e+0_fp,NTP/SpcCONV
       ENDIF
@@ -2181,10 +2206,14 @@
       WRITE(189,28) SOURCES,SOURCES/SpcCONV
       WRITE(189,18)
 
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,State_Met)
-      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,State_Met)
-      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,State_Met)
-      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,State_Met)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,1,
+     &            Input_Opt,State_Met)
+      NTP2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,1,
+     &            Input_Opt,State_Met)
+      NTQ=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,1,1,0,
+     &            Input_Opt,State_Met)
+      NTQ2=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR,1,LLPAR,2,2,0,
+     &            Input_Opt,State_Met)
       WRITE(189,18)
       WRITE(189,288) (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS),
      *     (NTP-NTP2+NTQ-NTQ2+SOURCES-SINKS)/SpcCONV
@@ -2247,13 +2276,14 @@
 ! !INTERFACE:
 !
       REAL(fp) FUNCTION SUM_CH4( I1, I2, J1, J2, L1, L2, K1, K2, UPDOWN,
-     &                         State_Met )
+     &                           Input_Opt, State_Met )
 !
 ! !USES:
 !
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
       USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
+      USE Input_Opt_Mod,     ONLY : OptInput
       USE State_Met_Mod,     ONLY : State_Met
 !
 ! !INPUT PARAMETERS: 
@@ -2263,9 +2293,8 @@
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
       INTEGER, INTENT(IN) :: K1, K2 ! Min/max species   indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
-
-      ! Also need to pass the State_Met for the CHEMGRID functons
-      TYPE(MetState), INTENT(IN) :: State_Met
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input opts
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2326,7 +2355,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -2343,7 +2372,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO

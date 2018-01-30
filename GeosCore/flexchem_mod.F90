@@ -201,6 +201,7 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,7 +209,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug, LDUST,    IsLocNoon
+    LOGICAL                :: prtDebug, IsLocNoon
     INTEGER                :: I,        J,        L,         N
     INTEGER                :: NA,       F,        SpcID,     KppID
     INTEGER                :: P,        MONTH,    YEAR,      WAVELENGTH
@@ -233,8 +234,6 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
-    REAL(fp)               :: SCF        (                  3                )
-    REAL(fp)               :: SCOEFF     (IIPAR,JJPAR,LLPAR,3                )
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
@@ -254,7 +253,6 @@ CONTAINS
     ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
     SpcInfo   => NULL()
     prtDebug  =  ( Input_Opt%LPRT .and. am_I_Root )
-    LDUST     =  Input_Opt%LDUST
     itim      =  0.0_fp
     rtim      =  0.0_fp
     totsteps  =  0
@@ -439,7 +437,7 @@ CONTAINS
     ! in GEOS-CHEM...so read monthly-mean dust files from disk.
     ! (rjp, tdf, bmy, 4/1/04)
     !=======================================================================
-    IF ( LDUST ) THEN
+    IF ( Input_Opt%LDUST ) THEN
        CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
                           State_Diag, SOILDUST,  WAVELENGTH, RC             )
     ELSE
@@ -529,15 +527,16 @@ CONTAINS
     ! Absolute tolerance
     ATOL      = 1e-2_dp    
 
-#if defined( UCX )
-    ! Relative tolerance, for UCX-based mechanisms
-    !RTOL      = 2e-2_dp    
-    !RTOL      = 1e-2_dp    
-    RTOL      = 0.5e-2_dp    
-#else
-    ! Relative tolerance, non-UCX mechanisms
-    RTOL      = 2e-1_dp    
-#endif
+    ! Relative tolerance
+    IF ( Input_Opt%LUCX  ) THEN
+       ! UCX-based mechanisms
+       !RTOL      = 2e-2_dp
+       !RTOL      = 1e-2_dp
+       RTOL      = 0.5e-2_dp
+    ELSE
+       ! Non-UCX mechanisms
+       RTOL      = 2e-1_dp
+    ENDIF
 
     !%%%%% SOLVER OPTIONS %%%%%
 
@@ -590,7 +589,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT,   SCF            )&
+    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT                   )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
     !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P,      IsLocNoon      )&
     !$OMP REDUCTION( +:ITIM                                                 )&
@@ -619,7 +618,6 @@ CONTAINS
        NUMDEN    = 0.0_dp            ! Air number density
        RCNTRL    = 0.0_fp            ! Rosenbrock input
        RSTATE    = 0.0_dp            ! Rosenbrock output
-       SCF       = 0.0_dp            ! For hetchem diagnostics
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
        TEMP      = 0.0_fp            ! Temperature
        YLAT      = 0.0_fp            ! Latitude
@@ -636,8 +634,9 @@ CONTAINS
        ! otherwise move onto the next box.
        !====================================================================
 
-       ! If we are not in the troposphere don't do the chemistry!
-       IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) CYCLE
+       ! If we are not in the troposphere (tropchem) or stratosphere (UCX)
+       ! then don't do the chemistry!
+       IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
        ! Keep a running total of the # of times it was local noon at each box
        IF ( IsLocNoon ) THEN
@@ -695,12 +694,8 @@ CONTAINS
 
        IF ( DO_HETCHEM ) THEN
 
-          ! Copy SCOEFF to SCF, this will avoid an array temporary
-          SCF = SCOEFF(I,J,L,:)
-
           ! Set hetchem rates
-          CALL SET_HET( I,         J,         L,         State_Diag,  &
-                        State_Chm, State_Met, Input_Opt, SCF         )
+          CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
 
 #if defined( BPCH_DIAG )
           IF ( ND52 > 0 ) THEN
@@ -717,9 +712,6 @@ CONTAINS
           ENDIF
 #endif
 
-          ! Copy SCF back into SCOEFF
-          SCOEFF(I,J,L,:) = SCF
-
        ENDIF
 
        !====================================================================
@@ -735,11 +727,11 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-#if defined( UCX ) 
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
-#else
-          SO4_FRAC = 0.0_fp
-#endif
+          IF ( Input_Opt%LUCX ) THEN 
+             SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          ELSE
+             SO4_FRAC = 0.0_fp
+          ENDIF
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -899,15 +891,15 @@ CONTAINS
 
        C(ind_ACTA)  = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
-#if defined( UCX )
-       C(ind_O2) = 0.2095e+0_dp * NUMDEN
-       C(ind_N2) = 0.7808e+0_dp * NUMDEN
-       C(ind_H2) = 0.5000e-6_dp * NUMDEN
-#else
-       ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
-       ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
-       C(ind_H2O) = H2O
-#endif
+       IF ( Input_Opt%LUCX ) THEN
+          C(ind_O2) = 0.2095e+0_dp * NUMDEN
+          C(ind_N2) = 0.7808e+0_dp * NUMDEN
+          C(ind_H2) = 0.5000e-6_dp * NUMDEN
+       ELSE
+          ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
+          ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
+          C(ind_H2O) = H2O
+       ENDIF
 
 !------------------------------------------------------------------------------
 ! Prior to 1/18/18:
@@ -1201,7 +1193,7 @@ CONTAINS
     !=======================================================================
     ! Save quantities for computing mean OH lifetime
     !=======================================================================
-    CALL DO_DIAG_OH( State_Met, State_Chm )
+    CALL DO_DIAG_OH( Input_Opt, State_Met, State_Chm )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
@@ -1381,10 +1373,7 @@ CONTAINS
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
-            ! Skip to next grid box
-            CYCLE
-         ENDIF
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met ) ) CYCLE
 
          !------------------------------------------------------------------
          ! OH concentration [molec/cm3]

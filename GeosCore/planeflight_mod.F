@@ -1656,7 +1656,9 @@
                   CASE ( 1:996) !( 1:998 )
 
                      ! Only archive where chemistry is done
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
 
                         ! Species concentration [v/v] -> [molec/cm3]
                         VARI(V) = Spc(I,J,L,PVAR(V)) * 
@@ -1675,7 +1677,9 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
 
                         DO N = 1, NPNOY
 
@@ -1697,7 +1701,9 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
 
                         DO N = 1, NPAN
 
@@ -1718,7 +1724,9 @@
                      VARI(V) = 0e+0_fp
                            
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
 
                         DO N = 1, NPRO2
 
@@ -1742,7 +1750,9 @@
                      
                      ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
                         VARI(V)  = State_Met%AVGW(I,J,L) *
      &                             State_Met%AIRNUMDEN(I,J,L)
                         TK       = State_Met%T(I,J,L)
@@ -1765,7 +1775,9 @@
                      ! Only archive where chemistry is done
                      VARI(V) = 0e+0_fp
 
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( ITS_IN_THE_CHEMGRID( I, J, L,
+     &                                         Input_Opt,
+     &                                         State_Met ) ) THEN
                         DO N = 1, NDUST + NAER
                            VARI(V) = VARI(V) +
      &                               State_Chm%AeroArea(I,J,L,N)

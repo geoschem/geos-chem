@@ -199,6 +199,8 @@
 #  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
 #  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
 #  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+#  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
+#                              throughout GEOS-Chem.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -487,20 +489,12 @@ endif
 # Test if the CHEM value is set
 IS_CHEM_SET          :=0
 
-# %%%%%  CHEM=Standard (aka benchmark, will turn on UCX) %%%%%
+# %%%%%  CHEM=Standard (aka benchmark) %%%%%
 REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=y
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=UCX (same as Standard as of v11-02a) %%%%%
-REGEXP               :=(^[Uu][Cc][Xx])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=y
-  KPP_CHEM           :=Standard
-  IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 # %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
@@ -536,6 +530,7 @@ REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Custom
   IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 # %%%%%  Default setting %%%%%
@@ -546,19 +541,8 @@ endif
 # code to be compiled. (mps, 4/22/16)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
-  UCX                :=y
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-endif
-
-#------------------------------------------------------------------------------
-# UCX stratospheric-tropospheric chemistry settings
-#------------------------------------------------------------------------------
-
-# %%%%% UCX %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DUCX
   NO_REDUCED         :=yes
 endif
 

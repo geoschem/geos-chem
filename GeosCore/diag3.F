@@ -708,8 +708,8 @@
          CATEGORY = 'DUSTSRCE'
          FACTOR   = 1.0e+0_fp
 
-         ! Loop over # of dust bins
-         DO N = 1, Input_Opt%N_DUST_BINS
+         ! Loop over # of dust bins (obtained from CMN_SIZE_mod)
+         DO N = 1, NDSTBIN
 
 #if defined( TOMAS )
 
@@ -758,7 +758,7 @@
 
          ! Include Dust alkalinity sources   tdf 6/18/2K8
          IF ( Input_Opt%LDSTUP ) THEN
-            DO N = 5, Input_Opt%N_DUST_BINS*2
+            DO N = 5, NDSTBIN*2
 
                SELECT CASE ( N )
                   CASE ( 5 )
@@ -2110,43 +2110,6 @@
            ENDIF
          ENDDO    
 
-         !==============================================================
-         ! If we are using the crystalline sulfate tracers (LCRYST=T),
-         ! then also save out the extra ND21 diagnostics:
-         !
-         ! #28: Opt depth for HYSTERESIS CASE            [unitless]
-         ! #29: Opt depth for SOLID CASE                 [unitless]
-         ! #30: Opt depth for LIQUID CASE                [unitless]
-         ! #31: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
-         ! #32: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
-         ! #33: Radiative forcing                        [W/m2    ]    
-         !==============================================================
-         IF ( Input_Opt%LCRYST ) THEN
-            
-            ! Category
-            CATEGORY = 'OD-MAP-$'
-
-            ! Loop over extra 
-            DO N = 1, 6               
-
-               ! Define unit string
-               IF ( N == 6 ) THEN
-                  UNIT = 'W/m2'
-               ELSE
-                  UNIT = 'unitless'
-               ENDIF
-
-               ! Scale by chemistry timestep
-               ARRAY(:,:,1) = AD21_cr(:,:,N) / SCALECHEM
-
-               ! Save to BPCH file
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, N+PD21,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDDO
-         ENDIF
       ENDIF
 !
 !******************************************************************************
@@ -3906,19 +3869,19 @@
 !  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
 !  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
 !  24 Feb 2014 - M. Sulprizio- Added O1D and O3P for UCX strat chem
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !******************************************************************************
 !
-!      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
       IF ( ND43 > 0 .and. ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
      &                      Input_Opt%ITS_A_CH4_SIM           ) ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
-         DO M = 1, TMAX(43)
-            N  = TINDEX(43,M)
+         ! Default units
+         UNIT     = 'molec/cm3'
 
-            ! Default units
-            UNIT = 'molec/cm3'
+         DO M = 1, 2
+            N  = TINDEX(43,M)
 
             SELECT CASE ( N )
 
@@ -3946,35 +3909,8 @@
                   UNIT = 'v/v'
                   NN   = 3             ! backwards compat. w/ prior code
 
-#if defined( UCX )
-               ! O1D
-               CASE ( 3 )
-                  WHERE( CTO1D /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTO1D )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-                  NN   = 4             ! backwards compat. w/ prior code
-
-               ! O3P
-               CASE ( 4 )
-                  NN = 5
-                  WHERE( CTO3P /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTO3P )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-                  NN   = 5             ! backwards compat. w/ prior code
-
-#endif
-            CASE DEFAULT
-               ! Nothing
+               CASE DEFAULT
+                  ! Nothing
 
             END SELECT
 
@@ -3984,6 +3920,58 @@
      &                  IIPAR,     JJPAR,     LD43,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
+
+
+         IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !           %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
+            DO M = 3,4
+               N  = TINDEX(43,M)
+
+               SELECT CASE ( N )
+
+                  ! O1D
+                  CASE ( 3 )
+                     WHERE( CTO1D /= 0 )
+                        ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                       FLOAT( CTO1D )
+                     ELSEWHERE
+                        ARRAY(:,:,1:LD43) = 0.
+                     ENDWHERE
+
+                     UNIT = 'molec/cm3'
+                     NN   = 4   ! backwards compat. w/ prior code
+
+                  ! O3P
+                  CASE ( 4 )
+                     NN = 5
+                     WHERE( CTO3P /= 0 )
+                        ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                       FLOAT( CTO3P )
+                     ELSEWHERE
+                        ARRAY(:,:,1:LD43) = 0.
+                     ENDWHERE
+
+                     UNIT = 'molec/cm3'
+                     NN   = 5   ! backwards compat. w/ prior code
+
+                  CASE DEFAULT
+                     ! Nothing
+
+               END SELECT
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD43,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
+            ENDDO
+
+         ENDIF ! LUCX
+
       ENDIF
 #if defined( BPCH_DIAG )
 !
@@ -6354,9 +6342,17 @@
       IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
          write(6,*) 'NWVSELECT',NWVSELECT
+
          ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
-         NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
+
+         ! Number of output species plus baseline
+         IF ( Input_Opt%LUCX ) THEN
+            NSPECOUT=NSPECRADMENU+1
+         ELSE
+            NSPECOUT=NSPECRADMENU
+         ENDIF
+
          DO M = 1, TMAX(72)
             N  = TINDEX(72,M)
             

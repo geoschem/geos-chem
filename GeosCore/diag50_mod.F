@@ -346,8 +346,12 @@
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
-      ! Aerosol types (rvm, aad, bmy, 7/20/04)
-      INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+!------------------------------------------------------------------------------
+! Prior to 1/3/18:
+! IND is not used here (mps, 1/3/18)
+!      ! Aerosol types (rvm, aad, bmy, 7/20/04)
+!      INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+!------------------------------------------------------------------------------
 
       ! Pointers
       REAL(fp), POINTER     :: Spc(:,:,:,:)
@@ -447,7 +451,7 @@
             I = GET_I( X )
 
             ! Only increment if we were in the chemistry grid
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 
