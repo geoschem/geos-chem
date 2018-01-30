@@ -487,16 +487,16 @@
       CALL GEOS_Timer_Add( "Timesteps",                            RC )
       CALL GEOS_Timer_Add( "HEMCO",                                RC )
       CALL GEOS_Timer_Add( "All chemistry",                        RC )
-      CALL GEOS_Timer_Add( "=> Strat chem",                        RC )
       CALL GEOS_Timer_Add( "=> Gas-phase chem",                    RC )
+      CALL GEOS_Timer_Add( "=> FAST-JX photolysis",                RC )
       CALL GEOS_Timer_Add( "=> All aerosol chem",                  RC )
+      CALL GEOS_Timer_Add( "=> Strat chem",                        RC )
+      CALL GEOS_Timer_Add( "=> Unit conversions",                  RC )
       CALL GEOS_Timer_Add( "Transport",                            RC )
       CALL GEOS_Timer_Add( "Convection",                           RC )
       CALL GEOS_Timer_Add( "Boundary layer mixing",                RC )
       CALL GEOS_Timer_Add( "Dry deposition",                       RC )
-      CALL GEOS_Timer_Add( "All wet deposition",                   RC )
-      CALL GEOS_Timer_Add( "=> Computing precip fields",           RC )
-      CALL GEOS_Timer_Add( "=> Wet scavenging",                    RC )
+      CALL GEOS_Timer_Add( "Wet deposition",                       RC )
       CALL GEOS_Timer_Add( "RRTMG",                                RC )
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
@@ -504,7 +504,7 @@
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
 #endif
 #if defined( NC_DIAG )
-      CALL GEOS_Timer_Add( "=> History (netCDF diagnostics)",      RC )
+      CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
       CALL GEOS_Timer_Add( "Reading met fields",                   RC )
       CALL GEOS_Timer_Add( "Reading restart file",                 RC )
@@ -597,8 +597,8 @@
       ! (ewl, 9/26/17)
       !-----------------------------------------------------------------
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "All diagnostics",                 RC )
-      CALL GEOS_Timer_Start( "=> History (netCDF diagnostics)", RC )
+      CALL GEOS_Timer_Start( "All diagnostics",           RC )
+      CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif      
 
       historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
@@ -612,8 +612,8 @@
       CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "All diagnostics",                 RC )
-      CALL GEOS_Timer_End( "=> History (netCDF diagnostics)", RC )
+      CALL GEOS_Timer_End( "All diagnostics",           RC )
+      CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
 #endif
@@ -737,8 +737,8 @@
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !-----------------------------------------------------------------
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "All diagnostics",                 RC )
-      CALL GEOS_Timer_Start( "=> History (netCDF diagnostics)", RC )
+      CALL GEOS_Timer_Start( "All diagnostics",           RC )
+      CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif   
 
       ! For now, just hardwire the input file for the History component
@@ -755,8 +755,8 @@
       ENDIF
 
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "All diagnostics",                 RC )
-      CALL GEOS_Timer_End( "=> History (netCDF diagnostics)", RC )
+      CALL GEOS_Timer_End( "All diagnostics",           RC )
+      CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif   
 
 #endif  
@@ -1921,7 +1921,7 @@
          IF ( LWETD .and. ITS_TIME_FOR_DYN() ) THEN
 
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_Start( "All wet deposition", RC )
+            CALL GEOS_Timer_Start( "Wet deposition", RC )
 #endif
 
             ! Do wet deposition
@@ -1938,7 +1938,7 @@
             ENDIF
 
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_End( "All wet deposition", RC )
+            CALL GEOS_Timer_End( "Wet deposition", RC )
 #endif
 
          ENDIF
@@ -2075,7 +2075,7 @@
          !           ***** H I S T O R Y   U P D A T E  *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "=> History (netCDF diagnostics)", RC )
+         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
          ! Set species concentration diagnostic array using the 
@@ -2115,7 +2115,7 @@
          ENDIF
 
 #if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "=> History (netCDF diagnostics)", RC )
+         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
 #endif
@@ -2352,7 +2352,7 @@
          !            ***** H I S T O R Y   W R I T E *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "=> History (netCDF diagnostics)", RC )
+         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
          ! Write HISTORY ITEMS in each diagnostic collection to disk
@@ -2366,7 +2366,7 @@
          ENDIF
 
 #if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "=> History (netCDF diagnostics)", RC )
+         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
 #endif

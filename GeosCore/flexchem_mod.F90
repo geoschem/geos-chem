@@ -119,6 +119,7 @@ CONTAINS
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
     USE GC_GRID_MOD,          ONLY : GET_YMID
+    USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PRESSURE_MOD        
@@ -390,6 +391,11 @@ CONTAINS
     !=======================================================================
     ! Call RDAER -- computes aerosol optical depths
     !=======================================================================
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> Gas-phase chem",   RC )
+    CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
+#endif
+
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
@@ -434,6 +440,11 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
     ENDIF
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
+    CALL GEOS_Timer_Start( "=> Gas-phase chem",   RC )
+#endif
+
     !=======================================================================
     ! Archive initial species mass for stratospheric tendency
     !=======================================================================
@@ -469,8 +480,18 @@ CONTAINS
     !=======================================================================
     ! Call photolysis routine to compute J-Values
     !=======================================================================
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> Gas-phase chem",     RC )
+    CALL GEOS_Timer_Start( "=> FAST-JX photolysis", RC )
+#endif
+
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
                   State_Met,  State_Chm,  State_Diag, RC )
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> FAST-JX photolysis", RC )
+    CALL GEOS_Timer_Start( "=> Gas-phase chem",     RC )
+#endif
 
     !### Debug
     IF ( prtDebug ) THEN

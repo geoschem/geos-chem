@@ -131,11 +131,9 @@ CONTAINS
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD  
 #endif
-#if defined (UCX )
     USE UCX_MOD,        ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
     USE UCX_MOD,        ONLY : READ_PSC_FILE
     USE UCX_MOD,        ONLY : WRITE_STATE_PSC
-#endif
 #if defined( TOMAS )
     USE TOMAS_MOD,      ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
@@ -359,6 +357,10 @@ CONTAINS
                       State_Chm, 'CHEM', RC                                 )
 #endif
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
     CALL Convert_Spc_Units( am_I_Root,        Input_Opt, State_Met,          &
                             State_Chm,        'kg',      RC,                 &
@@ -370,6 +372,10 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
 
     !-------------------------------------------------
     ! If LCHEM=T then call the chemistry subroutines
@@ -384,21 +390,31 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-#if defined( UCX )
-          !-----------------------------------------------------------
-          ! We need to get the STATE_PSC from the HEMCO restart file.
-          ! NOTE: Do this before calling CHEMDR to avoid reading this
-          ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
-          ! Now call READ_PSC_FILE on every time step to accomodate 
-          ! replay simulations in GEOS-5 (ckeller, 5/8/15)
-          !-----------------------------------------------------------
-          CALL Read_PSC_File( am_I_Root, State_Chm, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Read_Psc_File"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+          IF ( Input_Opt%LUCX ) THEN
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
+
+             !-----------------------------------------------------------
+             ! We need to get the STATE_PSC from the HEMCO restart file.
+             ! NOTE: Do this before calling CHEMDR to avoid reading this
+             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
+             ! Now call READ_PSC_FILE on every time step to accomodate 
+             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
+             !-----------------------------------------------------------
+             CALL Read_PSC_File( am_I_Root, State_Chm, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Read_Psc_File"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_End( "=> Strat chem", RC )
+#endif
+          ENDIF
+             
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif
@@ -496,20 +512,33 @@ CONTAINS
              ENDIF
           ENDIF
 
-#if defined( UCX )
           !-------------------------------
           ! Recalculate PSC properties
           !-------------------------------
-          CALL Calc_Strat_Aer( am_I_Root, Input_Opt, State_Met,              &
-                               State_Chm, RC                                )
+          IF ( Input_Opt%LUCX ) THEN
 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
+             CALL GEOS_Timer_Start( "=> Strat chem",       RC )
 #endif
+             
+             ! Recalculate PSC
+             CALL Calc_Strat_Aer( am_I_Root, Input_Opt, State_Met,           &
+                                  State_Chm, RC                             )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Calc_Strat_Aer"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_End  ( "=> Strat chem",       RC )
+             CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
+#endif
+
+          ENDIF
 
           !--------------------------------
           ! Also do sulfate chemistry
@@ -624,17 +653,27 @@ CONTAINS
           ! need to be written to the internal state object on every time
           ! step (ckeller, 5/8/15). 
           !----------------------------------------------------------------
-#if defined( UCX )
-          CALL Write_State_PSC( am_I_Root, State_Chm, RC )
+          IF ( Input_Opt%LUCX ) THEN
 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Write_State_PSC"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
-          
+             ! Write PSC diagnostic
+             CALL Write_State_PSC( am_I_Root, State_Chm, RC )
+
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Write_State_PSC"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_End  ( "=> Strat chem",  RC )
+#endif
+
+          ENDIF
+
        !====================================================================
        ! Aerosol-only simulation
        !====================================================================
@@ -803,6 +842,12 @@ CONTAINS
        ! Rn-Pb-Be
        !====================================================================
        ELSE IF ( IT_IS_A_RnPbBe_SIM ) THEN
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
+
+          ! Do Rn-Pb-Be chemistry
           CALL ChemRnPbBe( am_I_Root, Input_Opt,  State_Met,                 &
                            State_Chm, State_Diag, RC                        )
 
@@ -813,10 +858,22 @@ CONTAINS
              RETURN
           ENDIF
 
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
+
        !====================================================================
        ! Tagged O3
        !====================================================================
        ELSE IF ( IT_IS_A_TAGO3_SIM ) THEN 
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
+
+          !-----------------------------------------------
+          ! Do Tagged O3 chemistry
+          !-----------------------------------------------
           CALL Chem_Tagged_O3( am_I_Root, Input_Opt,  State_Met,             &
                                State_Chm, State_Diag, RC                    )
 
@@ -827,8 +884,20 @@ CONTAINS
              RETURN
           ENDIF
           
-          ! Call linearized stratospheric scheme
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
+
+          !-----------------------------------------------
+          ! Call linearized stratospheric scheme (LINOZ)
+          !-----------------------------------------------
           IF ( LSCHEM ) THEN 
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_Start( "=> Strat chem", RC )
+#endif
+
+             ! Do LINOZ for Ozone
              CALL Do_Strat_Chem( am_I_Root, Input_Opt, State_Met,            &
                                  State_Chm, RC                              )
 
@@ -838,12 +907,23 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
+
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_End( "=> Strat chem", RC )
+#endif
+
           ENDIF
 
        !====================================================================
        ! Tagged CO
        !====================================================================
        ELSE IF ( IT_IS_A_TAGCO_SIM ) THEN
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
+
+          ! Do tagged CO chemistry
           CALL Chem_Tagged_CO( am_I_Root, Input_Opt,  State_Met,             &
                                State_Chm, State_Diag, RC                    )
 
@@ -853,7 +933,11 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
- 
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
+
        !====================================================================
        ! C2H6
        !====================================================================
@@ -871,7 +955,11 @@ CONTAINS
        ! CH4
        !====================================================================
        ELSE IF ( IT_IS_A_CH4_SIM ) THEN
- 
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif 
+
           ! Only call after the first 24 hours
           IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
              CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,                 &
@@ -883,6 +971,10 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
+
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
           ENDIF
 
        !====================================================================
@@ -890,6 +982,10 @@ CONTAINS
        !====================================================================
        ELSE IF ( IT_IS_A_MERCURY_SIM ) THEN
  
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
+
           ! Do Hg chemistry
           CALL ChemMercury( am_I_Root, Input_Opt,  State_Met,                &
                             State_Chm, State_Diag, RC                       )
@@ -901,11 +997,19 @@ CONTAINS
              RETURN
           ENDIF
 
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
+
        !====================================================================
        ! POPs
        !====================================================================
        ELSE IF ( IT_IS_A_POPS_SIM ) THEN
  
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
+#endif
+
           ! Do POPS chemistry
           CALL ChemPOPs( am_I_Root, Input_Opt,  State_Met,                   &
                          State_Chm, State_Diag, RC                          )
@@ -917,6 +1021,9 @@ CONTAINS
              RETURN
           ENDIF
 
+#if defined( USE_TIMERS )
+          CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
+#endif
        ENDIF
 
        !====================================================================
@@ -966,6 +1073,10 @@ CONTAINS
     ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
     !-----------------------------------------------------------------------
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
     ! Convert species units back to original unit (ewl, 8/12/15)
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,                 &
                             State_Chm, OrigUnit,  RC                        )
@@ -976,6 +1087,10 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
 
 #if defined( USE_TEND )
     !=======================================================================

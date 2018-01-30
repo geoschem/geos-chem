@@ -250,7 +250,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Error_Mod,       ONLY : Debug_MSG
-      USE Geos_Timers_Mod
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,   ONLY : ChmState
@@ -366,10 +365,6 @@
       ! Create precip fields
       ! (Always assume large-scale precip)
       !------------------------------------------
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "=> Computing precip fields", RC )
-#endif
-
       CALL MAKE_QQ( am_I_Root = am_I_Root,
      &              State_Met = State_Met,
      &              LS        =.TRUE.,
@@ -382,10 +377,6 @@
          RETURN
       ENDIF
 
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "=> Computing precip fields", RC )
-#endif
-
       ! Debug print
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
 
@@ -393,10 +384,6 @@
       ! Do wet deposition
       ! (Always assume large-scale precip)
       !-----------------------------------------
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "=> Wet scavenging", RC )
-#endif
-
       CALL WETDEP( am_I_Root  = am_I_Root,
      &             Input_Opt  = Input_Opt, 
      &             State_Met  = State_Met,
@@ -411,10 +398,6 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "=> Wet scavenging", RC )
-#endif
 
       ! Debug print
       IF ( doPrt ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
