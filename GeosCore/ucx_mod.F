@@ -41,7 +41,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      CHARACTER(LEN=255), PUBLIC :: AVG_FILE_ROOT ! Directory for diurnal avg data
       CHARACTER(LEN=255), PUBLIC :: NOON_FILE_ROOT ! Directory for noontime data
       CHARACTER(LEN=255), PUBLIC :: MONTREAL_FILE_ROOT ! Root directoy for WHO data 
                           PUBLIC :: T_STS ! Max temperature of STS formation (K)
@@ -49,7 +48,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: SET_INITIAL_MIXRATIOS
       PUBLIC  :: SET_H2O_TRAC
       PUBLIC  :: SET_CLOCK_TRAC
       PUBLIC  :: EMISS_BASIC
@@ -69,7 +67,6 @@
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: APPLY_2DTRAC
       PRIVATE :: READ_SFC
       PRIVATE :: SET_MONTREAL
       PRIVATE :: SET_MONTREAL_NCDF
@@ -179,7 +176,6 @@
       !
       ! Arrays
       !
-      ! UCX_MR             : AER 2D mixing ratios (v/v)
       ! UCX_PLEVS          : Pressure levels of 2D data (hPa)
       ! UCX_LATS           : Latitude edges of 2D data (deg)
       ! IDT_EMIT           : IDs of emitted species
@@ -206,7 +202,6 @@
       ! Logicals
       ! 
       ! TRAC_ADD            : Add to (rather than overwrite) species
-      ! STRAT2DCH4          : Use 2D estimates of stratospheric CH4?
       ! 
       !=================================================================
 
@@ -232,8 +227,6 @@
       REAL(fp)             :: CLOCKMR
 
       ! Arrays
-      REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: UCX_MR_IN
-      REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: UCX_MR
       REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: UCX_REGRID
       REAL(fp),DIMENSION(:),ALLOCATABLE       :: UCX_PLEVS
       REAL(fp),DIMENSION(:),ALLOCATABLE       :: UCX_LATS
@@ -259,11 +252,6 @@
       ! Logicals
       LOGICAL                           :: doPrint
       LOGICAL                           :: TRAC_ADD
-#if defined(ESMF_)
-      LOGICAL,PARAMETER                 :: STRAT2DCH4=.FALSE.
-#else
-      LOGICAL,PARAMETER                 :: STRAT2DCH4=.TRUE.
-#endif
 
       !=================================================================
       ! Derived type object for the surface boundary conditions.
@@ -336,773 +324,6 @@
       !=================================================================
       CONTAINS
 !
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: set_initial_mixratios
-!
-! !DESCRIPTION: Subroutine SET\_INITIAL\_MIXRATIOS is a public interface.
-!  Concentrations of species are read from 2D estimates made using the
-!  AER 2D model.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
-     &                                  State_Chm )
-!
-! !USES:
-!
-      USE ERROR_MOD,          ONLY : ALLOC_ERR,ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_YMID
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : GET_YEAR
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: ! ewl note: can't be just output for trc removal
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !REMARKS:
-!  Concentrations of each of the following species are read from
-!  2D estimates made using the AER 2D model:
-!                                                                             .
-!     (# ) TRC                 = Constituents         < Controlled by
-! ----------------------------------------------------------------------------
-!     (1 ) CH4                 = CH4                  < LSETCH4
-!     (2 ) N2O                 = N2O                  < LSETN2O
-!     (3 ) OCS                 = OCS                  < LSETOCS
-!     (4 ) SO4                 = H2SO4                < LSETH2SO4
-!     (5 ) CFC                 = CFC-113/114/115      < LSETCFC
-!     (6 ) HCFC                = HCFC-22/141b/142b    < LSETCFC
-!     (7 ) CFC11               = CFC-11               < LSETCFC
-!     (8 ) CFC12               = CFC-12               < LSETCFC
-!     (9 ) H1202               = Halon 1202           < LSETCFC
-!     (10) H1211               = Halon 1211           < LSETCFC
-!     (11) H1301               = Halon 1301           < LSETCFC
-!     (12) H2402               = Halon 2402           < LSETCFC
-!     (13) Cl2                 = Cl2                  < LSETCL
-!     (14) ClOx                = Cl + ClO             < LSETCL
-!     (15) CCl4                = CCl4                 < LSETCL
-!     (16) CH3Cl               = CH3Cl                < LSETCL
-!     (17) CH3CCl3             = CH3CCl3              < LSETCL
-!     (18) HCl                 = HCl                  < LSETCL
-!     (19) HOCl                = HOCl                 < LSETCL
-!     (20) Cl2O2               = Cl2O2                < LSETCL
-!     (21) ClNO2               = ClNO2                < LSETCL
-!     (22) ClONO2              = ClNO3                < LSETCL
-!     (23) OClO                = OClO                 < LSETCL
-!     (24) ClOO                = ClOO                 < LSETCL
-!     (25) BrCl                = BrCl                 < (LSETCL || LSETBR || LSETBRSTRAT)
-!     (26) Br2                 = Br2                  < LSETBR || LSETBRSTRAT
-!     (27) Br                  = Br                   < LSETBR || LSETBRSTRAT 
-!     (28) BrO                 = BrO                  < LSETBR || LSETBRSTRAT
-!     (29) HOBr                = HOBr                 < LSETBR || LSETBRSTRAT
-!     (30) HBr                 = HBr                  < LSETBR || LSETBRSTRAT
-!     (31) BrNO2               = BrNO2                < LSETBR || LSETBRSTRAT
-!     (32) BrNO3               = BrNO3                < LSETBR || LSETBRSTRAT
-!     (33) CHBr3               = CHBr3                < LSETBR || LSETBRSTRAT
-!     (34) CH2Br2              = CH2Br2               < LSETBR || LSETBRSTRAT
-!     (35) CH3Br               = CH3Br                < LSETBR || LSETBRSTRAT
-!
-! !REVISION HISTORY: 
-!  26 Mar 2013 - S. D. Eastham - Initial version
-!  07 Feb 2014 - R. Yantosca   - !$OMP DO loops now go in L-J-I order
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
-!                                objects via the arg list
-!  18 Jun 2014 - S. D. Eastham - Now read data for individual NOx species
-!  24 Nov 2014 - C. Keller     - Update for stratospheric NOy (as suggested by 
-!                                Seb Eastham)
-!  16 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
-!  16 Jun 2016 - S. D. Eastham - Remove references to tracerid_mod.F
-!  21 Jun 2016 - R. Yantosca   - Now use module variables for species ID's
-!  21 Jun 2016 - R. Yantosca   - Add error checks to make sure that each
-!                                species ID flag has a valid value before
-!                                calling APPLY_2DRATIO routine
-!  22 Jun 2016 - M. Yannetti   - Replace TCVV with spc db MW and phys constant
-!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: AS, N, I, J, L
-      REAL(fp)           :: PLAST, PCURR, PNEXT
-      REAL(fp)           :: YLAT
-      CHARACTER(LEN=255) :: MSG
-      LOGICAL            :: USE2DDATA
-      REAL(fp)           :: C3090S, C0030S, C0030N, C3090N
-      INTEGER            :: CH4_YEAR, INIT_MO
-      REAL(fp)           :: SCALEFAC
-      INTEGER            :: FUTURE_LINE
-      INTEGER            :: BASIS_LINE
-      REAL(fp)           :: MW_g
-
-      ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-      LOGICAL            :: LSETCH4
-      LOGICAL            :: LSETOCS
-      LOGICAL            :: LSETCFC
-      LOGICAL            :: LSETCL
-      LOGICAL            :: LSETBR
-      LOGICAL            :: LSETN2O
-      LOGICAL            :: LSETH2SO4
-      LOGICAL            :: LSETBRSTRAT
-      LOGICAL            :: LSETNOYSTRAT
-      INTEGER            :: CFCYEAR
-
-      ! Pointers
-      REAL(fp), POINTER  :: Spc (:,:,:,:)
-
-      !=================================================================
-      ! SET_INITIAL_MIXRATIOS begins here!
-      !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
-      LSETCH4      = Input_Opt%LSETCH4
-      LSETOCS      = Input_Opt%LSETOCS
-      LSETCFC      = Input_Opt%LSETCFC
-      LSETCL       = Input_Opt%LSETCL
-      LSETBR       = Input_Opt%LSETBR
-      LSETN2O      = Input_Opt%LSETN2O
-      LSETH2SO4    = Input_Opt%LSETH2SO4
-      LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
-      LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
-      CFCYEAR      = Input_Opt%CFCYEAR
-
-      ! Set module variable
-
-      ! Initialize GEOS-Chem species array [kg/kg]
-      Spc => State_Chm%Species
-
-      IF ( am_I_Root ) THEN
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-         WRITE( 6, 100   )
-         WRITE( 6, 110   )
-         WRITE( 6, 120   )
-         WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      ENDIF
-   
-      ! FORMAT strings
- 100  FORMAT( 'T R A C E R   I N I T I A L I Z A T I O N'   )
- 110  FORMAT( 'Routine written by SEBASTIAN D. EASTHAM' )
- 120  FORMAT( 'Last modified: 03/26/13' )
-
-      ! Get current month string
-      MONTH_STR_INT = GET_MONTH()
-      WRITE( MONTH_STR, '(i0.2)' ) MONTH_STR_INT
-
-      ! Error trap: make sure CFCYEAR is properly initialized
-      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
-
-      ! Are we using 2D data?
-      ! Don't use LBASICEMIS in check below (ckeller, 05/12/14)
-      USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
-     &              LSETBR      .or. LSETH2SO4    .or. STRAT2DCH4 .or.
-     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O        )
-
-      IF (USE2DDATA) THEN
-
-         ! Calculate future scaling factor
-         INIT_MO = GET_MONTH()
-         FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + INIT_MO
-         BASIS_LINE = (12*(INITMR_BASIS-1959)) + INIT_MO
-
-         ALLOCATE( UCX_MR_IN( UCX_NLAT, UCX_NLEVS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_MR_IN' )
-         UCX_MR_IN = 0e+0_fp
-
-         ALLOCATE( UCX_MR( JJPAR, UCX_NLEVS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_MR' )
-         UCX_MR = 0e+0_fp
-
-         IF ( am_I_Root ) THEN
-            WRITE(6,*) 'Setting initial values for:'
-            WRITE(6,*) '|---------|---------|---------|'
-         ENDIF
-
-         ! Bromine species (except Halons)
-         IF (LSETBR.or.LSETBRSTRAT) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|Br2      |Br       |BrO      |'
-               WRITE(6,*) '|HOBr     |HBr      |BrNO2    |'
-               WRITE(6,*) '|BrONO2   |CHBr3    |CH2Br2   |'
-               WRITE(6,*) '|CH3Br    |         |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-
-            ! Scaling data only available for CH3Br
-            SCALEFAC = 1.e+0_fp
-
-            !==============================================================
-            ! NOTE: Species ID flags are now module variables, and
-            ! are defined during the INIT phase in INIT_UCX_MOD.
-            !
-            ! Also note, we have added error checks to prevent calling
-            ! APPLY_2DTRAC if a species is undefined (bmy, 6/21/16)
-            !==============================================================
-            IF ( id_Br2 > 0 ) THEN
-               TRAC_IDX = id_Br2
-               TRAC_SET = 'BR2'
-               CALL APPLY_2DTRAC( .FALSE.,    LSETBRSTRAT, 
-     &                            .FALSE.,    SCALEFAC,
-     &                             Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_Br > 0 ) THEN
-               TRAC_IDX = id_Br
-               TRAC_SET = 'BR'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_BrO > 0 ) THEN
-               TRAC_IDX = id_BrO
-               TRAC_SET = 'BRO'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HOBr > 0 ) THEN
-               TRAC_IDX = id_HOBr
-               TRAC_SET = 'HOBR'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF (  id_HBr > 0 ) THEN
-               TRAC_IDX = id_HBr
-               TRAC_SET = 'HBR'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_BrNO2 > 0 ) THEN 
-               TRAC_IDX = id_BrNO2
-               TRAC_SET = 'BRNO2'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_BrNO3 > 0 ) THEN
-               TRAC_IDX = id_BrNO3 
-               TRAC_SET = 'BRNO3'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CHBr3 > 0 ) THEN
-               TRAC_IDX = id_CHBr3
-               TRAC_SET = 'CHBR3'
-               CALL APPLY_2DTRAC( .FALSE.,    LSETBRSTRAT, 
-     &                            .FALSE.,    SCALEFAC,
-     &                             Input_Opt, State_Met, State_Chm )
-            ENDIF
-              
-            IF ( id_CH2Br2 > 0 ) THEN 
-               TRAC_IDX = id_CH2Br2
-               TRAC_SET = 'CH2BR2'
-               CALL APPLY_2DTRAC( .FALSE.,   LSETBRSTRAT, 
-     &                            .FALSE.,   SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CH3Br > 0 ) THEN
-               TRAC_IDX = id_CH3Br
-               TRAC_SET = 'CH3BR'
-               SCALEFAC = MONTREAL_SCALEFAC('CH3Br',
-     &              CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,   LSETBRSTRAT,
-     &                           .FALSE.,   SCALEFAC,
-     &                           Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIF
-
-         ! Stratospheric NOy (update ckeller, 11/25/14)
-         IF (LSETNOYSTRAT) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|NO       |NO2      |NO3      |'
-               WRITE(6,*) '|---------|---------|---------|'
-               WRITE(6,*) '|HNO2     |HNO3     |HNO4     |'
-               WRITE(6,*) '|---------|---------|---------|'
-               WRITE(6,*) '|N2O5     |PAN      |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
- 
-            ! No Montreal scaling
-            SCALEFAC = 1.e+0_fp
-
-            IF ( id_NO > 0 ) THEN
-               TRAC_IDX = id_NO
-               TRAC_SET = 'NO'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_NO2 > 0 ) THEN
-               TRAC_IDX = id_NO2
-               TRAC_SET = 'NO2'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-
-               ! Unstable product of ETO2 + NO2 gets lumped into NO2 for now
-               TRAC_SET = 'ETHO2NO2'
-               CALL APPLY_2DTRAC( .TRUE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_NO3 > 0 ) THEN 
-               TRAC_IDX = id_NO3
-               TRAC_SET = 'NO3'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_N2O5 > 0 ) THEN
-               TRAC_IDX = id_N2O5
-               TRAC_SET = 'N2O5'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HNO2 > 0 ) THEN
-               TRAC_IDX = id_HNO2
-               TRAC_SET = 'HONO'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                             Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HNO3 > 0 ) THEN
-               TRAC_IDX = id_HNO3
-               TRAC_SET = 'HNO3'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HNO4 > 0 ) THEN
-               TRAC_IDX = id_HNO4
-               TRAC_SET = 'HO2NO2'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_PAN > 0 ) THEN
-               TRAC_IDX = id_PAN
-               TRAC_SET = 'PAN'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIF
-
-         ! Br-Cl (special case)
-         IF (LSETCL.or.LSETBR.or.LSETBRSTRAT) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|BrCl     |         |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-
-            ! No Montreal scaling
-            SCALEFAC = 1.e+0_fp
-
-            IF ( id_BrCl > 0 ) THEN
-               TRAC_IDX = id_BrCl
-               TRAC_SET = 'BRCL'
-               CALL APPLY_2DTRAC( .FALSE., LSETBRSTRAT, 
-     &                            .FALSE., SCALEFAC,
-     &                             Input_Opt, State_Met, State_Chm )
-            ENDIF
-     
-         ENDIF
-
-         ! Chlorine species (except CFCS, HCFCs and Halons)
-         IF (LSETCL) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|Cl2      |ClO      |Cl2O2    |'
-               WRITE(6,*) '|Cl       |ClONO2   |HCl      |'
-               WRITE(6,*) '|HOCl     |OClO     |CH3Cl    |'
-               WRITE(6,*) '|CH3CCl3  |CCl4     |ClOO     |'
-               WRITE(6,*) '|         |         |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-
-            ! No Montreal scaling for non-long-lived-species
-            SCALEFAC = 1e+0_fp
-
-            IF ( id_Cl > 0 ) THEN
-               TRAC_IDX = id_Cl
-               TRAC_SET = 'CL'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_ClO > 0 ) THEN
-               TRAC_IDX = id_ClO
-               TRAC_SET = 'CLO'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_ClNO2 > 0 ) THEN
-               TRAC_IDX = id_ClNO2
-               TRAC_SET = 'CLNO2'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_ClNO3 > 0 ) THEN
-               TRAC_IDX = id_ClNO3
-               TRAC_SET = 'CLNO3'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HOCl > 0 ) THEN
-               TRAC_IDX = id_HOCl
-               TRAC_SET = 'HOCL'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_OClO > 0 ) THEN
-               TRAC_IDX = id_OClO
-               TRAC_SET = 'OCLO'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_ClOO > 0 ) THEN
-               TRAC_IDX = id_ClOO
-               TRAC_SET = 'CLOO'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_Cl2 > 0 ) THEN
-               TRAC_IDX = id_Cl2
-               TRAC_SET = 'CL2'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_Cl2O2 > 0 ) THEN
-               TRAC_IDX = id_Cl2O2
-               TRAC_SET = 'CL2O2'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HCl > 0 ) THEN
-               TRAC_IDX = id_HCl
-               TRAC_SET = 'HCL'
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            ! Handle chloroalkanes      
-            IF ( id_CH3Cl > 0 ) THEN
-               TRAC_IDX = id_CH3Cl
-               TRAC_SET = 'CH3CL'
-               SCALEFAC = MONTREAL_SCALEFAC('CH3Cl',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CH3CCl3 > 0 ) THEN
-               TRAC_IDX = id_CH3CCl3
-               TRAC_SET = 'CH3CCL3'
-               SCALEFAC = MONTREAL_SCALEFAC('CH3CCl3',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CCl4 > 0 ) THEN
-               TRAC_IDX = id_CCl4
-               TRAC_SET = 'CCL4'
-               SCALEFAC = MONTREAL_SCALEFAC('CCl4',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                           Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIf
-         
-         ! CFCs, HCFCs and Halons
-         IF (LSETCFC) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|H-1211   |H-1301   |H-2402   |'
-               WRITE(6,*) '|HCFC-123 |HCFC-141b|HCFC-142b|'
-               WRITE(6,*) '|HCFC-22  |R-11     |R-12     |'
-               WRITE(6,*) '|R-113    |R-114    |R-115    |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-
-            ! H-1211, 1301 and 2402
-            IF ( id_H1211 > 0 ) THEN
-               TRAC_IDX = id_H1211
-               TRAC_SET = 'CBRCLF2'
-               SCALEFAC = MONTREAL_SCALEFAC('H1211',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                           Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_H1301 > 0 ) THEN
-               TRAC_IDX = id_H1301
-               TRAC_SET = 'CBRF3'
-               SCALEFAC = MONTREAL_SCALEFAC('H1301',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                           Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_H2402 > 0 ) THEN
-               TRAC_IDX = id_H2402
-               TRAC_SET = 'C2BR2F4'
-
-               IF (UCXNETCDF) THEN
-                  SCALEFAC = MONTREAL_SCALEFAC('C2BR2F4',
-     &                       CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               ELSE
-!                  SCALEFAC=GET_MONTREAL('C2BR2F4',CFCYEAR+OFFSETYEAR-1949)/
-!     &                     GET_MONTREAL('C2BR2F4',INITMR_BASIS-1949)
-                  SCALEFAC = SFCMR_GET('C2BR2F4',CFCYEAR+OFFSETYEAR,1)
-     &                     / SFCMR_GET('C2BR2F4',INITMR_BASIS,1)
-               ENDIF
-
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-     
-            ! CFC  11, 12, and [113/114/115]
-            IF ( id_CFC11 > 0 ) THEN
-               TRAC_IDX = id_CFC11
-               TRAC_SET = 'CFCL3'
-               SCALEFAC = MONTREAL_SCALEFAC('CFC11',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CFC12 > 0 ) THEN
-               TRAC_IDX = id_CFC12
-               TRAC_SET = 'CF2CL2'
-               SCALEFAC = MONTREAL_SCALEFAC('CFC12',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CFC113 > 0 ) THEN
-               TRAC_IDX = id_CFC113
-               TRAC_SET = 'C2CL3F3'
-               SCALEFAC = MONTREAL_SCALEFAC('CFC113',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CFC114 > 0 ) THEN
-               TRAC_IDX = id_CFC114
-               TRAC_SET = 'C2CL2F4'
-               SCALEFAC = MONTREAL_SCALEFAC('CFC114',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_CFC115 > 0 ) THEN
-               TRAC_IDX = id_CFC115
-               TRAC_SET = 'C2CLF5'
-               SCALEFAC = MONTREAL_SCALEFAC('CFC115',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            ! HCFC 22, 123, 141b and 142b
-            IF ( id_HCFC22 > 0 ) THEN
-               TRAC_IDX = id_HCFC22
-               TRAC_SET = 'CHCLF2'
-               SCALEFAC = MONTREAL_SCALEFAC('HCFC22',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HCFC123 > 0 ) THEN
-               TRAC_IDX = id_HCFC123
-               TRAC_SET = 'C2HF3CL2'
-
-               ! Take scaling factor for HCFC22 (no data for 123)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HCFC141b > 0 ) THEN
-               TRAC_IDX = id_HCFC141b
-               TRAC_SET = 'C2H3FCL2'
-               SCALEFAC = MONTREAL_SCALEFAC('HCFC141b',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-
-            IF ( id_HCFC142b > 0 ) THEN
-               TRAC_IDX = id_HCFC142b
-               TRAC_SET = 'C2H3F2CL'
-               SCALEFAC = MONTREAL_SCALEFAC('HCFC142b',
-     &                    CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-               CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIF
-
-         IF (LSETOCS) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|OCS      |         |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-
-            IF ( id_OCS > 0 ) THEN
-               TRAC_IDX = id_OCS
-               TRAC_SET = 'OCS'
-
-               ! No Montreal scaling
-               SCALEFAC = 1.e+0_fp
-
-               CALL APPLY_2DTRAC( .FALSE., .FALSE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIF
-
-         IF (LSETH2SO4) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) '|H2SO4    |         |         |'
-               WRITE(6,*) '|---------|---------|---------|'
-            ENDIF
-            ! No Montreal scaling
-            SCALEFAC = 1.e+0_fp
-
-            IF ( id_SO4 > 0 ) THEN
-               TRAC_IDX = id_SO4
-               ! Actually H2SO4 aerosol
-               TRAC_SET = 'SO4'
-               CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                            Input_Opt, State_Met, State_Chm )
-            ENDIF
-         ENDIF
-      ENDIF ! USE2DDATA
-
-      IF (LSETN2O) THEN
-         IF ( am_I_Root ) THEN
-            WRITE(6,*) '|N2O      |         |         |'
-            WRITE(6,*) '|---------|---------|---------|'
-            IF ( LPRT ) CALL DEBUG_MSG( '### UCX: Forcing 2D N2O' )
-         ENDIF
-
-         IF ( id_N2O > 0 ) THEN
-            TRAC_IDX = id_N2O
-            TRAC_SET = 'N2O'
-            SCALEFAC = MONTREAL_SCALEFAC('N2O',
-     &                 CFCYEAR+OFFSETYEAR,INITMR_BASIS,INIT_MO)
-            CALL APPLY_2DTRAC(.FALSE.,.FALSE.,.FALSE.,SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         ENDIF
-      ENDIF
-
-!------------------------------------------------------------------------------
-! Prior to 1/18/18:
-! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
-!      ! CH4 taken from the existing GEOS-Chem input data,
-!      ! rather than from 2D data
-!
-!      IF (LSETCH4) THEN
-!         IF ( am_I_Root ) THEN
-!            WRITE(6,*) '|CH4      |         |         |'
-!            WRITE(6,*) '|---------|---------|---------|'
-!         ENDIF
-!
-!         ! Retrieve 4 large-scale averages, scaled to target year
-!         CALL GET_UCX_CH4( CFCYEAR+OFFSETYEAR,
-!     &                     C3090S, C0030S, C0030N, C3090N,
-!     &                     am_I_Root, Input_Opt )
-!
-!         ! Convert from [vv] to [kg CH4/kg air]
-!         ! (ewl, 3/16/15) 
-!         TRAC_IDX = id_CH4
-!         MW_g = State_Chm%SpcData(TRAC_IDX)%Info%emMW_g 
-!         C3090S = C3090S / ( AIRMW / MW_g )
-!         C0030S = C0030S / ( AIRMW / MW_g )
-!         C0030N = C0030N / ( AIRMW / MW_g )
-!         C3090N = C3090N / ( AIRMW / MW_g )
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, YLAT )
-!         DO L = 1, LLPAR
-!         DO J = 1, JJPAR
-!         DO I = 1, IIPAR
-!
-!            ! Grid-box latitude index
-!            YLAT  = GET_YMID( I,J,L )
-!
-!            ! Set CH4 according to latitude
-!            ! Spc now in [kg/kg] (ewl, 3/16/15)
-!            IF ( YLAT < -30e+0_fp ) THEN
-!               Spc(I,J,L,TRAC_IDX) = C3090S
-!            ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  ) THEN
-!               Spc(I,J,L,TRAC_IDX) = C0030S
-!            ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp ) THEN
-!               Spc(I,J,L,TRAC_IDX) = C0030N
-!            ELSE
-!               Spc(I,J,L,TRAC_IDX) = C3090N
-!            ENDIF
-!         ENDDO
-!         ENDDO
-!         ENDDO
-!!$OMP END PARALLEL DO
-!------------------------------------------------------------------------------
-
-      IF (LSETCH4) THEN
-         ! Set stratospheric CH4 from AER data?
-         IF ( STRAT2DCH4 ) THEN
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Setting stratospheric CH4 from 2D data.'
-            ENDIF
-            ! No Montreal scaling (already applied)
-            SCALEFAC = 1.e+0_fp
-
-            ! Code to set strat using AER 2D data
-            TRAC_SET = 'CH4'
-            CALL APPLY_2DTRAC( .FALSE., .TRUE., .FALSE., SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-         ENDIF
-      ENDIF
-
-      ! Free pointer
-      NULLIFY( Spc )
- 
-      END SUBROUTINE SET_INITIAL_MIXRATIOS
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !
@@ -1888,268 +1109,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: apply_2dtrac
-!
-! !DESCRIPTION: Subroutine APPLY\_2DTRAC reads in and applies 2D data 
-!  from AER 2D model output to the 3D GEOS-Chem grid. Zonally-averaged
-!  mixing ratios vary by month, but no interpolation is performed.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE APPLY_2DTRAC( TRAC_ADD, STRAT_ONLY, SFC_ONLY, SCALEFAC,
-     &                         Input_Opt, State_Met, State_Chm )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE FILE_MOD,           ONLY : IOERROR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: TRAC_ADD    ! Add (instead of overwrite)
-      LOGICAL,        INTENT(IN)    :: STRAT_ONLY  ! Only write to stratosphere
-      LOGICAL,        INTENT(IN)    :: SFC_ONLY    ! Only write to surface
-      REAL(fp),         INTENT(IN)    :: SCALEFAC    ! Future scaling factor
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !REMARKS:
-!  At some later point we should attempt to rewrite the parallel DO loop so
-!  that the loop order is L-J-I.  Not sure how easy that is. (bmy, 2/14/14)
-!
-! !REVISION HISTORY: 
-!  26 Mar 2013 - S. D. Eastham - Initial version
-!  14 Feb 2014 - R. Yantosca   - Now parallelize main DO loop
-!  21 Feb 2014 - M. Sulprizio  - Now pass Input_Opt, State_Met, and State_Chm 
-!                                objects via the arg list
-!  24 Feb 2014 - E. Lundgren   - Replace GET_PCENTER, which retrieves wet
-!                                air pressure, with State_Met%PMID and
-!                                remove dependency on PRESSURE_MOD.
-!  19 Mar 2015 - E. Lundgren   - Change tracer units from kg to kg/kg
-!  25 Jul 2016 - M. Yannetti   - Pass State_Chem as argument to access spc db;
-!                                Replace TCVV with spc db MW and phys constant
-!  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER            :: IOS
-      INTEGER            :: ILEV
-      INTEGER            :: I, J, L
-      REAL(fp)           :: PCENTER
-      REAL(fp)           :: TRACMR,TRACMASS
-      INTEGER            :: VERTCOUNT
-      LOGICAL            :: FOUNDLEV,EXTRAP
-      REAL(fp)           :: TRACMULT
-      LOGICAL            :: SET_CELL
-      INTEGER            :: IU_FILE
-      INTEGER            :: L_MAX
-      CHARACTER(LEN=255) :: DBGMSG
-      INTEGER :: fId
-      INTEGER :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
-
-      ! Local variables for quantities from Input_Opt
-      LOGICAL            :: LPRT
-
-      ! Pointers
-      REAL(fp), POINTER  :: Spc(:,:,:,:)
-
-      !=================================================================
-      ! APPLY_2DTRAC begins here!
-      !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      LPRT      = Input_Opt%LPRT
-
-      ! Initialize GEOS-Chem species array [kg/kg]
-      Spc => State_Chm%Species
-
-      ! Filename
-      TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
-      TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
-
-      ! Error check
-      IF ((STRAT_ONLY).and.(SFC_ONLY)) THEN
-         CALL ERROR_STOP('Cannot have both SFC_ONLY and STRAT_ONLY!',
-     &                           'APPLY_2DTRAC(UCX_mod.F)')
-      ENDIF
-
-      IF (UCXNETCDF) THEN
-         ! Read from NetCDF
-         TRAC_FILE = TRIM(AVG_FILE_ROOT)
-
-         IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a,a,I02,a,a)') ' ### UCX: Reading ', 
-     &           TRIM(TRAC_SET), ' for month ', MONTH_STR_INT ,
-     &           ' from ', TRIM( TRAC_FILE )
-            CALL DEBUG_MSG( TRIM(DBGMSG) )
-         ENDIF
-
-         ! By the end of this, need to have data in the form
-         ! of an array size JJPARx51 [LAT x LEV]
-
-         ! UCX_MR:      JJPARx51
-         ! UCX_MR_IN:   19x51
-         CALL NcOp_Rd (fId,TRIM(TRAC_FILE))
-
-         ! Start and count indices
-         st3d = (/ 1,                1,  MONTH_STR_INT /)
-         ct3d = (/ UCX_NLAT, UCX_NLEVS,  1             /)
-
-         CALL NcRd( UCX_MR_IN, fId, TRIM(TRAC_SET), st3d, ct3d )
-         CALL NcCl( fId )
-
-         ! Regrid each level from 19 to JJPAR latitudes
-         ! Precalculated matrix for simple linear algebra
-         ! Need to reverse levels - have layer 1 = TOA
-         DO ILEV = 1,UCX_NLEVS
-            UCX_MR(:,UCX_NLEVS+1-ILEV) = 
-     &         MATMUL(UCX_REGRID,UCX_MR_IN(:,ILEV))
-         ENDDO
-      ELSE
-         TRAC_FILE = TRIM(AVG_FILE_ROOT)//TRIM(TRAC_SET )
-         TRAC_FILE = TRIM(TRAC_FILE)//'_'//TRIM(MONTH_STR)//'.dat'
-
-         ! Get a free LUN
-         IU_FILE = findFreeLUN()
-
-         IOS = 1
-         OPEN( IU_FILE, FILE=TRIM( TRAC_FILE ),STATUS='OLD',IOSTAT=IOS) 
-         IF ( IOS /= 0 ) THEN
-            WRITE(6,*) 'UCX_MOD: Could not read ', TRIM( TRAC_FILE )
-            CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
-         ENDIF
-  
-         IF (LPRT) THEN
-            WRITE(DBGMSG,'(a,a)') ' ### UCX: Reading ', 
-     &           TRIM( TRAC_FILE )
-            CALL DEBUG_MSG( TRIM(DBGMSG) )
-         ENDIF
- 
-         ! Read in mixing ratios
-         DO ILEV = 1,51
-            READ(IU_FILE, 110, IOSTAT=IOS ) UCX_MR(:,ILEV)
-            IF ( IOS /= 0 ) THEN
-               WRITE(6,'(a,I4,a,1x,a)') 'UCX_MOD: Error reading line '
-     &    , ILEV, ' in file ', TRIM( TRAC_FILE )
-               CALL IOERROR( IOS, IU_FILE,'UCX_MOD:APPLY_2DTRAC')
-            ENDIF
-         ENDDO
-
-#if defined( GRID2x25 )
-110   FORMAT(91E10.3)
-#elif defined( GRID4x5 )
-110   FORMAT(46E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_AS )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-110   FORMAT(161E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-110   FORMAT(202E10.3)
-      ! dummy so that code works if none of the comp. switches is enabled
-#else
-110   FORMAT(300E10.3)
-#endif
-
-         CLOSE(IU_FILE)    
-      ENDIF
- 
-      IF (SFC_ONLY) THEN
-         L_MAX = 1
-      ELSE
-         L_MAX = LLPAR
-      ENDIF
-
-      ! Scan through Spc, element by element
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,        J,       L,        VERTCOUNT, EXTRAP   )
-!$OMP+PRIVATE( SET_CELL, PCENTER, FOUNDLEV, TRACMR,    TRACMASS )
-      DO J = 1,JJPAR
-         DO I = 1,IIPAR
-            ! Vertcount is the layer count for the input, where layer 1
-            ! is at the *top* of the atmosphere
-            VERTCOUNT = 51
-            EXTRAP = .TRUE.
-            DO L = 1, L_MAX
-               IF (STRAT_ONLY) THEN
-                  ! Only want to set non-trop cells
-                  SET_CELL = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
-               ELSE
-                  SET_CELL = .TRUE.
-               ENDIF
-               ! Pressure at center of cell
-               PCENTER = State_Met%PMID(I,J,L)
-               FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
-               DO WHILE (.not. FOUNDLEV)
-                  IF (VERTCOUNT.eq.1) THEN
-                    ! At top layer; use it anyway
-                    FOUNDLEV = .TRUE.
-                    EXTRAP = .TRUE.
-                  ELSE
-                    VERTCOUNT = VERTCOUNT - 1
-                    FOUNDLEV = (PCENTER.gt.UCX_PLEVS(VERTCOUNT))
-                    EXTRAP = .FALSE.
-                  ENDIF
-               ENDDO
-
-               ! Interpolate mixing ratio
-               IF (EXTRAP) THEN
-                  ! Just take outside value if at edges
-                  TRACMR = UCX_MR(J,VERTCOUNT)
-               ELSE
-                  ! Interpolate by pressure
-                  TRACMR = (UCX_PLEVS(VERTCOUNT+1)-PCENTER)
-                  TRACMR = TRACMR/(UCX_PLEVS(VERTCOUNT+1)-
-     &                               UCX_PLEVS(VERTCOUNT))
-                  TRACMR = TRACMR * 
-     &               (UCX_MR(J,VERTCOUNT+1)-UCX_MR(J,VERTCOUNT))
-                  TRACMR = UCX_MR(J,VERTCOUNT+1) - TRACMR
-               ENDIF
-               ! Send to Spc (currently kg/box)
-               IF (SET_CELL) THEN
-
-                  ! Convert from [ppbv] to [kg/kg] (ewl, 3/19/15)
-                  TRACMASS = SCALEFAC * TRACMR / ( AIRMW / 
-     &                       State_Chm%SpcData(TRAC_IDX)%Info%emMW_g )
-
-                  IF (TRAC_ADD) THEN
-                     Spc(I,J,L,TRAC_IDX) = Spc(I,J,L,TRAC_IDX)+TRACMASS
-                  ELSE
-                     Spc(I,J,L,TRAC_IDX) = TRACMASS
-                  ENDIF
-                ENDIF
-            ENDDO
-         ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
- 
-      ! Free pointer
-      NULLIFY( Spc )
-
-      ! Return to calling program
-      END SUBROUTINE APPLY_2DTRAC
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: emiss_basic
 !
 ! !DESCRIPTION: Subroutine EMISS\_BASIC sets surface mixing ratios of N2O,
@@ -2599,11 +1558,6 @@
          CALL DEBUG_MSG( TRIM(DBGMSG) )
       ENDIF
 
-      ! By the end of this, need to have data in the form
-      ! of an array size JJPARx51 [LAT x LEV]
-
-      ! UCX_MR:      JJPARx51
-      ! UCX_MR_IN:   19x51
       CALL NcOp_Rd (fId,TRIM(FILENAME))
 
       ! Start and count indices
@@ -6567,7 +5521,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER            :: N, AS
-      LOGICAL            :: USE2DDATA
       CHARACTER(LEN=255) :: DBGMSG, GRIDSPEC
       INTEGER            :: JIN, JOUT
       REAL(fp)           :: JMIN_IN, JMAX_IN, JDIF_IN
@@ -6586,14 +5539,6 @@
       LOGICAL            :: LOCSEMIS
       LOGICAL            :: LN2OEMIS
       LOGICAL            :: LBREMIS
-      LOGICAL            :: LSETOCS
-      LOGICAL            :: LSETCFC
-      LOGICAL            :: LSETCL
-      LOGICAL            :: LSETBR
-      LOGICAL            :: LSETH2SO4
-      LOGICAL            :: LSETBRSTRAT
-      LOGICAL            :: LSETNOYSTRAT
-      LOGICAL            :: LSETN2O
 
       ! Return code
       INTEGER :: RC
@@ -6612,14 +5557,6 @@
       LOCSEMIS     = Input_Opt%LOCSEMIS
       LN2OEMIS     = Input_Opt%LN2OEMIS
       LBREMIS      = Input_Opt%LBREMIS
-      LSETOCS      = Input_Opt%LSETOCS
-      LSETCFC      = Input_Opt%LSETCFC
-      LSETCL       = Input_Opt%LSETCL
-      LSETBR       = Input_Opt%LSETBR
-      LSETH2SO4    = Input_Opt%LSETH2SO4
-      LSETBRSTRAT  = Input_Opt%LSETBRSTRAT
-      LSETNOYSTRAT = Input_Opt%LSETNOYSTRAT
-      LSETN2O      = Input_Opt%LSETN2O
 
       ! Set module variable doPrint for use in internal functions
       doPrint      = LPRT .AND. am_I_Root
@@ -6691,24 +5628,9 @@
          WRITE( 6,'(a)') REPEAT( '=', 79 )
       ENDIF
 
-      ! Don't use BASICEMIS switch in check below (ckeller, 05/12/14)
-      USE2DDATA = ( LSETOCS     .or. LSETCFC      .or. LSETCL     .or.
-     &              LSETBR      .or. LSETH2SO4    .or. STRAT2DCH4 .or.
-     &              LSETBRSTRAT .or. LSETNOYSTRAT .or. LSETN2O        )
-
       ! --------------------------------------------------------------
       ! Input data sources
       ! --------------------------------------------------------------
-      
-      ! 2D initial boundary conditions are only defined for 2x25 and
-      ! 4x5 simulations.
-      IF ( LUCX .and. USE2DDATA ) THEN
-#if !defined(GRID4x5) && !defined(GRID2x25)
-       DBGMSG = 'Zonal means preprocessed only for 2x2.5 and 4x5 grid.'
-       CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
-       RETURN
-#endif
-      ENDIF
 
       ! Determine folder paths from root folder
       ! Regridding of netCDF input data is currently not supported.
@@ -6719,9 +5641,6 @@
          CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
        RETURN
 #endif
-         WRITE( AVG_FILE_ROOT,'(a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
-     &      'UCX_201403/Init2D/DiurnalAvg.nc'
          WRITE( NOON_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/Init2D/Noontime.nc'
@@ -6740,9 +5659,6 @@
 #else
          GRIDSPEC = 'Grid2x25/InitCFC_'
 #endif
-         WRITE( AVG_FILE_ROOT,'(a,a,a)') 
-     &        TRIM(Input_Opt%CHEM_INPUTS_DIR),
-     &      'UCX_201403/DiurnalAvg/', TRIM(GRIDSPEC)
          WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
@@ -6754,10 +5670,6 @@
       IF ( LPRT ) THEN
          WRITE(DBGMSG,'(a,a)') '### UCX: Reading O1D/O3P from ',
      &     TRIM(NOON_FILE_ROOT)
-         CALL DEBUG_MSG( TRIM(DBGMSG) )
-         WRITE(DBGMSG,'(a,a)') 
-     &     '### UCX: Initializing long-lived species from ',
-     &     TRIM(AVG_FILE_ROOT)
          CALL DEBUG_MSG( TRIM(DBGMSG) )
          WRITE(DBGMSG,'(a,a)') 
      &     '### UCX: Setting long-lived species BCs from ',
@@ -7239,8 +6151,6 @@
       IF ( ALLOCATED( NDENS_AER  ) ) DEALLOCATE( NDENS_AER  )
       IF ( ALLOCATED( AERFRAC    ) ) DEALLOCATE( AERFRAC    )
       IF ( ALLOCATED( AERFRACIND ) ) DEALLOCATE( AERFRACIND )
-      IF ( ALLOCATED( UCX_MR     ) ) DEALLOCATE( UCX_MR     )
-      IF ( ALLOCATED( UCX_MR_IN  ) ) DEALLOCATE( UCX_MR_IN  )
       IF ( ALLOCATED( UCX_REGRID ) ) DEALLOCATE( UCX_REGRID )
       IF ( ALLOCATED( UCX_PLEVS  ) ) DEALLOCATE( UCX_PLEVS  )
       IF ( ALLOCATED( UCX_LATS   ) ) DEALLOCATE( UCX_LATS   )

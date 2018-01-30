@@ -151,16 +151,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LN2OEMIS
      LOGICAL                     :: LBASICEMIS
      LOGICAL                     :: LSETH2O
-     LOGICAL                     :: LSETCH4
-     LOGICAL                     :: LSETOCS
-     LOGICAL                     :: LSETCFC
-     LOGICAL                     :: LSETCL
-     LOGICAL                     :: LBRGCCM
-     LOGICAL                     :: LSETBR
-     LOGICAL                     :: LSETBRSTRAT
-     LOGICAL                     :: LSETNOYSTRAT
-     LOGICAL                     :: LSETN2O
-     LOGICAL                     :: LSETH2SO4
      INTEGER                     :: CFCYEAR
      LOGICAL                     :: LFUTURECFC
 
@@ -830,16 +820,6 @@ CONTAINS
     Input_Opt%LN2OEMIS               = .FALSE.
     Input_Opt%LBASICEMIS             = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
-    Input_Opt%LSETCH4                = .FALSE.
-    Input_Opt%LSETOCS                = .FALSE.
-    Input_Opt%LSETCFC                = .FALSE.
-    Input_Opt%LSETCL                 = .FALSE.
-    Input_Opt%LBRGCCM                = .FALSE.
-    Input_Opt%LSETBR                 = .FALSE.
-    Input_Opt%LSETBRSTRAT            = .FALSE.
-    Input_Opt%LSETNOYSTRAT           = .FALSE.
-    Input_Opt%LSETN2O                = .FALSE.
-    Input_Opt%LSETH2SO4              = .FALSE.
     Input_Opt%CFCYEAR                = 0
     Input_Opt%LFUTURECFC             = .FALSE.
 

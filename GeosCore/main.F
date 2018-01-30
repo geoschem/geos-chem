@@ -803,20 +803,10 @@
       CALL GEOS_Timer_End( "Reading restart file",  RC )
 #endif
 
-      ! Initialize stratospheric routines
+      ! Initialize the UCX module
       IF ( LUCX ) THEN
-
-         ! Initialize the UCX module
          CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
-
-         ! Set simple initial tracer conditions [kg/kg dry air]
-         CALL SET_INITIAL_MIXRATIOS( am_I_Root, Input_Opt, State_Met,
-     &                               State_Chm )
-         IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### MAIN: a SET_INITIAL_MIXRATIOS' )
-         ENDIF
-
       ENDIF
 
       ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)

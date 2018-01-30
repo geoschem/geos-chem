@@ -307,9 +307,8 @@ CONTAINS
     LOGICAL           :: LLINOZ
     LOGICAL           :: LSYNOZ
     LOGICAL           :: LPRT
-    LOGICAL           :: LBRGCCM
     LOGICAL           :: LUCX
-    LOGICAL           :: LRESET, LCYCLE
+    LOGICAL           :: LCYCLE
     LOGICAL           :: ISBR2 
     CHARACTER(LEN=63) :: OrigUnit
 
@@ -333,7 +332,6 @@ CONTAINS
     LLINOZ               = Input_Opt%LLINOZ
     LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
-    LBRGCCM              = Input_Opt%LBRGCCM
     LUCX                 = Input_Opt%LUCX
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
@@ -379,10 +377,6 @@ CONTAINS
           IF ( errCode /= GC_SUCCESS ) RETURN
        ENDIF
     ENDIF
-
-    ! SDE 2014-01-14: Allow the user to overwrite stratospheric
-    ! concentrations at model initialization if necessary
-    LRESET = (FIRST.AND.LBRGCCM)
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
@@ -644,11 +638,7 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                  
-                IF ( LRESET ) THEN
-                   LCYCLE = ITS_IN_THE_TROP( I, J, L, State_Met )
-                ELSE 
-                   LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt, State_Met )
-                ENDIF
+                LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, Input_Opt, State_Met )
                 IF ( LCYCLE ) CYCLE
 
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).

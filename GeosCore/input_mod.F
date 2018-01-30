@@ -2020,86 +2020,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2O
 
-      ! Initialize CH4 to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETCH4', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETCH4
-
-      ! Initialize OCS to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETOCS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETOCS
-
-      ! Initialize CFCs to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETCFC', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETCFC
-
-      ! Initialize chlorine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETCL', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETCL
-
-      ! Initialize stratospheric bromine species to GCCM baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBRGCCM', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LBRGCCM
-
-      ! Initialize bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETBR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETBR
-
-      ! Initialize stratospheric bromine species to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETBRSTRAT', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETBRSTRAT
-
-      ! Initialize stratospheric NOx/HNO3 to 2D baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETNOYSTRAT', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETNOYSTRAT
-
-      ! Initialize N2O to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETN2O', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETN2O
-
-      ! Initialize stratospheric sulfates to GEOS-Chem baseline?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSETH2SO4', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSETH2SO4
-
       ! Starting year for CFC emissions
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CFCYEAR', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2130,15 +2050,7 @@
       
       ! Turn off full-chem only switches 
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-         Input_Opt%LSETH2O      = .FALSE.
-         Input_Opt%LSETCH4      = .FALSE.
-         Input_Opt%LSETOCS      = .FALSE.
-         Input_Opt%LSETH2SO4    = .FALSE.
-         Input_Opt%LSETCL       = .FALSE.
-         Input_Opt%LSETBR       = .FALSE.
-         Input_Opt%LSETBRSTRAT  = .FALSE.
-         Input_Opt%LSETNOYSTRAT = .FALSE.
-         Input_Opt%LSETCFC      = .FALSE. 
+         Input_Opt%LSETH2O = .FALSE.
       ENDIF
 
 #if defined( MASSCONS )
@@ -2196,26 +2108,6 @@
         WRITE( 6, 100 ) 'Set initial global MRs for  : '
         WRITE( 6, 100 ) '      --> strat. H2O?       : ',
      &                         Input_Opt%LSETH2O
-        WRITE( 6, 100 ) '      --> methane?          : ',
-     &                         Input_Opt%LSETCH4
-        WRITE( 6, 100 ) '      --> OCS?              : ',
-     &                         Input_Opt%LSETOCS
-        WRITE( 6, 100 ) '      --> CFCs/HCFCs/halon? : ',
-     &                         Input_Opt%LSETCFC
-        WRITE( 6, 100 ) '      --> chlorine species? : ',
-     &                         Input_Opt%LSETCL
-        WRITE( 6, 100 ) '      --> strat. Bry (GCCM)?: ',
-     &                         Input_Opt%LBRGCCM
-        WRITE( 6, 100 ) '      --> bromine species?  : ',
-     &                         Input_Opt%LSETBR
-        WRITE( 6, 100 ) '      --> strat. bromine?   : ',
-     &                         Input_Opt%LSETBRSTRAT
-        WRITE( 6, 100 ) '      --> strat. NOx/HNO3?  : ',
-     &                         Input_Opt%LSETNOYSTRAT
-        WRITE( 6, 100 ) '      --> N2O?              : ',
-     &                         Input_Opt%LSETN2O
-        WRITE( 6, 100 ) '      --> strat. H2SO4?     : ',
-     &                         Input_Opt%LSETH2SO4
         WRITE( 6, 110 ) 'CFC emissions read for year : ',
      &                   Input_Opt%CFCYEAR
       ENDIF
@@ -8564,12 +8456,11 @@
       !=================================================================
       ! Error check CFC emissions
       !=================================================================
-      IF ( Input_Opt%LCFCEMIS .or. Input_Opt%LSETCFC ) THEN
+      IF ( Input_Opt%LCFCEMIS ) THEN
          IF ( Ind_('CFC113') < 0 .or.
      &        Ind_('CFC114') < 0 .or. 
      &        Ind_('CFC115') < 0) THEN
             Input_Opt%LCFCEMIS = .FALSE.
-            Input_Opt%LSETCFC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'CFCs are emitted but CFC species are undefined.'
@@ -8581,10 +8472,9 @@
       !=================================================================
       ! Error check N2O emissions
       !=================================================================
-      IF ( Input_Opt%LN2OEMIS .or. Input_Opt%LSETN2O ) THEN
+      IF ( Input_Opt%LN2OEMIS ) THEN
          IF ( Ind_('N2O') < 0 ) THEN
             Input_Opt%LN2OEMIS = .FALSE.
-            Input_Opt%LSETN2O  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'N2O is emitted but N2O species is undefined.'
@@ -8611,10 +8501,9 @@
       !=================================================================
       ! Error check halogen emissions
       !=================================================================
-      IF ( Input_Opt%LCLEMIS .or. Input_Opt%LSETCL) THEN
+      IF ( Input_Opt%LCLEMIS ) THEN
          IF ( Ind_('Cl') < 0 ) THEN
             Input_Opt%LCLEMIS = .FALSE.
-            Input_Opt%LSETCL  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'Cl species emitted but Cl species is undefined.'
@@ -8623,13 +8512,9 @@
          ENDIF
       ENDIF
 
-      IF ( Input_Opt%LBREMIS     .or. Input_Opt%LSETBR    .or. 
-     &     Input_Opt%LSETBRSTRAT .or. Input_Opt%LBRGCCM ) THEN
+      IF ( Input_Opt%LBREMIS ) THEN
          IF ( Ind_('Br2') < 0 ) THEN
             Input_Opt%LBREMIS     = .FALSE.
-            Input_Opt%LSETBR      = .FALSE.
-            Input_Opt%LSETBRSTRAT = .FALSE.
-            Input_Opt%LBRGCCM     = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'Br species emitted but Br2 species is undefined.'
@@ -8641,10 +8526,9 @@
       !=================================================================
       ! Error check OCS emissions
       !=================================================================
-      IF ( Input_Opt%LOCSEMIS .or. Input_Opt%LSETOCS ) THEN
+      IF ( Input_Opt%LOCSEMIS ) THEN
          IF ( Ind_('OCS') < 0 ) THEN
             Input_Opt%LOCSEMIS = .FALSE.
-            Input_Opt%LSETOCS  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
      &            // 'OCS is emitted but OCS species is undefined.'
@@ -8664,11 +8548,9 @@
       ENDIF
 
       IF ( Input_Opt%LCH4EMIS   .or. 
-     &     Input_Opt%LSETCH4    .or. 
      &     Input_Opt%LCH4SBC  ) THEN
          IF ( Ind_('CH4') < 0 ) THEN
             Input_Opt%LCH4EMIS = .FALSE.
-            Input_Opt%LSETCH4  = .FALSE.
             Input_Opt%LCH4SBC  = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
             WRITE( 6, '(/,a,/)' ) 'Warning in input_mod.F: '
