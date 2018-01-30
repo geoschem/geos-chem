@@ -249,12 +249,12 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD 
-      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Error_Mod,       ONLY : Debug_MSG
+      USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants
-      USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Diag_Mod, ONLY : DgnState
-      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,   ONLY : ChmState
+      USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Met_Mod,   ONLY : MetState
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
@@ -359,6 +359,7 @@
       IF ( Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
       IF ( Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
 #endif
+
 
       !------------------------------------------
       ! Create precip fields

@@ -283,7 +283,7 @@
       ! Also closes all netCDF files that may still be open.
       !=================================================================
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "History", RC )
+      CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
       ! Finalize the history component
@@ -295,8 +295,9 @@
       ENDIF
 
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "History", RC )
+      CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
+
 #endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
