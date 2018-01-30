@@ -158,7 +158,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdSO4fromSRO3            (:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
-     REAL(f4),  POINTER :: HPlus                      (:,:,:)
      REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:) 
      
      !----------------------------------------------------------------------
@@ -381,7 +380,6 @@ CONTAINS
     State_Diag%ProdSO4fromO3s             => NULL()
     State_Diag%ProdNITfromHNO3uptakeOnDust=> NULL()
     State_Diag%LossHNO3onSeaSalt          => NULL() 
-    State_Diag%HPlus                      => NULL()
 
     State_Diag%RadAllSkyLWSurf            => NULL()
     State_Diag%RadAllSkyLWTOA             => NULL()
@@ -1765,24 +1763,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! HPlus (Cloud Ph)
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%HPlus'
-       diagID  = 'HPlus'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%HPlus( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%HPlus = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                       &
-                                   State_Diag%HPlus,                        &
-                                   State_Chm, State_Diag, RC               )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of H2O2 in cloud
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSO4fromH2O2inCloud'
@@ -1972,7 +1952,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 17
+       DO N = 1, 16
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1989,26 +1969,24 @@ CONTAINS
              CASE( 6  )                
                 diagID = 'AODDust' // TRIM( RadWL(3) ) // 'nm'
              CASE( 7  )                
-                diagID = 'HPlus'
-             CASE( 8  )                
                 diagID = 'ProdSO4fromH2O2inCloud'
-             CASE( 9  )                
+             CASE( 8  )                
                 diagID = 'ProdSO4fromO3inCloud'
-             CASE( 10 )                
+             CASE( 9 )                
                 diagID = 'ProdSO4fromO3inSeaSalt'
-             CASE( 11 )                
+             CASE( 10 )                
                 diagID = 'ProdSO4fromSRO3'
-             CASE( 12 )                
+             CASE( 11 )                
                 diagID = 'ProdSO4fromO3s'
-             CASE( 13 )
+             CASE( 12 )
                 diagID = 'LossHNO3onSeaSalt'
-             CASE( 14 )                
+             CASE( 13 )                
                 diagID = 'PM25'
-             CASE( 15 )                
+             CASE( 14 )                
                 diagID = 'TerpeneSOA'
-             CASE( 16 )                
+             CASE( 15 )                
                 diagID = 'IsopreneSOA'
-             CASE( 17 )                
+             CASE( 16 )                
                 diagID = 'AromaticSOA'
           END SELECT
 
@@ -2929,12 +2907,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%HPlus  ) ) THEN
-       DEALLOCATE( State_Diag%HPlus, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%HPlus', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
        DEALLOCATE( State_Diag%PM25, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
@@ -3011,14 +2983,14 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    LOGICAL,             INTENT(OUT)           :: Found      ! Item found?
-    INTEGER,             INTENT(OUT)           :: RC         ! Return code
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc       ! Long name string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units      ! Units string
-    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: TagId      ! Tag wildcard (wc)
-    INTEGER,             INTENT(OUT), OPTIONAL :: Rank       ! # of dimensions
-    INTEGER,             INTENT(OUT), OPTIONAL :: Type       ! Desc of data type
-    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc       ! Vert placement
+    LOGICAL,             INTENT(OUT)           :: Found  ! Item found?
+    INTEGER,             INTENT(OUT)           :: RC     ! Return code
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Desc   ! Long name string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: Units  ! Units string
+    CHARACTER(LEN=255),  INTENT(OUT), OPTIONAL :: TagId  ! Tag wildcard (wc)
+    INTEGER,             INTENT(OUT), OPTIONAL :: Rank   ! # of dimensions
+    INTEGER,             INTENT(OUT), OPTIONAL :: Type   ! Desc of data type
+    INTEGER,             INTENT(OUT), OPTIONAL :: VLoc   ! Vert placement
 !
 ! !REMARKS:
 !  If a diagnostic cannot use a wildcard, then set Tag=''.
@@ -3327,27 +3299,27 @@ CONTAINS
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(1)) // 'NM' ) THEN 
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units   = 'unitless'
+       IF ( isUnits   ) Units   = '1'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(2)) // 'NM' ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(2)) // ' nm'
-       IF ( isUnits   ) Units   = 'unitless'
+       IF ( isUnits   ) Units   = '1'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' // TRIM(RadWL(3)) // 'NM' ) THEN
        IF ( isDesc    ) Desc    = 'Optical depth for dust at ' // &
                                    TRIM(RadWL(3)) // ' nm'
-       IF ( isUnits   ) Units   = 'unitless'
+       IF ( isUnits   ) Units   = '1'
        IF ( isRank    ) Rank    =  3
        IF ( isTagged  ) TagId   = 'DUSTBIN'
 
@@ -3361,14 +3333,14 @@ CONTAINS
     ELSE IF ( TRIM(Name_AllCaps) == 'AODHYG' // TRIM(RadWL(2)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  =  'Optical depth for hygroscopic aerosol ' // &
                                  'at ' // TRIM(RadWL(2)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId = 'HYG'
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODHYG' // TRIM(RadWL(3)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  =  'Optical depth for hygroscopic aerosol ' // &
                                  'at ' // TRIM(RadWL(3)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId = 'HYG'
 
@@ -3376,68 +3348,68 @@ CONTAINS
                                     TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for SOA from aqueous ' // &
                                 'isoprene at ' // TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODSOAFROMAQISOPRENE' // &
                                     TRIM(RadWL(2)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for SOA from aqueous ' // &
                                 'isoprene at ' // TRIM(RadWL(2)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODSOAFROMAQISOPRENE' // &
                                     TRIM(RadWL(3)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for SOA from aqueous ' // &
                                 'isoprene at ' // TRIM(RadWL(3)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODSTRATLIQUIDAER'// &
                                     TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Stratospheric liquid aerosol optical ' // &
                                 'depth at ' // TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODSTRATLIQUIDAER'// &
                                     TRIM(RadWL(2)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Stratospheric liquid aerosol optical ' // &
                                 'depth at ' // TRIM(RadWL(2)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODSTRATLIQUIDAER'// &
                                     TRIM(RadWL(3)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Stratospheric liquid aerosol optical ' // &
                                 'depth at ' // TRIM(RadWL(3)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODPOLARSTRATCLOUD'// &
                                     TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Polar stratospheric cloud type 1a/2 ' // &
                                 'optical depth at ' // TRIM(RadWL(1)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODPOLARSTRATCLOUD'// &
                                     TRIM(RadWL(2)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Polar stratospheric cloud type 1a/2 ' // &
                                 'optical depth at ' // TRIM(RadWL(2)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODPOLARSTRATCLOUD'// &
                                     TRIM(RadWL(3)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Polar stratospheric cloud type 1a/2 ' // &
                                 'optical depth at ' // TRIM(RadWL(3)) // ' nm'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AERHYGROSCOPICGROWTH' ) THEN
        IF ( isDesc    ) Desc  = 'Hygroscopic growth of aerosol species'
-       IF ( isUnits   ) Units = 'unitless'
+       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
        IF ( isTagged  ) TagId = 'HYG'
 
@@ -3618,11 +3590,6 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHNO3ONSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of HNO3 on sea salt aerosols'
        IF ( isUnits   ) Units = 'kg'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'HPLUS' ) THEN
-       IF ( isDesc    ) Desc  = 'Cloud pH'
-       IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN

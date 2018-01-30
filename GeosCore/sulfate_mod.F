@@ -317,7 +317,6 @@
       LOGICAL                :: Archive_ProdSO4fromSRHOBr
       LOGICAL                :: Archive_ProdSO4fromSRO3
       LOGICAL                :: Archive_ProdSO4fromUptakeOfH2SO4g
-      LOGICAL                :: Archive_HPlus
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -3699,9 +3698,6 @@
             AD05(I,J,L,18) = AD05(I,J,L,18) +
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
 
-            ! Cloud pH
-            AD05(I,J,L,19) = AD05(I,J,L,19) + HPLUS
-
             !tdf
             PSO4d_tot   = 0.e+0_fp
             PH2SO4d_tot = 0.e+0_fp
@@ -3786,11 +3782,6 @@
             IF ( Archive_ProdSO4fromO3s ) THEN
                State_Diag%ProdSO4fromO3s(I,J,L) = 
      &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S )
-            ENDIF
-
-            ! HPLUS (aka Cloud pH) [unitless]
-            IF ( Archive_HPlus ) THEN
-               State_Diag%HPlus(I,J,L) = HPlus
             ENDIF
 
             !-----------------------------------------------------------
@@ -7973,9 +7964,6 @@
 
       Archive_ProdSO4fromUptakeOfH2SO4g = 
      &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
-
-      Archive_HPlus =
-     &     ASSOCIATED( State_Diag%HPlus                       )
 
       !=================================================================
       ! Allocate arrays

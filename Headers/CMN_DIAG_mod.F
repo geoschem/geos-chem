@@ -35,7 +35,7 @@
       !##### NOTE: These variables can be blocked out!  #####
       !######################################################
 #if defined( BPCH_DIAG )
-      INTEGER, PARAMETER :: PD05=19
+      INTEGER, PARAMETER :: PD05=18
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15

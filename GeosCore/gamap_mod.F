@@ -4639,7 +4639,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 19
+         NTRAC(05) = 18
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4736,11 +4736,6 @@
                   FNAME(T,05) = 'P(SO4) by o3s'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 19  )
-                  NAME (T,05) = 'HPLUS'       !qjc (04/05/16)
-                  FNAME(T,05) = 'Cloud pH'
-                  UNIT (T,05) = 'unitless'
-                  MWT  (T,05) = 0e0
                CASE DEFAULT
                   ! Nothing
             END SELECT
