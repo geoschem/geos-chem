@@ -437,7 +437,10 @@ CONTAINS
        IF ( INDEX( name, '?' ) > 0 ) THEN
 #if defined( ESMF_ )
           ! Exit with an error if using GCHP and wildcard is present
-          CALL GC_Error( 'Wildcards not allowed in GCHP', RC, ThisLoc )
+          ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
+                   'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
+                   'wildcard with a specific tag.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
 #endif
           isWildcard = .TRUE.
