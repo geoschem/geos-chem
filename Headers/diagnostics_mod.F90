@@ -292,6 +292,7 @@ CONTAINS
        IF ( INDEX( Line, 'COLLECTIONS:' ) .gt. 0 ) THEN
 
           ! Get the first collection name; remove commas, apost, and whitespace
+          CALL CStrip( Line, KeepSpaces=.TRUE. )
           CALL StrSplit( Line, ":", SubStrs, N )
           collname = CleanText( SubStrs(2) )
 
@@ -329,6 +330,7 @@ CONTAINS
        IF ( INDEX( Line, '.template' ) .gt. 0 ) THEN
 
           ! Check if collection was uncommented in the COLLECTIONS section
+          CALL CStrip( Line, KeepSpaces=.TRUE. )
           CALL StrSplit( Line, ".", SubStrs, N )
           collname = CleanText( SubStrs(1) )
           CALL Search_ColList( am_I_Root, CollList, collname, Found, RC )
@@ -396,6 +398,7 @@ CONTAINS
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
 
        ! Get diagnostic name
+       CALL CStrip( Line, KeepSpaces=.TRUE. )
        CALL StrSplit( Line, " ", SubStrs, N )
        IF ( INDEX(Line, '.fields') > 0 .AND. N > 1 ) THEN
           name = CleanText( SubStrs(2) )
