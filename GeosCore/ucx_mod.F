@@ -5605,11 +5605,11 @@
       USE DAO_MOD,            ONLY : AIRQNT
       USE ErrCode_Mod
       USE ERROR_MOD
+      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod 
-      USE Grid_Mod,           ONLY : GET_YMID
 !
 ! !INPUT PARAMETERS:
 !      
