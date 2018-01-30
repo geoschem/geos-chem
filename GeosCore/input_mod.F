@@ -3798,11 +3798,11 @@
       USE CMN_SIZE_MOD        ! Size parameters
       USE DIAG03_MOD,    ONLY : ND03,      PD03
       USE DIAG03_MOD,    ONLY : PD03_PL    !eds 9/9/10
-      USE DIAG04_MOD,    ONLY : ND04,      PD04,      INIT_DIAG04
-      USE DIAG41_MOD,    ONLY : ND41,      PD41,      INIT_DIAG41
-      USE DIAG42_MOD,    ONLY : ND42,      PD42,      INIT_DIAG42
-      USE DIAG53_MOD,    ONLY : ND53,      PD53,      INIT_DIAG53
-      USE DIAG56_MOD,    ONLY : ND56,      PD56,      INIT_DIAG56
+      USE DIAG04_MOD,    ONLY : ND04,      PD04
+      USE DIAG41_MOD,    ONLY : ND41,      PD41
+      USE DIAG42_MOD,    ONLY : ND42,      PD42
+      USE DIAG53_MOD,    ONLY : ND53,      PD53
+      USE DIAG56_MOD,    ONLY : ND56,      PD56
       USE DRYDEP_MOD,    ONLY : NUMDEP
       USE ErrCode_Mod
       USE FILE_MOD,      ONLY : IU_BPCH
@@ -4831,13 +4831,6 @@
       !=================================================================
       ! Call other setup routines
       !================================================================
-
-      ! Allocate diagnostic arrays
-      CALL INIT_DIAG04
-      CALL INIT_DIAG41
-      CALL INIT_DIAG42( am_I_Root, Input_Opt, RC )
-      CALL INIT_DIAG53
-      CALL INIT_DIAG56
 
       ! Expand YYYYMMDD tokens in the bpch file name
       CALL EXPAND_DATE( BPCH_FILE, GET_NYMDb(), GET_NHMSb() )

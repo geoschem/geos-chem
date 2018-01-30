@@ -615,7 +615,12 @@ CONTAINS
     USE Chemgrid_Mod,       ONLY : Init_Chemgrid
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE Diag03_Mod,         ONLY : Init_Diag03
+    USE Diag04_Mod,         ONLY : Init_Diag04
     USE Diag20_Mod,         ONLY : Init_Diag20
+    USE Diag41_Mod,         ONLY : Init_Diag41
+    USE Diag42_Mod,         ONLY : Init_Diag42
+    USE Diag53_Mod,         ONLY : Init_Diag53
+    USE Diag56_Mod,         ONLY : init_Diag56
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE Diagnostics_Mod,    ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -1053,6 +1058,13 @@ CONTAINS
 
     ! Allocate and initialize variables
     CALL Ndxx_Setup( am_I_Root, Input_Opt, State_Chm, RC )
+
+    ! Allocate diagnostic arrays
+    CALL Init_Diag04
+    CALL Init_Diag41
+    CALL Init_Diag42( am_I_Root, Input_Opt, RC )
+    CALL Init_Diag53
+    CALL Init_Diag56
 
     ! Initialize the Hg diagnostics (bpch)
     CALL Init_Diag03( State_Chm )
