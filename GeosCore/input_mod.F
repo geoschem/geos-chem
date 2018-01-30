@@ -6357,6 +6357,7 @@
 !
 ! !USES:
 !
+      USE CMN_DIAG_Mod,       ONLY : ND65
       USE ErrCode_Mod
       USE gckpp_Parameters,   ONLY : NFAM
       USE gckpp_Monitor,      ONLY : FAM_NAMES
@@ -6440,6 +6441,9 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%ND65
+
+      ! Copy field to variable in CMN_DIAG
+      ND65 = Input_Opt%ND65
 
       ! Save P(O3) & L(O3) for tagged O3 run? (i.e. ND20 diagnostic)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DO_SAVE_O3', RC )
@@ -6849,7 +6853,6 @@
 !
 ! !USES:
 !
-      USE BENCHMARK_MOD,      ONLY : INITIAL_FILE, FINAL_FILE
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6880,7 +6883,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LSTDRUN
       INTEGER            :: N 
 
       ! Strings
@@ -6906,7 +6908,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSTDRUN
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSTDRUN
 
       ! Filename for initial tracer mass
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'INITIAL_FILE', RC )
@@ -6914,7 +6916,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) INITIAL_FILE
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%STDRUN_INIT_FILE
 
       ! Filename for initial tracer mass
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'FINAL_FILE', RC )
@@ -6922,7 +6924,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) FINAL_FILE
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%STDRUN_FINAL_FILE
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -6932,23 +6934,17 @@
       ENDIF
 
       !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LSTDRUN           = LSTDRUN
-      Input_Opt%STDRUN_INIT_FILE  = INITIAL_FILE
-      Input_Opt%STDRUN_FINAL_FILE = FINAL_FILE
-
-      !=================================================================
       ! Print to screen
       !=================================================================
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'BENCHMARK MENU'
          WRITE( 6, '(  a)' ) '--------------'
-         WRITE( 6, 100     ) 'Save benchmark diag output?  : ', LSTDRUN
+         WRITE( 6, 100     ) 'Save benchmark diag output?  : ',
+     &                        Input_Opt%LSTDRUN
          WRITE( 6, 110     ) 'File for initial species mass: ',  
-     &                        TRIM( INITIAL_FILE )
+     &                        TRIM( Input_Opt%STDRUN_INIT_FILE )
          WRITE( 6, 110     ) 'File for final species mass  : ',  
-     &                        TRIM( FINAL_FILE )
+     &                        TRIM( Input_Opt%STDRUN_FINAL_FILE )
       ENDIF
 
       ! FORMAT statements
@@ -7011,15 +7007,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LDYNOCEAN,      LPREINDHG
-      LOGICAL            :: LGTMM,          USE_CHECKS
-      LOGICAL            :: LARCTICRIV,     LKRedUV
-      INTEGER            :: ANTHRO_Hg_YEAR, N 
+      INTEGER            :: N 
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg,         ThisLoc
-      CHARACTER(LEN=255) :: HG_SCENARIO
-      CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -7040,7 +7031,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
+      READ( SUBSTRS(1:N), * ) Input_Opt%ANTHRO_Hg_YEAR
 
       ! Use future emissions scenario?   !eds 5/17/12
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HG_SCENARIO', RC )
@@ -7048,7 +7039,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) HG_SCENARIO
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%HG_SCENARIO
 
       ! Use error check for tag/tot Hg?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'USE_CHECKS', RC )
@@ -7056,7 +7047,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) USE_CHECKS
+      READ( SUBSTRS(1:N), * ) Input_Opt%USE_CHECKS
 
       ! Use dynamic ocean model?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDYNOCEAN', RC )
@@ -7064,7 +7055,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LDYNOCEAN
+      READ( SUBSTRS(1:N), * ) Input_Opt%LDYNOCEAN
 
       ! Use preindustrial simulation?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPREINDHG', RC )
@@ -7072,7 +7063,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LPREINDHG
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPREINDHG
 
       ! Use GTMM ?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGTMM', RC )
@@ -7080,7 +7071,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LGTMM
+      READ( SUBSTRS(1:N), * ) Input_Opt%LGTMM
 
       ! Name of GTMM restart file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GTMM_RST_FILE', RC )
@@ -7088,7 +7079,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
+      READ( SUBSTRS(1:N), * ) Input_Opt%GTMM_RST_FILE
 
       ! Use Arctic river Hg?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LARCTICRIV', RC )
@@ -7096,7 +7087,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LARCTICRIV
+      READ( SUBSTRS(1:N), * ) Input_Opt%LARCTICRIV
 
       ! Tie reducible HgII(aq) to UV-B?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LKREDUV', RC )
@@ -7104,7 +7095,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LKRedUV
+      READ( SUBSTRS(1:N), * ) Input_Opt%LKRedUV
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -7115,10 +7106,10 @@
 
       ! Check on logical
       IF (.NOT.( Input_Opt%ITS_A_MERCURY_SIM ) ) THEN
-         LGTMM     = .FALSE.
-         LDYNOCEAN = .FALSE.
-         LARCTICRIV = .FALSE.
-         LKRedUV    = .FALSE.
+         Input_Opt%LGTMM      = .FALSE.
+         Input_Opt%LDYNOCEAN  = .FALSE.
+         Input_Opt%LARCTICRIV = .FALSE.
+         Input_Opt%LKRedUV    = .FALSE.
       ENDIF
 
       !=================================================================
@@ -7128,37 +7119,29 @@
          WRITE( 6, '(/,a)' ) 'MERCURY MENU'
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 100 ) 'Anthro Hg emissions year    : ', 
-     &                    ANTHRO_Hg_YEAR
-         WRITE( 6, 120 ) 'Future emissions scenario   : ',  !eds 5/17/12
-     &                    TRIM( HG_SCENARIO )
-         WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
-         WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
-         WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
-         WRITE( 6, 110 ) 'Use GTMM ?                  : ', LGTMM
+     &                    Input_Opt%ANTHRO_Hg_YEAR
+         WRITE( 6, 120 ) 'Future emissions scenario   : ',
+     &                    TRIM( Input_Opt%HG_SCENARIO )
+         WRITE( 6, 110 ) 'Error check tag & total Hg? : ', 
+     &                    Input_Opt%USE_CHECKS
+         WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', 
+     &                    Input_Opt%LDYNOCEAN
+         WRITE( 6, 110 ) 'Preindustrial simulation?   : ', 
+     &                    Input_Opt%LPREINDHG
+         WRITE( 6, 110 ) 'Use GTMM ?                  : ', 
+     &                    Input_Opt%LGTMM
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
-     &                        TRIM( GTMM_RST_FILE )
-         WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', LARCTICRIV
-         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', LKRedUV
+     &                    TRIM( Input_Opt%GTMM_RST_FILE )
+         WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', 
+     &                    Input_Opt%LARCTICRIV
+         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', 
+     &                    Input_Opt%LKRedUV
       END IF
 
       ! FORMAT statements
  100  FORMAT( A, I4  )
  110  FORMAT( A, L5  )
  120  FORMAT( A, A   )
-    
-      !=================================================================
-      ! Copy to Input Options object
-      ! NOTE: Hg modules will be initialized from GC_INIT_EXTRA
-      !=================================================================
-      Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
-      Input_Opt%HG_SCENARIO    = HG_SCENARIO
-      Input_Opt%USE_CHECKS     = USE_CHECKS
-      Input_Opt%LDYNOCEAN      = LDYNOCEAN
-      Input_Opt%LPREINDHG      = LPREINDHG
-      Input_Opt%LGTMM          = LGTMM
-      Input_Opt%GTMM_RST_FILE  = GTMM_RST_FILE
-      Input_Opt%LARCTICRIV     = LARCTICRIV
-      Input_Opt%LKRedUV        = LKRedUV
 
       END SUBROUTINE READ_MERCURY_MENU
 !EOC
@@ -7214,9 +7197,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LGAO,    LCOL,    LLIV,   LWAST
-      LOGICAL            :: LBFCH4,  LBMCH4,  LWETL,  LRICE
-      LOGICAL            :: LOTANT,  LSOABS,  LOTNAT, LCH4BUD
       INTEGER            :: N
 
       ! Strings
@@ -7241,7 +7221,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LCH4BUD
+      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4BUD
 
       ! Use Gas & Oil emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGAO', RC )
@@ -7249,7 +7229,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LGAO
+      READ( SUBSTRS(1:N), * ) Input_Opt%LGAO
 
       ! Use Coal emissions?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCOL', RC )
@@ -7257,7 +7237,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LCOL              
+      READ( SUBSTRS(1:N), * ) Input_Opt%LCOL              
                                                 
       ! Use Livestock emissions?                
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLIV', RC )
@@ -7265,7 +7245,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LLIV              
+      READ( SUBSTRS(1:N), * ) Input_Opt%LLIV              
                                                 
       ! Use Waste emissions?                    
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWAST', RC )
@@ -7273,7 +7253,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LWAST             
+      READ( SUBSTRS(1:N), * ) Input_Opt%LWAST             
                                                 
       ! Use Biofuel emissions?                  
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBFCH4', RC )
@@ -7281,7 +7261,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LBFCH4          
+      READ( SUBSTRS(1:N), * ) Input_Opt%LBFCH4          
                                                 
       ! Use Rice emissions?                     
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LRICE', RC )
@@ -7289,7 +7269,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LRICE             
+      READ( SUBSTRS(1:N), * ) Input_Opt%LRICE             
                                                 
       ! Use Other Anthropogenic emissions?      
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOTANT', RC )
@@ -7297,7 +7277,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LOTANT            
+      READ( SUBSTRS(1:N), * ) Input_Opt%LOTANT            
                                                 
       ! Use Biomass emissions?                  
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBMCH4', RC )
@@ -7305,7 +7285,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LBMCH4          
+      READ( SUBSTRS(1:N), * ) Input_Opt%LBMCH4          
                                                 
       ! Use Wetlands emissions?                 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWETL', RC )
@@ -7313,7 +7293,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LWETL             
+      READ( SUBSTRS(1:N), * ) Input_Opt%LWETL             
                                                 
       ! Use Soil Absorption?          
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOABS', RC )
@@ -7321,7 +7301,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LSOABS            
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSOABS            
                                                 
       ! Use Other Natural emissions?            
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOTNAT', RC )
@@ -7329,7 +7309,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) LOTNAT            
+      READ( SUBSTRS(1:N), * ) Input_Opt%LOTNAT            
                                                 
       ! Separator line                          
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -7344,22 +7324,34 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'CH4 MENU'
          WRITE( 6, '(  a)' ) '-----------'
-         WRITE( 6, 100     ) 'Compute CH4 budget?   : ', LCH4BUD
-         WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ', LGAO
-         WRITE( 6, 100     ) 'Use Coal Mine emis?   : ', LCOL
-         WRITE( 6, 100     ) 'Use Livestock emis?   : ', LLIV
-         WRITE( 6, 100     ) 'Use Waste emis?       : ', LWAST
-         WRITE( 6, 100     ) 'Use Biofuel emis?     : ', LBFCH4
-         WRITE( 6, 100     ) 'Use Rice emis?        : ', LRICE
-         WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ', LOTANT
-         WRITE( 6, 100     ) 'Use Biomass emis?     : ', LBMCH4
-         WRITE( 6, 100     ) 'Use Wetlands emis?    : ', LWETL
-         WRITE( 6, 100     ) 'Use Soil Absorption?  : ', LSOABS
-         WRITE( 6, 100     ) 'Use Ot. Natural emis? : ', LOTNAT
+         WRITE( 6, 100     ) 'Compute CH4 budget?   : ',
+     &                        Input_Opt%LCH4BUD
+         WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ',
+     &                        Input_Opt%LGAO
+         WRITE( 6, 100     ) 'Use Coal Mine emis?   : ',
+     &                        Input_Opt%LCOL
+         WRITE( 6, 100     ) 'Use Livestock emis?   : ',
+     &                        Input_Opt%LLIV
+         WRITE( 6, 100     ) 'Use Waste emis?       : ',
+     &                        Input_Opt%LWAST
+         WRITE( 6, 100     ) 'Use Biofuel emis?     : ',
+     &                        Input_Opt%LBFCH4
+         WRITE( 6, 100     ) 'Use Rice emis?        : ',
+     &                        Input_Opt%LRICE
+         WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ',
+     &                        Input_Opt%LOTANT
+         WRITE( 6, 100     ) 'Use Biomass emis?     : ',
+     &                        Input_Opt%LBMCH4
+         WRITE( 6, 100     ) 'Use Wetlands emis?    : ',
+     &                        Input_Opt%LWETL
+         WRITE( 6, 100     ) 'Use Soil Absorption?  : ',
+     &                        Input_Opt%LSOABS
+         WRITE( 6, 100     ) 'Use Ot. Natural emis? : ',
+     &                        Input_Opt%LOTNAT
       END IF
 
       ! Error check (kjw)
-      IF ( LCH4BUD ) THEN
+      IF ( Input_Opt%LCH4BUD ) THEN
          ErrMsg = 'To print CH4 budget information, be sure that '   //
      &            'USE_CH4_BUDGET_DIAG is defined at the beginning ' //
      &            'of global_ch4_mod.F'
@@ -7371,22 +7363,6 @@
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LCH4BUD = LCH4BUD
-      Input_Opt%LGAO    = LGAO
-      Input_Opt%LCOL    = LCOL         
-      Input_Opt%LLIV    = LLIV         
-      Input_Opt%LWAST   = LWAST         
-      Input_Opt%LBFCH4  = LBFCH4       
-      Input_Opt%LRICE   = LRICE         
-      Input_Opt%LOTANT  = LOTANT         
-      Input_Opt%LBMCH4  = LBMCH4       
-      Input_Opt%LWETL   = LWETL         
-      Input_Opt%LSOABS  = LSOABS          
-      Input_Opt%LOTNAT  = LOTNAT 
 
       ! Return success
       RC = GC_SUCCESS         
@@ -7445,12 +7421,6 @@
 !
       ! Scalars
       INTEGER            :: N
-      LOGICAL            :: CHEM_PROCESS
-      REAL(fp)           :: POP_XMW, POP_KOA, POP_KBC
-      REAL(fp)           :: POP_K_POPG_OH
-      REAL(fp)           :: POP_K_POPP_O3A, POP_K_POPP_O3B
-      REAL(fp)           :: POP_HSTAR, POP_DEL_H, POP_DEL_Hw
-      CHARACTER(LEN=3)   :: POP_TYPE
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -7474,7 +7444,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_TYPE
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_TYPE
 
       ! Dummy for future process logical switches
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'CHEM_PROCESS', RC )
@@ -7482,7 +7452,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) CHEM_PROCESS
+      READ( SUBSTRS(1:N), * ) Input_Opt%CHEM_PROCESS
 
       ! Molecular weight
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_XMW', RC )
@@ -7490,7 +7460,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_XMW
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_XMW
 
       ! KOA
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_KOA', RC )
@@ -7498,7 +7468,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_KOA
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_KOA
 
       ! KBC
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_KBC', RC )
@@ -7506,7 +7476,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_KBC
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_KBC
 
       ! OH oxidation
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, ' POP_K_POPG_OH', RC )
@@ -7514,7 +7484,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_K_POPG_OH
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_K_POPG_OH
 
       ! O3 oxidation 1
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, ' POP_K_POPP_O3A', RC )
@@ -7522,7 +7492,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3A
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_K_POPP_O3A
 
       ! O3 oxidation 2
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_K_POPP_O3B', RC )
@@ -7530,7 +7500,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_K_POPP_O3B
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_K_POPP_O3B
 
       ! H*
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_HSTAR', RC )
@@ -7538,7 +7508,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_HSTAR
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_HSTAR
 
       ! DEL_H
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_DEL_H', RC )
@@ -7546,7 +7516,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_DEL_H
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_DEL_H
 
       ! DEL_Hw
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'POP_DEL_Hw', RC )
@@ -7554,7 +7524,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) POP_DEL_Hw
+      READ( SUBSTRS(1:N), * ) Input_Opt%POP_DEL_Hw
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
@@ -7569,17 +7539,28 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'POPS MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 120     ) 'Species of POP        : ', POP_TYPE
-         WRITE( 6, 110     ) 'Chemistry on?         : ', CHEM_PROCESS
-         WRITE( 6, 130     ) 'POP_XMW               : ', POP_XMW
-         WRITE( 6, 130     ) 'POP_KOA               : ', POP_KOA
-         WRITE( 6, 130     ) 'POP_KBC               : ', POP_KBC
-         WRITE( 6, 130     ) 'POP_K_POPG_OH         : ', POP_K_POPG_OH
-         WRITE( 6, 130     ) 'POP_K_POPP_O3A        : ', POP_K_POPP_O3A
-         WRITE( 6, 130     ) 'POP_K_POPP_O3B        : ', POP_K_POPP_O3B
-         WRITE( 6, 130     ) 'POP_HSTAR             : ', POP_HSTAR
-         WRITE( 6, 130     ) 'POP_DEL_H             : ', POP_DEL_H
-         WRITE( 6, 130     ) 'POP_DEL_Hw            : ', POP_DEL_Hw 
+         WRITE( 6, 120     ) 'Species of POP        : ',
+     &                        Input_Opt%POP_TYPE
+         WRITE( 6, 110     ) 'Chemistry on?         : ',
+     &                        Input_Opt%CHEM_PROCESS
+         WRITE( 6, 130     ) 'POP_XMW               : ',
+     &                        Input_Opt%POP_XMW
+         WRITE( 6, 130     ) 'POP_KOA               : ',
+     &                        Input_Opt%POP_KOA
+         WRITE( 6, 130     ) 'POP_KBC               : ',
+     &                        Input_Opt%POP_KBC
+         WRITE( 6, 130     ) 'POP_K_POPG_OH         : ',
+     &                        Input_Opt%POP_K_POPG_OH
+         WRITE( 6, 130     ) 'POP_K_POPP_O3A        : ',
+     &                        Input_Opt%POP_K_POPP_O3A
+         WRITE( 6, 130     ) 'POP_K_POPP_O3B        : ',
+     &                        Input_Opt%POP_K_POPP_O3B
+         WRITE( 6, 130     ) 'POP_HSTAR             : ',
+     &                        Input_Opt%POP_HSTAR
+         WRITE( 6, 130     ) 'POP_DEL_H             : ',
+     &                        Input_Opt%POP_DEL_H
+         WRITE( 6, 130     ) 'POP_DEL_Hw            : ',
+     &                        Input_Opt%POP_DEL_Hw 
       ENDIF
 
       ! FORMAT statements
@@ -7587,20 +7568,8 @@
  120  FORMAT( A, A   )
  130  FORMAT( A, ES10.2 )
 
-      !=================================================================
-      ! Copy to Input Options object
-      !=================================================================
-      Input_Opt%POP_TYPE       = POP_TYPE
-      Input_Opt%CHEM_PROCESS   = CHEM_PROCESS
-      Input_Opt%POP_XMW        = POP_XMW
-      Input_Opt%POP_KOA        = POP_KOA
-      Input_Opt%POP_KBC        = POP_KBC
-      Input_Opt%POP_K_POPG_OH  = POP_K_POPG_OH
-      Input_Opt%POP_K_POPP_O3A = POP_K_POPP_O3A
-      Input_Opt%POP_K_POPP_O3B = POP_K_POPP_O3B
-      Input_Opt%POP_HSTAR      = POP_HSTAR
-      Input_Opt%POP_DEL_H      = POP_DEL_H 
-      Input_Opt%POP_DEL_Hw     = POP_DEL_Hw
+      ! Return success
+      RC = GC_SUCCESS  
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
@@ -7652,9 +7621,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N, NP, P, IDX, nPassive, D
-      CHARACTER(LEN=31)  :: SpcName
-      REAL(fp)           :: SpcMW, SpcTau, SpcInitConc
+      INTEGER            :: N, P, IDX, D
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -7673,13 +7640,12 @@
      & ' -> at Read_Passive_Species_Menu (in mod. GeosCore/input_mod.F)'
 
       ! # of passive speciess
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'nPassive', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'NPASSIVE', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) nPassive
-      Input_Opt%NPASSIVE = nPassive
+      READ( SUBSTRS(1), * ) Input_Opt%NPASSIVE
 
       ! Read passive species information for each passive species
       ! Every passive species line is expected to have 3 entries:
@@ -7693,7 +7659,21 @@
          D = 0
 
          ! Loop over the number of listed passive species
-         DO NP = 1, Input_Opt%NPASSIVE
+         DO P = 1, Input_Opt%NPASSIVE
+
+            ! Find empty slot
+            IDX = -1
+            IF ( Input_Opt%PASSIVE_ID(P) < 0 ) THEN
+               IDX = P
+               EXIT
+            ENDIF
+            IF ( IDX <= 0 ) THEN
+               ErrMsg = 'Cannot add passive species ' //
+     &                  TRIM( Input_Opt%PASSIVE_NAME(IDX) ) //
+     &                  ': all species slots are already being used.'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN 
+            ENDIF 
 
             ! Expect 4 metadata parameters to define the passive species
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Pasv Species', RC )
@@ -7702,40 +7682,18 @@
                RETURN
             ENDIF
      
-            ! Pass to temporary variables
-            SpcName = TRIM( SUBSTRS(1) )
-            READ( SUBSTRS(2), * ) SpcMW
-            READ( SUBSTRS(3), * ) SpcTau
-            READ( SUBSTRS(4), * ) SpcInitConc 
-
-            ! Find empty slot
-            IDX = -1
-            DO P = 1, Input_Opt%NPASSIVE
-               IF ( Input_Opt%PASSIVE_ID(P) < 0 ) THEN
-                  IDX = P
-                  EXIT
-               ENDIF
-            ENDDO
-            IF ( IDX <= 0 ) THEN
-               WRITE(*,*) 'Cannot add passive species ', TRIM(SpcName), 
-     &                    ': all ', Input_Opt%NPASSIVE,               
-     &                    ' species slots are already being used.'
-               RC = GC_FAILURE
-               RETURN 
-            ENDIF 
-
-            ! Store species information
-            Input_Opt%PASSIVE_ID(IDX)       = IDX
-            Input_Opt%PASSIVE_NAME(IDX)     = TRIM(SpcName)
-            Input_Opt%PASSIVE_TAU(IDX)      = SpcTau 
-            Input_Opt%PASSIVE_INITCONC(IDX) = SpcInitConc 
-            Input_Opt%PASSIVE_MW(IDX)       = SpcMW
+            ! Read and store species information
+            Input_Opt%PASSIVE_ID(IDX) = IDX
+            Input_Opt%PASSIVE_NAME(IDX) = TRIM( SUBSTRS(1) )
+            READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(IDX)
+            READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(IDX)
+            READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(IDX)
 
             ! Determine if the passive species decays (i.e. if it has 
             ! an atmospheric lifetime that is not -1).  This will allow
             ! us to skip those passive species that do not decay in
             ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-            IF ( SpcTau > 0.0_fp ) THEN
+            IF ( Input_Opt%PASSIVE_TAU(IDX) > 0.0_fp ) THEN
                D                            = D + 1
                Input_Opt%NPASSIVE_DECAY     = D
                Input_Opt%PASSIVE_DECAYID(D) = IDX
@@ -7755,8 +7713,9 @@
             ENDIF
          ENDDO
       ELSE
-         ErrMsg = 'Cannot add passive species ' // TRIM(SpcName) //
-     &        ': # of passive species is smaller than 1!'
+         ErrMsg = 'Cannot add passive species ' //
+     &            TRIM(Input_Opt%PASSIVE_NAME(IDX) ) //
+     &            ': # of passive species is smaller than 1!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN 
       ENDIF
@@ -7765,7 +7724,7 @@
  120  FORMAT( A, F10.2  )
  130  FORMAT( A, ES10.2 )
 
-      ! All done
+      ! Return success
       RC = GC_SUCCESS
 
       END SUBROUTINE READ_PASSIVE_SPECIES_MENU
@@ -7792,8 +7751,6 @@
       USE Input_Opt_Mod, ONLY : OptInput
       USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID 
       USE TIME_MOD,      ONLY : EXPAND_DATE
-      USE TIME_MOD,      ONLY : GET_NYMDb
-      USE TIME_MOD,      ONLY : GET_NYMDe
 !
 ! !INPUT PARAMETERS:
 !
@@ -7830,9 +7787,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      INTEGER            :: NYMDb, NYMDe
-
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Dir
 
@@ -7842,8 +7796,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      NYMDb   = GET_NYMDb()
-      NYMDe   = GET_NYMDe()
       ErrMsg  = 'Invalid directory encountered!'
       ThisLoc = 
      &   ' -> at Validate_Directories (in module GeosCore/input_mod.F)'
@@ -7867,7 +7819,7 @@
          RETURN
       ENDIF
 
-      ! Only validate the TPCORE BC directory if we need it
+      ! Only validate the TPCORE BC directories if we need it
       IF ( ITS_A_NESTED_GRID() ) THEN
 #if   defined( NESTED_NA)
          CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_NA, RC )
@@ -7944,7 +7896,7 @@
 
       ! Check GEOS-FP met field directory (starting date)
       DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -7954,7 +7906,7 @@
 
       ! Check GEOS-FP met field directory (ending date)
       DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -7966,7 +7918,7 @@
 
       ! Check MERRA2 met field directory (starting date)
       DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, NYMDb, 000000 )
+      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -7976,7 +7928,7 @@
 
       ! Check MERRA2 met field directory (ending date)
       DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, NYMDe, 000000 )
+      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
       DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
       CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
       IF ( RC /= GC_SUCCESS ) THEN
