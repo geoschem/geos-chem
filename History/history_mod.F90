@@ -556,6 +556,9 @@ CONTAINS
     REAL(f8)                     :: SimLengthSec
 
     ! Strings
+    CHARACTER(LEN=6  )           :: TStr
+    CHARACTER(LEN=8  )           :: DStr
+    CHARACTER(LEN=20 )           :: StartTimeStamp, EndTimeStamp
     CHARACTER(LEN=255)           :: Line,           FileName
     CHARACTER(LEN=255)           :: ErrMsg,         ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
@@ -629,6 +632,20 @@ CONTAINS
     ThisLoc        =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
     Units          =  ''
+
+    ! Create the timestamp at the start of the simulation
+    WRITE( DStr,          '(i8.8)' ) yyyymmdd
+    WRITE( TStr,          '(i6.6)' ) hhmmss
+    WRITE( StartTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),          &
+                                     TStr(1:2), TStr(3:4), TStr(5:6)
+    
+    ! Create the timestamp at the end of the simulation
+    WRITE( DStr,        '(i8.8)' ) yyyymmdd_end
+    WRITE( TStr,        '(i6.6)' ) hhmmss_end
+    WRITE( EndTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),            &
+                                   TStr(1:2), TStr(3:4), TStr(5:6)
+    ! Format string
+300 FORMAT( a4, '-', a2, '-', a2, ' ', a2, ':', a2, ':', a2, 'z' )
 
     ! Compute the Astronomical Julian Date corresponding to the yyyymmdd 
     ! and hhmmss values at the start and end of the simulation, which are
@@ -1038,6 +1055,8 @@ CONTAINS
                                      Reference      = Reference,             &
                                      Title          = Title,                 &
                                      Contact        = Contact,               &
+                                     StartTimeStamp = StartTimeStamp,        &
+                                     EndTimeStamp   = EndTimeStamp,          &
                                      RC             = RC                    )
 
           ! Trap potential error
