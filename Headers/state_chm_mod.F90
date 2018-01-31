@@ -201,6 +201,7 @@ MODULE State_Chm_Mod
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Chm and Print_State_Chm
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
 !  27 Nov 2017 - E. Lundgren - Add # and ID mapping for more species categories
+!  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1004,7 +1005,7 @@ CONTAINS
        !------------------------------------------------------------------
        ! HSO3_AQ
        !------------------------------------------------------------------
-       chmID = 'HSO3_AQ'
+       chmID = 'HSO3AQ'
        ALLOCATE( State_Chm%HSO3_AQ( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1016,7 +1017,7 @@ CONTAINS
        !------------------------------------------------------------------
        ! SO3_AQ
        !------------------------------------------------------------------
-       chmID = 'SO3_AQ'
+       chmID = 'SO3AQ'
        ALLOCATE( State_Chm%SO3_AQ( IM, JM, LM ) , STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SO3_AQ', 0, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2015,12 +2016,12 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
 
-       CASE ( 'HSO3_AQ' )
+       CASE ( 'HSO3AQ' )
           IF ( isDesc  ) Desc  = 'Cloud bisulfite concentration'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  =  3
 
-       CASE ( 'SO3_AQ' )
+       CASE ( 'SO3AQ' )
           IF ( isDesc  ) Desc  = 'Cloud sulfite concentration'
           IF ( isUnits ) Units = 'mol/L'
           IF ( isRank  ) Rank  =  3

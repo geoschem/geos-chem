@@ -309,6 +309,7 @@ MODULE State_Met_Mod
 !  26 Sep 2017 - E. Lundgren - Remove Lookup_State_Met and Print_State_Met
 !  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
 !  08 Jan 2018 - R. Yantosca - Added logical query fields
+!  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -659,7 +660,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PBL_TOP_L', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PBL_TOP_L = 0
-    CALL Register_MetField( am_I_Root, 'PBL_TOP_L', State_Met%PBL_TOP_L, &
+    CALL Register_MetField( am_I_Root, 'PBLTOPL', State_Met%PBL_TOP_L, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -717,7 +718,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PS1_WET', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PS1_WET = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PS1_WET', State_Met%PS1_WET, &
+    CALL Register_MetField( am_I_Root, 'PS1WET', State_Met%PS1_WET, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -728,7 +729,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PS2_WET', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PS2_WET = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PS2_WET', State_Met%PS2_WET, &
+    CALL Register_MetField( am_I_Root, 'PS2WET', State_Met%PS2_WET, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -739,7 +740,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PSC2_WET', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PSC2_WET = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PSC2_WET', State_Met%PSC2_WET, &
+    CALL Register_MetField( am_I_Root, 'PSC2WET', State_Met%PSC2_WET, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -750,7 +751,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PS1_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PS1_DRY = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PS1_DRY', State_Met%PS1_DRY, &
+    CALL Register_MetField( am_I_Root, 'PS1DRY', State_Met%PS1_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -761,7 +762,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PS2_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PS2_DRY   = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PS2_DRY', State_Met%PS2_DRY, &
+    CALL Register_MetField( am_I_Root, 'PS2DRY', State_Met%PS2_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -772,7 +773,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PSC2_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%PSC2_DRY = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PSC2_DRY', State_Met%PSC2_DRY, &
+    CALL Register_MetField( am_I_Root, 'PSC2DRY', State_Met%PSC2_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -987,7 +988,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%CNV_FRC', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%CNV_FRC = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'CNV_FRC', State_Met%CNV_FRC, &
+    CALL Register_MetField( am_I_Root, 'CNVFRC', State_Met%CNV_FRC, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
@@ -1212,7 +1213,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AREA_M2  = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'AREA_M2', State_Met%AREA_M2, &
+    CALL Register_MetField( am_I_Root, 'AREAM2', State_Met%AREA_M2, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1278,7 +1279,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%DELP_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%DELP_DRY = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'DELP_DRY', State_Met%DELP_DRY, &
+    CALL Register_MetField( am_I_Root, 'DELPDRY', State_Met%DELP_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1289,7 +1290,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%DP_DRY_PREV', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%DP_DRY_PREV= 0.0_fp
-    CALL Register_MetField( am_I_Root, 'DP_DRY_PREV', State_Met%DP_DRY_PREV, &
+    CALL Register_MetField( am_I_Root, 'DPDRYPREV', State_Met%DP_DRY_PREV, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1366,7 +1367,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PEDGE_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%PEDGE_DRY = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PEDGE_DRY', State_Met%PEDGE_DRY, &
+    CALL Register_MetField( am_I_Root, 'PEDGEDRY', State_Met%PEDGE_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1388,7 +1389,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%PMID_DRY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%PMID_DRY = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'PMID_DRY', State_Met%PMID_DRY, &
+    CALL Register_MetField( am_I_Root, 'PMIDDRY', State_Met%PMID_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1754,7 +1755,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%XLAI_NATIVE', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XLAI_NATIVE  = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'XLAI_NATIVE', State_Met%XLAI_NATIVE, &
+    CALL Register_MetField( am_I_Root, 'XLAINATIVE', State_Met%XLAI_NATIVE, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -1765,7 +1766,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%XCHLR_NATIVE = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'XCHLR_NATIVE', State_Met%XCHLR_NATIVE, &
+    CALL Register_MetField( am_I_Root, 'XCHLRNATIVE', State_Met%XCHLR_NATIVE, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -2355,7 +2356,7 @@ CONTAINS
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PBL_TOP_L' )
+       CASE ( 'PBLTOPL' )
           IF ( isDesc  ) Desc  = 'Model layer of the planetary boundary ' // &
                                  'layer top occurs'
           IF ( isUnits ) Units = 'layer'
@@ -2385,32 +2386,32 @@ CONTAINS
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PS1_WET' )
+       CASE ( 'PS1WET' )
           IF ( isDesc  ) Desc  = 'Wet surface pressure at dt start'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PS2_WET' )
+       CASE ( 'PS2WET' )
           IF ( isDesc  ) Desc  = 'Wet surface pressure at dt end'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PSC2_WET' )
+       CASE ( 'PSC2WET' )
           IF ( isDesc  ) Desc  = 'Wet interpolated surface pressure'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PS1_DRY' )
+       CASE ( 'PS1DRY' )
           IF ( isDesc  ) Desc  = 'Dry surface pressure at dt start'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PS2_DRY' )
+       CASE ( 'PS2DRY' )
           IF ( isDesc  ) Desc  = 'Dry surface pressure at dt end'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'PSC2_DRY' )
+       CASE ( 'PSC2DRY' )
           IF ( isDesc  ) Desc  = 'Dry interpolated surface pressure'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 2
@@ -2515,7 +2516,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
 #if defined( ESMF_ )
-       CASE ( 'CNV_FRC' )
+       CASE ( 'CNVFRC' )
           IF ( isDesc  ) Desc  = 'Convective fraction'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
@@ -2626,7 +2627,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
-       CASE ( 'AREA_M2' )
+       CASE ( 'AREAM2' )
           IF ( isDesc  ) Desc  = 'Surface area of grid box'
           IF ( isUnits ) Units = 'm2'
           IF ( isRank  ) Rank  = 3
@@ -2662,13 +2663,13 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
-       CASE ( 'DELP_DRY' )
+       CASE ( 'DELPDRY' )
           IF ( isDesc  ) Desc  = 'Delta-pressure across grid box (dry air)'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
-       CASE ( 'DP_DRY_PREV' )
+       CASE ( 'DPDRYPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
@@ -2712,7 +2713,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationEdge
 
-       CASE ( 'PEDGE_DRY' )
+       CASE ( 'PEDGEDRY' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level edges'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
@@ -2724,7 +2725,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
-       CASE ( 'PMID_DRY' )
+       CASE ( 'PMIDDRY' )
           IF ( isDesc  ) Desc  = 'Pressure (w/r/t dry air) at level centers'
           IF ( isUnits ) Units = 'hPa'
           IF ( isRank  ) Rank  = 3
@@ -2925,12 +2926,12 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'XLAI_NATIVE' )
+       CASE ( 'XLAINATIVE' )
           IF ( isDesc  ) Desc  = 'Average LAI per Olson land type'
           IF ( isUnits ) Units = 'm2 m-2'
           IF ( isRank  ) Rank  = 3
 
-       CASE ( 'XCHLR_NATIVE' )
+       CASE ( 'XCHLRNATIVE' )
           IF ( isDesc  ) Desc  = 'Average CHLR per Olson type'
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
