@@ -345,6 +345,7 @@ MODULE Input_Opt_Mod
      ! ND49 MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND49
+     INTEGER                     :: N_ND49
      CHARACTER(LEN=255)          :: ND49_FILE
      INTEGER,            POINTER :: ND49_TRACERS(:)
      INTEGER                     :: ND49_FREQ
@@ -359,6 +360,7 @@ MODULE Input_Opt_Mod
      ! ND50 MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND50
+     INTEGER                     :: N_ND50
      CHARACTER(LEN=255)          :: ND50_FILE
      LOGICAL                     :: LND50_HDF
      INTEGER,            POINTER :: ND50_TRACERS(:)
@@ -373,6 +375,7 @@ MODULE Input_Opt_Mod
      ! ND51 MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND51
+     INTEGER                     :: N_ND51
      CHARACTER(LEN=255)          :: ND51_FILE
      LOGICAL                     :: LND51_HDF
      INTEGER,            POINTER :: ND51_TRACERS(:)
@@ -390,6 +393,7 @@ MODULE Input_Opt_Mod
      ! ND51b MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND51b
+     INTEGER                     :: N_ND51b
      CHARACTER(LEN=255)          :: ND51b_FILE
      LOGICAL                     :: LND51b_HDF
      INTEGER,            POINTER :: ND51b_TRACERS(:)
@@ -407,6 +411,7 @@ MODULE Input_Opt_Mod
      ! ND63 MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND63
+     INTEGER                     :: N_ND63
      CHARACTER(LEN=255)          :: ND63_FILE
      INTEGER,            POINTER :: ND63_TRACERS(:)
      INTEGER                     :: ND63_FREQ
@@ -1103,6 +1108,7 @@ CONTAINS
     ! ND49 MENU fields
     !----------------------------------------
     Input_Opt%DO_ND49                = .FALSE.
+    Input_Opt%N_ND49                 = 0
     Input_Opt%ND49_FILE              = ''
     Input_Opt%ND49_TRACERS           = 0
     Input_Opt%ND49_FREQ              = 0
@@ -1117,6 +1123,7 @@ CONTAINS
     ! ND50 MENU fields
     !----------------------------------------
     Input_Opt%DO_ND50                = .FALSE.
+    Input_Opt%N_ND50                 = 0
     Input_Opt%ND50_FILE              = ''
     Input_Opt%LND50_HDF              = .FALSE.
     Input_Opt%ND50_TRACERS           = 0
@@ -1131,6 +1138,7 @@ CONTAINS
     ! ND51 MENU fields
     !----------------------------------------
     Input_Opt%DO_ND51                = .FALSE.
+    Input_Opt%N_ND51                 = 0
     Input_Opt%ND51_FILE              = ''
     Input_Opt%LND51_HDF              = .FALSE.
     Input_Opt%ND51_TRACERS           = 0
@@ -1147,6 +1155,7 @@ CONTAINS
     ! ND51b MENU fields
     !----------------------------------------
     Input_Opt%DO_ND51b               = .FALSE.
+    Input_Opt%N_ND51b                = 0
     Input_Opt%ND51b_FILE             = ''
     Input_Opt%LND51b_HDF             = .FALSE.
     Input_Opt%ND51b_TRACERS          = 0
@@ -1163,6 +1172,7 @@ CONTAINS
     ! ND63 MENU fields
     !----------------------------------------
     Input_Opt%DO_ND63                = .FALSE.
+    Input_Opt%N_ND63                 = 0
     Input_Opt%ND63_FILE              = ''
     Input_Opt%ND63_TRACERS           = 0
     Input_Opt%ND63_FREQ              = 0
@@ -1326,11 +1336,16 @@ CONTAINS
 
     ALLOCATE( Input_Opt%TINDEX(Input_Opt%MAX_DIAG,Input_Opt%N_ADVECT), STAT=RC )
 
-    ALLOCATE( Input_Opt%ND49_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
-    ALLOCATE( Input_Opt%ND50_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
-    ALLOCATE( Input_Opt%ND51_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
-    ALLOCATE( Input_Opt%ND51b_TRACERS( Input_Opt%N_ADVECT ), STAT=RC )
-    ALLOCATE( Input_Opt%ND63_TRACERS ( Input_Opt%N_ADVECT ), STAT=RC )
+    ALLOCATE( Input_Opt%ND49_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+              STAT=RC )
+    ALLOCATE( Input_Opt%ND50_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+              STAT=RC )
+    ALLOCATE( Input_Opt%ND51_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+              STAT=RC )
+    ALLOCATE( Input_Opt%ND51b_TRACERS(Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+              STAT=RC )
+    ALLOCATE( Input_Opt%ND63_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+              STAT=RC )
 
   END SUBROUTINE Set_Input_Opt_Extra
 !EOC

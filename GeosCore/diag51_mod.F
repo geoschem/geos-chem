@@ -22,10 +22,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      LOGICAL, PUBLIC :: DO_SAVE_DIAG51   ! On/off switch for ND51 diagnostic
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CLEANUP_DIAG51
@@ -165,26 +161,14 @@
       ! GOOD_CT          : # of "good" times per grid box
       ! GOOD_CT_CHEM     : # of "good" chemistry timesteps
       ! COUNT_CHEM3D     : Counter for 3D chemistry boxes
-      ! ND51_HR_WRITE    : Hour at which to save to disk
       ! I0               : Offset between global & nested grid
       ! J0               : Offset between global & nested grid
       ! IOFF             : Longitude offset
       ! JOFF             : Latitude offset
       ! LOFF             : Altitude offset
-      ! ND51_HR1         : Starting hour of user-defined LT interval
-      ! ND51_HR2         : Ending hour of user-defined LT interval
-      ! ND51_IMIN        : Minimum latitude  index for DIAG51 region
-      ! ND51_IMAX        : Maximum latitude  index for DIAG51 region
-      ! ND51_JMIN        : Minimum longitude index for DIAG51 region
-      ! ND51_JMAX        : Maximum longitude index for DIAG51 region
-      ! ND51_LMIN        : Minimum altitude  index for DIAG51 region
-      ! ND51_LMAX        : Minimum latitude  index for DIAG51 region
       ! ND51_NI          : Number of longitudes in DIAG51 region 
       ! ND51_NJ          : Number of latitudes  in DIAG51 region
       ! ND51_NL          : Number of levels     in DIAG51 region
-      ! ND51_N_TRACERS   : Number of tracers for DIAG51
-      ! ND51_OUTPUT_FILE : Name of bpch file w  timeseries data
-      ! ND51_TRACERS     : Array of DIAG51 tracer numbers
       ! Q                : Accumulator array for various quantities
       ! TAU0             : Starting TAU used to index the bpch file
       ! TAU1             : Ending TAU used to index the bpch file
@@ -199,24 +183,14 @@
       ! Scalars
       INTEGER              :: IOFF,           JOFF,    LOFF
       INTEGER              :: I0,             J0
-      ! Increased to 120 from 100 (mpb,2009)
-      ! Increased to 121 (ccc, 4/20/10)
-      INTEGER              :: ND51_N_TRACERS, ND51_TRACERS(538)
-      INTEGER              :: ND51_IMIN,      ND51_IMAX
-      INTEGER              :: ND51_JMIN,      ND51_JMAX
-      INTEGER              :: ND51_LMIN,      ND51_LMAX
-      INTEGER              :: ND51_FREQ,      ND51_NI
-      INTEGER              :: ND51_NJ,        ND51_NL
+      INTEGER              :: ND51_NI,        ND51_NJ, ND51_NL
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
       REAL(f8)             :: TAU0,           TAU1
-      REAL(fp)             :: ND51_HR1,       ND51_HR2
-      REAL(fp)             :: ND51_HR_WRITE
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
-      CHARACTER(LEN=255)   :: ND51_OUTPUT_FILE
 
       ! LUN for ND51 file
       INTEGER              :: IU_ND51
@@ -327,14 +301,14 @@
       RC =  GC_SUCCESS      
 
       ! Construct array of where local times are between HR1, HR2
-      CALL GET_LOCAL_TIME
+      CALL GET_LOCAL_TIME( Input_Opt )
 
       ! Accumulate data in the Q array
       CALL ACCUMULATE_DIAG51
      &   ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the proper time
-      IF ( ITS_TIME_FOR_WRITE_DIAG51( TAU_W )  .and. 
+      IF ( ITS_TIME_FOR_WRITE_DIAG51( Input_Opt, TAU_W )  .and. 
      &     Input_Opt%DO_DIAG_WRITE            ) THEN
          CALL WRITE_DIAG51( am_I_Root, Input_Opt, State_Chm, TAU_W, RC )
       ENDIF
@@ -355,13 +329,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_LOCAL_TIME
+      SUBROUTINE GET_LOCAL_TIME( Input_Opt )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD   ! Size parameters
-      USE TIME_MOD, ONLY : GET_LOCALTIME
-      USE TIME_MOD, ONLY : GET_TS_DYN
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_LOCALTIME
+      USE TIME_MOD,      ONLY : GET_TS_DYN
+!
+! !INPUT ARGUMENTS
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input opts 
 ! 
 ! !REMARKS:
 !  For now use GET_LOCALTIME( I, 1, 1 ) which will be independent of J and L
@@ -405,7 +384,8 @@
          IF ( LT < 0  ) LT = LT + 24e+0_fp
 
          ! GOOD indicates which boxes have local times between HR1 and HR2
-         IF ( LT >= ND51_HR1 .and. LT <= ND51_HR2 ) THEN
+         IF ( LT >= Input_Opt%ND51_HR1 .and.
+     &        LT <= Input_Opt%ND51_HR2 ) THEN
             GOOD(I) = 1
          ENDIF
       ENDDO
@@ -710,10 +690,10 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm, ISPC ) 
 !$OMP+SCHEDULE( DYNAMIC )
-         DO W = 1, ND51_N_TRACERS
+         DO W = 1, Input_Opt%N_ND51
 
          ! ND51 Tracer number
-         N = ND51_TRACERS(W)
+         N = Input_Opt%ND51_TRACERS(W)
 
          ! Loop over levels
          DO K = 1, ND51_NL
@@ -1378,18 +1358,24 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_WRITE_DIAG51( TAU_W ) RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_WRITE_DIAG51( Input_Opt, TAU_W )
+     &    RESULT( ITS_TIME )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_HOUR
-      USE TIME_MOD,  ONLY : GET_MINUTE
-      USE TIME_MOD,  ONLY : GET_TAU
-      USE TIME_MOD,  ONLY : GET_TAUb
-      USE TIME_MOD,  ONLY : GET_TAUe
-      USE TIME_MOD,  ONLY : GET_TS_DYN
-      USE TIME_MOD,  ONLY : GET_TS_DIAG
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_HOUR
+      USE TIME_MOD,      ONLY : GET_MINUTE
+      USE TIME_MOD,      ONLY : GET_TAU
+      USE TIME_MOD,      ONLY : GET_TAUb
+      USE TIME_MOD,      ONLY : GET_TAUe
+      USE TIME_MOD,      ONLY : GET_TS_DYN
+      USE TIME_MOD,      ONLY : GET_TS_DIAG
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1422,8 +1408,8 @@
 
       ! NOTE: Change from equality to greater than an a small number, 
       ! because 20min or 40min timesteps are irrational numbers in hours
-      IF ( MOD(ND51_HR_WRITE, TS_DIAG) > 1e-5_fp ) THEN
-         WRITE( 6, 100 ) ND51_HR_WRITE, TS_DIAG
+      IF ( MOD(Input_Opt%ND51_HR_WRITE, TS_DIAG) > 1e-5_fp ) THEN
+         WRITE( 6, 100 ) Input_Opt%ND51_HR_WRITE, TS_DIAG
  100     FORMAT( 'The ND51 output frequency must be a multiple '
      &        'of the largest time step:', f9.2, f9.2 )
          CALL GEOS_CHEM_STOP
@@ -1439,7 +1425,7 @@
 
       ! If the next dyn timestep is the hour of day
       ! when we have to save to disk, return TRUE
-      IF ( MOD( HOUR, 24e+0_fp ) == ND51_HR_WRITE ) THEN
+      IF ( MOD( HOUR, 24e+0_fp ) == Input_Opt%ND51_HR_WRITE ) THEN
          ITS_TIME = .TRUE.
          TAU_W    = TAU + DYN
          RETURN
@@ -1557,9 +1543,6 @@
       CHARACTER(LEN=40)   :: UNIT 
       CHARACTER(LEN=255)  :: FILENAME
 
-      ! For fields from Input_Opt
-      LOGICAL             :: LND51_HDF
-
       !=================================================================
       ! WRITE_DIAG51 begins here!
       !=================================================================
@@ -1568,14 +1551,13 @@
       RC        =  GC_SUCCESS
 
       ! Copy values from Input_Opt
-      LND51_HDF = Input_Opt%LND51_HDF
       nAdvect   = State_Chm%nAdvect
 
       ! Find a free file LUN
       IU_ND51 = findFreeLUN()
 
       ! Replace date tokens in FILENAME
-      FILENAME = ND51_OUTPUT_FILE
+      FILENAME = Input_Opt%ND51_FILE
 
       ! Change to get the good timestamp: day that was run and not next 
       ! day if saved at midnight
@@ -1589,11 +1571,13 @@
  100  FORMAT( '     - DIAG51: Opening file ', a, ' on unit ', i4 )
 
       ! Open output file
-      IF ( LND51_HDF ) THEN
+      IF ( Input_Opt%LND51_HDF ) THEN
 #if   defined( USE_HDF5 )
          ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL OPEN_HDF( IU_ND51_HDF, FILENAME,  ND51_IMAX, ND51_IMIN,   
-     &                  ND51_JMAX,   ND51_JMIN, ND51_NI,   ND51_NJ )
+         CALL OPEN_HDF( IU_ND51_HDF,         FILENAME,
+     &                  Input_Opt%ND51_IMAX, Input_Opt%ND51_IMIN,   
+     &                  Input_Opt%ND51_JMAX, Input_Opt%ND51_JMIN,
+     &                  ND51_NI,             ND51_NJ )
 #endif
       ELSE
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND51, FILENAME, TITLE )
@@ -1615,14 +1599,14 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, W )
 
-      DO W = 1, ND51_N_TRACERS
+      DO W = 1, Input_Opt%N_ND51
  
          ! Loop over grid boxes
          DO K = 1, ND51_NL
          DO Y = 1, ND51_NJ
          DO X = 1, ND51_NI
 
-         SELECT CASE( ND51_TRACERS(W) )
+         SELECT CASE( Input_Opt%ND51_TRACERS(W) )
 
             CASE( 91, 92, 76, 77 )
                !--------------------------------------------------------
@@ -1681,10 +1665,10 @@
       !=================================================================
       ! Write each species from "timeseries.dat" to the timeseries file
       !=================================================================
-      DO W = 1, ND51_N_TRACERS
+      DO W = 1, Input_Opt%N_ND51
 
          ! ND51 tracer number
-         N = ND51_TRACERS(W)
+         N = Input_Opt%ND51_TRACERS(W)
 
          ! Save by simulation
          IF ( N <= nAdvect ) THEN
@@ -2039,7 +2023,7 @@
          !------------------------
          ! Save to bpch file
          !------------------------
-         IF ( LND51_HDF ) THEN
+         IF ( Input_Opt%LND51_HDF ) THEN
 #if   defined( USE_HDF5 )
             ! Only include this if we are linking to HDF5 library 
             ! (bmy, 12/21/09)
@@ -2047,7 +2031,9 @@
      &                  CATEGORY,     GMTRC,        UNIT,
      &                  TAU0,         TAU1,         RESERVED,
      &                  ND51_NI,      ND51_NJ,      GMNL,
-     &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN,
+     &                  Input_Opt%ND51_IMIN+I0,
+     &                  Input_Opt%ND51_JMIN+J0,
+     &                  Input_Opt%ND51_LMIN,
      &                  REAL( Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
 #else
          ELSE
@@ -2056,7 +2042,9 @@
      &                  CATEGORY,     GMTRC,        UNIT,      
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND51_NI,      ND51_NJ,      GMNL,     
-     &                  ND51_IMIN+I0, ND51_JMIN+J0, ND51_LMIN, 
+     &                  Input_Opt%ND51_IMIN+I0,
+     &                  Input_Opt%ND51_JMIN+J0,
+     &                  Input_Opt%ND51_LMIN, 
      &                  REAL(Q(1:ND51_NI, 1:ND51_NJ, 1:GMNL, W)))
 #endif
          ENDIF
@@ -2067,7 +2055,7 @@
  120  FORMAT( '     - DIAG51: Closing file ', a )
 
       ! Close file
-      IF ( LND51_HDF ) THEN
+      IF ( Input_Opt%LND51_HDF ) THEN
 #if   defined( USE_HDF5 )
          ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
          CALL CLOSE_HDF( IU_ND51_HDF )
@@ -2159,45 +2147,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG51( DO_ND51, N_ND51, TRACERS, HR_WRITE, 
-     &                        HR1,     HR2,    IMIN,    IMAX,   
-     &                        JMIN,    JMAX,   LMIN,    LMAX,  FILE )
+      SUBROUTINE INIT_DIAG51( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,     ONLY : GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,     ONLY : GET_TAUb
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !
-      ! DO_ND51 : Switch to turn on ND51 timeseries diagnostic
-      ! N_ND51  : Number of ND51 read by "input_mod.f"
-      ! TRACERS : Array w/ ND51 tracer #'s read by "input_mod.f"
-      ! HR_WRITE: GMT hour of day at which to write bpch file
-      ! HR1     : Lower limit of local time averaging bin
-      ! HR2     : Upper limit of local time averaging bin
-      ! IMIN    : Min longitude index read by "input_mod.f"
-      ! IMAX    : Max longitude index read by "input_mod.f" 
-      ! JMIN    : Min latitude index read by "input_mod.f" 
-      ! JMAX    : Min latitude index read by "input_mod.f" 
-      ! LMIN    : Min level index read by "input_mod.f" 
-      ! LMAX    : Min level index read by "input_mod.f" 
-      ! FILE    : ND51 output file name read by "input_mod.f"
-      LOGICAL,            INTENT(IN) :: DO_ND51
-      INTEGER,            INTENT(IN) :: N_ND51, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      REAL(fp),             INTENT(IN) :: HR1,    HR2
-      REAL(fp),             INTENT(IN) :: HR_WRITE
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -2227,28 +2199,9 @@
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51 ("diag51_mod.f")'
-      ND51_TRACERS(:)        = 0
-
-      ! Get values from "input_mod.f"
-      DO_SAVE_DIAG51         = DO_ND51 
-      ND51_N_TRACERS         = N_ND51
-      ND51_TRACERS(1:N_ND51) = TRACERS(1:N_ND51)
-      ND51_HR_WRITE          = HR_WRITE
-      ND51_HR1               = HR1
-      ND51_HR2               = HR2
-      ND51_IMIN              = IMIN
-      ND51_IMAX              = IMAX
-      ND51_JMIN              = JMIN
-      ND51_JMAX              = JMAX
-      ND51_LMIN              = LMIN
-      ND51_LMAX              = LMAX
-      ND51_OUTPUT_FILE       = TRIM( FILE )
-
-      ! Make sure ND51_HR_WRITE is in the range 0-23.999 hrs
-      ND51_HR_WRITE = MOD( ND51_HR_WRITE, 24e+0_fp )
 
       ! Exit if ND51 is turned off 
-      IF ( .not. DO_SAVE_DIAG51 ) RETURN
+      IF ( .not. Input_Opt%DO_ND51 ) RETURN
 
       !=================================================================
       ! Error check longitude, latitude, altitude limits
@@ -2268,21 +2221,24 @@
       !-----------
 
       ! Error check ND51_IMIN
-      IF ( ND51_IMIN+I0 < 1 .or. ND51_IMIN+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND51_IMIN+I0 < 1       .or.
+     &     Input_Opt%ND51_IMIN+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND51_IMAX
-      IF ( ND51_IMAX+I0 < 1 .or. ND51_IMAX+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND51_IMAX+I0 < 1       .or.
+     &     Input_Opt%ND51_IMAX+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND51_IMAX value!', LOCATION )
       ENDIF
 
       ! Compute longitude limits to write to disk
       ! Also handle wrapping around the date line
-      IF ( ND51_IMAX >= ND51_IMIN ) THEN
-         ND51_NI = ( ND51_IMAX - ND51_IMIN ) + 1
+      IF ( Input_Opt%ND51_IMAX >= Input_Opt%ND51_IMIN ) THEN
+         ND51_NI = ( Input_Opt%ND51_IMAX - Input_Opt%ND51_IMIN ) + 1
       ELSE 
-         ND51_NI = ( IIPAR - ND51_IMIN ) + 1 + ND51_IMAX
+         ND51_NI = ( IIPAR - Input_Opt%ND51_IMIN ) + 1 +
+     &               Input_Opt%ND51_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
@@ -2296,18 +2252,20 @@
       !-----------
       
       ! Error check JMIN_AREA
-      IF ( ND51_JMIN+J0 < 1 .or. ND51_JMIN+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND51_JMIN+J0 < 1       .or.
+     &     Input_Opt%ND51_JMIN+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMIN value!', LOCATION )
       ENDIF
      
       ! Error check JMAX_AREA
-      IF ( ND51_JMAX+J0 < 1 .or.ND51_JMAX+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND51_JMAX+J0 < 1       .or.
+     &     Input_Opt%ND51_JMAX+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND51_JMAX value!', LOCATION )
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND51_JMAX >= ND51_JMIN ) THEN
-         ND51_NJ = ( ND51_JMAX - ND51_JMIN ) + 1
+      IF ( Input_Opt%ND51_JMAX >= Input_Opt%ND51_JMIN ) THEN
+         ND51_NJ = ( Input_Opt%ND51_JMAX - Input_Opt%ND51_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND51_JMAX < ND51_JMIN!', LOCATION )
       ENDIF     
@@ -2317,13 +2275,14 @@
       !-----------
 
       ! Error check ND51_LMIN, ND51_LMAX
-      IF ( ND51_LMIN < 1 .or. ND51_LMAX > LLPAR ) THEN 
+      IF ( Input_Opt%ND51_LMIN < 1       .or.
+     &     Input_Opt%ND51_LMAX > LLPAR ) THEN 
          CALL ERROR_STOP( 'Bad ND51 altitude values!', LOCATION )
       ENDIF
 
       ! # of levels to save in ND51 timeseries
-      IF ( ND51_LMAX >= ND51_LMIN ) THEN  
-         ND51_NL = ( ND51_LMAX - ND51_LMIN ) + 1
+      IF ( Input_Opt%ND51_LMAX >= Input_Opt%ND51_LMIN ) THEN  
+         ND51_NL = ( Input_Opt%ND51_LMAX - Input_Opt%ND51_LMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND51_LMAX < ND51_LMIN!', LOCATION )
       ENDIF
@@ -2331,9 +2290,9 @@
       !-----------
       ! Offsets
       !-----------
-      IOFF      = ND51_IMIN - 1
-      JOFF      = ND51_JMIN - 1
-      LOFF      = ND51_LMIN - 1
+      IOFF      = Input_Opt%ND51_IMIN - 1
+      JOFF      = Input_Opt%ND51_JMIN - 1
+      LOFF      = Input_Opt%ND51_LMIN - 1
 
       !-----------
       ! For bpch
@@ -2384,7 +2343,7 @@
       GOOD_CT_EMIS = 0
 
       ! Accumulating array
-      ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, ND51_N_TRACERS), STAT=AS )
+      ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, Input_Opt%N_ND51),STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
       Q = 0d0
 

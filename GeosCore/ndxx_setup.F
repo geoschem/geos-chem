@@ -23,7 +23,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD
-      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
       USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP

@@ -22,10 +22,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      LOGICAL, PUBLIC :: DO_SAVE_DIAG49
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: DIAG49
@@ -153,18 +149,9 @@
       ! IOFF             : Longitude offset
       ! JOFF             : Latitude offset
       ! LOFF             : Altitude offset
-      ! ND49_IMIN        : Minimum latitude  index for DIAG51 region
-      ! ND49_IMAX        : Maximum latitude  index for DIAG51 region
-      ! ND49_JMIN        : Minimum longitude index for DIAG51 region
-      ! ND49_JMAX        : Maximum longitude index for DIAG51 region
-      ! ND49_LMIN        : Minimum altitude  index for DIAG51 region
-      ! ND49_LMAX        : Minimum latitude  index for DIAG51 region
       ! ND49_NI          : Number of longitudes in DIAG51 region 
       ! ND49_NJ          : Number of latitudes  in DIAG51 region
       ! ND49_NL          : Number of levels     in DIAG51 region
-      ! ND49_N_TRACERS   : Number of tracers for DIAG51
-      ! ND49_OUTPUT_FILE : Name of bpch file w  timeseries data
-      ! ND49_TRACERS     : Array of DIAG51 tracer numbers
       ! HALFPOLAR        : Used for bpch file output
       ! CENTER180        : Used for bpch file output
       ! LONRES           : Used for bpch file output
@@ -173,21 +160,15 @@
       ! RESERVED         : Used for bpch file output
       !=================================================================
 
-      INTEGER            :: IOFF,           JOFF,   LOFF
+      INTEGER            :: IOFF,           JOFF,    LOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(538)
-      INTEGER            :: ND49_IMIN,      ND49_IMAX
-      INTEGER            :: ND49_JMIN,      ND49_JMAX
-      INTEGER            :: ND49_LMIN,      ND49_LMAX
-      INTEGER            :: ND49_FREQ,      ND49_NI
-      INTEGER            :: ND49_NJ,        ND49_NL
+      INTEGER            :: ND49_NI,        ND49_NJ, ND49_NL
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180=1 
       REAL*4             :: LONRES,         LATRES
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: RESERVED = ''
       CHARACTER(LEN=80)  :: TITLE
-      CHARACTER(LEN=255) :: ND49_OUTPUT_FILE
 
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
@@ -446,7 +427,7 @@
 !--- Previous to (ccc, 8/12/09)
 !      IF ( ITS_A_NEW_DAY() ) THEN
       NHMS    = GET_NHMS()
-      TS_DIAG = ND49_FREQ
+      TS_DIAG = Input_Opt%ND49_FREQ
 
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
@@ -457,7 +438,7 @@
          IU_ND49 = findFreeLUN()
 
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND49_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND49_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
@@ -496,10 +477,10 @@
       ENDIF
 
       ! Loop over tracers
-      DO W = 1, ND49_N_TRACERS
+      DO W = 1, Input_Opt%N_ND49
 
          ! ND49 tracer number
-         N = ND49_TRACERS(W)
+         N = Input_Opt%ND49_TRACERS(W)
 
          ! Zero summing array
          Q = 0e+0_fp
@@ -1716,7 +1697,9 @@
      &           CATEGORY,     GMTRC,        UNIT,      
      &           TAU,          TAU,          RESERVED,  
      &           ND49_NI,      ND49_NJ,      GMNL,  
-     &           ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
+     &           Input_Opt%ND49_IMIN+I0,
+     &           Input_Opt%ND49_JMIN+J0,
+     &           Input_Opt%ND49_LMIN, 
      &           REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
 
          ENDIF
@@ -1729,7 +1712,7 @@
       IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND49_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND49_FILE )
 !--- Previous to (ccc, 8/12/09)
 !         CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
          CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), GET_NHMS() )
@@ -1812,13 +1795,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_DIAG49() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_DIAG49( Input_Opt ) RESULT( ITS_TIME )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,  ONLY : GET_TS_DIAG
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,      ONLY : GET_TS_DIAG
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -1842,13 +1830,13 @@
       ! ITS_TIME_FOR_DIAG49 begins here!
       !=================================================================
 
-      IF ( DO_SAVE_DIAG49 ) THEN
+      IF ( Input_Opt%DO_ND49 ) THEN
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
             
             ! Check if ND49_FREQ is a multiple of TS_DIAG
-            IF ( MOD( ND49_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND49', ND49_FREQ, TS_DIAG
+            IF ( MOD( Input_Opt%ND49_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND49', Input_Opt%ND49_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -1860,9 +1848,10 @@
          XMIN     = GET_ELAPSED_MIN()
          
          ! Is the elapsed time a multiple of ND49_FREQ?
-         ITS_TIME = ( DO_SAVE_DIAG49 .and. MOD( XMIN, ND49_FREQ ) == 0 )
+         ITS_TIME = ( Input_Opt%DO_ND49 .and.
+     &                MOD( XMIN, Input_Opt%ND49_FREQ ) == 0 )
       ELSE
-         ITS_TIME = DO_SAVE_DIAG49
+         ITS_TIME = Input_Opt%DO_ND49
       ENDIF
             
       END FUNCTION ITS_TIME_FOR_DIAG49
@@ -1925,40 +1914,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG49( DO_ND49, N_ND49, TRACERS, IMIN,    
-     &                        IMAX,    JMIN,   JMAX,    LMIN,    
-     &                        LMAX,    FREQ,   FILE )
+      SUBROUTINE INIT_DIAG49( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
+      USE BPCH2_MOD,     ONLY : GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      ! DO_ND49 : Switch to turn on ND49 timeseries diagnostic
-      ! N_ND50  : Number of ND49 read by "input_mod.f"
-      ! TRACERS : Array w/ ND49 tracer #'s read by "input_mod.f"
-      ! IMIN    : Min longitude index read by "input_mod.f"
-      ! IMAX    : Max longitude index read by "input_mod.f" 
-      ! JMIN    : Min latitude index read by "input_mod.f" 
-      ! JMAX    : Min latitude index read by "input_mod.f" 
-      ! LMIN    : Min level index read by "input_mod.f" 
-      ! LMAX    : Min level index read by "input_mod.f" 
-      ! FREQ    : Frequency for saving to disk [min]
-      ! FILE    : ND49 output file name read by "input_mod.f"
-      LOGICAL,            INTENT(IN) :: DO_ND49
-      INTEGER,            INTENT(IN) :: N_ND49, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      INTEGER,            INTENT(IN) :: FREQ
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1984,23 +1960,9 @@
 
       ! Initialize
       LOCATION               = 'INIT_DIAG49 ("diag49_mod.f")'
-      ND49_TRACERS(:)        = 0
-
-      ! Get values from "input_mod.f"
-      DO_SAVE_DIAG49         = DO_ND49 
-      ND49_N_TRACERS         = N_ND49
-      ND49_TRACERS(1:N_ND49) = TRACERS(1:N_ND49)
-      ND49_IMIN              = IMIN
-      ND49_IMAX              = IMAX
-      ND49_JMIN              = JMIN
-      ND49_JMAX              = JMAX
-      ND49_LMIN              = LMIN
-      ND49_LMAX              = LMAX
-      ND49_FREQ              = FREQ
-      ND49_OUTPUT_FILE       = FILE
      
       ! Return if we are not saving ND49 diagnostics
-      IF ( .not. DO_SAVE_DIAG49 ) RETURN
+      IF ( .not. Input_Opt%DO_ND49 ) RETURN
 
       !=================================================================
       ! Compute lon, lat, alt extents and check for errors
@@ -2020,21 +1982,24 @@
       !-----------
 
       ! Error check ND49_IMIN
-      IF ( ND49_IMIN+I0 < 1 .or. ND49_IMIN+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND49_IMIN+I0 < 1       .or.
+     &     Input_Opt%ND49_IMIN+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND49_IMAX
-      IF ( ND49_IMAX+I0 < 1 .or. ND49_IMAX+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND49_IMAX+I0 < 1       .or.
+     &     Input_Opt%ND49_IMAX+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMAX value!', LOCATION )
       ENDIF
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND49_IMAX >= ND49_IMIN ) THEN
-         ND49_NI = ( ND49_IMAX - ND49_IMIN ) + 1
+      IF ( Input_Opt%ND49_IMAX >= Input_Opt%ND49_IMIN ) THEN
+         ND49_NI = ( Input_Opt%ND49_IMAX - Input_Opt%ND49_IMIN ) + 1
       ELSE 
-         ND49_NI = ( IIPAR - ND49_IMIN ) + 1 + ND49_IMAX
+         ND49_NI = ( IIPAR - Input_Opt%ND49_IMIN ) + 1 +
+     &             Input_Opt%ND49_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
@@ -2048,18 +2013,20 @@
       !-----------
       
       ! Error check JMIN_AREA
-      IF ( ND49_JMIN+J0 < 1 .or. ND49_JMIN+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND49_JMIN+J0 < 1       .or.
+     &     Input_Opt%ND49_JMIN+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMIN value!', LOCATION)
       ENDIF
      
       ! Error check JMAX_AREA
-      IF ( ND49_JMAX+J0 < 1 .or.ND49_JMAX+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND49_JMAX+J0 < 1       .or.
+     &     Input_Opt%ND49_JMAX+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMAX value!', LOCATION)
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND49_JMAX >= ND49_JMIN ) THEN      
-         ND49_NJ = ( ND49_JMAX - ND49_JMIN ) + 1
+      IF ( Input_Opt%ND49_JMAX >= Input_Opt%ND49_JMIN ) THEN      
+         ND49_NJ = ( Input_Opt%ND49_JMAX - Input_Opt%ND49_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND49_JMAX < ND49_JMIN!', LOCATION )
       ENDIF     
@@ -2069,13 +2036,14 @@
       !-----------
 
       ! Error check ND49_LMIN, ND49_LMAX
-      IF ( ND49_LMIN < 1 .or. ND49_LMAX > LLPAR ) THEN 
+      IF ( Input_Opt%ND49_LMIN < 1       .or.
+     &     Input_Opt%ND49_LMAX > LLPAR ) THEN 
          CALL ERROR_STOP( 'Bad ND49 altitude values!', LOCATION )
       ENDIF
 
       ! # of levels to save in ND49 timeseries
-      IF ( ND49_LMAX >= ND49_LMIN ) THEN  
-         ND49_NL = ( ND49_LMAX - ND49_LMIN ) + 1
+      IF ( Input_Opt%ND49_LMAX >= Input_Opt%ND49_LMIN ) THEN  
+         ND49_NL = ( Input_Opt%ND49_LMAX - Input_Opt%ND49_LMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND49_LMAX < ND49_LMIN!', LOCATION )
       ENDIF
@@ -2083,9 +2051,9 @@
       !-----------
       ! Offsets
       !-----------
-      IOFF      = ND49_IMIN - 1
-      JOFF      = ND49_JMIN - 1
-      LOFF      = ND49_LMIN - 1
+      IOFF      = Input_Opt%ND49_IMIN - 1
+      JOFF      = Input_Opt%ND49_JMIN - 1
+      LOFF      = Input_Opt%ND49_LMIN - 1
 
       !-----------
       ! For bpch

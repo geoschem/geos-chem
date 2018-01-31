@@ -21,10 +21,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      LOGICAL, PUBLIC :: DO_SAVE_DIAG63 
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC :: DIAG63
@@ -54,19 +50,10 @@
       !=================================================================
       ! MODULE VARIABLES
       !
-      ! DO_SAVE_DIAG63   : Switch to turn ND63 timeseries on/off 
       ! I0               : Lon offset between global & nested grid
       ! J0               : Lat offset between global & nested grid
       ! IOFF             : Offset between relative & absolute lon
       ! JOFF             : Offset between relative & absolute lat
-      ! ND63_IMIN        : Minimum longitude index
-      ! ND63_IMAX        : Maximum latitude  index
-      ! ND63_JMIN        : Minimum longitude index
-      ! ND63_JMAX        : Maximum longitude index
-      ! ND63_FREQ        : Frequency which to save to disk [min]
-      ! ND63_N_TRACERS   : Number of tracers for ND63 timeseries
-      ! ND63_OUTPUT_FILE : Name of timeseries output file
-      ! ND63_TRACERS     : Array w/ tracer #'s to save to disk
       ! HALFPOLAR        : Used for binary punch file write
       ! CENTER180        : Used for binary punch file write
       ! LONRES           : Used for binary punch file write
@@ -78,18 +65,13 @@
 
       INTEGER            :: IOFF,           JOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND63_N_TRACERS, ND63_TRACERS(120)
-      INTEGER            :: ND63_IMIN,      ND63_IMAX
-      INTEGER            :: ND63_JMIN,      ND63_JMAX
-      INTEGER            :: ND63_FREQ,      ND63_NI
-      INTEGER            :: ND63_NJ,        ND63_NL
+      INTEGER            :: ND63_NI,        ND63_NJ,  ND63_NL
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180=1 
       REAL*4             :: LONRES,         LATRES
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: RESERVED = ''
       CHARACTER(LEN=80)  :: TITLE
-      CHARACTER(LEN=255) :: ND63_OUTPUT_FILE
 
       ! LUN for ND63 diagnostic file
       INTEGER            :: IU_ND63
@@ -205,7 +187,7 @@
 !--- Previous to (ccc, 8/12/09)
 !      IF ( ITS_A_NEW_DAY() ) THEN
       NHMS    = GET_NHMS()
-      TS_DIAG = ND63_FREQ
+      TS_DIAG = Input_Opt%ND63_FREQ
 
       ! To change TS_DIAG to NHMS format
       TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
@@ -213,13 +195,13 @@
       ! Check if it's a new day for diagnostics, 
       ! or if the model run just started
       IF ( (NHMS == TS_DIAG) .OR. 
-     &     (GET_TAU() == ( GET_TAUb() + ND63_FREQ/60e+0_fp )) ) THEN
+     &     (GET_TAU() == (GET_TAUb()+Input_Opt%ND63_FREQ/60e+0_fp)))THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
 
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND63_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND63_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
@@ -253,10 +235,10 @@
       TAU1  = GET_TAU()
       
       ! Time for start of averaging period
-      TAU0  = TAU1 - (ND63_FREQ / 60e+0_fp) 
+      TAU0  = TAU1 - (Input_Opt%ND63_FREQ / 60e+0_fp) 
 
       ! Loop over tracers
-      DO W = 1, ND63_N_TRACERS
+      DO W = 1, Input_Opt%N_ND63
 
          ! Zero summing array
          Q = 0e+0_fp
@@ -331,7 +313,7 @@
      &               CATEGORY,     GMTRC,        UNIT,      
      &               TAU0,         TAU1,         RESERVED,  
      &               ND63_NI,      ND63_NJ,      1,  
-     &               ND63_IMIN+I0, ND63_JMIN+J0, 1, 
+     &               Input_Opt%ND63_IMIN+I0, Input_Opt%ND63_JMIN+J0, 1, 
      &               REAL( Q(1:ND63_NI, 1:ND63_NJ, 1) ) )
       ENDDO
  
@@ -341,7 +323,7 @@
       IF ( ITS_TIME_TO_CLOSE_FILE() ) THEN
 
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND63_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND63_FILE )
 !--- Previous to (ccc, 8/12/09)
 !         CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
          CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), GET_NHMS() )
@@ -402,7 +384,7 @@
 
 !--- Previous to (ccc, 8/12/09)
 !      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( ND63_FREQ / 60d0 )
+!      HR2      = HR1        + ( Input_Opt%ND63_FREQ / 60d0 )
 
        ! If the next dyn step is the start of a new day, return TRUE
 !--- Previous to (ccc, 11/11/10)
@@ -425,13 +407,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_DIAG63() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_DIAG63( Input_Opt ) RESULT( ITS_TIME )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,  ONLY : GET_TS_DIAG
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,      ONLY : GET_TS_DIAG
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
 !
 ! !RETURN VALUE:
 !
@@ -453,13 +440,13 @@
       ! ITS_TIME_FOR_DIAG63 begins here!
       !=================================================================
 
-      IF ( DO_SAVE_DIAG63 ) THEN
+      IF ( Input_Opt%DO_ND63 ) THEN
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
             
             ! Check if ND63_FREQ is a multiple of TS_DIAG
-            IF ( MOD( ND63_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND63', ND63_FREQ, TS_DIAG
+            IF ( MOD( Input_Opt%ND63_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND63', Input_Opt%ND63_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -471,9 +458,10 @@
          XMIN     = GET_ELAPSED_MIN()
          
          ! Is the elapsed time a multiple of ND63_FREQ?
-         ITS_TIME = ( DO_SAVE_DIAG63 .and. MOD( XMIN, ND63_FREQ ) == 0 )
+         ITS_TIME = ( Input_Opt%DO_ND63 .and.
+     &                MOD( XMIN, Input_Opt%ND63_FREQ ) == 0 )
       ELSE
-         ITS_TIME = DO_SAVE_DIAG63
+         ITS_TIME = Input_Opt%DO_ND63
       ENDIF
             
       END FUNCTION ITS_TIME_FOR_DIAG63
@@ -537,37 +525,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN,    
-     &                        IMAX,    JMIN,   JMAX,    FREQ,   
-     &                        FILE )
+      SUBROUTINE INIT_DIAG63( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,   ONLY : GET_MODELNAME
-      USE BPCH2_MOD,   ONLY : GET_HALFPOLAR
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE GC_GRID_MOD, ONLY : GET_XOFFSET
-      USE GC_GRID_MOD, ONLY : GET_YOFFSET
-      USE GC_GRID_MOD, ONLY : ITS_A_NESTED_GRID
-      USE ERROR_MOD,   ONLY : ERROR_STOP
+      USE BPCH2_MOD,     ONLY : GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      ! DO_ND63 : Switch to turn on ND63 timeseries diagnostic
-      ! N_ND63  : Number of ND63 read by "input_mod.f"
-      ! TRACERS : Array w/ ND63 tracer #'s read by "input_mod.f"
-      ! IMIN    : Min longitude index read by "input_mod.f"
-      ! IMAX    : Max longitude index read by "input_mod.f" 
-      ! JMIN    : Min latitude index read by "input_mod.f" 
-      ! JMAX    : Min latitude index read by "input_mod.f" 
-      ! FREQ    : Frequency for saving to disk [min]
-      ! FILE    : ND63 output file name read by "input_mod.f"
-      LOGICAL,            INTENT(IN) :: DO_ND63
-      INTEGER,            INTENT(IN) :: N_ND63, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: FREQ
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version based on INIT_DIAG49
@@ -586,21 +564,9 @@
 
       ! Initialize
       LOCATION               = 'INIT_DIAG63 ("diag63_mod.f")'
-      ND63_TRACERS(:)        = 0
-
-      ! Get values from "input_mod.f"
-      DO_SAVE_DIAG63         = DO_ND63 
-      ND63_N_TRACERS         = N_ND63
-      ND63_TRACERS(1:N_ND63) = TRACERS(1:N_ND63)
-      ND63_IMIN              = IMIN
-      ND63_IMAX              = IMAX
-      ND63_JMIN              = JMIN
-      ND63_JMAX              = JMAX
-      ND63_FREQ              = FREQ
-      ND63_OUTPUT_FILE       = FILE
      
       ! Return if we are not saving ND63 diagnostics
-      IF ( .not. DO_SAVE_DIAG63 ) RETURN
+      IF ( .not. Input_Opt%DO_ND63 ) RETURN
 
       !=================================================================
       ! Compute lon, lat, alt extents and check for errors
@@ -620,21 +586,24 @@
       !-----------
 
       ! Error check ND63_IMIN
-      IF ( ND63_IMIN+I0 < 1 .or. ND63_IMIN+I0 > IGLOB ) THEN
+      IF ( Input_Opt%ND63_IMIN+I0 < 1       .or.
+     &     Input_Opt%ND63_IMIN+I0 > IGLOB ) THEN
          CALL ERROR_STOP( 'Bad ND63_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND63_IMAX
-      IF ( ND63_IMAX+I0 < 1 .or. ND63_IMAX+I0 > IGLOB ) THEN
+      IF ( Input_Opt%ND63_IMAX+I0 < 1       .or.
+     &     Input_Opt%ND63_IMAX+I0 > IGLOB ) THEN
          CALL ERROR_STOP( 'Bad ND63_IMAX value!', LOCATION )
       ENDIF
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND63_IMAX >= ND63_IMIN ) THEN
-         ND63_NI = ( ND63_IMAX - ND63_IMIN ) + 1
+      IF ( Input_Opt%ND63_IMAX >= Input_Opt%ND63_IMIN ) THEN
+         ND63_NI = ( Input_Opt%ND63_IMAX - Input_Opt%ND63_IMIN ) + 1
       ELSE 
-         ND63_NI = ( IIPAR - ND63_IMIN ) + 1 + ND63_IMAX
+         ND63_NI = ( IIPAR - Input_Opt%ND63_IMIN ) + 1 +
+     &               Input_Opt%ND63_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
@@ -648,18 +617,20 @@
       !-----------
       
       ! Error check JMIN_AREA
-      IF ( ND63_JMIN+J0 < 1 .or. ND63_JMIN+J0 > JGLOB ) THEN
+      IF ( Input_Opt%ND63_JMIN+J0 < 1       .or.
+     &     Input_Opt%ND63_JMIN+J0 > JGLOB ) THEN
          CALL ERROR_STOP( 'Bad ND63_JMIN value!', LOCATION)
       ENDIF
      
       ! Error check JMAX_AREA
-      IF ( ND63_JMAX+J0 < 1 .or.ND63_JMAX+J0 > JGLOB ) THEN
+      IF ( Input_Opt%ND63_JMAX+J0 < 1       .or.
+     &     Input_Opt%ND63_JMAX+J0 > JGLOB ) THEN
          CALL ERROR_STOP( 'Bad ND63_JMAX value!', LOCATION)
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND63_JMAX >= ND63_JMIN ) THEN      
-         ND63_NJ = ( ND63_JMAX - ND63_JMIN ) + 1
+      IF ( Input_Opt%ND63_JMAX >= Input_Opt%ND63_JMIN ) THEN      
+         ND63_NJ = ( Input_Opt%ND63_JMAX - Input_Opt%ND63_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND63_JMAX < ND63_JMIN!', LOCATION )
       ENDIF     
@@ -675,8 +646,8 @@
       !-----------
       ! Offsets
       !-----------
-      IOFF      = ND63_IMIN - 1
-      JOFF      = ND63_JMIN - 1
+      IOFF      = Input_Opt%ND63_IMIN - 1
+      JOFF      = Input_Opt%ND63_JMIN - 1
 
       !-----------
       ! For bpch

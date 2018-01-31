@@ -626,7 +626,10 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               c2h6_mod.o              carbon_mod.o           \
                               chemgrid_mod.o          co2_mod.o              \
                               depo_mercury_mod.o      diag03_mod.o           \
-                              diag20_mod.o            diag_oh_mod.o          \
+                              diag20_mod.o            diag48_mod.o           \
+                              diag49_mod.o            diag50_mod.o           \
+                              diag51_mod.o            diag51b_mod.o          \
+                              diag63_mod.o            diag_oh_mod.o          \
                               drydep_mod.o            dust_mod.o             \
                               gamap_mod.o             get_ndep_mod.o         \
                               global_ch4_mod.o        input_mod.o            \
@@ -676,10 +679,7 @@ initialize.o                : initialize.F                                   \
 input_mod.o                 : input_mod.F                                    \
                               diag03_mod.o            diag04_mod.o           \
                               diag41_mod.o            diag42_mod.o  	     \
-                              diag48_mod.o            diag49_mod.o  	     \
-                              diag50_mod.o            diag51_mod.o  	     \
-                              diag51b_mod.o           diag53_mod.o  	     \
-                              diag56_mod.o            diag63_mod.o           \
+                              diag53_mod.o            diag56_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
 isoropiaII_mod.o            : isoropiaII_mod.F                               \

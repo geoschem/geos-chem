@@ -1745,14 +1745,8 @@
       USE DIAG04_MOD,         ONLY : ND04
       USE DIAG41_MOD,         ONLY : ND41
       USE DIAG42_MOD,         ONLY : ND42, PD42
-      USE DIAG48_MOD,         ONLY : DO_SAVE_DIAG48
-      USE DIAG49_MOD,         ONLY : DO_SAVE_DIAG49
-      USE DIAG50_MOD,         ONLY : DO_SAVE_DIAG50
-      USE DIAG51_MOD,         ONLY : DO_SAVE_DIAG51
-      USE DIAG51b_MOD,        ONLY : DO_SAVE_DIAG51b
       USE DIAG53_MOD,         ONLY : ND53, PD53
       USE DIAG56_MOD,         ONLY : ND56
-      USE DIAG63_MOD,         ONLY:  DO_SAVE_DIAG63
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -1870,9 +1864,9 @@
       SpcInfo => NULL()
 
       ! Set a flag if any timeseries diagnostics are turned on
-      DO_TIMESERIES = ( DO_SAVE_DIAG48 .or. DO_SAVE_DIAG49 .or.
-     &                  DO_SAVE_DIAG50 .or. DO_SAVE_DIAG51 .or.
-     &                  DO_SAVE_DIAG51b )
+      DO_TIMESERIES = ( Input_Opt%DO_ND48 .or. Input_Opt%DO_ND49 .or.
+     &                  Input_Opt%DO_ND50 .or. Input_Opt%DO_ND51 .or.
+     &                  Input_Opt%DO_ND51b )
 
       ! Save the # of tagHg categories in a local variable
       N_Hg_CATS = State_Chm%N_Hg_CATS
@@ -6117,9 +6111,9 @@
       !-------------------------------------      
       ! Surface pressure (ND31)
       !-------------------------------------   
-      IF ( ND31 > 0       .or. DO_SAVE_DIAG48 .or. 
-     &     DO_SAVE_DIAG49 .or. DO_SAVE_DIAG50 .or. 
-     &     DO_SAVE_DIAG51 .or. DO_SAVE_DIAG51b     ) THEN
+      IF ( ND31 > 0          .or. Input_Opt%DO_ND48 .or. 
+     &     Input_Opt%DO_ND49 .or. Input_OPt%DO_ND50 .or. 
+     &     Input_Opt%DO_ND51 .or. Input_Opt%DO_ND51b ) THEN
          T           = 1
          NTRAC(31)   = T
          NAME (T,31) = 'PSURF'
@@ -7236,7 +7230,7 @@
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
       !-------------------------------------      
-      IF ( DO_SAVE_DIAG63 ) THEN 
+      IF ( Input_Opt%DO_ND63 ) THEN 
 
          ! Number of tracers
          NTRAC(63) = 5

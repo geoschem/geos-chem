@@ -1845,7 +1845,7 @@
             IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG42' )
 
             ! 24-hr timeseries
-            IF ( DO_SAVE_DIAG50 ) THEN
+            IF ( Input_Opt%DO_ND50 ) THEN
                CALL DIAG50
      &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
             ENDIF
@@ -1868,31 +1868,31 @@
          !============================================================== 
 
          ! Station timeseries
-         IF ( ITS_TIME_FOR_DIAG48() ) THEN
+         IF ( ITS_TIME_FOR_DIAG48( Input_Opt ) ) THEN
             CALL DIAG48
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG48' )
 
          ! 3-D timeseries
-         IF ( ITS_TIME_FOR_DIAG49() ) THEN
+         IF ( ITS_TIME_FOR_DIAG49( Input_Opt ) ) THEN
             CALL DIAG49( am_I_Root, Input_Opt,  State_Met,
      &                   State_Chm, State_Diag, RC         )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG49' )
 
          ! Ship timeseries
-         IF ( ITS_TIME_FOR_DIAG63() ) THEN
+         IF ( ITS_TIME_FOR_DIAG63( Input_Opt) ) THEN
             CALL DIAG63( am_I_Root, Input_Opt, State_Chm, RC )
          ENDIF
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: after DIAG63' )
 
          ! Morning or afternoon timeseries
-         IF ( DO_SAVE_DIAG51 ) THEN
+         IF ( Input_Opt%DO_ND51 ) THEN
             CALL DIAG51
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF
-         IF ( DO_SAVE_DIAG51b ) THEN
+         IF ( Input_Opt%DO_ND51b ) THEN
             CALL DIAG51b
      &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
          ENDIF

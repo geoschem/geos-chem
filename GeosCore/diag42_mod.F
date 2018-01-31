@@ -600,7 +600,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
-
 !
 ! !INPUT PARAMETERS:
 !

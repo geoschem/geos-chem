@@ -2951,8 +2951,6 @@
          RETURN
       ENDIF
 
-      Print*, 'Reading transport menu'
-
       ! Turn on transport?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LTRAN', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -4963,7 +4961,6 @@
 !
 ! !USES:
 !
-      USE DIAG48_MOD,    ONLY : INIT_DIAG48, ND48_MAX_STATIONS
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -5085,22 +5082,6 @@
  120  FORMAT( A, I5    )                   
  130  FORMAT( 'ND48 timeseries station', i4, ' : ', 4i5 )
 
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize for ND48 timeseries
-      IF ( Input_Opt%DO_ND48 ) THEN
-         CALL INIT_DIAG48( Input_Opt%DO_ND48,
-     &                     Input_Opt%ND48_FREQ,
-     &                     Input_Opt%ND48_N_STA,
-     &                     Input_Opt%ND48_IARR, 
-     &                     Input_Opt%ND48_JARR,
-     &                     Input_Opt%ND48_LARR,
-     &                     Input_Opt%ND48_NARR,
-     &                     Input_Opt%ND48_FILE )
-      ENDIF
-
       END SUBROUTINE READ_ND48_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5120,7 +5101,6 @@
 !
 ! !USES:
 !
-      USE DIAG49_MOD,         ONLY : INIT_DIAG49
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -5149,10 +5129,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N, N_ND49
+      INTEGER             :: N
  
       ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+      CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
@@ -5192,12 +5172,13 @@
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ND49_FILE
 
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND49, -1, 'read_nd49_menu:3', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%N_ND49, -1,
+     &                     'read_nd49_menu:3', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, N_ND49
+      DO N = 1, Input_Opt%N_ND49
          READ( SUBSTRS(N), * ) Input_Opt%ND49_TRACERS(N)
       ENDDO
 
@@ -5250,7 +5231,7 @@
 
       ! Reset quantities: Turn on ND49 but with 1 tracer
       Input_Opt%DO_ND49         = .TRUE.
-      N_ND49                    = 1
+      Input_Opt%N_ND49          = 1
       Input_Opt%ND49_TRACERS    = 0
       Input_Opt%ND49_TRACERS(1) = 1
 
@@ -5278,7 +5259,8 @@
          WRITE( 6, 110 ) 'ND49 timeseries file name   : ',
      &                    TRIM( Input_Opt%ND49_FILE )
          WRITE( 6, 120 ) 'ND49 timeseries tracers     : ', 
-     &                    ( Input_Opt%ND49_TRACERS(N), N=1, N_ND49 )
+     &                    ( Input_Opt%ND49_TRACERS(N), N=1,
+     &                      Input_Opt%N_ND49 )
          WRITE( 6, 130 ) 'ND49 save frequency [min]   : ',
      &                    Input_Opt%ND49_FREQ
          WRITE( 6, 130 ) 'ND49 longitude limits       : ',
@@ -5294,20 +5276,6 @@
  110  FORMAT( A, A     )
  120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize for ND49 timeseries
-      IF ( Input_Opt%DO_ND49 ) THEN
-         CALL INIT_DIAG49( Input_Opt%DO_ND49, N_ND49,
-     &                     Input_Opt%ND49_TRACERS,
-     &                     Input_Opt%ND49_IMIN, Input_Opt%ND49_IMAX,
-     &                     Input_Opt%ND49_JMIN, Input_Opt%ND49_JMAX,
-     &                     Input_Opt%ND49_LMIN, Input_Opt%ND49_LMAX,
-     &                     Input_Opt%ND49_FREQ, Input_Opt%ND49_FILE )
-      ENDIF
 
       END SUBROUTINE READ_ND49_MENU
 !EOC
@@ -5328,7 +5296,6 @@
 !
 ! !USES:
 !
-      USE DIAG50_MOD,         ONLY : INIT_DIAG50
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -5362,10 +5329,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, N_ND50
+      INTEGER            :: N
 
       ! Strings
-      CHARACTER(LEN=255) :: ErrMsg, ThisLoc,   File
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -5419,12 +5386,13 @@
 #endif
 
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND50, -1, 'read_nd50_menu:4', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%N_ND50, -1,
+     &                     'read_nd50_menu:4', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, N_ND50
+      DO N = 1, Input_Opt%N_ND50
          READ( SUBSTRS(N), * ) Input_Opt%ND50_TRACERS(N)
       ENDDO
 
@@ -5472,7 +5440,8 @@
          WRITE( 6, 100 ) 'Output as HDF?              : ',
      &                    Input_Opt%LND50_HDF
          WRITE( 6, 120 ) 'ND50 timeseries tracers     : ', 
-     &                    ( Input_Opt%ND50_TRACERS(N), N=1, N_ND50 )
+     &                    ( Input_Opt%ND50_TRACERS(N), N=1,
+     &                      Input_Opt%N_ND50 )
          WRITE( 6, 130 ) 'ND50 longitude limits       : ',
      &                    Input_Opt%ND50_IMIN, Input_Opt%ND50_IMAX
          WRITE( 6, 130 ) 'ND50 latitude  limits       : ',
@@ -5486,20 +5455,6 @@
  110  FORMAT( A, A     )
  120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize parameters for ND50 timeseries
-      IF ( Input_Opt%DO_ND50 ) THEN
-         CALL INIT_DIAG50( Input_Opt%DO_ND50, N_ND50,
-     &                     Input_Opt%ND50_TRACERS,
-     &                     Input_Opt%ND50_IMIN, Input_Opt%ND50_IMAX, 
-     &                     Input_Opt%ND50_JMIN, Input_Opt%ND50_JMAX,
-     &                     Input_Opt%ND50_LMIN, Input_Opt%ND50_LMAX,
-     &                     Input_Opt%ND50_FILE )
-      ENDIF
 
       END SUBROUTINE READ_ND50_MENU
 !EOC
@@ -5520,7 +5475,6 @@
 !
 ! !USES:
 !
-      USE DIAG51_MOD,         ONLY : INIT_DIAG51
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -5554,7 +5508,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, N_ND51
+      INTEGER            :: N
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -5611,12 +5565,13 @@
 #endif
 
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND51, -1, 'read_nd51_menu:4', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%N_ND51, -1,
+     &                     'read_nd51_menu:4', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, N_ND51
+      DO N = 1, Input_Opt%N_ND51
          READ( SUBSTRS(N), * ) Input_Opt%ND51_TRACERS(N)
       ENDDO
 
@@ -5627,6 +5582,9 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%ND51_HR_WRITE
+
+      ! Make sure ND51_HR_WRITE is in the range 0-23.999 hrs
+      Input_Opt%ND51_HR_WRITE = MOD( Input_Opt%ND51_HR_WRITE, 24e+0_fp )
 
       ! HR1, HR2
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51_menu:7', RC )
@@ -5680,7 +5638,8 @@
          WRITE( 6, 100 ) 'Output as HDF?              : ',
      &                    Input_Opt%LND51_HDF
          WRITE( 6, 120 ) 'ND41 timeseries tracers     : ', 
-     &                    ( Input_Opt%ND51_TRACERS(N), N=1, N_ND51 )
+     &                    ( Input_Opt%ND51_TRACERS(N), N=1,
+     &                      Input_Opt%N_ND51 )
          WRITE( 6, 140 ) 'ND51 hour to write to disk  : ',
      &                    Input_Opt%ND51_HR_WRITE
          WRITE( 6, 140 ) 'ND51 averaging period [GMT] : ',
@@ -5699,22 +5658,6 @@
  120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
  140  FORMAT( A, 2F5.1 )
-
-      !=================================================================
-      ! Call setup routine from other F90 modules
-      !=================================================================
-
-      ! Initialize parameters for ND51 timeseries
-      IF ( Input_Opt%DO_ND51 ) THEN
-         CALL INIT_DIAG51( Input_Opt%DO_ND51, N_ND51,
-     &                     Input_Opt%ND51_TRACERS,
-     &                     Input_Opt%ND51_HR_WRITE, 
-     &                     Input_Opt%ND51_HR1,     Input_Opt%ND51_HR2,
-     &                     Input_Opt%ND51_IMIN,    Input_Opt%ND51_IMAX,   
-     &                     Input_Opt%ND51_JMIN,    Input_Opt%ND51_JMAX,
-     &                     Input_Opt%ND51_LMIN,    Input_Opt%ND51_LMAX,
-     &                     Input_Opt%ND51_FILE )
-      ENDIF
 
       END SUBROUTINE READ_ND51_MENU
 !EOC
@@ -5735,7 +5678,6 @@
 !
 ! !USES:
 !
-      USE DIAG51b_MOD,   ONLY : INIT_DIAG51b
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -5765,7 +5707,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER              :: N, N_ND51
+      INTEGER              :: N
 
       ! Strings
       CHARACTER(LEN=255)   :: ErrMsg, ThisLoc
@@ -5774,7 +5716,7 @@
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
 
       !=================================================================
-      ! READ_ND51_MENU begins here!
+      ! READ_ND51b_MENU begins here!
       !=================================================================
 
       ! Initialize
@@ -5791,13 +5733,13 @@
          RETURN
       ENDIF
 
-      ! Turn on ND51 diagnostic
+      ! Turn on ND51b diagnostic
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%DO_ND51
+      READ( SUBSTRS(1:N), * ) Input_Opt%DO_ND51b
 
       ! Instantaneous 3-D timeseries file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_nd51b_menu:2', RC )
@@ -5822,12 +5764,13 @@
 #endif
 
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND51, -1, 'read_nd51b_menu:4',RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%N_ND51b, -1,
+     &                     'read_nd51b_menu:4',RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, N_ND51
+      DO N = 1, Input_Opt%N_ND51b
          READ( SUBSTRS(N), * ) Input_Opt%ND51b_TRACERS(N)
       ENDDO
 
@@ -5838,6 +5781,9 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%ND51b_HR_WRITE
+
+      ! Make sure ND51b_HR_WRITE is in the range 0-23.999 hrs
+      Input_Opt%ND51b_HR_WRITE = MOD(Input_Opt%ND51b_HR_WRITE,24e+0_fp)
 
       ! HR1, HR2
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'read_nd51b_menu:6', RC )
@@ -5894,7 +5840,8 @@
          WRITE( 6, 100 ) 'Output as HDF?               : ',
      &                    Input_Opt%LND51b_HDF
          WRITE( 6, 120 ) 'ND41 timeseries tracers      : ',
-     &                    ( Input_Opt%ND51b_TRACERS(N), N=1, N_ND51 )
+     &                    ( Input_Opt%ND51b_TRACERS(N), N=1,
+     &                      Input_Opt%N_ND51b )
          WRITE( 6, 140 ) 'ND51b hour to write to disk  : ',
      &                    Input_Opt%ND51b_HR_WRITE
          WRITE( 6, 140 ) 'ND51b averaging period [GMT] : ',
@@ -5913,22 +5860,6 @@
  120  FORMAT( A, 100I3 )
  130  FORMAT( A, 2I5   )
  140  FORMAT( A, 2F5.1 )
-
-      !=================================================================
-      ! Call setup routine from other F90 modules
-      !=================================================================
-
-      ! Initialize parameters for ND51b timeseries
-      IF ( Input_Opt%DO_ND51 ) THEN
-         CALL INIT_DIAG51b( Input_Opt%DO_ND51, N_ND51,
-     &                      Input_Opt%ND51b_TRACERS,
-     &                      Input_Opt%ND51b_HR_WRITE,
-     &                      Input_Opt%ND51b_HR1,   Input_Opt%ND51b_HR2,
-     &                      Input_Opt%ND51b_IMIN,  Input_Opt%ND51b_IMAX,
-     &                      Input_Opt%ND51b_JMIN,  Input_Opt%ND51b_JMAX,
-     &                      Input_Opt%ND51b_LMIN,  Input_Opt%ND51b_LMAX,
-     &                      Input_Opt%ND51b_FILE )
-      ENDIF
 
       END SUBROUTINE READ_ND51b_MENU
 !EOC
@@ -5949,7 +5880,6 @@
 !
 ! !USES:
 !
-      USE DIAG63_MOD,    ONLY : INIT_DIAG63
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -5981,7 +5911,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER             :: N, N_ND63
+      INTEGER             :: N
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -6029,12 +5959,13 @@
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ND63_FILE
 
       ! Tracers to include
-      CALL SPLIT_ONE_LINE( SUBSTRS, N_ND63, -1, 'read_nd63_menu:3', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%N_ND63, -1,
+     &                     'read_nd63_menu:3', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, N_ND63
+      DO N = 1, Input_Opt%N_ND63
          READ( SUBSTRS(N), * ) Input_Opt%ND63_TRACERS(N)
       ENDDO
 
@@ -6083,7 +6014,8 @@
          WRITE( 6, 110 ) 'ND63 timeseries file name   : ', 
      &                    TRIM( Input_Opt%ND63_FILE )
          WRITE( 6, 120 ) 'ND63 timeseries tracers     : ', 
-     &                    ( Input_Opt%ND63_TRACERS(N), N=1, N_ND63 )
+     &                    ( Input_Opt%ND63_TRACERS(N), N=1,
+     &                      Input_Opt%N_ND63 )
          WRITE( 6, 130 ) 'ND63 save frequency [min]   : ', 
      &                    Input_Opt%ND63_FREQ
          WRITE( 6, 130 ) 'ND63 longitude limits       : ', 
@@ -6097,20 +6029,6 @@
  110  FORMAT( A, A     )
  120  FORMAT( A, 100I3 )
  130  FORMAT( A, 2I5   )
-
-      !=================================================================
-      ! Call setup routines from other F90 modules
-      !=================================================================
-
-      ! Initialize for ND63 timeseries
-      IF ( Input_Opt%DO_ND63 ) THEN
-         CALL INIT_DIAG63( Input_Opt%DO_ND63, N_ND63,
-     &                     Input_Opt%ND63_TRACERS,
-     &                     Input_Opt%ND63_IMIN,  Input_Opt%ND63_IMAX,
-     &                     Input_Opt%ND63_JMIN,  Input_Opt%ND63_JMAX,
-     &                     Input_Opt%ND63_FREQ,
-     &                     Input_Opt%ND63_FILE )
-      ENDIF
 
       END SUBROUTINE READ_ND63_MENU
 !EOC
@@ -7395,7 +7313,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, P, IDX, D
+      INTEGER            :: N, P, D
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -7421,6 +7339,11 @@
       ENDIF
       READ( SUBSTRS(1), * ) Input_Opt%NPASSIVE
 
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
+         WRITE( 6, '(  a)' ) '---------------------'
+      ENDIF
+
       ! Read passive species information for each passive species
       ! Every passive species line is expected to have 3 entries:
       ! - Species name
@@ -7435,20 +7358,6 @@
          ! Loop over the number of listed passive species
          DO P = 1, Input_Opt%NPASSIVE
 
-            ! Find empty slot
-            IDX = -1
-            IF ( Input_Opt%PASSIVE_ID(P) < 0 ) THEN
-               IDX = P
-               EXIT
-            ENDIF
-            IF ( IDX <= 0 ) THEN
-               ErrMsg = 'Cannot add passive species ' //
-     &                  TRIM( Input_Opt%PASSIVE_NAME(IDX) ) //
-     &                  ': all species slots are already being used.'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN 
-            ENDIF 
-
             ! Expect 4 metadata parameters to define the passive species
             CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Pasv Species', RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -7457,38 +7366,38 @@
             ENDIF
      
             ! Read and store species information
-            Input_Opt%PASSIVE_ID(IDX) = IDX
-            Input_Opt%PASSIVE_NAME(IDX) = TRIM( SUBSTRS(1) )
-            READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(IDX)
-            READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(IDX)
-            READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(IDX)
+            Input_Opt%PASSIVE_ID(P)   = P
+            Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
+            READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
+            READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
+            READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
 
             ! Determine if the passive species decays (i.e. if it has 
             ! an atmospheric lifetime that is not -1).  This will allow
             ! us to skip those passive species that do not decay in
             ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-            IF ( Input_Opt%PASSIVE_TAU(IDX) > 0.0_fp ) THEN
+            IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
                D                            = D + 1
                Input_Opt%NPASSIVE_DECAY     = D
-               Input_Opt%PASSIVE_DECAYID(D) = IDX
+               Input_Opt%PASSIVE_DECAYID(D) = P
             ENDIF
 
             ! Verbose
             IF ( am_I_Root ) THEN
                WRITE( 6, '(a)' ) 'Added passive species: '
                WRITE( 6, 110   ) ' - Species name                : ', 
-     &               TRIM( Input_Opt%PASSIVE_NAME(IDX) ) 
+     &               TRIM( Input_Opt%PASSIVE_NAME(P) ) 
                WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
-     &               Input_Opt%PASSIVE_MW(IDX)
+     &               Input_Opt%PASSIVE_MW(P)
                WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
-     &               Input_Opt%PASSIVE_TAU(IDX)
+     &               Input_Opt%PASSIVE_TAU(P)
                WRITE( 6, 130   ) ' - Default concentration [v/v] : ', 
-     &               Input_Opt%PASSIVE_INITCONC(IDX)
+     &               Input_Opt%PASSIVE_INITCONC(P)
             ENDIF
          ENDDO
       ELSE
          ErrMsg = 'Cannot add passive species ' //
-     &            TRIM(Input_Opt%PASSIVE_NAME(IDX) ) //
+     &            TRIM(Input_Opt%PASSIVE_NAME(P) ) //
      &            ': # of passive species is smaller than 1!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN 

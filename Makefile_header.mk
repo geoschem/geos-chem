@@ -530,7 +530,6 @@ REGEXP               :=(^[Cc][Uu][Ss][Tt][Oo][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Custom
   IS_CHEM_SET        :=1
-  NO_REDUCED         :=yes
 endif
 
 # %%%%%  Default setting %%%%%
@@ -543,7 +542,6 @@ endif
 ifeq ($(IS_CHEM_SET),0)
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-  NO_REDUCED         :=yes
 endif
 
 #------------------------------------------------------------------------------

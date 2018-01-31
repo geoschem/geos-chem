@@ -619,8 +619,14 @@ CONTAINS
     USE Diag20_Mod,         ONLY : Init_Diag20
     USE Diag41_Mod,         ONLY : Init_Diag41
     USE Diag42_Mod,         ONLY : Init_Diag42
+    USE Diag48_Mod,         ONLY : Init_Diag48
+    USE Diag49_Mod,         ONLY : Init_Diag49
+    USE Diag50_Mod,         ONLY : Init_Diag50
+    USE Diag51_Mod,         ONLY : Init_Diag51
+    USE Diag51b_Mod,        ONLY : Init_Diag51b
     USE Diag53_Mod,         ONLY : Init_Diag53
-    USE Diag56_Mod,         ONLY : init_Diag56
+    USE Diag56_Mod,         ONLY : Init_Diag56
+    USE Diag63_Mod,         ONLY : Init_Diag63
     USE Diag_OH_Mod,        ONLY : Init_Diag_OH
     USE Diagnostics_Mod,    ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -1063,8 +1069,14 @@ CONTAINS
     CALL Init_Diag04
     CALL Init_Diag41
     CALL Init_Diag42( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%DO_ND48 ) CALL INIT_DIAG48 ( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%DO_ND49 ) CALL Init_Diag49 ( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%DO_ND50 ) CALL Init_Diag50 ( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%DO_ND51 ) CALL Init_Diag51 ( am_I_Root, Input_Opt, RC )
+    IF ( Input_Opt%DO_ND51b) CALL Init_Diag51b( am_I_Root, Input_Opt, RC )
     CALL Init_Diag53
     CALL Init_Diag56
+    IF ( Input_Opt%DO_ND63 ) CALL Init_Diag63 ( am_I_Root, Input_Opt, RC )
 
     ! Initialize the Hg diagnostics (bpch)
     CALL Init_Diag03( State_Chm )
