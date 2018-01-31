@@ -1727,7 +1727,9 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! Jan 2009 - Dec 2014. Will need to be updated as more
     ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 256.00370d0
+    IF ( cYr .ge. 2009 .or. cYr .le. 2014 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 256.00370d0
+    ENDIF
 
 #elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
 
@@ -1738,8 +1740,10 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! Jan 2009 - Dec 2014. Will need to be updated as more
     ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 1096.5130d0
-    
+    IF ( cYr .ge. 2009 .or. cYr .le. 2014 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1096.5130d0
+    ENDIF
+
 #elif defined( MERRA2 ) && defined( GRID2x25 )
 
     !---------------------------------------
@@ -1749,7 +1753,9 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! Jan 2009 - Dec 2014. Will need to be updated as more
     ! met fields become available (ltm, 2016-07-19).
-    BETA = ANN_AVG_FLASHRATE / 319.85d0
+    IF ( cYr .ge. 2009 .or. cYr .le. 2014 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 319.85d0
+    ENDIF
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
@@ -1760,7 +1766,9 @@ CONTAINS
     ! Constrained with simulated "climatology" for
     ! Jan 2009 - Dec 2014. Will need to be updated as more
     ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 99.585661d0
+    IF ( cYr .ge. 2009 .or. cYr .le. 2014 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 99.585661d0
+    ENDIF
 
 #endif
 
