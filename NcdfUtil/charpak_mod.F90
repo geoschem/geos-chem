@@ -219,11 +219,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CStrip( text )
+  SUBROUTINE CStrip( text, KeepSpaces )
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,          OPTIONAL      :: KeepSpaces ! If =T, then keep spaces
+                                                  !  but skip all other 
+                                                  !  non-printing chars
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-    CHARACTER(LEN=*), INTENT(INOUT) :: TEXT
+    CHARACTER(LEN=*), INTENT(INOUT) :: TEXT       ! Text to be modified
 !
 ! !REMARKS:
 !  The original "text" is destroyed upon exit.
@@ -232,22 +238,33 @@ CONTAINS
 !      AUTHOR: Robert D. Stewart
 !        DATE: May 19, 1992
 !  07 Aug 2017 - R. Yantosca - Added ProTeX header
+!  30 Jan 2018 - R. Yantosca - Added KEEPSPACES optional argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER          :: ilen,iasc,icnt,i
+    INTEGER          :: ilen, iasc, icnt, i, Start
     CHARACTER(LEN=1) :: ch
+
+    ! Default: Skip space characters
+    Start = 32
+
+    ! If KEEPSPACES=T then skip all non-printing characters,
+    ! but keep space characters. (bmy, 1/30/18)
+    IF ( PRESENT( KeepSpaces ) ) THEN
+       IF ( KeepSpaces ) Start = 31
+    ENDIF
 
     ilen = LEN(text)
     IF (ilen.GT.1) THEN
        icnt = 1
        DO i=1,ilen
           iasc = ICHAR(text(i:i))
-          IF ((iasc.GT.32).AND.(iasc.LT.255)) THEN
-             ! Keep character
+
+          ! Keep characters between these limits
+          IF ( ( iasc > Start ).AND. (iasc < 255 ) ) THEN
              ch = text(i:i)
              text(icnt:icnt) = ch
              icnt = icnt + 1
