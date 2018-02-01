@@ -3,23 +3,24 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: diagnostics_mod.F90
+! !MODULE: diaglist_mod.F90
 !
-! !DESCRIPTION: Module diagnostics\_mod.F90 contains the derived types
+! !DESCRIPTION: Module diaglist\_mod.F90 contains the derived types
 !  and subroutines used for reading and storing user-configured diagnostic
-!  information from the history configuration file. The diagnostics list is
+!  information from the history configuration file, specifically names
+!  and information derived from the names. The diagnostics list is
 !  used to allocate diagnostics stored in container State_Diag and to 
-!  declare exports in GCHP. It does not store collection information.
-!
-! TODO: Also read input.geos to get the wavelengths in the radiation menu
-!       Store in module-level variables RadWL1, RadWL2, and RadWL3 (strings).
-!       If wavelength not present, store as 'WL2' etc. This must be done
-!       during init_diaglist. Will use these in state_diag_mod, in both
-!       init_state_diag and in get_metdata_state_diag.
+!  declare exports in GCHP. It does not store collection information. A
+!  module-level collection list containing names all collections that
+!  are declared in HISTORY.rc with names not commented out is also in
+!  this module. This is used to prevent adding diagnostics to the 
+!  diagnostic list that are in collections not turned on in HISTORY.rc,
+!  thereby preventing their analogous State_Diag array initialization 
+!  in GEOS-Chem.
 ! 
 ! !INTERFACE:
 !
-MODULE Diagnostics_Mod
+MODULE DiagList_Mod
 !
 ! !USES:
 !
@@ -110,6 +111,7 @@ MODULE Diagnostics_Mod
 !  22 Sep 2017 - E. Lundgren - Initial version
 !  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
 !  25 Jan 2018 - E. Lundgren - Add collection items and linked list
+!  01 Feb 2018 - E. Lundgren - Rename module: diagnostics_mod -> diaglist_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,7 +194,7 @@ CONTAINS
     ! Initialize
     RC            = GC_SUCCESS
     ErrMsg        = ''
-    ThisLoc       = ' -> at Init_DiagList (Headers/diagnostics_mod.F90)'
+    ThisLoc       = ' -> at Init_DiagList (Headers/diaglist_mod.F90)'
     EOF           = .FALSE.
     found         = .FALSE.
     NewDiagItem   => NULL()
@@ -606,7 +608,7 @@ CONTAINS
     ! ================================================================
     ! Init_DiagList begins here
     ! ================================================================
-    thisLoc = 'Init_DiagItem (diagnostics_mod.F90)'
+    thisLoc = 'Init_DiagItem (diaglist_mod.F90)'
 
     ALLOCATE(NewDiagItem)
     NewDiagItem%name       = TRIM(name)
@@ -659,7 +661,7 @@ CONTAINS
     ! ================================================================
     ! Init_ColItem begins here
     ! ================================================================
-    thisLoc = 'Init_ColItem (diagnostics_mod.F90)'
+    thisLoc = 'Init_ColItem (diaglist_mod.F90)'
 
     ALLOCATE(NewCollItem)
     NewCollItem%cname      = TRIM(cname)
@@ -713,7 +715,7 @@ CONTAINS
 !    ! ================================================================
 !
 !    ! Initialize
-!    thisLoc = 'Get_ColItem (diagnostics_mod.F90)'
+!    thisLoc = 'Get_ColItem (diaglist_mod.F90)'
 !    IF ( PRESENT( Found ) ) Found = .FALSE.
 !
 !    ! Search for name in list
@@ -780,7 +782,7 @@ CONTAINS
     ! ================================================================
 
     ! Initialize
-    thisLoc = 'Set_ColItem (diagnostics_mod.F90)'
+    thisLoc = 'Set_ColItem (diaglist_mod.F90)'
     IF ( PRESENT( Found ) ) Found = .FALSE.
 
     ! Search for name in list
@@ -856,7 +858,7 @@ CONTAINS
     ! ================================================================
     ! InsertBeginning_DiagList begins here
     ! ================================================================
-    thisLoc = 'InsertBeginning_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'InsertBeginning_DiagList (diaglist_mod.F90)'
 
     ! Add new object to the beginning of the linked list
     DiagItem%next => DiagList%head
@@ -909,7 +911,7 @@ CONTAINS
     ! ================================================================
     ! InsertBeginning_ColList begins here
     ! ================================================================
-    thisLoc = 'InsertBeginning_ColList (diagnostics_mod.F90)'
+    thisLoc = 'InsertBeginning_ColList (diaglist_mod.F90)'
 
     ! Add new object to the beginning of the linked list
     CollItem%next => CollList%head
@@ -955,7 +957,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: thisLoc
 
     ! Initialize
-    thisLoc = 'Search_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'Search_DiagList (diaglist_mod.F90)'
     found = .FALSE.
 
     ! Search for name in list
@@ -1010,7 +1012,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: thisLoc
 
     ! Initialize
-    thisLoc = 'Search_ColList (diagnostics_mod.F90)'
+    thisLoc = 'Search_ColList (diaglist_mod.F90)'
     found = .FALSE.
 
     ! Search for name in list
@@ -1069,7 +1071,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: thisLoc, substr_AllCaps, currentName_AllCaps
 
     ! Initialize
-    thisLoc = 'Check_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'Check_DiagList (diaglist_mod.F90)'
     found = .FALSE.
 
     ! Convert strings to uppercase for comparison
@@ -1133,7 +1135,7 @@ CONTAINS
     ! ================================================================
     ! Print_DiagList begins here (come back to replace with write instead)
     ! ================================================================
-    thisLoc = 'Print_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'Print_DiagList (diaglist_mod.F90)'
     current => DiagList%head
 
     IF ( am_I_Root ) THEN
@@ -1209,7 +1211,7 @@ CONTAINS
     ! ================================================================
     ! Print_ColList begins here (come back to replace with write instead)
     ! ================================================================
-    thisLoc = 'Print_ColList (diagnostics_mod.F90)'
+    thisLoc = 'Print_ColList (diaglist_mod.F90)'
     current => CollList%head
 
     IF ( am_I_Root ) THEN
@@ -1283,7 +1285,7 @@ CONTAINS
     ! ================================================================
     ! Cleanup_DiagList begins here
     ! ================================================================
-    thisLoc = 'Cleanup_DiagList (diagnostics_mod.F90)'
+    thisLoc = 'Cleanup_DiagList (diaglist_mod.F90)'
 
     ! Deallocate each item in the linked list of DiagExport objects
     current => DiagList%head
@@ -1345,7 +1347,7 @@ CONTAINS
     ! ================================================================
     ! Cleanup_ColList begins here
     ! ================================================================
-    thisLoc = 'Cleanup_ColList (diagnostics_mod.F90)'
+    thisLoc = 'Cleanup_ColList (diaglist_mod.F90)'
 
     ! Deallocate each item in the linked list of collection objects
     current => CollList%head
@@ -1364,4 +1366,4 @@ CONTAINS
 
   END SUBROUTINE Cleanup_ColList
 !EOC
-END MODULE Diagnostics_Mod
+END MODULE DiagList_Mod
