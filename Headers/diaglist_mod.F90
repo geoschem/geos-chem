@@ -36,6 +36,7 @@ MODULE DiagList_Mod
   PUBLIC :: Print_DiagList
   PUBLIC :: Check_DiagList
   PUBLIC :: Cleanup_DiagList
+  PUBLIC :: Search_CollList
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -48,7 +49,6 @@ MODULE DiagList_Mod
   PRIVATE :: Init_ColItem
   PRIVATE :: Set_ColItem
   PRIVATE :: InsertBeginning_ColList
-  PRIVATE :: Search_ColList
   PRIVATE :: Print_ColList
   PRIVATE :: Cleanup_ColList
 !
@@ -80,8 +80,8 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5), PUBLIC :: RadWL(3)    ! Wavelengths configured in rad menu
-  LOGICAL,          PUBLIC :: IsFullChem  ! Is this a fullchem simulation?
+  CHARACTER(LEN=5), PUBLIC  :: RadWL(3)    ! Wavelengths configured in rad menu
+  LOGICAL,          PUBLIC  :: IsFullChem  ! Is this a fullchem simulation?
 ! 
 ! !PRIVATE DATA TYPES:
 ! 
@@ -89,7 +89,7 @@ MODULE DiagList_Mod
   ! Derived type for Collections List
   !=========================================================================
   TYPE, PRIVATE :: ColList
-     TYPE(ColItem), POINTER  :: head
+     TYPE(ColItem), POINTER :: head
   END TYPE ColList
 
   !=========================================================================
@@ -97,21 +97,19 @@ MODULE DiagList_Mod
   !=========================================================================
   TYPE, PRIVATE :: ColItem
      CHARACTER(LEN=63)      :: cname 
-     CHARACTER(LEN=63)      :: ctemplate
-     CHARACTER(LEN=63)      :: cformat 
-     CHARACTER(LEN=63)      :: cfrequency 
-     CHARACTER(LEN=63)      :: cduration
-     CHARACTER(LEN=63)      :: cmode
-     ! Could add more based on what MAPL is capable of
      TYPE(ColItem), POINTER :: next
   END TYPE ColItem
-
+! 
+! !PRIVATE DATA MEMBERS:
+! 
+  TYPE(ColList)             :: CollList
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
 !  01 Nov 2017 - R. Yantosca - Moved ReadOneLine, CleanText to charpak_mod.F90
 !  25 Jan 2018 - E. Lundgren - Add collection items and linked list
 !  01 Feb 2018 - E. Lundgren - Rename module: diagnostics_mod -> diaglist_mod
+!                              and make collection name list publicly available
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -178,10 +176,8 @@ CONTAINS
     CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
     CHARACTER(LEN=255)      :: wildcard, tag, name, state
     CHARACTER(LEN=255)      :: metadataID, registryID, registryIDprefix
-    CHARACTER(LEN=255)      :: collname, ctemplate, cformat, cfrequency
-    CHARACTER(LEN=255)      :: cduration, cmode    
+    CHARACTER(LEN=255)      :: collname
     LOGICAL                 :: EOF, found, isWildcard, isTagged
-    TYPE(ColList)           :: CollList
 
     ! Pointer
     TYPE(DgnItem),  POINTER :: NewDiagItem
@@ -205,10 +201,6 @@ CONTAINS
     DiagList%head => NULL()
 
     ! Create ColList object
-    ! This is a bit messy right. Want to attach this to the history
-    ! object but need to think more about how best to do that.
-    ! Since putting this together requires reading HISTORY.rc it is
-    ! just in Init_DiagList for now.
     CollList%head  => NULL()
 
     !=======================================================================
@@ -335,7 +327,7 @@ CONTAINS
           CALL CStrip( Line, KeepSpaces=.TRUE. )
           CALL StrSplit( Line, ".", SubStrs, N )
           collname = CleanText( SubStrs(1) )
-          CALL Search_ColList( am_I_Root, CollList, collname, Found, RC )
+          CALL Search_CollList( am_I_Root, CollList, collname, Found, RC )
 
           ! Skip this collection if not found in list
           IF ( .NOT. Found ) THEN
@@ -349,46 +341,6 @@ CONTAINS
                 ENDIF
              ENDDO
              CYCLE
-          ELSE
-
-             !! Get name
-             !CALL StrSplit( Line, ":", SubStrs, N )
-             !ctemplate = TRIM ( ADJUSTL( SubStrs(2) ) )
-             !
-             !! Read next several lines to set additional metadata
-             !DO WHILE ( INDEX( Line, '::' ) .le. 0 ) 
-             !   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
-             !   IF ( IOS > 0 .OR. EOF ) THEN
-             !      ErrMsg = 'Unexpected end-of-file in "'       // &
-             !                TRIM( historyConfigFile ) // '" (3) !'
-             !      CALL GC_Error( ErrMsg, RC, ThisLoc )
-             !      RETURN
-             !   ENDIF
-             !   !CALL StrSplit( Line, ":", SubStrs, N )
-             !   !IF ( INDEX( Line, 'frequency' ) .gt. 0 ) THEN
-             !   !   cfrequency = CleanText( SubStrs(2) )
-             !   !ELSEIF ( INDEX( Line, 'format' ) .gt. 0 ) THEN
-             !   !   cformat    = CleanText( SubStrs(2) )
-             !   !ELSEIF ( INDEX( Line, 'duration' ) .gt. 0 ) THEN
-             !   !   cduration  = CleanText( SubStrs(2) )
-             !   !ELSEIF ( INDEX( Line, 'mode' ) .gt. 0 ) THEN
-             !   !   cmode      = CleanText( SubStrs(2) )
-             !   !ENDIF
-             !ENDDO
-             !!CALL Set_ColItem( am_I_Root, collname, CollList, &
-             !!     ctemplate  = ctemplate,        &
-             !!                  cfrequency = cfrequency,       &
-             !!                  cformat    = cformat,          &
-             !!                  cduration  = cduration,        &
-             !!                  cmode      = cmode,            &
-             !!                  Found      = Found,            &
-             !!                  RC         = RC )
-             !!IF ( RC /= GC_SUCCESS ) THEN
-             !!   ErrMsg = 'Problem setting collection metadata for ' // &
-             !!            TRIM(collname)
-             !!   CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-             !!   RETURN
-             !!ENDIF
           ENDIF
        ENDIF
 
@@ -554,10 +506,6 @@ CONTAINS
     !====================================================================
     CLOSE( fId )
 
-    ! Get rid of collection list since local in this subroutine
-    ! If collections later get stored in diaglist then do not cleanup here!
-    CALL Cleanup_ColList( am_I_Root, CollList, RC )
-
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------
@@ -665,11 +613,6 @@ CONTAINS
 
     ALLOCATE(NewCollItem)
     NewCollItem%cname      = TRIM(cname)
-    NewCollItem%ctemplate  = ''
-    NewCollItem%cformat    = ''
-    NewCollItem%cfrequency = ''
-    NewCollItem%cduration  = ''
-    NewCollItem%cmode      = ''
 
   END SUBROUTINE Init_ColItem
 !EOC
@@ -746,20 +689,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_ColItem ( am_I_Root, Collname,   CollList,  ctemplate, &
-                           cformat,   cfrequency, cduration, cmode,     &
-                           Found,     RC  )
+  SUBROUTINE Set_ColItem ( am_I_Root, Collname, CollList, Found, RC  )
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN) :: am_I_Root
     CHARACTER(LEN=*)             :: CollName
     TYPE(ColList)                :: CollList
-    CHARACTER(LEN=*), OPTIONAL   :: ctemplate
-    CHARACTER(LEN=*), OPTIONAL   :: cformat
-    CHARACTER(LEN=*), OPTIONAL   :: cfrequency
-    CHARACTER(LEN=*), OPTIONAL   :: cduration
-    CHARACTER(LEN=*), OPTIONAL   :: cmode
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -800,13 +736,6 @@ CONTAINS
        CALL GC_ERROR("Error setting collection item", RC, ThisLoc)
        RETURN
     ENDIF
-
-    ! Set the metadata
-    IF ( PRESENT(ctemplate  ) ) current%ctemplate  = TRIM(ctemplate  )
-    IF ( PRESENT(cformat    ) ) current%cformat    = TRIM(cformat    )
-    IF ( PRESENT(cfrequency ) ) current%cfrequency = TRIM(cfrequency )
-    IF ( PRESENT(cduration  ) ) current%cduration  = TRIM(cduration  )
-    IF ( PRESENT(cmode      ) ) current%cmode      = TRIM(cmode      )
 
     ! Null pointer
     current => NULL()
@@ -979,7 +908,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Search_ColList
+! !IROUTINE: Search_CollList
 !
 ! !DESCRIPTION: Searches for a given collection name within the ColList
 !  collection list object.
@@ -987,7 +916,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Search_ColList ( am_I_Root, CollList, name, found, RC )
+  SUBROUTINE Search_CollList ( am_I_Root, CollList, name, found, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1012,7 +941,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: thisLoc
 
     ! Initialize
-    thisLoc = 'Search_ColList (diaglist_mod.F90)'
+    thisLoc = 'Search_CollList (diaglist_mod.F90)'
     found = .FALSE.
 
     ! Search for name in list
@@ -1026,7 +955,7 @@ CONTAINS
     ENDDO
     current => NULL()
 
-  END SUBROUTINE Search_ColList
+  END SUBROUTINE Search_CollList
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1225,11 +1154,6 @@ CONTAINS
        ! Print info
        IF ( am_I_Root ) THEN
           PRINT *, TRIM(current%cname)
-          !PRINT *, "   template:  ", TRIM(current%ctemplate)
-          !PRINT *, "   format:    ", TRIM(current%cformat)
-          !PRINT *, "   frequency: ", TRIM(current%cfrequency)
-          !PRINT *, "   duration:  ", TRIM(current%cduration)
-          !PRINT *, "   mode:      ", TRIM(current%cmode)
        ENDIF
           
        ! Set up for next item
@@ -1297,6 +1221,9 @@ CONTAINS
        current => next
        next => current%next
     ENDDO
+
+    ! Also get rid of module-level collection list when cleanup up diaglist
+    CALL Cleanup_ColList( am_I_Root, CollList, RC )
 
     ! Final cleanup
     current => NULL()
