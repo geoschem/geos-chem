@@ -856,11 +856,7 @@ CONTAINS
 
        C(ind_ACTA)  = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
-       IF ( Input_Opt%LUCX ) THEN
-          C(ind_O2) = 0.2095e+0_dp * NUMDEN
-          C(ind_N2) = 0.7808e+0_dp * NUMDEN
-          C(ind_H2) = 0.5000e-6_dp * NUMDEN
-       ELSE
+       IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
           ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
           C(ind_H2O) = H2O
