@@ -142,7 +142,6 @@
 
       ! Diagnostic flags
       LOGICAL               :: Archive_DryDepChm
-      LOGICAL               :: Archive_DryDep
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -392,7 +391,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                  :: Do_Diag, PrtDebug
+      LOGICAL                  :: PrtDebug
       INTEGER                  :: I,      J,     L,        ND
       REAL(fp)                 :: DELZ,   DELZ1, REFF,     DEN
       REAL(fp)                 :: P,      DP,    PDP,      TEMP        
@@ -411,7 +410,6 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
-      INTEGER                  :: ND44x
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -449,16 +447,6 @@
       ! Initialize
       RC       = GC_SUCCESS
       prtDebug = ( Input_Opt%LPRT .and. am_I_Root                      )
-
-      ! Define a shadow variable for ND44
-#if defined( BPCH_DIAG )
-      ND44x = ND44
-#else
-      ND44x = 0
-#endif
-
-      ! Set a flag if we need to archive diagnostics
-      Do_Diag = ( ND44x > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
@@ -735,8 +723,14 @@
          !==============================================================
          ! DIAGNOSTIC: Sea salt loss to dry deposition [molec/cm2/s]
          !==============================================================
-         IF ( Do_Diag ) THEN
-
+#if defined( BPCH_DIAG )
+         IF ( ND44 > 0 ) THEN
+            !-----------------------------------------------------------
+            ! ND44 DIAGNOSTIC (bpch)
+            ! Dry deposition flux loss [molec/cm2/s]
+            !
+            ! NOTE: Bpch diagnostics are being phased out.
+            !-----------------------------------------------------------
             ! Initialize
             TOT1 = 0e+0_fp
             TOT2 = 0e+0_fp
@@ -755,43 +749,47 @@
             FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW 
      &                 / State_Chm%SpcData(id_SALA)%Info%emMW_g )
      &                 * 1.e-3_fp ) / AREA_CM2 
-   
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND44 DIAGNOSTIC (bpch)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Bpch diagnostics are being phased out.
-            !-----------------------------------------------------------
+
             ND             = IDDEP(N)
             AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
+         ENDIF
 #endif
-
 #if defined( NC_DIAG )
-            !-----------------------------------------------------------
-            ! HISTORY (aka netCDF diagnostics)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Eventually think about converting this
-            ! diagnostic to more standard units [kg/m2/s]
-            !-----------------------------------------------------------
+         !-----------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         ! Dry deposition flux loss [molec/cm2/s]
+         !
+         ! NOTE: Eventually think about converting this
+         ! diagnostic to more standard units [kg/m2/s]
+         !-----------------------------------------------------------
+         IF ( Archive_DryDepChm ) THEN
+
+            ! Initialize
+            TOT1 = 0e+0_fp
+            TOT2 = 0e+0_fp
+
+            ! Compute column totals of TCO(:) and TC(I,J,:,N)
+            DO L = 1, LLPAR
+               TOT1 = TOT1 + TC0(L)
+               TOT2 = TOT2 + TC(I,J,L)
+            ENDDO
+
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+
+            ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
+            FLUX     = ( TOT1 - TOT2 ) / DTCHEM
+            FLUX     = FLUX * AVO / ( AIRMW / ( AIRMW 
+     &                 / State_Chm%SpcData(id_SALA)%Info%emMW_g )
+     &                 * 1.e-3_fp ) / AREA_CM2
 
             ! Drydep index
             ND = IDDEP(N)
 
             ! Drydep flux in chemistry only
-            IF ( Archive_DryDepChm ) THEN
-               State_Diag%DryDepChm(I,J,1,ND) = FLUX
-            ENDIF
-
-            ! Total drydep flux
-            IF ( Archive_DryDep ) THEN
-               State_Diag%DryDep(I,J,1,ND) = FLUX
-            ENDIF
-#endif
-
+            State_Diag%DryDepChm(I,J,1,ND) = FLUX
          ENDIF
-
+#endif
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -1114,8 +1112,8 @@
       IF ( IS_INIT ) RETURN
 
       ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDep    = ASSOCIATED( State_Diag%DryDep    )
+      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm ) .OR. 
+     &                    ASSOCIATED( State_Diag%DryDep    )
 
       ! Define species indices
       id_MOPI = Ind_('MOPI')

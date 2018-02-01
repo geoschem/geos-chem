@@ -300,7 +300,6 @@
 
       ! Diagnostic flags
       LOGICAL                :: Archive_DryDepChm
-      LOGICAL                :: Archive_DryDep
       LOGICAL                :: Archive_LossHNO3onSeaSalt
       LOGICAL                :: Archive_ProdMSAfromDMS
       LOGICAL                :: Archive_ProdNITfromHNO3UptakeOnDust
@@ -1631,7 +1630,6 @@
       ! Slip Slip correction factor
       ! Visc Viscosity of air (Pa s)
       ! VTS  Settling velocity of particle (m/s)
-      LOGICAL                :: Do_Diag
       LOGICAL                :: IS_UPTAKE_SPC
       INTEGER                :: I,         J,      L
       INTEGER                :: DryDep_ID, DTCHEM
@@ -1644,7 +1642,6 @@
       REAL(fp)               :: DEN 
       REAL(fp)               :: EmMw_g
       REAL(f8)               :: RHO1,      WTP,    RHO
-      INTEGER                :: ND44x
 
       ! Arrays
       REAL(fp)               :: SALA_REDGE_um(2)
@@ -1662,16 +1659,6 @@
 
       ! Initialize
       RC       =  GC_SUCCESS
-
-      ! Define a shadow variable for ND44
-#if defined( BPCH_DIAG )
-      ND44x = ND44
-#else
-      ND44x = 0
-#endif
-
-      ! Set a flag if drydep diagnostics are being archived
-      Do_Diag = ( ND44x > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Return if tracers are undefined
       IF ( Input_Opt%LDSTUP ) THEN
@@ -1882,7 +1869,14 @@
          ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
          ! (specifically sea salt loss diagnostics)
          !==============================================================
-         IF ( Do_Diag ) THEN
+#if defined( BPCH_DIAG )
+         !-----------------------------------------------------------
+         ! ND44 DIAGNOSTIC (bpch)
+         ! Dry deposition flux loss [molec/cm2/s]
+         !
+         ! NOTE: Bpch diagnostics are being phased out.
+         !-----------------------------------------------------------
+         IF ( ND44 > 0 ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -1893,49 +1887,54 @@
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
-
+            
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
+            
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * AVO 
      &               / ( EmMW_g * 1.e-3_fp ) 
      &               / AREA_CM2 
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND44 DIAGNOSTIC (bpch)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Bpch diagnostics are being phased out.
-            !-----------------------------------------------------------
-
             ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
-#endif
-
-#if defined( NC_DIAG )
-            !-----------------------------------------------------------
-            ! HISTORY (aka netCDF diagnostics)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Eventually think about converting this
-            ! diagnostic to more standard units [kg/m2/s]
-            !-----------------------------------------------------------
-
-            ! Drydep flux in chemistry only
-            IF ( Archive_DryDepChm ) THEN
-               State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
-            ENDIF
-
-            ! Total drydep flux
-            IF ( Archive_DryDep ) THEN
-               State_Diag%DryDep(I,J,1,DryDep_Id) = FLUX
-            ENDIF
-#endif
 
          ENDIF
+#endif
+#if defined( NC_DIAG )
+         !-----------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         ! Dry deposition flux loss [molec/cm2/s]
+         !
+         ! NOTE: Eventually think about converting this
+         ! diagnostic to more standard units [kg/m2/s]
+         !-----------------------------------------------------------
+         IF ( Archive_DryDepChm ) THEN
+
+            ! Initialize
+            TOT1 = 0e+0_fp
+            TOT2 = 0e+0_fp
+            
+            ! Compute column totals of TCO(:) and TC(I,J,:,N)
+            DO L = 1, LLPAR
+               TOT1 = TOT1 + TC0(L)
+               TOT2 = TOT2 + TC(I,J,L)
+            ENDDO
+            
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            
+            ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
+            FLUX     = ( TOT1 - TOT2 ) / DTCHEM
+            FLUX     = FLUX * AVO 
+     &               / ( EmMW_g * 1.e-3_fp ) 
+     &               / AREA_CM2 
+
+            ! Drydep flux in chemistry only
+            State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
+         ENDIF
+#endif
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -7911,11 +7910,8 @@
      & ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F)'
 
       ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = 
-     &     ASSOCIATED( State_Diag%DryDepChm                   )
-
-      Archive_DryDep = 
-     &     ASSOCIATED( State_Diag%DryDep                      )
+      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm ) .OR.
+     &                    ASSOCIATED( State_Diag%DryDep    )
 
       Archive_LossHNO3onSeaSalt =
      &     ASSOCIATED( State_Diag%LossHNO3onSeaSalt           )

@@ -2513,7 +2513,6 @@ contains
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
           ENDIF
 #endif
-
 #if defined( NC_DIAG )
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
@@ -2894,7 +2893,9 @@ contains
 #endif
       
        ! Test if we are archiving the drydep flux (from mixing) diagnostic
-       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+       ! or total drydep flux which requires the contribution from mixing
+       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                           ASSOCIATED( State_Diag%DryDep    )
 
        ! Reset first-time flag
        FIRST = .FALSE.
