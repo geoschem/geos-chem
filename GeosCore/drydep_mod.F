@@ -5092,6 +5092,17 @@
             A_DEN(NUMDEP)   = 2200.e+0_f8         
             AIROSOL(NUMDEP) = .TRUE. 
 
+         ! pFe (VPS)
+         ELSE IF ( N == IDTpFe ) THEN
+            NUMDEP          = NUMDEP + 1
+            NTRAIND(NUMDEP) = IDTpFe
+            NDVZIND(NUMDEP) = NUMDEP
+            DEPNAME(NUMDEP) = 'pFe'
+            HSTAR(NUMDEP)   = 0.0d0
+            F0(NUMDEP)      = 0.0d0
+            XMW(NUMDEP)     = 55.9e-3_f8
+            AIROSOL(NUMDEP) = .TRUE.
+
 #if   defined( TOMAS )
          !----------------------------------
          ! Sulfuric acid gas tracer   !(win, 7/14/09)

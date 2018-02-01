@@ -514,18 +514,19 @@
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
 !        offline sulfate chemistry runs (NSRCX==10).      
 !
-!   # : Field  : Description                   : Units        : Scale factor
-!  ----------------------------------------------------------------------------
-!  (1 ) SO2dms : P(SO2) from DMS + OH          : kg S         : SCALEX
-!  (2 ) SO2no3 : P(SO2) from DMS + NO3         : kg S         : SCALEX
-!  (3 ) SO2    : Total P(SO2)                  : kg S         : SCALEX
-!  (4 ) MSAdms : P(MSA) from DMS               : kg S         : SCALEX
-!  (5 ) SO4gas : P(SO4) gas phase              : kg S         : SCALEX
-!  (6 ) SO4aq  : P(SO4) aqueous phase          : kg S         : SCALEX
-!  (7 ) PSO4   : Total P(SO4)                  : kg S         : SCALEX
-!  (8 ) PSO4s  : Total P(SO4 from seasalt)     : kg S         : SCALEX
-!  (9 ) LOH    : L(OH) by DMS                  : kg OH        : SCALEX
-!  (10) LNO3   : L(NO3) by DMS                 : kg NO3       : SCALEX
+!   # : Field  : Description                     : Units        : Scale factor
+!  ------------------------------------------------------------------------------
+!  (1 ) SO2dms : P(SO2) from DMS + OH            : kg S         : SCALEX
+!  (2 ) SO2no3 : P(SO2) from DMS + NO3           : kg S         : SCALEX
+!  (3 ) SO2    : Total P(SO2)                    : kg S         : SCALEX
+!  (4 ) MSAdms : P(MSA) from DMS                 : kg S         : SCALEX
+!  (5 ) SO4gas : P(SO4) gas phase                : kg S         : SCALEX
+!  (6 ) SO4H2O2: P(SO4) aqueous phase H2O2       : kg S         : SCALEX
+!  (7 ) PSO4O3 : P(SO4) aqueous phase O3         : kg S         : SCALEX
+!  (8 ) PSO4O2 : P(SO4) aqueous phase O2 (metal) : kg S         : SCALEX
+!  (9 ) PSO4ss : Total P(SO4 from seasalt)       : kg S         : SCALEX
+!  (10) LOH    : L(OH) by DMS                    : kg OH        : SCALEX
+!  (11) LNO3   : L(NO3) by DMS                   : kg NO3       : SCALEX
 !******************************************************************************
 !
       IF ( ND05 > 0 ) THEN
@@ -536,7 +537,7 @@
 
             ! Tracers 9, 10 are OH, NO3
             ! and are in [kg] instead of [kg S]
-            IF ( N < 9 ) THEN 
+            IF ( N < 10 ) THEN
                UNIT = 'kg S'
             ELSE
                UNIT = 'kg'

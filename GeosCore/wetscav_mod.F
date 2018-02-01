@@ -3008,6 +3008,7 @@
       USE TRACERID_MOD,       ONLY : IDTASOAN, IDTASOA1
       USE TRACERID_MOD,       ONLY : IDTASOA2, IDTASOA3
       USE TRACERID_MOD,       ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD,       ONLY : IDTpFe
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,IDTNK1,   IDTSF1,  IDTSS1
@@ -4067,6 +4068,9 @@
             RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
             RAINFRAC = RAINFRAC * 0.8e+0_fp
   
+         ELSE IF ( N == IDTpFe ) THEN
+            RAINFRAC = GET_RAINFRAC( K_RAIN, F, DT )
+
          !------------------------------
          ! Hg2 (liquid phase only)
          !------------------------------
@@ -4340,6 +4344,8 @@
       ! SOAupdate: lumped aromatic/IVOC aerosol (hotp 5/12/10)
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+
+      USE TRACERID_MOD,       ONLY : IDTpFe
 
       USE GIGC_Input_Opt_Mod, ONLY : OptInput
       USE GIGC_State_Chm_Mod, ONLY : ChmState
@@ -4820,6 +4826,13 @@
       ! SOAG and SOAM (aerosol)
       !------------------------------
       ELSE IF ( N == IDTSOAG .or. N == IDTSOAM ) THEN
+         KIN      = .TRUE.
+         WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
+
+      !------------------------------
+      ! pFe (fine particle phase) (vps 2/15/17)
+      !------------------------------
+      ELSE IF ( N == IDTpFe  ) THEN
          KIN      = .TRUE.
          WASHFRAC = WASHFRAC_FINE_AEROSOL( DT, F, PP, TK )
 
@@ -7998,6 +8011,7 @@
       ! lumped aromatic/IVOC aerosol (hotp 5/12/10)
       USE TRACERID_MOD, ONLY : IDTASOAN, IDTASOA1, IDTASOA2, IDTASOA3
       USE TRACERID_MOD, ONLY : IDTASOG1, IDTASOG2, IDTASOG3
+      USE TRACERID_MOD, ONLY : IDTpFe
 
 #if defined( TOMAS )
       USE TRACERID_MOD, ONLY : IDTH2SO4,  IDTNK1,    IDTSF1,  IDTSS1
@@ -8400,6 +8414,14 @@
             IDWETD(NSOL) = IDTSALC
 
          !-----------------------------
+          ! pFe tracer
+          !-----------------------------
+
+         ELSE IF ( N == IDTpFe ) THEN
+            NSOL         = NSOL + 1
+            IDWETD(NSOL) = IDTpFe
+
+          !-----------------------------
          ! Total and tagged Hg tracers 
          !-----------------------------
          ELSE IF ( IS_Hg2( N ) ) THEN

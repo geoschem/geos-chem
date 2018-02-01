@@ -230,6 +230,9 @@
       INTEGER            :: IDTISOA1, IDTISOA2, IDTISOA3
       INTEGER            :: IDTISOG1, IDTISOG2, IDTISOG3
 
+      ! ID for pFe
+      INTEGER            :: IDTpFe
+
 #if   defined( TOMAS )
       ! TOMAS tracer ID's  !(win, 6/23/09)
       INTEGER            :: IDTH2SO4
@@ -1067,6 +1070,13 @@
 
             CASE (  'PYPAN'  )
                IDTPYPAN  = N
+
+            !--------------------------------
+            ! pFe (vps 2/16/17)
+            !--------------------------------
+
+            CASE (  'PFE'  )
+               IDTpFe  = N
 
             !--------------------------------
             ! Tagged Ox Tracers
@@ -3774,6 +3784,8 @@
       IDTISOA2  = 0
       IDTISOA3  = 0
       ! End SOAupdate 
+
+      IDTpFe     = 0
 
 #if   defined( TOMAS )
       IDTH2SO4  = 0 !(win, 6/23/09)

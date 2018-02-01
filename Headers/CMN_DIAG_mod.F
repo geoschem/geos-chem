@@ -78,10 +78,11 @@
       ! Changed PD22 from 22 to 23 for ACET (mps, 4/25/14)
       ! Changed PD22 from 23 to 28 for ALD2, MVK, MACR, HAC, GLYC (mps, 5/27/14)
       ! Changed PD21 to be dynamically related to NAER and NDUST (dar, 3/6/15)
+      ! Changed PD05 to 11 for metal catalyzed SO2 oxidation pathway (vps, 12/20/17)
       !=================================================================
       INTEGER, PARAMETER :: PD01=3            
       INTEGER, PARAMETER :: PD02=3
-      INTEGER, PARAMETER :: PD05=10        
+      INTEGER, PARAMETER :: PD05=11
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15

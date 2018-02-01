@@ -4455,7 +4455,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 10
+         NTRAC(05) = 11
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4498,16 +4498,21 @@
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3
                CASE( 8  )
+                  NAME (T,05) = 'SO4o2'
+                  FNAME(T,05) = 'P(SO4) by cloud O2 (metal)'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3
+               CASE( 9  )
                   NAME (T,05) = 'SO4ss'
                   FNAME(T,05) = 'P(SO4) by seasalt O3'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3
-               CASE( 9  )
+               CASE( 10 )
                   NAME (T,05) = 'LOH'
                   FNAME(T,05) = 'L(OH) by DMS'
                   UNIT (T,05) = 'kg OH'
                   MWT  (T,05) = 17e-3
-               CASE( 10 )
+               CASE( 11 )
                   NAME (T,05) = 'LNO3'
                   FNAME(T,05) = 'L(NO3) by DMS'
                   UNIT (T,05) = 'kg NO3'
