@@ -4609,7 +4609,7 @@
       IF ( ND05 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(05) = 19
+         NTRAC(05) = 20
 
          ! Loop over tracers
          DO T = 1, NTRAC(05)
@@ -4652,61 +4652,66 @@
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
                CASE( 8  )
+                  NAME (T,05) = 'SO4o2'
+                  FNAME(T,05) = 'P(SO4) by cloud O2 (metal)'
+                  UNIT (T,05) = 'kg S'
+                  MWT  (T,05) = 32e-3  ! hard-coded MW
+               CASE( 9  )
                   NAME (T,05) = 'SO4ss'
                   FNAME(T,05) = 'P(SO4) by seasalt O3'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 9  )
+               CASE( 10 )
                   NAME (T,05) = 'LOH'
                   FNAME(T,05) = 'L(OH) by DMS'
                   UNIT (T,05) = 'kg OH'
                   MWT  (T,05) = 17e-3  ! hard-coded MW
-               CASE( 10 )
+               CASE( 11 )
                   NAME (T,05) = 'LNO3'
                   FNAME(T,05) = 'L(NO3) by DMS'
                   UNIT (T,05) = 'kg NO3'
                   MWT  (T,05) = 62e-3  ! hard-coded MW
-               CASE( 11 )
+               CASE( 12 )
                   NAME (T,05) = 'SO4dust'
                   FNAME(T,05) = 'P(SO4) by dust O3'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 12 )
+               CASE( 13 )
                   NAME (T,05) = 'NITdust'
                   FNAME(T,05) = 'P(NIT) by dust HNO3'
                   UNIT (T,05) = 'kg N'
                   MWT  (T,05) = 14e-3  ! hard-coded MW
-               CASE( 13 )
+               CASE( 14 )
                   NAME (T,05) = 'H2SO4dust'
                   FNAME(T,05) = 'P(SO4) by dust H2SO4'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 14 )
+               CASE( 15 )
                   NAME (T,05) = 'HNO3ss'
                   FNAME(T,05) = 'L(HNO3) on seasalt'
                   UNIT (T,05) = 'kg N'
                   MWT  (T,05) = 14e-3  ! hard-coded MW
-               CASE( 15  )
+               CASE( 16  )
                   NAME (T,05) = 'SO4hobr'       !qjc (04/05/16)
                   FNAME(T,05) = 'P(SO4) by HOBr'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 16  )
+               CASE( 17  )
                   NAME (T,05) = 'SO4sro3'       !qjc (04/05/16)
                   FNAME(T,05) = 'P(SO4) by SRo3'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 17  )
+               CASE( 18  )
                   NAME (T,05) = 'SO4srhobr'    !qjc (04/05/16)
                   FNAME(T,05) = 'P(SO4) by SRhobr'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 18  )
+               CASE( 19  )
                   NAME (T,05) = 'SO4o3s'       !qjc (04/05/16)
                   FNAME(T,05) = 'P(SO4) by o3s'
                   UNIT (T,05) = 'kg S'
                   MWT  (T,05) = 32e-3  ! hard-coded MW
-               CASE( 19  )
+               CASE( 20  )
                   NAME (T,05) = 'HPLUS'       !qjc (04/05/16)
                   FNAME(T,05) = 'Cloud pH'
                   UNIT (T,05) = 'unitless'
