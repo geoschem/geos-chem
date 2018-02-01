@@ -759,7 +759,6 @@
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
 #if defined( BPCH_DIAG )
       USE TIME_MOD,           ONLY : SET_DIAGb
-      USE TIME_MOD,           ONLY : SET_NDIAGTIME
 #endif
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
@@ -827,7 +826,7 @@
       ! Scalars
       LOGICAL            :: LVARTROP
       INTEGER            :: I0,      J0
-      INTEGER            :: N,       NDIAGTIME
+      INTEGER            :: N
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
       INTEGER            :: C
@@ -1163,10 +1162,6 @@
 #endif
 
 #if defined( BPCH_DIAG )
-      ! Set the time of day for writing bpch files
-      NDIAGTIME = NHMSe !### test
-      CALL SET_NDIAGTIME( NDIAGTIME )
-
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
 #endif     

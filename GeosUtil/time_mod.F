@@ -29,7 +29,6 @@
       PUBLIC  :: SET_CURRENT_TIME
       PUBLIC  :: SET_BEGIN_TIME
       PUBLIC  :: SET_END_TIME
-      PUBLIC  :: SET_NDIAGTIME
       PUBLIC  :: SET_DIAGb
       PUBLIC  :: SET_DIAGe
       PUBLIC  :: SET_TIMESTEPS
@@ -53,7 +52,6 @@
       PUBLIC  :: GET_NHMSe
       PUBLIC  :: GET_NYMD
       PUBLIC  :: GET_NHMS
-      PUBLIC  :: GET_NDIAGTIME
       PUBLIC  :: GET_TIME_AHEAD
       PUBLIC  :: GET_MONTH
       PUBLIC  :: GET_DAY
@@ -272,7 +270,6 @@
       !---------------------------------
       ! Diagnostic date/time values
       !---------------------------------
-      INTEGER             :: NDIAGTIME    ! Hour of day to write diag output
       INTEGER             :: NYMD_DIAG    ! Diagnostic date for output
       REAL(f8)            :: DIAGb        ! Start of diag averaging interval
       REAL(f8)            :: DIAGe        ! End   of diag averaging interval
@@ -617,35 +614,6 @@
 
       ! Return to calling program
       END SUBROUTINE SET_END_TIME
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_ndiagtime
-!
-! !DESCRIPTION:Subroutine SET\_NDIAGTIME initializes NDIAGTIME, the time of 
-!  day at which the binary punch file will be written out to disk.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_NDIAGTIME( THIS_NDIAGTIME )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: THIS_NDIAGTIME  ! Initial NDIAGTIMEe [hrs]
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      NDIAGTIME = THIS_NDIAGTIME
-
-      END SUBROUTINE SET_NDIAGTIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1473,36 +1441,6 @@
       THISNHMS = NHMS
 
       END FUNCTION GET_NHMS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Get_ndiagtime
-!
-! !DESCRIPTION: Subroutine GET\_NDIAGTIME returns to the calling program 
-!  NDIAGTIME, the time of day at which the binary punch file will be written 
-!  out to disk. 
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_NDIAGTIME() RESULT( THIS_NDIAGTIME )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_NDIAGTIME
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_NDIAGTIME = NDIAGTIME
-
-      END FUNCTION GET_NDIAGTIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3556,7 +3494,7 @@
       ENDIF
 
       ! Test if this is the day & time to write to the BPCH file!
-      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NDIAGTIME ) THEN
+      IF ( ( THIS_NJDAY > 0 ) .and. NHMS == NHMSe ) THEN
          DO_BPCH = .TRUE.
       ELSE
          DO_BPCH = .FALSE.

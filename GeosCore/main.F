@@ -304,7 +304,7 @@
       LOGICAL                  :: TimeForEmis
       INTEGER                  :: I,             IOS,         J
       INTEGER                  :: K,             L,           N
-      INTEGER                  :: JDAY,          NDIAGTIME,   N_DYN
+      INTEGER                  :: JDAY,          N_DYN
       INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
       INTEGER                  :: N_STEP,        YEAR,        MONTH
       INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
