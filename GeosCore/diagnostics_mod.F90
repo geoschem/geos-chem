@@ -22,7 +22,6 @@ MODULE Diagnostics_mod
 
   IMPLICIT NONE
   PRIVATE
-#if defined( NC_DIAG )
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -33,6 +32,14 @@ MODULE Diagnostics_mod
 ! !PRIVATE MEMBER FUNCTIONS
 !
   PRIVATE :: Set_SpcConc_Diagnostic
+!
+!
+! !PRIVATE DATA MEMBERS:
+!
+#if defined( NC_DIAG )
+      LOGICAL            :: Archive_SpeciesConc
+      LOGICAL            :: Archive_DryDep
+      CHARACTER(LEN=255) :: ModLoc
 #endif
 !
 ! !REVISION HISTORY:
@@ -40,18 +47,8 @@ MODULE Diagnostics_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-#if defined( NC_DIAG )
-      LOGICAL            :: Archive_SpeciesConc
-      LOGICAL            :: Archive_DryDep
-      CHARACTER(LEN=255) :: ModLoc
-#endif
-
 CONTAINS
 !EOC
-#if defined( NC_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -87,6 +84,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
     !=======================================================================
@@ -114,6 +112,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#endif
   END SUBROUTINE Init_Diagnostics_Mod
 !EOC
 !------------------------------------------------------------------------------
@@ -164,6 +163,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     INTEGER                 :: I, J, L, N
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
@@ -204,6 +204,8 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
+
+#endif
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
 !------------------------------------------------------------------------------
@@ -249,6 +251,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     INTEGER                 :: I, J, L, N
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
@@ -263,6 +266,7 @@ CONTAINS
 
     ! Zero diagnostics here
 
+#endif
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC
 !------------------------------------------------------------------------------
@@ -336,6 +340,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
     LOGICAL            :: Found
     INTEGER            :: I, J, L, N
@@ -392,7 +397,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#endif
   END SUBROUTINE Set_SpcConc_Diagnostic
 !EOC
-#endif
 END MODULE Diagnostics_mod

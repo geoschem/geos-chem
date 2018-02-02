@@ -3618,7 +3618,41 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
-          CASE( 'POA1', 'POA2' )
+          CASE( 'POA1' )
+
+             ! For all temperatures:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout (these are hydrophobic species)
+             KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      ='Lumped aerosol primary SVOCs',&
+                              Formula       = '',                           &
+                              MW_g          = 12.01_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
+                              MolecRatio    = 1.0_fp,                       &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
+                              Density       = 1300.0_fp,                    &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'POA2' )
 
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
