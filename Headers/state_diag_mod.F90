@@ -130,6 +130,9 @@ MODULE State_Diag_Mod
 
      ! Convection
      REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
+     REAL(f4),  POINTER :: WetLossConvFrac (:,:,:,:) ! Fraction of soluble
+                                                     !  species lost in 
+                                                     !  convective updraft
      REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
 
      ! Wet deposition
@@ -331,6 +334,7 @@ CONTAINS
     State_Diag%DryDepVel                  => NULL()
 
     State_Diag%CloudConvFlux              => NULL()
+    State_Diag%WetLossConvFrac            => NULL()
     State_Diag%WetLossConv                => NULL()
 
     State_Diag%PBLMixFrac                 => NULL()
@@ -609,6 +613,24 @@ CONTAINS
        State_Diag%CloudConvFlux = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%CloudConvFlux, &
                                 State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Fraction of soluble species lost in convective updrafts
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%WetLossConvFrac'
+    diagID  = 'WetLossConvFrac'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%WetLossConvFrac( IM, JM, LM, nWetDep ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetLossConvFrac = 0.0_f4
+       CALL Register_DiagField( am_I_Root, diagID,                           &
+                                State_Diag%WetLossConvFrac,                  & 
+                                State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2535,6 +2557,12 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%WetLossConvFrac ) ) THEN
+       DEALLOCATE( State_Diag%WetLossConvFrac, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%WetLossConvFrac', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
        DEALLOCATE( State_Diag%WetLossLS, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%WetLossLS', 2, RC )
@@ -3147,6 +3175,12 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ADV'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONVFRAC' ) THEN
+       IF ( isDesc    ) Desc  = 'Fraction of soluble species lost in convective updrafts'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSCONV' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in convective updrafts'
