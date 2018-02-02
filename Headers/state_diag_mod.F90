@@ -23,7 +23,7 @@ MODULE State_Diag_Mod
 
   USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
   USE CMN_FJX_Mod,     ONLY : STRWVSELECT
-  USE Diagnostics_Mod
+  USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
   USE Registry_Mod
@@ -289,7 +289,7 @@ CONTAINS
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
     INTEGER                :: nHygGrth
-    LOGICAL                :: EOF,      Found
+    LOGICAL                :: EOF,      Found,   Found2
 
     !=======================================================================
     ! Initialize
@@ -448,7 +448,9 @@ CONTAINS
     arrayID = 'State_Diag%DryDepChm'
     diagID  = 'DryDepChm'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
+    ! Also turn on this diagnostic array if outputting total dry dep flux
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
+    IF ( Found .OR. Found2 ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepChm( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( ArrayID, 0, RC )
@@ -465,7 +467,9 @@ CONTAINS
     arrayID = 'State_Diag%DryDepMix'
     diagID  = 'DryDepMix'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
+    ! Also turn on this diagnostic array if outputting total dry dep flux
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
+    IF ( Found .OR. Found2 ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepMix( IM, JM, LM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )

@@ -1321,7 +1321,7 @@
                   Map_NRHAER(I) = 1
                CASE ( 'BCPI' )
                   Map_NRHAER(I) = 2
-               CASE ( 'OCPI' ) ! Need to also implement for if IS_POA?
+               CASE ( 'OCPI', 'POA1' )
                   Map_NRHAER(I) = 3
                CASE ( 'SALA' )
                   Map_NRHAER(I) = 4
