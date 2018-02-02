@@ -3815,7 +3815,7 @@ CONTAINS
        ! Dust bins
        CASE( 'DUSTBIN' )
           WRITE ( Nstr, "(I1)" ) D
-          tagName = 'BIN' // TRIM(Nstr)
+          tagName = 'bin' // TRIM(Nstr)
 
        ! Loss species
        CASE( 'LOS' ) 
