@@ -3173,12 +3173,18 @@
             pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
 
             ! Get concentrations for metal cat pathway [v/v -> ng/m3]
+#if defined( TOMAS )
+            ! TOMAS uses its own dust tracers and does not
+            ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
+            DUST = 0e+0_fp
+#else
             DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
      &               Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
      &               1.e+12_fp * State_Met%AD(I,J,L)
      &               / ( AIRMW 
      &                 / State_Chm%SpcData(id_DST1)%Info%emMW_g )
      &               / State_Met%AIRVOL(I,J,L)
+#endif
 
             ! Calculate Fe and Mn natural [ng m-3]
             ! Assume that Fe is 3.5% of total dust mass based on

@@ -1302,9 +1302,6 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    ! Arrays
-    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
     !=================================================================
     ! INIT_TOMAS_MICROPHYSICS begins here!
     !=================================================================
