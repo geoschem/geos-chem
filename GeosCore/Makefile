@@ -563,6 +563,8 @@ diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F
 
+diagnostics_mod.o           : diagnostics_mod.F90
+
 drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
@@ -609,7 +611,7 @@ gamap_mod.o                 : gamap_mod.F                                    \
                               wetscav_mod.o
 
 gc_environment_mod.o        : gc_environment_mod.F90                         \
-                              vdiff_pre_mod.o
+                              diagnostics_mod.o       vdiff_pre_mod.o
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
@@ -697,7 +699,7 @@ main.o                      : main.F                                         \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
-                              restart_mod.o                                  \
+                              restart_mod.o           diagnostics_mod.o      \
                               strat_chem_mod.o        transport_mod.o        \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \

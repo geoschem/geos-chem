@@ -29,7 +29,8 @@
       ! Basic GEOS-Chem modules
       !-----------------------------------------------------------------
       USE CMN_SIZE_MOD          ! Size parameters
-      USE Diagnostics_Mod       ! Derived type for diagnostics list
+      USE DiagList_Mod          ! Derived type for diagnostics list
+      USE Diagnostics_Mod       ! Set select netcdf diagnostics
       USE ErrCode_Mod           ! Error codes for success or failure
       USE ERROR_MOD             ! For error checking
       USE FILE_MOD              ! For file I/O
@@ -601,7 +602,7 @@
       CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif      
 
-      historyConfigFile = 'HISTORY.rc' ! cannot use Input_Opt variable in GCHP
+      historyConfigFile = 'HISTORY.rc' ! InputOpt not yet initialized
       CALL Init_DiagList( am_I_Root, historyConfigFile, Diag_List, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Init_DiagList"!'
@@ -609,7 +610,7 @@
       ENDIF
 
       !### Print diagnostic list if needed for debugging 
-      CALL Print_DiagList( am_I_Root, Diag_List, RC )
+      IF ( prtDebug ) CALL Print_DiagList( am_I_Root, Diag_List, RC )
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "All diagnostics",           RC )
@@ -639,7 +640,7 @@
       !-----------------------------------------------------------------
 
       ! Initialize Input_Opt, State_Chm, State_Diag, 
-      ! State_Met and State_Diagobjects
+      ! State_Met and State_Diag objects
       CALL GC_Init_All( am_I_Root, Diag_List,  Input_Opt, 
      &                  State_Chm, State_Diag, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -662,8 +663,7 @@
       ! Copy surface area info from AREA_M2 array of grid_mod.F90
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
-      ! and are independent of area. Area will eventually be 
-      ! completely removed for grid-independence (ewl, 9/10/15)
+      ! and are independent of area
       State_Met%AREA_M2 =  AREA_M2
 
       ! Define advected species ID flags for use below
@@ -1140,10 +1140,7 @@
          CALL GEOS_Timer_Start( "Output",                RC )
 #endif
 
-         ! Write HEMCO diagnostics (ckeller, 4/1/15). 
-         ! Replace diagnostics_write with the one-line content within it
-         ! in order to remove previous incarnation of diagnostics_mod
-         ! (ewl, 9/22/17)
+         ! Write HEMCO diagnostics (ckeller, 4/1/15)
          CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .FALSE., RC )
 
          ! Trap potential errors
@@ -1249,11 +1246,7 @@
             CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
 
-            ! Force the output of a HEMCO restart file. 
-            ! (ckeller, 4/1/15)
-            ! Replace diagnostics_write with the one-line content within it
-            ! in order to remove previous incarnation of diagnostics_mod
-            ! (ewl, 9/22/17)
+            ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
             CALL HCOI_GC_WriteDiagn( am_I_Root, Input_Opt, .TRUE., RC )
 
             ! Trap potential errors
@@ -2071,28 +2064,22 @@
 #endif
 
 #if defined( NC_DIAG )
+         ! Set State_Diag arrays that rely on state at end of timestep
+         CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,  
+     &                                       State_Met,  State_Chm, 
+     &                                       State_Diag, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in ' // 
+     &               '"Set_Diagnostics_EndOfTimestep"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
          !--------------------------------------------------------------
          !           ***** H I S T O R Y   U P D A T E  *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
-
-         ! Set species concentration diagnostic array using the 
-         ! the units stored in the State_Diag metadata for 'SpeciesConc'
-         CALL Set_SpcConc_Diagnostic( am_I_Root,
-     &                               'SpeciesConc',
-     &                                State_Diag%SpeciesConc,
-     &                                Input_Opt,
-     &                                State_Met,
-     &                                State_Chm, 
-     &                                RC )
-
-         ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "Set_SpcConc_Diagnostic"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
 
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )

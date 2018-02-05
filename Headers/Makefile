@@ -170,7 +170,7 @@ commsoil_mod.o         : commsoil_mod.F90         \
                          CMN_SIZE_mod.o           \
                          errcode_mod.o
 
-diagnostics_mod.o      : diagnostics_mod.F90      \
+diaglist_mod.o         : diaglist_mod.F90         \
                          charpak_mod.o            \
                          inquireMod.o             \
                          registry_mod.o
@@ -197,7 +197,7 @@ state_chm_mod.o        : state_chm_mod.F90        \
 
 state_diag_mod.o       : state_diag_mod.F90       \
                          charpak_mod.o            \
-                         diagnostics_mod.o        \
+                         diaglist_mod.o           \
                          errcode_mod.o            \
                          precision_mod.o          \
                          input_opt_mod.o          \

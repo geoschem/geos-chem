@@ -9659,7 +9659,7 @@
       USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-      USE Diagnostics_Mod
+      USE DiagList_Mod
       USE Diag03_Mod,         ONLY : Init_Diag03
       USE Diag20_Mod,         ONLY : Init_Diag20
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH

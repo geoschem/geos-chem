@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -108,8 +109,10 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
-    ! Is the drydep flux from mixing diagnostic turned on?
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+    ! Is the drydep flux from mixing diagnostic turned on or if
+    ! total drydep flux which requires the contribution from mixing
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                        ASSOCIATED( State_Diag%DryDep )
 
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
@@ -779,7 +782,6 @@ CONTAINS
                                              * GET_TS_CONV() / GET_TS_CHEM() 
                    ENDIF
 #endif
-
 #if defined( NC_DIAG )
                    !--------------------------------------------------------
                    ! HISTORY: Archive drydep flux loss from mixing 

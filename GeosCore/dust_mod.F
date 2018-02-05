@@ -86,8 +86,6 @@
 #if defined( NC_DIAG )
       ! Diagnostic flags
       LOGICAL               :: Archive_DryDepChm
-      LOGICAL               :: Archive_DryDepTot
-      LOGICAL               :: Archive_DryDep
       LOGICAL               :: Archive_AerSurfAreaDust
       LOGICAL               :: Archive_AOD
       LOGICAL               :: Archive_AODDust
@@ -476,14 +474,11 @@
                AD44(I,J,TOMAS_IDDEP(BIN),1) = 
      &         AD44(I,J,TOMAS_IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
-#endif
-
-#if defined( NC_DIAG )
-               ! Add later
-
-#endif
             ENDIF
-
+#endif
+#if defined( NC_DIAG )
+               ! Add later when TOMAS diagnostics are implemented
+#endif
          ENDDO
          ENDDO
 
@@ -934,7 +929,6 @@
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * AVO * ( AIRMW / 
-!     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
      &                    ThisSpc%emMw_g    ) /
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
                   
@@ -944,7 +938,7 @@
 #endif
 
 #if defined( NC_DIAG )
-               IF ( Archive_DryDep ) THEN
+               IF ( Archive_DryDepChm ) THEN
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   ! Dry deposition flux loss [molec/cm2/s]
@@ -965,19 +959,11 @@
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * AVO * ( AIRMW / 
-!     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
      &                    ThisSpc%emMw_g    ) /
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
                   ! Drydep flux in chemistry only
-                  IF ( Archive_DryDepChm ) THEN
-                     State_Diag%DryDepChm(I,J,1,ND) = FLUX
-                  ENDIF
-
-                  ! Total drydep flux
-                  IF ( Archive_DryDepTot ) THEN
-                     State_Diag%DryDep(I,J,1,ND) = FLUX
-                  ENDIF
+                  State_Diag%DryDepChm(I,J,1,ND) = FLUX
                ENDIF
 #endif
             ENDDO 
@@ -2690,9 +2676,8 @@
 
 #if defined( NC_DIAG )
       ! Are certain diagnostics turned on?
-      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDepTot       = ASSOCIATED( State_Diag%DryDep    )
-      Archive_DryDep          = Archive_DryDepChm .OR. Archive_DryDepTot
+      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm ) .OR.
+     &                          ASSOCIATED( State_Diag%DryDep )
       Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
       Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
       Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
