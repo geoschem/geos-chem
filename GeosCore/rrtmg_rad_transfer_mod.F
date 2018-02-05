@@ -780,7 +780,7 @@
 
             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g*
      &                         State_Met%AD(I,J,L) )
 
          ELSE
