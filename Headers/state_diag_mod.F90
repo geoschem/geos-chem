@@ -113,11 +113,29 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AODPSCWL2       (:,:,:  ) ! optical depths for 
      REAL(f4),  POINTER :: AODPSCWL3       (:,:,:  ) ! wavelengths 1, 2, and 3
 
-     ! Other Aerosols
-     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! Part. matter, r < 2.5 um
-     REAL(f4),  POINTER :: TerpeneSOA      (:,:,:  )
-     REAL(f4),  POINTER :: IsopreneSOA     (:,:,:  )
-     REAL(f4),  POINTER :: AromaticSOA     (:,:,:  )
+     ! Aerosol mass and PM2.5
+     REAL(f4),  POINTER :: AerMassASOA     (:,:,:  ) ! Aromatic SOA [ug/m3]
+     REAL(f4),  POINTER :: AerMassBC       (:,:,:  ) ! Black carbon [ug/m3]
+     REAL(f4),  POINTER :: AerMassINDIOL   (:,:,:  ) ! INDIOL [ug/m3]
+     REAL(f4),  POINTER :: AerMassISN1OA   (:,:,:  ) ! ISN1OA [ug/m3]
+     REAL(f4),  POINTER :: AerMassISOA     (:,:,:  ) ! ISOA [ug/m3]
+     REAL(f4),  POINTER :: AerMassLVOCOA   (:,:,:  ) ! LVOCOA [ug/m3]
+     REAL(f4),  POINTER :: AerMassNH4      (:,:,:  ) ! Nitrate [ug/m3]
+     REAL(f4),  POINTER :: AerMassNIT      (:,:,:  ) ! NIT [ug/m3]
+     REAL(f4),  POINTER :: AerMassOPOA     (:,:,:  ) ! OPOA [ug/m3]
+     REAL(f4),  POINTER :: AerMassPOA      (:,:,:  ) ! POA [ug/m3]
+     REAL(f4),  POINTER :: AerMassSAL      (:,:,:  ) ! Total seasalt [ug/m3]
+     REAL(f4),  POINTER :: AerMassSO4      (:,:,:  ) ! Sulfate [ug/m3]
+     REAL(f4),  POINTER :: AerMassSOAGX    (:,:,:  ) ! SOAGX [ug/m3]
+     REAL(f4),  POINTER :: AerMassSOAIE    (:,:,:  ) ! SOAIE [ug/m3]
+     REAL(f4),  POINTER :: AerMassSOAME    (:,:,:  ) ! SOAME [ug/m3]
+     REAL(f4),  POINTER :: AerMassSOAMG    (:,:,:  ) ! SOAMG [ug/m3]
+     REAL(f4),  POINTER :: AerMassTSOA     (:,:,:  ) ! Terpene SOA [ug/m3]
+     REAL(f4),  POINTER :: BetaNO          (:,:,:  ) ! Beta NO [ug C/m3]
+     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
+     REAL(f4),  POINTER :: TotalOA         (:,:,:  ) ! Sum of all OA [ug/m3]
+     REAL(f4),  POINTER :: TotalOC         (:,:,:  ) ! Sum of all OC [ug/m3]
+     REAL(f4),  POINTER :: TotalBiogenicOA (:,:,:  ) ! Sum of biog OC [ug/m3]
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -360,10 +378,29 @@ CONTAINS
     State_Diag%O3PconcAfterChem           => NULL()
     State_Diag%Loss                       => NULL()
     State_Diag%Prod                       => NULL()
+
+    State_Diag%AerMassASOA                => NULL()
+    State_Diag%AerMassBC                  => NULL()
+    State_Diag%AerMassINDIOL              => NULL()
+    State_Diag%AerMassISN1OA              => NULL()
+    State_Diag%AerMassISOA                => NULL()
+    State_Diag%AerMassLVOCOA              => NULL()
+    State_Diag%AerMassNH4                 => NULL()
+    State_Diag%AerMassNIT                 => NULL()
+    State_Diag%AerMassOPOA                => NULL()
+    State_Diag%AerMassPOA                 => NULL()
+    State_Diag%AerMassSAL                 => NULL()
+    State_Diag%AerMassSO4                 => NULL()
+    State_Diag%AerMassSOAGX               => NULL()
+    State_Diag%AerMassSOAIE               => NULL()
+    State_Diag%AerMassSOAME               => NULL()
+    State_Diag%AerMassSOAMG               => NULL()
+    State_Diag%AerMassTSOA                => NULL()
+    State_Diag%BetaNO                     => NULL()
     State_Diag%PM25                       => NULL()
-    State_Diag%TerpeneSOA                 => NULL()
-    State_Diag%IsopreneSOA                => NULL()
-    State_Diag%AromaticSOA                => NULL()
+    State_Diag%TotalOA                    => NULL()
+    State_Diag%TotalOC                    => NULL()
+    State_Diag%TotalBiogenicOA            => NULL()
 
     State_Diag%PbFromRnDecay              => NULL()
     State_Diag%RadDecay                   => NULL()
@@ -1205,6 +1242,258 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! Aerosol mass of ASOA (Aromatic SOA) [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassASOA'
+       diagID  = 'AerMassASOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassASOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassASOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassASOA,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of INDIOL (Isoprene SOA) [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassINDIOL'
+       diagID  = 'AerMassINDIOL'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassINDIOL( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassINDIOL = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassINDIOL,                 &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of ISN10A [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassISN1OA'
+       diagID  = 'AerMassISN10A'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassISN1OA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassISN1OA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassISN1OA,                 &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of ISOA (Isoprene SOA) [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassISOA'
+       diagID  = 'AerMassISOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassISOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassISOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassISOA,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of LVOCOA [kg/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassLVOCOA'
+       diagID  = 'AerMassLVOCOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassLVOCOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassLVOCOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassLVOCOA,                 &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of OPOA
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassOPOA'
+       diagID  = 'AerMassOPOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassOPOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassOPOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassOPOA,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of POA
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassPOA'
+       diagID  = 'AerMassPOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassPOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassPOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassPOA,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of SOAGX [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSOAGX'
+       diagID  = 'AerMassSOAGX'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSOAGX( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSOAGX = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSOAGX,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of SOAIE [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSOAIE'
+       diagID  = 'AerMassSOAIE'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSOAIE( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSOAIE = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSOAIE,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of SOAME [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSOAME'
+       diagID  = 'AerMassSOAME'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSOAME( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSOAME = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSOAME,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of SOAMG [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSOAMG'
+       diagID  = 'AerMassSOAMG'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSOAMG( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSOAMG = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSOAMG,                  &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of TSOA (Terpene SOA) [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassTSOA'
+       diagID  = 'AerMassTSOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassTSOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassTSOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassTSOA,                   &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Beta NO (branching ratio) [ug C/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%BetaNO'
+       diagID  = 'BetaNO'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%BetaNO( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%BetaNO = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%BetaNO,                        &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Total biogenic organic aerosol mass [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%TotalBiogenicOA'
+       diagID  = 'TotalBiogenicOA'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%TotalBiogenicOA( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%TotalBiogenicOA = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%TotalBiogenicOA,               &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -1216,7 +1505,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 11
+       DO N = 1, 25
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1238,10 +1527,38 @@ CONTAINS
                 diagID = 'O1DconcAfterChem'
              CASE( 9  )
                 diagID = 'O3PconcAfterChem'
-             CASE( 10  )
+             CASE( 10 )
                 diagID = 'ProdSO4fromHOBrInCloud'
              CASE( 11 )
                 diagID = 'ProdSO4fromSRHOBr'
+             CASE( 12 )
+                diagID = 'AerMassASOA'
+             CASE( 13 )
+                diagID = 'AerMassINDIOL'
+             CASE( 14 )
+                diagID = 'AerMassISN1OA'
+             CASE( 15 )
+                diagID = 'AerMassISOA'
+             CASE( 16 )
+                diagID = 'AerMassLVOCOA'
+             CASE( 17 )
+                diagID = 'AerMassOPOA'
+             CASE( 18 )
+                diagID = 'AerMassPOA'
+             CASE( 19 )
+                diagID = 'AerMassSOAGX'
+             CASE( 20 )
+                diagID = 'AerMassSOAIE'
+             CASE( 21 )
+                diagID = 'AerMassSOAME'
+             CASE( 22 )
+                diagID = 'AerMassSOAMG'
+             CASE( 23 )
+                diagID = 'AerMassTSOA'
+             CASE( 24 )
+                diagID = 'BetaNO'      
+             CASE( 25 )
+                diagID = 'TotalBiogenicOA'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -1896,9 +2213,99 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! PM25, particulate matter with radius < 2.5 um
-       !--------------------------------------------------------------------
+       !-------------------------------------------------------------------
+       ! Aerosol mass of black carbon [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassBC'
+       diagID  = 'AerMassBC'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassBC( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassBC = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassBC,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of NH4 [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassNH4'
+       diagID  = 'AerMassNH4'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassNH4( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassNH4 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassNH4,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of NIT [kg/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassNIT'
+       diagID  = 'AerMassNIT'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassNIT( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassNIT = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassNIT,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of total seasalt (SALA + SALC) [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSAL'
+       diagID  = 'AerMassSAL'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSAL( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSAL = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSAL,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Aerosol mass of SO4 [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%AerMassSO4'
+       diagID  = 'AerMassSO4'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%AerMassSO4( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%AerMassSO4 = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%AerMassSO4,                    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! PM2.5, aka prticulate matter with (r < 2.5 um) [ug/m3]
+       !-------------------------------------------------------------------
        arrayID = 'State_Diag%PM25'
        diagID  = 'PM25'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -1908,61 +2315,44 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25 = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25,    &
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%PM25,                          &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Terpene SOA
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%TerpeneSOA'
-       diagID  = 'TerpeneSOA'
+       !-------------------------------------------------------------------
+       ! Total organic aerosol mass [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%TotalOA'
+       diagID  = 'TotalOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%TerpeneSOA( IM, JM, LM ), STAT=RC )
+          ALLOCATE( State_Diag%TotalOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%TerpeneSOA = 0.0_f4
+          State_Diag%TotalOA = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%TerpeneSOA,                    &
+                                   State_Diag%TotalOA,                       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Isoprene SOA
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%IsopreneSOA'
-       diagID  = 'IsopreneSOA'
+       !-------------------------------------------------------------------
+       ! Total organic carbon mass [ug/m3]
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%TotalOC'
+       diagID  = 'TotalOC'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%IsopreneSOA( IM, JM, LM ), STAT=RC )
+          ALLOCATE( State_Diag%TotalOC( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%IsopreneSOA = 0.0_f4
+          State_Diag%TotalOC = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%IsopreneSOA,                   &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Aromatic SOA
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%AromaticSOA'
-       diagID  = 'AromaticSOA'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%AromaticSOA( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%AromaticSOA = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,                        &
-                                   State_Diag%AromaticSOA,                   &
+                                   State_Diag%TotalOC,                       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -1978,7 +2368,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 16
+       DO N = 1, 20
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -2008,12 +2398,20 @@ CONTAINS
                 diagID = 'LossHNO3onSeaSalt'
              CASE( 13 )                
                 diagID = 'PM25'
-             CASE( 14 )                
-                diagID = 'TerpeneSOA'
-             CASE( 15 )                
-                diagID = 'IsopreneSOA'
-             CASE( 16 )                
-                diagID = 'AromaticSOA'
+             CASE( 14 )
+                diagID = 'AerMassBC'
+             CASE( 15 )
+                diagID = 'AerMassNH4'
+             CASE( 16 )
+                diagID = 'AerMassNIT'
+             CASE( 17 )
+                diagID = 'AerMassSAL'
+             CASE( 18 )
+                diagID = 'AerMassSO4'
+             CASE( 19 )
+                diagID = 'TotalOA'
+             CASE( 20 )
+                diagID = 'TotalOC'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -2939,30 +3337,138 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassASOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassASOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassBC ) ) THEN
+       DEALLOCATE( State_Diag%AerMassBC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassBC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassINDIOL ) ) THEN
+       DEALLOCATE( State_Diag%AerMassINDIOL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassINDIOL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassISN1OA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassISN1OA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassISN1OAL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassISOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassISOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassISOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassLVOCOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassLVOCOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassLVOCOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+
+    IF ( ASSOCIATED( State_Diag%AerMassNH4 ) ) THEN
+       DEALLOCATE( State_Diag%AerMassNH4, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassNH4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassNIT ) ) THEN
+       DEALLOCATE( State_Diag%AerMassNIT, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassNIT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassOPOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassOPOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassOPOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassPOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassPOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassPOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSAL ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSAL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSAL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSO4 ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSO4, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSO4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSOAGX ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSOAGX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSOAIE ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSOAIE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSOAIE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSOAME ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSOAME, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSOAME', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassSOAMG ) ) THEN
+       DEALLOCATE( State_Diag%AerMassSOAMG, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassSOAMG', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%AerMassTSOA ) ) THEN
+       DEALLOCATE( State_Diag%AerMassTSOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%AerMassTSOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BetaNO ) ) THEN
+       DEALLOCATE( State_Diag%BetaNO, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%BetaNO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
        DEALLOCATE( State_Diag%PM25, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%TerpeneSOA ) ) THEN
-       DEALLOCATE( State_Diag%TerpeneSOA, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%TerpeneSOA', 2, RC )
+    IF ( ASSOCIATED( State_Diag%TotalOA ) ) THEN
+       DEALLOCATE( State_Diag%TotalOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%TotalOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%IsopreneSOA ) ) THEN
-       DEALLOCATE( State_Diag%IsopreneSOA, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%IsopreneSOA', 2, RC )
+    IF ( ASSOCIATED( State_Diag%TotalOC ) ) THEN
+       DEALLOCATE( State_Diag%TotalOC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%TotalOC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%AromaticSOA ) ) THEN
-       DEALLOCATE( State_Diag%AromaticSOA, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%AromaticSOA', 2, RC )
+    IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
+       DEALLOCATE( State_Diag%TotalBiogenicOA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
-
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -3630,26 +4136,110 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  3
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSASOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol products of light aromatics + IVOC oxidation'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSBC' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of black carbon aerosol (OA:OC=2.1)'
+       IF ( isUnits   ) Units = 'ug C m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSINDIOL' ) THEN
+       IF ( isDesc    ) Desc  = 'Aerosol mass of generic aerosol-phase organonitrate hydrolysis product'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSISN1OA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase 2nd generation hydroxynitrates formed from ISOP+NO3 reaction pathway'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSLVOCOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase low-volatility non-IEPOX product of ISOPOOH (RIP) oxidation '
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSNH4' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of NH4 aerosol'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSNIT' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of inorganic nitrate aerosols'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSOPOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSPOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of lumped aerosol primary SVOCs (OA:OC=2.1)'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSAL' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of total seasalt aerosol (accumulation + coarse)'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSO4' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of sulfate aerosol'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAGX' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase glyoxal'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAIE' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase IEPOX (isoprene epoxide)'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAME' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase IMAE (C4 epoxide from oxidation of PMN )'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSSOAMG' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol-phase methylglyoxal'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSTSOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol products of terpene oxidation'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BETANO' ) THEN
+       IF ( isDesc    ) Desc  = 'Beta NO branching ratio'
+       IF ( isUnits   ) Units = 'ug C m-3'
+       IF ( isRank    ) Rank  =  3
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Monoterpene and sesqiterpene SOA'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALBIOGENICOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Sum of all biogenic organic aerosol (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'ISOPRENESOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Isoprene (biogenic) SOA from either semivolatile partitioning or irreversible uptake'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Sum of all organic aerosol (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'AROMATICSOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Aromatic and intermediate volatility (anthropogenic) SOA'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'TOTALOC' ) THEN
+       IF ( isDesc    ) Desc  = 'Sum of all organic carbon (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
-
     ELSE
        
        !--------------------------------------------------------------------

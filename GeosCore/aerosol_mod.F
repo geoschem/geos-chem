@@ -80,20 +80,25 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
+
+      ! Growth factors
+      REAL(fp),              PUBLIC :: SIA_GROWTH
+      REAL(fp),              PUBLIC :: ORG_GROWTH
+      REAL(fp),              PUBLIC :: SSA_GROWTH
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER, PUBLIC :: OCFPOA  = 1.4e+0_fp ! OM/OC for POA
-      REAL(fp), PARAMETER, PUBLIC :: OCFOPOA = 2.1e+0_fp ! OM/OC for OPOA, OCPI,
-                                                         !  and OCPO
+      REAL(fp), PARAMETER,   PUBLIC :: OCFPOA  = 1.4e+0_fp ! OM/OC for POA
+      REAL(fp), PARAMETER,   PUBLIC :: OCFOPOA = 2.1e+0_fp ! OM/OC for OPOA, 
+                                                           !  OCPI, and OCPO
 
       ! For SOAGX, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp), PARAMETER, PUBLIC :: OCFG = 1.e+0_fp
+      REAL(fp), PARAMETER,   PUBLIC :: OCFG = 1.e+0_fp
 
       ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
-      REAL(fp), PARAMETER, PUBLIC :: OCFM = 1.e+0_fp
+      REAL(fp), PARAMETER,   PUBLIC :: OCFM = 1.e+0_fp
 
 !
 ! !REMARKS:
@@ -162,10 +167,6 @@
 
 #if defined( NC_DIAG )
       ! Diagnostic flags
-      LOGICAL :: Archive_PM25
-      LOGICAL :: Archive_TerpeneSOA
-      LOGICAL :: Archive_IsopreneSOA
-      LOGICAL :: Archive_AromaticSOA
       LOGICAL :: Archive_AerAqVol 
       LOGICAL :: Archive_AerHygGrowth
       LOGICAL :: Archive_AerSurfAreaHyg
@@ -295,9 +296,10 @@
 !
       ! SAVEd variables
       LOGICAL,  SAVE      :: FIRST = .TRUE.
-      REAL(fp), SAVE      :: SIA_GROWTH
-      REAL(fp), SAVE      :: ORG_GROWTH
-      REAL(fp), SAVE      :: SSA_GROWTH
+! Now make theese
+!      REAL(fp), SAVE      :: SIA_GROWTH
+!      REAL(fp), SAVE      :: ORG_GROWTH
+!      REAL(fp), SAVE      :: SSA_GROWTH
 
       ! Non-SAVEd variables
       INTEGER             :: I, J, L, N, NA, ND, K
@@ -956,41 +958,6 @@
          PM25(I,J,L) = PM25(I,J,L) 
      &               * ( 1013.25_fp / PMID(I,J,L) ) 
      &               * ( T(I,J,L)   / 298.0_fp    )
-
-#if defined( NC_DIAG )
-         !==============================================================
-         ! HISTORY (aka netCDF diagnostics)
-         !
-         ! SOA and PM2.5 diagnostics
-         !
-         ! NOTE: Convert from [kg/m3] to [ug/m3] (factor = 1e9) so 
-         !       as to match the units of the ND42 bpch diagnostic.
-         !==============================================================
-
-         ! Terpene SOA [ug/m3]
-         IF ( Archive_TerpeneSOA ) THEN
-            State_Diag%TerpeneSOA(I,J,L) = ( TSOA(I,J,L) * 1.0e+9_fp )
-         ENDIF
-
-         ! Isoprene SOA [ug/m3]
-         ! NOTE: Includes contribution from semivolatile isoprene OA
-         ! (aka ISOA) and mechanistic isoprene OA (aka ISOAAQ).
-         ! This is done to match the ND42 bpch diagnostic.
-         IF ( Archive_IsopreneSOA ) THEN
-            State_Diag%IsopreneSOA(I,J,L) = 
-     &         ( ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * 1.0e+9_fp )
-         ENDIF 
-
-         ! Aromatic SOA [ug/m3]
-         IF ( Archive_AromaticSOA ) THEN
-            State_Diag%AromaticSOA(I,J,L) = ( ASOA(I,J,L) * 1.0e+9_fp )
-         ENDIF
-          
-         ! PM2.5 concentration at STP [ug/m3]
-         IF ( Archive_PM25 ) THEN
-            State_Diag%PM25(I,J,L) = ( PM25(I,J,L) * 1.0e+9_fp )
-         ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -2470,10 +2437,6 @@
 
 #if defined( NC_DIAG )
       ! Are certain diagnostics turned on?
-      Archive_PM25         = ASSOCIATED( State_Diag%PM25        )
-      Archive_TerpeneSOA   = ASSOCIATED( State_Diag%TerpeneSOA  )
-      Archive_IsopreneSOA  = ASSOCIATED( State_Diag%IsopreneSOA )
-      Archive_AromaticSOA  = ASSOCIATED( State_Diag%AromaticSOA )
       Archive_AODHygWL1    = ASSOCIATED(State_Diag%AODHygWL1)
       Archive_AODHygWL2    = ASSOCIATED(State_Diag%AODHygWL2)
       Archive_AODHygWL3    = ASSOCIATED(State_Diag%AODHygWL3)

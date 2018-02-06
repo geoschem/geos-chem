@@ -563,7 +563,8 @@ diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F
 
-diagnostics_mod.o           : diagnostics_mod.F90
+diagnostics_mod.o           : diagnostics_mod.F90                            \
+                              aerosol_mod.o           carbon_mod.o
 
 drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
