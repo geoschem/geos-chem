@@ -4641,10 +4641,12 @@
 
       ! Derived parameters
       REAL(fp) :: A,B,C,PHI
-      
-      ! Error trapping (ckeller, 12/29/17)
-      REAL(fp) :: TMP1,TMP2,TMP3,TMP4 
-      
+
+      ! Error trapping
+      REAL(fp) :: TMP1,TMP2,TMP3,TMP4,TMP5,TMP6
+
+      REAL(fp), PARAMETER :: TNY = 1.0e-28_fp     
+
       ! Debug message
       CHARACTER(LEN=255)   :: DBGMSG
 
@@ -4699,7 +4701,7 @@
 
       ! Pressure relation
       PR = LOG(PATMH2O)+18.4e+0_fp
-      
+
       ! Therefore if temperature lower, set to T_ICE-3
       IF (TCENTER .lt. (T_ICE-3.0e+0_fp)) THEN
          TCENTER = (T_ICE-3.0e+0_fp)
@@ -4711,13 +4713,12 @@
 
       ! ??
       TT = TCENTER * R_ATM * MOLDENS_H2SO4
-      
+
       ! Temperature relation
       TR = 1.0e+4_fp/TCENTER-43.4782608e+0_fp
 
       ! Determine H2SO4/H2O pure solution concentration
       ! Mole fraction of H2SO4 in binary solution
-      ! Added error trap for negative sqrt (ckeller, 12/29/17)
       TMP1 = (KS(1)+KS(2)/TCENTER)**
      &   2.0e+0_fp-4.0e+0_fp*(KS(3)+KS(4)/TCENTER)*(KS(5)+KS(6)/
      &   TCENTER+KS(7)*LOG(TCENTER)-LOG(PATMH2O))
@@ -4725,8 +4726,9 @@
          X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
      &      (-KS(1)-KS(2)/TCENTER-(TMP1)**0.5e+0_fp)
       ELSE
-         X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
-     &      (-KS(1)-KS(2)/TCENTER)
+!         X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
+!     &      (-KS(1)-KS(2)/TCENTER)
+         X_H2SO4_BIN = 0.0_fp
       ENDIF
 !      X_H2SO4_BIN = 1.0e+0_fp/(2.0e+0_fp*(KS(3)+KS(4)/TCENTER))*
 !     &   (-KS(1)-KS(2)/TCENTER-((KS(1)+KS(2)/TCENTER)**
@@ -4736,7 +4738,7 @@
       ! Molality (mol H2SO4/kg H2O) in binary solution
       M_H2SO4_BIN = 55.51e+0_fp*X_H2SO4_BIN/(1.0e+0_fp-X_H2SO4_BIN)
 
-      IF ((TCENTER.le.215.0e+0_fp).AND.(PATMHNO3.gt.0.0e+0_fp)) THEN
+      IF ((TCENTER.le.215.0e+0_fp).AND.(PATMHNO3.gt.TNY)) THEN
          ! Determine HNO3/H2SO4/H2O solution composition
          H_H2SO4_BIN = EXP(QS(1)+QS(2)*TR**2+(QS(3)+QS(4)*TR+
      &      QS(5)*TR**2+QS(6)*TR**3)*PR+(QS(7)+QS(8)*TR+
@@ -4775,7 +4777,7 @@
      &      0.098076e+0_fp+M_HNO3*0.063012e+0_fp)
 
          ! Check for low H2SO4
-         IF (M_H2SO4 .lt. 0e+0_fp) THEN
+         IF (M_H2SO4 .lt. TNY) THEN
              M_H2SO4 = 0.0e+0_fp
              M_HNO3 = M_HNO3_BIN
              W_H2SO4 = 0.0e+0_fp
@@ -4787,8 +4789,9 @@
      &      0.098076e+0_fp+M_HNO3*0.063012e+0_fp)
 
          HNO3GASFRAC=(1.0e+0_fp-(PATMHNO3-PVAP_HNO3)/PATMHNO3)
-         M_HNO3=MAX(M_HNO3,0.0e+0_fp)
-         W_HNO3=MAX(W_HNO3,0.0e+0_fp) ! needed for small underflow (mdy 04/15)
+         !M_HNO3=MAX(M_HNO3,0.0e+0_fp)
+         !W_HNO3=MAX(W_HNO3,0.0e+0_fp) ! needed for small underflow (mdy
+         !04/15)
 
       ELSE
          ! Solution is pure H2SO4/H2O
@@ -4800,238 +4803,144 @@
          PVAP_HNO3 = 0.0e+0_fp
          HNO3GASFRAC=1.0e+0_fp
       ENDIF
+
+      ! ckeller: restrict values to range that prevents float invalids
+      IF ( M_H2SO4 < TNY ) M_H2SO4 = 0.0_fp
+      IF ( M_HNO3  < TNY ) M_HNO3  = 0.0_fp
+      IF ( W_HNO3  < TNY ) W_HNO3  = 0.0_fp
+
       ! Handle HCl (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
-      IF (PATMHCL.gt.0.0e+0_fp) THEN
+      W_HCl=0.0e+0_fp
+      HClGASFRAC=1.0e+0_fp
+      IF ( PATMHCL .gt. TNY .AND.
+     &     M_H2SO4 .gt. TNY .AND.
+     &     M_HNO3  .gt. TNY       ) THEN
          TMP1 = W_HNO3+0.610e+0_fp*W_H2SO4
-         IF ( TMP1 <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
-            TMP2 = LOG(TMP1)
-         ENDIF
-         TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-     &      M_H2SO4+63.012e+0_fp*
-     &      M_HNO3)
-         IF ( TMP3 <= 0.0_fp ) THEN
-            TMP4 = 0.0_fp
-         ELSE
-            TMP4 = LOG(TMP3)
-         ENDIF
-         H_HCL = EXP(-(21.0e+0_fp+46.610e+0_fp*W_HNO3+
-     &      4.0690e+0_fp*W_H2SO4-
-     &      4.8370e+0_fp*SQRT(W_HNO3)+2.1860e+0_fp*
-     &      SQRT(W_H2SO4)-63.0e+0_fp*
-     &      W_HNO3**2-40.170e+0_fp*W_HNO3*W_H2SO4-
-     &      1.5710e+0_fp*W_H2SO4**2)-
-     &      1.0e+0_fp/TCENTER*(-7437.0e+0_fp-8327.80e+0_fp*
-     &      W_HNO3+1300.90e+0_fp*
-     &      W_H2SO4+1087.20e+0_fp*SQRT(W_HNO3)-242.710e+0_fp*
-     &      SQRT(W_H2SO4)+
-     &      18749.0e+0_fp*W_HNO3**2+18500.0e+0_fp*W_HNO3*W_H2SO4+
-     &      5632.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
-!         H_HCL = EXP(-(21.0e+0_fp+46.610e+0_fp*W_HNO3+
-!     &      4.0690e+0_fp*W_H2SO4-
-!     &      4.8370e+0_fp*SQRT(W_HNO3)+2.1860e+0_fp*
-!     &      SQRT(W_H2SO4)-63.0e+0_fp*
-!     &      W_HNO3**2-40.170e+0_fp*W_HNO3*W_H2SO4-
-!     &      1.5710e+0_fp*W_H2SO4**2)-
-!     &      1.0e+0_fp/TCENTER*(-7437.0e+0_fp-8327.80e+0_fp*
-!     &      W_HNO3+1300.90e+0_fp*
-!     &      W_H2SO4+1087.20e+0_fp*SQRT(W_HNO3)-242.710e+0_fp*
-!     &      SQRT(W_H2SO4)+
-!     &      18749.0e+0_fp*W_HNO3**2+18500.0e+0_fp*W_HNO3*W_H2SO4+
-!     &      5632.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.610e+0_fp*W_H2SO4)-
-!     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-!     &      M_H2SO4+63.012e+0_fp*
-!     &      M_HNO3)))*(ATM*1e-2_fp)
-         IF ( M_H2SO4 <= 0.0_fp ) THEN
-            TMP1 = 0.0_fp
-         ELSE
+         IF ( TMP1 > TNY ) THEN
+          TMP2 = LOG(TMP1)
+          TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+     &           M_H2SO4+63.012e+0_fp*
+     &           M_HNO3)
+          IF ( TMP3 > TNY ) THEN
+           TMP4 = LOG(TMP3)
+           H_HCL = EXP(-(21.0e+0_fp+46.610e+0_fp*W_HNO3+
+     &         4.0690e+0_fp*W_H2SO4-
+     &         4.8370e+0_fp*SQRT(W_HNO3)+2.1860e+0_fp*
+     &         SQRT(W_H2SO4)-63.0e+0_fp*
+     &         W_HNO3**2-40.170e+0_fp*W_HNO3*W_H2SO4-
+     &         1.5710e+0_fp*W_H2SO4**2)-
+     &         1.0e+0_fp/TCENTER*(-7437.0e+0_fp-8327.80e+0_fp*
+     &         W_HNO3+1300.90e+0_fp*
+     &         W_H2SO4+1087.20e+0_fp*SQRT(W_HNO3)-242.710e+0_fp*
+     &         SQRT(W_H2SO4)+
+     &         18749.0e+0_fp*W_HNO3**2+18500.0e+0_fp*W_HNO3*W_H2SO4+
+     &         5632.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
+           IF ( H_HCL > TNY ) THEN
             TMP1 = MOLDENS_H2SO4/M_H2SO4
-         ENDIF
-         IF ( H_HCL <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
             TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HCL
+            IF ( TMP1+TMP2 > TNY ) THEN
+             M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
+     &          (TMP1 + TMP2)
+             TMP1 = 1.0e+3_fp+98.076e+0_fp*M_H2SO4+63.012e+0_fp*M_HNO3
+             W_HCL=M_HCL*36.461e+0_fp/TMP1
+             PVAP_HCl = M_HCl/H_HCl
+             HClGASFRAC=1.0e+0_fp-(PATMHCL-PVAP_HCL)/PATMHCL
+            ENDIF
+           ENDIF
+          ENDIF
          ENDIF
-         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
-            M_HCl = 0.0_fp
-         ELSE
-            M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
-     &         (TMP1 + TMP2)
-         ENDIF
-!         M_HCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHCL)/
-!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HCL)
-         TMP1 = 1.0e+3_fp+98.076e+0_fp*M_H2SO4+63.012e+0_fp*M_HNO3
-         IF ( TMP1 <= 0.0_fp ) THEN
-            W_HCL=0.0_fp
-         ELSE
-            W_HCL=M_HCL*36.461e+0_fp/TMP1
-         ENDIF
-!         W_HCL=M_HCL*36.461e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
-!     &      63.012e+0_fp*M_HNO3)
-         IF ( H_HCl <= 0.0_fp ) THEN
-            PVAP_HCl = 0.0_fp
-         ELSE
-            PVAP_HCl = M_HCl/H_HCl
-         ENDIF
-         HClGASFRAC=1.0e+0_fp-(PATMHCL-PVAP_HCL)/PATMHCL
-      ELSE
-         W_HCl=0.0e+0_fp
-         HClGASFRAC=1.0e+0_fp
       ENDIF
 
       ! Now HOCl
-      IF (PATMHOCl.gt.0.0e+0_fp) THEN
+      W_HOCl=0.0e+0_fp
+      HOClGASFRAC=1.0e+0_fp
+      IF (PATMHOCl>TNY .AND. M_H2SO4>TNY ) THEN
          H_HOCl=EXP(6.49460e+0_fp-(-0.041070e+0_fp+54.56e+0_fp/TCENTER)*
      &      (M_H2SO4+M_HNO3)-5862.0e+0_fp*(1.0e+0_fp/298.15e+0_fp-
      &      1.0e+0_fp/TCENTER))
-         IF ( M_H2SO4 <= 0.0_fp ) THEN
-            TMP1 = 0.0_fp
-         ELSE
-            TMP1 = MOLDENS_H2SO4/M_H2SO4
-         ENDIF
-         IF ( H_HOCL <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
-            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOCL
-         ENDIF
-         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
-            M_HOCl = 0.0_fp
-         ELSE
-            M_HOCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/(TMP1+TMP2)
-         ENDIF
-!         M_HOCl=(1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/
-!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HOCL)
-         W_HOCL=M_HOCL*52.46e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
+         IF ( H_HOCL > TNY ) THEN
+          TMP1 = MOLDENS_H2SO4/M_H2SO4
+          TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOCL
+          IF ( TMP1+TMP2 > TNY ) THEN
+           M_HOCl = (1.0e+0_fp/R_ATM/TCENTER*PATMHOCl)/(TMP1+TMP2)
+           W_HOCL=M_HOCL*52.46e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
      &      63.012e+0_fp*M_HNO3)
-         ! Realistically expect no gas phase removal
-         HOCLGASFRAC=1.0e+0_fp 
-      ELSE
-         W_HOCl=0.0e+0_fp
-         HOClGASFRAC=1.0e+0_fp
+           ! Realistically expect no gas phase removal
+           HOCLGASFRAC=1.0e+0_fp
+          ENDIF
+         ENDIF
       ENDIF
- 
+
       ! Now HBr (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
-      IF (PATMHBr.gt.0.0e+0_fp) THEN
+      W_HBr=0.0e+0_fp
+      HBrGASFRAC=1.0e+0_fp
+      IF (PATMHBr > TNY .AND. M_H2SO4 > TNY ) THEN
          TMP1 = W_HNO3+0.410e+0_fp*W_H2SO4
-         IF ( TMP1 <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
-            TMP2 = LOG(TMP1)
-         ENDIF
-         TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-     &      M_H2SO4+63.012e+0_fp*M_HNO3)
-         IF ( TMP3 > 0.0_fp ) THEN
+         IF ( TMP1 > TNY ) THEN
+           TMP2 = LOG(TMP1)
+           TMP3 = 36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
+     &     M_H2SO4+63.012e+0_fp*M_HNO3)
+           IF ( TMP3 > TNY ) THEN
             TMP4 = LOG(TMP3)
-         ELSE
-            TMP4 = 0.0_fp
+            H_HBr = EXP(-(17.83_fp+1.02_fp*W_HNO3-1.08_fp*W_H2SO4+
+     &       3.9e+0_fp*SQRT(W_HNO3)+4.38e+0_fp*SQRT(W_H2SO4)-8.87e+0_fp*
+     &       W_HNO3**2-17.0e+0_fp*W_HNO3*W_H2SO4+3.73e+0_fp*W_H2SO4**2)-
+     &       1.0e+0_fp/TCENTER*(-8220.5e+0_fp-362.76e+0_fp*
+     &       W_HNO3+658.93e+0_fp*
+     &       W_H2SO4-914.0e+0_fp*SQRT(W_HNO3)-955.3e+0_fp*SQRT(W_H2SO4)+
+     &       9976.6e+0_fp*W_HNO3**2+19778.5e+0_fp*W_HNO3*W_H2SO4+
+     &       7680.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
+            IF ( H_HBr > TNY ) THEN
+             TMP1 = MOLDENS_H2SO4/M_H2SO4
+             TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HBr
+             IF ( TMP1+TMP2 > TNY ) THEN
+              M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/(TMP1+TMP2)
+              W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
+     &              63.012e+0_fp*M_HNO3)
+              PVAP_HBr = M_HBr/H_HBr
+              HBrGASFRAC=1.0e+0_fp-(PATMHBr-PVAP_HBr)/PATMHBr
+             ENDIF
+            ENDIF
+           ENDIF
          ENDIF
-         H_HBr = EXP(-(17.83e+0_fp+1.02e+0_fp*W_HNO3-1.08e+0_fp*W_H2SO4+
-     &      3.9e+0_fp*SQRT(W_HNO3)+4.38e+0_fp*SQRT(W_H2SO4)-8.87e+0_fp*
-     &      W_HNO3**2-17.0e+0_fp*W_HNO3*W_H2SO4+3.73e+0_fp*W_H2SO4**2)-
-     &      1.0e+0_fp/TCENTER*(-8220.5e+0_fp-362.76e+0_fp*
-     &      W_HNO3+658.93e+0_fp*
-     &      W_H2SO4-914.0e+0_fp*SQRT(W_HNO3)-955.3e+0_fp*SQRT(W_H2SO4)+
-     &      9976.6e+0_fp*W_HNO3**2+19778.5e+0_fp*W_HNO3*W_H2SO4+
-     &      7680.0e+0_fp*W_H2SO4**2)-TMP2-TMP4)*(ATM*1e-2_fp)
-!         H_HBr = EXP(-(17.83e+0_fp+1.02e+0_fp*W_HNO3-1.08e+0_fp*W_H2SO4+
-!     &      3.9e+0_fp*SQRT(W_HNO3)+4.38e+0_fp*SQRT(W_H2SO4)-8.87e+0_fp*
-!     &      W_HNO3**2-17.0e+0_fp*W_HNO3*W_H2SO4+3.73e+0_fp*W_H2SO4**2)-
-!     &      1.0e+0_fp/TCENTER*(-8220.5e+0_fp-362.76e+0_fp*
-!     &      W_HNO3+658.93e+0_fp*
-!     &      W_H2SO4-914.0e+0_fp*SQRT(W_HNO3)-955.3e+0_fp*SQRT(W_H2SO4)+
-!     &      9976.6e+0_fp*W_HNO3**2+19778.5e+0_fp*W_HNO3*W_H2SO4+
-!     &      7680.0e+0_fp*W_H2SO4**2)-LOG(W_HNO3+0.410e+0_fp*W_H2SO4)-
-!     &      LOG(36.461e+0_fp/(1000.0e+0_fp+98.076e+0_fp*
-!     &      M_H2SO4+63.012e+0_fp*
-!     &      M_HNO3)))*(ATM*1e-2_fp)
-         IF ( M_H2SO4 <= 0.0_fp ) THEN
-            TMP1 = 0.0_fp
-         ELSE
-            TMP1 = MOLDENS_H2SO4/M_H2SO4
-         ENDIF
-         IF ( H_HBr <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
-            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HBr
-         ENDIF
-         IF ( TMP1==0.0_fp .AND. TMP2==0.0_fp ) THEN
-            M_HBr = 0.0_fp
-         ELSE
-            M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/(TMP1+TMP2)
-         ENDIF
-!         M_HBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHBr)/
-!     &      (MOLDENS_H2SO4/M_H2SO4 + 1.0e+0_fp/R_ATM/TCENTER/H_HBr)
-         W_HBr=M_HBr*80.91e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
-     &      63.012e+0_fp*M_HNO3)
-         IF ( H_HBr <= 0.0_fp ) THEN
-            PVAP_HBr = 0.0_fp
-         ELSE
-            PVAP_HBr = M_HBr/H_HBr
-         ENDIF
-         HBrGASFRAC=1.0e+0_fp-(PATMHBr-PVAP_HBr)/PATMHBr
-      ELSE
-         W_HBr=0.0e+0_fp
-         HBrGASFRAC=1.0e+0_fp
       ENDIF
 
       ! Finally HOBr (Hanson and Ravishankara, Heterogeneous
       ! chemistry of Bromine species in sulfuric acid under
       ! stratospheric conditions, 1995)
-      IF (PATMHOBr.gt.0.0e+0_fp) THEN
+      W_HOBr=0e+0_fp
+      HOBrGASFRAC=1.0e+0_fp
+      IF (PATMHOBr > TNY .and. M_H2SO4 > TNY ) THEN
          ! Hanson and Ravishankara state that the volume-based
          ! Henry's Law coefficient for HOBr in H2SO4 is 10^6 M/atm.
          ! The molality-based Henry's law constant, H_HOBr, is
          ! therefore:
-         IF ( M_H2SO4 <= 0.0_fp ) THEN
-            H_HOBr = 0.0_fp
-         ELSE
-            H_HOBr = (1.0e+6_fp) * MOLDENS_H2SO4 / M_H2SO4
-         ENDIF
-         IF ( M_H2SO4 <= 0.0_fp ) THEN
-            TMP1 = 0.0_fp
-         ELSE
-            TMP1 = MOLDENS_H2SO4/M_H2SO4
-         ENDIF
-         IF ( H_HOBr <= 0.0_fp ) THEN
-            TMP2 = 0.0_fp
-         ELSE
-            TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOBr
-         ENDIF
-         IF ( TMP1 == 0.0_fp .AND. TMP2 == 0.0_fp ) THEN
-            M_HOBr = 0.0_fp
-         ELSE
-            M_HOBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHOBr)/(TMP1 + TMP2)
-         ENDIF
-         W_HOBr = M_HOBr*96.911e+0_fp/(1.0e+3_fp+98.076e+0_fp*M_H2SO4+
+         H_HOBr = (1.0e+6_fp) * MOLDENS_H2SO4 / M_H2SO4
+         IF ( H_HOBr > TNY ) THEN
+          TMP1 = MOLDENS_H2SO4/M_H2SO4
+          TMP2 = 1.0e+0_fp/R_ATM/TCENTER/H_HOBr
+          IF ( TMP1+TMP2 > TNY ) THEN
+           M_HOBr = (1.0e+0_fp/R_ATM/TCENTER*PATMHOBr)/(TMP1+TMP2)
+           W_HOBr = M_HOBr*96.911_fp/(1.0e+3_fp+98.076_fp*M_H2SO4+
      &      63.012e+0_fp*M_HNO3)
-         IF ( H_HOBr <= 0.0_fp ) THEN
-            PVAP_HOBr = 0.0_fp
-         ELSE
-            PVAP_HOBr = M_HOBr/H_HOBr
+           PVAP_HOBr = M_HOBr/H_HOBr
+           HOBrGASFRAC=1.0e+0_fp-(PATMHOBr-PVAP_HOBr)/PATMHOBr
+          ENDIF
          ENDIF
-         HOBrGASFRAC=1.0e+0_fp-(PATMHOBr-PVAP_HOBr)/PATMHOBr
-      ELSE
-         W_HOBr=0e+0_fp
-         HOBrGASFRAC=1.0e+0_fp
       ENDIF
 
       ! Take W_H2O as remainder
       W_H2O = 1.e+0_fp-(W_H2SO4+W_HNO3+W_HCl+W_HOCl+W_HBr+W_HOBr)
 
-      ! restrict values to range that prevents invalids (12/29/17)
-      IF ( M_H2SO4 < 1.0e-30_fp ) M_H2SO4 = 0.0_fp
-      IF ( M_HNO3  < 1.0e-30_fp ) M_HNO3  = 0.0_fp
-
       ! Aerosol mass density in kg/m3 aerosol
       SLA_RHO = CARSLAW_DENSITY(M_H2SO4,M_HNO3,TCENTER)
 
       ! Aerosol volume in m3/m3 air
-      IF ( W_H2SO4 == 0.0_fp .OR. SLA_RHO == 0.0_fp ) THEN
+      IF ( W_H2SO4 < TNY .OR. SLA_RHO < TNY ) THEN
          SLA_VOL = 0.0_fp
       ELSE
          SLA_VOL = (MOLDENS_H2SO4*98.076e+0_fp/W_H2SO4/SLA_RHO)*1.e-3_fp
