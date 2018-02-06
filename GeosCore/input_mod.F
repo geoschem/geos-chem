@@ -1492,6 +1492,14 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LSULF
 
+      ! Use metal catalyzed oxidation of SO2?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LMETALCATSO2', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%LMETALCATSO2
+
       ! Use online carbon aerosols? 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCARB', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1686,16 +1694,17 @@
       ! Turn off switches for simulations that don't use aerosols
       IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
      &     ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
-         Input_Opt%LSULF  = .FALSE.
-         Input_Opt%LCARB  = .FALSE.
-         Input_Opt%LBRC   = .FALSE.
-         Input_Opt%LSOA   = .FALSE.
-         Input_Opt%LDUST  = .FALSE.
-         Input_Opt%LSSALT = .FALSE.
-         Input_Opt%LMPOA  = .FALSE.
-         Input_Opt%LSVPOA = .FALSE.
-         Input_Opt%LOMOC  = .FALSE.
-         Input_Opt%LBCAE  = .FALSE.
+         Input_Opt%LSULF        = .FALSE.
+         Input_Opt%LMETALCATSO2 = .FALSE.
+         Input_Opt%LCARB        = .FALSE.
+         Input_Opt%LBRC         = .FALSE.
+         Input_Opt%LSOA         = .FALSE.
+         Input_Opt%LDUST        = .FALSE.
+         Input_Opt%LSSALT       = .FALSE.
+         Input_Opt%LMPOA        = .FALSE.
+         Input_Opt%LSVPOA       = .FALSE.
+         Input_Opt%LOMOC        = .FALSE.
+         Input_Opt%LBCAE        = .FALSE.
       ENDIF
 
       ! Return success
@@ -1709,6 +1718,8 @@
          WRITE( 6, '(  a)' ) '------------'
          WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', 
      &                        Input_Opt%LSULF
+         WRITE( 6, 100     ) 'Metal catalyzed SO2 ox.?    : ',
+     &                        Input_Opt%LMETALCATSO2
          WRITE( 6, 100     ) 'Online CARBON AEROSOLS?     : ',
      &                        Input_Opt%LCARB
          WRITE( 6, 100     ) 'Brown Carbon Aerosol?       : ',

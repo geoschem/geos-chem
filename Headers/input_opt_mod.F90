@@ -107,6 +107,7 @@ MODULE Input_Opt_Mod
      ! AEROSOL MENU fields
      !----------------------------------------
      LOGICAL                     :: LSULF              
+     LOGICAL                     :: LMETALCATSO2
      LOGICAL                     :: LCARB
      LOGICAL                     :: LBRC              
      LOGICAL                     :: LSOA
@@ -787,6 +788,7 @@ CONTAINS
     ALLOCATE( Input_Opt%SALC_REDGE_um( 2 ), STAT=RC )     
     
     Input_Opt%LSULF                  = .FALSE.
+    Input_Opt%LMETALCATSO2           = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
     Input_Opt%LBRC                   = .FALSE.
     Input_Opt%LSOA                   = .FALSE.

@@ -3594,7 +3594,7 @@ CONTAINS
                               Name          = NameAllCaps,                  &
                               FullName      = 'Anthropogenic iron',         &
                               Formula       = 'Fe',                         &
-                              MW_g          = 55.9_fp,                      &
+                              MW_g          = 55.85_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &

@@ -3172,88 +3172,108 @@
             ! Store the cloud pH
             pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
 
-            ! Get concentrations for metal cat pathway [v/v -> ng/m3]
+            IF ( Input_Opt%LMETALCATSO2 ) THEN
+
+               !--------------------------------------------------------
+               ! Metal catalyzed oxidation of SO2 pathway
+               !--------------------------------------------------------
+
+               ! Get dust concentrations [v/v -> ng/m3]
 #if defined( TOMAS )
-            ! TOMAS uses its own dust tracers and does not
-            ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
-            DUST = 0e+0_fp
+               ! TOMAS uses its own dust tracers and does not
+               ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
+               DUST = 0e+0_fp
 #else
-            DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
-     &               Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
-     &               1.e+12_fp * State_Met%AD(I,J,L)
-     &               / ( AIRMW 
-     &                 / State_Chm%SpcData(id_DST1)%Info%emMW_g )
-     &               / State_Met%AIRVOL(I,J,L)
-#endif
-
-            ! Calculate Fe and Mn natural [ng m-3]
-            ! Assume that Fe is 3.5% of total dust mass based on
-            ! Taylor and McLennan [1985]
-            Fe_nat = DUST * 35e-3_fp
-            ! and Mn is 50 times less than Fe based on Desbouefs et al. [2005]
-            Mn_nat = Fe_nat / 50e+0_fp
-
-            ! Anthropogenic Fe concentrations [v/v -> ng/m3]
-            IF ( id_pFe > 0 ) THEN
-               Fe_ant = Spc(I,J,L,id_pFe) *
+               DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
+     &                  Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
      &                  1.e+12_fp * State_Met%AD(I,J,L)
      &                  / ( AIRMW 
-     &                    / State_Chm%SpcData(id_pFe)%Info%emMW_g )
+     &                    / State_Chm%SpcData(id_DST1)%Info%emMW_g )
      &                  / State_Met%AIRVOL(I,J,L)
-            ELSE
-               Fe_ant = 0e+0_fp
-            ENDIF
+#endif
 
-            ! Calculate Mn anthropogenic [ng m-3]
-            ! assume anthropogenic Mn is 1/30 times anthropogenic Fe
-            Mn_ant = Fe_ant / 10e+0_fp
+               ! Calculate Fe and Mn natural [ng m-3]
+               ! Assume that Fe is 3.5% of total dust mass based on
+               ! Taylor and McLennan [1985]
+               Fe_nat = DUST * 35e-3_fp
+               ! and Mn is 50 times less than Fe based on Desbouefs et al.[2005]
+               Mn_nat = Fe_nat / 50e+0_fp
 
-            ! Calculate total Mn and Fe [ng m-3]
-            Mn_tot = Mn_ant + Mn_nat
-            Fe_tot = Fe_ant + Fe_nat
-
-            ! Convert Mn and Fe [ng m-3] to [mole l-1]
-
-            ! Assume that 50% of Mn is dissolved [Spokes et al., 1994]
-            IF ( LWC > 0e+0_fp ) THEN
-               ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3 / L)
-               Mn_d = Mn_tot * 1e-9_fp / 54.94e+0_fp / LWC * 1e-3_fp
-               Mn_d = Mn_d * 0.5e+0_fp
-            ELSE
-               Mn_d = 0e+0_fp
-            ENDIF
-
-            ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
-            IF ( LWC > 0e+0_fp ) THEN
-               Fe_d_ant = Fe_ant * 1e-9_fp / 55.85e+0_fp / LWC * 1e-3_fp
-               Fe_d_nat = Fe_nat * 1e-9_fp / 55.85e+0_fp / LWC * 1e-3_fp
-               Fe_d     = Fe_d_ant * 0.1e+0_fp + Fe_d_nat * 0.01e+0_fp
-            ELSE
-               Fe_d     = 0e+0_fp
-            ENDIF
-
-            ! Impose a dependence of Fe speciation on sunlight
-            IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
-     &           Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-               IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
-                  ! Assume 10% of dissolved Fe is in Fe(III)
-                  !oxidation state during the daytime
-                  FeIII = Fe_d * 0.1e+0_fp
+               ! Anthropogenic Fe concentrations [v/v -> ng/m3]
+               IF ( id_pFe > 0 ) THEN
+                  Fe_ant = Spc(I,J,L,id_pFe) *
+     &                     1.e+12_fp * State_Met%AD(I,J,L)
+     &                     / ( AIRMW 
+     &                       / State_Chm%SpcData(id_pFe)%Info%emMW_g )
+     &                     / State_Met%AIRVOL(I,J,L)
                ELSE
-                  ! Assume 90% of dissolved Fe is in Fe(III)
-                  ! oxidation state during the nighttime
-                  FeIII = Fe_d * 0.9e+0_fp
+                  Fe_ant = 0e+0_fp
                ENDIF
-            ELSE
-               !--------------------
-               ! Invalid simulation
-               !--------------------
-               CALL ERROR_STOP( 'Invalid NSRCX!','CHEM_SO2')
-            ENDIF
 
-            ! Assume that dissolved Mn is in Mn(II) oxidation state all of
-            ! the time
-            MnII = Mn_d
+               ! Calculate Mn anthropogenic [ng m-3]
+               ! assume anthropogenic Mn is 1/30 times anthropogenic Fe
+               Mn_ant = Fe_ant / 10e+0_fp
+
+               ! Calculate total Mn and Fe [ng m-3]
+               Mn_tot = Mn_ant + Mn_nat
+               Fe_tot = Fe_ant + Fe_nat
+
+               ! Convert Mn and Fe [ng m-3] to [mole l-1]
+
+               ! Assume that 50% of Mn is dissolved [Spokes et al., 1994]
+               ! Hardcoded MW for Mn
+               IF ( LWC > 0e+0_fp ) THEN
+                  ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
+                  Mn_d = Mn_tot * 1e-9_fp / 54.94e+0_fp / LWC * 1e-3_fp
+                  Mn_d = Mn_d * 0.5e+0_fp
+               ELSE
+                  Mn_d = 0e+0_fp
+               ENDIF
+
+               ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
+               IF ( LWC > 0e+0_fp ) THEN
+                  Fe_d_ant = Fe_ant * 1e-9_fp /
+     &                       State_Chm%SpcData(id_pFe)%Info%emMW_g /
+     &                       LWC * 1e-3_fp
+                  Fe_d_nat = Fe_nat * 1e-9_fp /
+     &                       State_Chm%SpcData(id_pFe)%Info%emMW_g /
+     &                       LWC * 1e-3_fp
+                  Fe_d     = Fe_d_ant * 0.1e+0_fp +
+     &                       Fe_d_nat * 0.01e+0_fp
+               ELSE
+                  Fe_d     = 0e+0_fp
+               ENDIF
+
+               ! Impose a dependence of Fe speciation on sunlight
+               IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &              Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+                  IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
+                     ! Assume 10% of dissolved Fe is in Fe(III)
+                     !oxidation state during the daytime
+                     FeIII = Fe_d * 0.1e+0_fp
+                  ELSE
+                     ! Assume 90% of dissolved Fe is in Fe(III)
+                     ! oxidation state during the nighttime
+                     FeIII = Fe_d * 0.9e+0_fp
+                  ENDIF
+               ELSE
+                  !--------------------
+                  ! Invalid simulation
+                  !--------------------
+                  CALL ERROR_STOP( 'Invalid NSRCX !','CHEM_SO2')
+               ENDIF
+
+               ! Assume that dissolved Mn is in Mn(II) oxidation state all of
+               ! the time
+               MnII = Mn_d
+
+            ELSE
+
+               ! Set Fe and Mn concentrations to zero
+               FeIII = 0.0e+0_fp
+               MnII  = 0.0e+0_fp
+
+            ENDIF
 
             ! Compute aqueous rxn rates for SO2
             CALL AQCHEM_SO2( LWC,     TK,    PATM,    SO2_ss, H2O20, 
@@ -3363,23 +3383,34 @@
                ENDIF
             ENDIF 
 
-            !----------------------------------------------------------
-            ! Compute loss by O2.  I did not do what Jintai Lin did
-            ! above for the other aqueous-phase reactions because it
-            ! doesn't make sense for this reaction (bec, 7/7/15)
-            !----------------------------------------------------------
+            IF ( Input_Opt%LMETALCATSO2 ) THEN
 
-            ! Argument of the exponential
-            XX = -KaqO2 * DTCHEM
+               !--------------------------------------------------------
+               ! Metal catalyzed oxidation of SO2 pathway
+               !
+               ! Compute loss by O2.  I did not do what Jintai Lin did
+               ! above for the other aqueous-phase reactions because it
+               ! doesn't make sense for this reaction (bec, 7/7/15)
+               !----------------------------------------------------------
 
-            IF ( IS_SAFE_EXP( XX ) ) THEN
-               ! Aqueous phase SO2 loss rate w/ O2 [v/v/timestep]
-               L4  = EXP( XX )
+               ! Argument of the exponential
+               XX = -KaqO2 * DTCHEM
 
-               ! Loss by O2
-               L4S = SO2_ss * (1.e+0_fp - L4)
+               IF ( IS_SAFE_EXP( XX ) ) THEN
+                  ! Aqueous phase SO2 loss rate w/ O2 [v/v/timestep]
+                  L4  = EXP( XX )
+
+                  ! Loss by O2
+                  L4S = SO2_ss * (1.e+0_fp - L4)
+               ELSE
+                  L4S = SO2_ss
+               ENDIF
+
             ELSE
-               L4S = SO2_ss
+
+               ! Set loss by O2 to zero
+               L4S = 0.0e+0_fp
+
             ENDIF
 
             !----------------------------------------------------------
