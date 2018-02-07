@@ -2074,7 +2074,9 @@
          ! Set State_Diag arrays that rely on state at end of timestep
          CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,  
      &                                       State_Met,  State_Chm, 
-     &                                       State_Diag, RC )
+     &                                       State_Diag, RC         )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in ' // 
      &               '"Set_Diagnostics_EndOfTimestep"!'

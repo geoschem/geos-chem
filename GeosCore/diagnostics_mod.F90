@@ -898,9 +898,8 @@ CONTAINS
        ! AerMassSOAGX [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSOAGX ) THEN
-          State_Diag%AerMassSOAGX(I,J,L)    = Spc(I,J,L,id_SOAGX)            &
-                                            * kgm3_to_ugm3                   &
-                                            / AirVol(I,J,L)
+          State_Diag%AerMassSOAGX(I,J,L)    = SOAGX(I,J,L)                   &
+                                            * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
@@ -922,12 +921,11 @@ CONTAINS
        ENDIF
 
        !--------------------------------------
-       ! AerMassSOAME [ug/m3]
+       ! AerMassSOAMG [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSOAMG ) THEN
-          State_Diag%AerMassSOAMG(I,J,L)    = Spc(I,J,L,id_SOAMG)            &
-                                            * kgm3_to_ugm3                   &
-                                            / AirVol(I,J,L)
+          State_Diag%AerMassSOAMG(I,J,L)    = SOAMG(I,J,L)                   &
+                                            * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
@@ -942,16 +940,14 @@ CONTAINS
        ! BetaNO [ug C/m3]
        !--------------------------------------
        IF ( Archive_BetaNO ) THEN
-          State_Diag%BetaNO(I,J,L)          = BetaNOsave(I,J,L)              &
-                                            * kgm3_to_ugm3
+          State_Diag%BetaNO(I,J,L)          = BetaNOsave(I,J,L)
        ENDIF
-
 
        !--------------------------------------
        ! PM25 [ug/m3]
        !--------------------------------------
        IF ( Archive_BetaNO ) THEN
-          State_Diag%BetaNO(I,J,L)          = PM25(I,J,L)                    &
+          State_Diag%PM25(I,J,L)            = PM25(I,J,L)                    &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -1033,8 +1029,9 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    Spc      => State_Chm%Species
-    AirVol   => State_Met%AIRVOL
+    ! Free pointers
+    Spc      => NULL()
+    AirVol   => NULL()
 
     !=======================================================================
     ! Convert species units to [kg] for this routine

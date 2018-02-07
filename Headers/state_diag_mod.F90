@@ -1282,7 +1282,7 @@ CONTAINS
        ! Aerosol mass of ISN10A [ug/m3]
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassISN1OA'
-       diagID  = 'AerMassISN10A'
+       diagID  = 'AerMassISN1OA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -4153,6 +4153,11 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSISN1OA' ) THEN
        IF ( isDesc    ) Desc  = 'Mass of aerosol-phase 2nd generation hydroxynitrates formed from ISOP+NO3 reaction pathway'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSISOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Mass of aerosol products of isoprene oxidation'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
