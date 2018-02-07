@@ -20,7 +20,7 @@
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-      USE DIAG_MOD,       ONLY : AD44b, AD_RA
+      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
@@ -1812,7 +1812,11 @@
                WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
                RAKT = 0.0e+0_f8
             ENDIF
+            ! Store Ra for diagnostic
             AD_RA(I,J) = RAKT
+            ! Store z/L to determine if M/O theory applies
+            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
+            
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.

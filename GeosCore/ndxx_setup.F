@@ -810,6 +810,10 @@
 
 	 ALLOCATE( AD_RA(IIPAR, JJPAR), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_RA')
+
+	 ALLOCATE( AD_ZL(IIPAR, JJPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_ZL')
+
 #endif
       ENDIF
       

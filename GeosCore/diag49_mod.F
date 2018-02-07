@@ -204,7 +204,7 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
-      USE DIAG_MOD,           ONLY : AD44b, AD_RA
+      USE DIAG_MOD,           ONLY : AD44b, AD_RA, AD_ZL
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -1671,10 +1671,16 @@
                I = GET_I( X )
                TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
      &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
-
+               
                CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
                IF (CONV .lt. 0) CONV = 1.0
-               Q(X,Y,1)= CONV *TMPO3*1E9
+               ! Case where Monin-Obhukov similarity does not apply
+               ! and the correction is not valid
+               IF (AD_ZL(I,J) .gt. 1) THEN
+                  Q(X,Y,1) = -999e+0_fp
+               ELSE
+                  Q(X,Y,1)= CONV *TMPO3*1e+9_fp
+               ENDIF
                
             ENDDO
             ENDDO

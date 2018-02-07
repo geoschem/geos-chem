@@ -124,7 +124,8 @@
       REAL*4,  ALLOCATABLE :: AD44b(:,:,:)
       ! For aerodynamic resistance (krt, 11/2017)
       REAL*4,  ALLOCATABLE :: AD_RA(:,:)
-
+      ! For test of M/O theory applicability (krt, 02/2018)
+      REAL*4,  ALLOCATABLE :: AD_ZL(:,:)
       ! For ND45 -- Tracer concentration diagnostic
       REAL*4,  ALLOCATABLE :: AD45(:,:,:,:)
       INTEGER, ALLOCATABLE :: LTOTH(:,:)
