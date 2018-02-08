@@ -1099,7 +1099,6 @@
          ! (thackray, 1/31/2018) Should just use COMPUTE_L2G
          Kstar = K0 * EXP( Hg2CR * ( ( 1e0_fp / T(I,J,L) ) 
      &        - ( 1e0_fp/298e0_fp ) ) )
-         Kstar = K0
          Faq  = ( Kstar * R_DRY * T(I,J,L) * LWC )
          Faq  = Faq / ( 1e+0_fp + Faq )
 
