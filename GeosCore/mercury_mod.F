@@ -1320,15 +1320,10 @@
             ! can write to the diagnostic arrays. (bmy, 4/20/16)
             !=================================================================
 !$OMP CRITICAL
-            IF ( LDYNOCEAN ) THEN
-               ! This should maybe happen whether LDYNOCEAN or not
-               ! Archive dry deposited Hg2 for Hg category # N
-               CALL ADD_Hg2_DD( I, J, N, DEP_Hg2G )
-
-               ! Archive dry-deposited HgP for Hg category # N
-               CALL ADD_HgP_DD( I, J, N, DEP_Hg2P )
-            ENDIF           
-            
+            ! Archive dry-deposited Hg2
+            CALL ADD_Hg2_DD( I, J, N, DEP_Hg2G )
+            ! Archive dry-deposited HgP for Hg category # N
+            CALL ADD_HgP_DD( I, J, N, DEP_Hg2P )
             
             ! Add deposited Hg(II) to the snowpack
             IF ( LHGSNOW ) THEN
