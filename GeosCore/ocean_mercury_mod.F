@@ -1927,6 +1927,14 @@
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
+!-----------------------------------------------------------------------------
+! Prior to 9/19/16:
+! We need to wrap the NN == ID_Hg_Tot in parentheses, which will cast it to
+! LOGICAL type.  We also need to add the condition ( ND03 > 0 ), which will
+! evaluate to LOGICAL.  Gfortran will choke unless both arguments to AND are 
+! of type LOGICAL. (bmy, 9/19/16)
+!                  IF ( ND03 .and. NN == ID_Hg_tot )
+!-----------------------------------------------------------------------------
                   IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) )
      &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
      &                                A_M2 * DTSRCE * FRAC_O
@@ -3584,8 +3592,27 @@
       !-----------------------------------------------------------------
       ! Exit if you are not using the dynamic ocean
       !-----------------------------------------------------------------
-      IF ( .not. Input_Opt%LDYNOCEAN ) RETURN
+      IF ( .not. Input_Opt%LDYNOCEAN ) THEN
+         ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
+         Hg0aq = 0e+0_fpp
+
+         ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
+         Hg2aq = 0e+0_fpp
+
+         !     eds 8/31/10 Added NN to HgPaq throughout module
+         ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+         HgPaq = 0e+0_fpp
+
+         !eds 5/15/12 fix
+         ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
+         HgPaq = 0e+0_fpp
       
+         RETURN
+      ENDIF
       !-----------------------------------------------------------------
       ! These variables are only needed for the dynamic ocean option
       !-----------------------------------------------------------------
