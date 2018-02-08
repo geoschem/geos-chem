@@ -288,19 +288,19 @@
       ! These need to be declared REAL(f4), aka REAL*4.
       ! (NOTE: We can set them to NULL here because 
       ! they are globally SAVEd variables (bmy, 4/29/16)
-      REAL(f4), POINTER :: O3(:,:,:) => NULL()
-      REAL(f4), POINTER :: OH_trop(:,:,:) => NULL()
-      REAL(f4), POINTER :: OH_strat(:,:,:) => NULL()
-      REAL(f4), POINTER :: JNO2(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_NO2(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_NO(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_HOCl(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_HO2_trop(:,:,:) => NULL()
+      REAL(f4), POINTER :: O3(:,:,:)            => NULL()
+      REAL(f4), POINTER :: OH_trop(:,:,:)       => NULL()
+      REAL(f4), POINTER :: OH_strat(:,:,:)      => NULL()
+      REAL(f4), POINTER :: JNO2(:,:,:)          => NULL()
+      REAL(f4), POINTER :: HEM_NO2(:,:,:)       => NULL()
+      REAL(f4), POINTER :: HEM_NO(:,:,:)        => NULL()
+      REAL(f4), POINTER :: HEM_HOCl(:,:,:)      => NULL()
+      REAL(f4), POINTER :: HEM_HO2_trop(:,:,:)  => NULL()
       REAL(f4), POINTER :: HEM_HO2_strat(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_CLO(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_CL(:,:,:) => NULL()
-      REAL(f4), POINTER :: HEM_OA(:,:,:) => NULL()
-      REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+      REAL(f4), POINTER :: HEM_CLO(:,:,:)       => NULL()
+      REAL(f4), POINTER :: HEM_CL(:,:,:)        => NULL()
+      REAL(f4), POINTER :: HEM_OA(:,:,:)        => NULL()
+      REAL(f4), POINTER :: OCEAN_CONC(:,:,:)    => NULL()
 
       ! Hg species IDs
       INTEGER           :: N_Hg_CATS
@@ -531,11 +531,10 @@
       REAL(fp)           :: C_OH, C_O3, C_BR, C_BRO, C_HOCL
       REAL(fp)           :: C_NO2, C_OA, C_HO2, C_CLO, C_CL
       REAL(fp)           :: K_OH, K_O3, K_BR, K_BRO
-      REAL(fp)           :: K_CLY(3), K_CL, K_R1CL, K_R2CL
+      REAL(fp)           :: K_CL, K_R1CL, K_R2CL
       REAL(fp)           :: K_BR2, K_BROH, K_BRHO2, K_BRNO2, K_BRCLO
       REAL(fp)           :: K_BRBRO, K_BRCL, K_R1, K_R2, K_R2A, K_R3ANO2
       REAL(fp)           :: K_AQ_OX(3), K_HOCL, K_OH_AQ, K_O3_AQ
-      REAL(fp)           :: K_BRY(11)
       REAL(fp)           :: K_OX, K_RED, K_DEP0, K_DEP2G, K_DEP2P
       REAL(fp)           :: DEP_Hg0, DEP_HG2G, DEP_HG2P, K_RED2P
       REAL(fp)           :: DEP_HG2G_DRY, DEP_HG2G_SALT, DEP_HG2P_DRY
@@ -548,9 +547,10 @@
       REAL(fp)           :: F_HG0_DEP
       REAL(fp)           :: DTCHEM, DT
       REAL(fp)           :: KMAX
+      REAL(fp)           :: K0, R_DRY, RH3, Kstar, Hg2CR, TPL
       REAL(fp)           :: A(9,9), Xold(9), Xnew(9)
       REAL(fp)           :: s1(9), s2(9), s3(9), s4(9)
-      REAL(fp)           :: K0, R_DRY, RH3, Kstar, Hg2CR, TPL
+      REAL(fp)           :: K_BRY(11), K_CLY(3)
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -617,36 +617,6 @@
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp*1.3
 #endif
 
-!!!#if defined( GRID4x5 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.5e+0_fp
-!!!#elif defined( GRID2x25 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp * 1.5e+0_fp
-!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
-!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 * 1.5e+0_fp
-!!!#else
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp  * 1.5e+0_fp
-!!!#endif   
-!!!#else
-!!!#if defined( GRID4x5 )
-!!!      !REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5d-3 / 2e+0_fp ! ref: Amos et al. (2011)
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp ! yzh, consider cloud fraction 
-!!!#elif defined( GRID2x25 )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 3.5e-3_fp/2e+0_fp
-!!!#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      !%%% Bob Y. used same value as for GRID05x0666             %%%
-!!!      !%%% Team Hg needs to supply a better value (bmy, 8/12/15) %%%
-!!!      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
-!!!#elif defined( GRID05x0666 ) && defined( NESTED_NA )
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp * 1.33 ! yzh
-!!!#else
-!!!      REAL(fp), PARAMETER     :: K_RED_JNO2 = 6.4e-3_fp        ! yzh, need tune 
-!!!#endif   
-!!!#endif   
-
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
       ! DonohoueYBBalabanov used by Holmes et al. 2010
@@ -677,7 +647,7 @@
       SpcInfo => State_Chm%SpcData(id_Hg2)%Info
 
       ! Get Henry's Law constant for Hg2 [mol/L/atm] (ewl, 1/5/16)
-      K0 = SpcInfo%Henry_K0
+      K0    = SpcInfo%Henry_K0
       Hg2CR = SpcInfo%Henry_CR
 
       ! Calculate dry air gas constant in [L atm/K/mol] (ewl, 1/5/16)
@@ -721,51 +691,58 @@
             CALL ERROR_STOP ('Cannot get pointerto GLOBAL_OH_strat',LOC)
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', O3,  RC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', 
+     &        O3,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2',HEM_NO2, RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
+     &        HEM_NO2, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO2', LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO',HEM_NO, RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO', 
+     &        HEM_NO, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO', LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HOCl',HEM_HOCL,RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HOCl', 
+     &        HEM_HOCL, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_HOCl', LOC )
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_trop',
-     &        HEM_HO2_trop, RC)
+     &        HEM_HO2_trop, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_HO2_trop', 
      &           LOC )
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_strat',
-     &        HEM_HO2_strat, RC)
+     &        HEM_HO2_strat, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_HO2_strat', 
      &           LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_ClO',HEM_CLO, RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_ClO',
+     &        HEM_CLO, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_ClO', LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_Cl',HEM_CL, RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_Cl',
+     &        HEM_CL, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_Cl', LOC )
          ENDIF
 
-         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_OA',HEM_OA, RC)
+         CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_OA',
+     &        HEM_OA, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OA', LOC )
          ENDIF
@@ -887,15 +864,15 @@
          ! Deposition occurs over areas that are not ocean, snow or ice
          ! (jaf, 4/26/11)
          F_Hg0_Dep = 1e+0_fp - MAX( 0e+0_fp, MIN( 1e+0_fp, 
-     &        State_Met%FROCEAN(I,J) + 
-     &        State_Met%FRSNO(I,J) + 
-     &        State_Met%FRLANDIC(I,J) ) )
+     &          State_Met%FROCEAN(I,J)  
+     &        + State_Met%FRSNO(I,J)  
+     &        + State_Met%FRLANDIC(I,J) ) )
 #elif defined( GEOS_5 )
          ! Deposition disabled for entire box if it is ocean, ice
          ! or land with more than 10 mm water-equivalent snow depth
          IF ( (State_Met%LWI(I,J) == 0) .OR. 
-     &        (IS_ICE(I,J, State_Met)) .OR. 
-     &        (IS_LAND(I,J, State_Met) .AND.
+     &        (IS_ICE(I,J, State_Met))  .OR. 
+     &        (IS_LAND(I,J, State_Met)  .AND.
      &        State_Met%SNOMAS(I,J) > 10e+0_fp) ) THEN
             F_Hg0_Dep = 0e+0_fp
          ENDIF
@@ -903,8 +880,8 @@
          ! Deposition disabled for entire box if it is ocean, ice
          ! or land with more than 10 mm water-equivalent snow depth
          IF ( (State_Met%LWI(I,J) == 0) .OR. 
-     &        (IS_ICE(I,J, State_Met)) .OR. 
-     &        (IS_LAND(I,J, State_Met) .AND. 
+     &        (IS_ICE(I,J, State_Met))  .OR. 
+     &        (IS_LAND(I,J, State_Met)  .AND. 
      &        State_Met%SNOW(I,J) > 10e+0_fp) ) THEN
             F_Hg0_Dep = 0e+0_fp
          ENDIF                 
@@ -937,12 +914,12 @@
          C_OH        = GET_OH( I, J, L,        State_Met )
          C_BR        = GET_BR_OLD( I, J, L, C_BRO, State_Met )
          C_NO2       = GET_NO2( I, J, L, State_Met, HEM_NO(I,J,L),
-     &        HEM_NO2(I,J,L), C_O3)
+     &        HEM_NO2(I,J,L), C_O3 )
          C_HO2       = GET_HO2( I, J, L, State_Met )
          C_CLO       = GET_CLO( I, J, L, State_Met )
          C_CL        = GET_CL( I, J, L, State_Met )
          C_HOCL      = GET_HOCl( I, J, L, State_Met )
-         C_OA        = HEM_OA( I, J, L)
+         C_OA        = HEM_OA( I, J, L )
          TPL = GET_TPAUSE_LEVEL( I, J, State_Met )
 
          IF ( L >= TPL ) THEN
@@ -976,13 +953,12 @@
          ENDIF
 
          ! Oxidation rate by Cl-initiated oxidation                            
-         !     hmh 8/10/15 adding Br here                                      
          LCLCHEM = .TRUE.
 
          IF (LCLCHEM) THEN
             K_CLY = GET_HGCL_RATE( C_CL, C_OH, C_HO2,
      &              C_NO2, C_CLO, C_BRO, C_BR,
-     &              T(I,J,L), State_Met%PMID_DRY(I,J,L) ) ! ADD THIS IN       
+     &              T(I,J,L), State_Met%PMID_DRY(I,J,L) )
             K_R1CL = K_CLY(2)
             K_R2CL = K_CLY(3)
             K_CL = K_CLY(1)
@@ -999,13 +975,13 @@
          IF (LHGAQCHEM) THEN
             K_AQ_OX = GET_HGAQ_RATE(I,J,L,C_BR, C_OH, C_O3, C_HOCL,
      &              T(I,J,L), State_Met%PMID_DRY(I,J,L), State_Met )
-            K_HOCL = K_AQ_OX(1)
+            K_HOCL  = K_AQ_OX(1)
             K_OH_AQ = K_AQ_OX(2)
             K_O3_AQ = K_AQ_OX(3)
 
          ELSE
             K_AQ_OX = 0e0_fp
-            K_HOCL = 0e0_fp
+            K_HOCL  = 0e0_fp
             K_OH_AQ = 0e0_fp
             K_O3_AQ = 0e0_fp
          ENDIF
@@ -1017,38 +993,38 @@
             K_BRY = GET_HGBRY_RATE( C_BR, C_OH, C_NO2,
      &             C_HO2, C_CLO, C_BRO, C_CL,
      &             T(I,J,L), State_Met%PMID_DRY(I,J,L) )
-            K_BR2   = K_BRY(1)
-            K_BROH  = K_BRY(2)
-            K_BRHO2 = K_BRY(3)
-            K_BRNO2 = K_BRY(4)
-            K_BRCLO = K_BRY(5)
-            K_BRBRO = K_BRY(6)
-            K_BRCL  = K_BRY(7)
+            K_BR2    = K_BRY(1)
+            K_BROH   = K_BRY(2)
+            K_BRHO2  = K_BRY(3)
+            K_BRNO2  = K_BRY(4)
+            K_BRCLO  = K_BRY(5)
+            K_BRBRO  = K_BRY(6)
+            K_BRCL   = K_BRY(7)
             ! The following rates for diagnostic purposes:
-            K_R1    = K_BRY(8)
-            K_R2    = K_BRY(9)
-            K_R2A   = K_BRY(10)
-            K_R3ANO2= K_BRY(11)
+            K_R1     = K_BRY(8)
+            K_R2     = K_BRY(9)
+            K_R2A    = K_BRY(10)
+            K_R3ANO2 = K_BRY(11)
 
          ELSE
-            K_BR2   = 0e+0_fp
-            K_BROH  = 0e+0_fp
-            K_BRHO2 = 0e+0_fp
-            K_BRNO2 = 0e+0_fp
-            K_BRCLO = 0e+0_fp
-            K_BRBRO = 0e+0_fp
-            K_BRCL  = 0e+0_fp
-            K_R1    = 0e+0_fp
-            K_R2    = 0e+0_fp
-            K_R2A   = 0e+0_fp
-            K_R3ANO2= 0e+0_fp
+            K_BR2    = 0e+0_fp
+            K_BROH   = 0e+0_fp
+            K_BRHO2  = 0e+0_fp
+            K_BRNO2  = 0e+0_fp
+            K_BRCLO  = 0e+0_fp
+            K_BRBRO  = 0e+0_fp
+            K_BRCL   = 0e+0_fp
+            K_R1     = 0e+0_fp
+            K_R2     = 0e+0_fp
+            K_R2A    = 0e+0_fp
+            K_R3ANO2 = 0e+0_fp
          ENDIF
          
          ! Total oxidation rate, 1/s
-         K_OX = K_O3 + K_OH + K_BR + K_BRO + K_BR2 + K_BROH +
-     &        K_BRHO2 + K_BRNO2 + K_BRCLO + K_BRCL + K_HOCL +
-     &        K_OH_AQ + K_O3_AQ + K_CL + K_BRBRO
-
+         K_OX =   K_O3    + K_OH    + K_BR    + K_BRO  + K_BR2 
+     &          + K_BRHO2 + K_BRNO2 + K_BRCLO + K_BRCL + K_HOCL
+     &          + K_OH_AQ + K_O3_AQ + K_CL    + K_BRBRO
+     &          + K_BROH 
          !---------------------------------------------
          ! Reduction rate (requires liquid water content)
          !---------------------------------------------
@@ -1096,9 +1072,9 @@
          ! [dimensionless]
 
          ! Make partitioning to water temperature-dependent
-         ! (thackray, 1/31/2018) Should just use COMPUTE_L2G
+         ! (cpt, 1/31/2018) Should just use COMPUTE_L2G
          Kstar = K0 * EXP( Hg2CR * ( ( 1e0_fp / T(I,J,L) ) 
-     &        - ( 1e0_fp/298e0_fp ) ) )
+     &        - ( 1e0_fp / 298e0_fp ) ) )
          Faq  = ( Kstar * R_DRY * T(I,J,L) * LWC )
          Faq  = Faq / ( 1e+0_fp + Faq )
 
@@ -1124,13 +1100,15 @@
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
             ! Reduction happens to aqueous fraction of Hg2
-            K_RED = K_RED_JNO2 * Faq * GET_JNO2(I,J,L,State_Met) *
-     &           C_OA
+            K_RED = K_RED_JNO2 * Faq 
+     &           * GET_JNO2( I, J, L, State_Met ) 
+     &           * C_OA
 
             IF (RH3 > 35.0e0_fp) THEN
                ! Reduction of HgP (35% RH is for presence of water)
-               K_RED2P = K_RED_JNO2 * GET_JNO2(I,J,L,State_Met) *
-     &              C_OA
+               K_RED2P = K_RED_JNO2 
+     &              * GET_JNO2( I, J, L, State_Met ) 
+     &              * C_OA
             ELSE
                K_RED2P = 0e0_fp
             ENDIF
@@ -1149,8 +1127,8 @@
          
          ! Round very small K_OX, K_RED to prevent numerical errors
          ! (jaf, cdh, 11/17/11)
-         IF ( K_OX  < 1e-10_fp ) K_OX  = 0e+0_fp
-         IF ( K_RED < 1e-10_fp ) K_RED = 0e+0_fp
+         IF ( K_OX  < 1e-10_fp )   K_OX    = 0e+0_fp
+         IF ( K_RED < 1e-10_fp )   K_RED   = 0e+0_fp
          IF ( K_RED2P < 1e-10_fp ) K_RED2P = 0e+0_fp
 
          !==============================================================
@@ -1190,16 +1168,16 @@
          A(:,:) = 0e+0_fp
             
          ! Row 1: d(Hg0)/dt = -(K_OX+K_DEP0) * Hg0 + K_RED * (Hg2g+Hg2p)
-         A(1,1) = -K_DEP0 - K_OX
-         A(1,2) = +K_RED
-         A(1,3) = +K_RED2P
+         A(1,1) = - K_DEP0 - K_OX
+         A(1,2) = + K_RED
+         A(1,3) = + K_RED2P
 
          ! Row 2: d(Hg2g)/dt = K_OX * Hg0  - (K_RED + K_DEP2G) * Hg2g
-         A(2,1) = +K_OX
-         A(2,2) = -K_DEP2G - K_RED
+         A(2,1) = + K_OX
+         A(2,2) = - K_DEP2G - K_RED
 
          ! Row 3: d(Hg2p)/dt = -(K_DEP2P + K_RED2P) * Hg2p 
-         A(3,3) = -K_DEP2P - K_RED2P
+         A(3,3) = - K_DEP2P - K_RED2P
 
          ! Row 4-6 accumulate dry dep of Hg0, Hg2g, Hg2p, respectively
          A(4,1) = K_DEP0
@@ -1236,14 +1214,14 @@
                s2 = matmul(A,Xold+DT/2e+0_fp*s1)
                s3 = matmul(A,Xold+DT/2e+0_fp*s2)
                s4 = matmul(A,Xold+DT*s3)
-               Xnew = Xold + DT/6e+0_fp * (s1 +2*s2 + 2*s3 + s4 )
+               Xnew = Xold + DT/6e+0_fp * (s1 + 2*s2 + 2*s3 + s4 )
 
                ! Make sure concentrations are not negative
                IF ( (Xnew(1) < 0e+0_fp) .or. (Xnew(2)<0) .or.
      &              (Xnew(3)<0) ) THEN
                   WRITE(6,101) I,J,L,K,NSTEPS, 
-     &                 Xnew(1),Xnew(2),Xnew(3),
-     &                 Xold(1),Xold(2),Xold(3),
+     &                 Xnew(1), Xnew(2), Xnew(3),
+     &                 Xold(1), Xold(2), Xold(3),
      &                 K_OX, K_RED, K_RED2P, K_DEP0, K_DEP2G, K_DEP2P
  101              FORMAT( 'Negative Hg in Box (I,J,L):', 3I3,
      &                 ', step',I3,' out of ',I3,
@@ -1444,7 +1422,7 @@
 !                                                                              
 ! !USES:                                                                       
 !                                                                              
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod,      ONLY : MetState
       USE CMN_SIZE_MOD  ! Size parameters                                      
       USE ERROR_MOD,          ONLY : SAFE_DIV
 !                                                                              
@@ -1456,7 +1434,7 @@
       ! OH     : Concentration of OH  [molec/cm3]                              
       ! O3     : Concentration of O3  [molec/cm3]                              
       ! HOCL   : Concentration of HOCL[molec/cm3]                              
-      INTEGER, INTENT(IN) :: I, J, L ! Grid box indices for lon, lat, lev
+      INTEGER,            INTENT(IN)  :: I, J, L 
       REAL(fp),           INTENT(IN)  :: BR, OH, O3, HOCL, T, P
       TYPE(MetState),     INTENT(IN)  :: State_Met    ! Meteorology State obj
 !                                                                              
@@ -1475,7 +1453,7 @@
 !                                                                              
 !  !REVISION HISTORY:                                                          
 !   19 November 2014 - H. Horowitz (HMH) - initial version finalized           
-!   30 September 2017 - C. Thackray - merged into v11
+!   30 September 2017 - C. Thackray (cpt) - merged into v11
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -2008,7 +1986,7 @@
 !EOP                                                                           
 !    10 Aug 2015 - H. Horowitz (HMH) - adding Br as 'Y', was missing.         
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
-!    30 Sep 2017 - C. Thackray - merged into v11
+!    30 Sep 2017 - C. Thackray (cpt) - merged into v11
 !------------------------------------------------------------------------------
 !BOC                                                                           
 !                                                                              
@@ -2055,7 +2033,7 @@
       ! assume HgBr+Y same as HgCl+Y based on Dibble et al 2012                
       k3cl = 3.0e-11_fp
 
-      ! T cases instead of smooth function? (thackray 2017)
+      ! T cases instead of smooth function? (cpt 2017)
       IF ( T < 260e0_fp ) THEN
          k0NO2 = 27.4e-29_fp
          kinfNO2 = 22.0e-11_fp
@@ -2211,7 +2189,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !   10 Aug 2015 - H. Horowitz (HMH) - adding Cl as 'Y', was missing before.    
 !     01 Mar 2016 - H. Horowitz (HMH) - saving out other reaction rates!       
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
-!    30 Sep 2017 - C. Thackray - merged into v11
+!    30 Sep 2017 - C. Thackray (cpt) - merged into v11
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -2250,7 +2228,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! and uses a more accurate level of theory than Goodsite 2004          
       k3br = 3.0e-11_fp
 
-      ! Why not smooth function? (thackray 2017)
+      ! Why not smooth function? (cpt 2017)
       IF ( T < 260e+0_fp) THEN
          k0NO2 = 27.4e-29_fp
          kinfNO2 = 22.0e-11_fp
@@ -4476,7 +4454,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS            
 !  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list        
 !  ca. 2014    - H. Horowitz - 
-!  30 Sep 2017 - C. Thackray - Merged into v11
+!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -4562,7 +4540,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !                                                                              
 ! !REVISION HISTORY:                                                           
 ! 06 Oct 2014 - H. Horowitz - initial version copied from get_br.              
-! 30 Sep 2017 - C. Thackray - merged into v11
+! 30 Sep 2017 - C. Thackray (cpt) - merged into v11
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -4666,7 +4644,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !                                                                              
 ! !REVISION HISTORY:                                                           
 ! 19 Nov 2014 - H. Horowitz - initial version copied from get_clO.             
-! 30 Sep 2017 - C. Thackray - merged into v11
+! 30 Sep 2017 - C. Thackray (cpt) - merged into v11
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -4765,7 +4743,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
-!  30 Sep 2017 - C. Thackray - Merged into v11
+!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4861,7 +4839,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !REVISION HISTORY:
 !  ca. 2014 - H. Horowitz - Initial version
-!  30 Sep 2017 - C. Thackray - Merged into v11
+!  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6957,7 +6935,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !     the positive and negative oceanic fluxes from the net EHg0_oc.
 !  17 May 2016 - H. Horowitz - setting up to read concentrations and do flux
 !     calculations like in ocean_mercury_mod subrtine ocean_mercury_flux       
-!  30 Nov 2017 - C. Thackray - merging into v11
+!  30 Nov 2017 - C. Thackray (cpt) - merging into v11
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -7028,7 +7006,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ENDIF
 
-      ! Only doing Hg0 overall, should add trap for LSPLIT (thackray - 2017)
+      ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
       DO NNN = 1, N_Hg_CATS
          IF ( NNN .eq. 1 ) THEN
             Hg0aq(:,:,NNN) = OCEAN_CONC(:,:,1)
