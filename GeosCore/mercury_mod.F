@@ -2551,7 +2551,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
             ! OLD CODE: CALL GTMM_DR( EHg0_gtm(:,:), State_Met )
             CALL GTMM_DR
-     &           ( am_I_Root, Input_Opt, State_Met, EHg0_gtm, RC )
+     &           ( am_I_Root, Input_Opt, State_Met, 
+     &             State_Chm, EHg0_gtm,  RC )
 
             IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a GTMM' )
          ENDIF
