@@ -4052,88 +4052,88 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMSANDOH' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO2 from DMS+OH reaction'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMSANDNO3' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO2 from DMS+NO3 reaction'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO2FROMDMS' ) THEN
        IF ( isDesc    ) Desc  = 'Total production of SO2 from DMS'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODMSAFROMDMS' ) THEN
        IF ( isDesc    ) Desc  = 'Production of MSA from DMS'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMGASPHASE' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from gas phase reactions'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMH2O2INCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
                                 'oxidation of H2O2 in clouds'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
                                 'oxidation of O3 in clouds'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMHOBRINCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous ' // &
                                 'oxidation of HOBr in clouds'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3INSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from O3 in sea ' // &
                                 'salt aerosols'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMOXIDATIONONDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from oxidation on ' // &
                                 'dust aerosols'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODNITFROMHNO3UPTAKEONDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Production of NIT from HNO3 uptake ' // &
                                 'on dust aerosols'
-       IF ( isUnits   ) Units = 'kg N'
+       IF ( isUnits   ) Units = 'kg N s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMUPTAKEOFH2SO4G' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from uptake of H2SO4(g)'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMSRO3' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 by SRO3'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMSRHOBR' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from SRHOBr'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO3S' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from O3s'
-       IF ( isUnits   ) Units = 'kg S'
+       IF ( isUnits   ) Units = 'kg S s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHNO3ONSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of HNO3 on sea salt aerosols'
-       IF ( isUnits   ) Units = 'kg'
+       IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'AERMASSASOA' ) THEN
