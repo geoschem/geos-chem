@@ -153,6 +153,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -349,7 +350,7 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) CALL ERROR_STOP( 'HCO_INIT', LOC, INS )
 
     ! Save # of defined dust species in HcoState
-    HcoState%nDust                     =  Input_Opt%N_DUST_BINS
+    HcoState%nDust                     =  NDSTBIN
 
 #if defined( TOMAS )
 
@@ -648,8 +649,8 @@ CONTAINS
           RETURN 
        ENDIF 
    
-       CALL ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, &
-                                   HcoState,  ExtState,  RC )
+       CALL ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met, &
+                                   State_Chm, HcoState,  ExtState,  RC )
        IF ( RC /= GC_SUCCESS ) RETURN
    
        !=======================================================================
@@ -1355,8 +1356,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, &
-                                    HcoState,  ExtState,  RC          ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met,  &
+                                    State_Chm, HcoState,  ExtState,  RC ) 
 !
 ! !USES:
 !
@@ -1366,6 +1367,7 @@ CONTAINS
     USE ERROR_MOD,             ONLY : ERROR_STOP
     USE FAST_JX_MOD,           ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod,      ONLY : HCO_GetSUNCOS
+    USE Input_Opt_Mod,         ONLY : OptInput
     USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
     USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
     USE State_Met_Mod,         ONLY : MetState
@@ -1377,6 +1379,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chm state
 !
@@ -1398,6 +1401,7 @@ CONTAINS
 !                              and remove reference to FJXFUNC and obsolete
 !                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
 !  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1487,13 +1491,13 @@ CONTAINS
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
-#if defined( UCX )
-                ! RXN_O3_1: O3  + hv --> O2  + O
-                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-#else
-                ! RXN_O3_2a: O3 + hv --> 2OH
-                JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
-#endif
+                IF ( Input_Opt%LUCX ) THEN
+                   ! RXN_O3_1: O3  + hv --> O2  + O
+                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+                ELSE
+                   ! RXN_O3_2a: O3 + hv --> 2OH
+                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
+                ENDIF
              ENDIF
           ENDIF
 

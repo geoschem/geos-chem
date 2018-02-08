@@ -47,7 +47,7 @@
       ! SLA         : Stratospheric liquid aerosol       [kg/m3]
       ! SPA         : Stratospheric particulate aerosol  [kg/m3]
       ! TSOA        : Terpene SOA                        [kg/m3]
-      ! ISOA        : Isoprene SOA                       [kg/m3]
+      ! ISOA        : Isoprene SOA (VBS scheme)          [kg/m3]
       ! ASOA        : Aromatic + IVOC SOA                [kg/m3]
       ! OPOA        : Aerosol product of SVOC oxidation  [kg/m3]
       ! SOAGX       : SOA product of GLYX                [kg/m3]
@@ -55,6 +55,8 @@
       ! PM25        : Particulate matter < 2.5 um        [kg/m3]
       ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
       ! SOAS        : Simple SOA                         [kg/m3]
+      ! OCFPOA      : OM/OC for POA                      [unitless]
+      ! OCFOPOA     : OM/OC for OPOA, OCPI, OCPO         [unitless]
       !========================================================================
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPI(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: BCPO(:,:,:)
@@ -80,13 +82,11 @@
       REAL(fp), ALLOCATABLE, PUBLIC :: PM25(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: ISOAAQ(:,:,:)
       REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: OCFPOA(:,:)
+      REAL(fp), ALLOCATABLE, PUBLIC :: OCFOPOA(:,:)
 !
 ! !DEFINED PARAMETERS:
 !
-      REAL(fp), PARAMETER, PUBLIC :: OCFPOA  = 1.4e+0_fp ! OM/OC for POA
-      REAL(fp), PARAMETER, PUBLIC :: OCFOPOA = 2.1e+0_fp ! OM/OC for OPOA, OCPI,
-                                                         !  and OCPO
-
       ! For SOAGX, assume the total aerosol mass/glyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFG = 1.e+0_fp
@@ -94,7 +94,6 @@
       ! For SOAMG, assume the total aerosol mass/methylglyoxal mass = 1.d0 
       ! for now (tmf, 1/7/09)
       REAL(fp), PARAMETER, PUBLIC :: OCFM = 1.e+0_fp
-
 !
 ! !REMARKS:
 !  References:
@@ -102,6 +101,11 @@
 !  (1 ) Pye, H.O.T., and J.H. Seinfeld, "A global perspective on aerosol from
 !        low-volatility organic compounds", Atmos. Chem. & Phys., Vol 10, pp
 !        4377-4401, 2010.
+!  (2 ) Philip, S., R.V. Martin, J.R. Pierce, J.L. Jimenez, Q. Zhang, M.R.
+!       Canagaratna, D.V. Spracklen, C.R. Nowlan, L.N. Lamsal, M.J. Cooper, and
+!       N.A. Krotkov, "Spatially and seasonally resolved estimate of the ratio
+!       of global organic mass to organic carbon", Atmospheric Environment, 87,
+!       34-40, doi:10.1016/j.atmosenv.2013.11.065, 2014
 !
 ! !REVISION HISTORY:
 !  (1 ) Added AEROSOL_RURALBOX routine (bmy, 9/28/04)
@@ -135,6 +139,10 @@
 !  13 Jun 2017 - M. Sulprizio- Added AOD calculation for isoprene only. Don't
 !                              add to OCPI, as this would be double-counting
 !                              the isoprene SOA contribution to AOD (eam, 2014)
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  16 Jan 2018 - M. Sulprizio- Add option for spatially and seasonally varying
+!                              OM/OC from Philip et al. (2014); Make OCFPOA
+!                              and OCFOPOA 2-D arrays.
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -203,12 +211,16 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
+      USE HCO_EMISLIST_MOD,  ONLY : HCO_GetPtr 
+      USE HCO_Error_Mod
+      USE HCO_INTERFACE_MOD, ONLY : HcoState
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Met_Mod,  ONLY : MetState
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE UCX_MOD,        ONLY : KG_STRAT_AER
       USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+      USE TIME_MOD,       ONLY : GET_MONTH
 #if   defined( TOMAS ) 
       USE TOMAS_MOD,      ONLY : IBINS
 #endif
@@ -266,6 +278,8 @@
 !  07 Sep 2017 - M. Sulprizio- Add simple SOA to PM2.5 calculation
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversion with wrapper routine
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  05 Jan 2018 - M. Sulprizio- Use simple SOA by default in calculation of PM2.5
+!                              and OCPISOA (used in hetchem and AOD)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -291,17 +305,18 @@
       LOGICAL             :: prtDebug
       LOGICAL             :: LCARB
       LOGICAL             :: LDUST
-      LOGICAL             :: LSOA
-      LOGICAL             :: LISOPOA
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
       LOGICAL             :: LPRT
+      LOGICAL             :: LUCX
       LOGICAL             :: IS_OCPO,  IS_OCPI,  IS_BC
       LOGICAL             :: IS_SO4,   IS_NH4,   IS_NIT
       LOGICAL             :: IS_SAL,   IS_DST
       LOGICAL             :: IS_TSOA,  IS_ISOA,  IS_ASOA
       LOGICAL             :: IS_POA,   IS_OPOA
       LOGICAL             :: IS_SOAGX, IS_SOAMG
+      LOGICAL             :: Is_SimpleSOA
+      LOGICAL             :: Is_ComplexSOA
 
       ! Pointers      
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -311,7 +326,13 @@
 
       ! Other variables
       CHARACTER(LEN=63)   :: OrigUnit
-!ewl      LOGICAL             :: UNITCONVERSION
+
+      ! For spatially and seasonally varying OM/OC
+      CHARACTER(LEN=255)  :: FIELDNAME
+      CHARACTER(LEN=1023) :: MSG
+      INTEGER             :: MONTH
+      LOGICAL             :: FND
+      REAL(f4), POINTER   :: OMOC(:,:) => NULL()
 
       !=================================================================
       ! AEROSOL_CONC begins here!
@@ -323,11 +344,10 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB   = Input_Opt%LCARB
       LDUST   = Input_Opt%LDUST
-      LSOA    = Input_Opt%LSOA
-      LISOPOA = Input_Opt%LISOPOA
       LSSALT  = Input_Opt%LSSALT
       LSULF   = Input_Opt%LSULF
       LPRT    = Input_Opt%LPRT
+      LUCX    = Input_Opt%LUCX
 
       ! Do we have to print debug output?
       prtDebug   = ( LPRT .and. am_I_Root )
@@ -362,6 +382,10 @@
       Archive_PM25ss  = ASSOCIATED( State_Diag%PM25ss  )
       Archive_PM25soa = ASSOCIATED( State_Diag%PM25soa )
 
+      ! Logical flags for SOA scheme
+      Is_SimpleSOA  = ( id_SOAS > 0 )
+      Is_ComplexSOA = Input_Opt%LSOA
+
       ! Convert species to [kg] for this routine
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
@@ -376,6 +400,48 @@
       AIRVOL => State_Met%AIRVOL
       PMID   => State_Met%PMID
       T      => State_Met%T
+
+      !=================================================================
+      ! OM/OC ratio
+      !
+      ! Get spatial and seasonally varying OM/OC from Philip et al. (2014)
+      ! or use default global mean values recommended by Aerosols WG
+      !=================================================================
+      IF ( Input_Opt%LOMOC ) THEN
+
+         ! Get pointer to OM/OC for current month from HEMCO
+         MONTH = GET_MONTH() 
+         IF      ( MONTH == 12 .or. MONTH == 1  .or. MONTH == 2  ) THEN
+            FieldName = 'OMOC_DJF'
+         ELSE IF ( MONTH == 3  .or. MONTH == 4  .or. MONTH == 5  ) THEN
+            FieldName = 'OMOC_MAM'
+         ELSE IF ( MONTH == 6  .or. MONTH == 7  .or. MONTH == 8  ) THEN
+            FieldName = 'OMOC_JJA'
+         ELSE IF ( MONTH == 9  .or. MONTH == 10 .or. MONTH == 11 ) THEN
+            FieldName = 'OMOC_SON'
+         ENDIF
+         CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
+     &                    FOUND=FND )
+         IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
+            MSG = 'Cannot find seasonal OM/OC field ' //
+     &             TRIM(FIELDNAME) // '. Please add a corresponding ' //
+     &            'entry to the HEMCO configuration file.'
+            CALL ERROR_STOP (TRIM(MSG),'AEROSOL_CONC (aerosol_mod.F90)')
+            RETURN
+         ENDIF
+
+         ! Set OM/OC using spatially and seasonally varying data from
+         ! Philip et al. (2014)
+         OCFPOA(:,:)  = OMOC(:,:) ! OM/OC for POA
+         OCFOPOA(:,:) = OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+
+      ELSE
+
+         ! Use default global mean OM/OC recommended by the Aerosols WG
+         OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA
+         OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
+
+      ENDIF
 
       !=================================================================
       ! Compute growth factors at 35% RH
@@ -461,14 +527,56 @@
          ! Units of SO4_NH4_NIT are [kg/m3].  (rjp, bmy, 3/23/03)
          !==============================================================
          IF ( LSULF ) THEN
-#if defined( UCX )
-            ! If we are using the full stratospheric chemistry mechanism,
-            ! stratospheric NH4 is ignored, stratospheric NIT is taken
-            ! as available for NAT formation and stratospheric SO4 is
-            ! taken as sulfuric acid
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
 
-               ! Tropospheric - keep as normal
+            IF ( LUCX ) THEN
+
+               !--------------------------------------------------------
+               !          %%%%%%% UCX-based mechanisms %%%%%%%
+               !--------------------------------------------------------
+
+               ! If we are using the full stratospheric chemistry mechanism,
+               ! stratospheric NH4 is ignored, stratospheric NIT is taken
+               ! as available for NAT formation and stratospheric SO4 is
+               ! taken as sulfuric acid
+               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+
+                  ! Tropospheric - keep as normal
+                  ! now including sulfate and nitrate associated with sea-salt
+                  ! NOTE: these should be treated as having a sea-salt size
+                  ! distribution but are currently simply treated in the same
+                  ! way (size and optics) as all other sulfate aerosol (DAR
+                  ! 2013)
+                  SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
+     &                                   Spc(I,J,L,id_NH4)    +
+     &                                   Spc(I,J,L,id_NIT)    +
+     &                                   Spc(I,J,L,id_SO4s)   +
+     &                                   Spc(I,J,L,id_NITs) ) /
+     &                                   AIRVOL(I,J,L)
+                  SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
+                  NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
+                  NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
+                  SLA(I,J,L) = 0e+0_fp
+                  SPA(I,J,L) = 0e+0_fp
+
+               ELSE
+
+                  ! Tropospheric sulfate is zero in stratosphere
+                  SO4_NH4_NIT(I,J,L) = 0e+0_fp
+                  SO4(I,J,L) = 0e+0_fp
+                  NH4(I,J,L) = 0e+0_fp
+                  NIT(I,J,L) = 0e+0_fp
+                  SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
+                  SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
+
+               ENDIF
+
+            ELSE
+
+               !--------------------------------------------------------
+               !        %%%%%%% Tropchem only mechanism %%%%%%%
+               !--------------------------------------------------------
+
+               ! Compute SO4 aerosol concentration [kg/m3]
                ! now including sulfate and nitrate associated with sea-salt
                ! NOTE: these should be treated as having a sea-salt size
                ! distribution but are currently simply treated in the same
@@ -480,42 +588,12 @@
      &                                Spc(I,J,L,id_SO4s)   +
      &                                Spc(I,J,L,id_NITs) ) /
      &                                AIRVOL(I,J,L)
+               
                SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
                NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
                NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
-               SLA(I,J,L) = 0e+0_fp
-               SPA(I,J,L) = 0e+0_fp
-
-            ELSE
-
-               ! Tropospheric sulfate is zero in stratosphere
-               SO4_NH4_NIT(I,J,L) = 0e+0_fp
-               SO4(I,J,L) = 0e+0_fp
-               NH4(I,J,L) = 0e+0_fp
-               NIT(I,J,L) = 0e+0_fp
-               SLA(I,J,L) = KG_STRAT_AER(I,J,L,1) / AIRVOL(I,J,L)
-               SPA(I,J,L) = KG_STRAT_AER(I,J,L,2) / AIRVOL(I,J,L)
 
             ENDIF
-#else
-            ! Compute SO4 aerosol concentration [kg/m3]
-            ! now including sulfate and nitrate associated with sea-salt
-            ! NOTE: these should be treated as having a sea-salt size
-            ! distribution but are currently simply treated in the same
-            ! way (size and optics) as all other sulfate aerosol (DAR
-            ! 2013)
-            SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)    + 
-     &                             Spc(I,J,L,id_NH4)    +
-     &                             Spc(I,J,L,id_NIT)    +
-     &                             Spc(I,J,L,id_SO4s)   +
-     &                             Spc(I,J,L,id_NITs) ) /
-     &                             AIRVOL(I,J,L)
-
-            SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
-            NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
-            NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
-
-#endif
             
             ! Add error check for safe division (bmy, 4/7/15)
             IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
@@ -567,16 +645,16 @@
             ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4) 
             IF ( IS_POA ) THEN
                OCPO(I,J,L) = ( Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POA2) )
-     &                       * OCFPOA / AIRVOL(I,J,L)
+     &                       * OCFPOA(I,J) / AIRVOL(I,J,L)
             ELSE IF ( IS_OCPO ) THEN
                OCPO(I,J,L) = Spc(I,J,L,id_OCPO)
-     &                       * OCFOPOA / AIRVOL(I,J,L)
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             ! Hydrophilic OC [kg/m3]
             IF ( IS_OCPI ) THEN
                OCPI(I,J,L) = Spc(I,J,L,id_OCPI)
-     &                       * OCFOPOA / AIRVOL(I,J,L)
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             ! Now avoid division by zero (bmy, 4/20/04)
@@ -584,7 +662,6 @@
             OCPI(I,J,L)    = MAX( OCPI(I,J,L), 1e-35_fp )
             BCPO(I,J,L)    = MAX( BCPO(I,J,L), 1e-35_fp )
             OCPO(I,J,L)    = MAX( OCPO(I,J,L), 1e-35_fp )
-            OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
          
          ENDIF ! LCARB
             
@@ -730,7 +807,21 @@
          !
          ! Compute SOA concentration [kg/m3]
          !===========================================================
-         IF ( LSOA ) THEN
+
+         !--------------------------------------------------------
+         ! Simple SOA scheme
+         !--------------------------------------------------------
+         IF ( Is_SimpleSOA ) THEN
+
+            ! Simple SOA [kg/m3]
+            SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
+
+         ENDIF
+
+         !--------------------------------------------------------
+         ! Complex SOA scheme
+         !--------------------------------------------------------
+         IF ( Is_ComplexSOA ) THEN
 
             ! TSOA (terpene SOA) [kg/m3]
             IF ( IS_TSOA ) THEN
@@ -759,130 +850,119 @@
             IF ( IS_OPOA ) THEN
                OPOA(I,J,L) = ( Spc(I,J,L,id_OPOA1)
      &                       + Spc(I,J,L,id_OPOA2) )
-     &                       * OCFOPOA / AIRVOL(I,J,L) 
+     &                       * OCFOPOA(I,J) / AIRVOL(I,J,L) 
             ENDIF
 
-            !-------------------------------------------------------
-            ! Mass loading of isoprene SOA [kg/m3]:
-            !-------------------------------------------------------
-            IF ( LISOPOA ) THEN
+         ENDIF
 
-               ! Glyoxal:
-               IF ( id_SOAGX > 0 ) THEN
-                  ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
-               ENDIF
+         !-------------------------------------------------------
+         ! Mass loading of isoprene SOA (ISOAAQ) [kg/m3]
+         !-------------------------------------------------------
 
-               ! Methylglyoxal:
-               IF ( id_SOAMG > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
-               ENDIF
+         ! Glyoxal
+         IF ( id_SOAGX > 0 ) THEN
+            ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! IEPOX:
-               IF ( id_SOAIE > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
-               ENDIF
+         ! Methylglyoxal
+         IF ( id_SOAMG > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAMG) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! IMAE (4C epoxide from MACR)
-               IF ( id_SOAME > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
-               ENDIF
+         ! IEPOX
+         IF ( id_SOAIE > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from alkyl nitrates (some contribution
-               ! from non-isoprene sources):
-               IF ( id_INDIOL > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
-               ENDIF
+         ! IMAE (4C epoxide from MACR)
+         IF ( id_SOAME > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from ISOPOOH oxidation product:
-               IF ( id_LVOCOA > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
-               ENDIF
+         ! SOA from alkyl nitrates (some contribution
+         ! from non-isoprene sources)
+         IF ( id_INDIOL > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
+         ENDIF
 
-               ! SOA from ISOP+NO3:
-               IF ( id_ISN1OA > 0 ) THEN
-                  ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                            Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
-               ENDIF
+         ! SOA from ISOPOOH oxidation product
+         IF ( id_LVOCOA > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
+         ENDIF
 
-            ENDIF
+         ! SOA from ISOP+NO3
+         IF ( id_ISN1OA > 0 ) THEN
+            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+     &                      Spc(I,J,L,id_ISN1OA) / AIRVOL(I,J,L)
+         ENDIF
 
-            !-------------------------------------------------------
-            ! Hydrophilic primary OC plus SOA [kg/m3].
-            !
-            ! We need to multiply by OCF to account for the mass of
-            ! other components which are attached to the OC aerosol.
-            ! (rjp, bmy, 7/15/04)
-            !
-            ! SOAupdate: Update traditional SOA (hotp 7/21/10)
-            ! for new mtp + isop + lumparomivoc (hotp 5/20/10)
-            !
-            ! %%% IMPORTANT %%%
-            ! Note that this includes all the SOA formed in both the
-            ! Pye et al. and Marais et al. scheme and may include some
-            ! double-counting of isoprene SOA. (Aerosol WG)
-            !-------------------------------------------------------
-            IF ( IS_TSOA .and. IS_ISOA .and. IS_ASOA ) THEN
-               OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1)
-     &                          + Spc(I,J,L,id_TSOA2)
-     &                          + Spc(I,J,L,id_TSOA3)
-     &                          + Spc(I,J,L,id_TSOA0)
-     &                          + Spc(I,J,L,id_ISOA1)
-     &                          + Spc(I,J,L,id_ISOA2)
-     &                          + Spc(I,J,L,id_ISOA3) 
-     &                          + Spc(I,J,L,id_ASOAN) 
-     &                          + Spc(I,J,L,id_ASOA1)
-     &                          + Spc(I,J,L,id_ASOA2)
-     &                          + Spc(I,J,L,id_ASOA3) )
-     &                          / AIRVOL(I,J,L) 
-            ENDIF
+         !-------------------------------------------------------
+         ! Hydrophilic primary OC plus SOA [kg/m3].
+         !
+         ! We need to multiply by OCF to account for the mass of
+         ! other components which are attached to the OC aerosol.
+         ! (rjp, bmy, 7/15/04)
+         !
+         ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
+         !
+         ! sfarina - add SOA-Simplified to primary OC.
+         !         - IDTSOAS is already mass basis, so only apply
+         !           OCFOPOA to IDTOCPI
+         !
+         ! SOAupdate: Update traditional SOA (hotp 7/21/10)
+         ! for new mtp + isop + lumparomivoc (hotp 5/20/10)
+         !
+         ! %%% IMPORTANT %%%
+         ! Note that if complex SOA is used then PM2.5 includes all
+         ! the SOA formed in both the Marais et al. and Pye et al.
+         ! schemes and may include some double-counting of isoprene SOA.
+         ! (Aerosol WG)
+         !-------------------------------------------------------
 
-            ! Add mechanistic isoprene OA (eam, 08/2015):
-            IF ( LISOPOA ) THEN
-               OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
-            ENDIF
+         ! Use simple SOA by default over complex SOA in calculations
+         IF ( Is_SimpleSOA ) THEN
+            OCPISOA(I,J,L) = 
+     &        ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) +
+     &          Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
 
-            IF ( IS_OPOA ) THEN  ! hotp 7/28/10
+         ELSEIF ( Is_ComplexSOA ) THEN
+
+            OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1)
+     &                       + Spc(I,J,L,id_TSOA2)
+     &                       + Spc(I,J,L,id_TSOA3)
+     &                       + Spc(I,J,L,id_TSOA0)
+     &                       + Spc(I,J,L,id_ISOA1)
+     &                       + Spc(I,J,L,id_ISOA2)
+     &                       + Spc(I,J,L,id_ISOA3) 
+     &                       + Spc(I,J,L,id_ASOAN) 
+     &                       + Spc(I,J,L,id_ASOA1)
+     &                       + Spc(I,J,L,id_ASOA2)
+     &                       + Spc(I,J,L,id_ASOA3) )
+     &                       / AIRVOL(I,J,L) 
+
+            IF ( IS_OPOA ) THEN ! hotp 7/28/10
                OCPISOA(I,J,L) = OCPISOA(I,J,L) +
      &                          ( Spc(I,J,L,id_OPOA1)
      &                          + Spc(I,J,L,id_OPOA2) )
-     &                          * OCFOPOA / AIRVOL(I,J,L)
+     &                          * OCFOPOA(I,J) / AIRVOL(I,J,L)
             ENDIF
 
             IF ( IS_OCPI ) THEN  ! hotp 7/28/10
                OCPISOA(I,J,L) = OCPISOA(I,J,L)
      &                          + Spc(I,J,L,id_OCPI)
-     &                          * OCFOPOA / AIRVOL(I,J,L) 
+     &                          * OCFOPOA(I,J) / AIRVOL(I,J,L) 
             ENDIF
 
-         ELSE
+         ENDIF
 
-            !-------------------------------------------------------
-            ! Hydrophilic primary and SOA OC [kg/m3].
-            !
-            ! We need to multiply by OCF to account for the mass of
-            ! other components which are attached to the OC aerosol.
-            ! (rjp, bmy, 7/15/04)
-            !
-            ! SOAupdate: use 2.1 (OCFOPOA) (hotp 7/21/10)
-            !
-            !sfarina - add SOA-Simplified to primary OC.
-            !        - IDTSOAS is already mass basis, so only apply
-            !          OCFOPOA to IDTOCPI
-            !-------------------------------------------------------
-            OCPISOA(I,J,L) = 
-     &          ( Spc(I,J,L,id_OCPI) * OCFOPOA +
-     &            Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
-
-            ! Simple SOA [kg/m3]
-            SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
+         ! Add mechanistic isoprene OA (eam, 08/2015)
+         OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
                   
-         ENDIF ! LSOA
-
          ! Now avoid division by zero (bmy, 4/20/04)
          OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
 
@@ -913,12 +993,14 @@
          !    1.86 for SALA
          ! - Ratio of OM/OC = 2.1 is applied to OCPI and OCPO above
          ! - Aerosol WG recommends including 38% of DST2 in PM2.5
-         ! - SOAS will only be non-zero if complex SOA is not used
+         ! - Use either simple SOA or complex SOA in PM2.5 calculation.
+         !   By default simple SOA will be used.
          !
          ! %%% IMPORTANT %%%
-         ! Note that this includes all the SOA formed in both the
-         ! Pye et al. and Marais et al. scheme and may include some
-         ! double-counting of isoprene SOA. (Aerosol WG)
+         ! Note that if complex SOA is used then PM2.5 includes all
+         ! the SOA formed in both the Marais et al. and Pye et al.
+         ! schemes and may include some double-counting of isoprene SOA.
+         ! (Aerosol WG)
          !==============================================================
 
          ! Units: [kg/m3]
@@ -929,17 +1011,25 @@
      &               + BCPO(I,J,L)
      &               + OCPO(I,J,L)
      &               + OCPI(I,J,L)       * ORG_GROWTH
-     &               + TSOA(I,J,L)       * ORG_GROWTH
-     &               + ISOA(I,J,L)       * ORG_GROWTH
-     &               + ASOA(I,J,L)       * ORG_GROWTH
      &               + SALA(I,J,L)       * SSA_GROWTH
      &               + SOILDUST(I,J,L,1)                 ! DST1
      &               + SOILDUST(I,J,L,2)                 ! DST1
      &               + SOILDUST(I,J,L,3)                 ! DST1
      &               + SOILDUST(I,J,L,4)                 ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38          ! 38% of DST2
-     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Incl SOAGX,SOAMG
-     &               + SOAS(I,J,L)       * ORG_GROWTH
+     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Includes SOAGX+SOAMG
+
+         ! Include either simple SOA (default) or complex SOA in
+         ! PM2.5 calculation
+         IF ( Is_SimpleSOA ) THEN
+            PM25(I,J,L) = PM25(I,J,L)
+     &                  + SOAS(I,J,L)    * ORG_GROWTH
+         ELSEIF ( Is_ComplexSOA ) THEN
+            PM25(I,J,L) = PM25(I,J,L)
+     &                  + TSOA(I,J,L)    * ORG_GROWTH
+     &                  + ISOA(I,J,L)    * ORG_GROWTH
+     &                  + ASOA(I,J,L)    * ORG_GROWTH
+         ENDIF
 
          ! Apply STP correction factor based on ideal gas law
          PM25(I,J,L) = PM25(I,J,L) 
@@ -1057,6 +1147,7 @@
       ! Free pointers
       Spc    => NULL()
       AIRVOL => NULL()
+      OMOC   => NULL()
 
       END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1205,6 +1296,7 @@
       REAL(fp)            :: TEMP2(IIPAR,JJPAR,LLPAR)
       REAL(fp)            :: MSDENS(NAER), DRYAREA
       REAL(f8)            :: XTAU
+      REAL*8              :: BCSCAT_AE  !(xnw, 8/24/15)
 
       ! Variables for speed diagnostics
       INTEGER             :: ITIMEVALS(8)
@@ -1261,13 +1353,17 @@
       REAL(fp)            :: RAER, SADSTRAT, RHOSTRAT, XSASTRAT
       INTEGER             :: ISTRAT
 
-      ! Index to aerosol types in FJX_spec.dat
-      ! The following are ordered according to the mass densities below
-#if defined( UCX )
-      INTEGER, SAVE       :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
-#else
-      INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
-#endif
+!------------------------------------------------------------------------------
+! Prior to 1/3/18:
+! IND is not used here (mps, 1/3/18)
+!      ! Index to aerosol types in FJX_spec.dat
+!      ! The following are ordered according to the mass densities below
+!#if defined( UCX )
+!      INTEGER, SAVE      :: IND(NAER) = (/22, 29, 36, 43, 50, 4, 14/)
+!#else
+!      INTEGER, SAVE	  :: IND(NAER) = (/22, 29, 36, 43, 50/)
+!#endif
+!------------------------------------------------------------------------------
 
       ! Aqueous aerosol volume (cm3/cm3):
       REAL(fp)            :: TAERVOL
@@ -1279,10 +1375,13 @@
       LOGICAL             :: LSOA
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
+      LOGICAL             :: LBCAE  ! (xnw, 8/24/15)
+      LOGICAL             :: LUCX
       LOGICAL             :: IS_POA, IS_OCPI
       REAL(fp)            :: GF_RH
+      REAL(fp)            :: BCAE_1, BCAE_2
 
-      ! Pointers
+      ! Pointers      
       REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
       REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: TAREA(:,:,:,:)
@@ -1308,6 +1407,10 @@
       LSOA                 = Input_Opt%LSOA
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
+      LBCAE                = Input_Opt%LBCAE !(xnw, 8/24/15)
+      BCAE_1               = Input_Opt%BCAE_1
+      BCAE_2               = Input_Opt%BCAE_2
+      LUCX                 = Input_Opt%LUCX
 
       ! Define logical flags
       IS_OCPI              = ( id_OCPI > 0 )
@@ -1448,11 +1551,12 @@
 !$OMP END PARALLEL DO
       ENDIF 
 
-#if defined( UCX )
-      ! SDE 04/17/13 - Transfer stratospheric aerosol data
-      WAERSL(:,:,:,NRHAER+1) = SLA
-      WAERSL(:,:,:,NRHAER+2) = SPA
-#endif
+      IF ( LUCX ) THEN
+         ! For UCX-based mechanisms transfer stratospheric aerosol data
+         ! SDE 04/17/13 
+         WAERSL(:,:,:,NRHAER+1) = SLA
+         WAERSL(:,:,:,NRHAER+2) = SPA
+      ENDIF
 
       !=================================================================
       ! Calculate optical depth and surface area at each timestep
@@ -1475,11 +1579,12 @@
       ENDIF
       MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
       MSDENS(5) = State_Chm%SpcData(id_SALC)%Info%Density
-#if defined( UCX )
-      ! These default values unused (actively retrieved from ucx_mod)
-      MSDENS(NRHAER+1) = 1700.0d0! SSA/STS
-      MSDENS(NRHAER+2) = 1000.0d0! NAT/ice PSC
-#endif
+
+      IF ( LUCX ) THEN
+         ! These default values unused (actively retrieved from ucx_mod)
+         MSDENS(NRHAER+1) = 1700.0d0 ! SSA/STS
+         MSDENS(NRHAER+2) = 1000.0d0 ! NAT/ice PSC
+      ENDIF
 
       !set default values for RH index array
       IRHARR(:,:,:)=1
@@ -1543,7 +1648,7 @@
          ENDIF
 
       ! Loop over types of aerosol with hygroscopic growth
-      ! (this will include strat aerosol if UCX=yes)
+      ! (this will include strat aerosol when using UCX)
       DO N = 1, NAER 
          !index for strat aerosol (only >0 for strat aero)
          ISTRAT=N-NRHAER
@@ -1610,16 +1715,14 @@
 #if defined( RRTMG )
 !$OMP+PRIVATE( IR                                               )
 #endif
-#if defined( UCX )
 !$OMP+PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            )
-#endif
 !$OMP+SCHEDULE( DYNAMIC )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Skip non-chemistry boxes
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+            IF (ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met)) CYCLE
 
             ! Calculate RH. Not clear why the result of this calc is 
             ! slightly different than State_Met%RH
@@ -1699,52 +1802,87 @@
             SCALER  = REFF / RW(1)
             SCALEOD = SCALEQ * SCALER * SCALER
 
-#if defined( UCX )
-            IF (N.LE.NRHAER) THEN
-#endif
-            !calculate optics for hyrdophillic aerosol here
-            !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
-            ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
-     &                         * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
-     &                         ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+            IF ( .not. LUCX .or. ( LUCX .and. (N.LE.NRHAER)) ) THEN
 
-            IF ((N.eq.2).or.(N.eq.3)) THEN
-               !now combine with hydrophilic OD as before
-               ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+               !--------------------------------------------------------
+               ! %%%%%%% Aerosols undergoing hygroscopic growth %%%%%%%
+               !--------------------------------------------------------
+
+               !calculate optics for hyrdophillic aerosol here
+               !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
+               ODAER(I,J,L,IWV,N) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 
+     &                            * WAERSL(I,J,L,N) * QQAA(IWV,1,N) / 
+     &                            ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+
+               !Include BC absorption enhancement (xnw, 8/24/15)
+               IF (N.eq.2) THEN
+
+                  IF (LBCAE) THEN 
+                   BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N)
+                   ODAER(I,J,L,IWV,N) = ODAER(I,J,L,IWV,N) *
+     &                           ( BCAE_1 + SCALESSA*SSAA(IWV,1,N) - 
+     &                             SCALESSA*SSAA(IWV,1,N)*BCAE_1 )   
+                   !now combine with hydrophilic OD as before
+                   BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N) *
      &                             0.75d0 * BXHEIGHT(I,J,L) *
      &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
      &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
+                   ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                (BCAE_2+SSAA(IWV,1,N) - SSAA(IWV,1,N)*BCAE_2) *
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               
+                  ELSE 
+                   !now combine with hydrophilic OD as before
+                   ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                             0.75d0 * BXHEIGHT(I,J,L) *
+     &                             DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                             ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                  ENDIF
 
-            ! Get the AOD contribution from isoprene SOA
-            ! only (eam, 2014):
-            IF ((N.eq.3) .and. LSOA ) THEN
-               ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
-     &                           * State_Met%BXHEIGHT(I,J,L) 
-     &                           * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
-     &                           ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
-            ENDIF
+               ENDIF
 
-#if defined( UCX )
+               IF (N.eq.3) THEN
+                  !now combine with hydrophilic OD as before
+                  ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) +
+     &                              0.75d0 * BXHEIGHT(I,J,L) *
+     &                              DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  /
+     &                              ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+
+               ! Get the AOD contribution from isoprene SOA only (eam, 2014)
+               IF ( N.eq.3 ) THEN
+                  ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
+     &                              * State_Met%BXHEIGHT(I,J,L) 
+     &                              * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
+     &                              ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+               ENDIF
+
             ELSE           
-            ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
-            ! SDE 2014-02-04
-            ! The calculation used for the aerosols above
-            ! is essentially a roundabout way of deriving
-            ! the cross-sectional area. For log-normally
-            ! distributed aerosols, this is much easier,
-            ! and a direct query prevents the possibility
-            ! of dividing a small mass by a small calculated
-            ! radius and blowing up
+               !--------------------------------------------------------
+               !        %%%%%%% Stratospheric aerosols %%%%%%%
+               !--------------------------------------------------------
 
-            ! Aerosol optical depth
-            ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
-     &                           * QQAA(IWV,1,N)
+               ! Get aerosol effective radius
+               CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,
+     &                            XSASTRAT)
+
+               ! SDE 2014-02-04
+               ! The calculation used for the aerosols above
+               ! is essentially a roundabout way of deriving
+               ! the cross-sectional area. For log-normally
+               ! distributed aerosols, this is much easier,
+               ! and a direct query prevents the possibility
+               ! of dividing a small mass by a small calculated
+               ! radius and blowing up
+
+               ! Aerosol optical depth
+               ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT
+     &                              * QQAA(IWV,1,N)
+
             ENDIF
-
-#endif
 
 #if defined( RRTMG )            
             !SNA currently treated as one with optics but considered
@@ -1763,6 +1901,10 @@
              !(NRHAER+1,2) but before dust
              RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
              RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+             !for BC SSA with absorption enhancement (xnw 8/24/15)
+             IF ((N .EQ. 2) .AND. (LBCAE)) THEN
+                RTSSAER(I,J,L,IWV,NRT) = BCSCAT_AE / ODAER(I,J,L,IWV,N)
+             ENDIF 
              RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
             ENDIF
 #endif
@@ -1882,53 +2024,57 @@
       ENDDO !Loop over NAER
       ENDDO !Loop over NWVSELECT
 
-#if defined( UCX )
       !==============================================================
-      ! Account for stratospheric aerosols (SDE 04/17/13)
+      ! Account for stratospheric aerosols in UCX mechanisms (SDE 04/17/13)
       !==============================================================
-      DO ISTRAT = 1,NSTRATAER
+      IF ( LUCX ) THEN
 
-         ! Index for combination of aerosol type and RH
-         N = NRHAER + ISTRAT
-         ! For ND21
-         IOUT = 5 + 2*NRHAER + (3*(NDUST+NRHAER)) + (ISTRAT-1)*3
+         DO ISTRAT = 1,NSTRATAER
+
+            ! Index for combination of aerosol type and RH
+            N = NRHAER + ISTRAT
+            ! For ND21
+            IOUT = 5 + 2*NRHAER + (3*(NDUST+NRHAER)) + (ISTRAT-1)*3
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, RAER, REFF )
 !$OMP+PRIVATE( SADSTRAT, XSASTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
 
-            ! Get aerosol effective radius
-            CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+               ! Get aerosol effective radius
+               CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,
+     &                            SADSTRAT,XSASTRAT)
 
-            ! Moved this from a separate loop for clarity
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+               ! Moved this from a separate loop for clarity
+               IF (ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met)) THEN
 
-               ! Add surface area to TAREA array
-               TAREA(I,J,L,NDUST+N)  = SADSTRAT
-               WTAREA(I,J,L,NDUST+N) = SADSTRAT
+                  ! Add surface area to TAREA array
+                  TAREA(I,J,L,NDUST+N)  = SADSTRAT
+                  WTAREA(I,J,L,NDUST+N) = SADSTRAT
 
-               ! Store radius
-               ERADIUS(I,J,L,NDUST+N)  = RAER
-               WERADIUS(I,J,L,NDUST+N) = RAER 
+                  ! Store radius
+                  ERADIUS(I,J,L,NDUST+N)  = RAER
+                  WERADIUS(I,J,L,NDUST+N) = RAER 
 
-            ENDIF
+               ENDIF
 
-            ! Store SAD
-            IF ((ND21.gt.0).and.(L.le.LD21)) THEN
-                AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
-            ENDIF
+               ! Store SAD
+               IF ((ND21.gt.0).and.(L.le.LD21)) THEN
+                   AD21(I,J,L,IOUT+2) = AD21(I,J,L,IOUT+2) + SADSTRAT
+               ENDIF
 
-         ENDDO
-         ENDDO
-         ENDDO
+            ENDDO
+            ENDDO
+            ENDDO
 !$OMP END PARALLEL DO
-      ENDDO
-#endif
+
+         ENDDO
+
+      ENDIF
        
       !==============================================================
       ! ND21 Diagnostic: Aerosol OD's, Growth Rates, Surface Areas
@@ -1986,33 +2132,36 @@
 
       IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
-#if defined( UCX )
          ! Get stratospheric aerosol properties from 1st WL (for now)
+         IF ( LUCX ) THEN
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, IOUT, ISTRAT )
 !$OMP+SCHEDULE( DYNAMIC )
-         !---------------------------------------------------
-         ! Strat Aerosol OD [-] and ND [#/cm3]
-         ! SAD was stored in previous loop
-         !---------------------------------------------------
-         DO ISTRAT=1,NSTRATAER
-            W = 1
-            N = NRHAER + ISTRAT
-            IOUT = 5 + 5*NRHAER + 3*NDUST + (ISTRAT-1)*3
-            DO L=1,LD21
-            DO J=1,JJPAR
-            DO I=1,IIPAR
-               AD21(I,J,L,IOUT+1) = AD21(I,J,L,IOUT+1) +
-     &                              ODAER(I,J,L,IWVSELECT(1,W),N)
-               AD21(I,J,L,IOUT+3) = AD21(I,J,L,IOUT+3) +
-     &                              NDENS_AER(I,J,L,ISTRAT)*1.d-6
+            !---------------------------------------------------
+            ! Strat Aerosol OD [-] and ND [#/cm3]
+            ! SAD was stored in previous loop
+            !---------------------------------------------------
+            DO ISTRAT=1,NSTRATAER
+               W = 1
+               N = NRHAER + ISTRAT
+               IOUT = 5 + 5*NRHAER + 3*NDUST + (ISTRAT-1)*3
+               DO L=1,LD21
+               DO J=1,JJPAR
+               DO I=1,IIPAR
+                  AD21(I,J,L,IOUT+1) = AD21(I,J,L,IOUT+1) +
+     &                                 ODAER(I,J,L,IWVSELECT(1,W),N)
+                  AD21(I,J,L,IOUT+3) = AD21(I,J,L,IOUT+3) +
+     &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
+               ENDDO
+               ENDDO
+               ENDDO
             ENDDO
-            ENDDO
-            ENDDO
-         ENDDO
 !$OMP END PARALLEL DO
-#endif
+
+         ENDIF
+
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2069,8 +2218,8 @@
                      ENDIF
                   ENDIF
 
-                  ! Add ISOP AOD to tracer 34 of ND21 (eam, 2014):
-                  IF ((N.eq.3) .and. LSOA ) THEN
+                  ! Add ISOP AOD to tracer 34 of ND21 (eam, 2014)
+                  IF ( N.eq.3 ) THEN
                      AD21(I,J,L,34) = AD21(I,J,L,34) +
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                   ENDIF
@@ -2105,13 +2254,13 @@
 !$OMP END PARALLEL DO
       
       ENDIF 
-#if defined( UCX )
+
       ! Turn off radiative effects of stratospheric aerosols?
-      IF (.not.(LSTRATOD)) THEN
+      IF ( LUCX .and. .not.(LSTRATOD)) THEN
          ODAER(:,:,:,:,NRH+1) = 0.d0
          ODAER(:,:,:,:,NRH+2) = 0.d0
       ENDIF
-#endif
+
       !=================================================================
       ! To turn off the radiative effects of different aerososl
       ! uncomment the following lines
@@ -2391,6 +2540,18 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOAS = 0.0_fp
 
+      ! OM/OC for POA
+      ALLOCATE( OCFPOA(IIPAR,JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCFPOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCFPOA = 0.0_fp
+
+      ! OM/OC for OPOA, OCPI, OCPO
+      ALLOCATE( OCFOPOA(IIPAR,JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'aerosol_mod.F:OCFOPOA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      OCFOPOA = 0.0_fp
+
       END SUBROUTINE INIT_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
@@ -2442,6 +2603,8 @@
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
       IF ( ALLOCATED( ISOAAQ      ) ) DEALLOCATE( ISOAAQ      )
       IF ( ALLOCATED( SOAS        ) ) DEALLOCATE( SOAS        )
+      IF ( ALLOCATED( OCFPOA      ) ) DEALLOCATE( OCFPOA      )
+      IF ( ALLOCATED( OCFOPOA     ) ) DEALLOCATE( OCFOPOA     )
 
       END SUBROUTINE CLEANUP_AEROSOL
 !EOC

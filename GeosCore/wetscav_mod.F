@@ -1849,7 +1849,7 @@
 
          ! Exit if units are not as expected
          ErrMsg = 'Incorrect initial species units:' // 
-     &             TRIM( State_Chm%Spc_Units, )
+     &             TRIM( State_Chm%Spc_Units )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
 

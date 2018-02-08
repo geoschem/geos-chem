@@ -653,7 +653,7 @@
          ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
          ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
          ! in mol/m3 air --> convert to mol/L water
-         IF ( AERLIQ(8) < 1e-32_fp ) THEN
+         IF ( AERLIQ(8) < 1e-18_fp ) THEN
             ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
             ! (hotp, ccc, 12/18/09)

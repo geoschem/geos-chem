@@ -331,37 +331,58 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
-!  aerosol microphysics and dry deposition subroutines. (win, 7/23/07)
+! !IROUTINE: do_tomas
 !
-!  NOTES: 
+! !DESCRIPTION: Subroutine DO\_TOMAS is the driver subroutine that calls the
+!  appropriate aerosol microphysics and dry deposition subroutines. (win,
+!  7/23/07)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
 !  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-
-      ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
+!  04 Jan 2018 - M. Sulprizio- Now accept State_Diag as an argument; Add ProTeX
+!                              headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -398,8 +419,8 @@
 
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
-         CALL AERO_DRYDEP
-     &        ( am_I_Root, Input_Opt, State_Met, State_Chm,RC )
+         CALL AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
       ENDIF
 
 ! not in kg
@@ -412,7 +433,7 @@
      &              'Before exiting DO_TOMAS', RC )
 
       END SUBROUTINE DO_TOMAS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE AEROPHYS( am_I_Root, Input_Opt, 
@@ -647,7 +668,7 @@
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
 
@@ -3697,7 +3718,7 @@
 !     &              MK(K,SRTSO4),MK(K,SRTH2O)
 !            ENDDO
             IF ( MOXID > 5e+0_fp .and.
-     &           ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+     &           ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE

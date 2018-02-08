@@ -25,7 +25,6 @@ MODULE GCKPP_HETRATES
   USE gckpp_Global,       ONLY : HET
   USE State_Chm_Mod,      ONLY : ChmState
   USE State_Chm_Mod,      ONLY : Ind_
-  USE State_Diag_Mod,     ONLY : DgnState
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
   USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP
@@ -138,7 +137,6 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: HSO3conc_Cld, SO3conc_Cld, fupdateHOBr
 
   ! Arrays
-  REAL(fp) :: SCF2(3)
   REAL(fp) :: XAREA(25)
   REAL(fp) :: XRADI(25)
   REAL(fp) :: KHETI_SLA(11)
@@ -146,7 +144,7 @@ MODULE GCKPP_HETRATES
 !$OMP THREADPRIVATE( NAERO,        NATSURFACE, PSCBOX,   STRATBOX )
 !$OMP THREADPRIVATE( TEMPK,        RELHUM,     SPC_NIT,  SPC_SO4  )
 !$OMP THREADPRIVATE( GAMMA_HO2,    XTEMP,      XDENA,    QLIQ     )
-!$OMP THREADPRIVATE( QICE,         SCF2,       XAREA,    XRADI    )
+!$OMP THREADPRIVATE( QICE,         XAREA,      XRADI              )
 !$OMP THREADPRIVATE( KHETI_SLA,    SUNCOS                         )
 !$OMP THREADPRIVATE( H_PLUS,       MSO4,       MNO3,     MHSO4    )
 !$OMP THREADPRIVATE( HSO3conc_Cld, SO3conc_Cld, fupdateHOBr       )
@@ -239,20 +237,17 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    SUBROUTINE SET_HET( I, J, L, SD, SC, SM, IO, SCF )
+    SUBROUTINE SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER        :: I, J, L   ! Lon, lat, level indices
-      TYPE(MetState) :: SM        ! Meteorology State object
-      TYPE(OptInput) :: IO        ! Input Options object 
-
+      INTEGER,        INTENT(IN)    :: I, J, L    ! Lon, lat, level indices
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object 
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState) :: SC        ! Chemistry State object
-      TYPE(DgnState) :: SD        ! Diagnostics State object
-      REAL(fp)       :: SCF(3)    ! Coefficients (Need help documenting this)
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
 !
 ! !REMARKS:
 !
@@ -261,11 +256,15 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Define many variables locally that don't
 !                              need to be in the THREADPRIVATE statements 
 !  01 Apr 2016 - R. Yantosca - Remove KII_KI; we now declare that locally
-!  31 May 2016 - E. Lundgren - Replace IO%XNUMOL with emMW_g from species
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%XNUMOL with emMW_g from species
 !                              database (emitted species g/mol)
 !  26 Jul 2017 - M. Sulprizio- Remove hardcoded molecular weights from calls to
 !                              Het* functions and use MW from species database
 !                              instead
+!  03 Jan 2018 - M. Sulprizio- Remove SCF argument. It was apparently added for
+!                              diagnostic purposes and is no longer used. Also
+!                              rename IO,SM,SC to Input_Opt,State_Met,State_Chm
+!                              for consistency with other GEOS-Chem routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -324,7 +323,7 @@ MODULE GCKPP_HETRATES
       HBr_RTEMP     = 0.0_fp
       HOBr_RTEMP    = 0.0_fp
       KHETI_SLA     = 0.0_fp
-      NAERO         = SC%nAero
+      NAERO         = State_Chm%nAero
       QICE          = 0.0_fp
       QLIQ          = 0.0_fp
       SPC_BrNO3     = 0.0_fp
@@ -344,21 +343,21 @@ MODULE GCKPP_HETRATES
       NATSURFACE    = .FALSE.
 
       ! KHETI_SLA = sticking coefficients for PSC reactions on SLA
-      IF ( IO%LUCX ) THEN
-         KHETI_SLA  = SC%KHETI_SLA(I,J,L,:)
+      IF ( Input_Opt%LUCX ) THEN
+         KHETI_SLA  = State_Chm%KHETI_SLA(I,J,L,:)
       ENDIF
 
       ! Point to the chemical species array [molec/cm3]
-      spcVec          => SC%Species(I,J,L,:)
+      spcVec          => State_Chm%Species(I,J,L,:)
 
       !--------------------------------------------------------------------
       ! Calculate RH [%]
-      ! Not clear why this calc is slightly different than SM%RH
+      ! Not clear why this calc is slightly different than State_Met%RH
       !--------------------------------------------------------------------
-      RELHUM        = SM%AVGW(I,J,L) * SM%AIRNUMDEN(I,J,L)
-      CONSEXP       = 17.2693882e+0_fp * (SM%T(I,J,L) - 273.16e+0_fp) / &
-                      (SM%T(I,J,L) - 35.86e+0_fp)
-      VPRESH2O      = CONSVAP * EXP(CONSEXP) / SM%T(I,J,L) 
+      RELHUM        = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+      CONSEXP       = 17.2693882e+0_fp * (State_Met%T(I,J,L) - 273.16e+0_fp) /&
+                      (State_Met%T(I,J,L) - 35.86e+0_fp)
+      VPRESH2O      = CONSVAP * EXP(CONSEXP) / State_Met%T(I,J,L) 
       RELHUM        = RELHUM / VPRESH2O 
       RELHUM        = RELHUM * 100e+0_fp
 
@@ -372,106 +371,106 @@ MODULE GCKPP_HETRATES
          MW_HO2    = 33.0_fp
 
          IND = Ind_( 'NO2' )
-         IF ( IND > 0 ) MW_NO2    = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_NO2    = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'NO3' )
-         IF ( IND > 0 ) MW_NO3    = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_NO3    = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'N2O5' )
-         IF ( IND > 0 ) MW_N2O5   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_N2O5   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'GLYX' )
-         IF ( IND > 0 ) MW_GLYX   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_GLYX   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MGLY' )
-         IF ( IND > 0 ) MW_MGLY   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MGLY   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IEPOXA' )
-         IF ( IND > 0 ) MW_IEPOXA = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IEPOXA = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IEPOXB' )
-         IF ( IND > 0 ) MW_IEPOXB = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IEPOXB = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IEPOXD' )
-         IF ( IND > 0 ) MW_IEPOXD = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IEPOXD = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IMAE' )
-         IF ( IND > 0 ) MW_IMAE   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IMAE   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'LVOC' )
-         IF ( IND > 0 ) MW_LVOC   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_LVOC   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'ISN1OG' )
-         IF ( IND > 0 ) MW_ISN1OG = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_ISN1OG = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'ISOPND' )
-         IF ( IND > 0 ) MW_ISOPND = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_ISOPND = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'ISOPNB' )
-         IF ( IND > 0 ) MW_ISOPNB = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_ISOPNB = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MACRN' )
-         IF ( IND > 0 ) MW_MACRN  = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MACRN  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MVKN' )
-         IF ( IND > 0 ) MW_MVKN   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MVKN   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'R4N2' )
-         IF ( IND > 0 ) MW_R4N2   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_R4N2   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'DHDN' )
-         IF ( IND > 0 ) MW_DHDN   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_DHDN   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MONITS' )
-         IF ( IND > 0 ) MW_MONITS = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MONITS = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MONITU' )
-         IF ( IND > 0 ) MW_MONITU = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MONITU = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HONIT' )
-         IF ( IND > 0 ) MW_HONIT  = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HONIT  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IONITA' )
-         IF ( IND > 0 ) MW_IONITA = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IONITA = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'MONITA' )
-         IF ( IND > 0 ) MW_MONITA = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_MONITA = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'BrNO3' )
-         IF ( IND > 0 ) MW_BrNO3  = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_BrNO3  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HOBr' )
-         IF ( IND > 0 ) MW_HOBr   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HOBr   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HBr' )
-         IF ( IND > 0 ) MW_HBr    = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HBr    = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'ClNO3' )
-         IF ( IND > 0 ) MW_ClNO3  = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_ClNO3  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HOCl' )
-         IF ( IND > 0 ) MW_HOCl   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HOCl   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HI' )
-         IF ( IND > 0 ) MW_HI     = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HI     = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HOI' )
-         IF ( IND > 0 ) MW_HOI    = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_HOI    = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'I2O2' )
-         IF ( IND > 0 ) MW_I2O2   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_I2O2   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'I2O3' )
-         IF ( IND > 0 ) MW_I2O3   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_I2O3   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'I2O4' )
-         IF ( IND > 0 ) MW_I2O4   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_I2O4   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IONO' )
-         IF ( IND > 0 ) MW_IONO   = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IONO   = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'IONO2' )
-         IF ( IND > 0 ) MW_IONO2  = SC%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) MW_IONO2  = State_Chm%SpcData(IND)%Info%MW_g
 
          ! Reset flag
          FIRST = .FALSE.
@@ -515,40 +514,44 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
       ! Proton activity [unitless] and H+ concentration [M]
       ! (assumed equivalent - for now):
-      H_PLUS = SC%HplusSav(I,J,L)
+      H_PLUS = State_Chm%HplusSav(I,J,L)
 
       ! Sulfate concentration [M]:
-      MSO4   = SC%SulRatSav(I,J,L)
+      MSO4   = State_Chm%SulRatSav(I,J,L)
 
       ! Nitrate concentration [M]:
-      MNO3   = SC%NaRatSav(I,J,L)
+      MNO3   = State_Chm%NaRatSav(I,J,L)
 
       ! Bisulfate (general acid) concentration [M]:
-      MHSO4  = SC%BisulSav(I,J,L)
+      MHSO4  = State_Chm%BisulSav(I,J,L)
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt
       !--------------------------------------------------------------------
-      XAREA(1:SC%nAero) = SC%AeroArea(I,J,L,:) ! Aerosol area [cm2/cm3]
-      XRADI(1:SC%nAero) = SC%AeroRadi(I,J,L,:) ! Aerosol radius [cm]
 
-      TEMPK  = SM%T(I,J,L)                     ! Temperature [K]
-      XTEMP  = sqrt(SM%T(I,J,L))               ! Square root of temperature
-      XDENA  = SM%AIRNUMDEN(I,J,L)             ! Dry air density [molec/cm3]
-      SUNCOS = SM%SUNCOSmid(I,J)               ! COS(SZA),midpt of chem timestep
-      VAir   = SM%AIRVOL(I,J,L)*1.0e6_fp       ! Volume of air (cm3)
-      QICE   = SM%QI(I,J,L)                    ! Ice   mix ratio [kg/kg dry air]
-      QLIQ   = SM%QL(I,J,L)                    ! Water mix ratio [kg/kg dry air]
+      ! Aerosol area [cm2/cm3]
+      XAREA(1:State_Chm%nAero) = State_Chm%AeroArea(I,J,L,:)
 
-      GAMMA_HO2 = IO%GAMMA_HO2
+      ! Aerosol radius [cm]
+      XRADI(1:State_Chm%nAero) = State_Chm%AeroRadi(I,J,L,:)
 
-#if defined( UCX )
+      TEMPK  = State_Met%T(I,J,L)              ! Temperature [K]
+      XTEMP  = sqrt(State_Met%T(I,J,L))        ! Square root of temperature
+      XDENA  = State_Met%AIRNUMDEN(I,J,L)      ! Dry air density [molec/cm3]
+      SUNCOS = State_Met%SUNCOSmid(I,J)        ! COS(SZA),midpt of chem timestep
+      VAir   = State_Met%AIRVOL(I,J,L)*1.0e6_fp! Volume of air (cm3)
+      QICE   = State_Met%QI(I,J,L)             ! Ice   mix ratio [kg/kg dry air]
+      QLIQ   = State_Met%QL(I,J,L)             ! Water mix ratio [kg/kg dry air]
+
+      GAMMA_HO2 = Input_Opt%GAMMA_HO2
+
       !--------------------------------------------------------------------
-      ! Check surface type of PSCs (SDE 04/17/13)
+      ! UCX-based mechanisms: Check surface type of PSCs (SDE 04/17/13)
       !--------------------------------------------------------------------
-      CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
-                      IO, SM, SC )
-#endif
+      IF ( Input_Opt%LUCX ) THEN
+         CALL CHECK_NAT( I,  J,  L, NATSURFACE, PSCBOX, STRATBOX, &
+                         Input_Opt, State_Met, State_Chm )
+      ENDIF
 
       !--------------------------------------------------------------------
       !  Calculate parameters for cloud halogen chemistry
@@ -556,12 +559,12 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
 
       ! Get cloud physical parameters
-      CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, SM, &
+      CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, State_Met, &
                        rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce )
 
       ! Retrieve cloud pH and alkalinity
-      pHCloud = SC%pHCloud(I,J,L)
-      SSAlk(1:2) = SC%SSAlk(I,J,L,1:2)
+      pHCloud    = State_Chm%pHCloud(I,J,L)
+      SSAlk(1:2) = State_Chm%SSAlk(I,J,L,1:2)
 
       ! Estimate liquid phase pH (H+ concentration)
       hConc_Sul = 10.0**(-0.0e+0_fp) 
@@ -595,17 +598,17 @@ MODULE GCKPP_HETRATES
       !--------------------------------------------------------------------
 
       ! Cloud bisulfite (HSO3-) concentration [mol/l] from sulfate_mod.F
-      HSO3conc_Cld = SC%HSO3_AQ(I,J,L)
+      HSO3conc_Cld = State_Chm%HSO3_AQ(I,J,L)
 
       ! Cloud sulfite (SO3--) concentration [mol/l] from sulfate_mod.F
-      SO3conc_Cld  = SC%SO3_AQ(I,J,L)
+      SO3conc_Cld  = State_Chm%SO3_AQ(I,J,L)
 
       ! Avoid div-by-zero issues in GAMMA_HOBr_X
       !IF ( HSO3conc_Cld <= 0.0_fp) HSO3conc_Cld = 1e-20_fp
       !IF (  SO3conc_Cld  <= 0.0_fp)  SO3conc_Cld = 1e-20_fp
 
       ! Correction factor for HOBr removal by SO2 [unitless]
-      fupdateHOBr  = SC%fupdateHOBr(I,J,L)
+      fupdateHOBr  = State_Chm%fupdateHOBr(I,J,L)
 
       !--------------------------------------------------------------------
       ! Calculate and pass het rates to the KPP rate array
@@ -752,7 +755,7 @@ MODULE GCKPP_HETRATES
          ! ClNO3 + HBr (TS index: hhc09)
          !----------------------------------------------------------------
          kITemp = HETClNO3_HBr_JS( xDenA, rLiq, rIce, ALiq, AIce, VAir, &
-                                   TempK, brConc_Cld )
+                                   TempK, brConc_Cld, Input_Opt )
          HET(ind_ClNO3, 3) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('HBr'), &
                                        kITemp, HetMinLife)
 
@@ -762,9 +765,11 @@ MODULE GCKPP_HETRATES
 	 ! NOTE: the restriction of these reactions to the troposphere has been
          ! restored - tms (2017/04/06 )
          HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, Ind_('HOCl'),  Ind_('HCl'), &
-                             HETHOCl_HCl(  0.52E2_fp, 0E+0_fp), HetMinLife)
+                             HETHOCl_HCl(  0.52E2_fp, 0E+0_fp, Input_Opt), &
+                             HetMinLife)
          HET(ind_HOCl,  2) = kIIR1Ltd( spcVec, Ind_('HOCl'),  Ind_('HBr'), &
-                             HETHOCl_HBr(  0.52E2_fp, 0E+0_fp), HetMinLife)
+                             HETHOCl_HBr(  0.52E2_fp, 0E+0_fp, Input_Opt), &
+                             HetMinLife)
 
          !----------------------------------------------------------------
          ! O3 + Br- calculation (TS index: hhc12)
@@ -817,7 +822,7 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
 	 ! NOTE: this extension of calculation in troposphere has been removed
          !  (tms 17/04/10)
-         kITemp = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp ) 
+         kITemp = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp, Input_Opt ) 
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('HCl'), &
                                        kITemp, HetMinLife) 
 
@@ -833,32 +838,32 @@ MODULE GCKPP_HETRATES
       IF (Ind_('I2').gt.0) THEN
 
          ! Uptake reactions (forming AERI, ISALA and ISALC)
-         HET(ind_HI,   1) = HETIUptake( MW_HI,   0.10e+0_fp,  8 )
-         HET(ind_HI,   2) = HETIUptake( MW_HI,   0.10e+0_fp, 11 )
-         HET(ind_HI,   3) = HETIUptake( MW_HI,   0.10e+0_fp, 12 )
-         HET(ind_I2O2, 1) = HETIUptake( MW_I2O2, 0.02e+0_fp,  8 )
-         HET(ind_I2O2, 2) = HETIUptake( MW_I2O2, 0.02e+0_fp, 11 )
-         HET(ind_I2O2, 3) = HETIUptake( MW_I2O2, 0.02e+0_fp, 12 )
-         HET(ind_I2O3, 1) = HETIUptake( MW_I2O3, 0.02e+0_fp,  8 )
-         HET(ind_I2O3, 2) = HETIUptake( MW_I2O3, 0.02e+0_fp, 11 )
-         HET(ind_I2O3, 3) = HETIUptake( MW_I2O3, 0.02e+0_fp, 12 )
-         HET(ind_I2O4, 1) = HETIUptake( MW_I2O4, 0.02e+0_fp,  8 )
-         HET(ind_I2O4, 2) = HETIUptake( MW_I2O4, 0.02e+0_fp, 11 )
-         HET(ind_I2O4, 3) = HETIUptake( MW_I2O4, 0.02e+0_fp, 12 )
+         HET(ind_HI,   1) = HETIUptake( MW_HI,   0.10e+0_fp,  8, Input_Opt )
+         HET(ind_HI,   2) = HETIUptake( MW_HI,   0.10e+0_fp, 11, Input_Opt )
+         HET(ind_HI,   3) = HETIUptake( MW_HI,   0.10e+0_fp, 12, Input_Opt )
+         HET(ind_I2O2, 1) = HETIUptake( MW_I2O2, 0.02e+0_fp,  8, Input_Opt )
+         HET(ind_I2O2, 2) = HETIUptake( MW_I2O2, 0.02e+0_fp, 11, Input_Opt )
+         HET(ind_I2O2, 3) = HETIUptake( MW_I2O2, 0.02e+0_fp, 12, Input_Opt )
+         HET(ind_I2O3, 1) = HETIUptake( MW_I2O3, 0.02e+0_fp,  8, Input_Opt )
+         HET(ind_I2O3, 2) = HETIUptake( MW_I2O3, 0.02e+0_fp, 11, Input_Opt )
+         HET(ind_I2O3, 3) = HETIUptake( MW_I2O3, 0.02e+0_fp, 12, Input_Opt )
+         HET(ind_I2O4, 1) = HETIUptake( MW_I2O4, 0.02e+0_fp,  8, Input_Opt )
+         HET(ind_I2O4, 2) = HETIUptake( MW_I2O4, 0.02e+0_fp, 11, Input_Opt )
+         HET(ind_I2O4, 3) = HETIUptake( MW_I2O4, 0.02e+0_fp, 12, Input_Opt )
 
          ! These uptake reactions require non-acidic aerosol
          ! Fine sea salt first
          IF (SSAlk(1).gt.0.05) THEN
-            HET(ind_HOI,  1) = HETIUptake( MW_HOI,   0.01e+0_fp, 11 )
-            HET(ind_IONO, 1) = HETIUptake( MW_IONO,  0.02e+0_fp, 11 )
-            HET(ind_IONO2,1) = HETIUptake( MW_IONO2, 0.01e+0_fp, 11 )
+            HET(ind_HOI,  1) = HETIUptake( MW_HOI,   0.01e+0_fp, 11, Input_Opt )
+            HET(ind_IONO, 1) = HETIUptake( MW_IONO,  0.02e+0_fp, 11, Input_Opt )
+            HET(ind_IONO2,1) = HETIUptake( MW_IONO2, 0.01e+0_fp, 11, Input_Opt )
          ENDIF
 
          ! Now coarse sea salt
          IF (SSAlk(2).gt.0.05) THEN
-            HET(ind_HOI,  2) = HETIUptake( MW_HOI,   0.01e+0_fp, 12 )
-            HET(ind_IONO, 2) = HETIUptake( MW_IONO,  0.02e+0_fp, 12 )
-            HET(ind_IONO2,2) = HETIUptake( MW_IONO2, 0.01e+0_fp, 12 )
+            HET(ind_HOI,  2) = HETIUptake( MW_HOI,   0.01e+0_fp, 12, Input_Opt )
+            HET(ind_IONO, 2) = HETIUptake( MW_IONO,  0.02e+0_fp, 12, Input_Opt )
+            HET(ind_IONO2,2) = HETIUptake( MW_IONO2, 0.01e+0_fp, 12, Input_Opt )
          ENDIF
 
          ! Breakdown of iodine compounds on sea-salt
@@ -867,8 +872,6 @@ MODULE GCKPP_HETRATES
          HET(ind_IONO2,3) = HETIXCycleSSA( MW_IONO2, 0.01E+0_fp, SSAlk )
          
       ENDIF
-
-      SCF = SCF2
 
       ! Nullify pointers
       NULLIFY( spcVec )
@@ -1129,14 +1132,13 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETIUptake( A, B, N ) RESULT( kISum )
+    FUNCTION HETIUptake( A, B, N, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
-      ! Which aerosol?
-      INTEGER,  INTENT(IN) :: N
+      REAL(fp),       INTENT(IN) :: A, B       ! Rate coefficients
+      INTEGER,        INTENT(IN) :: N          ! Which aerosol?
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 ! 
@@ -1146,6 +1148,7 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  24 Dec 2016 - S. D. Eastham - Initial version
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1159,14 +1162,15 @@ MODULE GCKPP_HETRATES
 
       ! Reaction rate for surface of aerosol
       kISum = ARSL1K(XAREA(N),XRADI(N),XDENA,B,XTEMP,(A**0.5_fp))
-#if defined( UCX )
-      ! Also allow reaction on stratospheric sulfate (N=13) if 
-      ! tropospheric sulfate is requested (N=8)
-      IF (N.eq.8) THEN
-         kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
-                               (A**0.5_fp))
+
+      IF ( Input_Opt%LUCX ) THEN
+         ! For UCX-based mechanisms also allow reaction on stratospheric
+         ! sulfate (N=13) if tropospheric sulfate is requested (N=8)
+         IF (N.eq.8) THEN
+            kISum = kISum + ARSL1K(XAREA(13),XRADI(13),XDENA,B,XTEMP, &
+                    (A**0.5_fp))
+         ENDIF
       ENDIF
-#endif
       
     END FUNCTION HETIUptake
 !EOC
@@ -1482,8 +1486,6 @@ MODULE GCKPP_HETRATES
                                (A**0.5_FP))
          ENDIF
 
-         scf2(2) = xstkcf
-
          IF ( DO_EDUCT .and. N > 12 ) THEN
             ! PSC reaction - prevent excessive reaction rate
             IF (ADJUSTEDRATE.gt.(1.e+0_fp/HetMinLife)) THEN
@@ -1573,8 +1575,7 @@ MODULE GCKPP_HETRATES
             ! RH dependence
             XSTKCF = N2O5( N, TEMPK, RELHUM )
          ELSE
-            ! In UCX, ABSHUMK will have been set by
-            ! STT(I,J,L,IDTH2O)
+            ! For UCX-based mechanisms ABSHUMK is set to Spc(I,J,L,id_H2O)
             XSTKCF = N2O5( N, TEMPK, RELHUM )
          ENDIF
          ! Nitrate effect; reduce the gamma on nitrate by a
@@ -3074,16 +3075,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETN2O5_HCl( A, B ) RESULT( kISum )
+    FUNCTION HETN2O5_HCl( A, B, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
+      REAL(fp),       INTENT(IN) :: A, B       ! Rate coefficients
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: kISum
+      REAL(fp)                   :: kISum
 !
 ! !REMARKS:
 !  This routine is only activated for UCX-based mechanisms.
@@ -3098,6 +3099,7 @@ MODULE GCKPP_HETRATES
 !  24 Dec 2016 - S. D. Eastham - Extended into the troposphere. Also now use the
 !                              standard N2O5 calculation to establish gamma for
 !                              sulfate, rather than relying on a fixed factor.
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3117,6 +3119,7 @@ MODULE GCKPP_HETRATES
 
          ! Assume zero
          XStkCf = 0.0e+0_fp
+
 	 ! restore stratosphere only limitation - tms 17/04/10
          IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
@@ -3125,10 +3128,10 @@ MODULE GCKPP_HETRATES
                ! RH dependence
       	       XSTKCF = N2O5( N, TEMPK, RELHUM )
 	    ENDIF
-          ENDIF
-#if defined( UCX )
-         ! Only consider PSC reactions in strat
-         IF ( STRATBOX ) THEN
+         ENDIF
+
+         ! For UCX-based mechanisms only consider PSC reactions in strat
+         IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(2)
             ELSEIF (N.eq.14) THEN
@@ -3139,7 +3142,6 @@ MODULE GCKPP_HETRATES
                ENDIF
             ENDIF
          ENDIF
-#endif
 
          IF (XStkCf.gt.0.0e+0_fp) THEN
             IF (N.eq.13) THEN
@@ -3605,7 +3607,8 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETClNO3_HBr_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, brConc ) RESULT( kISum )
+    FUNCTION HETClNO3_HBr_JS( denAir, rLiq, rIce, ALiq, AIce, VAir, TK, &
+                              brConc, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
@@ -3617,6 +3620,7 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN) :: VAir        ! Box volume (cm3)
       REAL(fp), INTENT(IN) :: TK          ! Temperature (K)
       REAL(fp), INTENT(IN) :: brConc      ! Bromide concentration (mol/L)
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
@@ -3629,6 +3633,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Define N, XSTKCF, ADJUSTEDRATE locally
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  22 Dec 2016 - S. D. Eastham - Updated code based on Johan Schmidt's work
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3650,11 +3655,15 @@ MODULE GCKPP_HETRATES
 
          ! Get the aerosol type
          XStkCf = 0.0e+0_fp
+
          IF ( N == 8 ) THEN
+
             ! sulfate aerosol
             XSTKCF = Gamma_ClNO3_Br( xRadi(8), denAir, TK, brConc )
-#if defined( UCX )
-         ELSEIF (STRATBOX) THEN
+
+         ELSEIF ( Input_Opt%LUCX .and. STRATBOX ) THEN
+
+            ! For UCX-based mechanisms only consider PSC reactions in strat
             IF (N.eq.13) THEN
                XSTKCF = KHETI_SLA(5)
             ELSEIF (N.eq.14) THEN
@@ -3664,7 +3673,7 @@ MODULE GCKPP_HETRATES
                   XSTKCF = 0.3e+0_fp ! Ice
                ENDIF
             ENDIF
-#endif
+
          ENDIF
 
          IF (XStkCf.gt.0.0e+0_fp) THEN
@@ -3683,17 +3692,17 @@ MODULE GCKPP_HETRATES
          ENDIF
       END DO
 
-    ! Reaction on liquid and ice clouds (tropospheric only)
-    IF (.not. StratBox) THEN
-       IF (ALiq.gt.0.0e+0_fp) THEN
+      ! Reaction on liquid and ice clouds (tropospheric only)
+      IF (.not. StratBox) THEN
+         IF (ALiq.gt.0.0e+0_fp) THEN
           XStkCf = Gamma_ClNO3_Br( rLiq, denAir, TK, brConc )
           kISum = kISum + Arsl1K(ALiq, rLiq, denAir, XStkCf, XTemp, XSqM)
-       ENDIF
-       IF (AIce.gt.0.0e+0_fp) THEN
+         ENDIF
+         IF (AIce.gt.0.0e+0_fp) THEN
           XStkCf = Gamma_ClNO3_Br( rIce, denAir, TK, brConc )
           kISum = kISum + Arsl1K(AIce, rIce, denAir, XStkCf, XTemp, XSqM)
-       ENDIF
-    ENDIF
+         ENDIF
+      ENDIF
 
     END FUNCTION HETClNO3_HBr_JS
 !EOC
@@ -5158,16 +5167,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETHOCl_HCl( A, B ) RESULT( kISum )
+    FUNCTION HETHOCl_HCl( A, B, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
+      REAL(fp),       INTENT(IN) :: A, B       ! Rate coefficients
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: kISum
+      REAL(fp)                   :: kISum
 !
 ! !REMARKS:
 !
@@ -5179,6 +5188,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5198,9 +5208,8 @@ MODULE GCKPP_HETRATES
 
          XSTKCF        = 0.0_fp
 
-         ! Only consider PSC reactions in strat
-#if defined( UCX )
-         IF (STRATBOX) THEN
+         ! For UCX-based mechanisms only consider PSC reactions in strat
+         IF ( Input_Opt%LUCX .and. STRATBOX) THEN
 	    ! restore limitation to stratosphere
 	    IF (N.eq.8) THEN
 	       XSTKCF = 0.8e+0_fp ! Sulfate
@@ -5214,7 +5223,6 @@ MODULE GCKPP_HETRATES
                ENDIF
             ENDIF
          ENDIF
-#endif
 
          IF (XStkCf.gt.0.0e+0_fp) THEN
             IF (N.eq.13) THEN
@@ -5250,16 +5258,16 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-    FUNCTION HETHOCl_HBr( A, B ) RESULT( kISum )
+    FUNCTION HETHOCl_HBr( A, B, Input_Opt ) RESULT( kISum )
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Rate coefficients
-      REAL(fp), INTENT(IN) :: A, B
+      REAL(fp),       INTENT(IN) :: A, B       ! Rate coefficients
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)             :: kISum
+      REAL(fp)                   :: kISum
 !
 ! !REMARKS:
 !
@@ -5271,6 +5279,7 @@ MODULE GCKPP_HETRATES
 !  01 Apr 2016 - R. Yantosca - Replace KII_KI with DO_EDUCT local variable
 !  04 May 2016 - M. Sulprizio- Add fixes for setting rate if not a STRATBOX
 !  22 Dec 2016 - S. D. Eastham - Now active for non-UCX mechanisms
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5289,10 +5298,9 @@ MODULE GCKPP_HETRATES
       DO N = 1, NAERO
 
          XSTKCF        = 0.0_fp
-         ! Only consider PSC reactions in strat
-#if defined( UCX )
-         IF (STRATBOX) THEN
-	 ! restore limitation to stratosphere
+
+         ! For UCX-based mechanisms only consider PSC reactions in strat
+         IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
 	    IF (N.eq.8) THEN
  	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -5305,7 +5313,6 @@ MODULE GCKPP_HETRATES
                ENDIF
             ENDIF
          ENDIF
-#endif
 
          IF (XStkCf.gt.0.0e+0_fp) THEN
             IF (N.eq.13) THEN

@@ -137,6 +137,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdSO4fromGasPhase        (:,:,:) 
      REAL(f4),  POINTER :: ProdSO4fromH2O2inCloud     (:,:,:) 
      REAL(f4),  POINTER :: ProdSO4fromO3inCloud       (:,:,:) 
+     REAL(f4),  POINTER :: ProdSO4fromO2inCloudMetal  (:,:,:) 
      REAL(f4),  POINTER :: ProdSO4fromO3inSeaSalt     (:,:,:) 
      REAL(f4),  POINTER :: ProdSO4fromOxidationOnDust (:,:,:) 
      REAL(f4),  POINTER :: ProdSO4fromUptakeOfH2SO4g  (:,:,:)
@@ -374,6 +375,7 @@ CONTAINS
     State_Diag%ProdSO4fromH2O2inCloud     => NULL() 
     State_Diag%ProdSO4fromO3inCloud       => NULL() 
     State_Diag%ProdSO4fromHOBrInCloud     => NULL()
+    State_Diag%ProdSO4fromO2inCloudMetal  => NULL() 
     State_Diag%ProdSO4fromO3inSeaSalt     => NULL() 
     State_Diag%ProdSO4fromOxidationOnDust => NULL() 
     State_Diag%ProdSO4fromUptakeOfH2SO4g  => NULL()
@@ -1462,6 +1464,24 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! Production of SO4 from aqueous oxidation of O2 metal-catalyzed
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdSO4fromO2inCloudMetal'
+       diagID  = 'ProdSO4fromO2inCloudMetal'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal(IM, JM, LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdSO4fromO2inCloudMetal = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdSO4fromO2inCloudMetal,     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! Production of SO4 from O3 in sea salt aerosols
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%ProdSo4fromO3inSeaSalt'
@@ -1733,7 +1753,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 25
+       DO N = 1, 26
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1757,35 +1777,37 @@ CONTAINS
                 diagID = 'ProdSO4fromO3inCloud'
              CASE( 10 )                
                 diagID = 'ProdSO4fromHOBrInCloud'
-             CASE( 11 )                
-                diagID = 'ProdSO4fromO3inSeaSalt'
+             CASE( 11  )                
+                diagID = 'ProdSO4fromO2inCloudMetal'
              CASE( 12 )                
-                diagID = 'ProdSO4fromSRO3'
+                diagID = 'ProdSO4fromO3inSeaSalt'
              CASE( 13 )                
-                diagID = 'ProdSO4fromSRHOBr'
+                diagID = 'ProdSO4fromSRO3'
              CASE( 14 )                
-                diagID = 'ProdSO4fromO3s'
+                diagID = 'ProdSO4fromSRHOBr'
              CASE( 15 )                
-                diagID = 'PM25'
+                diagID = 'ProdSO4fromO3s'
              CASE( 16 )                
-                diagID = 'PM25ni'
+                diagID = 'PM25'
              CASE( 17 )                
-                diagID = 'PM25su'
+                diagID = 'PM25ni'
              CASE( 18 )                
-                diagID = 'PM25oc'
+                diagID = 'PM25su'
              CASE( 19 )                
-                diagID = 'PM25bc'
+                diagID = 'PM25oc'
              CASE( 20 )                
-                diagID = 'PM25ss'
+                diagID = 'PM25bc'
              CASE( 21 )                
-                diagID = 'PM25du'
+                diagID = 'PM25ss'
              CASE( 22 )                
-                diagID = 'PM25soa'
+                diagID = 'PM25du'
              CASE( 23 )                
-                diagID = 'TerpeneSOA'
+                diagID = 'PM25soa'
              CASE( 24 )                
-                diagID = 'IsopreneSOA'
+                diagID = 'TerpeneSOA'
              CASE( 25 )                
+                diagID = 'IsopreneSOA'
+             CASE( 26 )
                 diagID = 'AromaticSOA'
           END SELECT
 
@@ -2481,6 +2503,12 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ProdSO4fromO2inCloudMetal ) ) THEN
+       DEALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdSO4fromO2inCloudMetal', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt ) ) THEN
        DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inSeaSalt', 2, RC )
@@ -3077,6 +3105,11 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMHOBRINCLOUD' ) THEN
        IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of HOBr in clouds'
+       IF ( isUnits   ) Units = 'kg S'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODSO4FROMO2INCLOUDMETAL' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of SO4 from aqueous oxidation of O2 metal-catalyzed'
        IF ( isUnits   ) Units = 'kg S'
        IF ( isRank    ) Rank  =  3
 

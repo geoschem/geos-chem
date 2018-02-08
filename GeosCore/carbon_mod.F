@@ -1718,7 +1718,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( ITS_IN_THE_NOCHEMGRID(I,J,L,Input_Opt,State_Met) ) CYCLE
 
          ! Volume of grid box [m3]
          VOL    = State_Met%AIRVOL(I,J,L)
@@ -1779,8 +1779,8 @@
             JHC = PARENTPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA(I,J)
             ENDDO          
          ENDIF
 
@@ -1791,8 +1791,8 @@
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA(I,J)
             ENDDO  
          ENDIF
 
@@ -1818,7 +1818,7 @@
          ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
          IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
             MPOC = ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * FAC
-            MPOC = MPOC * 2.1e+0_fp
+            MPOC = MPOC * OCFOPOA(I,J)
          ELSE
             ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
             MPOC = 1e-30_fp
@@ -1902,8 +1902,8 @@
                JHC = PARENTPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
-                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA
-                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA(I,J)
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA(I,J)
                ENDDO
             ENDIF
 
@@ -1913,8 +1913,8 @@
                JHC = PARENTOPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
-                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA
-                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA(I,J)
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA(I,J)
                ENDDO
             ENDIF
 
@@ -3171,8 +3171,9 @@
       IF ( LPRT ) THEN ! (hotp 8/24/09)
          print*, 'Semivolatile POA settings:---------------'
          print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
-         print*, ' POA OA/OC ratio:    ', OCFPOA 
-         print*, ' OPOA OA/OC ratio:   ', OCFOPOA
+         ! OCFPOA and OCFOPOA are now 2D arrays
+         !print*, ' POA OA/OC ratio:    ', OCFPOA(I,J)
+         !print*, ' OPOA OA/OC ratio:   ', OCFOPOA(I,J)
          print*, ' LSVPOA is set to:   ', LSVPOA
 
          print*, 'CHECK MHC, NOX, PR', MHC, MNOX, MPROD
@@ -5584,7 +5585,7 @@ ccc
          !---------------------
 
          ! OH is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
@@ -5721,7 +5722,7 @@ ccc
          !----------------------
 
          ! NO3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
@@ -5877,7 +5878,7 @@ ccc
          !--------------------
 
          ! O3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
             
             ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
@@ -6025,7 +6026,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get information on the 
             ! specified type of aromatic peroxy radical
@@ -6257,7 +6258,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN 
  
             !-----------------------------------------------------------
             ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
@@ -6403,10 +6404,10 @@ ccc
       ! Add primary material as appropriate
       IF ( id_POA1 > 0 ) THEN
          MOTEMP = MOTEMP              +
-     &            Spc(I,J,L,id_POA1 ) * OCFPOA  +
-     &            Spc(I,J,L,id_POA2 ) * OCFPOA  +
-     &            Spc(I,J,L,id_OPOA1) * OCFOPOA +
-     &            Spc(I,J,L,id_OPOA2) * OCFOPOA
+     &            Spc(I,J,L,id_POA1 ) * OCFPOA(I,J)  +
+     &            Spc(I,J,L,id_POA2 ) * OCFPOA(I,J)  +
+     &            Spc(I,J,L,id_OPOA1) * OCFOPOA(I,J) +
+     &            Spc(I,J,L,id_OPOA2) * OCFOPOA(I,J)
       ELSEIF ( id_OCPI > 0 ) THEN
          MOTEMP = MOTEMP +
      &           ( Spc(I,J,L,id_OCPI) + 
@@ -7394,7 +7395,7 @@ ccc
          !---------------------
 
          ! NO is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
@@ -7488,7 +7489,7 @@ ccc
          !---------------------
 
          ! HO2 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN
 
             ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
@@ -7592,7 +7593,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
+         IF ( ITS_IN_THE_CHEMGRID(I,J,L,Input_Opt,State_Met) ) THEN 
  
             !-----------------------------------------------------------
             ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
@@ -7660,7 +7661,6 @@ ccc
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
-      USE TIME_MOD,           ONLY : GET_NYMDb, GET_NHMSb, GET_TAUb
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
 #endif

@@ -213,6 +213,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -699,7 +700,7 @@
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
-       LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       LCHEM           = GET_CHEMGRID_LEVEL(I,J,Input_Opt,State_Met)
        DO L = 1, LCHEM
           O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
@@ -726,20 +727,26 @@
             ENDIF !CLOUDS
 
        IF (INTROP(I,J,L).EQ..TRUE.) THEN 
-           !-----------------------------
-            ! WE ARE IN THE TROPOSPHERE
-            !-----------------------------
+          !-----------------------------
+          ! WE ARE IN THE TROPOSPHERE
+          !-----------------------------
 
-            ! SET O3, CH4, N2O AND CFC PROFILES
-            ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
-            ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
+          ! SET O3, CH4, N2O AND CFC PROFILES
+          ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
+          ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
 
-            !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
-            !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
-            !(WHEN SPECMASK DEFAULTS TO 1)
-            !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
-            !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
-#if defined( UCX )
+          !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
+          !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
+          !(WHEN SPECMASK DEFAULTS TO 1)
+          !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
+          !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
+
+          IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !          %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)*AIRMW /
      &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
@@ -773,10 +780,15 @@
 
             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g*
      &                         State_Met%AD(I,J,L) )
 
-#else
+         ELSE
+
+            !--------------------------------------------------------
+            !        %%%%%%% Tropchem only mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)/
      &                          State_Met%AIRNUMDEN(I,J,L)
@@ -792,22 +804,28 @@
             CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
-#endif
-       ELSE
-           !-----------------------------
-           ! WE ARE IN THE STRATOSPHERE
-           !-----------------------------
+         ENDIF
 
-#if defined( UCX )
+       ELSE
+          !-----------------------------
+          ! WE ARE IN THE STRATOSPHERE
+          !-----------------------------
+
+          IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !          %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
-     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )  
+            O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
+     &                      ( State_Chm%SpcData(id_O3)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )  
  
-             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
-     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )   
+            CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
 
             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
      &                      ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
@@ -839,7 +857,12 @@
 !            CCL4VMR(I,J,L)  = 0.0d0
 !            CFC22VMR(I,J,L) = 0.0d0
 
-#else      
+         ELSE
+      
+            !--------------------------------------------------------
+            !        %%%%%%% Tropchem only mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
@@ -874,7 +897,7 @@
             CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
-#endif
+         ENDIF
        ENDIF
       ENDDO
       ENDDO
@@ -912,14 +935,12 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get 
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif    
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+
            !MAKE SURE WE HAVE SENSIBLE DATA
            !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
            IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
@@ -979,14 +1000,11 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
            IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND.
      $        (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
@@ -1033,14 +1051,12 @@
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+
           IF (IB.LE.16) THEN
            TAUAER_LW(I,J,L,IB)    = 0.0
           ELSE
@@ -1512,7 +1528,11 @@
       OUTIDX = ISPECMENU + 1
 
       !THE NUMBER OF ND72 OUTPUTS PER FIELD
-      NAD72 = NSPECRADMENU + 1
+      IF ( Input_Opt%LUCX ) THEN
+         NAD72 = NSPECRADMENU + 1
+      ELSE
+         NAD72 = NSPECRADMENU
+      ENDIF
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
       !(I.E. IF BOTH ALL-SKY AND CLEAR-SKY ARE SWITCHED ON)
@@ -1655,7 +1675,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                           LSPECRADMENU,NSPECRADMENU
+     &                           LSPECRADMENU
 !
 ! !INPUT PARAMETERS:
 !

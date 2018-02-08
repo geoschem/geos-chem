@@ -378,7 +378,8 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0e+0_fp
-            LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            LCHEM           = GET_CHEMGRID_LEVEL( NLON,     NLAT,
+     &                                            Input_Opt, State_Met )
             DO L = 1, LCHEM
                O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
             ENDDO
@@ -1777,7 +1778,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       call RD_AOD(JXUNIT, am_I_Root, Input_Opt )
 
       ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
-      call SET_AER(am_I_Root)
+      call SET_AER( am_I_Root, Input_Opt )
 
       !=====================================================================
       ! Read in T & O3 climatology used to fill e.g. upper layers 
@@ -2346,6 +2347,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  25 Jun 2015 - M. Sulprizio  - Add brown carbon optical properties from 
 !                                M. Hammer 
 !  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2354,11 +2356,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !
       INTEGER           :: I, J, K, N
       INTEGER           :: IOS
-#if defined( UCX )
-      CHARACTER*30      :: SPECFIL(8)
-#else
       CHARACTER*30      :: SPECFIL(6)
-#endif
+      CHARACTER*30      :: SPECFIL_UCX(8)
       CHARACTER(LEN=30) :: THISFILE
            
       LOGICAL           :: LBRC
@@ -2372,11 +2371,14 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
             
-      ! aerosol_mod.F expects aerosol in this order now
-      ! extra two LUT dat files for strat H2SO4 and NAT particles
-             
-       DATA SPECFIL /"so4.dat","soot.dat","org.dat","ssa.dat","ssc.dat",
-#if defined( UCX )
+      ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
+      DATA SPECFIL /"so4.dat","soot.dat","org.dat",
+     &              "ssa.dat","ssc.dat", "dust.dat"/
+
+      ! For UCX simulations:
+      !
+      ! Extra two LUT dat files for strat H2SO4 and NAT particles
+      !
       ! Treating strat sulfate with GADS data but modified to match
       ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
       ! evidence that this is too smale and narrow e.g. Deshler et al. 2003
@@ -2384,14 +2386,20 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! but for now we are just treating the NAT like the sulfate... limited
       ! info but ref index is similar e.g. Scarchilli et al. (2005)
       !(DAR 05/2015)
-     &              "h2so4.dat","h2so4.dat",
-#endif
-     &              "dust.dat"/
+      DATA SPECFIL_UCX /"so4.dat","soot.dat","org.dat",
+     &                  "ssa.dat","ssc.dat",
+     &                  "h2so4.dat","h2so4.dat",
+     &                  "dust.dat"/
 
       !array of filenames
       DO k = 1, NSPAA
 
-       THISFILE = SPECFIL(k)
+       ! Choose different set of input files for UCX and tropchem simulations
+       IF ( Input_Opt%LUCX) THEN
+          THISFILE = SPECFIL_UCX(k)
+       ELSE
+          THISFILE = SPECFIL(k)
+       ENDIF
 
        ! open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=IOS )
@@ -2738,6 +2746,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  27 Jun 2016 - M. Sulprizio  - Add RXN_NO2 flag for PARANOX
 !  10 Mar 2017 - C. Keller     - Wrapped print out into am_I_Root statement
 !  19 Dec 2017 - R. Yantosca   - Now return error code to calling routine
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2968,9 +2977,9 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
          WRITE( 6, 130 ) RXN_O3_1
          WRITE( 6, 140 ) RXN_O3_2a
          WRITE( 6, 150 ) RXN_O3_2b
-#if defined( UCX )
+         IF ( Input_Opt%LUCX ) THEN
          WRITE( 6, 160 ) RXN_H2SO4
-#endif
+         ENDIF
          WRITE( 6, 170 ) RXN_NO2
          WRITE( 6, 100 ) REPEAT( '=', 79 )
       ENDIF
@@ -3108,6 +3117,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !  05 Mar 2014 - R. Yantosca - Now only save ND64 with LD64 specified levels
 !  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
 !  04 Oct 2017 - E. Lundgren - Populate State_Diag J-Values array for nc diag
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3284,37 +3294,37 @@ c---  at the 5 std wavelengths 200-300-400-600-999 nm for cloud+aerosols
              !to the new speciated LUT
              KMIE2=LUTIDX(KMIE)
 
-#if defined( UCX )
-             ! Strat aerosols
-             IM=10+(NRHAER*NRH)+1
-             DO M=IM,IM+1
-                IDXAER=M-IM+6 !6-STS, 7-NAT
-              
-                IF (AERX_COL(M,L).gt.0d0) THEN
-                   
-                   IF (AOD999) THEN
-                      ! Aerosol/dust (999 nm scaling)
-                      ! Fixed to dry radius
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/
-     &                           QQAA(10,1,IDXAER)
-                   ELSE
-                      ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,1,IDXAER)/
-     &                           QQAA(5,1,IDXAER)
-                   ENDIF
-                   LOCALOD = QSCALING*AERX_COL(M,L)
-                   LOCALSSA = SSAA(KMIE2,1,IDXAER)*LOCALOD
-                   OD(KMIE,L) = OD(KMIE,L) + LOCALOD
-                   SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
-                   DO I=1,8
-                      SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
-     &                            (PAA(I,KMIE,IDXAER)*LOCALSSA)
-                   ENDDO ! I (Phase function)
-                ENDIF
-             ENDDO ! M (Aerosol)
+             IF ( Input_Opt%LUCX ) THEN
 
-#endif
-             
+                ! Strat aerosols for UCX simulations
+                IM=10+(NRHAER*NRH)+1
+                DO M=IM,IM+1
+                   IDXAER=M-IM+6 !6-STS, 7-NAT
+              
+                   IF (AERX_COL(M,L).gt.0d0) THEN
+                   
+                      IF (AOD999) THEN
+                         ! Aerosol/dust (999 nm scaling)
+                         ! Fixed to dry radius
+                         QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                              QQAA(10,1,IDXAER)
+                      ELSE
+                         ! Aerosol/dust (550 nm scaling)
+                         QSCALING = QQAA(KMIE2,1,IDXAER)/
+     &                              QQAA(5,1,IDXAER)
+                      ENDIF
+                      LOCALOD    = QSCALING*AERX_COL(M,L)
+                      LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
+                      OD(KMIE,L) = OD(KMIE,L) + LOCALOD
+                      SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
+                      DO I=1,8
+                         SLEG(I,KMIE,L) = SLEG(I,KMIE,L) +
+     &                                    (PAA(I,KMIE,IDXAER)*LOCALSSA)
+                      ENDDO     ! I (Phase function)
+                   ENDIF
+                ENDDO           ! M (Aerosol)
+
+             ENDIF ! LUCX
              
              ! Mineral dust (from new optics LUT)
              DO M=4,10
@@ -4735,14 +4745,16 @@ C---Always does PL(2) = P[1]
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_AER(am_I_Root)
+      SUBROUTINE SET_AER( am_I_Root, Input_Opt )
 !
 ! !USES:
 !
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root
+      LOGICAL,        INTENT(IN) :: am_I_Root
+      TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input options
 !
 ! !OUTPUT VARIABLES:
 !
@@ -4751,6 +4763,7 @@ C---Always does PL(2) = P[1]
 ! 
 ! !REVISION HISTORY: 
 !  31 Mar 2013 - S. D. Eastham - Adapted from J. Mao FJX v6.2 implementation
+!  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4771,8 +4784,8 @@ C---Always does PL(2) = P[1]
          MIEDX(I) = 0
       ENDDO
 
-!     Select Aerosol/Cloud types to be used - define types here
-!     Each of these types must be listed in the order used by OPMIE.F
+      ! Select Aerosol/Cloud types to be used - define types here
+      ! Each of these types must be listed in the order used by OPMIE.F
 
       ! Clouds
       MIEDX(1)  =  3   !  Black carbon absorber
@@ -4795,13 +4808,13 @@ C---Always does PL(2) = P[1]
          ENDDO
       ENDDO
 
-#if defined( UCX )
-      ! Stratospheric aerosols - SSA/STS and solid PSCs
-      MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
-      MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
-#endif
-c
-c  Ensure all 'AN_' types are valid selections
+      IF ( Input_Opt%LUCX ) THEN
+         ! Stratospheric aerosols - SSA/STS and solid PSCs
+         MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+         MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
+      endif
+
+      ! Ensure all 'AN_' types are valid selections
       do i=1,AN_
         IF (am_I_Root) write(6,1000) MIEDX(i),TITLEAA(MIEDX(i))
         if(MIEDX(i).gt.NAA.or.MIEDX(i).le.0) then

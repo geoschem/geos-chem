@@ -769,15 +769,13 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = 'CH2Br2',                     &
                               FullName      = 'Dibromomethane',             &
-                              Formula       = 'CH3Br2',                     &
+                              Formula       = 'CH2Br2',                     &
                               MW_g          = 174.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               RC            = RC )
 
           CASE( 'CH2O', 'HCHO' )
@@ -824,9 +822,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               RC            = RC )
 
           CASE( 'CHCL3' )
@@ -1252,9 +1248,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1297,9 +1293,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1343,9 +1339,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -1390,9 +1386,9 @@ CONTAINS
              ! Do not reduce the Kc (cloud condensate -> precip) rate
              KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             ! Allow rainout of dust when T < 258K, becasue dust
+             ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3239,9 +3235,7 @@ CONTAINS
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
                               Is_Wetdep     = F,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 1.90e-5_f8 * To_M_atm,        &
                               Henry_CR      = 1600.0_f8,                    &
@@ -3580,6 +3574,36 @@ CONTAINS
 #else                                                                       
                               DD_Hstar_old  = 3.60e+0_fp,                   &
 #endif                                      
+                              RC            = RC )
+
+          CASE( 'PFE' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = 'Anthropogenic iron',         &
+                              Formula       = 'Fe',                         &
+                              MW_g          = 55.85_fp,                     &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0e+0_fp,                    &
+                              DD_Hstar_old  = 0.0e+0_fp,                    &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
           CASE( 'POA1', 'POA2' )
@@ -3992,9 +4016,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
-#if defined( UCX )
                               Is_Photolysis = T,                            &
-#endif
                               Is_HygroGrowth= T,                            &
                               Density       = 1700.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
@@ -6531,6 +6553,23 @@ CONTAINS
                                  Is_Wetdep     = F,                         &
                                  RC            = RC )
 
+          CASE( 'N2' )
+                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
+                                 ThisSpc       = SpcData(N)%Info,           &
+                                 ModelID       = N,                         &
+                                 KppSpcId      = KppSpcId(N),               &
+                                 KppVarId      = KppVarId(N),               &
+                                 KppFixId      = KppFixId(N),               &
+                                 Name          = NameAllCaps,               &
+                                 FullName      = 'Molecular nitrogen',      &
+                                 Formula       = 'N2',                       &
+                                 BackgroundVV  = 7.808e-1_fp,                &
+                                 Is_Advected   = F,                         &
+                                 Is_Gas        = T,                         &
+                                 Is_Drydep     = F,                         &
+                                 Is_Wetdep     = F,                         &
+                                 RC            = RC )
+
           CASE( 'O1D' )
                 CALL Spc_Create( am_I_Root     = am_I_Root,                 &
                                  ThisSpc       = SpcData(N)%Info,           &
@@ -6541,11 +6580,7 @@ CONTAINS
                                  Name          = NameAllCaps,               &
                                  FullName      = 'Excited atomic oxygen (1D)',&
                                  Formula       = 'O(1D)',                   &
-#if defined( UCX )
                                  BackgroundVV  = 1.0e-15_fp,                &
-#else
-                                 BackgroundVV  = 4.0e-22_fp,                &
-#endif
                                  Is_Advected   = F,                         &
                                  Is_Gas        = T,                         &
                                  Is_Drydep     = F,                         &
