@@ -1,4 +1,4 @@
-d !------------------------------------------------------------------------------
+!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1162,7 +1162,7 @@ CONTAINS
     ! Save quantities for computing mean OH lifetime
     !=======================================================================
 #if defined( BPCH_DIAG )
-    CALL DO_DIAG_OH( State_Met, State_Chm )
+    CALL DO_DIAG_OH( Input_Opt, State_Met, State_Chm )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF

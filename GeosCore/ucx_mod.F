@@ -4740,7 +4740,7 @@
       INTEGER, PARAMETER    :: TROPPLEV_OFFSET = 0
 
       !=================================================================
-      ! SET_H2O_TRAC begins here!
+      ! SET_H2O_TRAC begins here
       !=================================================================
 
       ! Assume success
@@ -4791,21 +4791,17 @@
 
          DO L = 1, LLPAR
 
-         ! Logical flag determines if we are in a region where H2O from 
-         ! met files should overwrite the value from the chemical solver 
-         READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
-     &                 SETSTRAT .or. ( .not. LACTIVEH2O ) .or. 
-     &                 (L < LEVCPT)  )
-
-         DO L = 1, LLPAR
-
-            ! Mark as tropospheric air everything that is at current 
-            ! tropopause or 2 levels above. This is to avoid H2O leaks
-            ! into the stratosphere due to jumps in the model
-            ! tropopause.
-            ! (ckeller, 11/12/17).
+            ! Mark as tropospheric air everything that is at current
+            ! tropopause or offset levels above. This is to avoid H2O 
+            ! leaks into the stratosphere due to jumps in the model 
+            ! tropopause. The offset is 0 by default (ckeller, 11/12/17)
+            ! Logical flag determines if we are in a region where H2O from 
+            ! met files should overwrite the value from the chemical solver
+            ! C. Holmes) 
             READ_SPHU = ( ( (L-TPLEV) < TROPPLEV_OFFSET ) .or.
-     &                    SETSTRAT .or. ( .not. LACTIVEH2O )  )
+     &                    SETSTRAT .or. ( .not. LACTIVEH2O ) .or. 
+     &                    (L < LEVCPT)  )
+! Prior to v11-02e:
 !            READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
 !     &                    SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
