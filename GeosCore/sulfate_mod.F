@@ -1632,7 +1632,8 @@
       ! VTS  Settling velocity of particle (m/s)
       LOGICAL                :: IS_UPTAKE_SPC
       INTEGER                :: I,         J,      L
-      INTEGER                :: DryDep_ID, DTCHEM
+      INTEGER                :: DryDep_ID
+      REAL(fp)               :: DTCHEM
       REAL(fp)               :: DELZ,      DELZ1,  REFF
       REAL(fp)               :: P,         DP,     PDP,      TEMP        
       REAL(fp)               :: CONST,     SLIP,   VISC,     FAC1
