@@ -912,7 +912,7 @@
          ! Concentrations of oxidants, molec/cm3
          C_O3        = GET_O3( I, J, L,        State_Met )
          C_OH        = GET_OH( I, J, L,        State_Met )
-         C_BR        = GET_BR_OLD( I, J, L, C_BRO, State_Met )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Met )
          C_NO2       = GET_NO2( I, J, L, State_Met, HEM_NO(I,J,L),
      &        HEM_NO2(I,J,L), C_O3 )
          C_HO2       = GET_HO2( I, J, L, State_Met )
