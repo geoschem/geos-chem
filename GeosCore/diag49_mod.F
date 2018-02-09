@@ -1674,9 +1674,13 @@
                
                CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
                IF (CONV .lt. 0) CONV = 1.0
+
                ! Case where Monin-Obhukov similarity does not apply
                ! and the correction is not valid
-               IF (AD_ZL(I,J) .gt. 1) THEN
+               ! Drydep code says that similarity applies over the
+               ! range -2.5 <= z/L <= 1.5
+               IF ( AD_ZL(I,J) .lt. -2.5   .or.
+     &              AD_ZL(I,J) .gt.  1.5 ) THEN
                   Q(X,Y,1) = -999e+0_fp
                ELSE
                   Q(X,Y,1)= CONV *TMPO3*1e+9_fp
