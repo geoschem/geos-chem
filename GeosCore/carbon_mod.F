@@ -771,9 +771,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD07_BC
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
@@ -928,12 +930,10 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
-
 !
 ! !INPUT PARAMETERS:
 !
@@ -1038,9 +1038,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD07_OC
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
@@ -1191,7 +1193,6 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,   ONLY : OptInput
@@ -1358,11 +1359,8 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD07_HC
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1370,6 +1368,10 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD07_HC
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1714,7 +1716,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Volume of grid box [m3]
          VOL    = State_Met%AIRVOL(I,J,L)
@@ -3217,9 +3219,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD07_HC
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -3831,9 +3835,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD07_HC 
+#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
 !
@@ -4323,10 +4329,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
       USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
       USE DIAG_MOD,           ONLY : AD59_NUMB
+#endif
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL,  GET_PBL_MAX_L
@@ -4892,7 +4900,9 @@ ccc
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -5528,7 +5538,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -5580,7 +5589,7 @@ ccc
          !---------------------
 
          ! OH is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Get OH from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_OH)%Info%MolecRatio
@@ -5657,7 +5666,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -5717,7 +5725,7 @@ ccc
          !----------------------
 
          ! NO3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Get NO3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio  = State_Chm%SpcData(id_NO3)%Info%MolecRatio
@@ -5811,7 +5819,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -5873,8 +5880,8 @@ ccc
          !--------------------
 
          ! O3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-            
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+  
             ! Get O3 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_O3)%Info%MolecRatio
             O3_MW_kg   = State_Chm%SpcData(id_O3)%Info%emMW_g * 1.e-3_fp
@@ -5960,7 +5967,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -6021,7 +6027,7 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Get information on the 
             ! specified type of aromatic peroxy radical
@@ -6203,7 +6209,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -6253,8 +6258,8 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
- 
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
             !-----------------------------------------------------------
             ! Get LISOPOH (ISOP lost to OH) from State_Chm%Species
             ! [kg LISOPOH] and convert to [kg C ISOP]
@@ -6807,7 +6812,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
@@ -6982,7 +6986,7 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
+            print*,'strat?',State_Met%InStratosphere(I,J,L)
          ENDIF
 
          ! Product 2, C* = 10 ug/m3
@@ -7002,7 +7006,8 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
+            print*,'strat?',State_Met%InStratosphere(I,J,L)
+
          ENDIF
 
          ! Product 3, C* = 100 ug/m3
@@ -7022,7 +7027,7 @@ ccc
             print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
             print*,'NNOX',NNOX(JSV)
-            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
+            print*,'strat?',State_Met%InStratosphere(I,J,L)
          ENDIF
 
          !----------------------------------------------------
@@ -7057,7 +7062,7 @@ ccc
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
 !            print*,'Spc',Spc(I,J,L,id_ASOAN)
 !            print*,'NNOX',NNOX(JSV)
-!            print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
+!            print*,'strat?',State_Met%InStratosphere(I,J,L)
          ENDIF
 
          ! Debug print to screen
@@ -7065,7 +7070,7 @@ ccc
 !            IF ( I == 37 .AND. J == 25 .AND. L == 4 ) THEN
 !               print*,'CK_MB ',NOX,IPR,JSV,
 !     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,NOX,IPR,JSV)
-!               print*,'strat?',ITS_IN_THE_STRAT(I,J,L,State_Met)
+!                print*,'strat?',State_Met%InStratosphere(I,J,L)
 !            ENDIF
 !         ENDIF
 
@@ -7341,7 +7346,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7390,7 +7394,7 @@ ccc
          !---------------------
 
          ! NO is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Get NO from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_NO)%Info%MolecRatio
@@ -7437,7 +7441,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7484,7 +7487,7 @@ ccc
          !---------------------
 
          ! HO2 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Get HO2 from State_Chm%Species [kg] and convert to [molec/cm3]
             MolecRatio = State_Chm%SpcData(id_HO2)%Info%MolecRatio
@@ -7532,7 +7535,6 @@ ccc
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7588,8 +7590,8 @@ ccc
          !--------------------
 
          ! Test if we are in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN 
- 
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
             !-----------------------------------------------------------
             ! Get ISOPNO3 (ISOP list to NO3) from State_Chm%Species
             ! [kg ISOPNO3] and convert to [kg C ISOP]

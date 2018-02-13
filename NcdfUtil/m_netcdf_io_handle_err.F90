@@ -69,7 +69,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
 !
     err_msg = 'In Nchandle_Err:  ' // Nf_Strerror (ierr)
 

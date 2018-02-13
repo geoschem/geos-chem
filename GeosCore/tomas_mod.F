@@ -469,10 +469,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -668,7 +669,7 @@
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
 
@@ -807,9 +808,11 @@
          ENDIF
 
          MPNUM = 5    
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
 !         IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
 !            CALL DEBUGPRINT( Nk, Mk, I, J, L,
@@ -908,14 +911,18 @@
             ENDDO
 
             MPNUM = 3
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             MPNUM = 7
+#if defined( BPCH_DIAG )
             IF ( ND61 > 0 )  THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             IF ( printdebug.and.i==iob .and. j==job .and. l==lob )  THEN
                CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
@@ -932,9 +939,11 @@
             Gc(srtso4)=Gcout(srtso4)
 
             MPNUM = 1
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
                CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
@@ -944,6 +953,7 @@
             nucrate1(j,l)=nucrate1(j,l)+fn1
             
             ! Write nucleation rate to diagnostric ND61 (win, 10/6/08)
+#if defined( BPCH_DIAG )
             IF ( ND61 > 0 ) THEN
                IF ( L <= LD61 ) 
      &              AD61(I,J,L,2) = AD61(I,J,L,2) + fn
@@ -952,6 +962,7 @@
                AD61_INST(I,J,L,2) = fn
                
             ENDIF
+#endif
                
 
             DO N = 1, IBINS
@@ -993,9 +1004,11 @@
          ENDIF
 
          MPNUM = 5    
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
          !-----------------------------
          ! Coagulation 
@@ -1017,9 +1030,11 @@
 !     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN 
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
@@ -1042,9 +1057,11 @@
             ENDIF
 
             MPNUM = 5
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
          ENDIF  ! Coagulation
 
 
@@ -1082,9 +1099,11 @@
 
          ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
          MPNUM = 5
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
          ! Swap Nk, Mk, and Gc arrays back to Spc
          DO N = 1, IBINS
@@ -3552,9 +3571,10 @@
 !*****************************************************************************
 !
       ! References to F90 modules
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput          
@@ -3674,8 +3694,10 @@
      &                   'Beginning AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) 
@@ -3718,7 +3740,7 @@
 !     &              MK(K,SRTSO4),MK(K,SRTH2O)
 !            ENDDO
             IF ( MOXID > 5e+0_fp .and.
-     &           ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+     &           ( .not. State_Met%InChemGrid(I,J,L) ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE
@@ -3805,8 +3827,10 @@
 
       ! Save changes to diagnostic
       MPNUM = 4
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
       ! Fix any inconsistencies in M/N distribution 
       CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
@@ -3820,8 +3844,10 @@
      &                   'End of AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
       ! Swap Nk and Mk arrays back to Spc 
       DO K = 1, IBINS
@@ -3882,7 +3908,9 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -4106,8 +4134,10 @@
 
       ! Save changes to diagnostic
       MPNUM = 6
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
 
       ! Fix any inconsistencies in M/N distribution
@@ -6001,11 +6031,13 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE CMN_DIAG_MOD      ! ND60
       USE CMN_SIZE_MOD      ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD      ! ND60
       USE DIAG_MOD,    ONLY :  AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,    ONLY :  AD60_AQOX, AD60_ERROR, AD60_SOA
       USE DIAG_MOD,    ONLY :  AD61,      AD61_INST  
+#endif
       USE ERROR_MOD,   ONLY :  IT_IS_NAN
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
@@ -6029,6 +6061,7 @@
       !=================================================================
       ! AERODIAG begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1 
       !  Note: This is created to look at 3-D rate for a selected process
@@ -6178,6 +6211,8 @@
       ENDIF
 
       ENDIF ! If (PTYPE == 7)
+
+#endif
 
       ! Return to calling subroutine
       END SUBROUTINE AERODIAG
@@ -7203,7 +7238,9 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7344,9 +7381,10 @@
          
          ! Save the error fixing to diagnostic AERO-FIX
          MPNUM = 5
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
-         
+#endif       
 
          ! Swap Nk and Mk arrays back to Spc 
          DO K = 1, IBINS
@@ -8748,7 +8786,9 @@
 !                              derived type object
 !*****************************************************************************
 
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD

@@ -25,7 +25,17 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PARAMETER :: PD05=19
+      !######################################################
+      !##### NOTE: We need to keep these variables!     #####
+      !######################################################
+      INTEGER, PARAMETER :: PD40=4
+      INTEGER            :: ND40
+
+      !######################################################
+      !##### NOTE: These variables can be blocked out!  #####
+      !######################################################
+#if defined( BPCH_DIAG )
+      INTEGER, PARAMETER :: PD05=18
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15
@@ -39,12 +49,6 @@
       INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
       INTEGER, PARAMETER :: PD22=76
-      INTEGER, PARAMETER :: PD40=4       
-!-------------------------------------------------------------------
-! Prior to 11/29/17:
-! The SOA slots of ND43 seem to have been removed (bmy, 11/29/17)
-!      INTEGER, PARAMETER :: PD43=7  
-!-------------------------------------------------------------------
       INTEGER, PARAMETER :: PD43=4
       INTEGER, PARAMETER :: PD52=6
       INTEGER, PARAMETER :: PD55=3
@@ -96,10 +100,11 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
+
       !=================================================================
       ! Diagnostic counters & time variables
       !=================================================================
-      INTEGER :: KDA48, NJDAY(366)
+      INTEGER :: KDA48
 
       !=================================================================
       ! Variables for the number of levels in multi-level diagnostics  
@@ -125,7 +130,7 @@
       INTEGER :: ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20
       INTEGER :: ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29
       INTEGER :: ND30, ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38
-      INTEGER :: ND39, ND40, ND43, ND44, ND45, ND46, ND47, ND48, ND49
+      INTEGER :: ND39, ND43, ND44, ND45, ND46, ND47, ND48, ND49
       INTEGER :: ND50, ND51, ND52, ND54, ND55, ND57, ND58, ND59
       INTEGER :: ND60, ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68
       INTEGER :: ND69, ND70, ND71, ND72, ND73, ND74, ND75
@@ -144,6 +149,7 @@
       !=================================================================
       REAL(fpp)  :: HR1_JV, HR2_JV
       REAL(fpp)  :: HR1_OH, HR2_OH, HR1_OTH, HR2_OTH
+#endif
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -245,8 +251,10 @@
       ! Assume success
       RC   = GC_SUCCESS
       
+#if defined( BPCH_DIAG )
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 
+#endif
 
       END SUBROUTINE Init_CMN_DIAG
 !EOC

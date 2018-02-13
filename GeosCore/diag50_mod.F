@@ -245,7 +245,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH
@@ -359,6 +358,8 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
@@ -447,7 +448,7 @@
             I = GET_I( X )
 
             ! Only increment if we were in the chemistry grid
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 
@@ -890,6 +891,7 @@
       ! Free pointers
       Spc => NULL()
 
+#endif
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -909,10 +911,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG ) 
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+#endif
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -1001,6 +1005,8 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
+
+#if defined( BPCH_DIAG )
 
       ! Nubmer of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1408,6 +1414,8 @@
       ! Zero accumulating array
       Q            = 0e+0_fp
 
+#endif
+
       END SUBROUTINE WRITE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -1476,8 +1484,10 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,    ONLY : GET_MODELNAME
       USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+#endif
       USE CMN_SIZE_MOD
       USE ERROR_MOD,    ONLY : ALLOC_ERR
       USE ERROR_MOD,    ONLY : ERROR_STOP
@@ -1530,6 +1540,8 @@
       !=================================================================
       ! INIT_DIAG50 begins here!
       !=================================================================
+
+#if defined( BPCH_DIAG )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG50 ("diag50_mod.f")'
@@ -1668,6 +1680,8 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0e+0_fp
 
+#endif
+
       END SUBROUTINE INIT_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -1694,8 +1708,10 @@
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG50
 !EOC

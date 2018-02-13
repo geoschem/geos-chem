@@ -136,6 +136,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Diagnostic flags
+      LOGICAL               :: Do_ND43
       LOGICAL               :: Archive_OHconcAfterChem
 
       ! Species ID flag
@@ -345,9 +346,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD58
+#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -668,7 +671,10 @@
          ! Grid box surface area [m2]
          AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Update diagnostics
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND58 (bpch) diagnostic
+         !--------------------------------------------------------------
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption [kg]
@@ -681,6 +687,7 @@
      &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
+#endif
 
       ENDDO
       ENDDO
@@ -875,10 +882,11 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD43
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
@@ -1059,7 +1067,7 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
-      IF ( ND43 > 0 .or. Archive_OHconcAfterChem ) THEN
+      IF ( Do_ND43 .or. Archive_OHconcAfterChem ) THEN
 
          ! Zero the diagnostic array for OH to avoid leftover values
          IF ( Archive_OHconcAfterChem ) THEN
@@ -1070,8 +1078,7 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
 #if defined( BPCH_DIAG )
                !--------------------------------------------------------
@@ -1215,10 +1222,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD19   	      
+#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
@@ -1298,7 +1306,7 @@
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
@@ -1328,8 +1336,12 @@
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / Spc2GCH4
 
-            ! Modify AD19 Diagnostic
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND19 (bpch) diagnostic
+            !
             ! How much CH4 (kg) is lost by reaction with OH
+            !-----------------------------------------------------------
             IF ( ND19 > 0 ) THEN  ! --> [kg/box]
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
@@ -1337,6 +1349,7 @@
      &                 ( GCH4 * KRATE * C_OH * DT ) / Spc2GCH4
                ENDIF
             ENDIF
+#endif
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
             GCH4 = GCH4 * ( 1e+0_fp - KRATE * C_OH * DT )
@@ -1376,7 +1389,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
@@ -1441,7 +1453,7 @@
       DO I = 1, IIPAR 
 
          ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1537,8 +1549,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
 !-----------------------------------------------------------------------------
 ! Prior to 12/11/17:
@@ -1597,7 +1607,7 @@
 !
       ! Scalars
       INTEGER           :: N,  NA,   nAdvect
-      INTEGER           :: I,  J,    L,        BASELEV
+      INTEGER           :: I,  J,    L
       REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
 
       ! Local variables for quantities from Input_Opt
@@ -1668,11 +1678,20 @@
          !=================================================================
          ! Loop over stratospheric boxes only
          !=================================================================
-         BASELEV = GET_MIN_TPAUSE_LEVEL()
-         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+! Prior to 1/11/19:
+! Better to just loop over all levels and test if we are in the chem grid;
+! can also parallelize this loop later
+! (bmy, 1/11/19)
+!         BASELEV = GET_MIN_TPAUSE_LEVEL()
+!         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
+
+            ! Only proceed if we are outside of the chemistry grid
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
@@ -2251,8 +2270,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE State_Met_Mod,     ONLY : State_Met
 !
@@ -2326,7 +2343,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -2343,7 +2360,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+            IF (  .not. State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO
@@ -2573,7 +2590,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -2646,7 +2665,12 @@
       TCH4 = 0e+0_fp      
 #endif
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+! Prior to 1/12/18:
+! Remove dependence on PD58 (bmy, 1/12/18)
+!      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, 12 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp
 
@@ -2663,6 +2687,13 @@
 
       ! Set a flag to denote if netCDF diagnostics are activated
       Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
+
+      ! Set a flag to denote if bpch diagnostics are activated
+#if defined( BPCH_DIAG )
+      Do_ND43 = ( ND43 > 0 )
+#else
+      Do_ND43 = .FALSE.
+#endif
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

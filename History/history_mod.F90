@@ -59,21 +59,26 @@ MODULE History_Mod
 ! !LOCAL VARIABLES:
 !
   ! Scalars
-  INTEGER                          :: CollectionCount
+  INTEGER                              :: CollectionCount
 
   ! Strings
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionName       (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFileName   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionTemplate   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionSubsetDims (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFormat     (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionFrequency  (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionAccInterval(:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionDuration   (:)
-  CHARACTER(LEN=255), ALLOCATABLE  :: CollectionMode       (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubsetDims (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:)
 
   ! Objects
-  TYPE(MetaHistContainer), POINTER :: CollectionList
+  TYPE(MetaHistContainer), POINTER     :: CollectionList
+!
+! !DEFINED PARAMETERS:
+!
+  ! Maximum number of collections (set to a ridiculously big number)
+  INTEGER,                 PARAMETER   :: MAX_COLLECTIONS = 500
 
 CONTAINS
 !EOC
@@ -159,7 +164,7 @@ CONTAINS
     !=======================================================================
     CALL History_Netcdf_Init( am_I_Root, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "HistoryNetCdfInit"!'
+       ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -182,7 +187,7 @@ CONTAINS
     CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
                                      State_Diag, State_Met, RC              )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
+       ErrMsg = 'Error encountered in "History_ReadCollectionData"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -239,11 +244,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !DEFINED PARAMETERS:
-!
-    ! Ridiculously big number
-    INTEGER, PARAMETER :: MAX_COLLECTIONS = 500
 !
 ! !LOCAL VARIABLES:
 !
@@ -523,6 +523,7 @@ CONTAINS
 !  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
 !  29 Sep 2017 - R. Yantosca - Now get the starting and ending date/time info
 !                              from the Input_Opt object
+!  24 Jan 2018 - E. Lundgren - Allow diagnostic names to include input params
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -555,6 +556,9 @@ CONTAINS
     REAL(f8)                     :: SimLengthSec
 
     ! Strings
+    CHARACTER(LEN=6  )           :: TStr
+    CHARACTER(LEN=8  )           :: DStr
+    CHARACTER(LEN=20 )           :: StartTimeStamp, EndTimeStamp
     CHARACTER(LEN=255)           :: Line,           FileName
     CHARACTER(LEN=255)           :: ErrMsg,         ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
@@ -564,6 +568,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: TmpMode,        Contact
     CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
     CHARACTER(LEN=255)           :: tagId,          tagName
+    CHARACTER(LEN=255)           :: OutputName
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -627,6 +632,20 @@ CONTAINS
     ThisLoc        =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
     Units          =  ''
+
+    ! Create the timestamp at the start of the simulation
+    WRITE( DStr,          '(i8.8)' ) yyyymmdd
+    WRITE( TStr,          '(i6.6)' ) hhmmss
+    WRITE( StartTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),          &
+                                     TStr(1:2), TStr(3:4), TStr(5:6)
+    
+    ! Create the timestamp at the end of the simulation
+    WRITE( DStr,        '(i8.8)' ) yyyymmdd_end
+    WRITE( TStr,        '(i6.6)' ) hhmmss_end
+    WRITE( EndTimeStamp, 300     ) DStr(1:4), DStr(5:6), DStr(7:8),            &
+                                   TStr(1:2), TStr(3:4), TStr(5:6)
+    ! Format string
+300 FORMAT( a4, '-', a2, '-', a2, ' ', a2, ':', a2, ':', a2, 'z' )
 
     ! Compute the Astronomical Julian Date corresponding to the yyyymmdd 
     ! and hhmmss values at the start and end of the simulation, which are
@@ -797,14 +816,20 @@ CONTAINS
              ! List the defined collections
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
              WRITE( 6, 200   ) 
- 200         FORMAT( 'GEOS-Chem ERROR: one or more collection ',             &
-                     'attributes do not correspond',                      /  &
+ 200         FORMAT( 'GEOS-Chem ERROR: One or more collection ',             &
+                     'attributes do not correspond', /                       &
                      'to any of these defined collection names '             &
-                     'in the "HISTORY.rc" input file:'                      )
+                     'in the "HISTORY.rc" input file:', /                   )
+
              DO N = 1, CollectionCount
                 WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
  210            FORMAT( i3, ') ', a )
              ENDDO
+
+             WRITE( 6, 220 ) 
+ 220         FORMAT( /, 'Please check the HISTORY.rc file for any ',         &
+                     'missing ":" or "," characters', /,                     &
+                     'in the collection attributes.'                        )
              WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
              
              ! Write error message and then return
@@ -812,7 +837,7 @@ CONTAINS
                       ' Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
-          ENDIF
+          ENDIF 
 
           ! Zero the counter of items
           ItemCount = 0
@@ -1030,6 +1055,8 @@ CONTAINS
                                      Reference      = Reference,             &
                                      Title          = Title,                 &
                                      Contact        = Contact,               &
+                                     StartTimeStamp = StartTimeStamp,        &
+                                     EndTimeStamp   = EndTimeStamp,          &
                                      RC             = RC                    )
 
           ! Trap potential error
@@ -1062,23 +1089,16 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( SimLengthSec < Container%FileWriteAlarm ) THEN
 
-             ! Construct first part of error message
+             ! Construct error message
              ErrMsg =                                                        &
                 'No diagnostic output will be created for collection: "'  // &
-                 TRIM( CollectionName(C) ) // '"!  Make sure that the'
-
-             ! Then add the correct text for instantaneous or time-averaged
-             IF ( Container%Operation == COPY_FROM_SOURCE ) THEN
-                ErrMsg = TRIM ( ErrMsg ) // ' "frequency"'
-             ELSE
-                ErrMsg = TRIM ( ErrMsg ) // ' "acc_interval"'
-             ENDIF
-
-             ! Then continue the message
-             ErrMsg = TRIM( ErrMsg )                                      // &
-                ' interval in HISTORY.rc is not shorter than the length ' // &
-                'of the simulation (check start & end times in '          // &
-                'input.geos).'
+                 TRIM( CollectionName(C) ) // '"!  Make sure that the '   // &
+                'length of the simulation as specified in "input.geos" '  // &
+                '(check the start and end times) is not shorter than '    // &
+                'the frequency setting in HISTORY.rc!  For example, if '  // &
+                'the frequency is 010000 (1 hour) but the simulation '    // &
+                'is set up to run for only 20 minutes, then this error '  // &
+                'will occur.'
 
              ! Return error
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1169,8 +1189,9 @@ CONTAINS
                 
                 ! Add each tagged name as a separate item in the collection
                 DO N = 1, nTags
-
                    ! Construct the item name
+
+                   ! Get tag, if any
                    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                                      N=N, tagName=tagName )
                    IF ( RC /= GC_SUCCESS ) THEN
@@ -1180,8 +1201,11 @@ CONTAINS
                       RETURN
                    ENDIF
 
-                   ! Append the tag name to the item name
+                   ! Append the tag name to the output name
                    ItemName = TRIM( ItemPrefix ) // TRIM( tagName )
+
+                   ! Update the ItemName if dependent on input parameters
+                   CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
 
                    ! Increment the item count
                    ItemCount   = ItemCount + 1
@@ -1197,14 +1221,14 @@ CONTAINS
                             Collection   = Container,                        &
                             CollectionId = C,                                &
                            !SubsetDims   = CollectionSubsetDims(C),          &
-                            ItemName     = ItemName,                         &
+                            ItemName     = OutputName,                       &
                             ItemCount    = ItemCount,                        &
                             RC           = RC                               )
                 
                    ! Error checking
                    IF ( RC /= GC_SUCCESS ) THEN
                       ErrMsg = 'Could not add diagnostic "'               // &
-                               TRIM( ItemName ) // '" to collection: '    // &
+                               TRIM( OutputName ) // '" to collection: '  // &
                                TRIM( CollectionName(C) ) 
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
@@ -1216,6 +1240,9 @@ CONTAINS
                 !-----------------------------------------------------------
                 ! Item name does not have wildcards; no special handling
                 !-----------------------------------------------------------
+
+                ! Update the ItemName if dependent on input parameters
+                CALL Get_NameInfo( am_I_Root, ItemName, OutputName, RC )
 
                 ! Increment the number of HISTORY items
                 ItemCount = ItemCount + 1
@@ -1231,13 +1258,13 @@ CONTAINS
                          Collection   = Container,                           &
                          CollectionId = C,                                   &
                         !SubsetDims   = CollectionSubsetDims(C),             &
-                         ItemName     = ItemName,                            &
+                         ItemName     = OutputName,                          &
                          ItemCount    = ItemCount,                           &
                          RC           = RC                                  )
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not add diagnostic "' // TRIM( ItemName ) &
+                   ErrMsg = 'Could not add diagnostic "' // TRIM( OutputName ) &
                             // '" to collection: ' // TRIM( CollectionName(C) ) 
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
@@ -1278,11 +1305,12 @@ CONTAINS
              DO N = 1, CollectionCount
                 WRITE( 6, 210 ) N, TRIM( CollectionName(N) )
              ENDDO
+             WRITE( 6, 220 )
              WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
-          
+
              ! Write error message and then return
              ErrMsg = 'Inconsistency in collection names and attributes!' // &
-                  '    Please check "HISTORY.rc" for typos.'
+                      ' Please check "HISTORY.rc" for typos.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -2408,6 +2436,7 @@ CONTAINS
 !  15 Aug 2017 - R. Yantosca - Bug fix: TRIM string arguments to INDEX, and
 !                              initialize output arguments to undefined values
 !  01 Nov 2017 - R. Yantosca - Now get CleanText from charpak_mod.F90
+!  18 Jan 2018 - R. Yantosca - Bug fix: now DO N = 1, CollectionCount
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2421,10 +2450,6 @@ CONTAINS
     CHARACTER(LEN=255)       :: Name
     CHARACTER(LEN=255)       :: SubStr(255)
 
-    ! SAVEd variables
-    INTEGER,            SAVE :: CollectionStart = 0
-    CHARACTER(LEN=255), SAVE :: LastName        = ''
-     
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -2443,15 +2468,12 @@ CONTAINS
     N = LEN_TRIM( Name    )
     P = LEN_TRIM( Pattern )
 
-    ! Increment the number of the collection that we'll search from
-    ! if the current collection name is different from the prior one.
-    IF ( TRIM( Name ) /= TRIM( LastName ) ) THEN
-       LastName        = Name
-       CollectionStart = CollectionStart + 1
-    ENDIF
-
     ! Loop over all collection names
-    DO C = CollectionStart, CollectionCount
+    ! NOTE: This algorithm may not be the most efficient, as it will
+    ! not skip collections that we have already encountered.  But it
+    ! only gets done during the init phase, so it might not be a huge
+    ! expenditure of time anyway.  Worry about this later. (bmy, 1/18/18)
+    DO C = 1, CollectionCount
 
        ! Check to see if the current line matches the collection name
        ! Then check to see which collection this is in

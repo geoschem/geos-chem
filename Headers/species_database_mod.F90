@@ -410,33 +410,16 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp,                    &
                               RC            = RC )
 
-          CASE( 'BCPI', 'BCPO' )
-             
-             ! These have mostly identical properties
-             SELECT CASE( NameAllCaps )
 
-                CASE( 'BCPI' )
-                   FullName = 'Hydrophilic black carbon aerosol'
+          CASE( 'BCPI' )
+             FullName = 'Hydrophilic black carbon aerosol'
 
-                   ! Halve the Kc (cloud condensate -> precip) rate
-                   ! for the temperature range 237 K <= T < 258 K.
-                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
-                   ! Turn off rainout only when 237 K <= T < 258K.
-                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-
-                CASE( 'BCPO' )
-                   Fullname = 'Hydrophobic black carbon aerosol'
-
-                   ! Halve the Kc (cloud condensate -> precip) rate
-                   ! for the temperature range T > 258 K
-                   KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
-
-                   ! Allow rainout of BCPO when T < 258 K, because
-                   ! BCPO is considered to be IN.
-                   RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
-
-             END SELECT
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -454,6 +437,42 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               Is_HygroGrowth= T,                            &
+                              Density       = 1800.0_fp,                    &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'BCPO' )
+             Fullname = 'Hydrophobic black carbon aerosol'
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range T > 258 K
+             KcScale  = (/ 1.0_fp, 1.0_fp, 0.5_fp /)
+
+             ! Allow rainout of BCPO when T < 258 K, because
+             ! BCPO is considered to be IN.
+             RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              Formula       = '',                           &
+                              MW_g          = 12.01_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= F,                            &
                               Density       = 1800.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3426,32 +3445,15 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
-          CASE( 'OCPI', 'OCPO' )
-             
-             ! These have mostly identical properties
-             ! Turn off rainout for hydrophobic OC, for all temperatures.
-             SELECT CASE( NameAllCaps )
+          CASE( 'OCPI' )
+             FullName = 'Hydrophilic organic carbon aerosol'
 
-                CASE( 'OCPI' )
-                   FullName = 'Hydrophilic organic carbon aerosol'
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
-                   ! Halve the Kc (cloud condensate -> precip) rate
-                   ! for the temperature range 237 K <= T < 258 K.
-                   KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-                   ! Turn off rainout only when 237 K <= T < 258K.
-                   RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-
-                CASE( 'OCPO' )
-                   Fullname = 'Hydrophobic organic carbon aerosol'
-
-                   ! For all temperatures:
-                   ! (1) Halve the Kc (cloud condensate -> precip) rate
-                   ! (2) Turn off rainout (OCPO is hydrophobic)
-                   KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
-                   RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
-
-             END SELECT
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
@@ -3469,6 +3471,40 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               Is_HygroGrowth= T,                            &
+                              Density       = 1300.0_fp,                    &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_Old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'OCPO' )
+             Fullname = 'Hydrophobic organic carbon aerosol'
+
+             ! For all temperatures:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout (OCPO is hydrophobic)
+             KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      = FullName,                     &
+                              Formula       = '',                           &
+                              MW_g          = 12.01_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= F,                            &
                               Density       = 1300.0_fp,                    &
                               DD_DvzAerSnow = 0.03_fp,                      &
                               DD_F0         = 0.0_fp,                       &
@@ -3582,7 +3618,41 @@ CONTAINS
 #endif                                      
                               RC            = RC )
 
-          CASE( 'POA1', 'POA2' )
+          CASE( 'POA1' )
+
+             ! For all temperatures:
+             ! (1) Halve the Kc (cloud condensate -> precip) rate
+             ! (2) Turn off rainout (these are hydrophobic species)
+             KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+
+             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+                              ThisSpc       = SpcData(N)%Info,              &
+                              ModelID       = N,                            &
+                              KppSpcId      = KppSpcId(N),                  &
+                              KppVarId      = KppVarId(N),                  &
+                              KppFixId      = KppFixId(N),                  &
+                              Name          = NameAllCaps,                  &
+                              FullName      ='Lumped aerosol primary SVOCs',&
+                              Formula       = '',                           &
+                              MW_g          = 12.01_fp,                     &
+                              EmMW_g        = 12.0_fp,                      &
+                              MolecRatio    = 1.0_fp,                       &
+                              Is_Advected   = Is_Advected,                  &
+                              Is_Gas        = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
+                              Density       = 1300.0_fp,                    &
+                              DD_DvzAerSnow = 0.03_fp,                      &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 0.0_fp,                       &
+                              WD_AerScavEff = 1.0_fp,                       &
+                              WD_KcScaleFac = KcScale,                      &
+                              WD_RainoutEff = RainEff,                      &
+                              RC            = RC )
+
+          CASE( 'POA2' )
 
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate

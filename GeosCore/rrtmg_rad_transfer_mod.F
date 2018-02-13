@@ -20,7 +20,9 @@
      &                         WVAA, SPECMASK, LSPECRADMENU,
      &                         NSPECRADMENU
       USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
+#endif
       USE OMP_LIB
       USE PARRRTM,      ONLY : NBNDLW
       USE PARRRSW,      ONLY : NBNDSW
@@ -130,8 +132,6 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
       !-----------------------------------------------------------------
-      USE CHEMGRID_MOD,        ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,        ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,         ONLY : NSPECRAD  ! NUMBER OF SPECIES FOR RT
       USE CMN_FJX_MOD,         ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
       USE CMN_FJX_MOD,         ONLY : SPECMASK,   IRTWVSELECT
@@ -139,7 +139,6 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE DIAG_MOD,            ONLY : AD72
       USE ErrCode_Mod
       USE ERROR_MOD
       USE GC_GRID_MOD,         ONLY : GET_YMID
@@ -152,6 +151,9 @@
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
       USE UnitConv_Mod,        ONLY : Convert_Spc_Units
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,            ONLY : AD72
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -637,6 +639,7 @@
 !$OMP END PARALLEL DO
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
+      !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       DO L = 1, LLPAR
@@ -644,7 +647,7 @@
          PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
          TLAY   (I,J,L) = State_Met%T(I,J,L)
-         INTROP (I,J,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
+         INTROP (I,J,L) = State_Met%InTroposphere(I,J,L)
          SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
       ENDDO
       TSFC  (I,J)   = State_Met%TSKIN(I,J)
@@ -699,7 +702,7 @@
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
-       LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
           O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
@@ -1535,6 +1538,7 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
+#if defined( BPCH_DIAG )
        IF (ICLD.GT.0) THEN
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
@@ -1565,6 +1569,7 @@
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
+#endif
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
@@ -1605,6 +1610,7 @@
          !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
+#if defined( BPCH_DIAG )
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 
@@ -1612,6 +1618,7 @@
      &   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
          AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= 
      &   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
+#endif
         ENDDO !NWVSELECT
        ENDIF
       ENDDO 

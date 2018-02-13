@@ -76,15 +76,23 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Mar 2017 - R. Yantosca - Remove reference to Input_Opt fields
 !  02 Nov 2017 - R. Yantosca - Add modifications for netCDF diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
+#if defined( NC_DIAG )
       ! Diagnostic flags
       LOGICAL               :: Archive_DryDepChm
-      LOGICAL               :: Archive_DryDep
+      LOGICAL               :: Archive_AerSurfAreaDust
+      LOGICAL               :: Archive_AOD
+      LOGICAL               :: Archive_AODDust
+      LOGICAL               :: Archive_AODDustWL1
+      LOGICAL               :: Archive_AODDustWL2
+      LOGICAL               :: Archive_AODDustWL3
+#endif
 
       ! Species ID flags
       INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
@@ -278,8 +286,8 @@
 ! !USES:
 ! 
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CMN_DIAG_MOD             ! ND44
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND44
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -333,7 +341,6 @@
       LOGICAL, SAVE          :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      LOGICAL                :: Do_Diag
       INTEGER                :: N, BIN, I, J, L, NN, IDISP
       REAL(fp)               :: DU0(IIPAR,JJPAR,LLPAR,IBINS)
       REAL(fp)               :: DIF, FLUXN, FLUXD
@@ -354,7 +361,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      Do_Diag = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -451,32 +457,28 @@
 !debug-----
             ENDDO
 
+#if defined( BPCH_DIAG )
             !=========================================================== 
             !  Dry deposition diagnostic [#/cm2/s] (bpch)
             !===========================================================
-            IF ( Do_Diag ) THEN
+            IF ( ND44 > 0 ) THEN
 
-#if defined( BPCH_DIAG )
                !--------------------------------------------------------
                ! ND44 DIAGNOSTIC (bpch) 
                ! Dry deposition flux loss [#/cm2/s]
                !
                ! NOTE: Bpch diagnostics are being phased out.
                !--------------------------------------------------------
-
                !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
                !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
                AD44(I,J,TOMAS_IDDEP(BIN),1) = 
      &         AD44(I,J,TOMAS_IDDEP(BIN),1) + FLUXN
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
-#endif
-
-#if defined( NC_DIAG )
-               ! Add later
-
-#endif
             ENDIF
-
+#endif
+#if defined( NC_DIAG )
+               ! Add later when TOMAS diagnostics are implemented
+#endif
          ENDDO
          ENDDO
 
@@ -509,9 +511,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD             ! ND59
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND59
       USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -682,9 +686,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -742,7 +746,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL                :: Do_Diag
       INTEGER                :: I,        J,     L
       INTEGER                :: N,        NA,    ND
       REAL(fp)               :: DT_SETTL, DELZ,  DELZ1
@@ -775,6 +778,7 @@
       ! Pointers
       TYPE(Species), POINTER :: ThisSpc
       REAL(fp),      POINTER :: TC(:,:,:,:)
+
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -791,8 +795,6 @@
       RC        =  GC_SUCCESS
       ThisSpc   => NULL()
       TC        => State_Chm%Species
-      Do_Diag   = ( ND44 > 0          .or.
-     &              Archive_DryDepChm .or. Archive_DryDep )
 
       ! Dust settling timestep [s]
       DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
@@ -907,8 +909,43 @@
                !========================================================      
                ! Dry deposition diagnostic [molec/cm2/s]
                !========================================================
-               IF ( Do_Diag ) THEN
+#if defined( BPCH_DIAG )
+               !-----------------------------------------------------
+               ! ND44 DIAGNOSTIC (bpch)
+               ! Dry deposition flux loss [molec/cm2/s]
+               !-----------------------------------------------------
+               IF ( ND44 > 0 ) THEN
 
+                  ! Initialize
+                  TOT1 = 0e+0_fp
+                  TOT2 = 0e+0_fp
+                  
+                  ! Compute column totals of TCO(:) and TC(I,J,:,N)
+                  DO L = 1, LLPAR
+                     TOT1 = TOT1 + TC0(L)
+                     TOT2 = TOT2 + TC(I,J,L,NA)
+                  ENDDO
+                  
+                  ! Convert dust flux from [kg/s] to [molec/cm2/s]
+                  FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
+                  FLUX = FLUX * AVO * ( AIRMW / 
+     &                    ThisSpc%emMw_g    ) /
+     &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
+                  
+                  ! For bpch diagnostic, save in global array AD44
+                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
+               ENDIF
+#endif
+
+#if defined( NC_DIAG )
+               IF ( Archive_DryDepChm ) THEN
+                  !-----------------------------------------------------
+                  ! HISTORY (aka netCDF diagnostics)
+                  ! Dry deposition flux loss [molec/cm2/s]
+                  !
+                  ! NOTE: Eventually think about converting this
+                  ! diagnostic to more standard units [kg/m2/s]
+                  !-----------------------------------------------------
                   ! Initialize
                   TOT1 = 0e+0_fp
                   TOT2 = 0e+0_fp
@@ -922,43 +959,13 @@
                   ! Convert dust flux from [kg/s] to [molec/cm2/s]
                   FLUX = ( TOT1 - TOT2 ) / DT_SETTL  
                   FLUX = FLUX * AVO * ( AIRMW / 
-!     &                   State_Chm%SpcData(INDEX)%Info%emMW_g ) / 
      &                    ThisSpc%emMw_g    ) /
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
-#if defined( BPCH_DIAG )
-                  !-----------------------------------------------------
-                  ! ND44 DIAGNOSTIC (bpch)
-                  ! Dry deposition flux loss [molec/cm2/s]
-                  !
-                  ! NOTE: Bpch diagnostics are being phased out.
-                  !-----------------------------------------------------
-
-                  ! For bpch diagnostic, save in global array AD44
-                  AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
-#endif
-
-#if defined( NC_DIAG )
-                  !-----------------------------------------------------
-                  ! HISTORY (aka netCDF diagnostics)
-                  ! Dry deposition flux loss [molec/cm2/s]
-                  !
-                  ! NOTE: Eventually think about converting this
-                  ! diagnostic to more standard units [kg/m2/s]
-                  !-----------------------------------------------------
-
                   ! Drydep flux in chemistry only
-                  IF ( Archive_DryDepChm ) THEN
-                     State_Diag%DryDepChm(I,J,1,ND) = FLUX
-                  ENDIF
-
-                  ! Total drydep flux
-                  IF ( Archive_DryDep ) THEN
-                     State_Diag%DryDep(I,J,1,ND) = FLUX
-                  ENDIF
-#endif
+                  State_Diag%DryDepChm(I,J,1,ND) = FLUX
                ENDIF
-
+#endif
             ENDDO 
          ENDDO    
 
@@ -995,9 +1002,8 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
       USE ErrCode_Mod
@@ -1052,7 +1058,7 @@
 !                              IIPAR instead.
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  15 Nov 2017 - E. Lundgren - Implement optical depth netcdf diagnostics
+!  15 Nov 2017 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1078,9 +1084,11 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
+#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
       LOGICAL             :: LINTERPARR(NWVSELECT)
+#endif
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1231,7 +1239,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
 #if defined ( UCX )
          ! Bug fix: Dust properties are read from file #8 in RD_AOD
@@ -1371,13 +1379,8 @@
 !#############################################################################
       ENDIF
 #endif
-
 #if defined( NC_DIAG )
-      IF ( ( ASSOCIATED( State_Diag%ODDust ).OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL1 ) .OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL2 ) .OR.
-     &       ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) .AND.
-     &       ODSWITCH .EQ. 1 ) THEN
+      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD(:,:,:,:,:) = 0.0_fp
@@ -1429,14 +1432,14 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ASSOCIATED( State_Diag%ODDust ) ) THEN
+         IF ( ARCHIVE_AODDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
             DO L = 1, LLCHEM
             DO J = 1, JJPAR
             DO I = 1, IIPAR
-               State_Diag%ODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
+               State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
             ENDDO
             ENDDO
             ENDDO
@@ -1446,16 +1449,32 @@
          !---------------------------------------------------
          ! Set size-resolved dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL1 ) ) THEN
-            State_Diag%ODDustBinsWL1(:,:,:,:) = tempOD(:,:,:,1,:)
+         IF ( ARCHIVE_AODDustWL1 ) THEN
+            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
          ENDIF
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL2 ) ) THEN
-            State_Diag%ODDustBinsWL2(:,:,:,:) = tempOD(:,:,:,2,:)
+         IF ( ARCHIVE_AODDustWL2 ) THEN
+            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
          ENDIF
-         IF ( ASSOCIATED( State_Diag%ODDustBinsWL3 ) ) THEN
-            State_Diag%ODDustBinsWL3(:,:,:,:) = tempOD(:,:,:,3,:)
+         IF ( ARCHIVE_AODDustWL3 ) THEN
+            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
          ENDIF
 
+      ENDIF
+
+      ! Archive total dust surface area (sum across all bins)
+      IF ( Archive_AerSurfAreaDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            State_Diag%AerSurfAreaDust(I,J,L) =  
+     &                                  SUM( TAREA(I,J,L,1:NDUST) )
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
       ENDIF
 #endif 
 
@@ -1487,12 +1506,12 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD
+      USE CMN_FJX_MOD
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_FJX_MOD
       USE CMN_DIAG_MOD
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD21
 #endif
       USE ErrCode_Mod
@@ -1605,6 +1624,7 @@
 !  16 May 2016 - M. Sulprizio- Remove JLOOP entirely and loop over LLPAR, JJPAR,
 !                              IIPAR instead.
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  25 Jan 2018 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1615,7 +1635,7 @@
       INTEGER             :: I, J, L, N, NOUT, W
       INTEGER             :: IWV, IIWV, NWVS, IDST
       INTEGER, SAVE       :: MONTH_LAST = -999
-      LOGICAL, SAVE       :: DO_DIAG = .FALSE.
+      LOGICAL, SAVE       :: DO_DIAGN = .FALSE.
       REAL(f4)            :: TEMP(IIPAR,JJPAR,LGLOB)
       REAL(fp)            :: DUST(IIPAR,JJPAR,LLPAR,NDUST)
       REAL(fp)            :: MSDENS(NDUST)
@@ -1634,13 +1654,28 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
+#if defined( NC_DIAG )
+      ! For diagnostics
+      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
+      LOGICAL             :: LINTERPARR(NWVSELECT)
+#endif
+
       !=================================================================
       ! RDUST begins here!
       !=================================================================
 
       ! Assume success
       RC        =  GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+      !#################################################################
+      !####  WE HAVE BLOCKED OUT THIS CODE SO AS TO AVOID COMPILING
+      !####  BPCH SPECIFIC CODE IN GCHP.  THIS MAY BREAK SOME THINGS
+      !####  GOING FORWARD.  WORRY ABOUT IT LATER.  BPCH IS BEING
+      !####  TOTALLY PHASED OUT (bmy, 1/12/18)
+      !#################################################################
  
+
       ! Initialize pointers
       ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
       TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
@@ -1655,7 +1690,7 @@
 
       ! Read aerosol data from the binary punch file during the first 
       ! chemistry timestep and, after that, at the start of each month.
-      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAG ) THEN
+      IF ( THISMONTH /= MONTH_LAST .or. DO_DIAGN ) THEN
          
          ! Get TAU0 value used to index the punch file
          ! Use the "generic" year 1985
@@ -1825,7 +1860,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ERADIUS(I,J,L,N) = RDAA(N,6) * 1.0e-4_fp
 
@@ -1945,14 +1980,113 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
+#if defined( NC_DIAG )
+      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+         
+         ! Initialize local arrays
+         tempOD(:,:,:,:,:) = 0.0_fp
+         LINTERPARR(:) = .FALSE.
+
+         ! Interpolate?
+         DO W = 1, NWVSELECT
+            IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
+               LINTERPARR(W) =.FALSE.
+            ELSE
+               LINTERPARR(W) =.TRUE.
+            ENDIF
+         ENDDO
+
+         ! Loop over dust bins, # of wavelengths, and all grid cells
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+         DO N = 1, NDUST
+         DO W = 1, NWVSELECT
+         DO L = 1, LLCHEM
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR               
+            IF ( .not. LINTERPARR(W) ) THEN
+               tempOD(I,J,L,W,N) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
+            ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
+     &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
+                !Dont add anything to diagnostic
+            ELSE
+               ! Interpolate using angstrom exponent between
+               ! closest available wavelengths (coefs pre-calculated 
+               ! in CALC_AOD)
+               ! AOD sometimes zero (if Q zero), must catch this!
+               tempOD(I,J,L,W,N) = 
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)*
+     &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
+     &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
+     &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)))
+
+            ENDIF
+         ENDDO ! longitude
+         ENDDO ! latitude
+         ENDDO ! level
+         ENDDO ! wavelength
+         ENDDO ! bin
+!$OMP END PARALLEL DO
+
+         !---------------------------------------------------
+         ! Set dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ARCHIVE_AODDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+            DO L = 1, LLCHEM
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+         ENDIF
+
+         !---------------------------------------------------
+         ! Set size-resolved dust optical depth diagnostic
+         !---------------------------------------------------
+         IF ( ARCHIVE_AODDustWL1 ) THEN
+            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
+         ENDIF
+         IF ( ARCHIVE_AODDustWL2 ) THEN
+            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
+         ENDIF
+         IF ( ARCHIVE_AODDustWL3 ) THEN
+            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
+         ENDIF
+
+      ENDIF
+
+      !------------------------------------------------------
+      ! Archive total dust surface area (sum across all bins)
+      !------------------------------------------------------
+      IF ( Archive_AerSurfAreaDust ) THEN
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLTROP
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            State_Diag%AerSurfAreaDust(I,J,L) =  
+     &                                  SUM( TAREA(I,J,L,1:NDUST) )
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+#endif
 
          ! Save the current month
          ! Set diagnostic to aggregate next call time. 
          IF ( THISMONTH /= MONTH_LAST ) THEN
             MONTH_LAST = THISMONTH
-            DO_DIAG = .TRUE.
+            DO_DIAGN = .TRUE.
          ELSE
-            DO_DIAG = .FALSE.
+            DO_DIAGN = .FALSE.
          ENDIF
          
       ENDIF
@@ -1962,6 +2096,8 @@
       TAREA    => NULL()
       WERADIUS => NULL()
       WTAREA   => NULL()
+
+#endif
 
       END SUBROUTINE RDUST_OFFLINE
 !EOC
@@ -2535,10 +2671,23 @@
       !=================================================================
 
       ! Initialize
-      RC                =  GC_SUCCESS
-      SpcInfo           => NULL()
-      Archive_DryDepChm =  ASSOCIATED( State_Diag%DryDepChm )
-      Archive_DryDep    =  ASSOCIATED( State_Diag%DryDep    )
+      RC                 =  GC_SUCCESS
+      SpcInfo            => NULL()
+
+#if defined( NC_DIAG )
+      ! Are certain diagnostics turned on?
+      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm ) .OR.
+     &                          ASSOCIATED( State_Diag%DryDep )
+      Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
+      Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
+      Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
+      Archive_AODDustWL2      = ASSOCIATED( State_Diag%AODDustWL2 )
+      Archive_AODDustWL3      = ASSOCIATED( State_Diag%AODDustWL3 )
+      Archive_AOD             = Archive_AODDust 
+     &                     .OR. Archive_AODDustWL1 
+     &                     .OR. Archive_AODDustWL2 
+     &                     .OR. Archive_AODDustWL3
+#endif
 
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION

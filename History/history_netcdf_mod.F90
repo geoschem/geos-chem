@@ -368,28 +368,30 @@ CONTAINS
        ! web and wiki page.  It has nothing to do with the reference date
        ! and time fields that are computed by History_Set_RefDateTime.
        !--------------------------------------------------------------------
-       CALL Nc_Create( Create_Nc4   = .TRUE.,                                &
-                       NcFile       = FileName,                              &
-                       nLon         = Container%nX,                          &
-                       nLat         = Container%nY,                          &
-                       nLev         = Container%nZ,                          &
-                       nIlev        = Container%nZ+1,                        &
-                       nTime        = NF_UNLIMITED,                          &
-                       NcFormat     = Container%NcFormat,                    &
-                       Conventions  = Container%Conventions,                 &
-                       History      = Container%History,                     &
-                       ProdDateTime = Container%ProdDateTime,                &
-                       Reference    = Container%Reference,                   &
-                       Title        = Container%Title,                       &
-                       Contact      = Container%Contact,                     &
-                       fId          = Container%FileId,                      &
-                       TimeId       = Container%tDimId,                      &
-                       LevId        = Container%zDimId,                      &
-                       ILevId       = Container%iDimId,                      &
-                       LatId        = Container%yDimId,                      &
-                       LonId        = Container%xDimId,                      &
-                       KeepDefMode  = .TRUE.,                                &
-                       Varct        = VarCt                                 )
+       CALL Nc_Create( Create_Nc4     = .TRUE.,                              &
+                       NcFile         = FileName,                            &
+                       nLon           = Container%nX,                        &
+                       nLat           = Container%nY,                        &
+                       nLev           = Container%nZ,                        &
+                       nIlev          = Container%nZ+1,                      &
+                       nTime          = NF_UNLIMITED,                        &
+                       NcFormat       = Container%NcFormat,                  &
+                       Conventions    = Container%Conventions,               &
+                       History        = Container%History,                   &
+                       ProdDateTime   = Container%ProdDateTime,              &
+                       Reference      = Container%Reference,                 &
+                       Title          = Container%Title,                     &
+                       Contact        = Container%Contact,                   &
+                       StartTimeStamp = Container%StartTimeStamp,            &
+                       EndTimeStamp   = Container%EndTimeStamp,              &
+                       fId            = Container%FileId,                    &
+                       TimeId         = Container%tDimId,                    &
+                       LevId          = Container%zDimId,                    &
+                       ILevId         = Container%iDimId,                    &
+                       LatId          = Container%yDimId,                    &
+                       LonId          = Container%xDimId,                    &
+                       KeepDefMode    = .TRUE.,                              &
+                       Varct          = VarCt                               )
          
        !--------------------------------------------------------------------
        ! Denote that the file has been created and is open

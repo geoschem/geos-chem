@@ -396,9 +396,11 @@
 !
 ! !USES:
 !     
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG03_MOD,         ONLY : ND03                
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -647,8 +649,10 @@
 !$OMP END PARALLEL DO
 
 
+#if defined( BPCH_DIAG )
       ! Increment diagnostic timestep counter. 
       CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
+#endif
 
       ! Free pointers
       ARRAYso4  => NULL()
@@ -682,7 +686,9 @@
 !
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE,  IS_LAND
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03,    ND03 
+#endif
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
@@ -750,9 +756,11 @@
             SNOW_Hg2aq(NN) =
      &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
                   
+#if defined( BPCH_DIAG )
             ! Store diagnostic of meltwater delivery to ocean
             IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
      &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+#endif
 
             ! Zero reservoirs over ocean box, since we've added it
             ! all to the ocean
@@ -966,7 +974,9 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_WATER, IS_ICE
       USE DEPO_MERCURY_MOD,   ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_RIV
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
@@ -1857,9 +1867,11 @@
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
+#if defined( BPCH_DIAG )
                   IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) )
      &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
      &                                A_M2 * DTSRCE * FRAC_O
+#endif
                ENDIF
                   
                !--------------------------------------------------------
@@ -2004,10 +2016,12 @@
 
                   HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )    
 
+#if defined( BPCH_DIAG )
                   ! Store carbon sinking [kgC/time]
                   IF ( ND03 > 0 ) THEN
                      AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
                   ENDIF
+#endif
                 
                !- eds 8/31/10 -----------------------------------------
                !ENDIF
@@ -2122,7 +2136,7 @@
             !-----------------------------------------------------------
             ! ND03 diagnostics ("OCEAN-HG")
             !-----------------------------------------------------------
-
+#if defined( BPCH_DIAG )
             IF ( ND03 > 0 ) THEN
 
               ! eds 9/9/10 added NN loop
@@ -2175,7 +2189,7 @@
                AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
 
             ENDIF
-
+#endif
            
          !==============================================================
          ! If we are not in an ocean box, set Hg(0) flux to zero

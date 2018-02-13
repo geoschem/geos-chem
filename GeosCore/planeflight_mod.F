@@ -1407,14 +1407,9 @@
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
-#if   defined( TOMAS )
-      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1426,6 +1421,12 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
+#if   defined( TOMAS )
+      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1656,7 +1657,7 @@
                   CASE ( 1:996) !( 1:998 )
 
                      ! Only archive where chemistry is done
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
                         ! Species concentration [v/v] -> [molec/cm3]
                         VARI(V) = Spc(I,J,L,PVAR(V)) * 
@@ -1675,7 +1676,7 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPNOY
 
@@ -1697,7 +1698,7 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPAN
 
@@ -1718,7 +1719,7 @@
                      VARI(V) = 0e+0_fp
                            
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPRO2
 
@@ -1742,7 +1743,7 @@
                      
                      ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
                         VARI(V)  = State_Met%AVGW(I,J,L) *
      &                             State_Met%AIRNUMDEN(I,J,L)
                         TK       = State_Met%T(I,J,L)
@@ -1765,7 +1766,7 @@
                      ! Only archive where chemistry is done
                      VARI(V) = 0e+0_fp
 
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
                         DO N = 1, NDUST + NAER
                            VARI(V) = VARI(V) +
      &                               State_Chm%AeroArea(I,J,L,N)

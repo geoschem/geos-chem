@@ -211,8 +211,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL 
-      USE CHEMGRID_MOD,       ONLY : GET_MAX_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2   
@@ -317,6 +315,7 @@
       JM         = JJPAR
       LM         = LLPAR
       nAdvect    = State_Chm%nAdvect
+      L_OVERWRLD = 0
 
       ! Point to chemical species array [v/v dry air]
       Spc        => State_Chm%Species
@@ -327,27 +326,11 @@
          FIRST   = .FALSE.
       ENDIF
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) 
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! When we are connecting to the GEOS-5 GCM, we don't define
-      ! L_OVERWRLD.  We cannot know the maximum extent of the
-      ! tropopause in the GCM; we instead have to diagnose it at
-      ! every timestep by comparing the pressure at a grid box to
-      ! the tropopause pressure.  (bmy, 3/18/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to call function
-      ! GET_MAX_TPAUSE_LEVEL (from tropopause_mod.F) to return the
-      ! highest possible tropopause level.  This is only required
-      ! when doing a tagged O3 simulation. (bmy, 3/18/13)
-      !-----------------------------------------------------------------
-      L_OVERWRLD = GET_MAX_CHEMGRID_LEVEL()
-#endif
+      ! For the tagged O3 simulation only, get the highest
+      ! level of the chemistry grid in the column at (I,J)
+      IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+         L_OVERWRLD = MAXVAL( State_Met%ChemGridLev )
+      ENDIF
 
       !=================================================================
       ! Select the proper tracer number to store O3 into, depending on
@@ -413,7 +396,8 @@
             ! CALL FLUSH(6) 
             !END IF
 
-            LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
+            !LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
+            LBOT = State_Met%ChemGridLev(I,J) + 1
             LPOS = 1
             DO WHILE (State_Met%PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)
                LPOS = LPOS +1

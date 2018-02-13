@@ -139,6 +139,8 @@ MODULE HistContainer_Mod
      INTEGER                     :: zDimId              ! Z (or lev ) dim ID
      INTEGER                     :: iDimId              ! I (or ilev) dim ID
      INTEGER                     :: tDimId              ! T (or time) dim ID
+     CHARACTER(LEN=20)           :: StartTimeStamp      ! Timestamps at start
+     CHARACTER(LEN=20)           :: EndTimeStamp        !  and end of sim
      CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
@@ -215,7 +217,8 @@ CONTAINS
                                    Conventions,    NcFormat,                 &
                                    History,        ProdDateTime,             &
                                    Reference,      Title,                    &
-                                   Contact                                  )
+                                   Contact,        StartTimeStamp,           &
+                                   EndTimeStamp                             )
 !
 ! !USES:
 !
@@ -278,6 +281,8 @@ CONTAINS
     CHARACTER(LEN=*),    OPTIONAL    :: Reference      ! Reference string
     CHARACTER(LEN=*),    OPTIONAL    :: Title          ! Title string
     CHARACTER(LEN=*),    OPTIONAL    :: Contact        ! Contact string
+    CHARACTER(LEN=*),    OPTIONAL    :: StartTimeStamp ! Timestamps at start
+    CHARACTER(LEN=*),    OPTIONAL    :: EndTimeStamp   !  & end of simulation
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -647,6 +652,26 @@ CONTAINS
        Container%Contact = ''
     ENDIF
 
+    !----------------------------------
+    ! StartTimeStamp
+    !----------------------------------
+    IF ( PRESENT( StartTimeStamp ) ) THEN
+       TempStr                  = StartTimeStamp
+       Container%StartTimeStamp = TempStr
+    ELSE
+       Container%StartTimeStamp = ''
+    ENDIF
+
+    !----------------------------------
+    ! EndTimeStamp
+    !----------------------------------
+    IF ( PRESENT( EndTimeStamp ) ) THEN
+       TempStr                = EndTimeStamp
+       Container%EndTimeStamp = TempStr
+    ELSE
+       Container%EndTimeStamp = ''
+    ENDIF
+
     !=======================================================================
     ! Set other fields to initial or undefined values
     !=======================================================================
@@ -886,6 +911,8 @@ CONTAINS
        WRITE( 6, 120 ) 'Reference        : ', TRIM( Container%Reference    )
        WRITE( 6, 120 ) 'Title            : ', TRIM( Container%Title        )
        WRITE( 6, 120 ) 'Contact          : ', TRIM( Container%Contact      )
+       WRITE( 6, 120 ) 'StartTimeStamp   : ', Container%StartTimeStamp
+       WRITE( 6, 120 ) 'EndTimeStamp     : ', Container%EndTimeStamp
        WRITE( 6, 110 ) ''
        WRITE( 6, 110 ) 'Items archived in this collection:'
 

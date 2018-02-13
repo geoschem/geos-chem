@@ -20,10 +20,7 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE DIAG_MOD,           ONLY : AD44
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
@@ -39,6 +36,10 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD44
+#endif
 
       IMPLICIT NONE
 !
@@ -437,7 +438,7 @@ cdbg  print *, dryd(:)
          flux   = 0d0
 
          ! Skip non-chemsitry boxes
-         IF (ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Save the initial 30-bin number and icomp-1 mass component
          DO JC = 1, ICOMP-IDIAG+1

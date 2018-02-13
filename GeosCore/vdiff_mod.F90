@@ -15,7 +15,9 @@ MODULE VDIFF_MOD
 ! 
 ! !USES:
 !
+#if defined( BPCH_DIAG )
   USE CMN_DIAG_MOD,  ONLY : ND15,  ND44            ! Diagnostics
+#endif
   USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR    ! Grid dimensions
   USE CMN_SIZE_MOD,  ONLY : plev  => LLPAR         ! # of levels
   USE ERROR_MOD,     ONLY : DEBUG_MSG              ! Routine for debug output
@@ -117,7 +119,8 @@ MODULE VDIFF_MOD
 ! Diagnostic quantities
 !-----------------------------------------------------------------------
 
-  LOGICAL :: Archive_DryDepMix   ! Is drydep flux diagnostic turned on?
+  LOGICAL :: Do_ND44           = .FALSE. ! Do ND44 bpch diagnostic
+  LOGICAL :: Archive_DryDepMix = .FALSE. ! Is drydep flux diagnostic turned on?
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -2476,7 +2479,7 @@ contains
     ! specialty simulations) are accounted for in species 1..nDrydep,
     ! so we don't need to do any further special handling.
     !=======================================================================
-    if ( ND44 > 0 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepMix ) then
+    if ( Do_ND44 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepMix ) then
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -2499,7 +2502,7 @@ contains
           !-----------------------------------------------------------------
           ! Update dry deposition flux diagnostic for bpch output (ND44) 
           !-----------------------------------------------------------------
-	  IF( ND44 > 0 .or. LGTMM) THEN                
+	  IF( Do_ND44 .or. LGTMM) THEN                
              ! only for the lowest model layer
              ! Convert : kg/m2/s -> molec/cm2/s
              ! consider timestep difference between convection and emissions
@@ -2510,7 +2513,6 @@ contains
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
           ENDIF
 #endif
-
 #if defined( NC_DIAG )
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
@@ -2783,6 +2785,9 @@ contains
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD,       ONLY : ND44
+#endif
     USE DAO_MOD,            ONLY : AIRQNT
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ErrCode_Mod
@@ -2881,8 +2886,16 @@ contains
           RETURN
        ENDIF
 
+#if defined( BPCH_DIAG )
+       ! Set a flag to denote we should archive ND44 bpch diagnostic
+       ! NOTE: this will only be valid if BPCH_DIAG=y
+       Do_ND44 = ( ND44 > 0 ) 
+#endif
+      
        ! Test if we are archiving the drydep flux (from mixing) diagnostic
-       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+       ! or total drydep flux which requires the contribution from mixing
+       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                           ASSOCIATED( State_Diag%DryDep    )
 
        ! Reset first-time flag
        FIRST = .FALSE.

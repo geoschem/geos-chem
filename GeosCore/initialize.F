@@ -22,12 +22,13 @@
 !
       ! Modules from Headers subdirectory
       USE CMN_SIZE_MOD          
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE PRECISION_MOD
 
       ! Modules from GeosCore subdirectory
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD
       USE DIAG03_MOD
       USE DIAG04_MOD
@@ -35,6 +36,8 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
+#endif
+
       USE ERROR_MOD
       USE TIME_MOD
 
@@ -152,6 +155,7 @@
       !=================================================================
       ! INITIALIZE begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
@@ -165,7 +169,6 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
-#if defined( BPCH_DIAG )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
          IF ( ND05 > 0 ) AD05     = 0e0
@@ -293,7 +296,6 @@
          IF ( ND61 > 0 ) AD61 = 0e0
 #endif
 
-#endif
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag arrays zeroed!'
@@ -320,7 +322,6 @@
          ! Leave the ND48 counter for now
          KDA48     = 0
 
-#if defined( BPCH_DIAG )
          ! Allocatable counter arrays
          IF ( ND16 >               0 ) CT16       = 0
          IF ( ND17 >               0 ) CT17       = 0
@@ -343,13 +344,13 @@
             AD71_LHR   = -1
             AD71_LDAY  = -1
          ENDIF
-#endif
 
          ! Echo output
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
+#endif
 
       END SUBROUTINE INITIALIZE
 !EOC

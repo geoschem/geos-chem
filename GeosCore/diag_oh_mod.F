@@ -75,7 +75,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -123,7 +122,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Dry air density [molec/cm3]
          ! Cast to REAL*8 to avoid underflow

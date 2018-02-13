@@ -59,7 +59,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc )
+  SUBROUTINE GC_Error( ErrMsg, RC, ThisLoc, Instr )
 !
 ! !USES:
 !
@@ -67,19 +67,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+    CHARACTER(LEN=*), INTENT(IN   )            :: ErrMsg  ! Message to display
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc ! Location of error
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Instr   ! Other instructions
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT)            :: RC 
+    INTEGER,          INTENT(INOUT)            :: RC      ! Error code
 !
 ! !REVISION HISTORY:
 !  13 Aug 2015 - E. Lundgren - Initial version, based on C. Keller's HCO_ERROR
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
 !  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
-!   8 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
+!  28 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
+!  22 Jan 2018 - R. Yantosca - Add optional instructions text
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -101,6 +103,12 @@ CONTAINS
     IF ( PRESENT( ThisLoc ) ) THEN
        Message = 'ERROR LOCATION: ' // TRIM( ThisLoc )
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
+    ENDIF
+
+    ! Print additional instructions to log
+    IF ( PRESENT( Instr ) ) THEN
+       WRITE( 6, '(a)' )
+       CALL WordWrapPrint( Instr, 78 )
     ENDIF
 
     ! Separators
@@ -130,7 +138,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GC_Warning( WarnMsg, RC, ThisLoc )
+  SUBROUTINE GC_Warning( WarnMsg, RC, ThisLoc, Instr )
 !
 ! !USES:
 !
@@ -138,8 +146,9 @@ CONTAINS
 !!
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN   )            :: WarnMsg 
-    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc 
+    CHARACTER(LEN=*), INTENT(IN   )            :: WarnMsg ! Message to display
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: ThisLoc ! Location of warning
+    CHARACTER(LEN=*), INTENT(IN   ), OPTIONAL  :: Instr   ! Other instructions
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -150,7 +159,8 @@ CONTAINS
 !  16 Aug 2016 - M. Sulprizio- Rename from GIGC_ERROR to GC_ERROR
 !  23 Jun 2017 - R. Yantosca - Now moved from error_mod.F to errcode_mod.F90
 !  28 Aug 2017 - R. Yantosca - Now flush the error msg to stdout/log file
-!   8 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
+!  08 Nov 2017 - R. Yantosca - Add separator lines to make msgs more visible
+!  22 Jan 2018 - R. Yantosca - Add optional instructions text
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -172,6 +182,12 @@ CONTAINS
     IF ( PRESENT( ThisLoc ) ) THEN
        Message = 'WARNING LOCATION: ' // TRIM( ThisLoc )
        WRITE( 6, '(a)' ) TRIM( ThisLoc )
+    ENDIF
+
+    ! Print additional instructions to log
+    IF ( PRESENT( Instr ) ) THEN
+       WRITE( 6, '(a)' )
+       CALL WordWrapPrint( Instr, 78 )
     ENDIF
 
     ! Separators

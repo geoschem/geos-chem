@@ -77,7 +77,9 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
     USE CMN_DIAG_Mod,       ONLY : Init_CMN_DIAG
+#endif
     USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
     USE CMN_O3_Mod,         ONLY : Init_CMN_O3
     USE CMN_SIZE_Mod,       ONLY : Init_CMN_SIZE
@@ -221,6 +223,7 @@ CONTAINS
 
 #endif
 
+#if defined( BPCH_DIAG )
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
     CALL Init_CMN_DIAG( am_I_Root, RC )
 
@@ -230,6 +233,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
     ! Initialize CMN_O3_mod.F
     CALL Init_CMN_O3( am_I_Root, RC )
@@ -283,6 +287,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE DiagList_Mod
     USE Diagnostics_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod
@@ -337,6 +342,7 @@ CONTAINS
 !  26 Sep 2017 - E. Lundgren - Pass diagnostics list object as argument
 !  16 Nov 2017 - E. Lundgren - Do not pass IIPAR, JJPAR, LLPAR, NDUST, AER
 !                              since available from CMN_Size_Mod in routines
+!  01 Feb 2018 - E. Lundgren - Initialize new diagnostics_mod module
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -396,6 +402,18 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+    
+#if defined( NC_DIAG )
+    !=======================================================================
+    ! Initialize the diagnostics module where several diags are set
+    !=======================================================================
+    CALL Init_Diagnostics_Mod( am_I_Root, State_Diag, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered within call to "Init_Diagnostics_Mod"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
 
   END SUBROUTINE GC_Init_All
 !EOC

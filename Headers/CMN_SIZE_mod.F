@@ -422,6 +422,11 @@
       ! NDSTBIN -- number of dust size bins for transport (tdf, bmy, 3/31/04)
       INTEGER,    PARAMETER :: NDSTBIN   = 4
 #endif
+
+      ! NJDAY is the array that is used to determine when it is time
+      ! to end a GEOS-Chem run.  Moved this here from CMN_DIAG_mod.F,
+      ! so that we can phase that module out. (bmy, 1/16/18)
+      INTEGER               :: NJDAY(366)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -521,6 +526,7 @@
 !                              compatible with the FlexChem implementation
 !  16 Mar 2017 - R. Yantosca - Remove obsolete NNPAR parameter
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  16 Jan 2018 - R. Yantosca - Moved NJDAY here from obsolete CMN_DIAG_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC

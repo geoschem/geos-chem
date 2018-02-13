@@ -107,7 +107,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST
       USE ErrCode_Mod
@@ -378,9 +377,9 @@
             
             ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
             O3_CTM          = 0e+0_fp
-            LCHEM           = GET_CHEMGRID_LEVEL(NLON,NLAT,State_Met)
+            LCHEM           = State_Met%ChemGridLev(NLON,NLAT)
             DO L = 1, LCHEM
-               O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
+               O3_CTM(L)    = State_Chm%Species(NLON,NLAT,L,id_O3)
             ENDDO
 
             ! Aerosol OD profile [unitless] at (NLON,NLAT)
@@ -1657,7 +1656,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,   ONLY : ND64
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE inquireMod,     ONLY : findFreeLUN
@@ -1749,7 +1750,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
       call RD_XXX(JXUNIT,TRIM( FILENAME ), am_I_Root)
 
-      ! If we are using ND64, calculate exposure factors
+#if defined( BPCH_DIAG )
+      ! Compute factors for ND64
       IF ( ND64 > 0 ) THEN
          UVXFACTOR(:) = 0e+0_fp
          ND64MULT = UVXPLANCK*UVXCCONST*1.0e+13_fp
@@ -1757,6 +1759,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
             UVXFACTOR(J) = ND64MULT/WL(J)
          ENDDO
       ENDIF
+#endif
 
       !=====================================================================
       ! Read in 5-wavelength scattering data

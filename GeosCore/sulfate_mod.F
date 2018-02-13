@@ -233,10 +233,6 @@
       ! LVOLC      : Number of volcanic levels (20)   [unitless]
       !========================================================================
 
-      ! Diagnostic flags
-      LOGICAL                :: Archive_DryDepChm
-      LOGICAL                :: Archive_DryDep
-
       ! Time variable
       INTEGER                :: ELAPSED_SEC
 
@@ -303,9 +299,8 @@
       INTEGER                :: DRYNITd4
 
       ! Diagnostic flags
+      LOGICAL                :: Archive_DryDepChm
       LOGICAL                :: Archive_LossHNO3onSeaSalt
-      LOGICAL                :: Archive_LossNO3byDMS
-      LOGICAL                :: Archive_LossOHbyDMS
       LOGICAL                :: Archive_ProdMSAfromDMS
       LOGICAL                :: Archive_ProdNITfromHNO3UptakeOnDust
       LOGICAL                :: Archive_ProdSO2fromDMS
@@ -871,9 +866,9 @@
 !
       SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
      &                              State_Met, State_Chm, RC )
-
+!
 ! !USES:
-      USE CMN_DIAG_MOD
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -1013,8 +1008,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND13 (for now)
       USE DIAG_MOD,           ONLY : AD59_SULF,     AD59_NUMB
+#endif
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
@@ -1455,6 +1452,7 @@
 !trigger a big particle shift in mnfix and it will look like a
 !'negative number emission' event as defined by this inequality
 
+#if defined( BPCH_DIAG )
 !sfarina - changing the definition of this diagnostic to ignore changes to the
 !distribution by mnfix
 !                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
@@ -1463,6 +1461,7 @@
 !     &                                  TC1(I,J,L,K)-N0(L,K)
                   AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                   AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
+#endif
                ENDDO
             ENDIF
 
@@ -1483,6 +1482,7 @@
                ENDDO
             ENDDO
 
+#if defined( BPCH_DIAG )
            !==============================================================
            ! ND59 Diagnostic: Size-resolved primary sulfate emission in
            !                 [kg S/box/timestep] and the corresponding
@@ -1504,6 +1504,7 @@
                ENDDO
 
             ENDIF
+#endif
 
          ENDIF !SGCOAG
 
@@ -1534,9 +1535,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD        
       USE CMN_SIZE_MOD        
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD        
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
@@ -1629,7 +1630,6 @@
       ! Slip Slip correction factor
       ! Visc Viscosity of air (Pa s)
       ! VTS  Settling velocity of particle (m/s)
-      LOGICAL                :: Do_Diag
       LOGICAL                :: IS_UPTAKE_SPC
       INTEGER                :: I,         J,      L
       INTEGER                :: DryDep_ID, DTCHEM
@@ -1659,7 +1659,6 @@
 
       ! Initialize
       RC       =  GC_SUCCESS
-      Do_Diag  = ( ND44 > 0 .or. Archive_DryDepChm .or. Archive_DryDep )
 
       ! Return if tracers are undefined
       IF ( Input_Opt%LDSTUP ) THEN
@@ -1870,7 +1869,14 @@
          ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
          ! (specifically sea salt loss diagnostics)
          !==============================================================
-         IF ( Do_Diag ) THEN
+#if defined( BPCH_DIAG )
+         !-----------------------------------------------------------
+         ! ND44 DIAGNOSTIC (bpch)
+         ! Dry deposition flux loss [molec/cm2/s]
+         !
+         ! NOTE: Bpch diagnostics are being phased out.
+         !-----------------------------------------------------------
+         IF ( ND44 > 0 ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -1881,49 +1887,54 @@
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
-
+            
             ! Surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, 1 )
-
+            
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
             FLUX     = FLUX * AVO 
      &               / ( EmMW_g * 1.e-3_fp ) 
      &               / AREA_CM2 
 
-#if defined( BPCH_DIAG )
-            !-----------------------------------------------------------
-            ! ND44 DIAGNOSTIC (bpch)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Bpch diagnostics are being phased out.
-            !-----------------------------------------------------------
-
             ! Store in global AD44 array for bpch diagnostic output
             AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
-#endif
-
-#if defined( NC_DIAG )
-            !-----------------------------------------------------------
-            ! HISTORY (aka netCDF diagnostics)
-            ! Dry deposition flux loss [molec/cm2/s]
-            !
-            ! NOTE: Eventually think about converting this
-            ! diagnostic to more standard units [kg/m2/s]
-            !-----------------------------------------------------------
-
-            ! Drydep flux in chemistry only
-            IF ( Archive_DryDepChm ) THEN
-               State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
-            ENDIF
-
-            ! Total drydep flux
-            IF ( Archive_DryDep ) THEN
-               State_Diag%DryDep(I,J,1,DryDep_Id) = FLUX
-            ENDIF
-#endif
 
          ENDIF
+#endif
+#if defined( NC_DIAG )
+         !-----------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         ! Dry deposition flux loss [molec/cm2/s]
+         !
+         ! NOTE: Eventually think about converting this
+         ! diagnostic to more standard units [kg/m2/s]
+         !-----------------------------------------------------------
+         IF ( Archive_DryDepChm ) THEN
+
+            ! Initialize
+            TOT1 = 0e+0_fp
+            TOT2 = 0e+0_fp
+            
+            ! Compute column totals of TCO(:) and TC(I,J,:,N)
+            DO L = 1, LLPAR
+               TOT1 = TOT1 + TC0(L)
+               TOT2 = TOT2 + TC(I,J,L)
+            ENDDO
+            
+            ! Surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            
+            ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
+            FLUX     = ( TOT1 - TOT2 ) / DTCHEM
+            FLUX     = FLUX * AVO 
+     &               / ( EmMW_g * 1.e-3_fp ) 
+     &               / AREA_CM2 
+
+            ! Drydep flux in chemistry only
+            State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
+         ENDIF
+#endif
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -1953,10 +1964,11 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD         
       USE CMN_SIZE_MOD         
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD         
       USE DIAG_MOD,           ONLY : AD05
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -2096,7 +2108,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Temperature [K]
          TK     = State_Met%T(I,J,L)
@@ -2227,11 +2239,15 @@
      &                    ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-            ! Store L(OH) by DMS [kg OH/timestep]
-            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
-            
-            ! Store L(NO3) by DMS [kg NO3/timestep]
-            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+!--------------------------------------------------------------------------
+! Prior to 1/26/18:
+! NOTE: These will always be zero, so remove (bmy, 1/26/18)
+!            ! Store L(OH) by DMS [kg OH/timestep]
+!            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
+!            
+!            ! Store L(NO3) by DMS [kg NO3/timestep]
+!            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
+!--------------------------------------------------------------------------
 
          ENDIF
 #endif
@@ -2278,16 +2294,6 @@
             State_Diag%ProdMSAfromDMS(I,J,L) =
      &         ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
          ENDIF
-
-         ! Store L(OH) by DMS [kg OH/timestep]
-         IF ( Archive_LossOHbyDMS ) THEN
-            State_Diag%LossOHbyDMS(I,J,L) = LOH
-         ENDIF
-
-         ! Store L(NO3) by DMS [kg NO3/timestep]
-         IF ( Archive_LossNO3byDMS ) THEN
-            State_Diag%LossNO3byDMS(I,J,L) = LNO3
-         ENDIF
 #endif
 
          !==============================================================
@@ -2330,9 +2336,7 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
@@ -2467,7 +2471,7 @@
          FREQ = 0e+0_fp
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Density of air [molec/cm3]
          M     = State_Met%AIRDEN(I,J,L) * f  
@@ -2535,11 +2539,8 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_WATER
-      USE DIAG_MOD,           ONLY : AD05
       USE DUST_MOD,           ONLY : GET_DUST_ALK      ! tdf 04/08/08
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
@@ -2555,6 +2556,10 @@
       USE WETSCAV_MOD,        ONLY : H2O2s
       USE WETSCAV_MOD,        ONLY : SO2s
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
+#if defined( BPCH_DIAG ) 
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD05
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2812,7 +2817,7 @@
          Ld       = 0e+0_fp
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Initial SO2, H2O2, HOBr, and O3 [v/v]
          SO20   = Spc(I,J,L,id_SO2)         
@@ -3692,9 +3697,6 @@
             AD05(I,J,L,18) = AD05(I,J,L,18) +
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
 
-            ! Cloud pH
-            AD05(I,J,L,19) = AD05(I,J,L,19) + HPLUS
-
             !tdf
             PSO4d_tot   = 0.e+0_fp
             PH2SO4d_tot = 0.e+0_fp
@@ -3748,7 +3750,7 @@
 
             ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
             IF ( Archive_ProdSO4fromO3InCloud ) THEN
-               State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
+               State_Diag%ProdSO4fromO3InCloud(I,J,L) =
      &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S )
             ENDIF
 
@@ -3771,7 +3773,7 @@
 
             ! P(SO4) by SRhobr
             IF ( Archive_ProdSO4fromSRHOBr ) THEN
-               State_Diag%ProdSO4fromSRO3(I,J,L) = 
+               State_Diag%ProdSO4fromSRHOBr(I,J,L) = 
      &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S)
             ENDIF
 
@@ -3781,6 +3783,40 @@
      &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S )
             ENDIF
 
+            !-----------------------------------------------------------
+            ! Diagnostics for acid uptake on dust aerosol simulations
+            !-----------------------------------------------------------
+            IF ( LDSTUP ) THEN
+
+               ! Zero
+               PSO4d_tot   = 0.e+0_fp
+               PH2SO4d_tot = 0.e+0_fp
+               PNITd_tot   = 0.e+0_fp
+
+               DO IBIN = 1, NDSTBIN
+                  PSO4d_tot   = PSO4d_tot   + PSO4_d(IBIN)
+                  PNITd_tot   = PNITd_tot   + PNIT_d(IBIN)
+                  PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
+               END DO
+
+               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+               IF ( Archive_ProdSO4fromOxidationOnDust ) THEN
+                  State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = 
+     &               ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ENDIF
+
+               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+               IF ( Archive_ProdNITfromHNO3uptakeOnDust ) THEN
+                  State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) =
+     &               ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N )
+               ENDIF
+
+               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+               IF ( Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
+                  State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) =
+     &               ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+               ENDIF
+            ENDIF
          ENDIF
 #endif
 
@@ -3821,14 +3857,13 @@
 !
 ! !USES:
 !
-      !---------------------------------------------------------------
-      ! DIAGNOSTICS -- leave commented out for now (bec, bmy, 4/13/05)
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND05, LD05
+      USE DIAG_MOD,           ONLY : AD05
       !USE CMN_DIAG_MOD          ! ND19
       !USE DIAG_MOD,        ONLY : AD09
-      !---------------------------------------------------------------
-      USE CMN_DIAG_MOD             ! ND05, LD05
+#endif
       USE CMN_SIZE_MOD          
-      USE DIAG_MOD,           ONLY : AD05
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
@@ -6163,9 +6198,7 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,   ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
@@ -6288,7 +6321,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Initialize for safety's sake
          SO4  = 0e+0_fp
@@ -6406,7 +6439,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -6485,7 +6517,7 @@
       DO I = 1, IIPAR
                   
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L)
      &               / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%emMW_g )
@@ -6559,8 +6591,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -6659,7 +6689,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE      
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          ! Initial MSA [v/v]
          MSA0 = Spc(I,J,L,id_MSA) 
@@ -6699,8 +6729,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -6829,7 +6857,7 @@
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
          !==============================================================
          ! NITs chemistry
@@ -6986,7 +7014,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7035,7 +7062,7 @@
 
          ! Take OH from State_Chm%Species [molec/cm3]
          ! OH is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
             OH_MOLEC_CM3 = State_Chm%Species(I,J,L,id_OH)
          ELSE
             OH_MOLEC_CM3 = 0e+0_fp
@@ -7099,7 +7126,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7155,7 +7181,7 @@
             
          ! Take NO3 from State_Chm%Species [molec/cm3]
          ! NO3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -7251,7 +7277,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7300,7 +7325,7 @@
 
          ! Get O3 from State_Chm%Species [molec/cm3] and convert it to [v/v]
          ! O3 is defined only in the chemistry grid
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
             O3_VV = State_Chm%Species(I,J,L,id_O3)
          ELSE
             O3_VV = 0e+0_fp
@@ -7885,23 +7910,14 @@
      & ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F)'
 
       ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = 
-     &     ASSOCIATED( State_Diag%DryDepChm                   )
-
-      Archive_DryDep = 
-     &     ASSOCIATED( State_Diag%DryDep                      )
+      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm ) .OR.
+     &                    ASSOCIATED( State_Diag%DryDep    )
 
       Archive_LossHNO3onSeaSalt =
      &     ASSOCIATED( State_Diag%LossHNO3onSeaSalt           )
 
-      Archive_LossNO3byDMS =
-     &     ASSOCIATED( State_Diag%LossNO3byDMS                )
-
-      Archive_LossOHbyDMS =
-     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
-
       Archive_ProdMSAfromDMS =
-     &     ASSOCIATED( State_Diag%LossOHbyDMS                 )
+     &     ASSOCIATED( State_Diag%ProdMSAFromDMS              )
 
       Archive_ProdNITfromHNO3uptakeOnDust =
      &     ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust )
@@ -7933,7 +7949,7 @@
       Archive_ProdSO4fromO3s = 
      &     ASSOCIATED( State_Diag%ProdSO4fromO3s              )
 
-      Archive_ProdSO4fromOxidationOnDust= 
+      Archive_ProdSO4fromOxidationOnDust = 
      &     ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  )
 
       Archive_ProdSO4fromSRO3 = 
@@ -7942,7 +7958,7 @@
       Archive_ProdSO4fromSRHOBr =
      &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr           )
 
-      Archive_ProdSO4fromUptakeOfH2SO4g =
+      Archive_ProdSO4fromUptakeOfH2SO4g = 
      &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
 
       !=================================================================

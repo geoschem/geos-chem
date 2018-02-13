@@ -251,7 +251,12 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
+! Prior to 1/22/18:
+! Don't exit here, go down to the IF statement below to get an error message.
+! (bmy, 1/22/18)
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
 
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.

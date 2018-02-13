@@ -1182,7 +1182,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE GC_GRID_MOD,        ONLY : GET_YMID
@@ -1196,7 +1195,6 @@
       USE TIME_MOD,           ONLY : GET_HOUR
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_MINUTE
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,        ONLY : ZPJ
       USE FAST_JX_MOD,        ONLY : RXN_NO, RXN_NO2, RXN_NO3, RXN_N2O
 !
@@ -1356,7 +1354,7 @@
 
          ! Calculate daylight fraction
          DAYFRAC = State_Met%SUNCOSmid(I,J)
-         LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LMINPHOT  = State_Met%ChemGridLev(I,J)
          CycleBox = (L.le.LMinPhot)
 
          ! Are the pre-calculated J-rates zero (ie in darkness)?
@@ -1580,8 +1578,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR
@@ -1822,10 +1818,10 @@
          ! is at the *top* of the atmosphere
          VERTCOUNT = 51
          EXTRAP = .TRUE.
-         LSTART = GET_CHEMGRID_LEVEL( I, J, State_Met)
+         LSTART = State_Met%ChemGridLev(I,J)
 
          DO L = LSTART, LLPAR
-            IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) CYCLE
+            IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Pressure at center of cell
             PCENTER = State_Met%PMID(I,J,L)
@@ -1900,7 +1896,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -2087,7 +2082,7 @@
             DO L = 1, L_MAX
                IF (STRAT_ONLY) THEN
                   ! Only want to set non-trop cells
-                  SET_CELL = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+                  SET_CELL = State_Met%InStratMeso(I,J,L)
                ELSE
                   SET_CELL = .TRUE.
                ENDIF
@@ -2672,10 +2667,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD             ! ND44
       USE CMN_FJX_MOD,        ONLY : RAA, IND999
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
@@ -2885,11 +2876,11 @@
             ! Use moist air pressure for mean free path (ewl, 3/2/15)
             P       = State_Met%PMID(I,J,L)  * 0.1e+0_fp
 
-            RUNCALC = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+            RUNCALC = State_Met%InStratMeso(I,J,L)
 
             IF (RUNCALC) THEN
                ! Need to translate for BC radii
-               IF (ITS_IN_THE_CHEMGRID(I,J,L,State_Met)) THEN
+               IF ( State_Met%InChemGrid(I,J,L) ) THEN
                   RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
                ELSE
                   ! Use defaults, assume dry (!)
@@ -3031,7 +3022,7 @@
          Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
 
          DO L = LLPAR-1,1,-1
-            IF (ITS_IN_THE_TROP(I,J,L+1,State_Met)) CYCLE
+            IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
 
@@ -3391,7 +3382,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -3491,7 +3481,7 @@
          INVAIR  = AIRMW / State_Met%AD(I,J,L)
          IF (PCENTER.ge.1.e+2_fp) THEN
             AERFRAC(I,J,L,1) = 1e+0_fp
-         ELSEIF (ITS_IN_THE_TROP(I,J,L,State_Met)) THEN
+         ELSEIF ( State_Met%InTroposphere(I,J,L) ) THEN
             ! Don't want to interfere with tropospheric aerosols
             AERFRAC(I,J,L,1) = 1e+0_fp
          ELSE
@@ -3587,7 +3577,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -3830,7 +3819,7 @@
                TINV       = 1.e+0_fp/TCENTER
 
                ! Apply other limits from Kirner et al.
-               IS_STRAT = ITS_IN_THE_STRATMESO(I,J,L,State_Met)
+               IS_STRAT =  State_Met%InStratMeso(I,J,L)
                IS_VALID = (IS_POLAR).and.(IS_STRAT).and.       
      &                        (.not.((PCENTER_PA.lt.PSC_PMIN).or.
      &                               (PCENTER_PA.gt.PSC_PMAX)))
@@ -5575,7 +5564,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : AIRQNT
       USE ErrCode_Mod
@@ -5690,7 +5678,7 @@
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         READ_SPHU = ( ITS_IN_THE_TROP( I, J, L, State_Met ) .or.
+         READ_SPHU = ( State_Met%InTroposphere(I,J,L) .or.
      &                 SETSTRAT .or. ( .not. LACTIVEH2O )  )
 
 
@@ -5772,7 +5760,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,        ONLY : ZPJ
       USE FAST_JX_MOD,        ONLY : RXN_H2SO4
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -5851,7 +5838,7 @@
          DAYCOLUMN = (GMU.gt.0e+0_fp)
 
          IF (DAYCOLUMN) THEN
-            LMINPHOT  = GET_CHEMGRID_LEVEL( I, J, State_Met)
+            LMINPHOT  = State_Met%ChemGridLev(I,J)
 
             ! Retrieve photolysis rate as a fraction of gaseous SO4
             PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM

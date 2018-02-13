@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -108,8 +109,10 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
-    ! Is the drydep flux from mixing diagnostic turned on?
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+    ! Is the drydep flux from mixing diagnostic turned on or if
+    ! total drydep flux which requires the contribution from mixing
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                        ASSOCIATED( State_Diag%DryDep )
 
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
@@ -337,8 +340,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_CHEMGRID_LEVEL
-    USE CMN_DIAG_MOD,       ONLY : ND44
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
@@ -356,6 +357,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD,       ONLY : ND44
     USE DIAG_MOD,           ONLY : AD44
 #endif
 #if defined( USE_TEND )
@@ -659,7 +661,7 @@ CONTAINS
 
           ! Restrict to chemistry grid
           IF ( ChemGridOnly ) THEN
-             EMIS_TOP = GET_CHEMGRID_LEVEL( I, J, State_Met )
+             EMIS_TOP = State_Met%ChemGridLev(I,J)
              EMIS_TOP = MIN(LLPAR,EMIS_TOP)
           ELSE
              EMIS_TOP = LLPAR
@@ -780,7 +782,6 @@ CONTAINS
                                              * GET_TS_CONV() / GET_TS_CHEM() 
                    ENDIF
 #endif
-
 #if defined( NC_DIAG )
                    !--------------------------------------------------------
                    ! HISTORY: Archive drydep flux loss from mixing 

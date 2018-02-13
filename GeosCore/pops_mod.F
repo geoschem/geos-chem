@@ -372,12 +372,12 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG53_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -892,7 +892,7 @@
          ! ND53 diagnostic: Differences in distribution of gas and
          ! particle phases between time steps [kg]
          !==============================================================
-
+#if defined( BPCH_DIAG )
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             IF (DIFF_OC .lt. 0) THEN
@@ -912,6 +912,7 @@
             ENDIF
 
          ENDIF
+#endif
 
          !==============================================================
          ! HYDROPHOBIC PARTICULATE POPS DECAY TO HYDROPHILIC (clf, 2/12/2012)
@@ -1328,12 +1329,10 @@
      &                                DEP_DRY_FLXP_BCPI
 
          ENDIF
-#endif
 
          !==============================================================
          ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg]
          !==============================================================
-
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             ! OH:
@@ -1360,6 +1359,7 @@
      &                                  GROSS_OX_NO3_BCPI
 
          ENDIF
+#endif
 
       ENDDO
       ENDDO

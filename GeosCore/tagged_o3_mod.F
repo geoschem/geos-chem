@@ -178,13 +178,14 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
       USE CMN_SIZE_MOD             ! Size parameters
       USE GC_GRID_MOD,        ONLY : GET_XMID,  GET_YMID
       USE PhysConstants            ! SCALE_HEIGHT
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -245,7 +246,7 @@
       PP(I,J,L,:) = 0e+0_fp
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
+      ITS_IN_TROP = State_Met%InTroposphere(I,J,L)
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -389,10 +390,7 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD65
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -403,6 +401,10 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD65
+#endif
 
       IMPLICIT NONE
 !
@@ -589,7 +591,7 @@
             ENDIF
             
             ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InTroposphere(I,J,L) ) THEN
                LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
                LL = 0.0e+0_fp

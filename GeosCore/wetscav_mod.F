@@ -249,12 +249,12 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD 
-      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Error_Mod,       ONLY : Debug_MSG
+      USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants
-      USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Diag_Mod, ONLY : DgnState
-      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,   ONLY : ChmState
+      USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Met_Mod,   ONLY : MetState
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
@@ -359,6 +359,7 @@
       IF ( Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
       IF ( Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
 #endif
+
 
       !------------------------------------------
       ! Create precip fields
@@ -2521,7 +2522,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
@@ -3425,15 +3428,15 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
-      USE DIAG_MOD,           ONLY : AD16              ! ND16 diag array
-      USE DIAG_MOD,           ONLY : AD17              ! ND17 diag array
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : AD39              ! ND39 diag array
-#endif
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
+      USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
+      USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
       USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
       USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -3750,17 +3753,18 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-#endif
       USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
       USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
       USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
+#endif
       USE ErrCode_Mod                                  
       USE ERROR_MOD
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -3770,7 +3774,6 @@
       USE State_Met_Mod,  ONLY : MetState              ! Met State object
 #if defined( TOMAS )      
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
-      USE DIAG_MOD,       ONLY : AD05
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -4358,17 +4361,18 @@
 !     
 ! !USES:
 !
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
+#if defined( BPCH_DIAG )                              
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-#if defined( BPCH_DIAG )                              
       USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-#endif                                                
       USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
       USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
       USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
+#endif                                                
       USE ErrCode_Mod
       USE Error_Mod,      ONLY : It_Is_Nan
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
@@ -4378,7 +4382,6 @@
       USE State_Met_Mod,  ONLY : MetState
 #if defined( TOMAS )
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
-      USE DIAG_MOD,       ONLY : AD05
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -4643,17 +4646,17 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE CMN_SIZE_MOD                                 ! Size parameters
+#if defined( BPCH_DIAG )                               
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
-#if defined( BPCH_DIAG )                               
       USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
-#endif                                                 
       USE DIAG_MOD,       ONLY : CT16                  ! ND16 diag counter
       USE DIAG_MOD,       ONLY : CT17                  ! ND17 diag counter
       USE DIAG_MOD,       ONLY : CT18                  ! ND18 diag counter
+#endif                                                 
       USE ErrCode_Mod                                  
       USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species

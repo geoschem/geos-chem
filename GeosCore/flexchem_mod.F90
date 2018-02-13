@@ -2,7 +2,6 @@
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
-!
 ! !MODULE: flexchem_mod.F90
 !
 ! !DESCRIPTION: Module FlexChem\_Mod contines arrays and routines for the
@@ -42,6 +41,7 @@ MODULE FlexChem_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
 !                              us remove arrays in CMN_O3_SIZE_mod.F
+!  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -62,8 +62,7 @@ MODULE FlexChem_Mod
   LOGICAL               :: Archive_Prod
   LOGICAL               :: Archive_Loss
   LOGICAL               :: Archive_JVal
-  LOGICAL               :: Archive_JNoonDailyAvg
-  LOGICAL               :: Archive_JNoonMonthlyAvg
+  LOGICAL               :: Archive_JNoon
 
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
@@ -98,17 +97,14 @@ CONTAINS
 ! !USES:
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
-    USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_CHEMGRID
-    USE CHEMGRID_MOD,         ONLY : ITS_IN_THE_STRAT
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
-    USE DIAG_MOD,             ONLY : LTJV
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,         ONLY : ND52
     USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
+    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
 #endif
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
-    USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
     USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -124,6 +120,7 @@ CONTAINS
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
     USE GC_GRID_MOD,          ONLY : GET_YMID
+    USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
     USE PRESSURE_MOD        
@@ -201,6 +198,8 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
+!  18 Jan 2018 - R. Yantosca - Now do photolysis for all levels, so that 
+!                              J-values can be saved up to the atm top
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -208,16 +207,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug, LDUST,    IsLocNoon
-    INTEGER                :: I,        J,        L,         N
-    INTEGER                :: NA,       F,        SpcID,     KppID
-    INTEGER                :: P,        MONTH,    YEAR,      WAVELENGTH
-    INTEGER                :: TotSteps, TotFuncs, TotJacob,  TotAccep
-    INTEGER                :: TotRejec, TotNumLU, HCRC,      IERR
+    LOGICAL                :: prtDebug,  LDUST,    IsLocNoon
+    INTEGER                :: I,         J,        L,         N
+    INTEGER                :: NA,        F,        SpcID,     KppID
+    INTEGER                :: P,         MONTH,    YEAR,      WAVELENGTH
+    INTEGER                :: TotSteps,  TotFuncs, TotJacob,  TotAccep
+    INTEGER                :: TotRejec,  TotNumLU, HCRC,      IERR
     INTEGER                :: Day
-    REAL(fp)               :: Start,    Finish,   rtim,      itim
-    REAL(fp)               :: SO4_FRAC, YLAT,     T,         TIN
-    REAL(fp)               :: TOUT
+    REAL(fp)               :: Start,     Finish,   rtim,      itim
+    REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
+    REAL(fp)               :: JNoon_Fac, TOUT
 
     ! Strings
     CHARACTER(LEN=63)      :: OrigUnit
@@ -281,31 +280,10 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
-    IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
-    IF ( Archive_JVal ) State_Diag%JVal = 0.0_f4
-
-    ! If we have turned on the daily average of noontime J-values
-    ! diagnostic, then zero appropriate arrays when the day changes
-    IF ( Archive_JNoonDailyAvg ) THEN
-       IF ( Day /= PrevDay ) THEN
-          State_Diag%JNoonDailyAvg   = 0.0_f4
-          JvSumDay                   = 0.0_f4
-          JvCountDay                 = 0.0_f4
-          PrevDay                    = Day
-       ENDIF
-    ENDIF
-
-    ! If we have turned on the monthly average of noontime J-values
-    ! diagnostic, then zero appropriate arrays when the month changes
-    IF ( Archive_JNoonMonthlyAvg ) THEN
-       IF ( Month /= PrevMonth ) THEN
-          State_Diag%JNoonMonthlyAvg = 0.0_f4
-          JvSumMon                   = 0.0_f4
-          JvCountMon                 = 0.0_f4
-          PrevMonth                  = Month
-       ENDIF
-    ENDIF
+    IF ( Archive_Loss  ) State_Diag%Loss  = 0.0_f4
+    IF ( Archive_Prod  ) State_Diag%Prod  = 0.0_f4
+    IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
+    IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
     
     !-----------------------------------------------------------------------
     ! Initialize global concentration of CH4
@@ -369,6 +347,13 @@ CONTAINS
        CALL AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,                  &
                           State_Chm, State_Diag, RC                         )
 
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "AEROSOL_CONC"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !=======================================================================
@@ -414,12 +399,24 @@ CONTAINS
     !=======================================================================
     ! Call RDAER -- computes aerosol optical depths
     !=======================================================================
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> Gas-phase chem",   RC )
+    CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
+#endif
+
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
     CALL RDAER( am_I_Root, Input_Opt,  State_Met,  &
                 State_Chm, State_Diag, RC,         &
                 MONTH,     YEAR,       WAVELENGTH )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "RDAER"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !### Debug
     IF ( prtDebug ) THEN 
@@ -438,13 +435,33 @@ CONTAINS
     IF ( LDUST ) THEN
        CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
                           State_Diag, SOILDUST,  WAVELENGTH, RC             )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "RDUST_ONLINE"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 #if !defined( TOMAS )
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%%% NOTE: RDUST_OFFLINE STILL HAS BPCH CODE AND THEREFORE   %%%% 
+       !%%%% IS PROBABLY NOW OBSOLETE.  THIS WILL BE REMOVED WHEN WE %%%%
+       !%%%% GET HIGH_RESOLUTION DUST EMISSIONS (bmy, 1/18/18)       %%%%
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! Don't read dust emissions from disk when using TOMAS,
        ! because TOMAS uses a different set of dust species than the 
        ! std code (win, bmy, 1/25/10)
        CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Met, State_Chm,      &
                            State_Diag, MONTH,     YEAR,      WAVELENGTH, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "RDUST_OFFLINE"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 #endif
     ENDIF
 
@@ -452,6 +469,11 @@ CONTAINS
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after RDUST' )
     ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
+    CALL GEOS_Timer_Start( "=> Gas-phase chem",   RC )
+#endif
 
     !=======================================================================
     ! Archive initial species mass for stratospheric tendency
@@ -488,8 +510,26 @@ CONTAINS
     !=======================================================================
     ! Call photolysis routine to compute J-Values
     !=======================================================================
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> Gas-phase chem",     RC )
+    CALL GEOS_Timer_Start( "=> FAST-JX photolysis", RC )
+#endif
+
+    ! Do Photolysis
     CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
                   State_Met,  State_Chm,  State_Diag, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "FAST_JX"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End  ( "=> FAST-JX photolysis", RC )
+    CALL GEOS_Timer_Start( "=> Gas-phase chem",     RC )
+#endif
 
     !### Debug
     IF ( prtDebug ) THEN
@@ -519,6 +559,11 @@ CONTAINS
     T         = 0d0
     TIN       = T
     TOUT      = T + DT
+
+    ! Factor that we need to multiply the JNoon netCDF diagnostic by 
+    ! to  account for the number of times the diagnostic array will be 
+    ! divided each day.
+    JNoon_Fac = 86400.0_fp / DT
 
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
@@ -588,7 +633,7 @@ CONTAINS
     !$OMP DEFAULT  ( SHARED                                                 )&
     !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT,   SCF            )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
-    !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P,      IsLocNoon      )&
+    !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -603,125 +648,33 @@ CONTAINS
     DO I = 1, IIPAR
 
        !====================================================================
-       ! For safety's sake, zero variables for each grid box (I,J,L),
-       ! whether or not chemistry will be done there.
+       ! For safety's sake, initialize certain variables for each grid
+       ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
        HET       = 0.0_dp            ! Het chem array
-       H2O       = 0.0_dp            ! H2O concentration
        IERR      = 0                 ! Success or failure flag
        ISTATUS   = 0.0_dp            ! Rosenbrock output 
        PHOTOL    = 0.0_dp            ! Photolysis array
-       PRESS     = 0.0_dp            ! Pressure
-       NUMDEN    = 0.0_dp            ! Air number density
        RCNTRL    = 0.0_fp            ! Rosenbrock input
        RSTATE    = 0.0_dp            ! Rosenbrock output
        SCF       = 0.0_dp            ! For hetchem diagnostics
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
-       TEMP      = 0.0_fp            ! Temperature
-       YLAT      = 0.0_fp            ! Latitude
        P         = 0                 ! GEOS-Chem photolyis species ID
 
-       ! NOTE: We should eventually replace the use of LTJV which is used for
-       ! bpch diagnostics. LTJV is only calculated if ND22 is turned on, so
-       ! turning off bpch diagnostics will impact the netCDF J-value diagnostic.
-       ! (mps, 1/5/18)
-#if defined( ESMF_ ) 
-       ! J-value diagnostics not yet functional in GCHP (ewl, 1/5/118)
-       IsLocNoon = .FALSE.
-#else
-       IsLocNoon = ( LTJV(I,J) > 0 ) ! Is it local noon (11am to 1pm LST)?
-#endif
-
-       !====================================================================
-       ! Test if we need to do the chemistry for box (I,J,L),
-       ! otherwise move onto the next box.
-       !====================================================================
-
-       ! If we are not in the troposphere don't do the chemistry!
-       IF ( .not. ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) CYCLE
-
-       ! Keep a running total of the # of times it was local noon at each box
-       IF ( IsLocNoon ) THEN
-
-          ! For the daily avg of noontime J-value diagnostic
-          IF ( Archive_JNoonDailyAvg ) THEN
-             JvCountDay(I,J,L) = JvCountDay(I,J,L) + 1.0_f4
-          ENDIF
-
-          ! For the monthly avg of noontime J-value diagnostic
-          IF ( Archive_JNoonMonthlyAvg ) THEN
-             JvCountMon(I,J,L) = JvCountMon(I,J,L) + 1.0_f4
-          ENDIF
-
-       ENDIF
-
-       ! Skipping buffer zone (lzh, 08/10/2014)
-       IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-          IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
-          IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-          IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
-          IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
-       ENDIF
-
-       !====================================================================
-       ! Initialize quantities for boxes where chemistry happens
-       !====================================================================
-
        ! Grid-box latitude [degrees]
-       YLAT   = GET_YMID( I, J, L )
+       YLAT      = GET_YMID( I, J, L )
 
        ! Temperature [K]
-       TEMP   = State_Met%T(I,J,L)
+       TEMP      = State_Met%T(I,J,L)
 
        ! Pressure [hPa]
-       PRESS  = GET_PCENTER( I, J, L )
+       PRESS     = GET_PCENTER( I, J, L )
 
        ! mje Calculate NUMDEN based on ideal gas law (# cm-3)
-       NUMDEN = State_Met%AIRNUMDEN(I,J,L)
+       NUMDEN    = State_Met%AIRNUMDEN(I,J,L)
 
        ! mje H2O arrives in g/kg needs to be in mol cm-3 
-       H2O    = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
-
-       ! Intialize CFACTOR, VAR, and FIX arrays
-       CALL Init_KPP( )
-
-       !====================================================================
-       ! Get rates for heterogeneous chemistry
-       !====================================================================
-
-!#if defined( DEVEL )
-!       ! Get starting time for rate computation
-!       CALL CPU_TIME( start )
-!#endif
-
-       IF ( DO_HETCHEM ) THEN
-
-          ! Copy SCOEFF to SCF, this will avoid an array temporary
-          SCF = SCOEFF(I,J,L,:)
-
-          ! Set hetchem rates
-          CALL SET_HET( I,         J,         L,         State_Diag,  &
-                        State_Chm, State_Met, Input_Opt, SCF         )
-
-#if defined( BPCH_DIAG )
-          IF ( ND52 > 0 ) THEN
-             ! Archive gamma values
-             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
-             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
-                                           + HET(ind_IEPOXB,1) &
-                                           + HET(ind_IEPOXD,1)
-             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
-             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
-                                           + HET(ind_ISOPNB,1)
-             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
-             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
-          ENDIF
-#endif
-
-          ! Copy SCF back into SCOEFF
-          SCOEFF(I,J,L,:) = SCF
-
-       ENDIF
+       H2O       = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
        !====================================================================
        ! Get photolysis rates (daytime only)
@@ -731,6 +684,12 @@ CONTAINS
        ! I've assumed that these are the same as in the text files
        ! but this may have been changed.  This needs to be checked
        ! through more thoroughly -- M. Long (3/28/16)
+       !
+       ! ALSO NOTE: We moved this section above the test to see if grid 
+       ! box (I,J,L) is in the chemistry grid.  This will ensure that
+       ! J-value diagnostics are defined for all levels in the column.
+       ! This modification was validated by a geosfp_4x5_standard
+       ! difference test. (bmy, 1/18/18)
        !====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
 
@@ -795,10 +754,8 @@ CONTAINS
              !    number of times the when grid box (I,J,L) was between
              !    11am and 1pm local solar time.  Because the HISTORY
              !    component can only divide by the number of times the
-             !    diagnostic was updated, we have to manually compute
-             !    the running average for J-values here.   We also must
-             !    take care to only place the noontime J-value diagnostics
-             !    in an instantaneous collection to avoid double-dividing.
+             !    diagnostic was updated, we counteract this by multiplying
+             !    by the factor 86400 [sec/day] / chemistry timestep [sec].
              !--------------------------------------------------------------
              
              ! GC photolysis species index
@@ -810,57 +767,79 @@ CONTAINS
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
-                IF ( Archive_Jval ) THEN
-                   State_Diag%JVal(I,J,L,P) = PHOTOL(N)
+                IF ( Archive_JVal ) THEN
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
+                                            + PHOTOL(N)
                 ENDIF
 
-
-                ! If it is local noon ...
-                IF ( IsLocNoon ) THEN
-
-                   ! Compute the noontime sum of the photolysis rate
-                   ! over all branches for this GEOS-Chem species
-                   ! (for the daily average diagnostic)
-                   IF ( Archive_JNoonDailyAvg ) THEN
-                      JvSumDay(I,J,L,P) = JvSumDay(I,J,L,P) + PHOTOL(N)
-                   ENDIF
-
-                   ! Compute the noontime sum of the photolysis rate
-                   ! over all branches for this GEOS-Chem species
-                   ! (for the monthly average diagnostic)
-                   IF ( Archive_JNoonMonthlyAvg .and. IsLocNoon ) THEN
-                      JvSumMon(I,J,L,P) = JvSumMon(I,J,L,P) + PHOTOL(N)
-                   ENDIF
+                ! Archive the noontime photolysis rate
+                ! (summing over all reaction branches)
+                IF ( Archive_JNoon .and. State_Met%IsLocalNoon(I,J) ) THEN
+                   State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
+                                             + ( PHOTOL(N) * JNoon_Fac )
                 ENDIF
+
              ENDIF
 #endif
           ENDDO
+       ENDIF
 
-#if defined( NC_DIAG )
-          !-----------------------------------------------------------------
-          ! HISTORY (aka netCDF diagnostics)
-          !
-          ! Take the average of J-values only where it is noon
-          !-----------------------------------------------------------------
-          IF ( IsLocNoon ) THEN
-          
-             ! For the daily-average diagnostic
-             IF ( Archive_JNoonDailyAvg ) THEN
-                DO P = 1, State_Chm%nPhotol+2
-                   State_Diag%JNoonDailyAvg(I,J,L,P) = ( JvSumDay(I,J,L,P)    &
-                                                     /   JvCountDay(I,J,L)   )
-                ENDDO
-             ENDIF
+       !====================================================================
+       ! Test if we need to do the chemistry for box (I,J,L),
+       ! otherwise move onto the next box.
+       !====================================================================
 
-             ! For the monthly-average diagnostic
-             IF ( Archive_JNoonMonthlyAvg ) THEN
-                DO P = 1, State_Chm%nPhotol+2
-                   State_Diag%JNoonMonthlyAvg(I,J,L,P) = ( JvSumMon(I,J,L,P)  &
-                                                       /   JvCountMon(I,J,L) )
-                ENDDO
-             ENDIF
+       ! If we are not in the troposphere don't do the chemistry!
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+       ! Skipping buffer zone (lzh, 08/10/2014)
+       IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
+          IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
+          IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
+          IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
+          IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+       ENDIF
+
+       !====================================================================
+       ! Intialize KPP solver arrays: CFACTOR, VAR, FIX, etc.
+       !====================================================================
+       CALL Init_KPP( )
+
+       !====================================================================
+       ! Get rates for heterogeneous chemistry
+       !====================================================================
+
+!#if defined( DEVEL )
+!       ! Get starting time for rate computation
+!       CALL CPU_TIME( start )
+!#endif
+
+       IF ( DO_HETCHEM ) THEN
+
+          ! Copy SCOEFF to SCF, this will avoid an array temporary
+          SCF = SCOEFF(I,J,L,:)
+
+          ! Set hetchem rates
+          CALL SET_HET( I,         J,         L,         State_Diag,  &
+                        State_Chm, State_Met, Input_Opt, SCF         )
+
+#if defined( BPCH_DIAG )
+          IF ( ND52 > 0 ) THEN
+             ! Archive gamma values
+             AD52(I,J,L,1) = AD52(I,J,L,1) + HET(ind_HO2,   1)
+             AD52(I,J,L,2) = AD52(I,J,L,2) + HET(ind_IEPOXA,1) &
+                                           + HET(ind_IEPOXB,1) &
+                                           + HET(ind_IEPOXD,1)
+             AD52(I,J,L,3) = AD52(I,J,L,3) + HET(ind_IMAE,  1)
+             AD52(I,J,L,4) = AD52(I,J,L,4) + HET(ind_ISOPND,1) &
+                                           + HET(ind_ISOPNB,1)
+             AD52(I,J,L,5) = AD52(I,J,L,5) + HET(ind_DHDN,  1)
+             AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
           ENDIF
-#endif 
+#endif
+
+          ! Copy SCF back into SCOEFF
+          SCOEFF(I,J,L,:) = SCF
 
        ENDIF
 
@@ -1204,8 +1183,11 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
 
+#if defined( BPCH_DIAG )
     !=======================================================================
     ! Save out P(O3) and L(O3) for a tagged O3 run
+    !
+    ! %%%% NOTE: Currently only works when BPCH_DIAG=y %%%%
     !=======================================================================
     IF ( Input_Opt%DO_SAVE_O3 ) THEN
        CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
@@ -1213,6 +1195,7 @@ CONTAINS
           CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
        ENDIF
     ENDIF
+#endif
 
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
@@ -1265,7 +1248,7 @@ CONTAINS
 
              ! Aggregate stratospheric chemical tendency [kg box-1]
              ! for tropchem simulations
-             IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+             IF ( State_Met%InStratosphere(I,J,L) ) THEN
                 SChem_Tend(I,J,L,N) = SChem_Tend(I,J,L,N) + &
                      ( State_Chm%Species(I,J,L,N) - Before(I,J,L,N) )
              ENDIF
@@ -1299,7 +1282,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ChemGrid_Mod,   ONLY : Its_In_The_NoChemGrid
     USE CMN_SIZE_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1307,8 +1289,8 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
 #if defined( BPCH_DIAG )
     USE Diag_Mod,       ONLY : AD43
-#endif
     USE Diag_Mod,       ONLY : LTOH, LTHO2, LTO1D, LTO3P
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1332,8 +1314,8 @@ CONTAINS
 !  arrays (SAVEOH, SAVEHO2, etc.) are no longer necessary.  We can now just
 !  just get values directly from State_Chm%SPECIES.
 !
-!  Also note: remove multiplication by LTOH etc arrays.  These are almost
-!  always set between 0 and 24.
+!  Also note: for the netCDF diagnostics, we have removed multiplication by 
+!  LTOH etc arrays.  These are almost always set between 0 and 24.
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -1380,7 +1362,7 @@ CONTAINS
       DO I = 1, IIPAR
 
          ! Skip non-chemistry boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
             ! Skip to next grid box
             CYCLE
          ENDIF
@@ -1401,8 +1383,7 @@ CONTAINS
 #if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
             IF ( Archive_OHconcAfterChem ) THEN
-               State_Diag%OHconcAfterChem(I,J,L) = ( Spc(I,J,L,id_OH)        &
-                                                 *   LTOH(I,J)              )
+               State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
 #endif
 
@@ -1427,8 +1408,7 @@ CONTAINS
             ! HISTORY (aka netCDF diagnostics)
             IF ( Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
-                                                  /   AirNumDen(I,J,L)      )&
-                                                  * ( LTHO2(I,J)            )
+                                                  /   AirNumDen(I,J,L)      )
             ENDIF
 #endif
          ENDIF
@@ -1451,8 +1431,7 @@ CONTAINS
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( Archive_O1DconcAfterChem ) THEN
-                  State_Diag%O1DconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O1D)   &
-                                                     *   LTO1D(I,J)         )
+                  State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
 #endif
             ENDIF
@@ -1474,8 +1453,7 @@ CONTAINS
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( Archive_O3PconcAfterChem ) THEN
-                  State_Diag%O3PconcAfterChem(I,J,L) = ( Spc(I,J,L,id_O3P)   &
-                                                     *   LTO3P(I,J)         )
+                  State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF
 #endif
 
@@ -1620,8 +1598,7 @@ CONTAINS
     Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
     Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
     Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
-    Archive_JNoonDailyAvg    = ASSOCIATED( State_Diag%JNoonDailyAvg    )
-    Archive_JNoonMonthlyAvg  = ASSOCIATED( State_Diag%JNoonMonthlyAvg  )
+    Archive_JNoon            = ASSOCIATED( State_Diag%JNoon            )
     Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
     Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
 
@@ -1667,52 +1644,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     HSAVE_KPP = 0.d0
 
-    !-----------------------------------------------------------------------
-    ! Allocate arrays for the daily average of noontime J-value diagnostic 
-    ! (State_Diag%JNoonDailyAvg).  Because the HISTORY component cannot do 
-    ! local-time averaging, we must do it manually in this module.  This 
-    ! means that we must always save State_Diag%JNoonDailyAvg to an 
-    ! instantaneous collection.
-    !-----------------------------------------------------------------------
-    IF ( Archive_JNoonDailyAvg ) THEN
-
-       ! Counter of number of times it is near local noon
-       ALLOCATE( JvCountDay( IIPAR, JJPAR, LLPAR ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountDay', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JvCountDay = 0.0_f4
-
-       ! Sum of J-values in each grid box where it is local noon
-       ALLOCATE( JvSumDay(IIPAR,JJPAR,LLPAR,State_Chm%nPhotol+2 ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvSumDay', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JvSumDay = 0.0_f4
-
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Allocate arrays for the monthly average of noontime J-value diagnostic 
-    ! (State_Diag%JNoonDailyAvg).  Because the HISTORY component cannot do 
-    ! local-time averaging, we must do it manually in this module.  This 
-    ! means that we must always save State_Diag%JNoonMonthlyAvg to an 
-    ! instantaneous collection.
-    !-----------------------------------------------------------------------
-    IF ( Archive_JNoonMonthlyAvg ) THEN
-
-       ! Counter of number of times it is near local noon
-       ALLOCATE( JvCountMon( IIPAR, JJPAR, LLPAR ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvCountMon', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JvCountMon = 0.0_f4
-
-       ! Sum of J-values in each grid box where it is local noon
-       ALLOCATE( JvSumMon(IIPAR,JJPAR,LLPAR,State_Chm%nPhotol+2 ), STAT=RC )
-       CALL GC_CheckVar( 'flexchem_mod.F90:JvSumMon', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JvSumMon = 0.0_f4
-
-    ENDIF
-       
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------

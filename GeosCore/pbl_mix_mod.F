@@ -317,6 +317,7 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
 !                              Remove dependency on pressure_mod.
 !  06 Nov 2017 - R. Yantosca - Now return error to main program level
+!  08 Jan 2018 - R. Yantosca - Now compute query field State_Met%InPbl
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -333,8 +334,9 @@
       !=================================================================
 
       ! Initialize
-      RC      = GC_SUCCESS
-      Bad_Sum = .FALSE.
+      RC              = GC_SUCCESS
+      Bad_Sum         = .FALSE.
+      State_Met%InPbl = .FALSE.
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
@@ -367,6 +369,8 @@
          !----------------------------------------------
          ! Find model level where BLTOP occurs
          !----------------------------------------------
+
+         ! Initialize
          LTOP = 0
 
          ! Loop over levels
@@ -376,6 +380,8 @@
             IF ( BLTOP > P(L) ) THEN
                LTOP = L
                EXIT
+            ELSE
+               State_Met%InPbl(I,J,L) = .TRUE.
             ENDIF
 
          ENDDO 
@@ -530,9 +536,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : TURBFLUP
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : AIRMW
@@ -754,9 +762,10 @@
                
             TC(I,J,L,N) = TC(I,J,L,N) + DTC(I,J,L,N) / AD(I,J,L)
 
+#if defined( BPCH_DIAG )
             !=======================================================
-            ! ND15 Diagnostic: 
-            ! mass change due to mixing in the boundary layer
+            ! ND15 (bpch) Diagnostic: 
+            ! Mass change due to mixing in the boundary layer
             !=======================================================
             IF ( ND15 > 0 ) THEN
                DO L = 1, IMIX(I,J)
@@ -765,6 +774,7 @@
      &                 / State_Chm%SpcData(N)%Info%emMW_g ) * DTCONV )
                ENDDO
             ENDIF
+#endif
          ENDDO                  
       ENDDO                     
       ENDDO                     
@@ -964,7 +974,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: TOP    ! PBL top [model levels]
+      REAL(fp)            :: TOP    ! PBL top [model levels]
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version

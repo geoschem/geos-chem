@@ -20,10 +20,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD
       USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
+#endif
       USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR,   ERROR_STOP
@@ -235,6 +237,7 @@
       !=================================================================
       ! NDXX_SETUP begins here! 
       !=================================================================
+#if defined( BPCH_DIAG )
 
       nAdvect              = State_Chm%nAdvect
       LDUST                = Input_Opt%LDUST
@@ -291,10 +294,8 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
-#if defined( BPCH_DIAG )
          ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
-#endif
       ENDIF
 
       !=================================================================
@@ -302,10 +303,8 @@
       !=================================================================
       IF ( ND02 > 0 ) THEN 
          LD02 = MIN( ND02, LLPAR )
-#if defined( BPCH_DIAG )
          ALLOCATE( AD02( IIPAR, JJPAR, LD02, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD02' )
-#endif
       ENDIF
 
       !=================================================================
@@ -316,10 +315,8 @@
       IF ( ND05 > 0 ) THEN
          LD05 = MIN( ND05, LLCHEM )
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
-#endif
       ENDIF
 
       !=================================================================
@@ -328,7 +325,6 @@
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, LLPAR )
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD07_BC( IIPAR, JJPAR, LD07 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
 
@@ -343,8 +339,6 @@
          ! of SOA from IVOCs (hotp 7/22/09)
          ALLOCATE( AD07_HC( IIPAR, JJPAR, LD07, 9 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_HC' )
-#endif
-
       ENDIF  
 
       !=================================================================
@@ -379,10 +373,8 @@
          LD14 = MIN( ND14, LLCONVM )
          NMAX = nAdvect
 
-#if defined( BPCH_DIAG )
          ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
-#endif
       ENDIF
 
       !=================================================================
@@ -393,10 +385,8 @@
          LD15 = MIN( ND15, LLPAR )
          NMAX = nAdvect
 
-#if defined( BPCH_DIAG )
          ALLOCATE( TURBFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TURBFLUP' )
-#endif
       ENDIF
 
       !=================================================================
@@ -406,7 +396,6 @@
       IF ( ND16 > 0 ) THEN
          LD16 = MIN( ND16, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Store LS Precip fraction only
          ALLOCATE( AD16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD16' )
@@ -414,7 +403,6 @@
          ! Counter array for AD16
          ALLOCATE( CT16( IIPAR, JJPAR, LD16, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT16' )
-#endif
       ENDIF
 
       !=================================================================
@@ -437,7 +425,6 @@
          ! Number of levels
          LD17 = MIN( ND17, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Store both LS precip only
          ALLOCATE( AD17( IIPAR, JJPAR, LD17, NMAX, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD17' )
@@ -445,7 +432,6 @@
          ! Counter array for AD17
          ALLOCATE( CT17( IIPAR, JJPAR, LD17, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT17' )
-#endif
       ENDIF
 
       !=================================================================
@@ -468,7 +454,6 @@
          ! Number of levels
          LD18 = MIN( ND18, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Store both LS precip fraction only
          ALLOCATE( AD18( IIPAR, JJPAR, LD18, NMAX, 1 ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD18' )
@@ -476,7 +461,6 @@
          ! Counter array for AD17
          ALLOCATE( CT18( IIPAR, JJPAR, LD18, 1 ), STAT=AS ) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CT18' )
-#endif
       ENDIF
 
       !=================================================================
@@ -485,10 +469,8 @@
       IF ( ND19 > 0 ) THEN 
          LD19 = MIN( ND19, LLPAR )
 	 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD19( IIPAR, JJPAR, LD19 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19' )
-#endif
       ENDIF 
 
       !=================================================================
@@ -510,7 +492,6 @@
       IF ( ND21 > 0 ) THEN
          LD21 = MIN( ND21, LLCHEM )
 
-#if defined( BPCH_DIAG )
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
@@ -521,7 +502,6 @@
 !            ALLOCATE( AD21_cr( IIPAR, JJPAR, 6 ), STAT=AS )
 !            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )      
 !         ENDIF
-#endif
       ENDIF
 
       !=================================================================
@@ -539,7 +519,6 @@
             LD22 = MIN( ND22, LLPAR  )
          ENDIF
 
-#if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
          ALLOCATE( AD22( IIPAR, JJPAR, LD22, PD22 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD22' )
@@ -547,7 +526,6 @@
          ! Number of times where LT is between HR1_JV and HR2_JV
          ALLOCATE( CTJV( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTJV' )         
-#endif
       ENDIF
 
       ! Locations where LT is between HR1_JV and HR2_JV
@@ -574,13 +552,11 @@
       IF ( ND24 > 0 ) THEN
          LD24 = MIN( ND24, LLPAR )
          NMAX = nAdvect
-#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLEW( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
       ELSE
          ALLOCATE( MASSFLEW( 1, 1, 1, 1 ), STAT=AS) 
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLEW' )
-#endif
       ENDIF
 
       !=================================================================
@@ -590,13 +566,11 @@
       IF ( ND25 > 0 ) THEN
          LD25 = MIN( ND25, LLPAR )
          NMAX = nAdvect
-#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLNS( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
       ELSE
          ALLOCATE( MASSFLNS( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLNS' ) 
-#endif
       ENDIF
 
       !=================================================================
@@ -606,23 +580,19 @@
       IF ( ND26 > 0 ) THEN
          LD26 = MIN( ND26, LLPAR )
          NMAX = nAdvect
-#if defined( BPCH_DIAG )      
          ALLOCATE( MASSFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
       ELSE
          ALLOCATE( MASSFLUP( 1, 1, 1, 1 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'MASSFLUP' )
-#endif
       ENDIF
 
       !=================================================================
       ! ND30: Land/water/ice flags
       !=================================================================      
       IF ( ND30 > 0 ) THEN
-#if defined( BPCH_DIAG )
          ALLOCATE( AD30( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD30' )
-#endif
       ENDIF
 
       !=================================================================
@@ -630,10 +600,8 @@
       !=================================================================
       IF ( ND31 > 0 ) THEN
          LD31 = MIN( ND31, LLPAR+1 )
-#if defined( BPCH_DIAG )
          ALLOCATE( AD31( IIPAR, JJPAR, LD31 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD31' )
-#endif
       ENDIF
 
       !=================================================================
@@ -641,10 +609,8 @@
       !       --> uses AD33 array (allocatable)!
       !=================================================================
       IF ( ND33 > 0 ) THEN
-#if defined( BPCH_DIAG )
          ALLOCATE( AD33( IIPAR, JJPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD33' )
-#endif
       ENDIF
 
       !=================================================================
@@ -652,10 +618,8 @@
       !       --> uses AD35 array (allocatable)
       !=================================================================
       IF ( ND35 > 0 ) THEN
-#if defined( BPCH_DIAG )
          ALLOCATE( AD35( IIPAR, JJPAR, nAdvect ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD35' ) 
-#endif
       ENDIF
 
       !=================================================================
@@ -678,13 +642,11 @@
          ! Number of levels
          LD37 = MIN( ND37, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Allocate array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD37( IIPAR, JJPAR, LD37, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD37' )
          ENDIF
-#endif
       ENDIF
 
       !=================================================================
@@ -701,13 +663,11 @@
          ! If GTMM on and LD38 off, ND38 should be LLPAR, (ccc, 10/29/09)
          IF ( ND38 == 0 ) LD38 = LLPAR
          
-#if defined( BPCH_DIAG )
          ! Allocate AD38 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD38( IIPAR, JJPAR, LD38, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD38' )
          ENDIF
-#endif
       ENDIF
 
       !=================================================================
@@ -724,13 +684,11 @@
          ! Get # of soluble tracers for this simulation
          NMAX = State_Chm%nWetDep
 
-#if defined( BPCH_DIAG )        
          ! Allocate AD39 array accordingly
          IF ( NMAX > 0 ) THEN
             ALLOCATE( AD39( IIPAR, JJPAR, LD39, NMAX ), STAT=AS )
             IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD39' )
          ENDIF
-#endif
       ENDIF
 
       !=================================================================
@@ -749,7 +707,6 @@
             LD43 = MIN( ND43, LLPAR  )
          ENDIF
 
-#if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
          ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD43' )
@@ -769,7 +726,6 @@
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTO3P( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTO3P' )
-#endif
       ENDIF
 
       ! The following are also used for netcdf diagnostics and therefore
@@ -816,11 +772,9 @@
          ! Number of dry depositing species
          NMAX = State_Chm%nDryDep
 #endif
-#if defined( BPCH_DIAG )
          ! Allocate AD44 array
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
-#endif
       ENDIF
       
       !=================================================================
@@ -831,7 +785,6 @@
          LD45 = MIN( ND45, LLPAR )
          NMAX = nAdvect
 
-#if defined( BPCH_DIAG )
          ! Accumulating diagnostic array
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
@@ -844,7 +797,6 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
-#endif
       ENDIF
 
       !=================================================================
@@ -858,11 +810,9 @@
          LD47 = MIN( ND47, LLPAR   )
          NMAX = nAdvect
 
-#if defined( BPCH_DIAG )
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD47( IIPAR, JJPAR, LD47, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD47' )
-#endif
       ENDIF
 
       !=================================================================
@@ -871,10 +821,8 @@
       IF ( ND52 > 0 ) THEN
          LD52 = MIN( ND52, LLPAR)
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD52( IIPAR, JJPAR, LD52, PD52 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD52' )
-#endif
       ENDIF
 
       !=================================================================
@@ -886,13 +834,10 @@
       IF ( ND54 > 0 ) THEN
          LD54 = MIN( ND54, LLCHEM)
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
-#endif
       ENDIF
 
-#if defined( BPCH_DIAG )
       !=================================================================
       ! ND55: Tropopause diagnostics [level, height, and pressure]
       !       --> uses AD55 array (allocatable)
@@ -901,7 +846,6 @@
          ALLOCATE( AD55( IIPAR, JJPAR, PD55 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD55' )
       ENDIF
-#endif
 
       !=================================================================
       ! ND56: Lightning flash rate diagnostics
@@ -913,10 +857,8 @@
       !=================================================================
       IF ( ND57 > 0 ) THEN
          LD57 = MIN( ND57, LLPAR)
-#if defined( BPCH_DIAG )
          ALLOCATE( AD57( IIPAR, JJPAR, LD57 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
-#endif
       ENDIF
 
       !=================================================================
@@ -924,10 +866,8 @@
       !=================================================================
       IF ( ND58 > 0 ) THEN 
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD58( IIPAR, JJPAR, PD58), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58' )
-#endif
 
       ENDIF
 
@@ -940,7 +880,6 @@
       IF ( ND59 > 0 ) THEN
          LD59 = MIN( ND59, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Number emission
          ALLOCATE( AD59_NUMB( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_NUMB' )
@@ -965,7 +904,6 @@
 
          ALLOCATE( AD59_DUST( IIPAR, JJPAR, 2, IBINS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_DUST' )
-#endif
       ENDIF
 
       !=================================================================
@@ -977,7 +915,6 @@
       IF ( ND60 > 0 ) THEN
          LD60 = MIN( ND60, LLPAR )
 
-#if defined( BPCH_DIAG )
          ! Now the array dimension is IBINS*(ICOMP-IDIAG+1) because
          ! we need it for all prognostic mass species + 1 for number
          ! IDIAG = # of diagnostic species.  (win, 9/27/08)
@@ -1010,7 +947,6 @@
          ALLOCATE( AD60_SOA( 1, JJPAR, LD60, IBINS*(ICOMP-IDIAG+1)), 
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_SOA' )
-#endif
       ENDIF
 
 #else
@@ -1018,12 +954,10 @@
       !=================================================================
       ! ND60: WETLAND FRACTION 
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) THEN 
          ALLOCATE( AD60( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60' )
       ENDIF
-#endif
 #endif
 
 
@@ -1038,12 +972,10 @@
       IF ( ND61 > 0 ) THEN
          LD61 = MIN( ND61, LLPAR )
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD61( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
          ALLOCATE( AD61_INST( IIPAR, JJPAR, LD61, PD61 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
-#endif
       ENDIF
 #endif
 
@@ -1054,10 +986,8 @@
       IF ( ND64 > 0 ) THEN
          LD64 = MIN( ND64, LLPAR+1 )
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD64( IIPAR, JJPAR, LD64, PD64, 3 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
-#endif
       ENDIF
 
       !=================================================================
@@ -1071,10 +1001,8 @@
             LD65 = MIN( ND65, LLPAR  )
          ENDIF
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD65( IIPAR, JJPAR, LD65, Input_Opt%NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
-#endif
       ENDIF
 
       !=================================================================
@@ -1085,11 +1013,9 @@
          ! Need both LD47 and LD65 set above
          LMAX = MAX( LD47, LD65 )
 
-#if defined( BPCH_DIAG )
          ! Number of times in the troposphere 
          ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
-#endif
       ENDIF
 
       !=================================================================
@@ -1098,13 +1024,10 @@
       !=================================================================
       IF ( ND66 > 0 ) THEN
          LD66 = MIN( ND66, LLPAR )
-#if defined( BPCH_DIAG )
          ALLOCATE( AD66( IIPAR, JJPAR, LD66, PD66 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD66' )
-#endif
       ENDIF
 
-#if defined( BPCH_DIAG )
       !=================================================================
       ! ND67: DAO A-3 and surface fields 
       !       --> Uses AD67 array (allocatable)
@@ -1113,7 +1036,6 @@
          ALLOCATE( AD67( IIPAR, JJPAR, PD67 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD67' )
       ENDIF
-#endif
 
       !=================================================================
       ! ND68: Air mass diagnostics (BXHEIGHT, AD, AVGW, N_AIR)
@@ -1121,13 +1043,10 @@
       !=================================================================
       IF ( ND68 > 0 ) THEN
          LD68 = MIN( ND68, LLPAR )
-#if defined( BPCH_DIAG )
          ALLOCATE( AD68( IIPAR, JJPAR, LD68, PD68 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD68' )
-#endif
       ENDIF
 
-#if defined( BPCH_DIAG )
       !=================================================================
       ! ND69: DXYP -- grid box surface areas [m^2] 
       !       --> uses AD69 array (allocatable)
@@ -1136,12 +1055,10 @@
          ALLOCATE( AD69( IIPAR, JJPAR, PD69 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD69' )
       ENDIF
-#endif
 
       !=================================================================
       ! ND71: Maximum tracer concentration [v/v]
       !================================================================
-#if defined( BPCH_DIAG )
       IF ( ND71 > 0 ) THEN
          NMAX = nAdvect+1
 
@@ -1156,7 +1073,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD71_DAY' )
 
       ENDIF
-#endif
 
       !=================================================================
       ! ND72: Radiative output diagnostics (TOASW, SRFSW, TOALW, SRFLW,
@@ -1164,12 +1080,10 @@
       !       ASRFLW) for both clear and all sky (prefix CLR and ALL)
       !       --> uses AD72 array (allocatable)
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ND72 > 0 ) THEN
          ALLOCATE( AD72( IIPAR, JJPAR, PD72 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD72' )
       ENDIF
-#endif
 
       !=================================================================
       ! ND73: ISORROPIA pH and H+
@@ -1177,10 +1091,8 @@
       IF ( ND73 > 0 ) THEN 
          LD73 = MIN( ND73, LLPAR )
 
-#if defined( BPCH_DIAG )
          ALLOCATE( AD73( IIPAR, JJPAR, LD73, PD73 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD73' )
-#endif
       ENDIF
 
       ! Save LD* fields back into the Input_Opt object (bmy, 11/9/12)
@@ -1223,6 +1135,7 @@
       Input_Opt%LD66  = LD66
       Input_Opt%LD68  = LD68
       Input_Opt%LD73  = LD73
+#endif
 
       END SUBROUTINE NDXX_SETUP
 !EOC

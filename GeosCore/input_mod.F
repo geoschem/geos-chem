@@ -432,7 +432,9 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
+         ! NOTE: This will get always get read, but the various bpch
+         ! diagnostics will only be initialized if BPCH_DIAG=y (bmy, 1/16/18)
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
             CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
             IF ( RC /= GC_SUCCESS ) THEN
@@ -449,6 +451,8 @@
                RETURN
             ENDIF
                                                   
+#if defined( BPCH_DIAG )
+         ! Only read if compiled with BPCH_DIAG=y (bmy, 1/12/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
             CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
             IF ( RC /= GC_SUCCESS ) THEN
@@ -504,6 +508,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
                                              
          ELSE IF ( INDEX( LINE, 'UNIX CMDS MENU'   ) > 0 ) THEN 
             CALL READ_UNIX_CMDS_MENU( am_I_Root, Input_Opt, RC )              
@@ -748,10 +753,13 @@
       USE GC_GRID_MOD,        ONLY : SET_XOFFSET, SET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : SET_BEGIN_TIME,   SET_END_TIME 
-      USE TIME_MOD,           ONLY : SET_CURRENT_TIME, SET_DIAGb
-      USE TIME_MOD,           ONLY : SET_NDIAGTIME,    GET_TAU
+      USE TIME_MOD,           ONLY : SET_CURRENT_TIME
+      USE TIME_MOD,           ONLY : GET_TAU
       USE TIME_MOD,           ONLY : YMD_EXTRACT
       USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
+#if defined( BPCH_DIAG )
+      USE TIME_MOD,           ONLY : SET_DIAGb
+#endif
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
       USE TIME_MOD,           ONLY : Accept_External_Date_Time
 #endif
@@ -818,7 +826,7 @@
       ! Scalars
       LOGICAL            :: LVARTROP
       INTEGER            :: I0,      J0
-      INTEGER            :: N,       NDIAGTIME
+      INTEGER            :: N
       INTEGER            :: NYMDb,   NHMSb 
       INTEGER            :: NYMDe,   NHMSe
       INTEGER            :: C
@@ -1153,13 +1161,11 @@
 
 #endif
 
-      ! Set the time of day for writing bpch files
-      NDIAGTIME = NHMSe !### test
-      CALL SET_NDIAGTIME( NDIAGTIME )
-
+#if defined( BPCH_DIAG )
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
-     
+#endif     
+
       ! Set global offsets for the horizontal grid
       CALL SET_XOFFSET( Input_Opt%NESTED_I0 )
       CALL SET_YOFFSET( Input_OPt%NESTED_J0 )
@@ -4387,8 +4393,7 @@
 !
 ! !USES:
 !      
-      USE CMN_DIAG_MOD         ! NJDAY
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
 !
@@ -4404,6 +4409,10 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 ! 
+! !REMARKS:
+!  NJDAY is now located in CMN_SIZE_mod.F, so that we can eventually
+!  retire the obsolete CMN_DIAG_mod.F. (bmy, 1/16/18)
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -4433,7 +4442,7 @@
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
-     &   ' -> at  (in module GeosCore/input_mod.F)'
+     &   ' -> at Read_Output_Menu (in module GeosCore/input_mod.F)'
 
       ! Read info
       READ( IU_GEOS, 100, IOSTAT=IOS ) NJDAY
@@ -4521,9 +4530,10 @@
 !
 ! !USES:
 !
+      USE CMN_SIZE_MOD        ! Size parameters
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_DIAG_MOD        ! NDxx flags, TINDEX, TCOUNT, TMAX
-      USE CMN_SIZE_MOD        ! Size parameters
       USE DIAG03_MOD,    ONLY : ND03,      PD03
       USE DIAG03_MOD,    ONLY : PD03_PL    !eds 9/9/10
       USE DIAG04_MOD,    ONLY : ND04,      PD04,      INIT_DIAG04
@@ -4531,6 +4541,7 @@
       USE DIAG42_MOD,    ONLY : ND42,      PD42,      INIT_DIAG42
       USE DIAG53_MOD,    ONLY : ND53,      PD53,      INIT_DIAG53
       USE DIAG56_MOD,    ONLY : ND56,      PD56,      INIT_DIAG56
+#endif
       USE DRYDEP_MOD,    ONLY : NUMDEP
       USE ErrCode_Mod
       USE FILE_MOD,      ONLY : IU_BPCH
@@ -4604,7 +4615,24 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: M,      N,     N_MAX, N_TMP,   N_ADVECT
+      INTEGER            :: M, N, N_MAX, N_TMP, N_ADVECT
+
+      ! Define shadow variables so that we can still use certain
+      ! flags (e.g. ND70) even when compiling with BPCH_DIAG=n
+      INTEGER            :: ND01x, ND02x, ND03x, ND04x, ND05x, ND06x
+      INTEGER            :: ND07x, ND08x, ND09x, ND10x, ND11x, ND12x
+      INTEGER            :: ND13x, ND14x, ND15x, ND16x, ND17x, ND18x
+      INTEGER            :: ND19x, ND20x, ND21x, ND22x, ND23x, ND24x
+      INTEGER            :: ND25x, ND26x, ND27x, ND28x, ND29x, ND30x
+      INTEGER            :: ND31x, ND32x, ND33x, ND34x, ND35x, ND36x
+      INTEGER            :: ND37x, ND38x, ND39x, ND40x, ND41x, ND42x
+      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x, ND48x
+      INTEGER            :: ND49x, ND50x, ND51x, ND52x, ND53x, ND54x
+      INTEGER            :: ND55x, ND56x, ND57x, ND58x, ND59x, ND60x
+      INTEGER            :: ND61x, ND62x, ND63x, ND64x, ND65x, ND66x
+      INTEGER            :: ND67x, ND68x, ND69x, ND70x, ND71x, ND72x
+      INTEGER            :: ND73x, HR1_JVx, HR2_JVx, HR1_OHx, HR2_OHx
+      INTEGER            :: HR1_OTHx, HR2_OTHx
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc, BPCH_FILE
@@ -4618,6 +4646,7 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_Diagnostic_Menu (in module GeosCore/input_mod.F)'
@@ -4667,10 +4696,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND01
+      READ( SUBSTRS(1), * ) ND01x
       IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM .or.
-     &     .not. Input_Opt%LEMIS ) ND01 = 0 
-      CALL SET_TINDEX( am_I_Root, 01, ND01, SUBSTRS(2:N), N-1, N_MAX )
+     &     .not. Input_Opt%LEMIS ) ND01x = 0 
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 01, ND01x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND02: Rn-Pb-Be decay
@@ -4680,9 +4711,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND02
-      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02 = 0 
-      CALL SET_TINDEX( am_I_Root, 02, ND02, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND02x
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02x = 0 
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 02, ND02x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND03: Hg diagnostics
@@ -4692,9 +4725,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND03
-      IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03 = 0
-      CALL SET_TINDEX( am_I_Root, 03, ND03, SUBSTRS(2:N), N-1, PD03 )
+      READ( SUBSTRS(1), * ) ND03x
+      IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) ND03x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 03, ND03x, SUBSTRS(2:N), N-1, PD03 )
+#endif
 
       !--------------------------
       ! ND04: CO2 emissions
@@ -4704,10 +4739,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND04
+      READ( SUBSTRS(1), * ) ND04x
       IF ( .not. Input_Opt%ITS_A_CO2_SIM .or.
-     &     .not. Input_Opt%LEMIS ) ND04 = 0
-      CALL SET_TINDEX( am_I_Root, 04, ND04, SUBSTRS(2:N), N-1, PD04 )
+     &     .not. Input_Opt%LEMIS ) ND04x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 04, ND04x, SUBSTRS(2:N), N-1, PD04 )
+#endif
 
       !--------------------------
       ! ND05: Sulfate prod/loss
@@ -4717,9 +4754,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND05
-      IF ( .not. Input_Opt%LSULF ) ND05 = 0
-      CALL SET_TINDEX( am_I_Root, 05, ND05, SUBSTRS(2:N), N-1, PD05 )
+      READ( SUBSTRS(1), * ) ND05x
+      IF ( .not. Input_Opt%LSULF ) ND05x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 05, ND05x, SUBSTRS(2:N), N-1, PD05 )
+#endif
 
       !--------------------------
       ! ND06: Dust emissions
@@ -4729,10 +4768,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND06
+      READ( SUBSTRS(1), * ) ND06x
       IF ( .not. Input_Opt%LDUST .or.
-     &     .not. Input_Opt%LEMIS ) ND06 = 0
-      CALL SET_TINDEX( am_I_Root, 06, ND06, SUBSTRS(2:N), N-1, NDSTBIN )
+     &     .not. Input_Opt%LEMIS ) ND06x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 06, ND06x, SUBSTRS(2:N), N-1, NDSTBIN)
+#endif
  
       !--------------------------
       ! ND07: Carbon/SOA source
@@ -4742,10 +4783,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND07
+      READ( SUBSTRS(1), * ) ND07x
       IF ( .not. Input_Opt%LCARB .or.
-     &     .not. Input_Opt%LEMIS ) ND07 = 0
-      CALL SET_TINDEX( am_I_Root, 07, ND07, SUBSTRS(2:N), N-1, PD07 )
+     &     .not. Input_Opt%LEMIS ) ND07x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 07, ND07x, SUBSTRS(2:N), N-1, PD07 )
+#endif
 
       !--------------------------
       ! ND08: Sea salt source
@@ -4755,10 +4798,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND08
+      READ( SUBSTRS(1), * ) ND08x
       IF ( .not. Input_Opt%LSSALT .or.
-     &     .not. Input_Opt%LEMIS ) ND08 = 0
-      CALL SET_TINDEX( am_I_Root, 08, ND08, SUBSTRS(2:N), N-1, PD08 )
+     &     .not. Input_Opt%LEMIS ) ND08x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 08, ND08x, SUBSTRS(2:N), N-1, PD08 )
+#endif
 
       ! Included in HEMCO diagnostics for netCDF
 
@@ -4770,9 +4815,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND09
-      ND09 = 0
-      CALL SET_TINDEX( am_I_Root, 09, ND09, SUBSTRS(2:N), N-1, PD09 )
+      READ( SUBSTRS(1), * ) ND09x
+      ND09x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 09, ND09x, SUBSTRS(2:N), N-1, PD09 )
+#endif
 
       !--------------------------
       ! ND10: Free
@@ -4782,8 +4829,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND10
-      CALL SET_TINDEX( am_I_Root, 10, ND10, SUBSTRS(2:N), N-1, PD10 )
+      READ( SUBSTRS(1), * ) ND10x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 10, ND10x, SUBSTRS(2:N), N-1, PD10 )
+#endif
 
       !--------------------------
       ! ND11: Acetone source
@@ -4793,9 +4842,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND11
-      IF ( .not. Input_Opt%LEMIS ) ND11 = 0
-      CALL SET_TINDEX( am_I_Root, 11, ND11, SUBSTRS(2:N), N-1, PD11 )
+      READ( SUBSTRS(1), * ) ND11x
+      IF ( .not. Input_Opt%LEMIS ) ND11x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 11, ND11x, SUBSTRS(2:N), N-1, PD11 )
+#endif
 
       !--------------------------
       ! ND12: PBL distribution
@@ -4805,8 +4856,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND12
-      CALL SET_TINDEX( am_I_Root, 12, ND12, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND12x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 12, ND12x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND13: Sulfur sources
@@ -4816,10 +4869,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND13
+      READ( SUBSTRS(1), * ) ND13x
       IF ( .not. Input_Opt%LSULF .or.
-     &     .not. Input_Opt%LEMIS ) ND13 = 0
-      CALL SET_TINDEX( am_I_Root, 13, ND13, SUBSTRS(2:N), N-1, 1 )
+     &     .not. Input_Opt%LEMIS ) ND13x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 13, ND13x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND14: Wet conv up flux
@@ -4829,9 +4884,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND14
-      IF ( .not. Input_Opt%LCONV ) ND14 = 0
-      CALL SET_TINDEX( am_I_Root, 14, ND14, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND14x
+      IF ( .not. Input_Opt%LCONV ) ND14x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 14, ND14x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND15: Mass change in PBL
@@ -4841,9 +4898,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND15
-      IF ( .not. Input_Opt%LTURB ) ND15 = 0
-      CALL SET_TINDEX( am_I_Root, 15, ND15, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND15x
+      IF ( .not. Input_Opt%LTURB ) ND15x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 15, ND15x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND16: Precip fractions
@@ -4853,8 +4912,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND16
-      CALL SET_TINDEX( am_I_Root, 16, ND16, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND16x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 16, ND16x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND17: Rainout losses
@@ -4865,9 +4926,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND17
-      IF ( .not. Input_Opt%LWETD ) ND17 = 0
-      CALL SET_TINDEX( am_I_Root, 17, ND17, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND17x
+      IF ( .not. Input_Opt%LWETD ) ND17x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 17, ND17x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND18: Washout losses
@@ -4878,9 +4941,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND18
-      IF ( .not. Input_Opt%LWETD ) ND18 = 0
-      CALL SET_TINDEX( am_I_Root, 18, ND18, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND18x
+      IF ( .not. Input_Opt%LWETD ) ND18x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 18, ND18x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND19: CH4 loss
@@ -4890,8 +4955,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND19
-      CALL SET_TINDEX( am_I_Root, 19, ND19, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND19x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 19, ND19x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND21: Opt depths etc.
@@ -4901,11 +4968,13 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND21
-      CALL SET_TINDEX( am_I_Root, 21, ND21, SUBSTRS(2:N), N-1, PD21 )
+      READ( SUBSTRS(1), * ) ND21x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 21, ND21x, SUBSTRS(2:N), N-1, PD21 )
+#endif
 
       ! Error check 
-      IF ( ND21 > 0 .and. Input_Opt%SALA_REDGE_um(2) /= 0.5 ) THEN
+      IF ( ND21x > 0 .and. Input_Opt%SALA_REDGE_um(2) /= 0.5 ) THEN
          ErrMsg = 'Cannot output seasalt AOD''s when radius bin' //
      &            ' is not split at 0.5 um!!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4920,15 +4989,17 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND22
-      CALL SET_TINDEX( am_I_Root, 22, ND22, SUBSTRS(2:N), N-1, PD22 )
+      READ( SUBSTRS(1), * ) ND22x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 22, ND22x, SUBSTRS(2:N), N-1, PD22 )
+#endif
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) HR1_JV, HR2_JV
+      READ( SUBSTRS(1:N), * ) HR1_JVx, HR2_JVx
 
       !--------------------------
       ! ND24: E/W transport flux
@@ -4938,8 +5009,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND24
-      CALL SET_TINDEX( am_I_Root, 24, ND24, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND24x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 24, ND24x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND25: N/S transport flux
@@ -4949,15 +5022,19 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND25
-      CALL SET_TINDEX( am_I_Root, 25, ND25, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND25x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 25, ND25x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND26: U/D transport flux
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND26', RC )
-      READ( SUBSTRS(1), * ) ND26
-      CALL SET_TINDEX( am_I_Root, 26, ND26, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND26x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 26, ND26x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND27: Strat fluxes
@@ -4967,8 +5044,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND27
-      CALL SET_TINDEX( am_I_Root, 27, ND27, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND27x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 27, ND27x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND28: Biomass emissions
@@ -4978,8 +5057,8 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND28
-      IF ( .not. Input_Opt%LEMIS ) ND28 = 0
+      READ( SUBSTRS(1), * ) ND28x
+      IF ( .not. Input_Opt%LEMIS ) ND28x = 0
  
       !--------------------------
       ! ND29: CO sources
@@ -4989,9 +5068,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND29
-      IF ( .not. Input_Opt%LEMIS ) ND29 = 0
+      READ( SUBSTRS(1), * ) ND29x
+      IF ( .not. Input_Opt%LEMIS ) ND29x = 0
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 29, ND29, SUBSTRS(2:N), N-1, 5 )
+#endif
 
       !--------------------------
       ! ND30: Land map
@@ -5001,8 +5082,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND30
-      CALL SET_TINDEX( am_I_Root, 30, ND30, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND30x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 30, ND30x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND31: Surface pressure
@@ -5012,8 +5095,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND31
-      CALL SET_TINDEX( am_I_Root, 31, ND31, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND31x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 31, ND31x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND32: NOx sources
@@ -5023,9 +5108,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND32
-      IF ( .not. Input_Opt%LEMIS ) ND32 = 0
-      CALL SET_TINDEX( am_I_Root, 32, ND32, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND32x
+      IF ( .not. Input_Opt%LEMIS ) ND32x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 32, ND32x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND33: Column species
@@ -5035,8 +5122,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND33
-      CALL SET_TINDEX( am_I_Root, 33, ND33, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND33x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 33, ND33x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND34: Biofuel sources
@@ -5046,8 +5135,8 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND34
-      IF ( .not. Input_Opt%LEMIS ) ND34 = 0
+      READ( SUBSTRS(1), * ) ND34x
+      IF ( .not. Input_Opt%LEMIS ) ND34x = 0
 
       !--------------------------
       ! ND35: 500 hPa species
@@ -5057,8 +5146,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND35
-      CALL SET_TINDEX( am_I_Root, 35, ND35, SUBSTRS(2:N), N-1, N_MAX )
+      READ( SUBSTRS(1), * ) ND35x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 35, ND35x, SUBSTRS(2:N), N-1, N_MAX )
+#endif
 
       !--------------------------
       ! ND36: Anthro emissions
@@ -5068,10 +5159,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND36
-      IF ( .not. Input_Opt%LEMIS ) ND36 = 0
+      READ( SUBSTRS(1), * ) ND36x
+      IF ( .not. Input_Opt%LEMIS ) ND36x = 0
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 
      &                 36, ND36, SUBSTRS(2:N), N-1, N_ADVECT )
+#endif
 
       !--------------------------
       ! ND37: Updraft scav frac
@@ -5082,8 +5175,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND37
-      CALL SET_TINDEX( am_I_Root, 37, ND37, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND37x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 37, ND37x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND38: Cld conv losses
@@ -5094,11 +5189,13 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND38
+      READ( SUBSTRS(1), * ) ND38x
       IF ( .not. Input_Opt%LWETD .and. .not. Input_Opt%LCONV ) THEN
-         ND38 = 0
+         ND38x = 0
       ENDIF
-      CALL SET_TINDEX( am_I_Root, 38, ND38, SUBSTRS(2:N), N-1, N_TMP )
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 38, ND38x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND39: Wet scav losses
@@ -5109,9 +5206,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND39
-      IF ( .not. Input_Opt%LWETD ) ND39 = 0
-      CALL SET_TINDEX( am_I_Root, 39, ND39, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND39x
+      IF ( .not. Input_Opt%LWETD ) ND39x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 39, ND39x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND41: Afternoon PBL ht
@@ -5121,8 +5220,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND41
-      CALL SET_TINDEX( am_I_Root, 41, ND41, SUBSTRS(2:N), N-1, PD41 )
+      READ( SUBSTRS(1), * ) ND41x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 41, ND41x, SUBSTRS(2:N), N-1, PD41 )
+#endif
 
       !--------------------------
       ! ND42: SOA concentrations
@@ -5132,8 +5233,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND42
-      CALL SET_TINDEX( am_I_Root, 42, ND42, SUBSTRS(2:N), N-1, PD42 )
+      READ( SUBSTRS(1), * ) ND42x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 42, ND42x, SUBSTRS(2:N), N-1, PD42 )
+#endif
 
       !--------------------------
       ! ND43: OH, HO2
@@ -5143,17 +5246,19 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND43
+      READ( SUBSTRS(1), * ) ND43x
       IF ( .not. ( Input_Opt%ITS_A_FULLCHEM_SIM    .or.
-     &             Input_Opt%ITS_A_CH4_SIM      ) ) ND43 = 0
-      CALL SET_TINDEX( am_I_Root, 43, ND43, SUBSTRS(2:N), N-1, PD43 )
+     &             Input_Opt%ITS_A_CH4_SIM      ) ) ND43x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 43, ND43x, SUBSTRS(2:N), N-1, PD43 )
+#endif
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'HR1_OH, HR2_OH', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) HR1_OH, HR2_OH
+      READ( SUBSTRS(1:N), * ) HR1_OHx, HR2_OHx
 
       !--------------------------
       ! ND44 drydep vel & flux
@@ -5171,9 +5276,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND44
-      IF ( .not. Input_Opt%LDRYD ) ND44 = 0
+      READ( SUBSTRS(1), * ) ND44x
+      IF ( .not. Input_Opt%LDRYD ) ND44x = 0
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 44, ND44, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND45: Species conc.
@@ -5184,15 +5291,17 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND45
-      CALL SET_TINDEX( am_I_Root, 45, ND45, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND45x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 45, ND45x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'HR1_OTH, HR2_OTH', RC ) 
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) HR1_OTH, HR2_OTH
+      READ( SUBSTRS(1:N), * ) HR1_OTHx, HR2_OTHx
 
       !--------------------------
       ! ND46: Biogenic sources
@@ -5202,9 +5311,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND46
-      IF ( .not. Input_Opt%LEMIS ) ND46 = 0
+      READ( SUBSTRS(1), * ) ND46x
+      IF ( .not. Input_Opt%LEMIS ) ND46x = 0
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 46, ND46, SUBSTRS(2:N), N-1, 26 )
+#endif
 
       !--------------------------
       ! ND47: 24h avg species
@@ -5214,9 +5325,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND47
+      READ( SUBSTRS(1), * ) ND47x
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 
      &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
+#endif
 
       !--------------------------
       ! ND52: GAMMA values
@@ -5226,8 +5339,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND52
-      CALL SET_TINDEX( am_I_Root, 52, ND52, SUBSTRS(2:N), N-1, PD52 )
+      READ( SUBSTRS(1), * ) ND52x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 52, ND52x, SUBSTRS(2:N), N-1, PD52 )
+#endif
 
       !--------------------------
       ! ND53: POPS
@@ -5237,10 +5352,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND53
+      READ( SUBSTRS(1), * ) ND53x
       IF ( .not. Input_Opt%ITS_A_POPS_SIM .or.
-     &     .not. Input_Opt%LEMIS) ND53 = 0
-      CALL SET_TINDEX( am_I_Root, 53, ND53, SUBSTRS(2:N), N-1, PD53 )
+     &     .not. Input_Opt%LEMIS) ND53x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 53, ND53x, SUBSTRS(2:N), N-1, PD53 )
+#endif
 
       !--------------------------
       ! ND54: Time in troposphere
@@ -5250,8 +5367,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND54
-      CALL SET_TINDEX( am_I_Root, 54, ND54, SUBSTRS(2:N), N-1, 1 )
+      READ( SUBSTRS(1), * ) ND54x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 54, ND54x, SUBSTRS(2:N), N-1, 1 )
+#endif
 
       !--------------------------
       ! ND55: Tropopause diags
@@ -5261,8 +5380,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND55
-      CALL SET_TINDEX( am_I_Root, 55, ND55, SUBSTRS(2:N), N-1, PD55 )
+      READ( SUBSTRS(1), * ) ND55x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 55, ND55x, SUBSTRS(2:N), N-1, PD55 )
+#endif
 
       !--------------------------
       ! ND56: Lightning flashes
@@ -5272,9 +5393,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND56
-      IF ( .not. Input_Opt%LEMIS ) ND56 = 0
-      CALL SET_TINDEX( am_I_Root, 56, ND56, SUBSTRS(2:N), N-1, PD56 )
+      READ( SUBSTRS(1), * ) ND56x
+      IF ( .not. Input_Opt%LEMIS ) ND56x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 56, ND56x, SUBSTRS(2:N), N-1, PD56 )
+#endif
 
       !--------------------------
       ! ND57: Potential temperature
@@ -5284,8 +5407,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND57
-      CALL SET_TINDEX( am_I_Root, 57, ND57, SUBSTRS(2:N), N-1, PD57 )
+      READ( SUBSTRS(1), * ) ND57x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 57, ND57x, SUBSTRS(2:N), N-1, PD57 )
+#endif
 
       !--------------------------
       ! ND58: CH4 Emissions 
@@ -5295,9 +5420,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND58
-      IF ( .not. Input_Opt%LEMIS ) ND58 = 0
-      CALL SET_TINDEX( am_I_Root, 58, ND58, SUBSTRS(2:N), N-1, PD58 )
+      READ( SUBSTRS(1), * ) ND58x
+      IF ( .not. Input_Opt%LEMIS ) ND58x = 0
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 58, ND58x, SUBSTRS(2:N), N-1, PD58 )
+#endif
 
       !--------------------------
       ! ND59: TOMAS aerosol emiss
@@ -5307,8 +5434,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND59
-      CALL SET_TINDEX( am_I_Root, 59, ND59, SUBSTRS(2:N), N-1, PD59 )
+      READ( SUBSTRS(1), * ) ND59x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 59, ND59x, SUBSTRS(2:N), N-1, PD59 )
+#endif
 
       !--------------------------
       ! ND60: Wetland Fraction
@@ -5319,8 +5448,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND60
-      CALL SET_TINDEX( am_I_Root, 60, ND60, SUBSTRS(2:N), N-1, PD60 )
+      READ( SUBSTRS(1), * ) ND60x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 60, ND60x, SUBSTRS(2:N), N-1, PD60 )
+#endif
 
       !--------------------------
       ! ND61: 3-D TOMAS rate
@@ -5330,8 +5461,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND61
-      CALL SET_TINDEX( am_I_Root, 61, ND61, SUBSTRS(2:N), N-1, PD61 )
+      READ( SUBSTRS(1), * ) ND61x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 61, ND61x, SUBSTRS(2:N), N-1, PD61 )
+#endif
 
       !--------------------------
       ! ND62: Free
@@ -5342,8 +5475,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND62
-      CALL SET_TINDEX( am_I_Root, 62, ND62, SUBSTRS(2:N), N-1, N_TMP )
+      READ( SUBSTRS(1), * ) ND62x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 62, ND62x, SUBSTRS(2:N), N-1, N_TMP )
+#endif
 
       !--------------------------
       ! ND64: Radiative flux
@@ -5353,8 +5488,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND64
-      CALL SET_TINDEX( am_I_Root, 64, ND64, SUBSTRS(2:N), N-1, PD64*3 )
+      READ( SUBSTRS(1), * ) ND64x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 64, ND64x, SUBSTRS(2:N), N-1, PD64*3 )
+#endif
 
       !--------------------------
       ! ND66: DAO 3-D fields
@@ -5364,8 +5501,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND66
-      CALL SET_TINDEX( am_I_Root, 66, ND66, SUBSTRS(2:N), N-1, PD66 )
+      READ( SUBSTRS(1), * ) ND66x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 66, ND66x, SUBSTRS(2:N), N-1, PD66 )
+#endif
 
       !--------------------------
       ! ND67: DAO 2-D fields
@@ -5375,8 +5514,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND67
-      CALL SET_TINDEX( am_I_Root, 67, ND67, SUBSTRS(2:N), N-1, PD67 )
+      READ( SUBSTRS(1), * ) ND67x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 67, ND67x, SUBSTRS(2:N), N-1, PD67 )
+#endif
 
       !--------------------------
       ! ND68: Air masses etc
@@ -5386,8 +5527,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND68
-      CALL SET_TINDEX( am_I_Root, 68, ND68, SUBSTRS(2:N), N-1, PD68 )
+      READ( SUBSTRS(1), * ) ND68x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 68, ND68x, SUBSTRS(2:N), N-1, PD68 )
+#endif
 
       !--------------------------
       ! ND69: Surface areas
@@ -5397,8 +5540,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND69
-      CALL SET_TINDEX( am_I_Root, 69, ND69, SUBSTRS(2:N), N-1, PD69 )
+      READ( SUBSTRS(1), * ) ND69x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 69, ND69x, SUBSTRS(2:N), N-1, PD69 )
+#endif
 
       !--------------------------
       ! ND70: Debug info
@@ -5408,8 +5553,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND70
-      CALL SET_TINDEX( am_I_Root, 70, ND70, SUBSTRS(2:N), N-1, 0 )
+      READ( SUBSTRS(1), * ) ND70x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 70, ND70x, SUBSTRS(2:N), N-1, 0 )
+#endif
      
       !--------------------------
       ! ND71: Maximum species
@@ -5419,9 +5566,11 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND71
+      READ( SUBSTRS(1), * ) ND71x
+#if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 
-     &                 71, ND71, SUBSTRS(2:N), N-1, N_ADVECT )
+     &                 71, ND71x, SUBSTRS(2:N), N-1, N_ADVECT )
+#endif
 
       !--------------------------
       ! ND72: Radiation output
@@ -5431,16 +5580,18 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND72
+      READ( SUBSTRS(1), * ) ND72x
 
+#if defined( BPCH_DIAG )
       !output fields are nspecies*nradfields but user can only specify
       !rad fields (e.g. SW TOA ALL-SKY) so we set the max to the total
       !divided by number of allowed species (PD72R)
       CALL SET_TINDEX( am_I_Root, 72, ND72, SUBSTRS(2:N), N-1, PD72R )
+#endif
 
       !If LRAD is on then ND72 must be on (so the diagnostic is
       !available to write into). Check for this
-      IF ( (Input_Opt%LRAD) .AND. (ND72.EQ.0) ) THEN
+      IF ( (Input_Opt%LRAD) .AND. (ND72x.EQ.0) ) THEN
          ErrMsg = 'If LRAD is true then ' //
      &            'ND72 diagnostic must be switched on'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5455,8 +5606,10 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1), * ) ND73
-      CALL SET_TINDEX( am_I_Root, 73, ND73, SUBSTRS(2:N), N-1, PD73 )
+      READ( SUBSTRS(1), * ) ND73x
+#if defined( BPCH_DIAG )
+      CALL SET_TINDEX( am_I_Root, 73, ND73x, SUBSTRS(2:N), N-1, PD73 )
+#endif
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'separator', RC )
@@ -5465,82 +5618,164 @@
          RETURN
       ENDIF
 
+#if defined( BPCH_DIAG )
       !=================================================================
-      ! Call other setup routines
+      ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
+      !
+      ! Copy shadow variables to diagnostic variables and 
+      ! call various bpch diagnostic setup routines
       !=================================================================
-      Input_Opt%ND01               = ND01
-      Input_Opt%ND02               = ND02
-      Input_Opt%ND03               = ND03
-      Input_Opt%ND04               = ND04
-      Input_Opt%ND05               = ND05
-      Input_Opt%ND06               = ND06
-      Input_Opt%ND07               = ND07
-      Input_Opt%ND08               = ND08
-      Input_Opt%ND09               = ND09
-      Input_Opt%ND10               = ND10
-      Input_Opt%ND11               = ND11
-      Input_Opt%ND12               = ND12
-      Input_Opt%ND13               = ND13
-      Input_Opt%ND14               = ND14
-      Input_Opt%ND15               = ND15
-      Input_Opt%ND16               = ND16
-      Input_Opt%ND17               = ND17
-      Input_Opt%ND18               = ND18
-      Input_Opt%ND19               = ND19
-      Input_Opt%ND20               = ND20
-      Input_Opt%ND21               = ND21
-      Input_Opt%ND22               = ND22
-      Input_Opt%ND23               = ND23
-      Input_Opt%ND24               = ND24
-      Input_Opt%ND25               = ND25
-      Input_Opt%ND26               = ND26
-      Input_Opt%ND27               = ND27
-      Input_Opt%ND28               = ND28
-      Input_Opt%ND29               = ND29
-      Input_Opt%ND30               = ND30
-      Input_Opt%ND31               = ND31
-      Input_Opt%ND32               = ND32
-      Input_Opt%ND33               = ND33
-      Input_Opt%ND34               = ND34
-      Input_Opt%ND35               = ND35
-      Input_Opt%ND36               = ND36
-      Input_Opt%ND37               = ND37
-      Input_Opt%ND38               = ND38
-      Input_Opt%ND39               = ND39
-      Input_Opt%ND40               = ND40
-      Input_Opt%ND41               = ND41
-      Input_Opt%ND42               = ND42
-      Input_Opt%ND43               = ND43
-      Input_Opt%ND44               = ND44
-      Input_Opt%ND45               = ND45
-      Input_Opt%ND46               = ND46
-      Input_Opt%ND47               = ND47
-      Input_Opt%ND48               = ND48
-      Input_Opt%ND49               = ND49
-      Input_Opt%ND50               = ND50
-      Input_Opt%ND51               = ND51
-      Input_Opt%ND52               = ND52
-      Input_Opt%ND53               = ND53
-      Input_Opt%ND54               = ND54
-      Input_Opt%ND55               = ND55
-      Input_Opt%ND56               = ND56
-      Input_Opt%ND57               = ND57
-      Input_Opt%ND58               = ND58
-      Input_Opt%ND59               = ND59
-      Input_Opt%ND60               = ND60
-      Input_Opt%ND61               = ND61
-      Input_Opt%ND62               = ND62
-      Input_Opt%ND63               = ND63
-      Input_Opt%ND64               = ND64
-      Input_Opt%ND66               = ND66
-      Input_Opt%ND67               = ND67
-      Input_Opt%ND68               = ND68
-      Input_Opt%ND69               = ND69
-      Input_Opt%ND70               = ND70
-      Input_Opt%ND71               = ND71
-      Input_Opt%ND72               = ND72
-      Input_Opt%ND73               = ND73
-      Input_Opt%LPRT               = ( ND70 > 0 )
+      ND01                         = ND01x
+      ND02                         = ND02x
+      ND03                         = ND03x
+      ND04                         = ND04x
+      ND05                         = ND05x
+      ND06                         = ND06x
+      ND07                         = ND07x
+      ND08                         = ND08x
+      ND09                         = ND09x
+      ND10                         = ND10x
+      ND11                         = ND11x
+      ND12                         = ND12x
+      ND13                         = ND13x
+      ND14                         = ND14x
+      ND15                         = ND15x
+      ND16                         = ND16x
+      ND17                         = ND17x
+      ND18                         = ND18x
+      ND19                         = ND19x
+      ND20                         = ND20x
+      ND21                         = ND21x
+      ND22                         = ND22x
+      ND23                         = ND23x
+      ND24                         = ND24x
+      ND25                         = ND25x
+      ND26                         = ND26x
+      ND27                         = ND27x
+      ND28                         = ND28x
+      ND29                         = ND29x
+      ND30                         = ND30x
+      ND31                         = ND31x
+      ND32                         = ND32x
+      ND33                         = ND33x
+      ND34                         = ND34x
+      ND35                         = ND35x
+      ND36                         = ND36x
+      ND37                         = ND37x
+      ND38                         = ND38x
+      ND39                         = ND39x
+      ND40                         = ND40x
+      ND41                         = ND41x
+      ND42                         = ND42x
+      ND43                         = ND43x
+      ND44                         = ND44x
+      ND45                         = ND45x
+      ND46                         = ND46x
+      ND47                         = ND47x
+      ND48                         = ND48x
+      ND49                         = ND49x
+      ND50                         = ND50x
+      ND51                         = ND51x
+      ND52                         = ND52x
+      ND53                         = ND53x
+      ND54                         = ND54x
+      ND55                         = ND55x
+      ND56                         = ND56x
+      ND57                         = ND57x
+      ND58                         = ND58x
+      ND59                         = ND59x
+      ND60                         = ND60x
+      ND61                         = ND61x
+      ND62                         = ND62x
+      ND63                         = ND63x
+      ND64                         = ND64x
+      ND66                         = ND66x
+      ND67                         = ND67x
+      ND68                         = ND68x
+      ND69                         = ND69x
+      ND70                         = ND70x
+      ND71                         = ND71x
+      ND72                         = ND72x
+      ND73                         = ND73x
+      Input_Opt%ND01               = ND01x
+      Input_Opt%ND02               = ND02x
+      Input_Opt%ND03               = ND03x
+      Input_Opt%ND04               = ND04x
+      Input_Opt%ND05               = ND05x
+      Input_Opt%ND06               = ND06x
+      Input_Opt%ND07               = ND07x
+      Input_Opt%ND08               = ND08x
+      Input_Opt%ND09               = ND09x
+      Input_Opt%ND10               = ND10x
+      Input_Opt%ND11               = ND11x
+      Input_Opt%ND12               = ND12x
+      Input_Opt%ND13               = ND13x
+      Input_Opt%ND14               = ND14x
+      Input_Opt%ND15               = ND15x
+      Input_Opt%ND16               = ND16x
+      Input_Opt%ND17               = ND17x
+      Input_Opt%ND18               = ND18x
+      Input_Opt%ND19               = ND19x
+      Input_Opt%ND20               = ND20x
+      Input_Opt%ND21               = ND21x
+      Input_Opt%ND22               = ND22x
+      Input_Opt%ND23               = ND23x
+      Input_Opt%ND24               = ND24x
+      Input_Opt%ND25               = ND25x
+      Input_Opt%ND26               = ND26x
+      Input_Opt%ND27               = ND27x
+      Input_Opt%ND28               = ND28x
+      Input_Opt%ND29               = ND29x
+      Input_Opt%ND30               = ND30x
+      Input_Opt%ND31               = ND31x
+      Input_Opt%ND32               = ND32x
+      Input_Opt%ND33               = ND33x
+      Input_Opt%ND34               = ND34x
+      Input_Opt%ND35               = ND35x
+      Input_Opt%ND36               = ND36x
+      Input_Opt%ND37               = ND37x
+      Input_Opt%ND38               = ND38x
+      Input_Opt%ND39               = ND39x
+      Input_Opt%ND40               = ND40x
+      Input_Opt%ND41               = ND41x
+      Input_Opt%ND42               = ND42x
+      Input_Opt%ND43               = ND43x
+      Input_Opt%ND44               = ND44x
+      Input_Opt%ND45               = ND45x
+      Input_Opt%ND46               = ND46x
+      Input_Opt%ND47               = ND47x
+      Input_Opt%ND48               = ND48x
+      Input_Opt%ND49               = ND49x
+      Input_Opt%ND50               = ND50x
+      Input_Opt%ND51               = ND51x
+      Input_Opt%ND52               = ND52x
+      Input_Opt%ND53               = ND53x
+      Input_Opt%ND54               = ND54x
+      Input_Opt%ND55               = ND55x
+      Input_Opt%ND56               = ND56x
+      Input_Opt%ND57               = ND57x
+      Input_Opt%ND58               = ND58x
+      Input_Opt%ND59               = ND59x
+      Input_Opt%ND60               = ND60x
+      Input_Opt%ND61               = ND61x
+      Input_Opt%ND62               = ND62x
+      Input_Opt%ND63               = ND63x
+      Input_Opt%ND64               = ND64x
+      Input_Opt%ND66               = ND66x
+      Input_Opt%ND67               = ND67x
+      Input_Opt%ND68               = ND68x
+      Input_Opt%ND69               = ND69x
+      Input_Opt%ND70               = ND70x
+      Input_Opt%ND71               = ND71x
+      Input_Opt%ND72               = ND72x
+      Input_Opt%ND73               = ND73x
+      Input_Opt%LPRT               = ( ND70x > 0 )
+      HR1_JV                       = HR1_JVx 
+      HR2_JV                       = HR2_JVx
+      HR1_OH                       = HR1_OHx
+      HR2_OH                       = HR2_OHx
+      HR1_OTH                      = HR1_OTHx
+      HR2_OTH                      = HR2_OTHx
 
       ! Loop over # of diagnostics
       DO M = 1, Input_Opt%MAX_DIAG
@@ -5552,9 +5787,6 @@
             Input_Opt%TINDEX(M,N)  = TINDEX(M,N)
          ENDDO
       ENDDO
-
-      ! Return success
-      RC = GC_SUCCESS
 
       !=================================================================
       ! Call other setup routines
@@ -5576,6 +5808,22 @@
       ! Open the binary punch file for output
       CALL OPEN_BPCH2_FOR_WRITE( IU_BPCH, BPCH_FILE )
 
+#else
+
+      !=================================================================
+      ! %%%%% IF BPCH DIAGNOSTICS ARE DEACTIVATED (BPCH_DIAG=n) %%%%%
+      !
+      ! When BPCH_DIAG=n, we still need to define the Input_Opt%LPRT 
+      ! flag for debugging.  We will eventually move this elsewhere.
+      !=================================================================
+      Input_Opt%ND70 = ND70x
+      Input_Opt%LPRT = ( ND70x > 0 )
+
+#endif
+
+      ! Return success
+      RC = GC_SUCCESS
+
       END SUBROUTINE READ_DIAGNOSTIC_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5596,11 +5844,13 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
 #if   defined( TOMAS )
       USE CHARPAK_MOD, ONLY : TXTEXT   ! (win, 7/14/09)
 #endif
       USE CMN_DIAG_MOD                              ! TMAX, TINDEX
       USE CMN_SIZE_MOD                              ! Size parameters
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5613,6 +5863,9 @@
       LOGICAL,            INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
 ! 
+! !REMARKS:
+!  NOTE: This routine converts to a stub when BPCH_DIAG=n (bmy, 1/16/18)
+!
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Bug fix: now do not drop the last tracer number if "all" is not
@@ -5624,6 +5877,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: IS_ALL 
       INTEGER             :: M
@@ -5763,6 +6017,7 @@
          ENDIF
 
       ENDIF
+#endif
 
       END SUBROUTINE SET_TINDEX
 !EOC
@@ -5924,7 +6179,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG48_MOD,    ONLY : INIT_DIAG48, ND48_MAX_STATIONS
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -5954,6 +6211,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL            :: DO_ND48
       INTEGER            :: N, S
       INTEGER            :: FREQ
@@ -5968,6 +6226,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
       CHARACTER(LEN=255) :: FILE
       CHARACTER(LEN=10)  :: C
+#endif
 
       !=================================================================
       ! READ_ND48_MENU begins here!
@@ -5975,6 +6234,9 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND48_Menu (in module GeosCore/input_mod.F)'
@@ -6076,6 +6338,7 @@
          CALL INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
      &                     JARR,    LARR, NARR,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND48_MENU
 !EOC
@@ -6097,7 +6360,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG49_MOD,         ONLY : INIT_DIAG49
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6126,6 +6391,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL             :: DO_ND49
       INTEGER             :: N,    I,         AS
       ! Increased to 121 from 100 (mpb,2009)
@@ -6140,6 +6406,7 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND49_MENU begins here!
@@ -6147,6 +6414,9 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND49_Menu (in module GeosCore/input_mod.F)'
@@ -6302,6 +6572,7 @@
      &                     IMAX,    JMIN,   JMAX,    LMIN,    
      &                     LMAX,    FREQ,   FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND49_MENU
 !EOC
@@ -6322,7 +6593,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE DIAG50_MOD,         ONLY : INIT_DIAG50
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6355,6 +6628,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL            :: DO_ND50, LND50_HDF
       INTEGER            :: N,       I,        AS  
@@ -6367,6 +6641,7 @@
       ! Arrays
       INTEGER            :: TRACERS(121)   
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND50_MENU begins here!
@@ -6374,6 +6649,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND50_Menu (in module GeosCore/input_mod.F)'
@@ -6505,6 +6782,7 @@
          CALL INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX, 
      &                     JMIN,    JMAX,   LMIN,    LMAX, FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND50_MENU
 !EOC
@@ -6525,9 +6803,11 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
-      USE CMN_SIZE_MOD
       USE DIAG51_MOD,         ONLY : INIT_DIAG51
+#endif
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -6560,6 +6840,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL            :: DO_ND51, LND51_HDF
       INTEGER            :: N,       I,        AS
@@ -6574,6 +6855,7 @@
       ! Arrays
       INTEGER            :: TRACERS(121)
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -6581,6 +6863,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51_Menu (in module GeosCore/input_mod.F)'
@@ -6735,6 +7019,7 @@
      &                     HR1,     HR2,    IMIN,    IMAX,   
      &                     JMIN,    JMAX,   LMIN,    LMAX,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND51_MENU
 !EOC
@@ -6755,9 +7040,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG51b_MOD,   ONLY : INIT_DIAG51b
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -6786,6 +7073,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       ! Scalars
       LOGICAL              :: DO_ND51, LND51b_HDF
       INTEGER              :: N,       I,       AS
@@ -6800,6 +7088,7 @@
       ! Arrays
       INTEGER              :: TRACERS(121)
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -6807,6 +7096,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51b_MENU  (in module GeosCore/input_mod.F)'
@@ -6964,6 +7255,7 @@
      &                      HR1,     HR2,    IMIN,    IMAX,
      &                      JMIN,    JMAX,   LMIN,    LMAX,  FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND51b_MENU
 !EOC
@@ -6985,7 +7277,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG63_MOD,    ONLY : INIT_DIAG63
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -7017,6 +7311,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL             :: DO_ND63
       INTEGER             :: N,    I,         AS
       INTEGER             :: ND63, TRACERS(121)
@@ -7028,6 +7323,7 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_ND63_MENU begins here!
@@ -7035,6 +7331,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND63_Menu (in module GeosCore/input_mod.F)'
@@ -7158,6 +7456,7 @@
          CALL INIT_DIAG63( DO_ND63, N_ND63, TRACERS, IMIN, 
      &                     IMAX,    JMIN,   JMAX,  FREQ,   FILE )
       ENDIF
+#endif
 
       END SUBROUTINE READ_ND63_MENU
 !EOC
@@ -7178,7 +7477,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE CHARPAK_MOD,        ONLY : ISDIGIT,         STRSPLIT
       USE ErrCode_Mod
@@ -7219,6 +7520,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       LOGICAL            :: EOF,      DO_SAVE_PL, DO_SAVE_O3
       INTEGER            :: F,        N,          N_ADVECT
 
@@ -7227,6 +7529,7 @@
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+#endif
 
       !=================================================================
       ! READ_PROD_LOSS_MENU begins here!
@@ -7234,6 +7537,8 @@
 
       ! Initialize
       RC      = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F)'
@@ -7392,6 +7697,7 @@
  100  FORMAT( A, L5 )
  110  FORMAT( A, I5 )
  120  FORMAT( /, 'Family=', A10, '  Type=', A4 )
+#endif
 
       END SUBROUTINE READ_PROD_LOSS_MENU
 !EOC
@@ -9352,9 +9658,8 @@
       USE Carbon_Mod,         ONLY : Init_Carbon
       USE CO2_Mod,            ONLY : Init_CO2
       USE C2H6_Mod,           ONLY : Init_C2H6
-      USE Chemgrid_Mod,       ONLY : Init_Chemgrid
       USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
-      USE Diagnostics_Mod
+      USE DiagList_Mod
       USE Diag03_Mod,         ONLY : Init_Diag03
       USE Diag20_Mod,         ONLY : Init_Diag20
       USE Diag_OH_Mod,        ONLY : Init_Diag_OH
@@ -9657,20 +9962,7 @@
       ENDIF
 
       !-----------------------------------------------------------------
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
-      !-----------------------------------------------------------------
-      CALL Init_ChemGrid( am_I_Root, Diag_List, 
-     &                    Input_Opt, State_Diag, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_ChemGrid"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !-----------------------------------------------------------------
-      ! Initialize "chemgrid_mod.F" (TROPOPAUSE)
+      ! Initialize "toms_mod.F"
       !-----------------------------------------------------------------
       CALL Init_Toms( am_I_Root, Input_Opt, RC )
 

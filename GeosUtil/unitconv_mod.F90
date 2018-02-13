@@ -35,9 +35,6 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Convert_Spc_Units
-#if defined( NC_DIAG )
-  PUBLIC :: Set_SpcConc_Diagnostic ! eventually move elsewhere (ewl)
-#endif
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -113,6 +110,8 @@ MODULE UnitConv_Mod
 !                              species unit conversion routines remain
 !  27 Sep 2017 - E. Lundgren - Expand and rename wrapper routine
 !  28 Sep 2018 - E. Lundgren - Make ConvertSpc routines all PRIVATE
+!  01 Feb 2018 - E. Lundgren - Move set_speciesconc_diagnostics to 
+!                              diagnostics_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -309,124 +308,6 @@ CONTAINS
 
   END SUBROUTINE Convert_Spc_Units
 !EOC
-#if defined( NC_DIAG )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Set_SpcConc_Diagnostic
-!
-! !DESCRIPTION: Subroutine Set_SpcConc\_Diagnostic sets the passed species
-!  concentration diagnostic array stored in State_Diag to the instantaneous
-!  State_Chm%Species values converted to the diagnostic unit stored in 
-!  the State_Diag metadata.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_SpcConc_Diagnostic ( am_I_Root, DiagMetadataID,       &
-                                      Ptr2Data,  Input_Opt, State_Met, &
-                                      State_Chm, RC ) 
-!
-! !USES:
-!
-    USE State_Diag_Mod, ONLY : DgnState, Get_Metadata_State_Diag
-!
-! !INPUT PARAMETERS: 
-!
-    LOGICAL,          INTENT(IN)  :: am_I_Root      ! Are we on the root CPU?
-    CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
-    TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
-    TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm         ! Chemistry state obj
-    REAL(f8),         POINTER       :: Ptr2Data(:,:,:,:) ! Diagnostics array
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(OUT)   :: RC      ! Success or failure?
-!
-! !REMARKS:
-!  The name argument is used to retrieve metadata (units) for the diagnostic
-!  of interest. The Ptr2Data should be of form State_Diag%xxx where xxx is
-!  the name of the diagnostic array to be set. 
-!
-!  This routine allows the freedom to easily create multiple species 
-!  concentration diagnostics other than the default end-of-timestep 
-!  diagnostic State_Diag%SpeciesConc, although this routine is used to set
-!  that as well.
-!
-!  For example, users may create diagnostics for concentrations at different 
-!  phases of the GEOS-Chem run by adding new diagnostic arrays, e.g.
-!  State_Diag%SpeciesConc_preChem and State_Diag%SpeciesConc_postChem, to
-!  state_diag_mod.F90. Metadata could be used for 'SpeciesConc' or a new
-!  metadata entry could be created.
-!
-!  Changing the unit string of the metadata in state_diag_mod.F90 will 
-!  result in different units in the species concencentration diagnostic
-!  output. The units in the netcdf file metadata will reflect the new units.
-! 
-!  This routine may be better stored elsewhere. It currently cannot go in 
-!  state_chm or state_diag mods due to dependencies at compile time.
-!
-! !REVISION HISTORY: 
-!  27 Sep 2017 - E. Lundgren  - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    CHARACTER(LEN=255) :: ErrMsg, LOC, Units, OrigUnit
-    LOGICAL            :: Found
-
-    !====================================================================
-    ! Set_SpcConc_Diagnostic begins here!
-    !====================================================================
-
-    ! Assume success
-    RC =  GC_SUCCESS
-    Found = .FALSE.
-    LOC = ' -> Set_SpcConc_Diagnostic in unitconv_mod.F90'
-
-    ! Exit if species concentration is not a diagnostics in HISTORY.rc
-    IF ( ASSOCIATED( Ptr2Data ) ) THEN
-
-       ! Retrieve the units of the diagnostic from the metadata
-       CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
-                                     Found, RC, Units=Units )
-
-       ! Allow for alternate format of units
-       IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
-       IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
-       IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
-       
-       ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                               Units, RC, OrigUnit=OrigUnit )
-       
-       ! Copy species concentrations to diagnostic array
-       Ptr2Data = State_Chm%Species
-       
-       ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                               State_Chm, OrigUnit, RC )
-       
-       ! Error handling
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error converting species units for archiving diagnostics'
-          CALL GC_Error( ErrMsg, RC, LOC )
-       ENDIF
-
-    ENDIF
-
-  END SUBROUTINE Set_SpcConc_Diagnostic
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

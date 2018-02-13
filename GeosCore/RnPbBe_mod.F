@@ -111,9 +111,9 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD01
       USE DIAG_MOD,       ONLY : AD02
 #endif

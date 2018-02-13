@@ -63,10 +63,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,      ONLY : BPCH2
       USE BPCH2_MOD,      ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,      ONLY : GET_MODELNAME
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE FILE_MOD,       ONLY : IOERROR
@@ -153,6 +155,7 @@
       !=================================================================
       ! STDRUN begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
@@ -259,6 +262,7 @@
      &                 'End of STDRUN in benchmark_mod.F')
          RETURN
       ENDIF
+#endif
 
       END SUBROUTINE STDRUN
 !EOC

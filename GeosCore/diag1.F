@@ -17,11 +17,10 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
       USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
@@ -31,6 +30,7 @@
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -209,7 +209,7 @@
 
          ! Pre-save the molecuar weight of HgP [s]
          IF ( id_HgP > 0 ) THEN
-            EmMW_g_HgP = State_Chm%SpcData(id_Hg2)%Info%EmMW_g
+            EmMW_g_HgP = State_Chm%SpcData(id_HgP)%Info%EmMW_g
          ENDIF
 
          ! Are certain diagnostics turned on?
@@ -276,7 +276,7 @@
                !--------------------------------------------------------
                ! Reactive gaseous mercury (RGM), [pptv]
                !--------------------------------------------------------
-               IF ( id_Hg2 > 0 ) THEN
+               IF ( N == id_Hg2 ) THEN
                   AD03_RGM(I,J,L) = AD03_RGM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_Hg2)
      &                            * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
@@ -285,7 +285,7 @@
                !--------------------------------------------------------
                ! Reactive particulate mercury (RGM), [pptv]
                !--------------------------------------------------------
-               IF ( id_HgP > 0 ) THEN
+               IF ( N == id_HgP ) THEN
                   AD03_PBM(I,J,L) = AD03_PBM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_HgP)
      &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
@@ -366,7 +366,7 @@
             !=========================================================== 
             IF ( Do_ND54 .and. NA == 1 .and. L <= LD54 ) THEN
 
-               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+               IF ( State_Met%InTroposphere(I,J,L) ) THEN
                   AD54(I,J,L) = AD54(I,J,L) + 1.0_f4
                ENDIF
                
@@ -376,14 +376,7 @@
             ! ND57: Potential temperature
             !===========================================================
             IF ( Do_ND57 .and. NA == 1 .and. L <= LD57 ) THEN
-
-               ! Surface pressure [hPa]
-               P0          = State_Met%PEDGE(I,J,1)
-
-               ! NOTE: Exponent should be e.g. 0.286_fp
-               AD57(I,J,L) = AD57(I,J,L) 
-     &                     + State_Met%T(I,J,L) 
-     &                     * ( P0 / State_Met%PMID(I,J,L) )**0.286
+               AD57(I,J,L) = AD57(I,J,L) + State_Met%THETA(I,J,L)
             ENDIF
 
             !===========================================================
