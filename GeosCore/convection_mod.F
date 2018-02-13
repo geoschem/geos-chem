@@ -73,8 +73,12 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !PRIVATE TYPES:
+!
       ! Diagnostic flags
       LOGICAL :: Archive_CloudConvFlux
+      LOGICAL :: Archive_WetLossConvFrac
       LOGICAL :: Archive_WetLossConv
 
       CONTAINS
@@ -86,7 +90,7 @@
 !
 ! !IROUTINE: do_convection
 !
-! !DESCRIPTION: Subroutine DO\_CONVECTION calls the appropriate convection 
+! !DESCRIPTION: Subroutine DO\_CONVECTION calls the appropriate convection q
 !  driver program for different met field data sets.
 !\\
 !\\
@@ -101,6 +105,7 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : CONVFLUP
+      USE DIAG_MOD,       ONLY : AD37
       USE DIAG_MOD,       ONLY : AD38
 #endif
       USE ErrCode_Mod
@@ -208,7 +213,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, NA, nAdvect, NW, EC
+      INTEGER            :: N, NA, nAdvect, NW, EC, ISOL
       INTEGER            :: I, J, L, NN, TS_DYN
       REAL(fp)           :: AREA_M2, DT
       LOGICAL            :: DO_ND14, DoConvFlux
@@ -225,7 +230,6 @@
 
       ! Arrays        
       REAL(fp)           :: PEDGE  (          LLPAR+1                  )
-      INTEGER            :: ISOL   (                  State_Chm%nAdvect)
       REAL(fp)           :: DIAG14 (            LLPAR,State_Chm%nAdvect)
       REAL(fp)           :: DIAG38 (            LLPAR,State_Chm%nWetDep)
       REAL(fp)           :: F      (            LLPAR,State_Chm%nAdvect)
@@ -238,12 +242,41 @@
       ! DO_CONVECT begins here!
       !=================================================================
 
+      !-----------------------------------------------------------------
       ! Initialize
+      !-----------------------------------------------------------------
       RC      = GC_SUCCESS
       p_FSOL  => NULL()
       ErrMsg  = ''
       ThisLoc = 
      &   ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
+
+      !-----------------------------------------------------------------
+      ! Deterimine if netCDF diagnostic arrays are associated
+      !-----------------------------------------------------------------
+      IF ( First ) THEN
+         Archive_CloudConvFlux = 
+     &      ASSOCIATED( State_Diag%CloudConvFlux   )
+
+         Archive_WetLossConvFrac = 
+     &      ASSOCIATED( State_Diag%WetLossConvFrac )
+
+         Archive_WetLossConv =
+     &      ASSOCIATED( State_Diag%WetLossConv     )
+
+         First = .FALSE.
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! More initializations
+      !-----------------------------------------------------------------
+      TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [min]
+      DT         = DBLE( TS_DYN )                         ! Dyn timestep [min]
+      FSOL       = 0e+0_fp                                ! Zero the FSOL array
+      DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
+      DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
+      DoConvFlux = ( DO_ND14 .or. Archive_CloudConvFlux ) ! Save mass flux?
+      DoWetLoss  = ( DO_ND38 .or. Archive_WetLossConv   ) ! Save wet loss?
 
 #if defined( USE_TEND )
       !=================================================================
@@ -264,29 +297,13 @@
       nAdvect = State_Chm%nAdvect
 
       !=================================================================
-      ! Call convection routines 
+      ! Compute fraction of soluble species lost in conv. updrafts
       !=================================================================
-
-      ! Deterimine if netCDF diagnostic arrays are associated
-      IF ( First ) THEN
-         Archive_CloudConvFlux = ASSOCIATED( State_Diag%CloudConvFlux )
-         Archive_WetLossConv   = ASSOCIATED( State_Diag%WetLossConv   )
-         First                 = .FALSE.
-      ENDIF
-
-      ! More initializations
-      TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [min]
-      DT         = DBLE( TS_DYN )                         ! Dyn timestep [min]
-      FSOL       = 0e+0_fp                                ! Zero the FSOL array
-      DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
-      DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
-      DoConvFlux = ( DO_ND14 .or. Archive_CloudConvFlux ) ! Save mass flux?
-      DoWetLoss  = ( DO_ND38 .or. Archive_WetLossConv   ) ! Save wet loss?
 
       ! Loop over advected species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( NA, N, p_FSOL, EC )
+!$OMP+PRIVATE( NA, N, p_FSOL, EC, ISOL )
       DO NA = 1, nAdvect
          
          ! Species ID
@@ -296,13 +313,38 @@
          p_FSOL => FSOL(:,:,:,NA)
 
          ! Fraction of soluble species
-         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,    ISOL(NA), 
-     &                   Input_Opt, State_Met, State_Chm, RC=EC     ) 
+         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,    ISOL, 
+     &                   Input_Opt, State_Met, State_Chm, RC=EC ) 
 
          ! Trap potential errors (we can't exit an OpenMP loop)
          IF ( EC /= GC_SUCCESS ) THEN
             RC = EC
          ENDIF
+
+#if defined( BPCH_DIAG ) 
+         !--------------------------------------------------------------
+         ! ND37 (bpch) diagnostic
+         !
+         ! Fraction of soluble species lost in convective updrafts
+         ! NOTE: This diagnostic was somehow removed from GEOS-FP
+         ! and MERRA-2 convection, we have now restored it
+         !--------------------------------------------------------------
+         IF ( ND37 > 0 .and. ISOL > 0 ) THEN
+            AD37(:,:,1:LD37,ISOL) = AD37  (:,:,1:LD37,ISOL)
+     &                            + p_FSOL(:,:,1:LD37     )
+         ENDIF
+#endif
+
+#if defined( NC_DIAG ) 
+         !--------------------------------------------------------------
+         ! HISTORY (aka netCDF diagnostics)
+         ! 
+         ! Fraction of soluble species lost in convective updrafts
+         !--------------------------------------------------------------
+         IF ( Archive_WetLossConvFrac .and. ISOL > 0 ) THEN
+            State_Diag%WetLossConvFrac(:,:,:,ISOL) = p_FSOL
+         ENDIF
+#endif
 
          ! Free pointer memory
          p_FSOL => NULL()
@@ -317,9 +359,13 @@
          RETURN
       ENDIF
 
-      !-----------------------------------------------------------------
+      !=================================================================
       ! Do convection column by column
-      !-----------------------------------------------------------------
+      !
+      ! NOTE: Later on, consider moving the I,J loops within the call
+      ! to DO_CLOUD_CONVECTION, to gain computational efficiency
+      !=================================================================
+
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( J,      I,      AREA_M2, L, F,  EC ) 

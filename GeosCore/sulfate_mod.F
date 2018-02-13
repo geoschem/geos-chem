@@ -1632,7 +1632,8 @@
       ! VTS  Settling velocity of particle (m/s)
       LOGICAL                :: IS_UPTAKE_SPC
       INTEGER                :: I,         J,      L
-      INTEGER                :: DryDep_ID, DTCHEM
+      INTEGER                :: DryDep_ID
+      REAL(fp)               :: DTCHEM
       REAL(fp)               :: DELZ,      DELZ1,  REFF
       REAL(fp)               :: P,         DP,     PDP,      TEMP        
       REAL(fp)               :: CONST,     SLIP,   VISC,     FAC1
@@ -2273,26 +2274,26 @@
          LOH  = ( OH0   - OH  ) * BOXVL / XNUMOL_OH
          LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3
 
-         ! Store P(SO2) from DMS + OH [kg S/timestep]
+         ! Store P(SO2) from DMS + OH [kg S/s]
          IF ( Archive_ProdSO2fromDMSandOH ) THEN
-            State_Diag%ProdSO2fromDMSandOH(I,J,L) = XOH
+            State_Diag%ProdSO2fromDMSandOH(I,J,L) = XOH / DTCHEM
          ENDIF
 
-         ! Store P(SO2) from DMS + NO3 [kg S/timestep]
+         ! Store P(SO2) from DMS + NO3 [kg S/s]
          IF ( Archive_ProdSO2fromDMSandNO3 ) THEN
-            State_Diag%ProdSO2fromDMSandNO3(I,J,L) = XN3
+            State_Diag%ProdSO2fromDMSandNO3(I,J,L) = XN3 / DTCHEM
          ENDIF
 
-         ! Store P(SO2) from DMS + NO3 [kg S/timestep]
+         ! Store P(SO2) from DMS + NO3 [kg S/s]
          IF ( Archive_ProdSO2fromDMS ) THEN
             State_Diag%ProdSO2fromDMS(I,J,L) =
-     &         ( PSO2_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
+     &       ( PSO2_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
 
-         ! Store P(MSA) from DMS [kg S/timestep]
+         ! Store P(MSA) from DMS [kg S/s]
          IF ( Archive_ProdMSAfromDMS ) THEN
             State_Diag%ProdMSAfromDMS(I,J,L) =
-     &         ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S )
+     &       ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
 #endif
 
@@ -3736,51 +3737,55 @@
          !=================================================================
          IF ( FullRun ) THEN
 
-            ! P(SO4) from gas-phase oxidation [kg S/timestep]
+            ! P(SO4) from gas-phase oxidation [kg S/s]
             IF ( Archive_ProdSO4fromGasPhase ) THEN
                State_Diag%ProdSO4fromGasPhase(I,J,L) = 
-     &            ( L1  * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( L1  * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
-            ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/timestep]
+            ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/s]
             IF ( Archive_ProdSO4fromH2O2inCloud ) THEN
                State_Diag%ProdSO4fromH2O2inCloud(I,J,L) =
-     &            ( L2S * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( L2S * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
-            ! P(SO4) from aqueous-phase oxidation with O3 [kg S/timestep]
+            ! P(SO4) from aqueous-phase oxidation with O3 [kg S/s]
             IF ( Archive_ProdSO4fromO3InCloud ) THEN
                State_Diag%ProdSO4fromO3InCloud(I,J,L) =
-     &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S ) /
+     &            DTCHEM
             ENDIF
 
-            ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
+            ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/s]
             IF ( Archive_ProdSO4fromHOBrInCloud ) THEN
                State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
-     &            ( ( L5S + SRhobr ) * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( ( L5S + SRhobr ) * State_Met%AD(I,J,L) / TCVV_S ) /
+     &            DTCHEM
             ENDIF
 
+            ! P(SO4) from O3 in sea salt aerosol [kg S/s]
             IF ( Archive_ProdSO4fromO3inSeaSalt ) THEN
                State_Diag%ProdSO4fromO3inSeaSalt(I,J,L) = 
-     &            ( ( PSO4E + PSO4F ) * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( ( PSO4E + PSO4F ) * State_Met%AD(I,J,L) / TCVV_S ) /
+     &            DTCHEM
             ENDIF
 
-            ! P(SO4) by SRo3
+            ! P(SO4) by SRo3 [kg S/s]
             IF ( Archive_ProdSO4fromSRO3 ) THEN
                State_Diag%ProdSO4fromSRO3(I,J,L) = 
-     &            ( SRo3 * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( SRo3 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
-            ! P(SO4) by SRhobr
+            ! P(SO4) by SRhobr [kg S/s]
             IF ( Archive_ProdSO4fromSRHOBr ) THEN
                State_Diag%ProdSO4fromSRHOBr(I,J,L) = 
-     &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S)
+     &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
-            ! P(SO4) by o3s
+            ! P(SO4) by o3s [kg S/s]
             IF ( Archive_ProdSO4fromO3s ) THEN
                State_Diag%ProdSO4fromO3s(I,J,L) = 
-     &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S )
+     &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             !-----------------------------------------------------------
@@ -3799,22 +3804,22 @@
                   PH2SO4d_tot = PH2SO4d_tot + PH2SO4_d(IBIN)
                END DO
 
-               ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
+               ! P(SO4) from O3 oxidation on dust aerosols [kg S/s]
                IF ( Archive_ProdSO4fromOxidationOnDust ) THEN
                   State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = 
-     &               ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+     &             ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
                ENDIF
 
-               ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
+               ! P(NIT) from HNO3 uptake on dust [kg N/s]
                IF ( Archive_ProdNITfromHNO3uptakeOnDust ) THEN
                   State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) =
-     &               ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N )
+     &             ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
                ENDIF
 
-               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
+               ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/s]
                IF ( Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
                   State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) =
-     &               ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )
+     &             ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )/DTCHEM
                ENDIF
             ENDIF
          ENDIF
@@ -4260,11 +4265,11 @@
       !=================================================================
       ! HISTORY (aka netCDF diagnostics)
       !
-      ! Loss of HNO3 on sea salt
+      ! Loss of HNO3 on sea salt [kg/s]
       !=================================================================
       IF ( FullRun .and. Archive_LossHNO3onSeaSalt ) THEN
          State_Diag%LossHNO3onSeaSalt(I,J,L) =
-     &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
+     &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
       ENDIF
 #endif
       

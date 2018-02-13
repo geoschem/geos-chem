@@ -2064,22 +2064,24 @@
 #endif
 
 #if defined( NC_DIAG )
-         ! Set State_Diag arrays that rely on state at end of timestep
-         CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,  
-     &                                       State_Met,  State_Chm, 
-     &                                       State_Diag, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in ' // 
-     &               '"Set_Diagnostics_EndOfTimestep"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-
          !--------------------------------------------------------------
          !           ***** H I S T O R Y   U P D A T E  *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
+
+         ! Set State_Diag arrays that rely on state at end of timestep
+         CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,  
+     &                                       State_Met,  State_Chm, 
+     &                                       State_Diag, RC         )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in ' // 
+     &               '"Set_Diagnostics_EndOfTimestep"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
 
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
