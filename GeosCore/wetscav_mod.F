@@ -173,9 +173,6 @@
 !                              and rename routine WETDEP_MERRA to WETDEP (the
 !                              old WETDEP routine for GEOS-5 met was removed)
 !  13 Nov 2017 - R. Yantosca - Added arrays for State_Diag diagnostics
-!  17 Nov 2017 - C. Keller   - Added State_Diag%WetDepFlux. Carries fluxs in 
-!                              kg/m2/s. Should eventually be consolidated with 
-!                              other wet scav diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3498,7 +3495,6 @@
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_WetDep
 !  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  17 Nov 2017 - C. Keller   - Add State_Diag%WetDepFlux in kg/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3689,13 +3685,6 @@
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
-         ENDIF
-
-         ! Add to State_Diag WetDepFlux. Units are kg/m2/s.
-         !  (ckeller, 11/15/2017)
-         IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
-            State_Diag%WetDepFlux(I,J,L,NW) =
-     &         State_Diag%WetDepFlux(I,J,L,NW) + ( WETLOSS / DT )
          ENDIF
 
          !--------------------------------------------------------------
@@ -3908,7 +3897,6 @@
 !  05 Jul 2016 - R. Yantosca - Replace IDWETD with State_Chm%Map_WetDep
 !  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  17 Nov 2017 - C. Keller   - Add State_Diag%WetDepFlux in kg/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4308,13 +4296,6 @@
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
 
-         ! Add to State_Diag WetDepFlux. Units are kg/m2/s.
-         !  (ckeller, 11/15/2017)
-         IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
-            State_Diag%WetDepFlux(I,J,L,NW) =
-     &         State_Diag%WetDepFlux(I,J,L,NW) + ( WETLOSS / DT )
-         ENDIF
-  
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -4433,7 +4414,6 @@
 !  05 Jul 2016 - R. Yantosca - Replace IDWETD with State_Chm%Map_WetDep
 !  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  17 Nov 2017 - C. Keller   - Add State_Diag%WetDepFlux in kg/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4599,13 +4579,6 @@
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
 
-         ! Add to State_Diag WetDepFlux. Units are kg/m2/s.
-         ! (ckeller, 11/15/2017)
-         IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
-            State_Diag%WetDepFlux(I,J,L,NW) =
-     &         State_Diag%WetDepFlux(I,J,L,NW) + ( WETLOSS / DT )
-         ENDIF
-
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -4730,7 +4703,6 @@
 !  05 Jul 2016 - R. Yantosca - Now replace IDWETD with State_Chm%Map_Wetdep
 !  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  17 Nov 2017 - C. Keller   - Add State_Diag%WetDepFlux in kg/m2/s
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4917,13 +4889,6 @@
 !         IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
 !         ENDIF
-
-         ! Add to State_Diag WetDepFlux. Units are kg/m2/s.
-         ! (ckeller, 11/15/2017)
-         IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
-            State_Diag%WetDepFlux(I,J,L,NW) =
-     &         State_Diag%WetDepFlux(I,J,L,NW) + ( WETLOSS / DT )
-         ENDIF
 
          !-----------------------------------------------------
          ! Dirty kludge to prevent wet deposition from removing 

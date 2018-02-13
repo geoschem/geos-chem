@@ -480,7 +480,7 @@
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
-     &             State_Diag, RADIAT,    TC0,       SUNCOS_MID,
+     &             RADIAT,     TC0,       SUNCOS_MID,
      &             F0,         HSTAR,     XMW,        AIROSOL,           
      &             USTAR,      CZ1,       OBK,        CFRAC,     
      &             ZH,         LSNOW,     DVEL,       AZO,              
@@ -834,7 +834,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
-     &                   State_Diag, RADIAT,    TEMP,      SUNCOS,
+     &                   RADIAT,     TEMP,      SUNCOS,
      &                   F0,         HSTAR,     XMW,       AIROSOL,
      &                   USTAR,      CZ1,       OBK,       CFRAC,
      &                   ZH,         LSNOW,     DVEL,      ZO,
@@ -849,18 +849,16 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root      ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
-      TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
 
       REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cosine of solar zenith angle
+      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
@@ -1033,9 +1031,6 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
-!  29 Dec 2017 - C. Keller   - Now pass State_Diag obj, archive aerodynamic 
-!                              resistance Ra if needed. 
-!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1122,9 +1117,6 @@
       REAL(fp)          :: SUNCOS_FP
       REAL(fp)          :: CFRAC_FP
 
-      ! Archive Ra?
-      LOGICAL           :: WriteRa
-
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
@@ -1159,12 +1151,6 @@
 
       ! Size of drycoeff (ckeller, 05/19/14)
       NN = SIZE(DRYCOEFF)
-
-      ! Logical flag for Ra (ckeller, 12/29/17)
-      WriteRa = ASSOCIATED ( State_Diag%DryDepRa )
-      IF ( WriteRa ) THEN
-         State_Diag%DryDepRa = 0.0_fp
-      ENDIF
 
 !***********************************************************************       
 !
@@ -1866,17 +1852,6 @@
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
-
-!---------- Eventually archive aerodynamic resistance. 
-!---------- Convert s m-1 to s cm-1 (ckeller, 12/29/17).
-            IF ( WriteRa ) THEN
-               ! Don't include artificial Ra of 1.0d4
-               IF ( RA /= 1.0d4 ) THEN
-                  State_Diag%DryDepRa(I,J) = State_Diag%DryDepRa(I,J) +
-     &                                 0.001d0 * DBLE(IUSE(I,J,LDT)) *
-     &                                 ( RA / 100.0d0 )
-               ENDIF
-            ENDIF
 
  500     CONTINUE
 

@@ -63,7 +63,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
      REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
-     REAL(f4),  POINTER :: DryDepRa        (:,:    ) ! Aerodynamic resistance 
     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
@@ -93,13 +92,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ODDustBinsWL2   (:,:,:,:) ! All bins 2nd WL dust OD
      REAL(f4),  POINTER :: ODDustBinsWL3   (:,:,:,:) ! All bins 3rd WL dust OD
      REAL(f4),  POINTER :: PM25            (:,:,:  ) ! Part. matter, r < 2.5 um
-     REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
-     REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
-     REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
-     REAL(f4),  POINTER :: PM25bc          (:,:,:  ) ! PM25 BC
-     REAL(f4),  POINTER :: PM25du          (:,:,:  ) ! PM25 dust
-     REAL(f4),  POINTER :: PM25ss          (:,:,:  ) ! PM25 sea salt
-     REAL(f4),  POINTER :: PM25soa         (:,:,:  ) ! PM25 SOA
      REAL(f4),  POINTER :: TerpeneSOA      (:,:,:  )
      REAL(f4),  POINTER :: IsopreneSOA     (:,:,:  )
      REAL(f4),  POINTER :: AromaticSOA     (:,:,:  )
@@ -122,7 +114,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
-     REAL(f4),  POINTER :: WetDepFlux      (:,:,:,:) ! 3D wet dep flux in kg/m2/s 
      
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
@@ -201,8 +192,6 @@ MODULE State_Diag_Mod
 !  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
 !  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
 !  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
-!  17 Nov 2017 - C. Keller   - Added Ra and WetDepFlux. This is likely redundant
-!                              and should be consolidated.
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -322,7 +311,6 @@ CONTAINS
     State_Diag%DryDepChm                  => NULL()
     State_Diag%DryDepMix                  => NULL()
     State_Diag%DryDepVel                  => NULL()
-    State_Diag%DryDepRa                   => NULL()
 
     State_Diag%CloudConvFlux              => NULL()
     State_Diag%WetLossConv                => NULL()
@@ -334,7 +322,6 @@ CONTAINS
     State_Diag%PrecipFracLS               => NULL()
     State_Diag%RainFracLS                 => NULL()
     State_Diag%WashFracLS                 => NULL()
-    State_Diag%WetDepFlux                 => NULL()
 
     State_Diag%SpeciesConc                => NULL()
     State_Diag%JVal                       => NULL()
@@ -353,13 +340,6 @@ CONTAINS
     State_Diag%Loss                       => NULL()
     State_Diag%Prod                       => NULL()
     State_Diag%PM25                       => NULL()
-    State_Diag%PM25ni                     => NULL()
-    State_Diag%PM25su                     => NULL()
-    State_Diag%PM25oc                     => NULL()
-    State_Diag%PM25bc                     => NULL()
-    State_Diag%PM25du                     => NULL()
-    State_Diag%PM25ss                     => NULL()
-    State_Diag%PM25soa                    => NULL()
     State_Diag%TerpeneSOA                 => NULL()
     State_Diag%IsopreneSOA                => NULL()
     State_Diag%AromaticSOA                => NULL()
@@ -488,23 +468,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !--------------------------------------------
-    ! Aerodynamic resistance (ckeller, 11/17/17) 
-    !-------------------------------------------- 
-    arrayID = 'State_Diag%DryDepRa'
-    diagID  = 'DryDepRa'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepRa( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%DryDepRa = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -692,23 +655,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WashFracLS = 0.0_f4
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS,   &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    !--------------------------------------------
-    ! Wet deposition flux (ckeller, 11/17/17) 
-    !--------------------------------------------
-    arrayID = 'State_Diag%WetDepFlux'
-    diagID  = 'WetDepFlux'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%WetDepFlux( IM, JM, LM, nWetDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%WetDepFlux = 0.0_f4
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetDepFlux, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -1571,125 +1517,6 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! PM25 nitrates 
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25ni'
-       diagID  = 'PM25ni'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25ni( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25ni = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25ni,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 sulfates 
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25su'
-       diagID  = 'PM25su'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25su( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25su = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25su,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 OC 
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25oc'
-       diagID  = 'PM25oc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25oc( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25oc = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25oc,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 BC 
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25bc'
-       diagID  = 'PM25bc'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25bc( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25bc = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25bc,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 dust 
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25du'
-       diagID  = 'PM25du'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25du( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25du = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25du,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 sea salt
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25ss'
-       diagID  = 'PM25ss'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25ss( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25ss = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25ss,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! PM25 SOA  
-       !--------------------------------------------------------------------
-       arrayID = 'State_Diag%PM25soa'
-       diagID  = 'PM25soa'
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-       IF ( Found ) THEN
-          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%PM25soa( IM, JM, LM ), STAT=RC )
-          CALL GC_CheckVar( arrayID, 0, RC )
-          IF ( RC /= GC_SUCCESS ) RETURN
-          State_Diag%PM25soa = 0.0_f4
-          CALL Register_DiagField( am_I_Root, diagID,     State_Diag%PM25soa,    &
-                                   State_Chm, State_Diag, RC                )
-          IF ( RC /= GC_SUCCESS ) RETURN
-       ENDIF
-
-       !--------------------------------------------------------------------
        ! Terpene SOA
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%TerpeneSOA'
@@ -1753,7 +1580,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 26
+       DO N = 1, 19
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -1790,24 +1617,10 @@ CONTAINS
              CASE( 16 )                
                 diagID = 'PM25'
              CASE( 17 )                
-                diagID = 'PM25ni'
-             CASE( 18 )                
-                diagID = 'PM25su'
-             CASE( 19 )                
-                diagID = 'PM25oc'
-             CASE( 20 )                
-                diagID = 'PM25bc'
-             CASE( 21 )                
-                diagID = 'PM25ss'
-             CASE( 22 )                
-                diagID = 'PM25du'
-             CASE( 23 )                
-                diagID = 'PM25soa'
-             CASE( 24 )                
                 diagID = 'TerpeneSOA'
-             CASE( 25 )                
+             CASE( 18 )                
                 diagID = 'IsopreneSOA'
-             CASE( 26 )
+             CASE( 19 )
                 diagID = 'AromaticSOA'
           END SELECT
 
@@ -2197,12 +2010,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%DryDepRa ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRa, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%DryDepRa', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
        DEALLOCATE( State_Diag%JVal, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
@@ -2308,12 +2115,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
        DEALLOCATE( State_Diag%WashFracLS, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%WetDepFlux ) ) THEN
-       DEALLOCATE( State_Diag%WetDepFlux, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%WetDepFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -2581,48 +2382,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%PM25ni ) ) THEN
-       DEALLOCATE( State_Diag%PM25ni, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25ni', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25su ) ) THEN
-       DEALLOCATE( State_Diag%PM25su, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25su', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25oc ) ) THEN
-       DEALLOCATE( State_Diag%PM25oc, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25oc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25bc ) ) THEN
-       DEALLOCATE( State_Diag%PM25bc, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25bc', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25ss ) ) THEN
-       DEALLOCATE( State_Diag%PM25ss, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25ss', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25du ) ) THEN
-       DEALLOCATE( State_Diag%PM25du, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25du', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%PM25soa ) ) THEN
-       DEALLOCATE( State_Diag%PM25soa, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%PM25soa', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%TerpeneSOA ) ) THEN
        DEALLOCATE( State_Diag%TerpeneSOA, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%TerpeneSOA', 2, RC )
@@ -2790,11 +2549,6 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA' ) THEN
-       IF ( isDesc    ) Desc  = 'Aerodynamic resistance'
-       IF ( isUnits   ) Units = 's cm-1'
-       IF ( isRank    ) Rank  = 2
-
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
        IF ( isDesc    ) Desc  = 'Photolysis rate for species' 
        IF ( isUnits   ) Units = 's-1'
@@ -2912,12 +2666,6 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WASHFRACLS' ) THEN
        IF ( isDesc    ) Desc  = 'Fraction of soluble species lost to washout in large-scale precipitation'
        IF ( isUnits   ) Units = '1'
-       IF ( isRank    ) Rank  = 3
-       IF ( isTagged  ) TagId = 'WET'
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'WETDEPFLUX' ) THEN
-       IF ( isDesc    ) Desc  = 'Wet deposition flux of species'
-       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
@@ -3175,41 +2923,6 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, nitrates'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SU' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sulfates'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25OC' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, organic carbon'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25BC' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, black carbon'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25DU' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, dust'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SS' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sea salt'
-       IF ( isUnits   ) Units = 'ug m-3'
-       IF ( isRank    ) Rank  =  3
-
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SOA' ) THEN
-       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, SOA'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
