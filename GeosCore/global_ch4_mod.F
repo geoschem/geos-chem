@@ -1085,7 +1085,7 @@
                ! ND43 (bpch) diagnostic
                ! OH concentration in [molec/cm3] after chemistry
                !--------------------------------------------------------
-               IF ( L <= LD43 ) THEN
+               IF ( Do_ND43 .and. L <= LD43 ) THEN
                   AD43(I,J,L,1) = AD43(I,J,L,1) +
      &                            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
                ENDIF
