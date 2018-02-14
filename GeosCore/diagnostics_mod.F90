@@ -743,10 +743,12 @@ CONTAINS
           Fac_SOAMG  =  ( NCMGLY  * MwCarb / ( SpcInfo%Mw_g * 1e-3_fp ) )
           SpcInfo    => NULL()
        ELSE
-          Archive_AerMassSOAME = .FALSE.
-          ErrMsg = 'Disabling AerMassSOAMG diagnostic.  SOAMG is not '    // &
-                   'a defined GEOS-Chem species for this simulation.'
-          CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          IF ( Archive_AerMassSOAMG ) THEN
+             Archive_AerMassSOAMG = .FALSE.
+             ErrMsg = 'Disabling AerMassSOAMG diagnostic.  SOAMG is not ' // &
+                      'a defined GEOS-Chem species for this simulation.'
+             CALL GC_Warning( ErrMsg, RC, ThisLoc )
+          ENDIF
        ENDIF
 
        ! Reset first-time flag
