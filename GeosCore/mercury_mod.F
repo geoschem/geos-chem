@@ -26,6 +26,9 @@
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LRED_JNO2
+      USE OCEAN_MERCURY_MOD, ONLY : LBRYCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LCLCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LHGAQCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
       USE OCEAN_MERCURY_MOD, ONLY : LAnthroHgOnly
@@ -6731,6 +6734,12 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Switch turn on Hg+OH, Hg+O3 chemistry
       LOHO3CHEM=.FALSE.
 
+      ! Switch turns on Hg+Cl followed by Hg(1) + Y chemistry
+      LCLCHEM = .TRUE. 
+
+      ! Switch tunrs on aqueous Hg oxidation by OH, HOCl, O3
+      LHGAQCHEM = .TRUE. 
+
       ! Switches for new reduction parameterization
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
 
@@ -6802,6 +6811,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  11 Oct 2016 - R. Yantosca - Move call to DO_RED_INPLUME here
+!  13 Feb 2018 - C. Thackray - Put chem switches here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6818,8 +6828,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
 
       !-----------------------------------------------------------------
-      ! Set the value of LRED_JNO2 depending on whether or not
-      ! the HEMCO collection LRED_JNO2 is activated
+      ! Set the value of chemistry flags depending on whether or not
+      ! the HEMCO collection LFLAGNAME is activated
       !-----------------------------------------------------------------
       CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2',  
      &                OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
@@ -6828,6 +6838,60 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ENDIF
       IF ( .not. FOUND ) THEN
          LRED_JNO2 = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LBRYCHEM',  
+     &                OptValBool=LBRYCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LBRYCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LBRYCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LCLCHEM',  
+     &                OptValBool=LCLCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LCLCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LCLCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
+     &                OptValBool=LHGAQCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LHGAQCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LHGAQCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LBRCHEM',  
+     &                OptValBool=LBRCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LBRCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LBRCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LBROCHEM',  
+     &                OptValBool=LBROCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LBROCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LBROCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LOHO3CHEM',  
+     &                OptValBool=LOHO3CHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LOHO3CHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LOHO3CHEM = .FALSE.
       ENDIF
 
       !-----------------------------------------------------------------
