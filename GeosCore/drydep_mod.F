@@ -25,7 +25,6 @@
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-      USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif

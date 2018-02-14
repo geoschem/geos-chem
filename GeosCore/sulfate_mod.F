@@ -1,3 +1,4 @@
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -549,7 +550,7 @@
       ELAPSED_SEC = GET_ELAPSED_SEC()
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
@@ -1674,7 +1675,7 @@
       SALC_REDGE_um =  Input_Opt%SALC_REDGE_um
 
       ! Chemistry timestep [s]
-      DTCHEM        =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM        =  GET_TS_CHEM()
 
       ! Look up this species in the species database
       ThisSpc       => State_Chm%SpcData(N)%Info
@@ -2078,7 +2079,7 @@
       Spc         => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM      = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM      = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2443,7 +2444,7 @@
       Spc       => State_Chm%Species
 
       ! Chemistry timestep [s]
-      DT        = GET_TS_CHEM() * 60e+0_fp
+      DT        = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2756,7 +2757,7 @@
       pHCloud(:,:,:) = 4.5e+0_fp
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM   = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM   = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -4123,7 +4124,7 @@
       !MW_SAL2 =  State_Chm%SpcData(id_SAL2)%Info%emMW_g
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM  = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM  = GET_TS_CHEM()
 
       ! Convert SO2 [v/v] to [eq/gridbox]
       ! Remove species molecular weights from equation (bmy, 2/10/17)
@@ -4594,7 +4595,7 @@
       MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
 
@@ -6264,7 +6265,7 @@
 
       ! Compute H (integration time interval * air parcel velocity) [m]
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Compute air parcel velocity [m/s]
       !APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
@@ -6341,7 +6342,6 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -6736,7 +6736,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -7224,7 +7223,7 @@
             ! Impose a diurnal variation on OH during the day
             OH_MOLEC_CM3 = OH(I,J,L)                              * 
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &                     ( 1440e+0_fp            / GET_TS_CHEM() )
+     &                     ( 86400e+0_fp           / GET_TS_CHEM() )
 
             ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
             OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
@@ -7579,7 +7578,7 @@
          COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()  
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()  
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -7637,7 +7636,8 @@
 
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
-                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
+                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
+     &                         * 60e+0_fp
                ENDIF
             ENDDO
             ENDDO
@@ -7655,7 +7655,7 @@
             !PRINT*, '### TTDAY   : ', MINVAL( TCOSZ ), MAXVAL( TCOSZ )
 
             ! Increment elapsed time [sec]
-            NT = NT + ( GET_TS_CHEM() * 60 )             
+            NT = NT + GET_TS_CHEM()             
          ENDDO
 
          ! Reset first-time flag

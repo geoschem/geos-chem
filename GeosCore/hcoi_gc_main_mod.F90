@@ -318,9 +318,9 @@ CONTAINS
     !=================================================================
 
     ! Emission, chemistry and dynamics timestep in seconds
-    HcoState%TS_EMIS = GET_TS_EMIS() * 60.0
-    HcoState%TS_CHEM = GET_TS_CHEM() * 60.0
-    HcoState%TS_DYN  = GET_TS_DYN()  * 60.0
+    HcoState%TS_EMIS = GET_TS_EMIS()
+    HcoState%TS_CHEM = GET_TS_CHEM()
+    HcoState%TS_DYN  = GET_TS_DYN()
 
     ! Is this an ESMF simulation or not?
     ! The ESMF flag must be set before calling HCO_Init because the
@@ -2465,8 +2465,10 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
-!                            calculations are done w/in GET_OH
+!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where these
+!                              calculations are done w/in GET_OH
+!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
+!                              unit changed from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2481,7 +2483,7 @@ CONTAINS
 
        ! Impose a diurnal variation on OH during the day
        FACT = ( State_Met%SUNCOS(I,J) / SUMCOSZA(I,J) ) &
-            *  ( 1440e+0_fp           / GET_TS_CHEM() )
+              * ( 86400e+0_fp / GET_TS_CHEM() )
 
     ELSE
 
@@ -2524,6 +2526,8 @@ CONTAINS
 !                              called OHNO3TIME
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
 !                              from (MAXIJ) to (IIPAR,JJPAR)
+!  06 Feb 2018 - E. Lundgren - Update time conversion factors for timestep
+!                              unit change from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2563,7 +2567,7 @@ CONTAINS
        SUMCOSZA(:,:) = 0e+0_fp
 
        ! NDYSTEP is # of chemistry time steps in this day
-       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()      
 
        ! NT is the elapsed time [s] since the beginning of the run
        NT = GET_ELAPSED_SEC()
@@ -2624,7 +2628,7 @@ CONTAINS
 !!$OMP END PARALLEL DO
 
          ! Increment elapsed time [sec]
-         NT = NT + ( GET_TS_CHEM() * 60 )             
+         NT = NT + GET_TS_CHEM()             
       ENDDO
 
       ! Set saved day of year to current day of year 

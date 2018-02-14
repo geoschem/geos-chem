@@ -482,7 +482,7 @@ CONTAINS
 
     ! mje Set up conditions for the integration
     ! mje chemical timestep and convert it to seconds.
-    DT        = GET_TS_CHEM() * 60d0
+    DT        = GET_TS_CHEM() ! [s]
     T         = 0d0
     TIN       = T
     TOUT      = T + DT

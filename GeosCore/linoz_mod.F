@@ -185,7 +185,7 @@
       ENDIF
 
       ! Linoz needs time step in seconds
-      NSCHEM = GET_TS_CHEM() * 60e+0_fp 
+      NSCHEM = GET_TS_CHEM()
 
       ! Call the Linoz chemistry
       CALL LINOZ_CHEM3( NSCHEM,    am_I_Root, Input_Opt, 

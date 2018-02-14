@@ -483,7 +483,7 @@ CONTAINS
     IF ( PRESENT(DT) ) THEN
        TS = DT
     ELSE
-       TS = GET_TS_DYN() * 60.0_fp
+       TS = GET_TS_DYN()
     ENDIF
 
     ! First-time setup

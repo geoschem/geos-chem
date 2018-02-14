@@ -6037,7 +6037,7 @@
       !        in all (I,J,L), thus this is created. (win, 5/21/08)
       IF ( PTYPE == 7 ) THEN 
          IF ( L <= LD61 ) THEN
-            DTCHEM = GET_TS_CHEM() * 60e+0_fp   ! chemistry time step in sec
+            DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
             AD61(I,J,L,1) = AD61(I,J,L,1)  + 
      &           ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
             AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec

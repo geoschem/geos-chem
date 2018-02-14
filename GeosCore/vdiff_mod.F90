@@ -2122,7 +2122,7 @@ contains
     LGTMM        = Input_Opt%LGTMM
     LSOILNOX     = Input_Opt%LSOILNOX
 
-    dtime = GET_TS_CONV()*60e+0_fp ! min -> second
+    dtime = GET_TS_CONV() ! second
     
     shflx = State_Met%EFLUX / latvap ! latent heat -> water vapor flux
 
@@ -2428,7 +2428,7 @@ contains
 
              ! Deposition mass, kg
              DEP_KG = dflx( I, J, N ) * GET_AREA_M2( I, J, 1 ) &
-                    * GET_TS_CONV() * 60e+0_fp
+                    * GET_TS_CONV()
 
              IF ( SpcInfo%Is_Hg2 ) THEN
 

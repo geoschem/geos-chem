@@ -45,7 +45,7 @@
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_DIAG
       USE TIME_MOD,           ONLY : ITS_TIME_FOR_CHEM
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,           ONLY : GET_TS_DIAG
 
       IMPLICIT NONE
@@ -85,6 +85,8 @@
 !  08 Nov 2013 - M. Sulprizio- Removed CTO3 and LTO3. They are no longer used
 !                              because O3 is now a tracer.
 !  10 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -111,7 +113,7 @@
       IS_CHEM    = ( ITS_TIME_FOR_CHEM() )
 
       ! Calculate time at previous timestep for the diagnostics (ccc, 6/12/09)
-      PREV_TS    = GET_ELAPSED_MIN()
+      PREV_TS    = GET_ELAPSED_SEC()
 
       ! Indicate if we accumulated diagnostics at the previous timestep.
       ! (ccc, 6/12/09)

@@ -298,6 +298,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  06 Feb 2018 - E. Lundgren - Change ND49 frequency unit from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -430,7 +431,8 @@
       TS_DIAG = Input_Opt%ND49_FREQ
 
       ! To change TS_DIAG to NHMS format
-      TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
+      TS_DIAG = TS_DIAG/3600 * 10000 + (TS_DIAG - (TS_DIAG/3600)*3600)
+     &          * 100 + (TS_DIAG - (TS_DIAG/60)*60)
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
@@ -1749,6 +1751,7 @@
 !
       USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_MINUTE
+      USE TIME_MOD, ONLY : GET_SECOND
 !
 ! !RETURN VALUE:
 !
@@ -1773,7 +1776,8 @@
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp ) 
+     &           + ( GET_SECOND() / 3600e+0_fp )
 
       ! Allow for temporal resolution finer than 60 min
       HR1      = HR1 * 1e+2_fp
@@ -1801,7 +1805,7 @@
 !
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,      ONLY : GET_TS_DIAG
 !
 ! !INPUT PARAMETERS:
@@ -1817,13 +1821,14 @@
 !  (1 ) Add a check on the output frequency for validity compared to time 
 !        steps used. (ccc, 5/21/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ND49 frequency from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: XMIN, TS_DIAG
+      INTEGER       :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
@@ -1845,11 +1850,11 @@
          ENDIF
          
          ! Time already elapsed in this run
-         XMIN     = GET_ELAPSED_MIN()
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is the elapsed time a multiple of ND49_FREQ?
          ITS_TIME = ( Input_Opt%DO_ND49 .and.
-     &                MOD( XMIN, Input_Opt%ND49_FREQ ) == 0 )
+     &                MOD( XSEC, Input_Opt%ND49_FREQ ) == 0 )
       ELSE
          ITS_TIME = Input_Opt%DO_ND49
       ENDIF

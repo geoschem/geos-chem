@@ -373,7 +373,7 @@
       !=================================================================
 
       ! Dust settling timestep [s]
-      DT_SETTL = GET_TS_CHEM() * 60e+0_fp
+      DT_SETTL = GET_TS_CHEM()
 
       ! Save initial dust mass
       DO BIN = 1, IBINS
@@ -521,7 +521,6 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
 !
 ! !INPUT PARAMETERS:
@@ -796,7 +795,7 @@
      &              Archive_DryDepChm .or. Archive_DryDep )
 
       ! Dust settling timestep [s]
-      DT_SETTL  = GET_TS_CHEM() * 60e+0_fp
+      DT_SETTL  = GET_TS_CHEM()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

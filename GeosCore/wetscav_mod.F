@@ -406,7 +406,7 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      DT_TEND = GET_TS_DYN() * 60.0_fp
+      DT_TEND = GET_TS_DYN()
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'WETD',    DT_TEND,   RC )
 
@@ -2755,7 +2755,7 @@
       ENDIF  
 
       ! Dynamic timestep [s]
-      DT  = GET_TS_DYN() * 60e+0_fp
+      DT  = GET_TS_DYN()
       
       ! Select index for diagnostic arrays -- will archive either
       ! large-scale or convective rainout/washout fractions
