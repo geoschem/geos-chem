@@ -288,7 +288,7 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      DT = GET_TS_DYN() * 60.0_fp
+      DT = GET_TS_DYN()
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'ADV', DT, RC )
 
@@ -447,7 +447,7 @@
       p_MFLUP     => NULL()
 
       ! Dynamic timestep [s]
-      N_DYN       =  GET_TS_DYN() * 60
+      N_DYN       =  GET_TS_DYN()
       D_DYN       =  DBLE( N_DYN )
 
       !=================================================================
@@ -731,7 +731,7 @@
       J0          =  GET_YOFFSET( GLOBAL=.TRUE. )
 
       ! Dynamic timestep [s]
-      N_DYN       =  GET_TS_DYN() * 60
+      N_DYN       =  GET_TS_DYN()
       D_DYN       =  DBLE( N_DYN )
 
       ! (lzh, 09/01/2014)
@@ -1047,7 +1047,7 @@
       !=================================================================
 
       ! Initialize
-      N_DYN = GET_TS_DYN() * 60
+      N_DYN = GET_TS_DYN()
       N_ADJ = 0
       NG    = 0
       MG    = 0
@@ -1208,7 +1208,7 @@
       !=================================================================
 
       ! Initialize
-      N_DYN = GET_TS_DYN() * 60
+      N_DYN = GET_TS_DYN()
       N_ADJ = 0
       NG    = 0
       MG    = 0

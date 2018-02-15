@@ -295,7 +295,7 @@
 
       ! P(O3) [kg]
       ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
-      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()*60e+0_fp/TS_EMIS )
+      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()/TS_EMIS )
 
       !-----------------------
       ! #1: Total P(O3)
@@ -500,7 +500,7 @@
       Spc       => State_Chm%Species   ! Points to chemical species [kg]
 
       ! Chemistry timestep [s]
-      DTCHEM    =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    =  GET_TS_CHEM()
 
       ! Zero diagnostic archival arrays to make sure that we don't have any
       ! leftover values from the last timestep near the top of the chemgrid

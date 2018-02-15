@@ -532,7 +532,7 @@
       ENDIF
 
       ! Get chemistry step length in seconds
-      DTCHEM = GET_TS_CHEM()*60.e+0_f8
+      DTCHEM = GET_TS_CHEM()
       DTCHEM_HR = DTCHEM/3600.e+0_f8
 
       ! Reset NOx/N2O mass counters
@@ -1791,7 +1791,7 @@
       IF ( GET_ELAPSED_SEC() == 0 ) RETURN
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! For debugging
       MAXLOSS= 0e+0_fp
@@ -4488,7 +4488,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)  :: STEPLEN     ! Step length (min)
+      INTEGER,        INTENT(IN)  :: STEPLEN     ! Step length (sec)
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -4498,6 +4498,7 @@
 !  16 Oct 2013 - S. D. Eastham - Initial version
 !  14 Feb 2014 - R. Yantosca   - Reorder DO loop for efficiency
 !  21 Feb 2014 - M. Sulprizio  - Now pass State_Chm object via the arg list
+!  06 Feb 2018 - E. Lundgren   - Update timestep unit from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4532,7 +4533,7 @@
 !$OMP END PARALLEL DO
 
       ! Increment clock mixing ratio for next step
-      CLOCKMR = CLOCKMR + (INCRATE*STEPLEN/(60e+0_fp*24e+0_fp))
+      CLOCKMR = CLOCKMR + ( INCRATE * STEPLEN / 86400e+0_fp )
 
       END SUBROUTINE SET_CLOCK_TRAC
 !EOC
@@ -4836,7 +4837,7 @@
       Spc => State_Chm%Species
 
       ! Allow for the possibility of variable timestep
-      DTCHEM = GET_TS_CHEM()*60.e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

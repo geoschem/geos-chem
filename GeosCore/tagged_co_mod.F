@@ -356,7 +356,7 @@
       LSPLIT    = Input_Opt%LSPLIT
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60.0_fp
+      DTCHEM    = GET_TS_CHEM()
 
       ! Initialize pointers
       AD        => State_Met%AD
@@ -524,7 +524,7 @@
          ! Scaling factor for diurnal cycles - zero at night
          IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
             FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                    ( 1440.0_fp / GET_TS_CHEM() )
+     &                    ( 86400.0_fp / GET_TS_CHEM() )
          ELSE
             FAC_DIURNAL = 0.0_fp
          ENDIF
@@ -1099,12 +1099,14 @@
 !
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
 !                              COSSZA in dao_mod
+!  12 Feb 2018 - E. Lundgren - Updates for new timestep units (sec not min)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1113,7 +1115,7 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, J, N, NDYSTEP
-      INTEGER             :: MINUTE,  TS_SUN
+      INTEGER             :: SECOND,  MINUTE, TS_SUN
       REAL*8              :: GMT_MID, TIMLOC, FACTOR
       REAL*8              :: R,       AHR,    DEC
       REAL*8              :: YMID_R,  SUNTMP_MID
@@ -1141,14 +1143,15 @@
 
          ! Get time for central chemistry timestep
          TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+         SECOND = GET_SECOND()                      ! Current seconds
          MINUTE = GET_MINUTE()                      ! Current minutes
-         FACTOR = MINUTE / TS_SUN                   ! Multiplying factor
+         FACTOR = ( MINUTE * 60 + SECOND ) / TS_SUN ! Multiplying factor
 
          ! GMT at the midpoint of the chemistry time interval for first
          ! timestep of the day
          GMT_MID  = ( DBLE( GET_HOUR()        )      )
-     &            + ( DBLE( TS_SUN * FACTOR ) / 60d0 )
-     &            + ( DBLE( TS_SUN / 2      ) / 60d0 )
+     &            + ( DBLE( TS_SUN * FACTOR ) / 3600d0 )
+     &            + ( DBLE( TS_SUN / 2      ) / 3600d0 )
 
          ! Solar declination angle (low precision formula):
          ! Path length of earth's orbit traversed since Jan 1 [radians]
@@ -1158,13 +1161,13 @@
      &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
 
          ! NDYSTEP is # of chemistry time steps
-         NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+         NDYSTEP = INT( 24d0 * 3600d0 / GET_TS_CHEM() )
 
          ! Loop forward through NDYSTEP "fake" timesteps for this day
          DO N = 1, NDYSTEP
             
             ! Increment GMT (hours) to midpoint of next timestep
-            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 60d0
+            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 3600d0
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO

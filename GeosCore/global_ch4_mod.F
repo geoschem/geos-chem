@@ -183,7 +183,7 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS:
 !
@@ -214,13 +214,15 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
 !  01 Apr 2015 - E. Lundgren - Change State_Met%PMID to State_Met%PMID_DRY
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: NTDT, NMIN
+      INTEGER               :: NTDT, NSEC
       INTEGER               :: I, J, L, NTIMES, MNDT
       INTEGER               :: NNEW, NNCOUNT 
       
@@ -229,32 +231,32 @@
       !=================================================================
 
       ! Get quantities from "time_mod.f"
-      NTDT   = GET_TS_DYN() * 60
-      NMIN   = GET_ELAPSED_MIN()
-      MNDT   = NTDT  / 60 
-      NTIMES = GET_TS_CHEM() / MNDT
+      NTDT   = GET_TS_DYN()
+      NSEC   = GET_ELAPSED_SEC()
+      MNDT   = NTDT
+      NTIMES = GET_TS_CHEM() / GET_TS_DYN()
 
       ! NTIMES is the number of dynamic timesteps in a chem timestep
-      IF ( NMIN <= GET_TS_CHEM() ) NTIMES = NTIMES + 1
+      IF ( NSEC <= GET_TS_CHEM() ) NTIMES = NTIMES + 1
 
       ! At the start of the run...
-      IF ( NMIN == 0 ) THEN
+      IF ( NSEC == 0 ) THEN
 
          ! Initialize NNEW
          NNEW = 0
 
          ! No longer true (kjw, 11/17/11).
-         !! Error check --  NCHEM has to be 1440 min
-         !IF ( GET_TS_CHEM() /= 1440 ) THEN   
+         !! Error check --  NCHEM has to be 86400 sec
+         !IF ( GET_TS_CHEM() /= 86400 ) THEN   
          !   WRITE(*,*) ' '
          !   WRITE(*,*) 'CH4-OH parameterization option (i.e., NSRCX=5)!' 
          !   WRITE(*,*) 'Use a chemistry time step = 24 hours'
-         !   WRITE(*,*) '(i.e., NCHEM=1440 min.)'
+         !   WRITE(*,*) '(i.e., NCHEM=86400 sec.)'
          !   WRITE(*,*) ' '
          !   CALL GEOS_CHEM_STOP
          !ENDIF
 
-         ! Error check -- need chem timestep (1440) to be divisible by 
+         ! Error check -- need chem timestep to be divisible by 
          ! dyn timestep
          IF ( mod( GET_TS_CHEM(), MNDT ) /= 0 ) THEN   
             WRITE(*,*) ' '
@@ -274,7 +276,7 @@
             WRITE(*,*) ' '
             WRITE(*,*) 'When using the CH4-OH parameterization'
             WRITE(*,*) 'option (i.e., NSRCX=5), take a 24-hour'
-            WRITE(*,*) 'time step (i.e., NCHEM=1440 min.) because'
+            WRITE(*,*) 'time step (i.e., NCHEM=86400 sec.) because'
             WRITE(*,*) 'the OH parameterization produces a 24-hour'
             WRITE(*,*) 'average [OH]'
             WRITE(*,*) ' '
@@ -1274,7 +1276,7 @@
       !=================================================================
 
       ! Chemistry timestep in seconds
-      DT = GET_TS_CHEM() * 60e+0_fp
+      DT = GET_TS_CHEM()
 
       ! Point to the chemical species array
       Spc => State_Chm%Species
@@ -1628,7 +1630,7 @@
       IF ( .not. LUCX ) THEN
 
          ! Chemistry timestep [s]
-         DT  = GET_TS_CHEM() * 60e+0_fp
+         DT  = GET_TS_CHEM()
 
          IF ( ITS_A_FULLCHEM_SIM ) THEN
             

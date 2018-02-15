@@ -1774,7 +1774,7 @@
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD, ONLY : GET_ELAPSED_SEC
 !
 ! !RETURN VALUE:
 !
@@ -1783,13 +1783,15 @@
 ! !REVISION HISTORY: 
 !  05 Mar 2003 - R. Yantosca - Initial version
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Replace GET_ELAPSED_MIN with GET_ELAPSED_SEC to
+!                              match new timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       !=================================================================
       ! ITS_TIME_FOR_BC begins here!
       !=================================================================
-      FLAG = ( MOD( GET_ELAPSED_MIN(), TS_BC ) == 0 ) 
+      FLAG = ( MOD( GET_ELAPSED_SEC(), TS_BC ) == 0 ) 
      
       END FUNCTION ITS_TIME_FOR_BC
 !EOC
@@ -1845,6 +1847,7 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  01 Apr 2015 - L. Zhang    - IM_W, JM_W are no longer symmetric, but are
 !                              computed from I0_E and J0_E
+!  06 Feb 2018 - E. Lundgren - Change timestep units from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1875,7 +1878,7 @@
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
 
-      ! Timestep for BC's [min]
+      ! Timestep for BC's [sec]
       TS_BC      = Input_Opt%NESTED_TS
 
       !-----------------------------------------------------------------

@@ -140,6 +140,7 @@
 !  31 May 2016 - E. Lundgren - Use TCVV instead of XNUMOL for molecular wts
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV, now takes in
 !                              State_Chm for spec db access
+!  06 Feb 2018 - E. Lundgren - Change ND63 frequency units from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,12 +191,14 @@
       TS_DIAG = Input_Opt%ND63_FREQ
 
       ! To change TS_DIAG to NHMS format
-      TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
+      TS_DIAG = TS_DIAG/3600 * 10000 + (TS_DIAG - (TS_DIAG/3600)*3600)
+     &          * 100 + (TS_DIAG - (TS_DIAG/60)*60)
 
       ! Check if it's a new day for diagnostics, 
       ! or if the model run just started
-      IF ( (NHMS == TS_DIAG) .OR. 
-     &     (GET_TAU() == (GET_TAUb()+Input_Opt%ND63_FREQ/60e+0_fp)))THEN
+      IF ( ( NHMS == TS_DIAG ) .OR. 
+     &     ( GET_TAU() == ( GET_TAUb() + 
+     &                      Input_Opt%ND63_FREQ/3600e+0_fp) ) ) THEN
 
          ! Find a free file LUN
          IU_ND63  = findFreeLUN()
@@ -231,11 +234,11 @@
       WRITE( 6, 110 ) STAMP
  110  FORMAT( '     - DIAG63: Saving timeseries at ', a )
 
-      ! Time for BPCH file
+      ! Time for BPCH file [hrs since Jan 1 1985]
       TAU1  = GET_TAU()
       
-      ! Time for start of averaging period
-      TAU0  = TAU1 - (Input_Opt%ND63_FREQ / 60e+0_fp) 
+      ! Time for start of averaging period [hrs since Jan 1 1985]
+      TAU0  = TAU1 - Input_Opt%ND63_FREQ / 3600e+0_fp
 
       ! Loop over tracers
       DO W = 1, Input_Opt%N_ND63
@@ -361,6 +364,7 @@
 !
       USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_MINUTE
+      USE TIME_MOD, ONLY : GET_SECOND
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -380,16 +384,10 @@
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
-
-!--- Previous to (ccc, 8/12/09)
-!      ! Hour at the next dynamic timestep
-!      HR2      = HR1        + ( Input_Opt%ND63_FREQ / 60d0 )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp ) 
+     &           + ( GET_SECOND() / 3600e+0_fp )
 
        ! If the next dyn step is the start of a new day, return TRUE
-!--- Previous to (ccc, 11/11/10)
-!       HR1 varies between 00 and 23:59. So compares to 00 not 24 anymore.
-!      ITS_TIME = ( INT( HR1 ) == 24 )
       ITS_TIME = ( INT( HR1 ) == 00 )
  
        END FUNCTION ITS_TIME_TO_CLOSE_FILE
@@ -413,7 +411,7 @@
 !
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,      ONLY : GET_TS_DIAG
 !
 ! !INPUT PARAMETERS: 
@@ -433,7 +431,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: XMIN, TS_DIAG
+      INTEGER       :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
@@ -455,11 +453,11 @@
          ENDIF
          
          ! Time already elapsed in this run
-         XMIN     = GET_ELAPSED_MIN()
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is the elapsed time a multiple of ND63_FREQ?
          ITS_TIME = ( Input_Opt%DO_ND63 .and.
-     &                MOD( XMIN, Input_Opt%ND63_FREQ ) == 0 )
+     &                MOD( XSEC, Input_Opt%ND63_FREQ ) == 0 )
       ELSE
          ITS_TIME = Input_Opt%DO_ND63
       ENDIF

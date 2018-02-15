@@ -1192,7 +1192,7 @@
       ENDIF
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e+0_fpp
+      DTSRCE = GET_TS_EMIS()
 
       !----------------------------------------------------------------
       ! Calculate total mean NPP (mg/m2/day) for later                                                  

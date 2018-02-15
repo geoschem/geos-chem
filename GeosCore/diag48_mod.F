@@ -961,7 +961,7 @@
       ! References to F90 modules
       USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,      ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_DIAG
 !
 ! !INPUT PARAMETERS:
 !
@@ -972,7 +972,7 @@
       LOGICAL :: ITS_TIME
 
       ! Local variables
-      INTEGER :: XMIN, TS_DIAG
+      INTEGER :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
@@ -994,12 +994,12 @@
             FIRST = .FALSE.
          ENDIF
       
-         ! Get elapsed minutes
-         XMIN     = GET_ELAPSED_MIN()
+         ! Get elapsed seconds
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is it time to save the next timeseries station?
          ITS_TIME = ( Input_Opt%DO_ND48 .and.
-     &                MOD( XMIN, Input_Opt%ND48_FREQ ) == 0 )
+     &                MOD( XSEC, Input_Opt%ND48_FREQ ) == 0 )
       ELSE
          ITS_TIME = Input_Opt%DO_ND48
       ENDIF

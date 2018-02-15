@@ -188,7 +188,7 @@
       ENDIF
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Poiont to chemical species
       Spc    => State_Chm%Species

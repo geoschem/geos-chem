@@ -523,6 +523,7 @@ CONTAINS
 !  18 Sep 2017 - R. Yantosca - Don't allow acc_interval for inst collections
 !  29 Sep 2017 - R. Yantosca - Now get the starting and ending date/time info
 !                              from the Input_Opt object
+!  06 Feb 2018 - E. Lundgren - Change TS_DYN units from minutes to seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -598,7 +599,7 @@ CONTAINS
     FileWriteHms   =  0
     SpaceDim       =  0
     SubsetDims     =  0 
-    HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN ) * SECONDS_PER_MINUTE
+    HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
     yyyymmdd       =  Input_Opt%NymdB
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE

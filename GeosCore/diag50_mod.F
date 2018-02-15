@@ -238,7 +238,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE Aerosol_Mod,        ONLY : PM25
 !
@@ -304,6 +304,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -388,7 +390,7 @@
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+      IS_CHEM = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(), 
      &                 GET_TS_CHEM() ) == 0 )
 
       ! Echo time information to the screen
@@ -1385,7 +1387,7 @@
  130  FORMAT( '     - DIAG50: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      TAU0       = GET_TAU() + ( GET_TS_DYN() / 60e+0_fp )
+      TAU0       = GET_TAU() + ( GET_TS_DYN() / 3600e+0_fp )
 
       ! Zero counters
       COUNT        = 0

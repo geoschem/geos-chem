@@ -669,7 +669,7 @@
       !=================================================================
       
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Compute diurnal scaling for OH
       CALL OHNO3TIME
@@ -1748,7 +1748,7 @@
          AM2             = GET_AREA_M2(I,J,1)
 
          ! Emission timestep
-         TS              = GET_TS_EMIS() * 60.0e+0_fp
+         TS              = GET_TS_EMIS()
 
          ! Save emissions as [kg/m2/s].  These will be added
          ! to the chemical species array in routine DO_TEND
@@ -1852,7 +1852,7 @@
       LGTMM     = Input_Opt%LGTMM
 
       ! Emission timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
+      DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L() 
@@ -2621,7 +2621,7 @@
       LPREINDHG = Input_Opt%LPREINDHG
 
       ! Emission timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
+      DTSRCE    = GET_TS_EMIS()
 
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L()
@@ -2830,7 +2830,7 @@
       LPREINDHG = Input_Opt%LPREINDHG
 
       ! Chemistry timestep [s]
-      DTSRCE    = GET_TS_EMIS() * 60e+0_fp
+      DTSRCE    = GET_TS_EMIS()
       
       ! Maximum extent of the PBL [model levels]
       PBL_MAX   = GET_PBL_MAX_L()
@@ -3287,6 +3287,8 @@
 !  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
 !  28 Nov 2012 - R. Yantosca - Now pass State_Met via the argument list
 !  11 Mar 2015 - R. Yantosca - Remove reference to GLOBAL_OH_MOD
+!  06 Feb 2018 - E. Lundgren - Update time unit conversion factor for timestep
+!                              unit change from min to sec
 
 !EOP
 !------------------------------------------------------------------------------
@@ -3305,7 +3307,7 @@
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                                 *    
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
-     &                  ( 1440e+0_fp            / GET_TS_CHEM() )
+     &                  ( 86400e+0_fp            / GET_TS_CHEM() )
 
          ! Make sure OH is not negative
          OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -3350,7 +3352,7 @@
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
+      USE TIME_MOD,           ONLY : GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : GET_MONTH
 !
@@ -3687,6 +3689,8 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
 !                              from (MAXIJ) to (IIPAR,JJPAR)
+!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
+!                              unit change from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3730,7 +3734,7 @@
          COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()     
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()     
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -3791,14 +3795,15 @@
 
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
-                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
+                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
+     &                         * 60e+0_fp
                ENDIF
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
             ! Increment elapsed time [sec]
-            NT = NT + ( GET_TS_CHEM() * 60 )             
+            NT = NT + GET_TS_CHEM() 
          ENDDO
 
          ! Reset first-time flag
@@ -3941,7 +3946,7 @@
       USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE PhysConstants
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR 
+      USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR 
 !
 ! !INPUT PARAMETERS: 
 !

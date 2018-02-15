@@ -520,7 +520,7 @@
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU
+      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_SECOND,  GET_TAU
       USE TIME_MOD, ONLY : GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
 !
 ! !INPUT PARAMETERS: 
@@ -554,9 +554,10 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
-      CHEM     = ( GET_TS_CHEM() / 60e+0_fp )
-      DYN      = ( GET_TS_DYN()  / 60e+0_fp )
+      HOUR     = ( GET_SECOND()  / 3600e+0_fp ) + 
+     &           ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
+      CHEM     = ( GET_TS_CHEM() / 3600e+0_fp )
+      DYN      = ( GET_TS_DYN()  / 3600e+0_fp )
 
       ! If first timestep, return FALSE
       IF ( TAU == GET_TAUb() ) RETURN

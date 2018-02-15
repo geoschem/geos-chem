@@ -1511,7 +1511,7 @@ CONTAINS
     strat_trID_GMI(:)        = 0
 
     ! Initialize timestep for chemistry [s]
-    dTchem = GET_TS_CHEM() * 60e+0_fp
+    dTchem = GET_TS_CHEM()
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Determine the mapping for the GMI to the GC variables based on
@@ -2160,7 +2160,7 @@ CONTAINS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
-    DTCHEM = GET_TS_CHEM() * 60e+0_fp
+    DTCHEM = GET_TS_CHEM()
 
     ! For O3 flux printout
     STFLUX = 0e+0_fp

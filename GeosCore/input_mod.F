@@ -156,6 +156,7 @@
 !                              errors all the way up to the top level
 !  26 Jan 2018 - M. Sulprizio- Moved Initialize_Geos_Grid and GC_Init_Extra
 !                              routines to gc_environment_mod.F90
+!  06 Feb 2018 - E. Lundgren - Change input timestep/freq units from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1140,9 +1141,9 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'TIMESTEP MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100     ) 'Transport/Convection [min]  : ', 
+         WRITE( 6, 100     ) 'Transport/Convection [sec]  : ', 
      &                        Input_Opt%TS_DYN
-         WRITE( 6, 100     ) 'Chemistry/Emissions  [min]  : ', 
+         WRITE( 6, 100     ) 'Chemistry/Emissions  [sec]  : ', 
      &                        Input_Opt%TS_CHEM
       ENDIF
 
@@ -2858,7 +2859,7 @@
          WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
      &                        Input_Opt%LSKYRAD(1), '/',
      &                        Input_Opt%LSKYRAD(2)
-         WRITE( 6, 110     ) 'Radiation timestep [min]    : ',
+         WRITE( 6, 110     ) 'Radiation timestep [sec]    : ',
      &                        Input_Opt%TS_RAD
          WRITE( 6, 120     ) 'Flux output selection       : ', 
      &                        LSPECRADMENU
@@ -5076,7 +5077,7 @@
      &                    Input_Opt%DO_ND48
          WRITE( 6, 110 ) 'ND48 timeseries file name   : ',
      &                    TRIM( Input_Opt%ND48_FILE )
-         WRITE( 6, 120 ) 'ND48 save frequency [min]   : ',
+         WRITE( 6, 120 ) 'ND48 save frequency [sec]   : ',
      &                    Input_Opt%ND48_FREQ
       ENDIF
 
@@ -5272,7 +5273,7 @@
          WRITE( 6, 120 ) 'ND49 timeseries tracers     : ', 
      &                    ( Input_Opt%ND49_TRACERS(N), N=1,
      &                      Input_Opt%N_ND49 )
-         WRITE( 6, 130 ) 'ND49 save frequency [min]   : ',
+         WRITE( 6, 130 ) 'ND49 save frequency [sec]   : ',
      &                    Input_Opt%ND49_FREQ
          WRITE( 6, 130 ) 'ND49 longitude limits       : ',
      &                    Input_Opt%ND49_IMIN, Input_Opt%ND49_IMAX
@@ -6027,7 +6028,7 @@
          WRITE( 6, 120 ) 'ND63 timeseries tracers     : ', 
      &                    ( Input_Opt%ND63_TRACERS(N), N=1,
      &                      Input_Opt%N_ND63 )
-         WRITE( 6, 130 ) 'ND63 save frequency [min]   : ', 
+         WRITE( 6, 130 ) 'ND63 save frequency [sec]   : ', 
      &                    Input_Opt%ND63_FREQ
          WRITE( 6, 130 ) 'ND63 longitude limits       : ', 
      &                    Input_Opt%ND63_IMIN, Input_Opt%ND63_IMAX
@@ -6520,7 +6521,7 @@
      &                    Input_Opt%LWINDO_CU
          WRITE( 6, 110 ) 'Directory with custom BC''s  : ', 
      &                    TRIM( Input_Opt%TPBC_DIR )
-         WRITE( 6, 120 ) 'Timestep for BC''s [min]     : ',
+         WRITE( 6, 120 ) 'Timestep for BC''s [sec]     : ',
      &                    Input_Opt%NESTED_TS
          WRITE( 6, 120 ) 'LL box of BC region         : ',
      &                    Input_Opt%NESTED_I1,  Input_Opt%NESTED_J1
@@ -7812,15 +7813,15 @@
 
       ! Define maximum timestep for transport
 #if   defined( GRID4x5   ) 
-      MAX_DYN = 30
+      MAX_DYN = 1800
 #elif defined( GRID2x25  )
-      MAX_DYN = 15
+      MAX_DYN = 900
 #elif defined( GRID05x0625 )
-      MAX_DYN = 10 
+      MAX_DYN = 600 
 #elif defined( GRID025x03125 )
-      MAX_DYN = 5
+      MAX_DYN = 300
 #else
-      MAX_DYN = 60
+      MAX_DYN = 3600
 #endif
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error

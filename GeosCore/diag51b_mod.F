@@ -367,8 +367,7 @@
       !=================================================================
       ! GET_LOCAL_TIME begins here!
       !=================================================================
-      TS_DYN = GET_TS_DYN()
-      TS_DYN = TS_DYN / 60e+0_fp
+      TS_DYN = GET_TS_DYN() / 3600e+0_fp
 
       DO I = 1, IIPAR
 
@@ -414,7 +413,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN,  GET_TS_CHEM 
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,  GET_TS_CHEM 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE TIME_MOD,           ONLY : GET_TS_DIAG,      GET_TS_EMIS
 !
@@ -479,6 +478,8 @@
 !  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
 !  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -556,18 +557,18 @@
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+      IS_CHEM = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(), 
      &                 GET_TS_CHEM() ) == 0 )
 
       ! Is it an emissions timestep?
-      IS_EMIS = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(),
+      IS_EMIS = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(),
      &                 GET_TS_EMIS() ) == 0 )
 
       ! Is it time for diagnostic accumulation ?
-      IF ( GET_ELAPSED_MIN() == 0 ) THEN
+      IF ( GET_ELAPSED_SEC() == 0 ) THEN
          IS_DIAG = .FALSE.
       ELSE
-         IS_DIAG = ( MOD( GET_ELAPSED_MIN(), GET_TS_DIAG() ) == 0 )
+         IS_DIAG = ( MOD( GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 0 )
       ENDIF
 
       ! Echo info
@@ -1185,6 +1186,7 @@
       USE Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,      ONLY : GET_HOUR
       USE TIME_MOD,      ONLY : GET_MINUTE
+      USE TIME_MOD,      ONLY : GET_SECOND
       USE TIME_MOD,      ONLY : GET_TAU
       USE TIME_MOD,      ONLY : GET_TAUb
       USE TIME_MOD,      ONLY : GET_TAUe
@@ -1222,7 +1224,7 @@
 
       ! Add a check for the time to save. Must be a multiple of TS_DIAG
       ! (ccc, 7/21/09)
-      TS_DIAG = ( GET_TS_DIAG() / 60e+0_fp )
+      TS_DIAG = ( GET_TS_DIAG() / 3600e+0_fp )
 
       ! NOTE: Change from equality to greater than an a small number, 
       ! because 20min or 40min timesteps are irrational numbers in hours
@@ -1235,8 +1237,9 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_MINUTE() / 60e+0_fp ) + GET_HOUR()
-      DYN      = ( GET_TS_DYN() / 60e+0_fp )
+      HOUR     = ( GET_SECOND() / 3600e+0_fp ) + 
+     &           ( GET_MINUTE() / 60e+0_fp ) + GET_HOUR()
+      DYN      = ( GET_TS_DYN() / 3600e+0_fp )
 
       ! If first timestep, return FALSE
       IF ( TAU == GET_TAUb() ) RETURN
@@ -1292,7 +1295,6 @@
       USE TIME_MOD,           ONLY : GET_NHMS
       USE TIME_MOD,           ONLY : GET_TAU 
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-      USE TIME_MOD,           ONLY : GET_TS_DYN
 
 #if   defined( USE_HDF5 )
       ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)

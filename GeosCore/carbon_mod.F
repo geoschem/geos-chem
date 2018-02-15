@@ -515,7 +515,7 @@
       LPRT                 = Input_Opt%LPRT
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
-      DTCHEM               = GET_TS_CHEM() * 60.0_fp
+      DTCHEM               = GET_TS_CHEM()
       !                      ( days )*(hrs/day)*(mins/hr)*(sec/min)
       SOAP_LIFETIME        = 1.00_fp * 24.0_fp * 60.0_fp * 60.0_fp
 
@@ -837,7 +837,7 @@
 
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    = GET_TS_CHEM()
       BCCONV    = 0e+0_fp
 
       !=================================================================
@@ -1100,7 +1100,7 @@
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    = GET_TS_CHEM()
       OCCONV    = 0e+0_fp
 
       !=================================================================
@@ -1196,7 +1196,6 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,   ONLY : OptInput
       USE State_Diag_Mod,  ONLY : DgnState
-      USE TIME_MOD,        ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1303,7 +1302,7 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE TIME_MOD,     ONLY : GET_TS_CHEM    ! [=] minute
+      USE TIME_MOD,     ONLY : GET_TS_CHEM    ! [=] second
       USE TOMAS_MOD,    ONLY : IBINS
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1328,7 +1327,7 @@
       ! AGING_CARB begins here!
       !=================================================================
 
-      DTCHEM = GET_TS_CHEM() / 60e+0_fp / 24e+0_fp    ![=] day
+      DTCHEM = GET_TS_CHEM() / 3600e+0_fp / 24e+0_fp    ![=] day
 
       DO K = 1, IBINS
          MIL(:,:,:,K) = MIL(:,:,:,K) +
@@ -1369,7 +1368,6 @@
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM,      GET_MONTH
 !
 ! !INPUT PARAMETERS:
 !
@@ -3317,7 +3315,7 @@
       Spc     => State_Chm%Species
 
       ! Chemistry timestep [s]
-      DTCHEM  = GET_TS_CHEM() * 60e+0_fp 
+      DTCHEM  = GET_TS_CHEM()
 
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
       OHMC    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met ) 
@@ -4833,8 +4831,8 @@ ccc
             CALL GetHcoVal( SESQID, I, J, 1, FOUND, Emis=EMIS )
             IF ( FOUND ) THEN
                ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
-               TMPFLX           = Emis        * GET_TS_EMIS()   * 
-     &                            60.0e+0_fp  * GET_AREA_M2(I,J,1)
+               TMPFLX           = Emis * GET_TS_EMIS() 
+     &                            * GET_AREA_M2(I,J,1)
                ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L)
      &                          + ( F_OF_PBL  * TMPFLX )
             ENDIF
@@ -4853,13 +4851,13 @@ ccc
          IF ( HCOPOG1 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
-     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
+     &               * GET_TS_EMIS() * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
          ENDIF 
          IF ( HCOPOG2 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG2)%Emis%Val(I,J,:))
-     &               * GET_TS_EMIS() * 60.0e+0_fp  * GET_AREA_M2(I,J,1)
+     &               * GET_TS_EMIS() * GET_AREA_M2(I,J,1)
             POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
@@ -5441,7 +5439,7 @@ ccc
          TCOSZ(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()         
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()         
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -5501,7 +5499,7 @@ ccc
 !$OMP END PARALLEL DO
 
             ! Increment elapsed time [sec]
-            NT = NT + ( GET_TS_CHEM() * 60 )             
+            NT = NT + GET_TS_CHEM()             
          ENDDO
 
          ! Reset first-time flag
@@ -5611,7 +5609,7 @@ ccc
             ! Impose a diurnal variation on OH during the day
             OH_MOLEC_CM3 = OH(I,J,L)                                *   
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
-     &                     ( 1440e+0_fp                / GET_TS_CHEM() )
+     &                     ( 86400e+0_fp / GET_TS_CHEM() )
 
             ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
             OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
@@ -5920,7 +5918,7 @@ ccc
             ! Impose a diurnal variation on OH during the day
             O3_MOLEC_CM3 = O3_MOLEC_CM3                             *  
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
-     &                     ( 1440e+0_fp            / GET_TS_CHEM() )
+     &                     ( 86400e+0_fp / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
             O3_MOLEC_CM3 = MAX( O3_MOLEC_CM3, 0e+0_fp )

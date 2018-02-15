@@ -123,7 +123,7 @@ CONTAINS
     USE STRAT_CHEM_MOD, ONLY : DO_STRAT_CHEM
     USE TAGGED_CO_MOD,  ONLY : CHEM_TAGGED_CO
     USE TAGGED_O3_MOD,  ONLY : CHEM_TAGGED_O3
-    USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
+    USE TIME_MOD,       ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,       ONLY : GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
@@ -248,6 +248,8 @@ CONTAINS
 !                              State_Met, State_Chm, State_Diag
 !  20 Nov 2017 - R. Yantosca - Move ND43 diagnostics to flexchem_mod.F90
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -873,7 +875,7 @@ CONTAINS
        ELSE IF ( IT_IS_A_CH4_SIM ) THEN
  
           ! Only call after the first 24 hours
-          IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
+          IF ( GET_ELAPSED_SEC() >= GET_TS_CHEM() ) THEN
              CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,                 &
                            State_Chm, State_Diag, RC                        )
 
@@ -984,7 +986,7 @@ CONTAINS
     !=======================================================================
 
     ! Chemistry timestep [s]
-    DT_TEND = GET_TS_CHEM() * 60.0_fp
+    DT_TEND = GET_TS_CHEM()
 
     ! Compute tendencies
     CALL Tend_Stage2( am_I_Root, Input_Opt, State_Met,                       &
@@ -1262,7 +1264,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
 
-    DT       = GET_TS_CHEM() * 60.0_fp  ! timestep in seconds
+    DT       = GET_TS_CHEM() ! timestep in seconds
 
     !=======================================================================
     ! Apply decay loss rate only to those passive species that have a

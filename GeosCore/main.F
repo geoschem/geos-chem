@@ -309,7 +309,7 @@
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
-      INTEGER                  :: id_H2O,        id_CH4
+      INTEGER                  :: id_H2O,        id_CH4,      SECOND
       REAL(f8)                 :: TAU,           TAUb      
       CHARACTER(LEN=255)       :: ZTYPE
       CHARACTER(LEN=255)       :: ErrMsg,        ThisLoc
@@ -881,7 +881,8 @@
       WRITE( 6, '(a)' ) 
 
       ! NSTEP is the number of dynamic timesteps w/in the outer loop
-      N_DYN_STEPS = 180 / GET_TS_DYN()     ! 3hr interval
+      ! Timesteps are now retrieved in seconds (ewl, 2/6/2018)
+      N_DYN_STEPS = 10800 / GET_TS_DYN()     ! 3hr interval
 
       ! Start a new outer loop
       DO 
@@ -895,10 +896,11 @@
       HOUR   = GET_HOUR()
       HOUR   = ( HOUR / 6 ) * 6
       MINUTE = GET_MINUTE()
-      NSECb  = ( HOUR * 3600 ) + ( MINUTE * 60 )
+      SECOND = GET_SECOND()
+      NSECb  = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
       ! Get dynamic timestep in seconds
-      N_DYN  = 60e+0_fpp * GET_TS_DYN()
+      N_DYN  = GET_TS_DYN()
 
       !=================================================================
       !     ***** D Y N A M I C   T I M E S T E P   L O O P *****
@@ -924,10 +926,11 @@
          NYMD          = GET_NYMD()
          HOUR          = GET_HOUR()
          MINUTE        = GET_MINUTE()
+         SECOND        = GET_SECOND()
          TAU           = GET_TAU()
          YEAR          = GET_YEAR()
          SEASON        = GET_SEASON()
-         ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 )
+         ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
          !### Debug
          IF ( prtDebug ) THEN
@@ -1796,10 +1799,10 @@
          ENDIF
 
          CALL TIMESTAMP_DIAG()
-         CALL SET_ELAPSED_MIN()
+         CALL SET_ELAPSED_SEC()
          CALL SET_CURRENT_TIME()
          IF ( prtDebug ) THEN
-            CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_MIN' )
+            CALL DEBUG_MSG( '### MAIN: after SET_ELAPSED_SEC' )
          ENDIF
 
          ! Plane following diagnostic, moved here to be consistent
