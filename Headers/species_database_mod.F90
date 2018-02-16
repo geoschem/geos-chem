@@ -4478,7 +4478,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = 'IBr',                        &
+                              Name          = NameAllCaps,                  &
                               FullName      = 'Iodine monobromide',         &
                               Formula       = 'IBr',                        &
                               MW_g          = 207.0_fp,                     &
@@ -4506,7 +4506,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = 'ICl',                        &
+                              Name          = NameAllCaps,                  &
                               FullName      = 'Iodine monochloride',        &
                               Formula       = 'ICl',                        &
                               MW_g          = 162.0_fp,                     &
@@ -4930,7 +4930,7 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'iodine on aersol',           &
+                              FullName      = 'iodine on aerosol',          &
                               Formula       = 'I',                          &
                               MW_g          = 127.0_fp,                     &
                               Is_Advected   = Is_Advected,                  &
@@ -4944,41 +4944,6 @@ CONTAINS
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
                               WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
-
-          ! Short-lived iodine species
-          CASE( 'HIO3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Iodic acid',                 &
-                              Formula       = 'HIO3',                       &
-                              MW_g          = 176.0_fp,                     &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
-
-          CASE( 'I2O' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Diiodine monoxide',          &
-                              Formula       = 'I2O',                        &
-                              MW_g          = 270.0_fp,                     &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
                               RC            = RC )
 
           !==================================================================
