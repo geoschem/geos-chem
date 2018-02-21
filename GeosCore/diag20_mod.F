@@ -190,18 +190,19 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER, SAVE     :: id_O3
+      LOGICAL,  SAVE      :: FIRST = .TRUE.
+      INTEGER,  SAVE      :: id_O3
+      REAL(fp), SAVE      :: O3_MW_g
 
       ! Scalars
-      LOGICAL           :: DO_WRITE
-      INTEGER           :: I, J, L, N
-      REAL(fp)          :: P_Ox, L_Ox
-      REAL(fp)          :: LT, O3_MW_G
-      REAL(fp)          :: BOXVL
+      LOGICAL             :: DO_WRITE
+      INTEGER             :: I, J, L, N
+      REAL(fp)            :: P_Ox, L_Ox
+      REAL(fp)            :: LT
+      REAL(fp)            :: BOXVL
 
       ! Strings
-      CHARACTER(LEN=16) :: STAMP 
+      CHARACTER(LEN=16)   :: STAMP 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -230,6 +231,9 @@
      &                       'DIAG20 ("diag20_mod.f")' )
          ENDIF
 
+         ! Get ozone molecular weight from species database
+         O3_MW_g  = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
+
          ! Starting time of run
          TAUb     = GET_TAUb()
 
@@ -240,9 +244,6 @@
          FIRST    = .FALSE.
 
       ENDIF
-
-      ! Get ozone molecular weight from species database
-      O3_MW_G = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
 
       !=================================================================
       ! Archive P(Ox) and L(Ox) over the course of an entire day
@@ -290,7 +291,7 @@
 
             ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
             P_Ox           = POx(I,J,L) / AVO * 1.e-3_fp *
-     &                       O3_MW_G
+     &                       O3_MW_g
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
             P_Ox           = P_Ox * 1e+6_fp
@@ -310,7 +311,11 @@
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! in order to get L(Ox) in [1/cm3/s]
-            L_Ox           = LOx(I,J,L) / L_Ox
+            IF ( L_Ox > 0.0_fp ) THEN
+               L_Ox        = LOx(I,J,L) / L_Ox
+            ELSE
+               L_Ox        = 0.0_fp
+            ENDIF
 
             ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
             L_Ox           = L_Ox * 1.e+6_fp
