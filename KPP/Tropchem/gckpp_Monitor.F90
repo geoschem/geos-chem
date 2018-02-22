@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Mon Nov 27 13:27:09 2017
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Thu Jan 25 09:55:19 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.v11-02/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -178,7 +178,7 @@ MODULE gckpp_Monitor
      '    ISN1 + NO3 --> 1.4 LOx + 0.4 ISNOOB + 0.6 ISNOOA + 0.6 HNO3                                     ', & ! index 66
      '  ISNOOA + NO3 --> 0.04 ISN1OG + 1.04 LOx + PCO + 0.96 PROPNN + NO2 + CO + HO2                      ', & ! index 67
      '   ISNOOA + NO --> 0.04 ISN1OG + 0.96 POx + PCO + 0.96 PROPNN + NO2 + CO + HO2                      ', & ! index 68
-     '  ISNOOA + NO2 --> 0.04 ISN1OG + 2 LOx + 0.96 IPMN                                                  ', & ! index 69
+     '  ISNOOA + NO2 --> 0.04 ISN1OG + 1.04 LOx + 0.96 IPMN                                               ', & ! index 69
      '  ISNOOA + HO2 --> 0.04 ISN1OG + 0.21 POx + 0.75 RP + 0.25 O3 + 0.96 NO2 + 0.25 RCOOH               ', & ! index 70
      '  ISNOOB + NO3 --> 0.04 ISN1OG + 0.06 LOx + GLYX + 0.94 PROPNN + 2 NO2                              ', & ! index 71
      '   ISNOOB + NO --> 0.04 ISN1OG + 1.78 POx + 0.94 GLYX + 0.9 PROPNN + 1.88 NO2                       ', & ! index 72
@@ -197,9 +197,9 @@ MODULE gckpp_Monitor
      '     OH + RCHO --> RCO3 + H2O                                                                       ', & ! index 85
      '    RCO3 + NO2 --> PPN                                                                              ', & ! index 86
      '           PPN --> RCO3 + NO2                                                                       ', & ! index 87
-     '   IMAO3 + NO2 --> LOx + IPMN                                                                       ', & ! index 88
+     '   IMAO3 + NO2 --> IPMN                                                                             ', & ! index 88
      '   NMAO3 + NO2 --> NPMN                                                                             ', & ! index 89
-     '          IPMN --> POx + IMAO3 + NO2                                                                ' /)
+     '          IPMN --> IMAO3 + NO2                                                                      ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_3 = (/ &
      '          NPMN --> NMAO3 + NO2                                                                      ', & ! index 91
      '     RCO3 + NO --> POx + ETO2 + NO2                                                                 ', & ! index 92
@@ -249,7 +249,7 @@ MODULE gckpp_Monitor
      '     PRPE + OH --> PO2                                                                              ', & ! index 135
      '     PRPE + O3 --> LOx + 0.56 PCO + 0.12 CH3CHOO + 0.12 CH2OO + 0.5 CH2O + 0.5 ALD2 + 0.36 OH + 0.56', & ! index 136
      '     NPMN + OH --> PCO + HAC + NO2 + CO                                                             ', & ! index 137
-     '     IPMN + OH --> 0.781 IMAE + 1.81 POx + 0.03 PCO + 0.19 PAN + 0.03 HAC + 0.19 CH2O + 0.81 NO3 + 0', & ! index 138
+     '     IPMN + OH --> 0.781 IMAE + 0.81 POx + 0.03 PCO + 0.19 PAN + 0.03 HAC + 0.19 CH2O + 0.81 NO3 + 0', & ! index 138
      '     NPMN + O3 --> CH2O + NO3 + MCO3                                                                ', & ! index 139
      '     IMAE + OH --> OH                                                                               ', & ! index 140
      '     GLYC + OH --> 0.361 CO2 + 0.505 PCO + 0.134 GLYX + 0.134 HCOOH + 0.732 CH2O + 0.227 OH + 0.505 ', & ! index 141
@@ -763,7 +763,7 @@ MODULE gckpp_Monitor
      '        PROPNN --> PCO + CH2O + NO2 + CO + MO2                                                      ', & ! index 632
      '         ATOOH --> CH2O + OH + MCO3                                                                 ', & ! index 633
      '           PIP --> OH + HO2 + RCHO                                                                  ', & ! index 634
-     '          IPMN --> 0.4 CO2 + 1.4 POx + 0.6 IMAO3 + 0.4 CH2O + 0.6 NO2 + 0.4 NO3 + 0.4 MCO3          ', & ! index 635
+     '          IPMN --> 0.4 CO2 + 0.4 POx + 0.6 IMAO3 + 0.4 CH2O + 0.6 NO2 + 0.4 NO3 + 0.4 MCO3          ', & ! index 635
      '         ETHLN --> PCO + CH2O + NO2 + CO + HO2                                                      ', & ! index 636
      '          DHDC --> GLYX + MGLY + 2 OH                                                               ', & ! index 637
      '         HPALD --> 1.89 PCO + 0.11 GLYC + 0.5 MGLY + 0.39 HAC + 2 OH + 1.89 CO + 0.89 HO2 + 0.11 MCO', & ! index 638

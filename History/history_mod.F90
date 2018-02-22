@@ -1328,7 +1328,7 @@ CONTAINS
 
     ! Print information about each diagnostic collection
     CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
-    
+
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
 
@@ -1425,9 +1425,9 @@ CONTAINS
     CHARACTER(LEN=5  )           :: StateChmUC
     CHARACTER(LEN=255)           :: ItemNameUC
     CHARACTER(LEN=255)           :: Description
-    CHARACTER(LEN=255)           :: ErrMsg
     CHARACTER(LEN=255)           :: ThisLoc
     CHARACTER(LEN=255)           :: Units
+    CHARACTER(LEN=512)           :: ErrMsg
 
     ! Objects
     TYPE(HistItem),      POINTER :: Item
@@ -1684,9 +1684,15 @@ CONTAINS
     !=======================================================================
     IF ( Item%SpaceDim == 3 ) THEN
        IF ( Collection%OnLevelEdges .neqv. Item%OnLevelEdges ) THEN
-          ErrMsg = TRIM( Item%Name )                                    //   &
-                   ' has the wrong vertical alignment for collection> ' //   &
-                   TRIM( Collection%Name )
+          ErrMsg = TRIM( Item%Name )                                      // &
+                   ' has the wrong vertical alignment for collection: "'  // &
+                   TRIM( Collection%Name )  // '".  Please check your '   // &
+                   'HISTORY.rc file to make sure that this collection '   // &
+                   'only contains 3-D diagnostics with the same vertical '// &
+                   'alignment.  You cannot add diagnostics that are '     // &
+                   'defined on level centers and diagnostics that are '   // &
+                   'defined on level edges in the same collection, as '   // &
+                   'per netCDF conventions.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

@@ -745,28 +745,12 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD43' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTOH( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTOH( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTOH' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTHO2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTHO2( IIPAR, JJPAR, LD43 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTHO2' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTO1D( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO1D' )
-
-         ! Locations where LT is between HR1_OH and HR2_OH
-         ALLOCATE( LTO3P( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO3P' )
 
          ! Locations where LT is between HR1_OH and HR2_OH
          ALLOCATE( CTO1D( IIPAR, JJPAR, LD43 ), STAT=AS )
@@ -777,6 +761,28 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CTO3P' )
 #endif
       ENDIF
+
+      ! The following are also used for netcdf diagnostics and therefore
+      ! must come out of the BPCH_DIAG ifdef and not be predicated on
+      ! an NDXX flag. Additional work should be done to only allocated
+      ! these arrays if either the bpch or netcdf diagnostic is on 
+      ! (ewl, 1/5/2018)
+
+      ! Locations where LT is between HR1_OH and HR2_OH
+      ALLOCATE( LTOH( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTOH' )
+
+      ! Locations where LT is between HR1_OH and HR2_OH
+      ALLOCATE( LTHO2( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTHO2' )
+
+      ! Locations where LT is between HR1_OH and HR2_OH
+      ALLOCATE( LTO1D( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO1D' )
+
+      ! Locations where LT is between HR1_OH and HR2_OH
+      ALLOCATE( LTO3P( IIPAR, JJPAR ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'LTO3P' )
 
       !=================================================================
       ! ND44: Drydep fluxes [s-1] and drydep velocities [cm/s]
@@ -830,8 +836,7 @@
          ! Resize to NMAX to save memory (bmy, 10/18/00)
          ALLOCATE( AD45( IIPAR, JJPAR, LD45, NMAX ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'AD45' )
-#endif
- 
+
          ! Locations where LT is between HR1_OTH and HR2_OTH
          ALLOCATE( LTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'LTOTH' )
@@ -839,6 +844,7 @@
          ! Number of times LT is between HR1_OTH and HR2_OTH
          ALLOCATE( CTOTH( IIPAR, JJPAR ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTOTH' )
+#endif
       ENDIF
 
       !=================================================================
@@ -1079,9 +1085,11 @@
          ! Need both LD47 and LD65 set above
          LMAX = MAX( LD47, LD65 )
 
+#if defined( BPCH_DIAG )
          ! Number of times in the troposphere 
          ALLOCATE( CTO3_24h( IIPAR, JJPAR, LMAX ), STAT=AS )
          IF ( AS > 0 ) CALL ALLOC_ERR( 'CTO3_24h' )
+#endif
       ENDIF
 
       !=================================================================

@@ -1875,7 +1875,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDIF
 
          ! Print the mapping
-         IF ( GC_Photo_Id(J) > 0 ) THEN
+         IF ( GC_Photo_Id(J) > 0 .AND. am_I_Root ) THEN
             WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
  200        FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
          ENDIF

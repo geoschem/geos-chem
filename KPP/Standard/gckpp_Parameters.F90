@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Mon Nov 27 13:26:18 2017
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Standard
+! Time                 : Thu Jan 25 09:39:28 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.v11-02/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -48,9 +48,9 @@ MODULE gckpp_Parameters
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 234 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 2727 
+  INTEGER, PARAMETER :: NONZERO = 2726 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 3395 
+  INTEGER, PARAMETER :: LU_NONZERO = 3394 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 234 
 ! NLOOKAT - Number of species to look at

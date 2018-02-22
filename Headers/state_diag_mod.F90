@@ -395,6 +395,7 @@ CONTAINS
        State_Diag%SpeciesConc = 0.0_f8
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc, &
                                 State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3172,11 +3173,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_2D( am_I_Root, metadataID, Ptr2Data, &
-                                       State_Chm, State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_2D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3200,84 +3202,129 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
     INTEGER                :: N, nTags, rank, type, vloc
     LOGICAL                :: found
 
+    !-----------------------------------------------------------------------
     ! Initialize
+    !-----------------------------------------------------------------------
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_2D (in Headers/state_diag_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
+    !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
-                                  desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,   tagId=tagId      )
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+                                  desc=desc,   units=units, rank=rank,       &
+                                  type=type,   vloc=vloc,   tagId=tagId     )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    
+
+    !-----------------------------------------------------------------------   
     ! Check that metadata dimensions consistent with data pointer
+    !-----------------------------------------------------------------------
     IF ( ( ( tagId == '' ) .AND. ( rank /= 2 ) )  &
          .OR. ( ( tagId /= '' ) .AND. ( rank /= 1 ) ) ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
-                TRIM(metadataID)
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
+                TRIM( metadataID )
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
           
+    !-----------------------------------------------------------------------   
     ! Special handling if there are tags (wildcard)
+    !-----------------------------------------------------------------------   
     IF ( tagId /= '' ) THEN
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+
+       ! Get number of tags
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
+                ' get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        ! Register each tagged name as a separate diagnostic
-       DO N = 1, nTags          
+       DO N = 1, nTags   
+
+          ! Get the tag name
           CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
+
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
+                      ' where tagID is ' // TRIM( tagID      ) //            &
+                      '; Abnormal exit from routine "Get_TagInfo"!'       
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          ! Add taginfo to diagnostic name and description
           diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = diagName,             &
-                                  Description  = diagDesc,             &
-                                  Units        = units,                &
-                                  Data1d_4     = Ptr2Data(:,N),        &
-                                  RC           = RC                   )
+          diagDesc = TRIM( Desc      ) // ' '  // TRIM( tagName )
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Diag%Registry,        &
+                                  State        = State_Diag%State,           &
+                                  Variable     = diagName,                   &
+                                  Description  = diagDesc,                   &
+                                  Units        = units,                      &
+                                  Data1d_4     = Ptr2Data(:,N),              &
+                                  RC           = RC                         )
+
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Registry_AddField"!'   
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
        ENDDO
 
+    !-----------------------------------------------------------------------   
     ! If not tied to species then simply add the single field
+    !-----------------------------------------------------------------------   
     ELSE
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Diag%Registry,  &
-                               State        = State_Diag%State,     &
-                               Variable     = MetadataID,           &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data2d_4     = Ptr2Data,             &
-                               RC           = RC                   )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = MetadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               Data2d_4     = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                  ' where diagnostics is not tied to species; '           // &
+                  '; Abnormal exit from routine "Registry_AddField"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
     ENDIF
 
   END SUBROUTINE Register_DiagField_R4_2D
@@ -3295,11 +3342,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_3D( am_I_Root, metadataID, Ptr2Data,  &
-                                       State_Chm, State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_3D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3323,85 +3371,136 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagID, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
     INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: Found
+    LOGICAL                :: Found, onEdges
 
+    !-----------------------------------------------------------------------
     ! Initialize
-    RC = GC_SUCCESS
+    !-----------------------------------------------------------------------
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+    ErrMsg  = '' 
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
+    !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
-                                  desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,                 &
-                                  tagID=tagID                 )
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+                                  desc=desc,   units=units, rank=rank,       &
+                                  type=type,   vloc=vloc,                    &
+                                  tagID=tagID                               )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
+    ! Is the data placed on vertical edges?
+    onEdges = ( VLoc == VLocationEdge )
+
+    !-----------------------------------------------------------------------
     ! Check that metadata dimensions consistent with data pointer
-    IF ( ( ( tagID == '' ) .AND. ( rank /= 3 ) )  &
+    !-----------------------------------------------------------------------
+    IF ( ( ( tagID == '' ) .AND. ( rank /= 3 ) )                             &
          .OR. ( ( tagID /= '' ) .AND. ( rank /= 2 ) ) ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
     ! Special handling if there are tags
+    !-----------------------------------------------------------------------
     IF ( tagID /= '' ) THEN
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+
+       ! Get the number of tags
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
+                'get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        ! Register each tagged name as a separate diagnostic
-       DO N = 1, nTags          
+       DO N = 1, nTags 
+
+          ! Get the tag name
           CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
+
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = diagName,             &
-                                  Description  = diagDesc,             &
-                                  Units        = units,                &
-                                  Data2d_4     = Ptr2Data(:,:,N),      &
-                                  RC           = RC                   )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where tagID is ' // TRIM(tagID)
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Get_TagInfo"!'       
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          ! Add the tag name to the diagnostic name and description
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Diag%Registry,        &
+                                  State        = State_Diag%State,           &
+                                  Variable     = diagName,                   &
+                                  Description  = diagDesc,                   &
+                                  Units        = units,                      &
+                                  OnLevelEdges = onEdges,                    &
+                                  Data2d_4     = Ptr2Data(:,:,N),            &
+                                  RC           = RC                         )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Registry_AddField"!'   
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
        ENDDO
 
+    !-----------------------------------------------------------------------
     ! If not tied to species then simply add the single field
+    !-----------------------------------------------------------------------
     ELSE
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Diag%Registry,  &
-                               State        = State_Diag%State,     &
-                               Variable     = metadataID,           &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data3d_4     = Ptr2Data,             &
-                               RC           = RC                   )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = metadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_4     = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                  ' where diagnostics is not tied to species; '           // &
+                  '; Abnormal exit from routine "Registry_AddField"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
     ENDIF
 
   END SUBROUTINE Register_DiagField_R4_3D
@@ -3419,11 +3518,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R4_4D( am_I_Root, metadataID, Ptr2Data,  &
-                                       State_Chm, State_Diag, RC )
+  SUBROUTINE Register_DiagField_R4_4D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3450,66 +3550,106 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
     INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: found
+    LOGICAL                :: found, onEdges
 
+    !-----------------------------------------------------------------------
     ! Initialize
+    !-----------------------------------------------------------------------
     RC = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
+    !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
-                                  desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,   tagId=tagId  )
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+                                  desc=desc,   units=units, rank=rank,       &
+                                  type=type,   vloc=vloc,   tagId=tagId     )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+    
+    ! Is the data placed on vertical edges?
+    onEdges = ( VLoc == VLocationEdge )
 
+    !-----------------------------------------------------------------------
     ! Check that metadata dimensions consistent with data pointer
+    !-----------------------------------------------------------------------
     IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
-    ! Assume always tagged if 4D
-    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+    !-----------------------------------------------------------------------
+    ! Assume always tagged if 4D, get number of tags
+    !-----------------------------------------------------------------------
+    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,                &
                       nTags=nTags )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
+               '; Abnormal exit from routine "Get_TagInfo", could not '   // &
+               'get nTags!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
     ! Register each tagged name as a separate diagnostic
-    DO N = 1, nTags          
+    !-----------------------------------------------------------------------
+    DO N = 1, nTags        
+
+       ! Get the tag name
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                          N=N, tagName=tagName )
 
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Diag%Registry,  &
-                               State        = State_Diag%State,     &
-                               Variable     = diagName,             &
-                               Description  = diagDesc,             &
-                               Units        = units,                &
-                               Data3d_4     = Ptr2Data(:,:,:,N),    &
-                               RC           = RC                   )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'       
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Add the tag name to the diagnostic name and description
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
+
+       ! ADd field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = diagName,                      &
+                               Description  = diagDesc,                      &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_4     = Ptr2Data(:,:,:,N),             &
+                               RC           = RC                            )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Registry_AddField"!'   
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDDO
 
   END SUBROUTINE Register_DiagField_R4_4D
@@ -3527,11 +3667,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,  &
-                                        State_Chm, State_Diag, RC )
+  SUBROUTINE Register_DiagField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,     &
+                                        State_Chm, State_Diag, RC           )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3555,85 +3696,134 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
     INTEGER                :: N, nTags, rank, type, vloc
-    LOGICAL                :: Found
+    LOGICAL                :: Found, onEdges
 
+    !-----------------------------------------------------------------------
     ! Initialize
-    RC = GC_SUCCESS
+    !-----------------------------------------------------------------------
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
     ! Get metadata for this diagnostic
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
-                                  desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,                 &
-                                  tagId=tagId                 )
+    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
+                                  desc=desc,   units=units, rank=rank,       &
+                                  type=type,   vloc=vloc,                    &
+                                  tagId=tagId                               )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
+    ! Is the data placed on vertical edges?
+    onEdges = ( VLoc == VLocationEdge )
+
+    !-----------------------------------------------------------------------
     ! Check that metadata dimensions consistent with data pointer
+    !-----------------------------------------------------------------------
     IF ( ( ( tagId == '' ) .AND. ( rank /= 3 ) )  &
          .OR. ( ( tagId /= '' ) .AND. ( rank /= 2 ) ) ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
     ! Special handling if there are tags
+    !-----------------------------------------------------------------------
     IF ( tagId /= '' ) THEN
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+
+       ! Get the number of tags
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
                          nTags=nTags )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
+                'get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 
        ! Register each tagged name as a separate diagnostic
-       DO N = 1, nTags          
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+       DO N = 1, nTags
+
+          ! Get the tag name
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,          &
                             N=N, tagName=tagName )
+
+          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
-          CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                                  Registry     = State_Diag%Registry,  &
-                                  State        = State_Diag%State,     &
-                                  Variable     = diagName,             &
-                                  Description  = diagDesc,             &
-                                  Units        = units,                &
-                                  Data2d       = Ptr2Data(:,:,N),      &
-                                  RC           = RC                   )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
+                      ' where tagID is ' // TRIM( tagID      ) //            &
+                      '; Abnormal exit from routine "Get_TagInfo"!'       
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
+
+          ! Add the tag name to the diagnostic name and description
+          diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Diag%Registry,        &
+                                  State        = State_Diag%State,           &
+                                  Variable     = diagName,                   &
+                                  Description  = diagDesc,                   &
+                                  Units        = units,                      &
+                                  OnLevelEdges = onEdges,                    &
+                                  Data2d       = Ptr2Data(:,:,N),            &
+                                  RC           = RC                         )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
+                      '; Abnormal exit from routine "Registry_AddField"!'   
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
        ENDDO
 
+    !-----------------------------------------------------------------------
     ! If not tied to species then simply add the single field
+    !-----------------------------------------------------------------------
     ELSE
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Diag%Registry,  &
-                               State        = State_Diag%State,     &
-                               Variable     = metadataID,           &
-                               Description  = desc,                 &
-                               Units        = units,                &
-                               Data3d       = Ptr2Data,             &
-                               RC           = RC                   )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = metadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d       = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where diagnostics is not tied to species'
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                  ' where diagnostics is not tied to species; '           // &
+                  '; Abnormal exit from routine "Registry_AddField"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
     ENDIF
 
   END SUBROUTINE Register_DiagField_Rfp_3D
@@ -3651,11 +3841,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_R8_4D( am_I_Root, metadataID, Ptr2Data,  &
-                                       State_Chm, State_Diag, RC )
+  SUBROUTINE Register_DiagField_R8_4D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
+    USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3682,66 +3873,103 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !   
-    CHARACTER(LEN=255)     :: ErrMsg, ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
     CHARACTER(LEN=255)     :: desc, units, tagId, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
     INTEGER                :: N, nTags, rank, type,  vloc
-    LOGICAL                :: found
+    LOGICAL                :: found, onEdges
 
+    !-----------------------------------------------------------------------
     ! Initialize
-    RC = GC_SUCCESS
+    !-----------------------------------------------------------------------
+    RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R8_4D (in Headers/state_diag_mod.F90)'
-    ErrMsg_reg = 'Error encountered while registering State_Diag field'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
+    !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
-    CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,   &
-                                  desc=desc,   units=units, rank=rank,    &
-                                  type=type,   vloc=vloc,                 &
-                                  tagId=tagId                 )
+    !-----------------------------------------------------------------------
+    CALL Get_Metadata_State_Diag( am_I_Root,  metadataID,  Found,      RC,   &
+                                  desc=desc,  units=units, rank=rank,        &
+                                  type=type,  vloc=vloc,   tagId=tagId      )
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Diag"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+    
+    ! Is the data placed on vertical edges?
+    onEdges = ( VLoc == VLocationEdge )
 
+    !-----------------------------------------------------------------------
     ! Check that metadata dimensions consistent with data pointer
+    !-----------------------------------------------------------------------
     IF ( rank /= 3 ) THEN
-       ErrMsg = 'Data dims and metadata rank do not match for ' // &
+       ErrMsg = 'Data dims and metadata rank do not match for '           // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
     
+    !-----------------------------------------------------------------------
     ! Assume always tagged. Get number of tags.
-    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
-                      nTags=nTags )
+    !-----------------------------------------------------------------------
+    CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, nTags=nTags   )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
+                '; Abnormal exit from routine "Get_TagInfo", could not '  // &
+                'get nTags!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
     ! Register each tagged name as a separate diagnostic
-    DO N = 1, nTags          
-       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
+    !-----------------------------------------------------------------------
+    DO N = 1, nTags      
+
+       ! Get the tag name
+       CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
                          N=N, tagName=tagName )
+       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrMsg_reg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-       diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
-       CALL Registry_AddField( am_I_Root    = am_I_Root,            &
-                               Registry     = State_Diag%Registry,  &
-                               State        = State_Diag%State,     &
-                               Variable     = diagName,             &
-                               Description  = diagDesc,             &
-                               Units        = units,                &
-                               Data3d_8     = Ptr2Data(:,:,:,N),    &
-                               RC           = RC                   )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = ErrMsg_reg // ' where tagId is ' // TRIM(tagId)
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Get_TagInfo"!'       
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Add the tag name to the diagnostic name and description
+       diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
+       diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Diag%Registry,           &
+                               State        = State_Diag%State,              &
+                               Variable     = diagName,                      &
+                               Description  = diagDesc,                      &
+                               Units        = units,                         &
+                               OnLevelEdges = onEdges,                       &
+                               Data3d_8     = Ptr2Data(:,:,:,N),             &
+                               RC           = RC                            ) 
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )               // &
+                   ' where tagID is ' // TRIM( tagID      )               // &
+                   '; Abnormal exit from routine "Registry_AddField"!'   
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDDO
 
   END SUBROUTINE Register_DiagField_R8_4D
