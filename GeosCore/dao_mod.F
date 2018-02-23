@@ -562,13 +562,17 @@
          ! Source: Wallace and Hobbes "Atmospheric Science: An            
          !         Introductory Survey"                                   
          !                                                                
-         ! Assume constant temperature and moisture acros grid box.       
+         ! Assume constant temperature and moisture across grid box. 
          !                                                                
 
          ! Grid box potential temperature [K]
+         ! NOTE: Due to the parallelization, we cannot assume that
+         ! State_Met%PEDGE(I,J,1) has been defined.  So always call
+         ! GET_PEDGE(I,J,1) to return the proper surface pressure
+         ! (bmy, 2/23/18)
          State_Met%THETA(I,J,L)    = State_Met%T(I,J,L)
-     &                             * ( State_Met%PEDGE(I,J,1)
-     &                             /   State_Met%PMID (I,J,L) )**0.286
+     &                             * ( GET_PEDGE( I, J, 1 )
+     &                             /   State_Met%PMID(I,J,L) )**0.286
 
          ! Grid box virtual temperature [K]                               
          State_Met%TV(I,J,L)       = State_Met%T(I,J,L) / (1 -
