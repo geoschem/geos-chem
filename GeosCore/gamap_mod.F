@@ -2106,34 +2106,42 @@
                   FNAME(T,03) = 'Prod of Hg2 from Br'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE( 7 )
+                  NAME (T,03) = 'Hg2_BrY'
+                  FNAME(T,03) = 'Prod of Hg2 from BrY'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 8 )
+                  NAME (T,03) = 'Hg2_ClY'
+                  FNAME(T,03) = 'Prod of Hg2 from ClY'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 9 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 8 )
+               CASE( 10 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )
+               CASE( 11 )
                   NAME (T,03) = 'PBM'
                   FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 10 )
+               CASE( 12 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
+               CASE( 13 )
                   NAME (T,03) = 'Br_pol'
                   FNAME(T,03) = 'Polar Br concentration'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 12 )
+               CASE( 14 )
                   NAME (T,03) = 'BrO_pol' 
                   FNAME(T,03) = 'Polar BrO concentration'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 13 )
+               CASE( 15 )
                   NAME (T,03) = 'O3_pol'
                   FNAME(T,03) = 'Polar O3 concentration'
                   UNIT (T,03) = 'ppbv'

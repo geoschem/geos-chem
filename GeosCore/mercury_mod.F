@@ -369,6 +369,7 @@
 #endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
+      USE DIAG03_MOD,         ONLY : AD03_Hg2_BRY,  AD03_Hg2_CLY
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
@@ -549,6 +550,7 @@
       REAL(fp)           :: DEP_HG2_DRY
       REAL(fp)           :: GROSS_OX, GROSS_OX_BR
       REAL(fp)           :: GROSS_OX_OH, GROSS_OX_O3
+      REAL(fp)           :: GROSS_OX_BRY, GROSS_OX_CLY
       REAL(fp)           :: GROSS_RED, NET_OX
       REAL(fp)           :: F_PBL, FC, Faq, LWC
       REAL(fp)           :: AREA_CM2, DEP_DRY_FLX
@@ -826,6 +828,7 @@
 !$OMP+PRIVATE( DEP_HG2G_DRY,      DEP_HG2G_SALT,     DEP_HG2P_DRY )
 !$OMP+PRIVATE( DEP_HG2_DRY )
 !$OMP+PRIVATE( GROSS_OX,  GROSS_OX_BR, GROSS_OX_OH, GROSS_OX_O3 )
+!$OMP+PRIVATE( GROSS_OX_BRY, GROSS_OX_CLY )
 !$OMP+PRIVATE( GROSS_RED, NET_OX )
 !$OMP+PRIVATE( AREA_CM2,  DEP_DRY_FLX )
 !$OMP+PRIVATE( F_HG0_DEP, Hg_Cat,      Kstar,       TPL )
@@ -1286,13 +1289,18 @@
             ! Apportion gross oxidation between O3 and OH [kg]
             IF ( (K_OX   < SMALLNUM) .OR. 
      &           (GROSS_OX < SMALLNUM) ) THEN
-               GROSS_OX_OH = 0e+0_fp
-               GROSS_OX_BR = 0e+0_fp
-               GROSS_OX_O3 = 0e+0_fp
+               GROSS_OX_OH  = 0e+0_fp
+               GROSS_OX_BR  = 0e+0_fp
+               GROSS_OX_O3  = 0e+0_fp
+               GROSS_OX_CLY = 0e+0_fp
+               GROSS_OX_BRY = 0e+0_fp
             ELSE
-               GROSS_OX_OH = GROSS_OX * K_OH / K_OX
-               GROSS_OX_BR = GROSS_OX * K_BR / K_OX
-               GROSS_OX_O3 = GROSS_OX * K_O3 / K_OX
+               GROSS_OX_OH  = GROSS_OX * ( K_OH + K_OH_AQ ) / K_OX
+               GROSS_OX_BR  = GROSS_OX * ( K_BR + K_BRO ) / K_OX
+               GROSS_OX_O3  = GROSS_OX * ( K_O3 + K_O3_AQ) / K_OX
+               GROSS_OX_CLY = GROSS_OX * ( K_CL ) / K_OX
+               GROSS_OX_BRY = GROSS_OX * ( K_BR2 + K_BRBRO + K_BRCLO 
+     &                            + K_BROH + K_BRHO2 + K_BRNO2 ) / K_OX
             ENDIF
                
             ! Apportion deposition between dry deposition and sea salt [kg]
@@ -1398,6 +1406,10 @@
      &                 GROSS_OX_OH
                   AD03_Hg2_O3(I,J,L,N) = AD03_Hg2_O3(I,J,L,N)  + 
      &                 GROSS_OX_O3
+                  AD03_Hg2_BRY(I,J,L,N) = AD03_Hg2_BRY(I,J,L,N)  + 
+     &                 GROSS_OX_BRY
+                  AD03_Hg2_CLY(I,J,L,N) = AD03_Hg2_CLY(I,J,L,N)  + 
+     &                 GROSS_OX_CLY
 
                   AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
                   AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
