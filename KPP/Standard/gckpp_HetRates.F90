@@ -709,7 +709,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! HOBr + HBr (TS index: hhc06)
+         ! HOBr + HBr (TMS index: hhc06)
          !----------------------------------------------------------------
          kITemp = HETHOBr_HBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                            hConc_Sul, hConc_LCl, hConc_ICl, clConc_Cld, &
@@ -718,7 +718,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! HOBr + HCl (TS index: hhc03)
+         ! HOBr + HCl (TMS index: hhc03)
          !----------------------------------------------------------------
          kITemp = HETHOBr_HCl_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, TempK, &
                                   hConc_Sul, hConc_LCl, hConc_ICl, clConc_Cld, &
@@ -727,7 +727,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! HOBr + BrSalA/C (TS index: hhc07/08)
+         ! HOBr + BrSalA/C (TMS index: hhc07/08)
          !----------------------------------------------------------------
          ! NOTE: This has not been fully tested, as the initial simulations had
          ! near-zero BrSALA and BrSALC  
@@ -742,7 +742,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! HOBr + ClSALA/C (TS index: hhc04/05)
+         ! HOBr + ClSALA/C (TMS index: hhc04/05)
          !----------------------------------------------------------------
          ! NOTE: Cl- in salt is assumed to always be in excess, so we assume a
          ! molarity of 0.5 mol/L. This reaction is also pseudo-first order, so 
@@ -777,7 +777,7 @@ MODULE GCKPP_HETRATES
          HET(ind_HOBr,  7) = kITemp * fupdateHOBr
 
          !----------------------------------------------------------------
-         ! ClNO3 + BrSALA/C (TS index: hhc10/11)
+         ! ClNO3 + BrSALA/C (TMS index: hhc10/11)
          !----------------------------------------------------------------
          ! NOTE: This has not been fully tested, as the initial simulations had
          ! near-zero BrSALA and BrSALC  
@@ -793,11 +793,13 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          ! ClNO3 + HCl
          !----------------------------------------------------------------
+	 ! NOTE: the restriction of these reactions to the troposphere has been
+         ! restored - TMS (2017/04/06 )
          HET(ind_ClNO3, 2) = kIIR1Ltd( spcVec, Ind_('ClNO3'), Ind_('HCl'), &
                              HETClNO3_HCl( 0.97E2_fp, 0E+0_fp), HetMinLife)
 
          !----------------------------------------------------------------
-         ! ClNO3 + HBr (TS index: hhc09)
+         ! ClNO3 + HBr (TMS index: hhc09)
          !----------------------------------------------------------------
          kITemp = HETClNO3_HBr_JS( xDenA, rLiq, rIce, ALiq, AIce, VAir, &
                                    TempK, brConc_Cld, Input_Opt )
@@ -808,7 +810,7 @@ MODULE GCKPP_HETRATES
          ! HOCl + HCl and HOCl + HBr to take place in the troposphere
          !----------------------------------------------------------------
 	 ! NOTE: the restriction of these reactions to the troposphere has been
-         ! restored - tms (2017/04/06 )
+         ! restored - TMS (2017/04/06 )
          HET(ind_HOCl,  1) = kIIR1Ltd( spcVec, Ind_('HOCl'),  Ind_('HCl'), &
                              HETHOCl_HCl(  0.52E2_fp, 0E+0_fp, Input_Opt), &
                              HetMinLife)
@@ -817,7 +819,7 @@ MODULE GCKPP_HETRATES
                              HetMinLife)
 
          !----------------------------------------------------------------
-         ! O3 + Br- calculation (TS index: hhc12)
+         ! O3 + Br- calculation (TMS index: hhc12)
          !----------------------------------------------------------------
          kITemp = HETO3_HBr_JS( XDenA, rLiq, rIce, ALiq, AIce, VAir, &
                                 TempK, brConc_Cld, spcVec(Ind_('O3')))
@@ -825,7 +827,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! O3 + BrSALA/C calculations (TS index: hhc13/14)
+         ! O3 + BrSALA/C calculations (TMS index: hhc13/14)
          !----------------------------------------------------------------
          kITemp = HETO3_SS_JS( XDenA, xRadi(11), xArea(11), SSAlk(1), &
                                TempK, brConc_SSA, spcVec(Ind_('O3')))
@@ -837,7 +839,7 @@ MODULE GCKPP_HETRATES
                                        kITemp, HetMinLife)
 
          !----------------------------------------------------------------
-         ! Cl uptake calculations (TS index: hhc15/16)
+         ! Cl uptake calculations (TMS index: hhc15/16)
          !----------------------------------------------------------------
          ! Cl is always assumed to be in excess in sea salt, so any HCl "taken
          ! up" is just removed. This may change in the future. This reaction is
@@ -848,7 +850,7 @@ MODULE GCKPP_HETRATES
          HET(ind_HCl,   2) = kITemp
 
          !----------------------------------------------------------------
-         ! Br uptake calculation - forms BrSALA/C (TS index: hhc17/18)
+         ! Br uptake calculation - forms BrSALA/C (TMS index: hhc17/18)
          !----------------------------------------------------------------
          ! First-order reactions, no calculation of kII required
          kITemp = HETHXUptake_JS( XDenA, xRadi(11), xArea(11), TempK, 2)
@@ -859,6 +861,8 @@ MODULE GCKPP_HETRATES
          !----------------------------------------------------------------
          ! BrNO3 + HCl into the troposphere
          !----------------------------------------------------------------
+	 ! NOTE: the restriction of these reactions to the troposphere has been
+         ! restored - TMS (2017/04/06 )
          HET(ind_BrNO3, 2) = kIIR1Ltd( spcVec, Ind_('BrNO3'), Ind_('HCl'), &
                              HETBrNO3_HCl(  1.42E2_fp, 0E+0_fp), HetMinLife)
 
@@ -866,7 +870,7 @@ MODULE GCKPP_HETRATES
          ! N2O5 + HCl on sulfate
          !----------------------------------------------------------------
 	 ! NOTE: this extension of calculation in troposphere has been removed
-         !  (tms 17/04/10)
+         !  (TMS 17/04/10)
          kITemp = HETN2O5_HCl( 1.08E2_fp, 0.0e+0_fp, Input_Opt ) 
          HET(ind_N2O5,  2) = kIIR1Ltd( spcVec, Ind_('N2O5'), Ind_('HCl'), &
                                        kITemp, HetMinLife) 
@@ -1612,7 +1616,7 @@ MODULE GCKPP_HETRATES
          ELSEIF ((N.eq.11).or.(N.eq.12)) THEN
             ! Sea salt - follows the N2O5 + Cl- channel
             XSTKCF = 0.0e+0_fp
-	 ! restore route for tropospheric sulfate (tms 17/04/10)
+	 ! restore route for tropospheric sulfate (TMS 17/04/10)
 	 ! this is to maintain consistancy with Sherwen et al (2016)
          ELSEIF (N.eq.8) THEN
             ! Fixed gamma?
@@ -3165,7 +3169,7 @@ MODULE GCKPP_HETRATES
          ! Assume zero
          XStkCf = 0.0e+0_fp
 
-	 ! restore stratosphere only limitation - tms 17/04/10
+	 ! restore stratosphere only limitation - TMS 17/04/10
          IF ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                ! Fixed gamma?
@@ -4983,7 +4987,7 @@ MODULE GCKPP_HETRATES
 !            XSTKCF = 0.1e-4_fp ! Sulfate
 !         ELSEIF ( STRATBOX ) THEN
 !            IF (N.eq.13) THEN
-	 ! restore limitation to stratosphere
+	 ! restore limitation to stratosphere - TMS 17/04/10
          IF  ( STRATBOX ) THEN
             IF (N.eq.8) THEN
                XSTKCF = 0.1e-4_fp ! Sulfate
@@ -5070,7 +5074,8 @@ MODULE GCKPP_HETRATES
 
          ! Default to zero
          XSTKCF = 0.0e+0_fp
-	 ! restore limitation to stratosphere
+
+	 ! restore limitation to stratosphere - TMS 17/04/10
 	 IF ( STRATBOX ) THEN
 	    IF (N.eq.8) THEN
                XSTKCF = 0.9e+0_fp ! Sulfate
@@ -5160,8 +5165,8 @@ MODULE GCKPP_HETRATES
          XSTKCF        = 0.0_fp
 
          ! For UCX-based mechanisms only consider PSC reactions in strat
+         ! restore limitation to stratosphere - TMS 17/04/10
          IF ( Input_Opt%LUCX .and. STRATBOX) THEN
-	    ! restore limitation to stratosphere
 	    IF (N.eq.8) THEN
 	       XSTKCF = 0.8e+0_fp ! Sulfate
             ELSEIF (N.eq.13) THEN
@@ -5251,6 +5256,7 @@ MODULE GCKPP_HETRATES
          XSTKCF        = 0.0_fp
 
          ! For UCX-based mechanisms only consider PSC reactions in strat
+         ! restore limitation to stratosphere - TMS 17/04/10
          IF ( Input_Opt%LUCX .and. STRATBOX ) THEN
 	    IF (N.eq.8) THEN
  	       XSTKCF = 0.8e+0_fp ! Sulfate
