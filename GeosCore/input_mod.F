@@ -6685,8 +6685,7 @@
       LOGICAL            :: LDYNOCEAN,      LPREINDHG
       LOGICAL            :: LGTMM,          USE_CHECKS
       LOGICAL            :: LARCTICRIV,     LKRedUV
-      INTEGER            :: ANTHRO_Hg_YEAR, N 
-      CHARACTER(LEN=255) :: HG_SCENARIO
+      INTEGER            :: N 
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Arrays
@@ -6696,44 +6695,36 @@
       ! READ_MERCURY_MENU begins here!
       !=================================================================
 
-      ! Year for anthro Hg emissions
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
-      READ( SUBSTRS(1:N), * ) ANTHRO_Hg_YEAR
-
-      ! Use future emissions scenario?   !eds 5/17/12
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
-      READ( SUBSTRS(1:N), '(a)' ) HG_SCENARIO
-
       ! Use error check for tag/tot Hg?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:3' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:1' )
       READ( SUBSTRS(1:N), * ) USE_CHECKS
 
       ! Use dynamic ocean model?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:2' )
       READ( SUBSTRS(1:N), * ) LDYNOCEAN
 
       ! Use preindustrial simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:5' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read mercury_menu:3' )
       READ( SUBSTRS(1:N), * ) LPREINDHG
 
       ! Use GTMM ?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:4' )
       READ( SUBSTRS(1:N), * ) LGTMM
 
       ! Name of GTMM restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:5' )
       READ( SUBSTRS(1:N), * ) GTMM_RST_FILE
 
       ! Use Arctic river Hg?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:9' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:6' )
       READ( SUBSTRS(1:N), * ) LARCTICRIV
 
       ! Tie reducible HgII(aq) to UV-B?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:10' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:7' )
       READ( SUBSTRS(1:N), * ) LKRedUV
 
       ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:11' )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_mercury_menu:8' )
 
       ! Check on logical
       IF (.NOT.( Input_Opt%ITS_A_MERCURY_SIM ) ) THEN
@@ -6749,10 +6740,6 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'MERCURY MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 100 ) 'Anthro Hg emissions year    : ', 
-     &                    ANTHRO_Hg_YEAR
-         WRITE( 6, 120 ) 'Future emissions scenario   : ',  !eds 5/17/12
-     &                    TRIM( HG_SCENARIO )
          WRITE( 6, 110 ) 'Error check tag & total Hg? : ', USE_CHECKS
          WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', LDYNOCEAN
          WRITE( 6, 110 ) 'Preindustrial simulation?   : ', LPREINDHG
@@ -6772,8 +6759,6 @@
       ! Copy to Input Options object
       ! NOTE: Hg modules will be initialized from GC_INIT_EXTRA
       !=================================================================
-      Input_Opt%ANTHRO_Hg_YEAR = ANTHRO_Hg_YEAR
-      Input_Opt%HG_SCENARIO    = HG_SCENARIO
       Input_Opt%USE_CHECKS     = USE_CHECKS
       Input_Opt%LDYNOCEAN      = LDYNOCEAN
       Input_Opt%LPREINDHG      = LPREINDHG

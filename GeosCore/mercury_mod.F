@@ -4003,6 +4003,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !                              and debugging.  Worry about this later.
 !  24 Sep 2014 - C. Keller   - HEMCO update
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  27 Feb 2018 - C. Thackray - Removed unused ANTHRO_Hg_YEAR and Hg_SCENARIO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4017,8 +4018,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                  :: LDYNOCEAN
       LOGICAL                  :: LPREINDHG
       LOGICAL                  :: LSPLIT
-      INTEGER                  :: ANTHRO_Hg_YEAR
-      CHARACTER(LEN=10)        :: SCENARIO
 
       ! HEMCO update
       CHARACTER(LEN=63)        :: DgnName
@@ -4042,8 +4041,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LDYNOCEAN      = Input_Opt%LDYNOCEAN 
       LPREINDHG      = Input_Opt%LPREINDHG
       LSPLIT         = Input_Opt%LSPLIT
-      ANTHRO_HG_YEAR = Input_Opt%ANTHRO_Hg_YEAR
-      SCENARIO       = TRIM( Input_Opt%Hg_SCENARIO )
 
       !=================================================================
       ! Anthropogenic Emissions
