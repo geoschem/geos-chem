@@ -22,6 +22,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LDYNSEASALT
       USE OCEAN_MERCURY_MOD, ONLY : LGCAPEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LPOLARBR
+      USE OCEAN_MERCURY_MOD, ONLY : L_ADD_MBL_BR
       USE OCEAN_MERCURY_MOD, ONLY : LGEIA05
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
@@ -676,12 +677,6 @@
 #endif
          FIRST = .FALSE.
       ENDIF
-
-      LBRCHEM = .TRUE.
-      LBRYCHEM = .TRUE.
-      LBROCHEM = .TRUE.
-      LCLCHEM = .TRUE.
-      LHGAQCHEM = .TRUE.
 
 
       !=================================================================
@@ -5073,23 +5068,24 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       ! Add Br in the MBL
       !----------------------------------------------------------------
+      
+      IF ( L_ADD_MBL_BR ) THEN
+         ! Fraction of grid box mass which is within the mixed layer
+         FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
-      ! Fraction of grid box mass which is within the mixed layer
-      FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
+         IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
 
-      IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
+            ! Convert BrO concentration to corresponding Br based on
+            ! photochemical steady state, pptv
+            ! Platt & Janssen, Faraday Discussions (1995)
+            BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
+     &                      ( K_BR_O3      * GET_O3(I,J,L,State_Met) ) *
+     &                        FPBL
 
-         ! Convert BrO concentration to corresponding Br based on
-         ! photochemical steady state, pptv
-         ! Platt & Janssen, Faraday Discussions (1995)
-         BR_MBL = BRO_MBL *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-     &                     ( K_BR_O3      * GET_O3(I,J,L,State_Met) ) *
-     &                       FPBL
-
-         ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
-         BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
-         BrO_PPTV = MAX( BRO_PPTV, BRO_MBL*FPBL )
-
+            ! MBL concentration is the greater of the TOMCAT Br or 1pptv BrO
+            BR_PPTV  = MAX( BR_PPTV,  BR_MBL )
+            BrO_PPTV = MAX( BRO_PPTV, BRO_MBL*FPBL )
+         ENDIF
 
       ENDIF            
 
@@ -6716,8 +6712,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! no Hg emitted through transpiration (VEGEMIS off)
       LVEGEMIS=.FALSE.
      
+      ! Switch adds bromine in marine boundary layer
+      L_ADD_MBL_BR=.FALSE.
+
       ! Switch adds bromine explosion in Northern springtime
-      LPOLARBR=.TRUE.
+      LPOLARBR=.FALSE.
 
       ! Switch turns on Hg+Br chemistry
       LBRCHEM=.FALSE.
