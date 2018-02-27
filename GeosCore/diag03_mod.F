@@ -23,7 +23,7 @@
 ! !DEFINED PARAMETERS:
 !
       INTEGER, PUBLIC, PARAMETER   :: PD03    = 22         ! Dim of AD03 array
-      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 15         ! # of PL-HG2 diags
+      INTEGER, PUBLIC, PARAMETER   :: PD03_PL = 21         ! # of PL-HG2 diags
 
 !
 ! !PUBLIC DATA MEMBERS:
@@ -36,6 +36,7 @@
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Hg0(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br(:,:,:,:) 
+      REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_Br_Y(:,:,:,:) 
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_OH(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_O3(:,:,:,:)
       REAL*4,  PUBLIC, ALLOCATABLE :: AD03_Hg2_BRY(:,:,:,:)
@@ -125,18 +126,21 @@
       IF ( ND03 == 0 ) RETURN
 
       ! Zero arrays
-      AD03         = 0e+0_fp
-      AD03_Hg2_Hg0 = 0e+0_fp
-      AD03_Hg2_Br  = 0e+0_fp 
-      AD03_Hg2_OH  = 0e+0_fp
-      AD03_Hg2_O3  = 0e+0_fp
-      AD03_Hg2_SS  = 0e+0_fp
-      AD03_Hg2_SSR = 0e+0_fp 
-      AD03_nat     = 0e+0_fp
-      AD03_Br      = 0e+0_fp  
-      AD03_RGM     = 0e+0_fp     
-      AD03_PBM     = 0e+0_fp
-      AD03_RIV     = 0e+0_fp
+      AD03           = 0e+0_fp
+      AD03_Hg2_Hg0   = 0e+0_fp
+      AD03_Hg2_Br    = 0e+0_fp 
+      AD03_Hg2_OH    = 0e+0_fp
+      AD03_Hg2_BRY   = 0e+0_fp
+      AD03_Hg2_CLY   = 0e+0_fp
+      AD03_Hg2_Br_Y  = 0e+0_fp
+      AD03_Hg2_O3    = 0e+0_fp
+      AD03_Hg2_SS    = 0e+0_fp
+      AD03_Hg2_SSR   = 0e+0_fp 
+      AD03_nat       = 0e+0_fp
+      AD03_Br        = 0e+0_fp  
+      AD03_RGM       = 0e+0_fp     
+      AD03_PBM       = 0e+0_fp
+      AD03_RIV       = 0e+0_fp
 
       END SUBROUTINE ZERO_DIAG03
 !EOC
@@ -946,6 +950,78 @@
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Br(:,:,1:LMAX,5) / NCHEMSTEP
  
+            ELSE IF ( N == 16 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + Br2 
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,1)
+     &              / NCHEMSTEP
+ 
+            ELSE IF ( N == 17 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + BrBrO
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,2)
+     &              / NCHEMSTEP
+ 
+            ELSE IF ( N == 18 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + BrHO2
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,3)
+     &              / NCHEMSTEP
+ 
+            ELSE IF ( N == 19 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + BrNO2
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,4)
+     &              / NCHEMSTEP
+ 
+            ELSE IF ( N == 20 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + BrClO
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,5)
+     &              / NCHEMSTEP
+ 
+            ELSE IF ( N == 21 ) THEN
+
+               !--------------------------------
+               ! #16: HgBr + BrOH
+               !--------------------------------
+               CATEGORY          = 'PL-HG2-$'
+               UNIT              = 'ppbv'
+               LMAX              = LD03
+               NN                = N
+               ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,6)
+     &              / NCHEMSTEP
+ 
             ELSE
 
                !--------------------------------
@@ -1036,6 +1112,9 @@
       ALLOCATE( AD03_Hg2_Br( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br' )
 
+      ALLOCATE( AD03_Hg2_Br_Y( IIPAR, JJPAR, LD03, 6 ), STAT=AS )
+      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br_Y' )
+
       ALLOCATE( AD03_Hg2_BRY( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_BrY' )
 
@@ -1108,6 +1187,7 @@
       IF ( ALLOCATED( AD03_Hg2_Br   ) ) DEALLOCATE( AD03_Hg2_Br   )
       IF ( ALLOCATED( AD03_Hg2_BRY  ) ) DEALLOCATE( AD03_Hg2_BRY  )
       IF ( ALLOCATED( AD03_Hg2_CLY  ) ) DEALLOCATE( AD03_Hg2_CLY  )
+      IF ( ALLOCATED( AD03_Hg2_Br_Y ) ) DEALLOCATE( AD03_Hg2_Br_Y )
       IF ( ALLOCATED( AD03_Hg2_O3   ) ) DEALLOCATE( AD03_Hg2_O3   )
       IF ( ALLOCATED( AD03_Hg2_SS   ) ) DEALLOCATE( AD03_Hg2_SS   )
       IF ( ALLOCATED( AD03_nat      ) ) DEALLOCATE( AD03_nat      )

@@ -2146,6 +2146,30 @@
                   FNAME(T,03) = 'Polar O3 concentration'
                   UNIT (T,03) = 'ppbv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 16 )
+                  NAME (T,03) = 'HgBr2'
+                  FNAME(T,03) = 'oxidation of HgBr by Br'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 17 )
+                  NAME (T,03) = 'HgBrBrO'
+                  FNAME(T,03) = 'oxidation of HgBr by BrO'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 18 )
+                  NAME (T,03) = 'HgBrHO2'
+                  FNAME(T,03) = 'oxidation of HgBr by HO2'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 19 )
+                  NAME (T,03) = 'HgBrNO2'
+                  FNAME(T,03) = 'oxidation of HgBr by NO2'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 20 )
+                  NAME (T,03) = 'HgBrClO'
+                  FNAME(T,03) = 'oxidation of HgBr by ClO'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 21 )
+                  NAME (T,03) = 'HgBrOH'
+                  FNAME(T,03) = 'oxidation of HgBr by OH'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
             END SELECT
