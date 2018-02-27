@@ -27,6 +27,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LVEGEMIS
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LRED_JNO2
+      USE OCEAN_MERCURY_MOD, ONLY : LRED_CLOUDONLY
       USE OCEAN_MERCURY_MOD, ONLY : LBRYCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LCLCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHGAQCHEM
@@ -1081,15 +1082,6 @@
          ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
          LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
 
-         ! LWC is a grid-box averaged quantity. To improve representation 
-         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
-         ! compute sulfate chemistry based on the LWC within the cloud.  We 
-         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
-         ! multiplying these quantities by FC AFTER computing the aqueous 
-         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
-         ! Adopted for mercury chemistry (yzh, 11/9/2011)
-         !LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
-
 #else
          !---------------------------------------------
          ! Otherwise, compute FC, LWC as before
@@ -1106,6 +1098,18 @@
          IF ( T(I,J,L) < 258e+0_fp )  LWC = 0e+0_fp
 
 #endif
+         ! LWC is a grid-box averaged quantity. To improve representation 
+         ! of sulfate chemistry, we divide LWC by the cloud fraction and 
+         ! compute sulfate chemistry based on the LWC within the cloud.  We 
+         ! get the appropriate grid-box averaged mass of SO2 and sulfate by 
+         ! multiplying these quantities by FC AFTER computing the aqueous 
+         ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)
+         ! Adopted for mercury chemistry (yzh, 11/9/2011)
+         IF ( LRED_CLOUDONLY ) THEN
+            LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
+         ENDIF
+
+
          ! Define fraction of in-cloud Hg(II) which is in aqueous solution
          ! [dimensionless]
 
@@ -1133,7 +1137,9 @@
          ! by the cloud fraction after the aqueous chemistry
          ! has been done.  (lzh, jaf, bmy, 5/27/11)
          ! Adopted for mercury chemistry (yzh, 11/9/2011)
-         !Faq =  Faq * FC
+         IF ( LRED_CLOUDONLY ) THEN
+            Faq =  Faq * FC
+         ENDIF
 
          ! Define K for the reduction reaction. 
          IF (LRED_JNO2) THEN
@@ -6230,6 +6236,332 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: offlineocean_readmo
+!
+! !DESCRIPTION: Subroutine OFFLINEOCEAN\_READMO reads the monthly varying
+!     offline ocean evasion emissions if LDYNOCEAN is FALSE. Will not actually
+!     need mixed layer depth when i get stuff from Yanxu 
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OFFLINEOCEAN_READMO(FLUX, RC, am_I_Root,
+     &                              State_Met, State_Chm)
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
+      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
+      USE CMN_SIZE_MOD
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE DIAG03_MOD,         ONLY : AD03 ! hmh 9/16/15 for Hg_up/down
+      ! adding hmh 5/17/16
+      USE DAO_MOD,            ONLY : IS_WATER 
+      USE CMN_SIZE_MOD             ! Size parameters
+      USE State_Chm_Mod,      ONLY : ChmState 
+      USE State_Met_Mod,      ONLY : MetState
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
+
+      !
+! !INPUT PARAMETERS:
+!
+      ! hmh adding 5/17/16
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm ! Chemistry State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
+
+
+!
+! !OUTPUT PARAMETERS:
+!
+      REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      CHARACTER(LEN=255) :: LOC = 'OFFLINEOCEAN_READMO (mercury_mod.F)'
+
+! 
+! !REVISION HISTORY: 
+!  12 Aug 2015 - H. Horowitz - Initial version
+!  15 Sep 2015 - H. Horowitz - removing am_I_root & trying to fix netcdf issue.
+!     also removing input_opt; don't need it here. Try making Array 2D instead
+!     of 3-D.
+!  16 Sep 2015 - H. Horowitz - adding diags for Hg_up and Hg_down (separates
+!     the positive and negative oceanic fluxes from the net EHg0_oc.
+!  17 May 2016 - H. Horowitz - setting up to read concentrations and do flux
+!     calculations like in ocean_mercury_mod subrtine ocean_mercury_flux       
+!  30 Nov 2017 - C. Thackray (cpt) - merging into v11
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER                 :: I, J, M, DN(12) ! M is mon., DN is days in mon
+      INTEGER                 :: NNN
+      INTEGER                 :: THISYEAR
+      INTEGER                 :: THISMONTH
+
+      LOGICAL, SAVE           :: FIRST = .TRUE.
+      LOGICAL                 :: IS_OCEAN_BOX 
+      INTEGER                 :: NN, N
+      REAL(fp)                :: A_M2,     DTSRCE
+      REAL(fp)                :: CHg0aq,   CHg0,     vi, Hg0aqtemp         
+      REAL(fp)                :: TC,       TK,       Kw
+      REAL(fp)                :: Sc,       ScCO2,    USQ      
+      REAL(fp)                :: FRAC_L,   FRAC_O,   H, D  
+      REAL(fp)                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fp)                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fp)                :: Hg0aq(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fp)                :: MHg0_air
+
+      ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
+      REAL(fp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fp / 3600.0e+0 _fp
+
+      ! Small numbers to avoid dividing by zero
+      REAL(fp),  PARAMETER    :: SMALLNUM   = 1.0e-32_fp
+      
+      
+      REAL(fp)                :: SFCWINDSQR 
+
+      ! Pointers
+      ! We need to define local arrays to hold corresponding values 
+      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
+      REAL(fp), POINTER       :: STT(:,:,:,:)
+            
+      ! For values from Input_Opt
+      LOGICAL                 :: LDYNOCEAN 
+
+
+      !=================================================================
+      ! OFFLINEOCEAN_READMO begins here! 
+      !=================================================================
+
+      ! Assume success
+      RC             = GC_SUCCESS
+
+      THISMONTH = GET_MONTH()      
+
+      M = THISMONTH
+
+      ! Days in each month (will use later) 9/16/15 hmh
+      DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
+
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! read monthly ocean evasion  !
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+      IF ( ITS_A_NEW_MONTH() ) THEN 
+      
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OCEAN', 
+     &                    OCEAN_CONC,  RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OCEAN', LOC)
+         ENDIF
+
+      ENDIF
+
+      ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
+      DO NNN = 1, N_Hg_CATS
+         IF ( NNN .eq. 1 ) THEN
+            Hg0aq(:,:,NNN) = OCEAN_CONC(:,:,1)
+         ELSE
+            Hg0aq(:,:,NNN) = 0.0e+0_fp
+         ENDIF
+      ENDDO
+
+            ! Emission timestep [s]
+      DTSRCE = GET_TS_EMIS() * 60e0_fp
+
+      STT => State_Chm%Species
+         
+      ! Loop over surface boxes  
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I,  A_M2, vi, ScCO2)
+!$OMP+PRIVATE( J,   NN, TC, TK )
+!$OMP+PRIVATE( N,   CHg0,    FRAC_L,   FRAC_O  )
+!$OMP+PRIVATE( H,   Kw,  CHg0aq, Hg0aqtemp, MHg0_air )
+!$OMP+PRIVATE( IS_OCEAN_BOX, Sc,  Usq, D )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         ! Grid box surface area [m2]
+         A_M2       = GET_AREA_M2( I, J, 1 )
+         ! Initialize values
+         Kw         = 0e0_fp
+         TK         = 0e0_fp
+         TC         = 0e0_fp
+
+         ! Get fractions of land and ocean in the grid box [unitless]
+         ! Use fractional land type information in MERRA. Also make sure
+         ! we do not use boxes that are mostly sea ice for consistency
+         ! FROCEAN is a constant, so to get correct ocean fraction we
+         ! need to subtract the sea ice fraction. Don't let the fraction
+         ! be less than zero (jaf, 4/26/11)
+#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2)
+         FRAC_L       = State_Met%FRLAND(I,J)
+         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
+     &                       State_Met%FRSEAICE(I,J), 0e0_fp )
+         IS_OCEAN_BOX = ( ( FRAC_O > 0e0_fp                     ) .and. 
+     &                    ( State_Met%SEAICE00(I,J)  > 0.5e0_fp ) )
+#else
+         FRAC_L       = State_Met%FRCLND(I,J)
+         FRAC_O       = 1e0_fp - FRAC_L
+         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
+#endif
+
+         IF ( (IS_OCEAN_BOX) ) THEN
+            !--------------------------------------------------------------
+            ! Sea surface temperature in both [K] and [C]
+            !--------------------------------------------------------------
+            ! where TSKIN is the temperature (K) at the ground/sea surface
+            ! (Use as surrogate for SST, cap at freezing point)
+
+            TK     = MAX( State_Met%TSKIN(I,J), 273.15e0_fp )
+
+            TC     = TK - 273.15e0_fp
+
+            !==============================================================
+            ! Volatilisation of Hg0
+            !==============================================================
+            
+            ! Henry's law constant (gas->liquid) [unitless] [L water/L air]  
+            ! (ref: Andersson et al. 2008)
+
+            H      = EXP( ( -2404.3e0_fp / TK ) + 6.92e0_fp )
+
+            ! Viscosity as a function of changing temperatures
+            ! (ref: Loux 2001)
+            ! The paper says the viscosity is given in cP but us really P
+            ! and we therefor multiply with 100 to get cP.
+            vi    = ( 10**( ( 1301.0e0_fp / ( 998.333e0_fp + 8.1855e0_fp 
+     &              * ( TC - 20.0e0_fp )+ 0.00585e0_fp 
+     &           * (TC - 20.0e0_fp )**2 ) ) 
+     &              - 3.30233e0_fp ) ) * 100.0e0_fp      
+
+            ! Schmidt # for Hg [unitless]                             
+            ! Sc = v/D = kinematic viscosity/diffusivity
+            ! (ref: Poissant et al 2000; Wilke and Chang 1995)
+            ! to correct for seawater D0 is decreased by 6% as suggested
+            ! by Wanninkhof (1992)
+
+            D = 7.4e-8_fp * sqrt( 2.26e0_fp * 18.0e0_fp ) * TK /
+     &             ( ( 14.8e0_fp**0.6e0_fp ) *vi )
+
+            Sc   = ( 0.017e0_fp * EXP( -0.025e0_fp * TC ) ) / D                
+            
+            ! Schmidt # of CO2 [unitless] for CO2 in seawater at 20 degrees C
+            ! The value is set to a constant based on other ocean studies
+            ! (Gardfeld et al. 2003, Rolfhus & Fitzgerald2004,Mason et al.2001)
+
+            ! Correction of the Schmidt # with temperature based on Poissant
+            ! et al. (2000) (for freshwatersystems).
+
+            ScCO2  = 644.7e0_fp + TC * ( -6.16e0_fp + TC * ( 0.11e0_fp)) 
+
+            ! Square of surface (actually 10m) wind speed [m2/s2]
+            Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
+
+            !------------------------------------------------------
+            ! Parameterizations for calculating water side mass trasfer 
+            ! coefficient 
+            !------------------------------------------------------
+            ! Mass transfer coefficient [cm/h], from Nightingale et al. 2000
+            Kw     = ( 0.25e0_fp * Usq ) / SQRT( Sc / ScCO2 )   
+            ! Loop over all Hg categories
+            DO NN = 1, N_Hg_CATS
+
+               ! Hg0 tracer number (for STT)
+               N             = Hg0_Id_List(NN)
+
+               !--------------------------------------------------------
+               ! Calculate oceanic and gas-phase concentration of Hg(0)
+               !--------------------------------------------------------
+                  
+               ! Concentration of Hg(0) in the ocean [ng/L]
+               ! now converting from Hg0aq in mol/m3 to ng/L
+               CHg0aq = Hg0aq(I,J,NN) *200.59e0_fp * 1.0e9_fp / 1.0e3_fp
+
+               ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
+               MHg0_air = STT(I,J,1,N)
+               CHg0          = MHg0_air 
+     &                         *  1.0e9_fp /State_Met%AIRVOL(I,J,1)
+               
+               !--------------------------------------------------------
+               ! Compute flux of Hg(0) from the ocean to the air
+               !--------------------------------------------------------
+
+               ! Compute ocean flux of Hg0 [cm/h*ng/L]
+               FLUX(I,J,NN)  = Kw * ( CHg0aq - ( CHg0 / H ) )
+
+               !Extra diagnostic: compute flux up and flux down
+               FUP(I,J,NN)   = ( Kw * CHg0aq )
+               FDOWN(I,J,NN) = ( Kw * CHg0 / H )     
+               !--------------------------------------------------
+               ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
+               ! Also account for ocean fraction of grid box
+               FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
+
+               ! hmh 5/11/16 reverting to old version and uncommenting here
+               FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+               !--------------------------------------------------
+
+               !--------------------------------------------------------
+               ! Flux limited by ocean and atm Hg(0)
+               !--------------------------------------------------------
+
+               ! Cap the flux w/ the available Hg(0) ocean mass
+               ! THIS IS THE PROBLEM!
+               Hg0aqtemp = CHg0aq * A_M2 * FRAC_O *1.0e-8_fp
+               
+               IF ( FLUX(I,J,NN) * DTSRCE > Hg0aqtemp ) THEN 
+                  FLUX(I,J,NN) = Hg0aqtemp / DTSRCE 
+                  FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
+               ENDIF
+                
+               ! Cap the neg flux w/ the available Hg(0) atm mass
+
+               IF ( (-FLUX(I,J,NN) * DTSRCE ) > MHg0_air ) THEN
+                  FLUX(I,J,NN) = -MHg0_air / DTSRCE       
+               ENDIF
+               
+               ! make sure Fup and Fdown do not underflow either
+               ! debug 2x2.5 diagnostic?
+               FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
+               FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
+
+!               AD03(I,J,16,NN) = AD03(I,J,16,NN) + FUP(I,J,NN) * DTSRCE
+!               AD03(I,J,17,NN) = AD03(I,J,17,NN) + FDOWN(I,J,NN) *DTSRCE
+            ENDDO
+
+         ELSE
+
+            DO NN = 1, N_Hg_CATS 
+               FLUX(I,J,NN) = 0e0_fp
+               FUP(I,J,NN)=0e0_fp
+               FDOWN(I,J,NN)=0e0_fp 
+            ENDDO               
+
+         ENDIF 
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointer
+      NULLIFY( STT )
+
+      END SUBROUTINE OFFLINEOCEAN_READMO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: init_mercury
 !
 ! !DESCRIPTION: Subroutine INIT\_MERCURY allocates and zeroes all 
@@ -6761,6 +7093,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Switch adds bromine explosion in Northern springtime
       LPOLARBR=.FALSE.
 
+      ! Switch for only doing reduction in cloud water
+      LRED_CLOUDONLY = .FALSE.
+
       ! Switch turns on Hg+Br chemistry
       LBRCHEM=.FALSE.
 
@@ -7008,334 +7343,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: offlineocean_readmo
-!
-! !DESCRIPTION: Subroutine OFFLINEOCEAN\_READMO reads the monthly varying
-!     offline ocean evasion emissions if LDYNOCEAN is FALSE. Will not actually
-!     need mixed layer depth when i get stuff from Yanxu 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE OFFLINEOCEAN_READMO(FLUX, RC, am_I_Root,
-     &                              State_Met, State_Chm)
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE DIAG03_MOD,         ONLY : AD03 ! hmh 9/16/15 for Hg_up/down
-      ! adding hmh 5/17/16
-      USE DAO_MOD,            ONLY : IS_WATER 
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE State_Chm_Mod,      ONLY : ChmState 
-      USE State_Met_Mod,      ONLY : MetState
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
-
-      !
-! !INPUT PARAMETERS:
-!
-      ! hmh adding 5/17/16
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm ! Chemistry State object
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
-
-
-!
-! !OUTPUT PARAMETERS:
-!
-      REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-      CHARACTER(LEN=255) :: LOC = 'OFFLINEOCEAN_READMO (mercury_mod.F)'
-
-! 
-! !REVISION HISTORY: 
-!  12 Aug 2015 - H. Horowitz - Initial version
-!  15 Sep 2015 - H. Horowitz - removing am_I_root & trying to fix netcdf issue.
-!     also removing input_opt; don't need it here. Try making Array 2D instead
-!     of 3-D.
-!  16 Sep 2015 - H. Horowitz - adding diags for Hg_up and Hg_down (separates
-!     the positive and negative oceanic fluxes from the net EHg0_oc.
-!  17 May 2016 - H. Horowitz - setting up to read concentrations and do flux
-!     calculations like in ocean_mercury_mod subrtine ocean_mercury_flux       
-!  30 Nov 2017 - C. Thackray (cpt) - merging into v11
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER                 :: I, J, M, DN(12) ! M is mon., DN is days in mon
-      INTEGER                 :: NNN
-      INTEGER                 :: THISYEAR
-      INTEGER                 :: THISMONTH
-
-      LOGICAL, SAVE           :: FIRST = .TRUE.
-      LOGICAL                 :: IS_OCEAN_BOX 
-      INTEGER                 :: NN, N
-      REAL(fp)                :: A_M2,     DTSRCE
-      REAL(fp)                :: CHg0aq,   CHg0,     vi, Hg0aqtemp         
-      REAL(fp)                :: TC,       TK,       Kw
-      REAL(fp)                :: Sc,       ScCO2,    USQ      
-      REAL(fp)                :: FRAC_L,   FRAC_O,   H, D  
-      REAL(fp)                :: FUP(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fp)                :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fp)                :: Hg0aq(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fp)                :: MHg0_air
-
-      ! Conversion factor from [cm/h * ng/L] --> [kg/m2/s]
-      REAL(fp),  PARAMETER    :: TO_KGM2S = 1.0e-11_fp / 3600.0e+0 _fp
-
-      ! Small numbers to avoid dividing by zero
-      REAL(fp),  PARAMETER    :: SMALLNUM   = 1.0e-32_fp
-      
-      
-      REAL(fp)                :: SFCWINDSQR 
-
-      ! Pointers
-      ! We need to define local arrays to hold corresponding values 
-      ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
-      REAL(fp), POINTER       :: STT(:,:,:,:)
-            
-      ! For values from Input_Opt
-      LOGICAL                 :: LDYNOCEAN 
-
-
-      !=================================================================
-      ! OFFLINEOCEAN_READMO begins here! 
-      !=================================================================
-
-      ! Assume success
-      RC             = GC_SUCCESS
-
-      THISMONTH = GET_MONTH()      
-
-      M = THISMONTH
-
-      ! Days in each month (will use later) 9/16/15 hmh
-      DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
-
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! read monthly ocean evasion  !
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-      IF ( ITS_A_NEW_MONTH() ) THEN 
-      
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OCEAN', 
-     &                    OCEAN_CONC,  RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OCEAN', LOC)
-         ENDIF
-
-      ENDIF
-
-      ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
-      DO NNN = 1, N_Hg_CATS
-         IF ( NNN .eq. 1 ) THEN
-            Hg0aq(:,:,NNN) = OCEAN_CONC(:,:,1)
-         ELSE
-            Hg0aq(:,:,NNN) = 0.0e+0_fp
-         ENDIF
-      ENDDO
-
-            ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e0_fp
-
-      STT => State_Chm%Species
-         
-      ! Loop over surface boxes  
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,  A_M2, vi, ScCO2)
-!$OMP+PRIVATE( J,   NN, TC, TK )
-!$OMP+PRIVATE( N,   CHg0,    FRAC_L,   FRAC_O  )
-!$OMP+PRIVATE( H,   Kw,  CHg0aq, Hg0aqtemp, MHg0_air )
-!$OMP+PRIVATE( IS_OCEAN_BOX, Sc,  Usq, D )
-!$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Grid box surface area [m2]
-         A_M2       = GET_AREA_M2( I, J, 1 )
-         ! Initialize values
-         Kw         = 0e0_fp
-         TK         = 0e0_fp
-         TC         = 0e0_fp
-
-         ! Get fractions of land and ocean in the grid box [unitless]
-         ! Use fractional land type information in MERRA. Also make sure
-         ! we do not use boxes that are mostly sea ice for consistency
-         ! FROCEAN is a constant, so to get correct ocean fraction we
-         ! need to subtract the sea ice fraction. Don't let the fraction
-         ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2)
-         FRAC_L       = State_Met%FRLAND(I,J)
-         FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
-     &                       State_Met%FRSEAICE(I,J), 0e0_fp )
-         IS_OCEAN_BOX = ( ( FRAC_O > 0e0_fp                     ) .and. 
-     &                    ( State_Met%SEAICE00(I,J)  > 0.5e0_fp ) )
-#else
-         FRAC_L       = State_Met%FRCLND(I,J)
-         FRAC_O       = 1e0_fp - FRAC_L
-         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
-#endif
-
-         IF ( (IS_OCEAN_BOX) ) THEN
-            !--------------------------------------------------------------
-            ! Sea surface temperature in both [K] and [C]
-            !--------------------------------------------------------------
-            ! where TSKIN is the temperature (K) at the ground/sea surface
-            ! (Use as surrogate for SST, cap at freezing point)
-
-            TK     = MAX( State_Met%TSKIN(I,J), 273.15e0_fp )
-
-            TC     = TK - 273.15e0_fp
-
-            !==============================================================
-            ! Volatilisation of Hg0
-            !==============================================================
-            
-            ! Henry's law constant (gas->liquid) [unitless] [L water/L air]  
-            ! (ref: Andersson et al. 2008)
-
-            H      = EXP( ( -2404.3e0_fp / TK ) + 6.92e0_fp )
-
-            ! Viscosity as a function of changing temperatures
-            ! (ref: Loux 2001)
-            ! The paper says the viscosity is given in cP but us really P
-            ! and we therefor multiply with 100 to get cP.
-            vi    = ( 10**( ( 1301.0e0_fp / ( 998.333e0_fp + 8.1855e0_fp 
-     &              * ( TC - 20.0e0_fp )+ 0.00585e0_fp 
-     &           * (TC - 20.0e0_fp )**2 ) ) 
-     &              - 3.30233e0_fp ) ) * 100.0e0_fp      
-
-            ! Schmidt # for Hg [unitless]                             
-            ! Sc = v/D = kinematic viscosity/diffusivity
-            ! (ref: Poissant et al 2000; Wilke and Chang 1995)
-            ! to correct for seawater D0 is decreased by 6% as suggested
-            ! by Wanninkhof (1992)
-
-            D = 7.4e-8_fp * sqrt( 2.26e0_fp * 18.0e0_fp ) * TK /
-     &             ( ( 14.8e0_fp**0.6e0_fp ) *vi )
-
-            Sc   = ( 0.017e0_fp * EXP( -0.025e0_fp * TC ) ) / D                
-            
-            ! Schmidt # of CO2 [unitless] for CO2 in seawater at 20 degrees C
-            ! The value is set to a constant based on other ocean studies
-            ! (Gardfeld et al. 2003, Rolfhus & Fitzgerald2004,Mason et al.2001)
-
-            ! Correction of the Schmidt # with temperature based on Poissant
-            ! et al. (2000) (for freshwatersystems).
-
-            ScCO2  = 644.7e0_fp + TC * ( -6.16e0_fp + TC * ( 0.11e0_fp)) 
-
-            ! Square of surface (actually 10m) wind speed [m2/s2]
-            Usq    = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
-
-            !------------------------------------------------------
-            ! Parameterizations for calculating water side mass trasfer 
-            ! coefficient 
-            !------------------------------------------------------
-            ! Mass transfer coefficient [cm/h], from Nightingale et al. 2000
-            Kw     = ( 0.25e0_fp * Usq ) / SQRT( Sc / ScCO2 )   
-            ! Loop over all Hg categories
-            DO NN = 1, N_Hg_CATS
-
-               ! Hg0 tracer number (for STT)
-               N             = Hg0_Id_List(NN)
-
-               !--------------------------------------------------------
-               ! Calculate oceanic and gas-phase concentration of Hg(0)
-               !--------------------------------------------------------
-                  
-               ! Concentration of Hg(0) in the ocean [ng/L]
-               ! now converting from Hg0aq in mol/m3 to ng/L
-               CHg0aq = Hg0aq(I,J,NN) *200.59e0_fp * 1.0e9_fp / 1.0e3_fp
-
-               ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
-               MHg0_air = STT(I,J,1,N)
-               CHg0          = MHg0_air 
-     &                         *  1.0e9_fp /State_Met%AIRVOL(I,J,1)
-               
-               !--------------------------------------------------------
-               ! Compute flux of Hg(0) from the ocean to the air
-               !--------------------------------------------------------
-
-               ! Compute ocean flux of Hg0 [cm/h*ng/L]
-               FLUX(I,J,NN)  = Kw * ( CHg0aq - ( CHg0 / H ) )
-
-               !Extra diagnostic: compute flux up and flux down
-               FUP(I,J,NN)   = ( Kw * CHg0aq )
-               FDOWN(I,J,NN) = ( Kw * CHg0 / H )     
-               !--------------------------------------------------
-               ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
-               ! Also account for ocean fraction of grid box
-               FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O 
-
-               ! hmh 5/11/16 reverting to old version and uncommenting here
-               FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
-               FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
-               !--------------------------------------------------
-
-               !--------------------------------------------------------
-               ! Flux limited by ocean and atm Hg(0)
-               !--------------------------------------------------------
-
-               ! Cap the flux w/ the available Hg(0) ocean mass
-               ! THIS IS THE PROBLEM!
-               Hg0aqtemp = CHg0aq * A_M2 * FRAC_O *1.0e-8_fp
-               
-               IF ( FLUX(I,J,NN) * DTSRCE > Hg0aqtemp ) THEN 
-                  FLUX(I,J,NN) = Hg0aqtemp / DTSRCE 
-                  FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
-               ENDIF
-                
-               ! Cap the neg flux w/ the available Hg(0) atm mass
-
-               IF ( (-FLUX(I,J,NN) * DTSRCE ) > MHg0_air ) THEN
-                  FLUX(I,J,NN) = -MHg0_air / DTSRCE       
-               ENDIF
-               
-               ! make sure Fup and Fdown do not underflow either
-               ! debug 2x2.5 diagnostic?
-               FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
-               FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
-
-!               AD03(I,J,16,NN) = AD03(I,J,16,NN) + FUP(I,J,NN) * DTSRCE
-!               AD03(I,J,17,NN) = AD03(I,J,17,NN) + FDOWN(I,J,NN) *DTSRCE
-            ENDDO
-
-         ELSE
-
-            DO NN = 1, N_Hg_CATS 
-               FLUX(I,J,NN) = 0e0_fp
-               FUP(I,J,NN)=0e0_fp
-               FDOWN(I,J,NN)=0e0_fp 
-            ENDDO               
-
-         ENDIF 
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-      ! Free pointer
-      NULLIFY( STT )
-
-      END SUBROUTINE OFFLINEOCEAN_READMO
-!EOC
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

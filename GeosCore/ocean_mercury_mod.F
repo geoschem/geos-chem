@@ -135,7 +135,7 @@
 !  12 Jul 2016 - E. Lundgren - Remove bpch restart file option and associated 
 !                              routines. Now use netcdf in restart_mod.F.
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
-!  27 Feb 2018 - C. Thackray - added L_ADD_MBL_BR switch
+!  27 Feb 2018 - C. Thackray - added L_ADD_MBL_BR and LRED_CLOUDONLY switches
 !******************************************************************************
 !
       USE inquireMod,    ONLY : findFreeLUN
@@ -165,6 +165,7 @@
       PUBLIC :: LRED_JNO2,   LGEOSLWC
       PUBLIC :: LBRYCHEM,   LCLCHEM
       PUBLIC :: LHGAQCHEM
+      PUBLIC :: LRED_CLOUDONLY
       PUBLIC :: LHg2HalfAerosol
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
@@ -238,7 +239,7 @@
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
       LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
-      LOGICAL   :: L_ADD_MBL_BR
+      LOGICAL   :: L_ADD_MBL_BR, LRED_CLOUDONLY
       LOGICAL   :: LGEIA05 !eck, 10/19/11
       LOGICAL   :: LVEGEMIS ! jaf
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
