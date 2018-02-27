@@ -27,7 +27,7 @@ MODULE GCKPP_HETRATES
   USE State_Chm_Mod,      ONLY : Ind_
   USE State_Met_Mod,      ONLY : MetState
   USE Input_Opt_Mod,      ONLY : OptInput
-  USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP
+  USE PhysConstants,      ONLY : AVO, RGASLATM, CONSVAP, RSTARG, PI
   USE Precision_Mod,      ONLY : fp
 
   IMPLICIT NONE
@@ -133,7 +133,12 @@ MODULE GCKPP_HETRATES
   REAL(fp) :: MW_HOBr,      MW_HBr,    MW_ClNO3
   REAL(fp) :: MW_HOCl,      MW_HI,     MW_HOI
   REAL(fp) :: MW_I2O2,      MW_I2O3,   MW_I2O4
-  REAL(fp) :: MW_IONO,      MW_IONO2
+  REAL(fp) :: MW_IONO,      MW_IONO2,  MW_HCl
+  REAL(fp) :: MW_O3
+  REAL(fp) :: H_K0_O3,      H_CR_O3,   H_O3_T
+  REAL(fp) :: H_K0_HOBr,    H_CR_HOBr, H_HOBr_T
+  REAL(fp) :: H_K0_HBr,     H_CR_HBr
+  REAL(fp) :: H_K0_HCl,     H_CR_HCl
   REAL(fp) :: HSO3conc_Cld, SO3conc_Cld, fupdateHOBr
 
   ! Arrays
@@ -159,6 +164,12 @@ MODULE GCKPP_HETRATES
   ! Effective Henry's Law constant of IEPOX for reactive
   ! uptake to aqueous aerosols (M/atm)
   REAL(fp), PARAMETER :: HSTAR_EPOX = 5.0e+6_fp
+
+  ! Conversion factor from atm to bar
+  REAL(fp), PARAMETER :: con_atm_bar = 1.0e+0_fp/1.01325e+0_fp
+
+  ! Universal gas consatant [bar/(mol/kg)/K]
+  REAL(fp), PARAMETER :: con_R = RStarG*1.0e-2_fp
 !
 ! !REMARKS:
 !  Need 
@@ -265,6 +276,8 @@ MODULE GCKPP_HETRATES
 !                              diagnostic purposes and is no longer used. Also
 !                              rename IO,SM,SC to Input_Opt,State_Met,State_Chm
 !                              for consistency with other GEOS-Chem routines.
+!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
+!                              database instead of hardcoding in halogens code
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -440,10 +453,42 @@ MODULE GCKPP_HETRATES
          IF ( IND > 0 ) MW_BrNO3  = State_Chm%SpcData(IND)%Info%MW_g
 
          IND = Ind_( 'HOBr' )
-         IF ( IND > 0 ) MW_HOBr   = State_Chm%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) THEN
+            MW_HOBr   = State_Chm%SpcData(IND)%Info%MW_g
+
+            ! Henry's law parameters
+            H_K0_HOBr = State_Chm%SpcData(IND)%Info%Henry_K0 * con_atm_bar
+            H_CR_HOBr = State_Chm%SpcData(IND)%Info%Henry_CR
+            H_HOBr_T  = 298.15
+         ENDIF
+
+         IND = Ind_( 'O3' )
+         IF ( IND > 0 ) THEN
+            MW_O3     = State_Chm%SpcData(IND)%Info%MW_g
+
+            ! Henry's law parameters
+            H_K0_O3   = 1.1e-2_fp * con_atm_bar 
+            H_CR_O3   = 2300.0
+            H_O3_T    = 298.15
+         ENDIF
 
          IND = Ind_( 'HBr' )
-         IF ( IND > 0 ) MW_HBr    = State_Chm%SpcData(IND)%Info%MW_g
+         IF ( IND > 0 ) THEN
+            MW_HBr    = State_Chm%SpcData(IND)%Info%MW_g
+
+            ! Henry's law parameters
+            H_K0_HBr  = State_Chm%SpcData(IND)%Info%Henry_K0
+            H_CR_HBr  = State_Chm%SpcData(IND)%Info%Henry_CR
+         ENDIF
+
+         IND = Ind_( 'HCl' )
+         IF ( IND > 0 ) THEN
+            MW_HCl    = State_Chm%SpcData(IND)%Info%MW_g
+
+            ! Henry's law parameters
+            H_K0_HCl  = State_Chm%SpcData(IND)%Info%Henry_K0
+            H_CR_HCl  = State_Chm%SpcData(IND)%Info%Henry_CR
+         ENDIF
 
          IND = Ind_( 'ClNO3' )
          IF ( IND > 0 ) MW_ClNO3  = State_Chm%SpcData(IND)%Info%MW_g
@@ -3536,7 +3581,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-  USE PhysConstants,      ONLY : Pi, RStarG
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
@@ -3548,32 +3592,22 @@ MODULE GCKPP_HETRATES
       REAL(fp), INTENT(IN)             :: T, C_Y, C_X_g
 !
 ! !REVISION HISTORY:
-!  24 Sept 2015 - J. Schmidt - Initial version
+!  24 Sep 2015 - J. Schmidt  - Initial version
+!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
+!                              database in SET_HET instead of hardcoding here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-!
-      REAL(fp),  PARAMETER   :: con_atm_bar = 1.0/1.01325
-!      REAL(fp),  PARAMETER   :: con_pi      = 3.14159265359e0_fp
-!      REAL(fp),  PARAMETER   :: con_R_SI    = 8.3144621e0_fp  !J/(K*mol)
-!      REAL(fp),  PARAMETER   :: con_R       = 8.3144621e-2_fp !bar/(mol/kg)/K
-      REAL(fp),  PARAMETER   :: con_R     = RStarG*1.0e-2_fp !bar/(mol/kg)/K
-      ! O3
-      REAL(fp),  PARAMETER   :: H_O3      = 1.1e-2_fp * con_atm_bar 
-      REAL(fp),  PARAMETER   :: H_O3_E    = -2300.0
-      REAL(fp),  PARAMETER   :: H_O3_T    = 298.15
-      REAL(fp),  PARAMETER   :: M_O3      = 4.8e-2_fp
-
       REAL(fp)       :: ab, gb, gd, gs, M_X
       REAL(fp)       :: cavg, H_X
       REAL(fp)       :: KLangC, k_s, C_Y_surf, Nmax
       REAL(fp)       :: k_b, D_l, l_r
 
-      H_X = H_O3*dexp(-H_O3_E*(1.0e0_fp/T - 1.0e0_fp/H_O3_T))
-      M_X = M_O3
+      H_X = H_K0_O3*dexp(H_CR_O3*(1.0e0_fp/T - 1.0e0_fp/H_O3_T))
+      M_X = MW_O3 * 1e-3_fp
 
       cavg    = dsqrt(8*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
 
@@ -4308,7 +4342,7 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
 !
-      REAL(fp)       :: ab, gd, M_X
+      REAL(fp)       :: ab
 
       ! 1: Cl-, 2: Br-
       IF (X==1) THEN
@@ -4339,7 +4373,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-  USE PhysConstants,      ONLY : Pi, RStarG
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
@@ -4359,6 +4392,8 @@ MODULE GCKPP_HETRATES
 !  24 Sep 2015 - J. Schmidt  - Initial version
 !  15 Nov 2017 - M. Sulprizio- Added options for HSO3- and SO3-- based on
 !                              Qianjie Chen's work
+!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
+!                              database in SET_HET instead of hardcoding here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4366,31 +4401,7 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
 !
-      ! Conversion factor from atm to bar
-      REAL(fp),  PARAMETER   :: con_atm_bar = 1.0/1.01325
 
-      ! Universal gas consatant [bar/(mol/kg)/K]
-      REAL(fp),  PARAMETER   :: con_R     = RStarG*1.0e-2_fp 
-
-      !----------
-      ! HOCl
-      !----------
-      ! NOTE: These don't seem to be used anywhere
-      REAL(fp),  PARAMETER   :: H_HOCl    = 6.6e2_fp * con_atm_bar !M/bar
-      REAL(fp),  PARAMETER   :: H_HOCl_E  = -5900.0
-      REAL(fp),  PARAMETER   :: H_HOCl_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOCl    = 5.246e-2_fp !Hardcoded MW [kg/mol]
-
-      !----------
-      ! HOBr
-      !----------
-      ! Henry's law constant [M/bar], Estimate, but also recommended by IUPAC 
-      !REAL(fp),  PARAMETER   :: H_HOBr    = 6.1e3_fp * con_atm_bar
-      !qjc, 11/30/17, used in [Sander, 2015] and [Chen et al., 2017]
-      REAL(fp),  PARAMETER   :: H_HOBr    = 1.3e3_fp * con_atm_bar
-      REAL(fp),  PARAMETER   :: H_HOBr_E  = 6014.0
-      REAL(fp),  PARAMETER   :: H_HOBr_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOBr    = 9.6911e-2_fp !Hardcoded MW [kg/mol]
 
       REAL(fp)       :: ab, gb, gd, M_X
       REAL(fp)       :: cavg, k_b, D_l, l_r, H_X
@@ -4417,8 +4428,8 @@ MODULE GCKPP_HETRATES
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
       D_l  = 1.4e-5_fp
 
-      H_X = H_HOBr*dexp(-H_HOBr_E*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
-      M_X = M_HOBr
+      H_X = H_K0_HOBr*dexp(H_CR_HOBr*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
+      M_X = MW_HOBr * 1e-3_fp
 
       ! Mass accommodation coefficient
       ab = 0.6e0_fp
@@ -4448,7 +4459,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE PhysConstants,      ONLY : Pi, RStarG
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
@@ -4466,6 +4476,8 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
+!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
+!                              database in SET_HET instead of hardcoding here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4473,32 +4485,6 @@ MODULE GCKPP_HETRATES
 ! !LOCAL VARIABLES:
 !
 !
-      ! Conversion factor from atm to bar
-      REAL(fp),  PARAMETER   :: con_atm_bar = 1.0/1.01325
-
-      ! Universal gas consatant [bar/(mol/kg)/K]
-      REAL(fp),  PARAMETER   :: con_R     = RStarG*1.0e-2_fp
-
-      !----------
-      ! HOCl
-      !----------
-      ! NOTE: These don't seem to be used anywhere
-      REAL(fp),  PARAMETER   :: H_HOCl    = 6.6e2_fp * con_atm_bar !M/bar
-      REAL(fp),  PARAMETER   :: H_HOCl_E  = -5900.0
-      REAL(fp),  PARAMETER   :: H_HOCl_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOCl    = 5.246e-2_fp !Hardcoded MW [kg/mol]
-
-      !----------
-      ! HOBr
-      !----------
-      ! Henry's law constant [M/bar], Estimate, but also recommended by IUPAC 
-      !REAL(fp),  PARAMETER   :: H_HOBr    = 6.1e3_fp * con_atm_bar
-      ! qjc, 11/30/17, used in [Sander, 2015] and [Chen et al., 2017]
-      REAL(fp),  PARAMETER   :: H_HOBr    = 1.3e3_fp * con_atm_bar
-      REAL(fp),  PARAMETER   :: H_HOBr_E  = 6014.0
-      REAL(fp),  PARAMETER   :: H_HOBr_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOBr    = 9.6911e-2_fp !Hardcoded MW [kg/mol]
-
       REAL(fp)       :: ab, gd, M_X
       REAL(fp)       :: cavg, H_X
       REAL(fp)       :: gb1, gb2, gb3, gb4, gb_tot
@@ -4528,8 +4514,8 @@ MODULE GCKPP_HETRATES
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
       D_l  = 1.4e-5_fp
 
-      H_X = H_HOBr*dexp(-H_HOBr_E*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
-      M_X = M_HOBr
+      H_X = H_K0_HOBr*dexp(H_CR_HOBr*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
+      M_X = MW_HOBr * 1e-3_fp
 
       ! Mass accommodation coefficient
       ab = 0.6e0_fp
@@ -4605,7 +4591,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-      USE PhysConstants,      ONLY : Pi, RStarG
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
@@ -4623,39 +4608,14 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  30 Nov 2017 - Q.J. Chen   - Initial version
+!  27 Feb 2018 - M. Sulprizio- Obtain Henry's law parameters from species
+!                              database in SET_HET instead of hardcoding here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-!
-      ! Conversion factor from atm to bar
-      REAL(fp),  PARAMETER   :: con_atm_bar = 1.0/1.01325
-
-      ! Universal gas consatant [bar/(mol/kg)/K]
-      REAL(fp),  PARAMETER   :: con_R     = RStarG*1.0e-2_fp 
-
-      !----------
-      ! HOCl
-      !----------
-      ! NOTE: These don't seem to be used anywhere
-      REAL(fp),  PARAMETER   :: H_HOCl    = 6.6e2_fp * con_atm_bar !M/bar
-      REAL(fp),  PARAMETER   :: H_HOCl_E  = -5900.0
-      REAL(fp),  PARAMETER   :: H_HOCl_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOCl    = 5.246e-2_fp !Hardcoded MW [kg/mol]
-
-      !----------
-      ! HOBr
-      !----------
-      ! Henry's law constant [M/bar], Estimate, but also recommended by IUPAC 
-      !REAL(fp),  PARAMETER   :: H_HOBr    = 6.1e3_fp * con_atm_bar
-      ! qjc, 11/30/17, used in [Sander, 2015] and [Chen et al., 2017]
-      REAL(fp),  PARAMETER   :: H_HOBr    = 1.3e3_fp * con_atm_bar
-      REAL(fp),  PARAMETER   :: H_HOBr_E  = 6014.0
-      REAL(fp),  PARAMETER   :: H_HOBr_T  = 298.15
-      REAL(fp),  PARAMETER   :: M_HOBr    = 9.6911e-2_fp !Hardcoded MW [kg/mol]
-
       REAL(fp)       :: ab, gd, M_X
       REAL(fp)       :: cavg, H_X
       REAL(fp)       :: gb1, gb2, gb_tot
@@ -4674,8 +4634,8 @@ MODULE GCKPP_HETRATES
       ! (Ammann et al., Atmos. Chem. Phys., 2013)
       D_l  = 1.4e-5_fp
 
-      H_X = H_HOBr*dexp(-H_HOBr_E*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
-      M_X = M_HOBr
+      H_X = H_K0_HOBr*dexp(H_CR_HOBr*(1.0e0_fp/T - 1.0e0_fp/H_HOBr_T))
+      M_X = MW_HOBr * 1e-3_fp
 
       ! Mass accommodation coefficient
       ab = 0.6e0_fp
@@ -4742,7 +4702,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-  USE PhysConstants,      ONLY : Pi, RStarG
 !
 ! !OUTPUT PARAMETER:
       ! Reactive uptake coefficient (unitless)
@@ -4761,18 +4720,10 @@ MODULE GCKPP_HETRATES
 !
 ! !LOCAL VARIABLES:
 !
-!
-!      REAL(fp),  PARAMETER   :: con_pi      = 3.14159265359e0_fp
-!      REAL(fp),  PARAMETER   :: con_R_SI    = 8.3144621e0_fp  !J/(K*mol)
-!      REAL(fp),  PARAMETER   :: con_R       = 8.3144621e-2_fp !bar/(mol/kg)/K
-      REAL(fp),  PARAMETER   :: con_R     = RStarG*1.0e-2_fp !bar/(mol/kg)/K
-      ! ClONO2
-      REAL(fp),  PARAMETER   :: M_ClNO3  = 9.746e-2_fp
-
       REAL(fp)       :: ab, gb, gd, M_X
       REAL(fp)       :: cavg, D_l
 
-      M_X = M_ClNO3
+      M_X = MW_ClNO3 * 1e-3_fp
       ab = 0.11e0_fp
 
       cavg = dsqrt(8.0e+0_fp*RStarG*T/(Pi*M_X)) *1.0e2_fp ! thermal velocity (cm/s)
@@ -5903,7 +5854,6 @@ MODULE GCKPP_HETRATES
 ! !USES:
 !
       USE State_Met_Mod, ONLY : MetState
-      USE PhysConstants, ONLY : RSTARG, PI
 !
 ! !INPUT PARAMETERS:
 !
@@ -6078,8 +6028,8 @@ MODULE GCKPP_HETRATES
 
       ! get the volume of cloud [cm3]
       ! QL is [g/g]
-      VLiq = CLDF(I,J,L) * QL * AD(I,J,L) / dens_h2o
-      VIce = CLDF(I,J,L) * QI * AD(I,J,L) / dens_h2o
+      VLiq = QL * AD(I,J,L) / dens_h2o
+      VIce = QI * AD(I,J,L) / dens_h2o
   
       ! Only want warm (continental or marine) liquid clouds
       IF ( .not. Is_Warm ) THEN
@@ -6135,6 +6085,8 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Initial version
+!  27 Feb 2018 - M. Sulprizio  - Obtain Henry's law parameters from species
+!                                database in SET_HET instead of hardcoding here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6167,7 +6119,7 @@ MODULE GCKPP_HETRATES
       ENDIF
 
       ! Bromide (Assuming ph=4.5)
-      CALL COMPUTE_L2G_LOCAL( 7.1e13_fp, -10200.0e0_fp, 0.0e+0_fp, TK, V_tot, L2G)
+      CALL COMPUTE_L2G_LOCAL( H_K0_HBr, H_CR_HBr, 0.0e+0_fp, TK, V_tot, L2G)
       F_L = L2G/(1.0e0_fp + L2G)
       br_conc = F_L * HBr / (V_tot * AVO * 1.0e-3_fp) ! [Br-] in (mol/L)
 
@@ -6175,7 +6127,7 @@ MODULE GCKPP_HETRATES
       br_conc = max(br_conc,1.0e-20_fp)
 
       ! Chloride (Assuming ph=4.5)
-      CALL COMPUTE_L2G_LOCAL( 1.1e11_fp, -9000.0e0_fp, 0.0e+0_fp, TK, V_tot, L2G)
+      CALL COMPUTE_L2G_LOCAL( H_K0_HCl, H_CR_HCl, 0.0e+0_fp, TK, V_tot, L2G)
       F_L = L2G/(1.0e0_fp + L2G)
       cl_conc = F_L * HCl / (V_tot * AVO * 1.0e-3_fp) ! [Cl-] in (mol/L)
       cl_conc = min(cl_conc,5.0e0_fp)
@@ -6327,7 +6279,6 @@ MODULE GCKPP_HETRATES
 !
 ! !USES:
 !
-!      USE PhysConstants, ONLY : PI
 !
 ! !INPUT PARAMETERS:
 !
