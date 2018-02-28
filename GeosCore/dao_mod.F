@@ -1633,6 +1633,7 @@
       USE TIME_MOD,           ONLY : GET_GMT
       USE TIME_MOD,           ONLY : GET_HOUR 
       USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_SECOND
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
@@ -1664,6 +1665,7 @@
 !
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
+      INTEGER :: SECOND
       REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
 
       !=================================================================
@@ -1681,8 +1683,11 @@
       DAY    = GET_DAY()                               ! Current day of month
       HOUR   = GET_HOUR()                              ! Current GMT hour
       MINUTE = GET_MINUTE()                            ! Current GMT minutes
+      SECOND = GET_SECOND()                            ! Current GMT seconds
       GMT    = GET_GMT()                               ! Current GMT
-      DDAY   = DAY + ( HOUR/24d0 ) + ( MINUTE/1440d0 ) ! Current decimal day
+      DDAY   = DAY + ( HOUR/24d0     ) + ( MINUTE/1440d0 ) 
+     &             + ( SECOND/3600d0 )                 ! Current decimal day 
+! Current decimal day
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
@@ -1729,7 +1734,7 @@
 !
       USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_MINUTE, GET_SECOND
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1801,7 +1806,7 @@
 ! !LOCAL VARIABLES:
 !      
       INTEGER              :: I,        J
-      INTEGER              :: MINUTE,   TS_SUN,   FACTOR
+      INTEGER              :: SECOND,   MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
       REAL(fp)             :: C_YMID_R, S_YMID_R
@@ -1825,17 +1830,18 @@
 
       ! Quantities for central chemistry timestep
       TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
+      SECOND   = GET_SECOND()                          ! Current seconds
       MINUTE   = GET_MINUTE()                          ! Current minutes
-      FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
+      FACTOR   = ( MINUTE * 60 + SECOND ) / TS_SUN     ! Multiplying factor
 
       ! GMT at the current time
       GMT_CUR  = DBLE( GMT_HOUR          )
-     &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
+     &         + ( DBLE( TS_SUN * FACTOR ) / 3600e+0_fp ) 
 
       ! GMT at the midpoint of the chemistry time interval
       GMT_MID  = ( DBLE( GMT_HOUR        )        )  
-     &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
-     &         + ( DBLE( TS_SUN / 2      ) / 60e+0_fp ) 
+     &         + ( DBLE( TS_SUN * FACTOR ) / 3600e+0_fp ) 
+     &         + ( DBLE( TS_SUN / 2      ) / 3600e+0_fp ) 
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
       R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 

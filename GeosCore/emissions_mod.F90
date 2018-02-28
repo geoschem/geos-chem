@@ -157,9 +157,7 @@ CONTAINS
     USE MERCURY_MOD,        ONLY : EMISSMERCURY
 
     ! For UCX, use Seb's routines for now
-#if defined( UCX )
     USE UCX_MOD,            ONLY : EMISS_BASIC
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -288,8 +286,7 @@ CONTAINS
        ENDIF
    
        ! For UCX, use Seb's routines for stratospheric species for now.
-#if defined( UCX )
-       IF ( Input_Opt%LBASICEMIS ) THEN
+       IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
           CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
           ! Trap potential errors
@@ -299,7 +296,6 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
-#endif
 
        ! For mercury, use old emissions code for now
        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN

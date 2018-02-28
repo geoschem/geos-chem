@@ -277,6 +277,7 @@ CONTAINS
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  17 Jan 2018 - R. Yantosca - Replace GET_TPAUSE_LEVEL w/ State_Met%TropLev
 !EOP
 !------------------------------------------------------------------------------
@@ -303,8 +304,8 @@ CONTAINS
     LOGICAL            :: LLINOZ
     LOGICAL            :: LSYNOZ
     LOGICAL            :: LPRT
-    LOGICAL            :: LBRGCCM
-    LOGICAL            :: LRESET, LCYCLE
+    LOGICAL            :: LUCX
+    LOGICAL            :: LCYCLE
     LOGICAL            :: ISBR2 
 
     ! Strings
@@ -335,7 +336,7 @@ CONTAINS
     LLINOZ               = Input_Opt%LLINOZ
     LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
-    LBRGCCM              = Input_Opt%LBRGCCM
+    LUCX                 = Input_Opt%LUCX
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
@@ -392,10 +393,6 @@ CONTAINS
           ENDIF
        ENDIF
     ENDIF
-
-    ! SDE 2014-01-14: Allow the user to overwrite stratospheric
-    ! concentrations at model initialization if necessary
-    LRESET = (FIRST.AND.LBRGCCM)
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
@@ -505,12 +502,12 @@ CONTAINS
                       Spc(I,J,L,NN) = M0 + P*dt
                    ENDIF
 
-#if !defined(UCX)
-                   ! Aggregate stratospheric chemical tendency [kg box-1]
-                   ! for tropchem simulations
-                   SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
-                                          ( Spc(I,J,L,NN) - M0 )
-#endif
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
+                                             ( Spc(I,J,L,NN) - M0 )
+                   ENDIF
 
                 ENDDO ! N
              ENDDO ! L
@@ -543,12 +540,12 @@ CONTAINS
 
        ENDIF
  
-#if !defined(UCX)
-       ! Aggregate stratospheric chemical tendency [kg box-1]
-       ! for tropchem simulations
-       SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
-                                 ( Spc(:,:,:,id_O3) - BEFORE )
-#endif
+       IF ( .not. LUCX ) THEN
+          ! Aggregate stratospheric chemical tendency [kg box-1]
+          ! for tropchem simulations
+          SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
+                                    ( Spc(:,:,:,id_O3) - BEFORE )
+       ENDIF
 
        !--------------------------------------------------------------------
        ! Reactions with OH
@@ -591,12 +588,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH3Br) * RDLOSS
                    Spc(I,J,L,id_CH3Br) = Spc(I,J,L,id_CH3Br) - T1L
-#if !defined(UCX)
-                   ! Aggregate stratospheric chemical tendency [kg box-1]
-                   ! for tropchem simulations
-                   SCHEM_TEND(I,J,L,id_CH3Br) = &
-                     SCHEM_TEND(I,J,L,id_CH3Br) - T1L
-#endif
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CH3Br) = &
+                        SCHEM_TEND(I,J,L,id_CH3Br) - T1L
+                   ENDIF
                 ENDIF
 
                 !============!
@@ -607,12 +604,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CHBr3) * RDLOSS
                    Spc(I,J,L,id_CHBr3) = Spc(I,J,L,id_CHBr3) - T1L
-#if !defined(UCX)
-                   ! Aggregate stratospheric chemical tendency [kg box-1]
-                   ! for tropchem simulations
-                   SCHEM_TEND(I,J,L,id_CHBr3) = &
-                     SCHEM_TEND(I,J,L,id_CHBr3) - T1L
-#endif
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CHBr3) = &
+                        SCHEM_TEND(I,J,L,id_CHBr3) - T1L
+                   ENDIF
                 ENDIF
 
                 !=============!
@@ -623,12 +620,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH2Br2) * RDLOSS
                    Spc(I,J,L,id_CH2Br2) = Spc(I,J,L,id_CH2Br2) - T1L
-#if !defined(UCX)
-                   ! Aggregate stratospheric chemical tendency [kg box-1]
-                   ! for tropchem simulations
-                   SCHEM_TEND(I,J,L,id_CH2Br2) = &
-                     SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
-#endif
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CH2Br2) = &
+                        SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
+                   ENDIF
                 ENDIF
 
              ENDDO ! J
@@ -664,11 +661,7 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                  
-                IF ( LRESET ) THEN
-                   LCYCLE = State_Met%InTroposphere(I,J,L)
-                ELSE 
-                   LCYCLE = State_Met%InChemGrid(I,J,L)
-                ENDIF
+                LCYCLE = State_Met%InChemGrid(I,J,L)
                 IF ( LCYCLE ) CYCLE
 
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
@@ -700,13 +693,13 @@ CONTAINS
              ENDDO
              ENDDO
 
-#if !defined(UCX)
-             ! Aggregate stratospheric chemical tendency [kg box-1]
-             ! for tropchem simulations
-             SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
-                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
-                ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
-#endif
+             IF ( .not. LUCX ) THEN
+                ! Aggregate stratospheric chemical tendency [kg box-1]
+                ! for tropchem simulations
+                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
+                   SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
+                   ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+             ENDIF
           
           ENDIF
 
@@ -1584,7 +1577,7 @@ CONTAINS
     strat_trID_GMI(:)        = 0
 
     ! Initialize timestep for chemistry [s]
-    dTchem = GET_TS_CHEM() * 60e+0_fp
+    dTchem = GET_TS_CHEM()
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ! Determine the mapping for the GMI to the GC variables based on
@@ -2232,7 +2225,7 @@ CONTAINS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
-    DTCHEM = GET_TS_CHEM() * 60e+0_fp
+    DTCHEM = GET_TS_CHEM()
 
     ! For O3 flux printout
     STFLUX = 0e+0_fp
@@ -2295,32 +2288,13 @@ CONTAINS
     DO J = J30S, J30N 
        DO I = 1,    IIPAR
 
-          !==============================================================
-          ! L70mb is the 1st layer where pressure is equal to
-          ! or smaller than 70 mb 
-          !==============================================================
-
-          !--------------------------------------------------------------
-          ! Comment out for now (bmy, 10/2/07)
-          ! replace L70mb with Tropopause pressure if the later is 
-          ! lower -PHS #### still Beta testing ####
-          !IF ( Input_Opt%LVARTROP ) THEN
-          !   PTP = State_Met%TROPP(I,J)
-          !   IF ( PTP < P70mb ) THEN
-          !      P70mb = PTP
-          !      !#### TESTING ####
-          !      write(6,*)'#### RAISED bottom of O3 release region'
-          !      write(6,*)'at ', i, j
-          !      first=.true.
-          !   ENDIF
-          !ENDIF
-          !--------------------------------------------------------------
-
           DO L = 1, LLPAR
 
              ! P2 = pressure [hPa] at the sigma center of level L70mb
              P2 = State_Met%PMID(I,J,L) 
 
+             ! L70mb is the 1st layer where pressure is equal to
+             ! or smaller than 70 mb 
              IF ( P2 < P70mb ) THEN
                 L70mb = L
                 EXIT

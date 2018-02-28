@@ -243,7 +243,7 @@
 
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
-         DT_TEND = GET_TS_CONV() * 60.0_fp
+         DT_TEND = GET_TS_CONV()
          CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
      &                     State_Chm, 'PBLMIX', DT_TEND, RC )
 #endif
@@ -684,7 +684,7 @@
       TC      => State_Chm%Species   ! Chemical species [v/v]
 
       ! Convection timestep [s]
-      DTCONV = GET_TS_CONV() * 60e+0_fp
+      DTCONV = GET_TS_CONV()
 
       ! Loop over Lat/Long grid boxes (I,J)
 !$OMP PARALLEL DO

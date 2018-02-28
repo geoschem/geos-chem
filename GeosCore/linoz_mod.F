@@ -185,7 +185,7 @@
       ENDIF
 
       ! Linoz needs time step in seconds
-      NSCHEM = GET_TS_CHEM() * 60e+0_fp 
+      NSCHEM = GET_TS_CHEM()
 
       ! Call the Linoz chemistry
       CALL LINOZ_CHEM3( NSCHEM,    am_I_Root, Input_Opt, 
@@ -396,7 +396,6 @@
             ! CALL FLUSH(6) 
             !END IF
 
-            !LBOT = GET_CHEMGRID_LEVEL( I, J, State_Met )+1
             LBOT = State_Met%ChemGridLev(I,J) + 1
             LPOS = 1
             DO WHILE (State_Met%PEDGE(I,J,LPOS+1) .GE. 0.3e+0_f8)

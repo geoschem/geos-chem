@@ -128,7 +128,7 @@
       !=================================================================
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e+0_fp     
+      DTSRCE = GET_TS_EMIS()
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -334,7 +334,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -435,7 +434,6 @@
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -686,7 +684,7 @@
       IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e+0_fp      
+      DTSRCE = GET_TS_EMIS()
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 

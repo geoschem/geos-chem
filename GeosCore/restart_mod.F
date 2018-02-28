@@ -169,7 +169,7 @@
 
       ! Define collection variables
       GridAreas_ptr => AREA_M2(:,:,1)
-      TS            =  GET_TS_CHEM() * 60.0_sp
+      TS            =  GET_TS_CHEM()
 
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.

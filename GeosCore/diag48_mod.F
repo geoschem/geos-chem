@@ -7,7 +7,6 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND48 timeseries on/off 
 !  (2 ) I0             (INTEGER ) : Lon offset between global & nested grid
 !
 !  Module Routines:
@@ -96,10 +95,6 @@
       ! Make everything PRIVATE ...
       PRIVATE
  
-      ! ... except these variables ...
-      PUBLIC :: DO_SAVE_DIAG48
-      PUBLIC :: ND48_MAX_STATIONS
-
       ! ... and these routines
       PUBLIC :: CLEANUP_DIAG48
       PUBLIC :: DIAG48
@@ -111,10 +106,6 @@
       !=================================================================
 
       ! Scalars
-      LOGICAL              :: DO_SAVE_DIAG48
-      INTEGER, PARAMETER   :: ND48_MAX_STATIONS=1000
-      INTEGER              :: ND48_FREQ
-      INTEGER              :: ND48_N_STATIONS
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1 
       REAL*4               :: LONRES
@@ -122,7 +113,6 @@
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = 'ND48 station timeseries'
       CHARACTER(LEN=80)    :: TITLE
-      CHARACTER(LEN=255)   :: ND48_OUTPUT_FILE
 
       ! LUN for ND48 diagnostic file
       INTEGER              :: IU_ND48
@@ -295,7 +285,7 @@
      &                   id_IPMN > 0 ) 
 
          ! Replace YYYYMMDD tokens in filename
-         FILENAME = TRIM( ND48_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND48_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          IF ( DO_DIAG_WRITE ) THEN
@@ -327,7 +317,7 @@
       ENDIF
 
       ! Loop over each station
-      DO W = 1, ND48_N_STATIONS
+      DO W = 1, Input_Opt%ND48_N_STA
 
          ! Get lon, lat, alt, tracer indices
          I = ND48_I(W)             
@@ -957,7 +947,7 @@
 
 !------------------------------------------------------------------------------
 
-      FUNCTION ITS_TIME_FOR_DIAG48() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_DIAG48( Input_Opt ) RESULT( ITS_TIME )
 !
 !******************************************************************************
 !  Function ITS_TIME_FOR_DIAG48 returns TRUE if it's time for the next
@@ -969,26 +959,34 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_DIAG
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: ITS_TIME
 
       ! Local variables
-      LOGICAL :: ITS_TIME
-      INTEGER :: XMIN, TS_DIAG
+      INTEGER :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! ITS_TIME_FOR_DIAG48 begins here!
       !=================================================================
       
-      IF ( DO_SAVE_DIAG48 ) THEN
+      IF ( Input_Opt%DO_ND48 ) THEN
          
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
 
             ! Check if ND48_FREQ is a multiple of TS_DIAG
-            IF ( MOD( ND48_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND48', ND48_FREQ, TS_DIAG
+            IF ( MOD( Input_Opt%ND48_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND48', Input_Opt%ND48_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -996,13 +994,14 @@
             FIRST = .FALSE.
          ENDIF
       
-         ! Get elapsed minutes
-         XMIN     = GET_ELAPSED_MIN()
+         ! Get elapsed seconds
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is it time to save the next timeseries station?
-         ITS_TIME = ( DO_SAVE_DIAG48 .and. MOD( XMIN, ND48_FREQ ) == 0 )
+         ITS_TIME = ( Input_Opt%DO_ND48 .and.
+     &                MOD( XSEC, Input_Opt%ND48_FREQ ) == 0 )
       ELSE
-         ITS_TIME = DO_SAVE_DIAG48
+         ITS_TIME = Input_Opt%DO_ND48
       ENDIF
 
       ! Return to calling program
@@ -1010,23 +1009,11 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
-     &                        JARR,    LARR, NARR,  FILE )
+      SUBROUTINE INIT_DIAG48( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_DIAG48 allocates and zeroes all module arrays (bmy, 7/20/04)
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_ND48 (LOGICAL ) : Switch to turn on ND49 timeseries diagnostic
-!  (2 ) FREQ    (INTEGER ) : Frequency for saving to disk [min]
-!  (3 ) N_STA   (INTEGER ) : Number of ND48 stations from "input_mod.f"
-!  (4 ) IARR    (INTEGER ) : Array w/ ND48 lon    indices from "input_mod.f"
-!  (5 ) JARR    (INTEGER ) : Array w/ ND48 lat    indices from "input_mod.f"
-!  (6 ) LARR    (INTEGER ) : Array w/ ND48 alt    indices from "input_mod.f"
-!  (7 ) NARR    (INTEGER ) : Array w/ ND48 tracer indices from "input_mod.f"
-!  (8 ) FILE    (CHAR*255) : ND48 output file name read by "input_mod.f"
-! 
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
@@ -1038,18 +1025,17 @@
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
+      USE Input_Opt_Mod,         ONLY : OptInput
       USE State_Chm_Mod,         ONLY : Ind_
-
-
-      ! Arguments
-      LOGICAL,            INTENT(IN) :: DO_ND48
-      INTEGER,            INTENT(IN) :: FREQ
-      INTEGER,            INTENT(IN) :: N_STA
-      INTEGER,            INTENT(IN) :: IARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: JARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: LARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: NARR(ND48_MAX_STATIONS)
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 
       ! Local variables
       INTEGER                        :: AS, N
@@ -1062,62 +1048,55 @@
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'
 
-      !-----------------------------
-      ! Get values from input_mod.f
-      !-----------------------------
-      DO_SAVE_DIAG48   = DO_ND48
-      ND48_FREQ        = FREQ
-      ND48_N_STATIONS  = N_STA
-      ND48_OUTPUT_FILE = TRIM( FILE )
-
-      ! Error check
-      IF ( ND48_N_STATIONS > ND48_MAX_STATIONS ) THEN
-         CALL ERROR_STOP( 'Too many ND48 stations!', LOCATION )
-      ENDIF
+      ! Return if we are not saving ND48 diagnostics
+      IF ( .not. Input_Opt%DO_ND48 ) RETURN
 
       !------------------------------
       ! Allocate module arrays
       !------------------------------
-      ALLOCATE( ND48_I( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_I( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_I' )
 
-      ALLOCATE( ND48_J( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_J( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_J' )
 
-      ALLOCATE( ND48_L( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_L( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_L' )
 
-      ALLOCATE( ND48_N( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_N( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_N' )
 
       !-------------------------------
       ! Copy values & error check
       !-------------------------------
-      DO N = 1, ND48_N_STATIONS
+      DO N = 1, Input_Opt%ND48_N_STA
 
          ! Error check longitude
-         IF ( IARR(N) < 1 .or. IARR(N) > IIPAR ) THEN
+         IF ( Input_Opt%ND48_IARR(N) < 1       .or.
+     &        Input_Opt%ND48_IARR(N) > IIPAR ) THEN
             CALL ERROR_STOP( 'Bad longitude index!', LOCATION )
          ELSE
-            ND48_I(N) = IARR(N)
+            ND48_I(N) = Input_Opt%ND48_IARR(N)
          ENDIF
 
          ! Error check latitude
-         IF ( JARR(N) < 1 .or. JARR(N) > JJPAR ) THEN
+         IF ( Input_Opt%ND48_JARR(N) < 1       .or.
+     &        Input_Opt%ND48_JARR(N) > JJPAR ) THEN
             CALL ERROR_STOP( 'Bad latitude index!', LOCATION )
          ELSE
-            ND48_J(N) = JARR(N)
+            ND48_J(N) = Input_Opt%ND48_JARR(N)
          ENDIF
 
          ! Error check longitude
-         IF ( LARR(N) < 1 .or. LARR(N) > LLPAR ) THEN
+         IF ( Input_Opt%ND48_LARR(N) < 1       .or.
+     &        Input_Opt%ND48_LARR(N) > LLPAR ) THEN
             CALL ERROR_STOP( 'Bad altitude index!', LOCATION )
          ELSE
-            ND48_L(N) = LARR(N)
+            ND48_L(N) = Input_Opt%ND48_LARR(N)
          ENDIF
 
          ! Tracer array
-         ND48_N(N) = NARR(N)
+         ND48_N(N) = Input_Opt%ND48_NARR(N)
       ENDDO
 
       !-------------------------------

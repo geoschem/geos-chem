@@ -289,7 +289,7 @@
       INTEGER                :: id_SALA,   id_SALC,   id_SF1   
       INTEGER                :: id_SO2,    id_SO4,    id_SO4aq 
       INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3 
-      INTEGER                :: id_SO4d4,  id_SO4s  
+      INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
       INTEGER                :: id_HOBr,   id_SO4H1,  id_SO4H2
 
       ! Species drydep ID flags
@@ -310,6 +310,7 @@
       LOGICAL                :: Archive_ProdSO4fromH2O2inCloud
       LOGICAL                :: Archive_ProdSO4fromHOBrInCloud
       LOGICAL                :: Archive_ProdSO4fromO3InCloud
+      LOGICAL                :: Archive_ProdSO4fromO2InCloudMetal
       LOGICAL                :: Archive_ProdSO4fromO3inSeaSalt
       LOGICAL                :: Archive_ProdSO4fromO3s
       LOGICAL                :: Archive_ProdSO4fromOxidationOnDust
@@ -429,6 +430,7 @@
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -441,10 +443,10 @@
 
       ! Scalars                
       LOGICAL                  :: aIR
-      LOGICAL                  :: LCRYST
       LOGICAL                  :: LPRT
       LOGICAL                  :: LGRAVSTRAT
       LOGICAL                  :: LDSTUP
+      LOGICAL                  :: LUCX
       LOGICAL                  :: IT_IS_AN_AEROSOL_SIM
       LOGICAL                  :: prtDebug
       INTEGER                  :: I, J, L, N, MONTH
@@ -469,10 +471,10 @@
      & ' -> at CHEMSULFATE (in module GeosCore/sulfate_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
-      LCRYST               = Input_Opt%LCRYST
       LPRT                 = Input_Opt%LPRT
       LGRAVSTRAT           = Input_Opt%LGRAVSTRAT
       LDSTUP               = Input_Opt%LDSTUP
+      LUCX                 = Input_Opt%LUCX
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
 
       ! Initialize pointers
@@ -542,7 +544,7 @@
       ELAPSED_SEC = GET_ELAPSED_SEC()
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! TS_EMIS is the emission timestep (in seconds). This is a module
       ! variable, hence define only on first call.
@@ -670,16 +672,14 @@
             ENDIF
          ENDIF
 
-#if defined( UCX )
-         ! Stratospheric aerosol gravitational settling
-         IF ( LGRAVSTRAT ) THEN
+         ! Stratospheric aerosol gravitational settling for UCX simulations
+         IF ( LUCX .and. LGRAVSTRAT ) THEN
             CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
      &                             State_Met, State_Chm, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
             ENDIF
          ENDIF
-#endif
 
          ! Convert species to [v/v dry]
          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
@@ -1674,7 +1674,7 @@
       SALC_REDGE_um =  Input_Opt%SALC_REDGE_um
 
       ! Chemistry timestep [s]
-      DTCHEM        =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM        =  GET_TS_CHEM()
 
       ! Look up this species in the species database
       ThisSpc       => State_Chm%SpcData(N)%Info
@@ -2091,7 +2091,7 @@
       Spc         => State_Chm%Species
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM      = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM      = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       f           = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2302,9 +2302,6 @@
          ! and NO3 [molec/cm3] back into State_Chm%Species
          !==============================================================
          IF ( IS_FULLCHEM ) THEN
-! This may be problematic 
-!            State_Chm%Species(I,J,L,id_OH  ) = OH
-!            State_Chm%Species(I,J,L,id_NO3 ) = XNO3
             Spc(I,J,L,id_OH  ) = OH
             Spc(I,J,L,id_NO3 ) = XNO3
          ENDIF
@@ -2451,7 +2448,7 @@
       Spc       => State_Chm%Species
 
       ! Chemistry timestep [s]
-      DT        = GET_TS_CHEM() * 60e+0_fp
+      DT        = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
       F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2713,6 +2710,12 @@
       REAL(fp)              :: SO2_ss0, rSIV, fupdateHOBr_0  !(qjc, 06/20/16) 
       REAL(fp)              :: HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0  !(qjc, 01/31/17) 
 
+      REAL(fp)              :: KaqO2, L4, L4S, MnII, FeIII
+      REAL(fp)              :: DUST,  Mn_ant,  Mn_nat
+      REAL(fp)              :: Mn_tot, Mn_d,    Fe_d
+      REAL(fp)              :: Fe_ant, Fe_nat,  Fe_tot
+      REAL(fp)              :: Fe_d_ant, Fe_d_nat
+
       ! Arrays
       REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
       REAL(fp)              :: ALKA_d  (NDSTBIN)  ! tdf 04/07/08
@@ -2759,7 +2762,7 @@
       pHCloud(:,:,:) = 4.5e+0_fp
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM   = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM   = GET_TS_CHEM()
 
       ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
       F        = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
@@ -2809,6 +2812,9 @@
 !$OMP+PRIVATE( L3_1, L3S_1,KaqO3_1, L5_1, L5S_1,HSO3aq,SO3aq           ) !qjc
 !$OMP+PRIVATE( SO4H1_vv, SO4H2_vv, LSTOT0, SO2_ss0, rSIV,fupdateHOBr_0 ) !qjc
 !$OMP+PRIVATE( HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0               ) !qjc
+!$OMP+PRIVATE( L4,    L4S,     KaqO2,  DUST, Mn_ant, Mn_nat, Mn_tot    )
+!$OMP+PRIVATE( Fe_ant, Fe_nat, Fe_tot, Fe_d, Mn_d,   FeIII,  MnII      )
+!$OMP+PRIVATE( Fe_d_ant, Fe_d_nat                                      )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR 
       DO J = 1, JJPAR
@@ -3054,7 +3060,10 @@
          L3S_1   = 0.e+0_fp !(qjc, 04/10/16)
          L5S     = 0.e+0_fp !(qjc, 04/10/16)
          L5S_1   = 0.e+0_fp !(qjc, 04/10/16)   
-
+         KaqO2   = 0.e+0_fp
+         L4      = 0.e+0_fp
+         L4S     = 0.e+0_fp
+         
          ! If (1) there is cloud, (2) there is SO2 present, and 
          ! (3) the T > -15 C, then compute aqueous SO2 chemistry
          ! Prevent divide-by-zero if LWC=0 (mpayer, 9/6/13)
@@ -3169,19 +3178,114 @@
             ! Store the cloud pH
             pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
 
-            ! Compute aqueous rxn rates for SO2
-            CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
-     &                       O3,  HPLUS, KaqH2O2, KaqO3, KaqO3_1,
-     &                       HSO3aq, SO3aq ) 
+            IF ( Input_Opt%LMETALCATSO2 ) THEN
 
-!------------------------------------------------------------------------------
-! Prior to 11/16/17:
-! Bug fix: HSO3_AQ and SO3_AQ are now saved below after the rSIV calculation
-! (qjc, mps,11/16/17)
-!            ! Store HSO3aq, SO3aq for use in gckpp_HetRates.F90
-!            State_Chm%HSO3_AQ(I,J,L) = HSO3aq
-!            State_Chm%SO3_AQ(I,J,L)  = SO3aq
-!------------------------------------------------------------------------------
+               !--------------------------------------------------------
+               ! Metal catalyzed oxidation of SO2 pathway
+               !--------------------------------------------------------
+
+               ! Get dust concentrations [v/v -> ng/m3]
+#if defined( TOMAS )
+               ! TOMAS uses its own dust tracers and does not
+               ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
+               DUST = 0e+0_fp
+#else
+               DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
+     &                  Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
+     &                  1.e+12_fp * State_Met%AD(I,J,L)
+     &                  / ( AIRMW 
+     &                    / State_Chm%SpcData(id_DST1)%Info%emMW_g )
+     &                  / State_Met%AIRVOL(I,J,L)
+#endif
+
+               ! Calculate Fe and Mn natural [ng m-3]
+               ! Assume that Fe is 3.5% of total dust mass based on
+               ! Taylor and McLennan [1985]
+               Fe_nat = DUST * 35e-3_fp
+               ! and Mn is 50 times less than Fe based on Desbouefs et al.[2005]
+               Mn_nat = Fe_nat / 50e+0_fp
+
+               ! Anthropogenic Fe concentrations [v/v -> ng/m3]
+               IF ( id_pFe > 0 ) THEN
+                  Fe_ant = Spc(I,J,L,id_pFe) *
+     &                     1.e+12_fp * State_Met%AD(I,J,L)
+     &                     / ( AIRMW 
+     &                       / State_Chm%SpcData(id_pFe)%Info%emMW_g )
+     &                     / State_Met%AIRVOL(I,J,L)
+               ELSE
+                  Fe_ant = 0e+0_fp
+               ENDIF
+
+               ! Calculate Mn anthropogenic [ng m-3]
+               ! assume anthropogenic Mn is 1/30 times anthropogenic Fe
+               Mn_ant = Fe_ant / 10e+0_fp
+
+               ! Calculate total Mn and Fe [ng m-3]
+               Mn_tot = Mn_ant + Mn_nat
+               Fe_tot = Fe_ant + Fe_nat
+
+               ! Convert Mn and Fe [ng m-3] to [mole l-1]
+
+               ! Assume that 50% of Mn is dissolved [Spokes et al., 1994]
+               ! Hardcoded MW for Mn
+               IF ( LWC > 0e+0_fp ) THEN
+                  ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
+                  Mn_d = Mn_tot * 1e-9_fp / 54.94e+0_fp / LWC * 1e-3_fp
+                  Mn_d = Mn_d * 0.5e+0_fp
+               ELSE
+                  Mn_d = 0e+0_fp
+               ENDIF
+
+               ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
+               IF ( LWC > 0e+0_fp ) THEN
+                  Fe_d_ant = Fe_ant * 1e-9_fp /
+     &                       State_Chm%SpcData(id_pFe)%Info%emMW_g /
+     &                       LWC * 1e-3_fp
+                  Fe_d_nat = Fe_nat * 1e-9_fp /
+     &                       State_Chm%SpcData(id_pFe)%Info%emMW_g /
+     &                       LWC * 1e-3_fp
+                  Fe_d     = Fe_d_ant * 0.1e+0_fp +
+     &                       Fe_d_nat * 0.01e+0_fp
+               ELSE
+                  Fe_d     = 0e+0_fp
+               ENDIF
+
+               ! Impose a dependence of Fe speciation on sunlight
+               IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &              Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+                  IF ( State_Met%SUNCOS(I,J) > 0e+0_fp ) THEN
+                     ! Assume 10% of dissolved Fe is in Fe(III)
+                     !oxidation state during the daytime
+                     FeIII = Fe_d * 0.1e+0_fp
+                  ELSE
+                     ! Assume 90% of dissolved Fe is in Fe(III)
+                     ! oxidation state during the nighttime
+                     FeIII = Fe_d * 0.9e+0_fp
+                  ENDIF
+               ELSE
+                  !--------------------
+                  ! Invalid simulation
+                  !--------------------
+                  CALL ERROR_STOP( 'Invalid NSRCX !','CHEM_SO2')
+               ENDIF
+
+               ! Assume that dissolved Mn is in Mn(II) oxidation state all of
+               ! the time
+               MnII = Mn_d
+
+            ELSE
+
+               ! Set Fe and Mn concentrations to zero
+               FeIII = 0.0e+0_fp
+               MnII  = 0.0e+0_fp
+
+            ENDIF
+
+            ! Compute aqueous rxn rates for SO2
+            CALL AQCHEM_SO2( LWC,     TK,    PATM,    SO2_ss, H2O20, 
+     &                       O3,      HPLUS, MnII,    FeIII,
+     &                       KaqH2O2, KaqO3, KaqO3_1, KaqO2,
+     &                       HSO3aq,  SO3aq ) 
 
             !----------------------------------------------------------
             ! Compute loss by H2O2.  Prevent floating-point exception
@@ -3285,6 +3389,36 @@
                ENDIF
             ENDIF 
 
+            IF ( Input_Opt%LMETALCATSO2 ) THEN
+
+               !--------------------------------------------------------
+               ! Metal catalyzed oxidation of SO2 pathway
+               !
+               ! Compute loss by O2.  I did not do what Jintai Lin did
+               ! above for the other aqueous-phase reactions because it
+               ! doesn't make sense for this reaction (bec, 7/7/15)
+               !----------------------------------------------------------
+
+               ! Argument of the exponential
+               XX = -KaqO2 * DTCHEM
+
+               IF ( IS_SAFE_EXP( XX ) ) THEN
+                  ! Aqueous phase SO2 loss rate w/ O2 [v/v/timestep]
+                  L4  = EXP( XX )
+
+                  ! Loss by O2
+                  L4S = SO2_ss * (1.e+0_fp - L4)
+               ELSE
+                  L4S = SO2_ss
+               ENDIF
+
+            ELSE
+
+               ! Set loss by O2 to zero
+               L4S = 0.0e+0_fp
+
+            ENDIF
+
             !----------------------------------------------------------
             ! Compute loss by HOBr.  Prevent floating-point exception
             ! by not allowing the exponential to go to infinity if 
@@ -3318,11 +3452,12 @@
             L2S   =  L2S   * FC
             L3S   =  L3S   * FC    
             L3S_1 =  L3S_1 * FC   !(qjc, 06/20/16)
+            L4S   =  L4S   * FC
             L5S   =  L5S          !(qjc, 06/20/16), do not multiply by FC if it
                                   ! is not divided by FC at the begining
             L5S_1 =  L5S_1        !(qjc, 06/20/16)
 
-            LSTOT0 = L2S + L3S + L5S ! (qjc, 11/04/16)
+            LSTOT0 = L2S + L3S + L4S + L5S ! (qjc, 11/04/16)
 
             ! make sure sulfate produced is less than SO2 available
             ! (qjc, 06/20/16)
@@ -3330,6 +3465,7 @@
 
                L2S   = SO2_ss * L2S   / LSTOT0
                L3S   = SO2_ss * L3S   / LSTOT0
+               L4S   = SO2_SS * L4S   / LSTOT0
                L5S   = SO2_ss * L5S   / LSTOT0
                L3S_1 = SO2_ss * L3S_1 / LSTOT0
                L5S_1 = SO2_ss * L5S_1 / LSTOT0
@@ -3343,6 +3479,7 @@
 
                L2S   = L2S
                L3S   = L3S
+               L4S   = L4S
                L5S   = L5S
                L3S_1 = L3S_1
                L5S_1 = L5S_1
@@ -3516,7 +3653,7 @@
 
 	       ! Get total in-cloud sulfate production based on bulk cloud pH
                ! calculations for use in HET_DROP_CHEM
-               LSTOT = (L2S + L3S + L5S) / FC !(qjc, 06/20/16)
+               LSTOT = (L2S + L3S + L4S + L5S) / FC !(qjc, 06/20/16)
 
 	       ! Get coarse-mode sea-salt concentration for use in
                ! HET_DROP_CHEM [v/v]
@@ -3530,7 +3667,7 @@
                ! This is to make sure HET_DROP_CHEM does not compute more
                ! sulfate then there is SO2
                ! Add L5S (qjc, 11/04/16)
-               SO2_sr = MAX( SO2_ss - ( L2S + L3S + L5S ), MINDAT)
+               SO2_sr = MAX( SO2_ss - ( L2S + L3S + L4S + L5S ), MINDAT)
 
                CALL HET_DROP_CHEM( I,    J,   L,      LSTOT, SSCvv, 
      &                             aSO4, NH3, SO2_sr, H2O20, GNO3,  SR,
@@ -3571,7 +3708,8 @@
 
             ! Make sure SO2_ss and H2O20 are in the proper range
             ! Add L5S (qjc, 11/04/16)
-            SO2_ss = MAX( SO2_ss - ( L2S+L3S+L5S+SR ), MINDAT )
+            SO2_ss = MAX( SO2_ss - ( L2S+L3S+L4S+L5S+SR ), MINDAT )
+            H2O20  = MAX( H2O20  - L2S,                    MINDAT )
 
             ! Factor to calculate effective SO3 and HSO3 in aqchem_so2 to
             ! be used in HOBr+HSO3/SO3 (qjc, 06/20/16)
@@ -3583,11 +3721,13 @@
             State_Chm%HSO3_AQ(I,J,L) = HSO3aq*(1+rSIV)/2
             State_Chm%SO3_AQ(I,J,L)  = SO3aq *(1+rSIV)/2
 
-            H2O20  = MAX( H2O20  - L2S,                MINDAT )
-
             ! Update SO2 level, save SO2[ppv], H2O2[ppv] for WETDEP
             SO2s( I,J,L) = SO2_ss
             H2O2s(I,J,L) = H2O20
+
+            ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
+            PSO4_SO2(I,J,L) = LSTOT + PSO4E
+            PSO4_ss (I,J,L) = PSO4F
 
          ELSE
 
@@ -3598,6 +3738,7 @@
             L2S          = 0.e+0_fp
             L3S          = 0.e+0_fp
             L3S_1        = 0.e+0_fp !(qjc, 11/04/16)
+            L4S          = 0.e+0_fp
             L5S          = 0.e+0_fp !(qjc, 11/04/16)
             L5S_1        = 0.e+0_fp !(qjc, 11/04/16)
             SR           = 0.e+0_fp
@@ -3614,6 +3755,10 @@
             ! HOBr by SO2 for use in gckpp_HetRates.F90 (qjc, 06/20/16)
             State_Chm%fupdateHOBr(I,J,L) = 0.e+0_fp
 
+            ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
+            PSO4_SO2(I,J,L) = PSO4E
+            PSO4_ss (I,J,L) = PSO4F
+
          ENDIF
 
          ! Store updated SO2, H2O2 back to the tracer arrays
@@ -3628,7 +3773,7 @@
 
          ! SO2 chemical loss rate  = SO4 production rate [v/v/timestep]
          ! Add L5S (qjc, 11/04/16)
-         PSO4_SO2(I,J,L) = L1 + L2S + L3S + L5S + PSO4E + SR
+         PSO4_SO2(I,J,L) = L1 + L2S + L3S + L4S + L5S + PSO4E + SR
 
          ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
@@ -3677,26 +3822,34 @@
      &                      ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-            ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
+            ! P(SO4) from aqueous-phase oxidation with O2 metal-catalyzed
+            ! [kg S/timestep]
             AD05(I,J,L,8) = AD05(I,J,L,8) +
+     &                      ( L4S * State_Met%AD(I,J,L) / TCVV_S )
+
+            ! P(SO4) from O3 oxidation in sea-salt aerosols [kg S/timestep]
+            AD05(I,J,L,9) = AD05(I,J,L,9) +
      &                      ( (PSO4E + PSO4F) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
             ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
-            AD05(I,J,L,15) = AD05(I,J,L,15) +
+            AD05(I,J,L,16) = AD05(I,J,L,15) +
      &                       ((L5S+SRhobr)* State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRo3
-            AD05(I,J,L,16) = AD05(I,J,L,16) +
+            AD05(I,J,L,17) = AD05(I,J,L,16) +
      &                       (SRo3*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRhobr
-            AD05(I,J,L,17) = AD05(I,J,L,17) +
+            AD05(I,J,L,18) = AD05(I,J,L,17) +
      &                       (SRhobr*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by o3s
-            AD05(I,J,L,18) = AD05(I,J,L,18) +
+            AD05(I,J,L,19) = AD05(I,J,L,18) +
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
+
+            ! Cloud pH
+            AD05(I,J,L,20) = AD05(I,J,L,19) + HPLUS
 
             !tdf
             PSO4d_tot   = 0.e+0_fp
@@ -3712,18 +3865,18 @@
                END DO
 
                ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
-               AD05(I,J,L,11) = AD05(I,J,L,11) +
+               AD05(I,J,L,12) = AD05(I,J,L,11) +
      &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
 
                ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
-               AD05(I,J,L,12) = AD05(I,J,L,12) +
+               AD05(I,J,L,13) = AD05(I,J,L,12) +
      &                       ( PNITd_tot * State_Met%AD(I,J,L) /
      &                         TCVV_N )
 
                ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
                ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
-               AD05(I,J,L,13) = AD05(I,J,L,13) +
+               AD05(I,J,L,14) = AD05(I,J,L,13) +
      &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
             ENDIF
@@ -3761,6 +3914,13 @@
                State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
      &            ( ( L5S + SRhobr ) * State_Met%AD(I,J,L) / TCVV_S ) /
      &            DTCHEM
+            ENDIF
+
+            ! P(SO4) from aqueous-phase oxidation with O2 metal-catalyzed
+            ! [kg S/s]
+            IF ( Archive_ProdSO4fromO2InCloudMetal ) THEN
+               State_Diag%ProdSO4fromO2InCloudMetal(I,J,L) = 
+     &            ( L4S * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) from O3 in sea salt aerosol [kg S/s]
@@ -4005,7 +4165,7 @@
       !MW_SAL2 =  State_Chm%SpcData(id_SAL2)%Info%emMW_g
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM  = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM  = GET_TS_CHEM()
 
       ! Convert SO2 [v/v] to [eq/gridbox]
       ! Remove species molecular weights from equation (bmy, 2/10/17)
@@ -4476,7 +4636,7 @@
       MW_HNO3 = State_Chm%SpcData(id_HNO3)%Info%emMW_g
 
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Convert SO2 [v/v] to  [eq/gridbox]
 
@@ -5713,9 +5873,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AQCHEM_SO2( LWC, T,     P,       SO2, H2O2, 
-     &                       O3,  Hplus, KaqH2O2, KaqO3, KaqO3_1,
-     &                       HSO3aq, SO3aq ) 
+      SUBROUTINE AQCHEM_SO2( LWC,     T,     P,       SO2,   H2O2, 
+     &                       O3,      Hplus, MnII,    FeIII, 
+     &                       KaqH2O2, KaqO3, KaqO3_1, KaqO2,
+     &                       HSO3aq,  SO3aq ) 
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5726,12 +5887,15 @@
       REAL(fp), INTENT(IN)  :: H2O2    ! H2O2 mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: O3      ! O3   mixing ratio [v/v]
       REAL(fp), INTENT(IN)  :: HPLUS   ! Concentration of H+ ion (i.e. pH) [v/v]
+      REAL(fp), INTENT(IN)  :: MnII    ! Concentration of MnII [mole/l]
+      REAL(fp), INTENT(IN)  :: FeIII   ! Concentration of FeIII [mole/l]
 !
 ! !OUTPUT PARAMETERS: 
 !
       REAL(fp), INTENT(OUT) :: KaqH2O2 ! Reaction rate for H2O2
       REAL(fp), INTENT(OUT) :: KaqO3   ! Reaction rate for O3
       REAL(fp), INTENT(OUT) :: KaqO3_1 ! only the SO3-- oxidation, (qjc, 04/10/16)
+      REAL(fp), INTENT(OUT) :: KaqO2   ! Reaction rate for O2 (metal cat)
       REAL(fp), INTENT(OUT) :: HSO3aq  ! Cloud bisulfite [mol/l] (qjc, 06/10/16)
       REAL(fp), INTENT(OUT) :: SO3aq   ! Cloud sulfite   [mol/l] (qjc, 06/10/16)
 !
@@ -5797,7 +5961,6 @@
       REAL(fp)              :: XHSO3,  XSO3,   KH1, HCH2O2, FHCH2O2
       REAL(fp)              :: XH2O2G, H2O2aq, KO0, KO1,    KO2
       REAL(fp)              :: HCO3,   XO3g,   O3aq
-!      REAL(fp)              :: rSIV    ! qjc, 06/20/16
 
       !=================================================================
       ! AQCHEM_SO2 begins here!
@@ -5853,21 +6016,9 @@
 
       ! Effective HSO3aq for HOBr+HSO3
       HSO3aq = SIV * XHSO3           ! unit: M (qjc, 06/10/16)
-!------------------------------------------------------------------------------
-! Prior to 11/16/17:
-! Bug fix: rSIV was not defined here. This calculation is now done in CHEM_SO2
-! (qjc, mps, 11/16/17)
-!      HSO3aq = HSO3aq * (1 + rSIV)/2 ! unit: M (qjc, 06/20/16)
-!------------------------------------------------------------------------------
 
       ! Effective SO3aq for HOBr+SO3
       SO3aq  = SIV * XSO3            ! unit: M (qjc, 06/10/16)
-!------------------------------------------------------------------------------
-! Prior to 11/16/17:
-! Bug fix: rSIV was not defined here. This calculation is now done in CHEM_SO2
-! (qjc, mps, 11/16/17)
-!      SO3aq  = SO3aq * (1+rSIV)/2    ! unit: M (qjc, 06/20/16)
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! H2O2 equilibrium reaction
@@ -5946,6 +6097,27 @@
       !(qjc, 04/10/16)
       KaqO3_1 = KO2*XSO3 * FHCSO2 * XSO2g
      &      * P * HCO3 * XO3g * LWC * R * T   ! [v/v/s]
+
+      ! ===================================================================
+      ! Metal (Fe, Mn) catalyzed O2 oxidation (bec, 7/12/04)
+      ! R = d[S(VI)]/dt = 750*[Mn(II)]*[S(IV)] + 2600*[Fe(III)]*[S(IV)] +
+      !               1.d10*[Mn(II)]*[Fe(III)]*[S(IV)]
+      ! from Seinfeld and Pandis, 1998 pg. 371
+      ! S(IV) = HFCSO2 * XSO2*P*[SO2]
+      ! R = KaqO2*[SO2] (v/v/s)
+      ! KaqO2 = FHCSO2 * XSO2g * P *
+      !        ((750*[Mn(II)])+(2600[Fe(III)])+(1.d10*[Mn(II)]*[Fe(III)]))
+      ! in units of [M/s]
+      ! KaqO2 = FHCSO2 * XSO2g * P *
+      !        ((750*[Mn(II)])+(2600[Fe(III)])+(1.d10*[Mn(II)]*[Fe(III)])) *
+      !        LWC * R * T/P
+      ! in units of [v/v/s]
+      ! ===================================================================
+
+      ! Conversion rate from SO2 to SO4 via reaction with O2 (met cat)
+      KaqO2 = FHCSO2 * XSO2g * ( (750e+0_fp * MnII ) +
+     &       ( 2600e+0_fp * FeIII ) + (1e+10_fp * MnII * FeIII ) ) *
+     &        LWC * R * T   ! [s-1]
 
       END SUBROUTINE AQCHEM_SO2
 !EOC
@@ -6134,7 +6306,7 @@
 
       ! Compute H (integration time interval * air parcel velocity) [m]
       ! DTCHEM is the chemistry timestep in seconds
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       ! Compute air parcel velocity [m/s]
       !APV = SQRT( (U(I,J,L) * U(I,J,L)) + (V(I,J,L) * V(I,J,L)) )
@@ -6209,7 +6381,6 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
-      USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -6601,7 +6772,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -7086,7 +7256,7 @@
             ! Impose a diurnal variation on OH during the day
             OH_MOLEC_CM3 = OH(I,J,L)                              * 
      &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &                     ( 1440e+0_fp            / GET_TS_CHEM() )
+     &                     ( 86400e+0_fp           / GET_TS_CHEM() )
 
             ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
             OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
@@ -7439,7 +7609,7 @@
          COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()  
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()  
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -7497,7 +7667,8 @@
 
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
-                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
+                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
+     &                         * 60e+0_fp
                ENDIF
             ENDDO
             ENDDO
@@ -7515,7 +7686,7 @@
             !PRINT*, '### TTDAY   : ', MINVAL( TCOSZ ), MAXVAL( TCOSZ )
 
             ! Increment elapsed time [sec]
-            NT = NT + ( GET_TS_CHEM() * 60 )             
+            NT = NT + GET_TS_CHEM()             
          ENDDO
 
          ! Reset first-time flag
@@ -7948,6 +8119,9 @@
       Archive_ProdSO4fromO3InCloud = 
      &     ASSOCIATED( State_Diag%ProdSO4fromO3InCloud        )
 
+      Archive_ProdSO4fromO2InCloudMetal = 
+     &     ASSOCIATED( State_Diag%ProdSO4fromO2InCloudMetal   )
+
       Archive_ProdSO4fromO3inSeaSalt = 
      &     ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt      )
 
@@ -8101,6 +8275,7 @@
       id_NO3   = Ind_('NO3'      )
       id_O3    = Ind_('O3'       )
       id_OH    = Ind_('OH'       )
+      id_pFe   = Ind_('pFe'      )
       id_SALA  = Ind_('SALA'     )
       id_SALC  = Ind_('SALC'     )
       id_SF1   = Ind_('SF1'      )

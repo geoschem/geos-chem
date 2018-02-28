@@ -453,7 +453,7 @@
       SALC_REDGE_um = Input_Opt%SALC_REDGE_um
 
       ! Chemistry timestep [s]
-      DTCHEM        = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM        = GET_TS_CHEM()
 
       ! Sea salt density [kg/m3]
       DEN            = SS_DEN( N )
@@ -871,7 +871,7 @@
 
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
-      DTCHEM    = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    = GET_TS_CHEM()
       OCCONV    = 0e+0_fp
 
       ! Set pointer to GEOS-Chem tracer array [kg]
@@ -1353,7 +1353,7 @@
 
 
       ! Emission timestep [s]
-      DTEMIS = GET_TS_EMIS() * 60e+0_fp
+      DTEMIS = GET_TS_EMIS()
 
       ! Loop over grid cells
       DO J = 1, JJPAR

@@ -149,6 +149,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
@@ -381,9 +382,9 @@ CONTAINS
     !=======================================================================
 
     ! Emission, chemistry and dynamics timestep in seconds
-    HcoState%TS_EMIS = GET_TS_EMIS() * 60.0
-    HcoState%TS_CHEM = GET_TS_CHEM() * 60.0
-    HcoState%TS_DYN  = GET_TS_DYN()  * 60.0
+    HcoState%TS_EMIS = GET_TS_EMIS()
+    HcoState%TS_CHEM = GET_TS_CHEM()
+    HcoState%TS_DYN  = GET_TS_DYN()
 
     ! Is this an ESMF simulation or not?
     ! The ESMF flag must be set before calling HCO_Init because the
@@ -421,7 +422,7 @@ CONTAINS
     ENDIF
 
     ! Save # of defined dust species in HcoState
-    HcoState%nDust                     =  Input_Opt%N_DUST_BINS
+    HcoState%nDust                     =  NDSTBIN
 
 #if defined( TOMAS )
 
@@ -786,7 +787,7 @@ CONTAINS
           RETURN
        ENDIF
    
-       CALL ExtState_UpdateFields( am_I_Root, State_Met, State_Chm,          &
+       CALL ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met, State_Chm,&
                                    HcoState,  ExtState,  HMRC               )
 
        ! Trap potential errors
@@ -2005,8 +2006,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_UpdateFields( am_I_Root, State_Met, State_Chm, &
-                                    HcoState,  ExtState,  RC          ) 
+  SUBROUTINE ExtState_UpdateFields( am_I_Root, Input_Opt, State_Met,  &
+                                    State_Chm, HcoState,  ExtState,  RC ) 
 !
 ! !USES:
 !
@@ -2015,6 +2016,7 @@ CONTAINS
     USE ErrCode_Mod
     USE FAST_JX_MOD,      ONLY : RXN_NO2, RXN_O3_1, RXN_O3_2a
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
+    USE Input_Opt_Mod,    ONLY : OptInput
     USE PBL_MIX_MOD,      ONLY : GET_FRAC_OF_PBL
     USE PBL_MIX_MOD,      ONLY : GET_PBL_MAX_L
     USE State_Met_Mod,    ONLY : MetState
@@ -2026,6 +2028,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! Root CPU?
+    TYPE(OptInput),   INTENT(IN   )  :: Input_Opt  ! Input opts
     TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chm state
 !
@@ -2047,6 +2050,7 @@ CONTAINS
 !                              and remove reference to FJXFUNC and obsolete
 !                              SMVGEAR variables like NKSO4PHOT, NAMEGAS, etc.
 !  06 Jan 2017 - R. Yantosca - Now tell user to look at HEMCO log for err msgs
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  19 Jan 2018 - R. Yantosca - Now return error code to calling program
 !EOP
 !------------------------------------------------------------------------------
@@ -2151,13 +2155,13 @@ CONTAINS
                 JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
              ENDIF
              IF ( ExtState%JOH%DoUse ) THEN
-#if defined( UCX )
-                ! RXN_O3_1: O3  + hv --> O2  + O
-                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-#else
-                ! RXN_O3_2a: O3 + hv --> 2OH
-                JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
-#endif
+                IF ( Input_Opt%LUCX ) THEN
+                   ! RXN_O3_1: O3  + hv --> O2  + O
+                   JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
+                ELSE
+                   ! RXN_O3_2a: O3 + hv --> 2OH
+                   JOH(I,J) = ZPJ(L,RXN_O3_2a,I,J)
+                ENDIF
              ENDIF
           ENDIF
 
@@ -3266,8 +3270,10 @@ CONTAINS
 !  Moved here from the obsolete global_oh_mod.F.
 !
 ! !REVISION HISTORY: 
-!  01 Mar 2013 - C. Keller - Imported from carbon_mod.F, where these
-!                            calculations are done w/in GET_OH
+!  01 Mar 2013 - C. Keller   - Imported from carbon_mod.F, where these
+!                              calculations are done w/in GET_OH
+!  06 Feb 2018 - E. Lundgren - Update unit conversion factor for timestep
+!                              unit changed from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3282,7 +3288,7 @@ CONTAINS
 
        ! Impose a diurnal variation on OH during the day
        FACT = ( State_Met%SUNCOS(I,J) / SUMCOSZA(I,J) ) &
-            *  ( 1440e+0_fp           / GET_TS_CHEM() )
+              * ( 86400e+0_fp / GET_TS_CHEM() )
 
     ELSE
 
@@ -3325,6 +3331,8 @@ CONTAINS
 !                              called OHNO3TIME
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
 !                              from (MAXIJ) to (IIPAR,JJPAR)
+!  06 Feb 2018 - E. Lundgren - Update time conversion factors for timestep
+!                              unit change from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3364,7 +3372,7 @@ CONTAINS
        SUMCOSZA(:,:) = 0e+0_fp
 
        ! NDYSTEP is # of chemistry time steps in this day
-       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
+       NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()      
 
        ! NT is the elapsed time [s] since the beginning of the run
        NT = GET_ELAPSED_SEC()
@@ -3425,7 +3433,7 @@ CONTAINS
 !!$OMP END PARALLEL DO
 
          ! Increment elapsed time [sec]
-         NT = NT + ( GET_TS_CHEM() * 60 )             
+         NT = NT + GET_TS_CHEM()             
       ENDDO
 
       ! Set saved day of year to current day of year 

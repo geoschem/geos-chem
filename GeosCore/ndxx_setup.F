@@ -24,7 +24,6 @@
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD
-      USE DIAG63_MOD,         ONLY : DO_SAVE_DIAG63
 #endif
       USE DIAG_OH_MOD,        ONLY : INIT_DIAG_OH
       USE ErrCode_Mod
@@ -230,7 +229,6 @@
       LOGICAL :: LDUST
       LOGICAL :: LCARB
       LOGICAL :: LSSALT
-      LOGICAL :: LCRYST
       LOGICAL :: LDRYD
       LOGICAL :: LGTMM
 
@@ -243,7 +241,6 @@
       LDUST                = Input_Opt%LDUST
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
-      LCRYST               = Input_Opt%LCRYST
       LDRYD                = Input_Opt%LDRYD
       LGTMM                = Input_Opt%LGTMM
       IT_IS_A_CH3I_SIM     = Input_Opt%ITS_A_CH3I_SIM
@@ -495,13 +492,6 @@
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
-
-! This was never implemented
-!         ! Separate for crystalline sulfate tracers (bmy, 1/5/05)
-!         IF ( LCRYST ) THEN
-!            ALLOCATE( AD21_cr( IIPAR, JJPAR, 6 ), STAT=AS )
-!            IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )      
-!         ENDIF
       ENDIF
 
       !=================================================================

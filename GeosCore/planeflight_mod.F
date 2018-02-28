@@ -1485,6 +1485,8 @@
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1536,8 +1538,8 @@
       IF ( .not. DO_PF ) RETURN
 
       ! Update from kyu (03/2015):
-      !print*, 'IN PLANEFLIGHT, ELAPSED_MIN', GET_ELAPSED_MIN()
-      CHEMSTEP = ( MOD(GET_ELAPSED_MIN(), GET_TS_DIAG() ) == 
+      !print*, 'IN PLANEFLIGHT, ELAPSED_SEC', GET_ELAPSED_SEC()
+      CHEMSTEP = ( MOD(GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 
      &           ( GET_TS_DIAG() / 2) )
       !print*, 'CHEMSTEP', CHEMSTEP
 
@@ -1564,17 +1566,17 @@
          ! Starting & end times of chemistry interval
          PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
          ! Modification from kyu (eam, 03/2015)
-         !PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
+         !PTAUS = PTAUE - ( GET_TS_DIAG() / 3600e+0_fp )
          ! If we just finished a chemistry timestep, write out one full
          ! diagnostic timestep's worth of data
          IF ( CHEMSTEP ) THEN
-            PTAUS = PTAUE - ( GET_TS_DIAG() / 60d0 )
+            PTAUS = PTAUE - ( GET_TS_DIAG() / 3600d0 )
          ! Otherwise write out only half a timestep's worth of data
          ELSE
             ! Write half hour only if we are on last time step, otherwise
             ! exit the subroutine
-            IF (MOD(GET_ELAPSED_MIN(), (GET_TS_DIAG()*24)) == 0) THEN 
-               PTAUS = PTAUE - ( GET_TS_DIAG() / (2.0 * 60d0) )
+            IF (MOD(GET_ELAPSED_SEC(), (GET_TS_DIAG()*1440)) == 0) THEN 
+               PTAUS = PTAUE - ( GET_TS_DIAG() / (2.0 * 3600d0) )
             ELSE
                EXIT
             ENDIF

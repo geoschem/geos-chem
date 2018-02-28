@@ -35,7 +35,7 @@
       !##### NOTE: These variables can be blocked out!  #####
       !######################################################
 #if defined( BPCH_DIAG )
-      INTEGER, PARAMETER :: PD05=18
+      INTEGER, PARAMETER :: PD05=20
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15
@@ -66,7 +66,7 @@
       INTEGER, PARAMETER :: PD60=1
       INTEGER, PARAMETER :: PD61=0
 #endif
-      INTEGER, PARAMETER :: PD64=W_
+      INTEGER            :: PD64
       INTEGER            :: PD65
       INTEGER, PARAMETER :: PD66=7
       INTEGER, PARAMETER :: PD67=23 ! (Lin, 31/03/09)
@@ -96,7 +96,7 @@
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 #endif
 
-      INTEGER, PARAMETER  :: MAX_TRACER = 500      ! Large placeholder value
+      INTEGER, PARAMETER  :: MAX_TRACER = 600      ! Large placeholder value
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -254,6 +254,7 @@
 #if defined( BPCH_DIAG )
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 
+      PD64 = W_
 #endif
 
       END SUBROUTINE Init_CMN_DIAG

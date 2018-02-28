@@ -270,8 +270,8 @@
       !-----------------------------------------------------------------
       ! More initializations
       !-----------------------------------------------------------------
-      TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [min]
-      DT         = DBLE( TS_DYN )                         ! Dyn timestep [min]
+      TS_DYN     = GET_TS_DYN()                           ! Dyn timestep [sec]
+      DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
       FSOL       = 0e+0_fp                                ! Zero the FSOL array
       DO_ND14    = ( Input_Opt%ND14 > 0                 ) ! Is CONVFLUP alloc'd?
       DO_ND38    = ( Input_Opt%ND38 > 0                 ) ! Is AD38 alloc'd?
@@ -491,7 +491,7 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      DT_TEND = GET_TS_CONV() * 60.0_fp
+      DT_TEND = GET_TS_CONV()
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'CONV', DT_TEND, RC )
 
@@ -565,7 +565,7 @@
                                                    !  for updraft scavenging 
                                                    !  [unitless].  Computed by
                                                    !  routine  COMPUTE_F.
-      REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [min]
+      REAL(fp),       INTENT(IN)    :: TS_DYN      ! Dynamic timestep [sec]
       LOGICAL,        INTENT(IN)    :: USE_DIAG14  ! Archive DIAG14?
       LOGICAL,        INTENT(IN)    :: USE_DIAG38  ! Archive DIAG38?
 !                                                  
@@ -764,7 +764,7 @@
       KTOP     = NLAY - 1
 
       ! Convection timestep [s]
-      NDT      = TS_DYN * 60e+0_fp
+      NDT      = TS_DYN
 
       ! Internal time step for convective mixing is 300 sec.
       ! Doug Rotman (LLNL) says that 450 sec works just as well.       

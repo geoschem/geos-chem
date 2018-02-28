@@ -164,6 +164,7 @@ CMN_O3_mod.o           : CMN_O3_mod.F             \
 
 CMN_SIZE_mod.o         : CMN_SIZE_mod.F           \
                          errcode_mod.o            \
+                         input_opt_mod.o          \
                          precision_mod.o
 
 commsoil_mod.o         : commsoil_mod.F90         \
@@ -180,7 +181,6 @@ errcode_mod.o          : errcode_mod.F90          \
 
 input_opt_mod.o        : input_opt_mod.F90        \
                          errcode_mod.o            \
-                         CMN_SIZE_mod.o           \
                          precision_mod.o
 
 inquiremod.o           : inquireMod.F90

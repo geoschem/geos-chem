@@ -109,7 +109,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
-    USE FUTURE_EMISSIONS_MOD, ONLY : GET_FUTURE_YEAR
     USE GCKPP_HetRates,       ONLY : SET_HET
     USE GCKPP_Monitor,        ONLY : SPC_NAMES, FAM_NAMES
     USE GCKPP_Parameters
@@ -198,6 +197,7 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Oct 2017 - E. Lundgren - Pass State_Diag as argument
 !  21 Dec 2017 - R. Yantosca - Add netCDF diagnostics for J-values, prod/loss
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  18 Jan 2018 - R. Yantosca - Now do photolysis for all levels, so that 
 !                              J-values can be saved up to the atm top
 !EOP
@@ -232,8 +232,6 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
-    REAL(fp)               :: SCF        (                  3                )
-    REAL(fp)               :: SCOEFF     (IIPAR,JJPAR,LLPAR,3                )
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
@@ -253,7 +251,6 @@ CONTAINS
     ThisLoc   =  ' -> at Do_FlexChem (in module GeosCore/flexchem_mod.F)'
     SpcInfo   => NULL()
     prtDebug  =  ( Input_Opt%LPRT .and. am_I_Root )
-    LDUST     =  Input_Opt%LDUST
     itim      =  0.0_fp
     rtim      =  0.0_fp
     totsteps  =  0
@@ -285,36 +282,6 @@ CONTAINS
     IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
     IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
     
-    !-----------------------------------------------------------------------
-    ! Initialize global concentration of CH4
-    !-----------------------------------------------------------------------
-    IF ( FIRSTCHEM ) THEN
-
-       ! Check that CH4 is not an advected species
-       ! Check that CH4 is a KPP species (ind_CH4 is from gckpp_Monitor.F90)
-       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 .and. ( CH4_YEAR /= YEAR ) ) THEN
-
-          ! If CH4 is a species, then call GET_GLOBAL_CH4
-          ! to return the globally-varying CH4 conc. as a function of
-          ! year and latitude bin. (bnd, bmy, 7/1/03)
-          !
-          ! If we are using the future emissions, then get the CH4
-          ! concentrations for FUTURE_YEAR.  Otherwise get the CH4
-          ! concentrations for the current met field year. 
-          ! (swu, havala, bmy, 1/24/08)
-          IF ( Input_Opt%LFUTURE ) THEN
-             CH4_YEAR = GET_FUTURE_YEAR()
-          ELSE
-             CH4_YEAR = YEAR
-          ENDIF
-
-          ! Get CH4 [ppbv] in 4 latitude bins for each year
-          CALL GET_GLOBAL_CH4( CH4_YEAR,  .TRUE.,  C3090S, &
-                               C0030S,    C0030N,  C3090N, & 
-                               am_I_Root, Input_Opt        )
-       ENDIF
-    ENDIF
-
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
     ! for FAST-JX and optical depth diagnostics
@@ -555,7 +522,7 @@ CONTAINS
 
     ! mje Set up conditions for the integration
     ! mje chemical timestep and convert it to seconds.
-    DT        = GET_TS_CHEM() * 60d0
+    DT        = GET_TS_CHEM() ! [s]
     T         = 0d0
     TIN       = T
     TOUT      = T + DT
@@ -570,15 +537,16 @@ CONTAINS
     ! Absolute tolerance
     ATOL      = 1e-2_dp    
 
-#if defined( UCX )
-    ! Relative tolerance, for UCX-based mechanisms
-    !RTOL      = 2e-2_dp    
-    !RTOL      = 1e-2_dp    
-    RTOL      = 0.5e-2_dp    
-#else
-    ! Relative tolerance, non-UCX mechanisms
-    RTOL      = 2e-1_dp    
-#endif
+    ! Relative tolerance
+    IF ( Input_Opt%LUCX  ) THEN
+       ! UCX-based mechanisms
+       !RTOL      = 2e-2_dp
+       !RTOL      = 1e-2_dp
+       RTOL      = 0.5e-2_dp
+    ELSE
+       ! Non-UCX mechanisms
+       RTOL      = 2e-1_dp
+    ENDIF
 
     !%%%%% SOLVER OPTIONS %%%%%
 
@@ -631,7 +599,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT,   SCF            )&
+    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT                   )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
     !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
     !$OMP REDUCTION( +:ITIM                                                 )&
@@ -657,7 +625,6 @@ CONTAINS
        PHOTOL    = 0.0_dp            ! Photolysis array
        RCNTRL    = 0.0_fp            ! Rosenbrock input
        RSTATE    = 0.0_dp            ! Rosenbrock output
-       SCF       = 0.0_dp            ! For hetchem diagnostics
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
        P         = 0                 ! GEOS-Chem photolyis species ID
 
@@ -695,11 +662,11 @@ CONTAINS
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
-#if defined( UCX ) 
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
-#else
-          SO4_FRAC = 0.0_fp
-#endif
+          IF ( Input_Opt%LUCX ) THEN 
+             SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+          ELSE
+             SO4_FRAC = 0.0_fp
+          ENDIF
 
           ! Adjust certain photolysis rates:
           ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
@@ -816,12 +783,8 @@ CONTAINS
 
        IF ( DO_HETCHEM ) THEN
 
-          ! Copy SCOEFF to SCF, this will avoid an array temporary
-          SCF = SCOEFF(I,J,L,:)
-
           ! Set hetchem rates
-          CALL SET_HET( I,         J,         L,         State_Diag,  &
-                        State_Chm, State_Met, Input_Opt, SCF         )
+          CALL SET_HET( I, J, L, Input_Opt, State_Chm, State_Met )
 
 #if defined( BPCH_DIAG )
           IF ( ND52 > 0 ) THEN
@@ -837,9 +800,6 @@ CONTAINS
              AD52(I,J,L,6) = AD52(I,J,L,6) + HET(ind_GLYX,  1)
           ENDIF
 #endif
-
-          ! Copy SCF back into SCOEFF
-          SCOEFF(I,J,L,:) = SCF
 
        ENDIF
 
@@ -879,36 +839,11 @@ CONTAINS
 
        C(ind_ACTA)  = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
-#if defined( UCX )
-       C(ind_O2) = 0.2095e+0_dp * NUMDEN
-       C(ind_N2) = 0.7808e+0_dp * NUMDEN
-       C(ind_H2) = 0.5000e-6_dp * NUMDEN
-#else
-       ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
-       ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
-       C(ind_H2O) = H2O
-#endif
-
-       ! id_CH4 is the GEOS-Chem advected species index for CH4
-       ! ind_CH4 is the KPP species index for CH4
-       ! If both are nonzero, then CH4 is an advected species.
-       ! If id_CH4 <= 0 but ind_CH4 > 0, then CH4 is a non-advected species.
-       ! (bmy, 6/20/16_)
-#if !defined(ESMF_)
-       IF ( id_CH4 <= 0 .and. ind_CH4 > 0 ) THEN
-          ! Set CH4 according to latitude
-          ! Convert from [ppbv CH4] to [molec CH4/cm3]
-          IF ( YLAT < -30.0_fp ) THEN
-             C(ind_CH4) = C3090S * 1e-9_dp * NUMDEN
-          ELSE IF ( YLAT >= -30.0_fp .and. YLAT < 0.0_fp  ) THEN
-             C(ind_CH4) = C0030S * 1e-9_dp * NUMDEN
-          ELSE IF ( YLAT >=   0.0_fp .and. YLAT < 30.0_fp ) THEN
-             C(ind_CH4) = C0030N * 1e-9_dp * NUMDEN
-          ELSE
-             C(ind_CH4) = C3090N * 1e-9_dp * NUMDEN
-          ENDIF
+       IF ( .not. Input_Opt%LUCX ) THEN
+          ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
+          ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
+          C(ind_H2O) = H2O
        ENDIF
-#endif
 
        !==================================================================
        ! Update KPP's rates

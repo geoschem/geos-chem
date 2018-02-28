@@ -100,6 +100,9 @@ CONTAINS
     USE AEROSOL_MOD,    ONLY : SOILDUST
     USE C2H6_MOD,       ONLY : CHEMC2H6
     USE CARBON_MOD,     ONLY : CHEMCARBON
+#if defined( BPCH_DIAG )
+    USE CMN_DIAG_MOD  
+#endif
     USE CMN_SIZE_MOD
     USE DUST_MOD,       ONLY : CHEMDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
@@ -122,21 +125,18 @@ CONTAINS
     USE STRAT_CHEM_MOD, ONLY : DO_STRAT_CHEM
     USE TAGGED_CO_MOD,  ONLY : CHEM_TAGGED_CO
     USE TAGGED_O3_MOD,  ONLY : CHEM_TAGGED_O3
-    USE TIME_MOD,       ONLY : GET_ELAPSED_MIN
+    USE TIME_MOD,       ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,       ONLY : GET_TS_CHEM
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
 #endif
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
-#if defined( BPCH_DIAG )
-    USE CMN_DIAG_MOD  
-#endif
-    USE UCX_MOD,        ONLY : CALC_STRAT_AER ! (SDE 04/20/13)
-    USE UCX_MOD,        ONLY : READ_PSC_FILE
-    USE UCX_MOD,        ONLY : WRITE_STATE_PSC
 #if defined( TOMAS )
     USE TOMAS_MOD,      ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif
+    USE UCX_MOD,        ONLY : CALC_STRAT_AER
+    USE UCX_MOD,        ONLY : READ_PSC_FILE
+    USE UCX_MOD,        ONLY : WRITE_STATE_PSC
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -249,6 +249,9 @@ CONTAINS
 !  09 Nov 2017 - R. Yantosca - Reorder arguments for consistency: Input_Opt,
 !                              State_Met, State_Chm, State_Diag
 !  20 Nov 2017 - R. Yantosca - Move ND43 diagnostics to flexchem_mod.F90
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -275,7 +278,6 @@ CONTAINS
     LOGICAL            :: IT_IS_A_POPS_SIM
     LOGICAL            :: LCARB
     LOGICAL            :: LCHEM
-    LOGICAL            :: LCRYST
     LOGICAL            :: LDUST
     LOGICAL            :: LSCHEM
     LOGICAL            :: LPRT
@@ -283,6 +285,7 @@ CONTAINS
     LOGICAL            :: LSULF
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
+    LOGICAL            :: LUCX
 #if defined( USE_TEND )
     REAL(fp)           :: DT_TEND
 #endif
@@ -306,7 +309,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     LCARB                    = Input_Opt%LCARB                        
     LCHEM                    = Input_Opt%LCHEM
-    LCRYST                   = Input_Opt%LCRYST
     LDUST                    = Input_Opt%LDUST
     LSCHEM                   = Input_Opt%LSCHEM
     LPRT                     = Input_Opt%LPRT
@@ -314,6 +316,7 @@ CONTAINS
     LSULF                    = Input_Opt%LSULF
     LSOA                     = Input_Opt%LSOA
     LNLPBL                   = Input_Opt%LNLPBL
+    LUCX                     = Input_Opt%LUCX
     IT_IS_A_C2H6_SIM         = Input_Opt%ITS_A_C2H6_SIM
     IT_IS_A_CH3I_SIM         = Input_Opt%ITS_A_CH3I_SIM
     IT_IS_A_CH4_SIM          = Input_Opt%ITS_A_CH4_SIM 
@@ -326,7 +329,6 @@ CONTAINS
     IT_IS_A_TAGO3_SIM        = Input_Opt%ITS_A_TAGO3_SIM
     IT_IS_A_POPS_SIM         = Input_Opt%ITS_A_POPS_SIM
     IT_IS_AN_AEROSOL_SIM     = Input_Opt%ITS_AN_AEROSOL_SIM
-    IT_IS_NOT_COPARAM_OR_CH4 = Input_Opt%ITS_NOT_COPARAM_OR_CH4
     
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
@@ -390,19 +392,20 @@ CONTAINS
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
 
-          IF ( Input_Opt%LUCX ) THEN
-
-#if defined( USE_TIMERS )
-             CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
-
+          IF ( LUCX ) THEN
              !-----------------------------------------------------------
+             !            %%%%%%% UCX-based mechanisms %%%%%%%
+             !
              ! We need to get the STATE_PSC from the HEMCO restart file.
              ! NOTE: Do this before calling CHEMDR to avoid reading this
              ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
              ! Now call READ_PSC_FILE on every time step to accomodate 
              ! replay simulations in GEOS-5 (ckeller, 5/8/15)
              !-----------------------------------------------------------
+#if defined( USE_TIMERS )
+             CALL GEOS_Timer_Start( "=> Strat chem", RC )
+#endif
+
              CALL Read_PSC_File( am_I_Root, State_Chm, RC )
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Read_Psc_File"!'
@@ -515,7 +518,7 @@ CONTAINS
           !-------------------------------
           ! Recalculate PSC properties
           !-------------------------------
-          IF ( Input_Opt%LUCX ) THEN
+          IF ( LUCX ) THEN
 
 #if defined( USE_TIMERS )
              CALL GEOS_Timer_End  ( "=> All aerosol chem", RC )
@@ -647,18 +650,19 @@ CONTAINS
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
 
-          !----------------------------------------------------------------
-          ! Write STATE_PSC to diagnostics. This is only of relevance in
-          ! an ESMF environment, where the restart variables (STATE_PSC)
-          ! need to be written to the internal state object on every time
-          ! step (ckeller, 5/8/15). 
-          !----------------------------------------------------------------
-          IF ( Input_Opt%LUCX ) THEN
-
+          IF ( LUCX ) THEN
+             !--------------------------------------------------------------
+             !            %%%%%%% UCX-based mechanisms %%%%%%%
+             !
+             ! Write STATE_PSC to diagnostics. This is only of relevance in
+             ! an ESMF environment, where the restart variables (STATE_PSC)
+             ! need to be written to the internal state object on every time
+             ! step (ckeller, 5/8/15). 
+             !--------------------------------------------------------------
 #if defined( USE_TIMERS )
              CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
-             ! Write PSC diagnostic
+
              CALL Write_State_PSC( am_I_Root, State_Chm, RC )
 
              ! Trap potential errors
@@ -673,7 +677,7 @@ CONTAINS
 #endif
 
           ENDIF
-
+          
        !====================================================================
        ! Aerosol-only simulation
        !====================================================================
@@ -743,16 +747,14 @@ CONTAINS
 
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)
-                IF ( .not. LCRYST ) THEN
-                   CALL Do_RPMARES( am_I_Root, Input_Opt,                    &
-                                    State_Met, State_Chm, RC )
+                CALL Do_RPMARES( am_I_Root, Input_Opt,                    &
+                                 State_Met, State_Chm, RC )
 
-                   ! Trap potential errors
-                   IF ( RC /= GC_SUCCESS ) THEN
-                      ErrMsg = 'Error encountered in "Do_RPMARES"!'
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
-                      RETURN
-                   ENDIF
+                ! Trap potential errors
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Do_RPMARES"!'
+                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   RETURN
                 ENDIF
              ENDIF
           ENDIF
@@ -775,7 +777,7 @@ CONTAINS
           !-------------------
           ! Sulfate aerosols
           !-------------------
-          IF ( LSULF .or. LCRYST ) THEN
+          IF ( LSULF ) THEN
  
              ! Do sulfate chemistry
              CALL ChemSulfate( am_I_Root, Input_Opt,  State_Met,             &
@@ -961,7 +963,7 @@ CONTAINS
 #endif 
 
           ! Only call after the first 24 hours
-          IF ( GET_ELAPSED_MIN() >= GET_TS_CHEM() ) THEN
+          IF ( GET_ELAPSED_SEC() >= GET_TS_CHEM() ) THEN
              CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,                 &
                            State_Chm, State_Diag, RC                        )
 
@@ -1099,7 +1101,7 @@ CONTAINS
     !=======================================================================
 
     ! Chemistry timestep [s]
-    DT_TEND = GET_TS_CHEM() * 60.0_fp
+    DT_TEND = GET_TS_CHEM()
 
     ! Compute tendencies
     CALL Tend_Stage2( am_I_Root, Input_Opt, State_Met,                       &
@@ -1182,7 +1184,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: IT_IS_A_FULLCHEM_SIM
     LOGICAL            :: IT_IS_AN_AEROSOL_SIM
-    LOGICAL            :: LCARB, LCHEM,  LCRYST,     LDUST
+    LOGICAL            :: LCARB, LCHEM,  LDUST
     LOGICAL            :: LPRT,  LSSALT, LSULF,      LSOA
     INTEGER            :: MONTH, YEAR,   WAVELENGTH
 
@@ -1205,7 +1207,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT to local variables for use below
     LCARB                = Input_Opt%LCARB 
     LCHEM                = Input_Opt%LCHEM
-    LCRYST               = Input_Opt%LCRYST
     LDUST                = Input_Opt%LDUST
     LPRT                 = Input_Opt%LPRT
     LSSALT               = Input_Opt%LSSALT
@@ -1313,7 +1314,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,   ONLY : IIPAR, JJPAR, LLPAR, MAXPASV  
+    USE CMN_SIZE_Mod,   ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1355,17 +1356,13 @@ CONTAINS
     LOGICAL             :: prtDebug
     INTEGER             :: I,       J,      L
     INTEGER             :: N,       GCId,   Id
-    REAL(fp)            :: DT,      Decay
+    REAL(fp)            :: DT,      Decay,  Rate
 
     ! SAVEd scalars
     LOGICAL,  SAVE      :: First = .TRUE.
 
     ! Strings
     CHARACTER(LEN=255)  :: ErrMsg,  ThisLoc
-
-    ! Arrays
-    INTEGER,  SAVE      :: ModelId(MAXPASV)
-    REAL(fp), SAVE      :: Rate   (MAXPASV)
 !
 ! !DEFINED PARAMETERS:
 !   
@@ -1382,85 +1379,72 @@ CONTAINS
     ThisLoc  = &
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
 
-    !=======================================================================
-    ! First-time setup: Get the GEOS-Chem species ID number corresponding
-    ! to each passive species with a finite atmospheric lifetime
-    !=======================================================================
-    IF ( First ) THEN
-
-       ! Initialize
-       DT      = GET_TS_CHEM() * 60.0_fp  ! timestep in seconds
-       ModelId = -1
-       Rate    =  1.0_fp
-
-       ! Loop over all decaying passive species
-       DO N = 1, Input_Opt%NPassive_Decay
-
-          !----------------------------------
-          ! Find the GEOS-Chem species Id
-          !----------------------------------
-
-          ! Get the Id of the species in the passive decay menu
-          Id         = Input_Opt%Passive_DecayID(N)
-
-          ! Convert this to a GEOS-Chem species Id number
-          ModelId(N) = Ind_( TRIM( Input_Opt%PASSIVE_NAME(Id) ) )
-
-          ! Make sure the model ID is valid
-          IF ( ModelId(N) < 0 ) THEN
-             ErrMsg = 'Could not find the GEOS-Chem species ID # '        // &
-                      'for passive species : '                            // &
-                      TRIM( Input_Opt%PASSIVE_NAME(Id) )
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          !----------------------------------
-          ! Pre-compute the decay rate
-          ! and store in an array 
-          !----------------------------------
-
-          ! Compute the decay rate for each passive species
-          Decay    = ln2 / Input_Opt%PASSIVE_TAU(Id)
-          Rate(N)  = EXP( - DT * Decay )
-
-          !### Debug output
-          IF ( prtDebug ) THEN
-             WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
-                            ModelId(N), Rate(N)
- 100         FORMAT( '     -  Pass. species name, Id, loss rate:',           &
-                      a15, i5, 1x, es13.6 )
-          ENDIF
-       ENDDO
-
-       ! Reset
-       First = .FALSE.
-    ENDIF
+    DT       = GET_TS_CHEM() ! timestep in seconds
 
     !=======================================================================
     ! Apply decay loss rate only to those passive species that have a
     ! finite atmospheric lifetime (this speeds up execution)
     !=======================================================================
-    !$OMP PARALLEL DO                  &
-    !$OMP DEFAULT( SHARED            ) &
-    !$OMP PRIVATE( I, J, L, N, GcId  )
+
+    ! Loop over all decaying passive species
     DO N = 1, Input_Opt%NPassive_Decay
 
-       ! Get the GEOS-Chem species Id number
-       GcId  = ModelId(N)
+       !----------------------------------
+       ! Find the GEOS-Chem species Id
+       !----------------------------------
 
+       ! Get the Id of the species in the passive decay menu
+       Id   = Input_Opt%Passive_DecayID(N)
+
+       ! Convert this to a GEOS-Chem species Id number
+       GcId = Ind_( TRIM( Input_Opt%PASSIVE_NAME(Id) ) )
+
+       ! Make sure the model ID is valid
+       IF ( GcId < 0 ) THEN
+          ErrMsg = 'Could not find the GEOS-Chem species ID # '        // &
+                   'for passive species : '                            // &
+                   TRIM( Input_Opt%PASSIVE_NAME(Id) )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       !----------------------------------
+       ! Compute the decay rate
+       !----------------------------------
+
+       ! Compute the decay rate for each passive species
+       Decay = ln2 / Input_Opt%PASSIVE_TAU(Id)
+       Rate  = EXP( - DT * Decay )
+
+       !### Debug output
+       IF ( First ) THEN
+          IF ( prtDebug ) THEN
+             WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
+                            GcId, Rate
+ 100         FORMAT( '     -  Pass. species name, Id, loss rate:',           &
+                      a15, i5, 1x, es13.6 )
+          ENDIF
+          First = .FALSE.
+       ENDIF
+
+       !----------------------------------
        ! Apply loss
+       !----------------------------------
+
+       !$OMP PARALLEL DO                  &
+       !$OMP DEFAULT( SHARED            ) &
+       !$OMP PRIVATE( I, J, L           )
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
           State_Chm%Species(I,J,L,GcId) = State_Chm%Species(I,J,L,GcId)      &
-                                        * Rate(N)
+                                        * Rate
        ENDDO
        ENDDO
        ENDDO
+       !$OMP END PARALLEL DO
 
     ENDDO
-    !$OMP END PARALLEL DO
  
   END SUBROUTINE Chem_Passive_Species
 !EOC

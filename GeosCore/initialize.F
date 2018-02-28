@@ -192,6 +192,9 @@
          IF ( ND39 > 0 ) AD39     = 0e0      ! netcdf WETSCAV diag group
          IF ( ND43 > 0 ) AD43     = 0e0
          IF ( ND44 > 0 ) AD44     = 0e0      ! netcdf DRYDEP diag group
+         IF ( ND44 > 0 ) AD44b    = 0e0
+         IF ( ND44 > 0 ) AD_RA    = 0e0
+         IF ( ND44 > 0 ) AD_ZL    = 0e0
          IF ( ND45 > 0 ) AD45     = 0e0      ! netcdf TRACER diag group
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
@@ -251,7 +254,6 @@
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)

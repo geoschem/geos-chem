@@ -20,11 +20,11 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
+      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-      USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
@@ -614,9 +614,13 @@
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
 #if defined( BPCH_DIAG )
-            ! ND44 diagnostic: drydep velocity [cm/s]
+            ! ND44 diagnostic
             IF ( ND44 > 0 ) THEN 
+               ! Drydep velocity [cm/s]
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
+
+               ! Instantaneous drydep velocity for ND49 [cm/s]
+               AD44b(I,J,D)  = DVZ
             ENDIF
 #endif
 
@@ -1074,6 +1078,7 @@
       REAL(f8)  CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
       REAL(f8)  RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
       REAL(f8)  XMWH2O,DAIR,TEMPK,TEMPC
+      REAL(f8)  RAKT,DUMMY2KT, DUMMY4KT, Z0OBKKT ! for corrected O3, krt,11/2017
       INTEGER IOLSON,II,IW
       INTEGER K,LDT
       REAL(f8)  RCLX,RIXX    !,BIOFIT
@@ -1207,6 +1212,7 @@
 !$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( Z0OBKKT,RAKT,   DUMMY2KT,       DUMMY4KT       )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
@@ -1671,7 +1677,10 @@
      c           'LDT=',I3/) 
             CORR1 = CZ/OBK(I,J)
 
+            ! Define Z0OBK
             Z0OBK = ZO(I,J)/OBK(I,J) 
+            ! Set CASTNET height at 10m (krt, 11/2017)
+            Z0OBKKT = 10e+0_fp/OBK(I,J)
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1764,28 +1773,49 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
+!*... correct ozone to 10m for diagnostic (krt, 11/2017)
+                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
+                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
+     &                 (DUMMY2KT + 1.e+0_f8))
+                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
+     &                 LOG(DUMMY3/DUMMY4KT)
+
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
                   !coef_a=1.e+0_f8
                   !coef_b=5.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
+                  RAKT = (1D0/CKUSTR) *
+     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
+                  RAKT = (1D0/CKUSTR) *
+     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
                ENDIF
 
             ENDIF
 
-            RA = MIN(RA,1.e+4_f8)
+            RA   = MIN(RA,1.e+4_f8)
+            RAKT = MIN(RAKT,1.e+4_f8)
 
             ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
+            IF (RAKT .LT. 0.e+0_f8) THEN
+               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
+               RAKT = 0.0e+0_f8
+            ENDIF
+            ! Store Ra for diagnostic
+            AD_RA(I,J) = RAKT
+            ! Store z/L to determine if M/O theory applies
+            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
+            
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.

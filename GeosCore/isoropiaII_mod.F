@@ -653,7 +653,7 @@
          ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
          ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
          ! in mol/m3 air --> convert to mol/L water
-         IF ( AERLIQ(8) < 1e-32_fp ) THEN
+         IF ( AERLIQ(8) < 1e-18_fp ) THEN
             ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
             ! (hotp, ccc, 12/18/09)
@@ -781,7 +781,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS: 
 !
@@ -799,6 +799,8 @@
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sims from HEMCO
 !  06 Jan 2016 - E. Lundgren  - Use global physical parameters
+!  06 Feb 2018 - E. Lundgren  - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                               match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,7 +815,7 @@
 
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
-      IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+      IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /

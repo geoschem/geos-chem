@@ -219,7 +219,7 @@
       ThisLoc =  ' -> at ChemRnPbBe (in module GeosCore/RnPbBe_mod.F)'
 
       ! Chemistry timestep [s]
-      DTCHEM  =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM  =  GET_TS_CHEM()
 
       ! Point to the species array
       Spc     => State_Chm%Species

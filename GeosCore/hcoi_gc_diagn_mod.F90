@@ -648,6 +648,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE HCO_ExtList_Mod,    ONLY : GetExtNr
     USE HCO_State_Mod,      ONLY : HCO_State
     USE HCOX_State_Mod,     ONLY : Ext_State
@@ -725,7 +726,7 @@ CONTAINS
        ENDIF
 
        ! Do for each dust bin
-       DO I = 1, Input_Opt%N_DUST_BINS
+       DO I = 1, NDSTBIN
 
 #if defined( TOMAS )
 
@@ -781,7 +782,7 @@ CONTAINS
           ENDIF
 
           ! Do for each dust bin
-          DO I = 1, Input_Opt%N_DUST_BINS
+          DO I = 1, NDSTBIN
 
              ! Get species name (i.e. DSTAL1 .. DSTAL4)
              WRITE( ISTR1,'(i1)' ) I

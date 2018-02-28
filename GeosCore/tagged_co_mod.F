@@ -141,6 +141,7 @@
       REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
+      REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc CH4
 
       ! Diagnostic flags
       LOGICAL               :: Archive_Loss
@@ -283,6 +284,8 @@
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  18 Jan 2018 - M. Sulprizio- Remove call to GET_GLOBAL_CH4 and obtain monthly
+!                              CH4 concentrations from HEMCO instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -290,7 +293,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                  :: FOUND,         LSPLIT
+      LOGICAL                  :: LSPLIT
       INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: I,             J,           L
       INTEGER                  :: N,             MONTH,       YEAR
@@ -322,11 +325,9 @@
       REAL(fp),        POINTER :: AIRVOL(:,:,:  )
       REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
-      REAL(f4),        POINTER :: Ptr2D (:,:    )
 
       ! SAVED scalars
       LOGICAL,   SAVE          :: FIRST = .TRUE.
-      REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
@@ -356,14 +357,13 @@
       LSPLIT    = Input_Opt%LSPLIT
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60.0_fp
+      DTCHEM    = GET_TS_CHEM()
 
       ! Initialize pointers
       AD        => State_Met%AD
       AIRVOL    => State_Met%AIRVOL
       Spc       => State_Chm%Species
       T         => State_Met%T
-      Ptr2D     => NULL()  
 
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged species are CO, so we can use the value for species #1)
@@ -416,7 +416,14 @@
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
-            
+
+         ! Get pointer to surface CH4 data
+         CALL HCO_GetPtr( am_I_Root, HcoState,
+     &                    'NOAA_GMD_CH4', SFC_CH4, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to NOAA_GMD_CH4', LOC)
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -473,25 +480,6 @@
       ENDIF
 
       !=================================================================
-      ! Get the yearly and latitudinal gradients for CH4
-      ! This only needs to be called once per year
-      !
-      ! NOTE: If you are going to run w/ future emissions you must 
-      !       pass the future emissions year to GET_GLOBAL_CH4.  
-      !       See the modification that was made in "chemdr.f" 
-      !       (bmy, 1/24/08)
-      !=================================================================
-      IF ( ITS_A_NEW_YEAR() ) THEN 
-
-         ! Get current year
-         YEAR = GET_YEAR()
-
-         ! Get the semi-hemispheric CH4 gradients
-         CALL GET_GLOBAL_CH4( YEAR,  .TRUE.,  A3090S,    A0030S, 
-     &                        A0030N, A3090N, am_I_Root, Input_Opt )
-      ENDIF
-
-      !=================================================================
       ! Do tagged CO chemistry -- Put everything within a large 
       ! DO-loop over all grid boxes to facilitate parallelization
       !=================================================================
@@ -537,7 +525,7 @@
          ! Scaling factor for diurnal cycles - zero at night
          IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
             FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                    ( 1440.0_fp / GET_TS_CHEM() )
+     &                    ( 86400.0_fp / GET_TS_CHEM() )
          ELSE
             FAC_DIURNAL = 0.0_fp
          ENDIF
@@ -579,12 +567,8 @@
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================
 
-            ! CH4 concentration [ppbv] for the given latitude band 
-            ! (bmy, 1/2/01)
-            CH4 = A3090S
-            IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-            IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-            IF ( YMID >=  30.0                   ) CH4 = A3090N
+            ! CH4 concentration from HEMCO [ppbv]
+            CH4 = SFC_CH4(I,J)
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
             CH4 = CH4 * 1e-9_fp * DENS
@@ -1093,7 +1077,6 @@
       AIRVOL   => NULL()
       Spc      => NULL()
       T        => NULL()
-      Ptr2D    => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1117,12 +1100,14 @@
 !
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
 !                              COSSZA in dao_mod
+!  12 Feb 2018 - E. Lundgren - Updates for new timestep units (sec not min)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1131,7 +1116,7 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, J, N, NDYSTEP
-      INTEGER             :: MINUTE,  TS_SUN
+      INTEGER             :: SECOND,  MINUTE, TS_SUN
       REAL*8              :: GMT_MID, TIMLOC, FACTOR
       REAL*8              :: R,       AHR,    DEC
       REAL*8              :: YMID_R,  SUNTMP_MID
@@ -1159,14 +1144,15 @@
 
          ! Get time for central chemistry timestep
          TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+         SECOND = GET_SECOND()                      ! Current seconds
          MINUTE = GET_MINUTE()                      ! Current minutes
-         FACTOR = MINUTE / TS_SUN                   ! Multiplying factor
+         FACTOR = ( MINUTE * 60 + SECOND ) / TS_SUN ! Multiplying factor
 
          ! GMT at the midpoint of the chemistry time interval for first
          ! timestep of the day
          GMT_MID  = ( DBLE( GET_HOUR()        )      )
-     &            + ( DBLE( TS_SUN * FACTOR ) / 60d0 )
-     &            + ( DBLE( TS_SUN / 2      ) / 60d0 )
+     &            + ( DBLE( TS_SUN * FACTOR ) / 3600d0 )
+     &            + ( DBLE( TS_SUN / 2      ) / 3600d0 )
 
          ! Solar declination angle (low precision formula):
          ! Path length of earth's orbit traversed since Jan 1 [radians]
@@ -1176,13 +1162,13 @@
      &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
 
          ! NDYSTEP is # of chemistry time steps
-         NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+         NDYSTEP = INT( 24d0 * 3600d0 / GET_TS_CHEM() )
 
          ! Loop forward through NDYSTEP "fake" timesteps for this day
          DO N = 1, NDYSTEP
             
             ! Increment GMT (hours) to midpoint of next timestep
-            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 60d0
+            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 3600d0
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -1462,6 +1448,7 @@
       GMI_PROD_CO => NULL()
       GMI_LOSS_CO => NULL()
       OH          => NULL()
+      SFC_CH4     => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

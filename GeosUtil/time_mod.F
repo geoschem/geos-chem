@@ -42,9 +42,8 @@
       PUBLIC  :: SET_CT_A3
       PUBLIC  :: SET_CT_I3
       PUBLIC  :: SET_CT_XTRA
-      PUBLIC  :: SET_ELAPSED_MIN
+      PUBLIC  :: SET_ELAPSED_SEC
       PUBLIC  :: GET_JD
-      PUBLIC  :: GET_ELAPSED_MIN
       PUBLIC  :: GET_ELAPSED_SEC
       PUBLIC  :: GET_NYMDb
       PUBLIC  :: GET_NHMSb
@@ -227,6 +226,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Remove obsolete A6 and I6 routines
+!  06 Feb 2018 - E. Lundgren - Change timestep units from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -264,7 +264,7 @@
       !---------------------------------
       ! Elapsed time values
       !---------------------------------
-      INTEGER             :: ELAPSED_MIN    ! # of minutes into the run
+      INTEGER             :: ELAPSED_SEC    ! # of seconds into the run
       REAL(f8)            :: LEAP_YEAR_DAYS ! # of leap yrs since start of run
 
       !---------------------------------
@@ -277,13 +277,13 @@
       !---------------------------------
       ! Timestep values
       !---------------------------------
-      INTEGER             :: TS_CHEM      ! Chemistry timestep       [min]
-      INTEGER             :: TS_CONV      ! Convection timestep      [min]
-      INTEGER             :: TS_DIAG      ! Diagnostic timestep      [min]
-      INTEGER             :: TS_DYN       ! Dynamic timestep         [min]
-      INTEGER             :: TS_EMIS      ! Emissions timestep       [min]
-      INTEGER             :: TS_UNIT      ! Unit conversion timestep [min]
-      INTEGER             :: TS_RAD       ! Radiation timestep       [min]
+      INTEGER             :: TS_CHEM      ! Chemistry timestep       [sec]
+      INTEGER             :: TS_CONV      ! Convection timestep      [sec]
+      INTEGER             :: TS_DIAG      ! Diagnostic timestep      [sec]
+      INTEGER             :: TS_DYN       ! Dynamic timestep         [sec]
+      INTEGER             :: TS_EMIS      ! Emissions timestep       [sec]
+      INTEGER             :: TS_UNIT      ! Unit conversion timestep [sec]
+      INTEGER             :: TS_RAD       ! Radiation timestep       [sec]
 
       !---------------------------------
       ! Counter values
@@ -353,6 +353,8 @@
 !                              when going from Julian date to Y/M/D date
 !  14 Jun 2013 - R. Yantosca - Now move the day of week computation here
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  06 Feb 2018 - E. Lundgren - Update Julian Data calc to use new minimum time
+!                              unit of seconds (previously minutes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -377,7 +379,7 @@
       JD0 = GET_JD( NYMDb, NHMSb )
 
       ! JD1: Astronomical Julian Date at current time
-      JD1 = JD0 + ( DBLE( ELAPSED_MIN ) / 1440e+0_f8 )
+      JD1 = JD0 + ( DBLE( ELAPSED_SEC ) / 86400e+0_f8 )
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( DBLE(JD1), NYMD, NHMS )
@@ -527,8 +529,8 @@
       TMP   = ( GET_JD( NYMDb, NHMSb ) - JD85 ) * 24e+0_f4
       TAUb  = DBLE( TMP )
 
-      ! Also initialize ELAPSED_MIN
-      ELAPSED_MIN = 0
+      ! Also initialize ELAPSED_SEC
+      ELAPSED_SEC = 0
 
       ! Return to calling program
       END SUBROUTINE SET_BEGIN_TIME
@@ -695,13 +697,13 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN) :: am_I_Root    ! Is this the root CPU?
-      INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [min]
-      INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [min]
-      INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [min]
-      INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [min]
-      INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [min]
-      INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [min]
-      INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [min]
+      INTEGER, INTENT(IN) :: CHEMISTRY    ! Chemistry  timestep [sec]
+      INTEGER, INTENT(IN) :: CONVECTION   ! Convection timestep [sec]
+      INTEGER, INTENT(IN) :: DYNAMICS     ! Dynamic    timestep [sec]
+      INTEGER, INTENT(IN) :: EMISSION     ! Emission   timestep [sec]
+      INTEGER, INTENT(IN) :: UNIT_CONV    ! Unit conve timestep [sec]
+      INTEGER, INTENT(IN) :: DIAGNOS      ! Diagnostic timestep [sec]
+      INTEGER, INTENT(IN) :: RADIATION    ! Radiation  timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
@@ -715,6 +717,7 @@
 !  07 Oct 2011 - R. Yantosca - Remove obsolete SUNCOS argument
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
+!  06 Feb 2018 - E. Lundgren - Update timestep unit from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -742,13 +745,13 @@
       IF ( am_I_Root ) THEN
        WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
        WRITE( 6, '(  a)' ) '-------------------------------------------'
-       WRITE( 6, '(''Chemistry  Timestep [min] : '', i4 )' ) TS_CHEM
-       WRITE( 6, '(''Convection Timestep [min] : '', i4 )' ) TS_CONV
-       WRITE( 6, '(''Dynamics   Timestep [min] : '', i4 )' ) TS_DYN
-       WRITE( 6, '(''Emission   Timestep [min] : '', i4 )' ) TS_EMIS
-       WRITE( 6, '(''Unit Conv  Timestep [min] : '', i4 )' ) TS_UNIT
-       WRITE( 6, '(''Diagnostic Timestep [min] : '', i4 )' ) TS_DIAG
-       WRITE( 6, '(''Radiation  Timestep [min] : '', i4 )' ) TS_RAD
+       WRITE( 6, '(''Chemistry  Timestep [sec] : '', i4 )' ) TS_CHEM
+       WRITE( 6, '(''Convection Timestep [sec] : '', i4 )' ) TS_CONV
+       WRITE( 6, '(''Dynamics   Timestep [sec] : '', i4 )' ) TS_DYN
+       WRITE( 6, '(''Emission   Timestep [sec] : '', i4 )' ) TS_EMIS
+       WRITE( 6, '(''Unit Conv  Timestep [sec] : '', i4 )' ) TS_UNIT
+       WRITE( 6, '(''Diagnostic Timestep [sec] : '', i4 )' ) TS_DIAG
+       WRITE( 6, '(''Radiation  Timestep [sec] : '', i4 )' ) TS_RAD
       ENDIF
 
       END SUBROUTINE SET_TIMESTEPS
@@ -1130,25 +1133,27 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_elapsed_min
+! !IROUTINE: Set_elapsed_sec
 !
-! !DESCRIPTION: Subroutine SET\_ELAPSED\_MIN increments the number of elapsed 
-!  minutes by the dynamic timestep TS\_DYN.
+! !DESCRIPTION: Subroutine SET\_ELAPSED\_SEC increments the number of elapsed 
+!  seconds by the dynamic timestep TS\_DYN.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_ELAPSED_MIN
+      SUBROUTINE SET_ELAPSED_SEC
 ! 
 ! !REVISION HISTORY: 
 !  05 Feb 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. lundgren - Rename from SET_ELAPSED_MIN to SET_ELAPSED_SEC;
+!                              update minimum time unit from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      ELAPSED_MIN = ELAPSED_MIN + TS_DYN
+      ELAPSED_SEC = ELAPSED_SEC + TS_DYN
 
-      END SUBROUTINE SET_ELAPSED_MIN
+      END SUBROUTINE SET_ELAPSED_SEC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1217,38 +1222,9 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_elapsed_min
-!
-! !DESCRIPTION: Function GET\_ELAPSED\_MIN returns the elapsed minutes since 
-!  the start of a GEOS-chem run.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_ELAPSED_MIN() RESULT( THIS_ELAPSED_MIN )
-!
-! !RETURN VALUE:
-!
-      INTEGER :: THIS_ELAPSED_MIN
-! 
-! !REVISION HISTORY: 
-!  05 Feb 2003 - R. Yantosca - Initial Version
-!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      THIS_ELAPSED_MIN = ELAPSED_MIN
-
-      END FUNCTION GET_ELAPSED_MIN
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Get_elapsed_sec
 !
-! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed minutes since 
+! !DESCRIPTION: Function GET\_ELAPSED\_SEC returns the elapsed seconds since 
 !  the start of a GEOS-Chem run to the calling program.
 !\\
 !\\
@@ -1266,7 +1242,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      THIS_ELAPSED_SEC = ELAPSED_MIN * 60
+      THIS_ELAPSED_SEC = ELAPSED_SEC
 
       END FUNCTION GET_ELAPSED_SEC
 !EOC
@@ -1451,12 +1427,12 @@
 !
 ! !DESCRIPTION: Function GET\_3h\_AHEAD returns to the calling program a 
 !  2-element vector containing the YYYYMMDD and HHMMSS values at the current 
-!  time plus N\_MINS minutes.
+!  time plus N\_SECS seconds.
 !\\
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_TIME_AHEAD( N_MINS ) RESULT( DATE )
+      FUNCTION GET_TIME_AHEAD( N_SECS ) RESULT( DATE )
 !
 ! !USES:
 !
@@ -1464,7 +1440,7 @@
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: N_MINS   ! Minutes ahead to compute date & time
+      INTEGER, INTENT(IN) :: N_SECS   ! Seconds ahead to compute date & time
 !
 ! !RETURN VALUE:
 !
@@ -1476,6 +1452,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  17 Dec 2010 - R. Yantosca - Added fix in case HHMMSS is returned as 240000
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  06 Feb 2018 - E. Lundgren - Change passed units from minutes to seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1489,8 +1466,8 @@
       ! GET_TIME_AHEAD begins here!
       !=================================================================
 
-      ! Astronomical Julian Date at current time + N_MINS
-      JD = GET_JD( NYMD, NHMS ) + ( N_MINS / 1440e+0_f8 )
+      ! Astronomical Julian Date at current time + N_SECS
+      JD = GET_JD( NYMD, NHMS ) + ( N_SECS / 86400e+0_f8 )
 
       ! Call CALDATE to compute the current YYYYMMDD and HHMMSS
       CALL CALDATE( DBLE(JD), DATE(1), DATE(2) )
@@ -2167,7 +2144,7 @@
 ! !IROUTINE: Get_ts_chem
 !
 ! !DESCRIPTION: Function GET\_TS\_CHEM returns the chemistry timestep in 
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2176,7 +2153,7 @@
 !
 ! !RETURN VALUE:
 ! 
-      INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [min]
+      INTEGER :: THIS_TS_CHEM   ! ! Chemistry timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2196,7 +2173,7 @@
 ! !IROUTINE: Get_ts_rad
 !
 ! !DESCRIPTION: Function GET\_TS\_RAD returns the radiation timestep in
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2205,7 +2182,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [min]
+      INTEGER :: THIS_TS_RAD   ! ! Radiation timestep [sec]
 !
 ! !REVISION HISTORY:
 !  06 Oct 2012 - D. Ridley   - Initial version
@@ -2224,7 +2201,7 @@
 ! !IROUTINE: Get_ts_conv
 !
 ! !DESCRIPTION: Function GET\_TS\_CONV returns the convection timestep in 
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2233,7 +2210,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_CONV   ! Convective timestep [min]
+      INTEGER :: THIS_TS_CONV   ! Convective timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2253,7 +2230,7 @@
 ! !IROUTINE: Get_ts_diag
 !
 ! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2262,7 +2239,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [min]
+      INTEGER :: THIS_TS_DIAG   ! Diagnostic timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2282,7 +2259,7 @@
 ! !IROUTINE: Get_ts_dyn
 !
 ! !DESCRIPTION: Function GET\_TS\_DIAG returns the diagnostic timestep in 
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2291,7 +2268,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_DYN    ! Dynamic timestep [min]
+      INTEGER :: THIS_TS_DYN    ! Dynamic timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2311,7 +2288,7 @@
 ! !IROUTINE: Get_ts_emis
 !
 ! !DESCRIPTION: Function GET\_TS\_EMIS returns the emission timestep in 
-!  minutes.
+!  seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2320,7 +2297,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_EMIS   ! Emissions timestep [min]
+      INTEGER :: THIS_TS_EMIS   ! Emissions timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2340,7 +2317,7 @@
 ! !IROUTINE: Get_ts_unit
 !
 ! !DESCRIPTION: Function GET\_TS\_UNIT returns the unit-conversion timestep
-!  in minutes.
+!  in seconds.
 !\\
 !\\
 ! !INTERFACE:
@@ -2349,7 +2326,7 @@
 !
 ! !RETURN VALUE:
 !
-      INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [min]
+      INTEGER :: THIS_TS_UNIT   ! Unit conversion timestep [sec]
 ! 
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
@@ -2705,13 +2682,14 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  11 Aug 2015 - R. Yantosca - Return DATE for MERRA2 the same as for GEOS-FP
+!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! GEOS-FP and MERRA-2 met fields are 1-hour time-averages, timestamped 
       ! at the center of the averaging periods (00:30, 01:30, 02:30 ... 23:30)
-      DATE = GET_TIME_AHEAD( 30 )
+      DATE = GET_TIME_AHEAD( 1800 )
 
       END FUNCTION GET_A1_TIME
 !EOC
@@ -2743,6 +2721,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  06 Feb 2017 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2750,7 +2729,7 @@
       ! The A-3 fields are timestamped by center time.
       ! Therefore, the difference between the actual time when the fields
       ! are read and the A-3 timestamp time is 90 minutes.
-      DATE = GET_TIME_AHEAD( 90 )   
+      DATE = GET_TIME_AHEAD( 5400 )   
 
       END FUNCTION GET_A3_TIME
 !EOC
@@ -2778,7 +2757,8 @@
 !  Modified for start times other than 0 GMT.
 !
 ! !REVISION HISTORY: 
-!   6 Feb 2012 - R. Yantosca - Initial version
+!  06 Feb 2012 - R. Yantosca - Initial version
+!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2786,7 +2766,7 @@
 ! !LOCAL VARIABLES:
 ! 
       LOGICAL, SAVE :: FIRST = .TRUE.
-      INTEGER       :: HH, MM, SS, MINS, OFFSET
+      INTEGER       :: HH, MM, SS, SECS, OFFSET
 
       !=================================================================
       ! ALL MET FIELDS:
@@ -2802,11 +2782,11 @@
          ! Split NHMS into hours, mins, seconds
          CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-         ! Compute minutes elapsed in the 3-hour interval
-         MINS   = MOD( HH, 3 )*60 + MM
+         ! Compute seconds elapsed in the 3-hour interval
+         SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
 
          ! Compute offset to next I-3 time
-         OFFSET = 180 - MINS
+         OFFSET = 10800 - SECS
 
          ! Get YYYY/MM/DD and hh:mm:ss to next I3 time
          DATE   = GET_TIME_AHEAD( OFFSET ) 
@@ -2820,8 +2800,9 @@
          ! Other than the 1st time: Search 180 mins ahead
          !--------------------------------------------------------------
 
-         ! We need to read in the I-3 fields 3h (180 mins) ahead of time
-         DATE = GET_TIME_AHEAD( 180 )
+         ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs) 
+         ! ahead of time
+         DATE = GET_TIME_AHEAD( 10800 )
 
       ENDIF
 
@@ -2888,13 +2869,14 @@
 !  27 Sep 2010 - R. Yantosca - Modified for start times other than 0 GMT
 !  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: HH, MM, SS, MINS, OFFSET
+      INTEGER :: HH, MM, SS, SECS, OFFSET
 
       !==================================================================
       ! A3 fields are indexed at the midpoint of the 3-hr interval
@@ -2903,11 +2885,11 @@
       ! Split NYMS into hours, mins, seconds
       CALL YMD_EXTRACT( NHMS, HH, MM, SS )
 
-      ! Compute minutes elapsed in the 3-hour interval
-      MINS   = MOD( HH, 3 )*60 + MM
+      ! Compute seconds elapsed in the 3-hour interval
+      SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
       
       ! Compute offset to midpoint of 3hr interval
-      OFFSET = 180 - ( MINS + 90 )
+      OFFSET = 10800 - ( SECS + 5400 )
 
       ! Get YYYY/MM/DD and hh:mm:ss at midpoint of 3hr interval
       DATE   = GET_TIME_AHEAD( OFFSET )
@@ -2935,13 +2917,14 @@
 ! 
 ! !REVISION HISTORY: 
 !  03 Feb 2012 - R. Yantosca - Initial version, for GEOS-5.7.2
+!  06 Feb 2018 - E. Lundgren - Update GET_TIME_AHEAD arg to pass sec not min
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: HH, MM, SS, MINS, OFFSET
+      INTEGER :: HH, MM, SS, SECS, OFFSET
 
       !==================================================================
       ! Compute first I-6 time for all met field types
@@ -2950,11 +2933,11 @@
       ! Split NYMS into hours, mins, seconds
       CALL YMD_EXTRACT( NHMS, HH, MM, SS )        
 
-      ! Compute minutes elapsed in the 3-hour interval
-      MINS   = MOD( HH, 3 )*60 + MM
+      ! Compute seconds elapsed in the 3-hour interval
+      SECS   = MOD( HH, 3 )*3600 + MM*60 + SS
 
       ! Compute offset to nearest I-6 time
-      OFFSET = -MINS
+      OFFSET = -SECS
 
       ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
       DATE   = GET_TIME_AHEAD( OFFSET ) 
@@ -2985,6 +2968,8 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  27 Sep 2011 - M. Payer    - Modifications for centralizing the chemistry
 !                              time step (lzh)
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3006,7 +2991,7 @@
 
       ! Is it time for chemistry?
       ! Chemistry time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_MIN, TS_CHEM ) == (M-1)*TS_DYN )
+      FLAG = ( MOD( ELAPSED_SEC, TS_CHEM ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_CHEM
 !EOC
@@ -3031,6 +3016,8 @@
 !
 ! !REVISION HISTORY:
 !  04 Oct 2012 - D. Ridley   - Initial Version
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3047,7 +3034,7 @@
 
       ! Is it time for radiation calcs?
       ! RT time step is in the center of time step
-      FLAG = ( MOD( ELAPSED_MIN, TS_RAD ) == M )
+      FLAG = ( MOD( ELAPSED_SEC, TS_RAD ) == M )
 
       END FUNCTION ITS_TIME_FOR_RT
 !EOC
@@ -3114,11 +3101,13 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Is it time for convection?
-      FLAG = ( MOD( ELAPSED_MIN, TS_CONV ) == 0 )
+      FLAG = ( MOD( ELAPSED_SEC, TS_CONV ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_CONV
 !EOC
@@ -3144,11 +3133,13 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Is it time for dynamics?
-      FLAG = ( MOD( ELAPSED_MIN, TS_DYN ) == 0 )
+      FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_DYN
 !EOC
@@ -3176,6 +3167,8 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  07 Oct 2011 - R. Yantosca - Modifications for centralizing the chemistry
 !                              time step (lzh)
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3197,7 +3190,7 @@
 
       ! Is it time for emissions?
       ! Emission time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_MIN, TS_EMIS ) == (M-1)*TS_DYN )
+      FLAG = ( MOD( ELAPSED_SEC, TS_EMIS ) == (M-1)*TS_DYN )
 
       END FUNCTION ITS_TIME_FOR_EMIS
 !EOC
@@ -3221,7 +3214,9 @@
       LOGICAL :: FLAG
 !
 ! !REVISION HISTORY:
-!  30 Mar 2014 - Y.Y. Yan - Initial Version
+!  30 Mar 2014 - Y.Y. Yan    - Initial Version
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3243,7 +3238,7 @@
 
       ! Is it time for exchange?
       ! Chemistry time step is now in the center of transport time steps
-      FLAG = ( MOD( ELAPSED_MIN, 180 ) == 0 )
+      FLAG = ( MOD( ELAPSED_SEC, 10800 ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_EXCH
 !EOC
@@ -3269,12 +3264,14 @@
 ! !REVISION HISTORY: 
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
       ! Is it time for unit conversion?
-      FLAG = ( MOD( ELAPSED_MIN, TS_DYN ) == 0 )
+      FLAG = ( MOD( ELAPSED_SEC, TS_DYN ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_UNIT
 !EOC
@@ -3301,11 +3298,13 @@
 !  21 Mar 2003 - R. Yantosca - Initial Version
 !  20 Jul 2009 - C. Carouge  - Use TS_DIAG now and not 60 minutes
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
+!                              timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Is it time for diagnostics?
-      FLAG = ( MOD( ELAPSED_MIN, TS_DIAG ) == 0 )
+      FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
 
       END FUNCTION ITS_TIME_FOR_DIAG
 !EOC
@@ -3448,11 +3447,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_BPCH() RESULT( DO_BPCH )
+      FUNCTION ITS_TIME_FOR_BPCH( Input_Opt ) RESULT( DO_BPCH )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -3488,9 +3491,9 @@
       ! Look up appropriate value of NJDAY array.  We may need to add a
       ! day to skip past the Feb 29 element of NJDAY for non-leap-years.
       IF ( .not. ITS_A_LEAPYEAR( FORCE=.TRUE. ) .and. DOY > 59 ) THEN
-         THIS_NJDAY = NJDAY( DOY + 1 ) 
+         THIS_NJDAY = Input_Opt%NJDAY( DOY + 1 ) 
       ELSE
-         THIS_NJDAY = NJDAY( DOY )
+         THIS_NJDAY = Input_Opt%NJDAY( DOY )
       ENDIF
 
       ! Test if this is the day & time to write to the BPCH file!
@@ -3645,6 +3648,7 @@
 !  01 Nov 2005 - R. Yantosca - Bug fix: Need month & day to be 1
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
+!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3667,7 +3671,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60e+0_f8
+      TS = DBLE( TS_EMIS ) / 3600e+0_f8
      
       !==============================================================
       ! FOR JANUARY 1st OF THE YEAR
@@ -3785,6 +3789,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  12 Oct 2011 - R. Yantosca - Modified for central chemistry timestep option
 !  27 Apr 2016 - E. Lundgren - Include minute condition for first day of month
+!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3807,7 +3812,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60e+0_f8
+      TS = DBLE( TS_EMIS ) / 3600e+0_f8
 
       IF ( DAY == 1 .and. HOUR == 0 .and. MINUTE == 0 ) THEN
 
@@ -3955,6 +3960,7 @@
 !  01 Apr 2004 - R. Yantosca - Initial Version
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  14 Oct 2011 - R. Yantosca - Modified for central chemistry timestep
+!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -3978,7 +3984,7 @@
       ENDIF
 
       ! Emissions timestep [hours]
-      TS = DBLE( TS_EMIS ) / 60e+0_f8
+      TS = DBLE( TS_EMIS ) / 3600e+0_f8
      
       IF ( NYMD == NYMDb ) THEN
 
@@ -4147,6 +4153,7 @@
 !  15 Jan 2010 - R. Yantosca - Added ProTeX headers
 !  10 Oct 2017 - R. Yantosca - Now print 6 decimal digits for elapsed time
 !  10 Oct 2017 - R. Yantosca - Change "GMT" to "UTC", which is more standard
+!  06 Feb 2018 - E. Lundgren - Updates for new timestep unit ([sec] not [min])
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4156,7 +4163,7 @@
       REAL(f4) :: E_HOURS
 
       ! Hours since start of run
-      E_HOURS = REAL( ELAPSED_MIN ) / 60e+0_f4
+      E_HOURS = REAL( ELAPSED_SEC ) / 3600e+0_f4
 
       ! Write quantities
       WRITE( 6, 100 ) YEAR, MONTH, DAY, HOUR, MINUTE, E_HOURS
@@ -4599,10 +4606,10 @@
       INTEGER,  OPTIONAL    :: value_SECOND    ! UTC second
       REAL(f4), OPTIONAL    :: value_UTC       ! UTC time [hrs]
       REAL(f4), OPTIONAL    :: value_HELAPSED  ! Elapsed hours
-      INTEGER,  OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [min]
-      INTEGER,  OPTIONAL    :: value_TS_CONV   ! Convection timestep [min]
-      INTEGER,  OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [min]
-      INTEGER,  OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [min]
+      INTEGER,  OPTIONAL    :: value_TS_CHEM   ! Chemistry  timestep [sec]
+      INTEGER,  OPTIONAL    :: value_TS_CONV   ! Convection timestep [sec]
+      INTEGER,  OPTIONAL    :: value_TS_DYN    ! Dynamic    timestep [sec]
+      INTEGER,  OPTIONAL    :: value_TS_EMIS   ! Emissions  timestep [sec]
 !
 ! !OUTPUT ARGUMENTS:
 !
@@ -4656,9 +4663,9 @@
       ! Compute various other derived time/date values
       !=================================================================
       
-      ! Elapsed minutes since the start of the run
+      ! Elapsed seconds since the start of the run
       IF ( PRESENT( value_HELAPSED ) ) THEN
-         ELAPSED_MIN = ( value_HELAPSED * 60 )
+         ELAPSED_SEC = value_HELAPSED * 3600
       ENDIF
 
       ! TAUb (hours since 0 UTC on 01 Jan 1985) @ start of simulation
