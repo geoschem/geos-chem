@@ -32,11 +32,11 @@ MODULE DiagList_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Init_DiagList
-  PUBLIC :: Print_DiagList
-  PUBLIC :: Check_DiagList
-  PUBLIC :: Cleanup_DiagList
-  PUBLIC :: Search_CollList
+  PUBLIC  :: Init_DiagList
+  PUBLIC  :: Print_DiagList
+  PUBLIC  :: Check_DiagList
+  PUBLIC  :: Cleanup_DiagList
+  PUBLIC  :: Search_CollList
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -82,27 +82,25 @@ MODULE DiagList_Mod
   !=========================================================================
   CHARACTER(LEN=5), PUBLIC  :: RadWL(3)    ! Wavelengths configured in rad menu
   LOGICAL,          PUBLIC  :: IsFullChem  ! Is this a fullchem simulation?
-! 
-! !PRIVATE DATA TYPES:
-! 
+
   !=========================================================================
   ! Derived type for Collections List
   !=========================================================================
-  TYPE, PRIVATE :: ColList
+  TYPE, PUBLIC :: ColList
      TYPE(ColItem), POINTER :: head
   END TYPE ColList
 
   !=========================================================================
   ! Derived type for Collections Item (uncommented in HISTORY.rc)
   !=========================================================================
-  TYPE, PRIVATE :: ColItem
+  TYPE, PUBLIC :: ColItem
      CHARACTER(LEN=63)      :: cname 
      TYPE(ColItem), POINTER :: next
   END TYPE ColItem
-! 
-! !PRIVATE DATA MEMBERS:
-! 
-  TYPE(ColList)             :: CollList
+!
+! !PUBLIC DATA MEMBERS:
+!
+  TYPE(ColList),    PUBLIC  :: CollList      ! Collection list object
 !
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - Initial version
@@ -1290,7 +1288,7 @@ CONTAINS
     ! Final cleanup
     current => NULL()
     next    => NULL()
-
+    
   END SUBROUTINE Cleanup_ColList
 !EOC
 END MODULE DiagList_Mod
