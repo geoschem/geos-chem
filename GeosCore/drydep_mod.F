@@ -1679,8 +1679,11 @@
 
             ! Define Z0OBK
             Z0OBK = ZO(I,J)/OBK(I,J) 
-            ! Set CASTNET height at 10m (krt, 11/2017)
-            Z0OBKKT = 10e+0_fp/OBK(I,J)
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            ! Set CASTNET height at 10m (krt, 11/2017)
+!            Z0OBKKT = 10e+0_fp/OBK(I,J)
+!==============================================================================
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1773,12 +1776,15 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
-!*... correct ozone to 10m for diagnostic (krt, 11/2017)
-                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
-                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
-     &                 (DUMMY2KT + 1.e+0_f8))
-                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
-     &                 LOG(DUMMY3/DUMMY4KT)
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!!*... correct ozone to 10m for diagnostic (krt, 11/2017)
+!                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
+!                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
+!     &                 (DUMMY2KT + 1.e+0_f8))
+!                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
+!     &                 LOG(DUMMY3/DUMMY4KT)
+!==============================================================================
 
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
@@ -1786,33 +1792,45 @@
                   !coef_b=5.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
-                  RAKT = (1D0/CKUSTR) *
-     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!                  RAKT = (1D0/CKUSTR) *
+!     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
-                  RAKT = (1D0/CKUSTR) *
-     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!                  RAKT = (1D0/CKUSTR) *
+!     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
                ENDIF
 
             ENDIF
 
             RA   = MIN(RA,1.e+4_f8)
-            RAKT = MIN(RAKT,1.e+4_f8)
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            RAKT = MIN(RAKT,1.e+4_f8)
+!==============================================================================
 
             ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
-            IF (RAKT .LT. 0.e+0_f8) THEN
-               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
-               RAKT = 0.0e+0_f8
-            ENDIF
-            ! Store Ra for diagnostic
-            AD_RA(I,J) = RAKT
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            IF (RAKT .LT. 0.e+0_f8) THEN
+!               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
+!               RAKT = 0.0e+0_f8
+!            ENDIF
+!            ! Store Ra for diagnostic
+!            AD_RA(I,J) = RAKT
+!==============================================================================
             ! Store z/L to determine if M/O theory applies
             AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
             

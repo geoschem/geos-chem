@@ -1653,44 +1653,47 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 539 ) THEN
-            
-            !-----------------------------------------
-            ! Adjust ozone from lowest model level to 10m
-            ! (krt, 11/2017) 
-            !-----------------------------------------
-            CATEGORY = 'O3@10m-$'
-            UNIT     = 'ppbv'
-            GMNL     = 1
-            GMTRC    = 2
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, X, Y, TMPO3, CONV )
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
-     &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
-               
-               CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
-               IF (CONV .lt. 0) CONV = 1.0
-
-               ! Case where Monin-Obhukov similarity does not apply
-               ! and the correction is not valid
-               ! Drydep code says that similarity applies over the
-               ! range -2.5 <= z/L <= 1.5
-               IF ( AD_ZL(I,J) .lt. -2.5   .or.
-     &              AD_ZL(I,J) .gt.  1.5 ) THEN
-                  Q(X,Y,1) = -999e+0_fp
-               ELSE
-                  Q(X,Y,1)= CONV *TMPO3*1e+9_fp
-               ENDIF
-               
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!         ELSE IF ( N == 539 ) THEN
+!            
+!            !-----------------------------------------
+!            ! Adjust ozone from lowest model level to 10m
+!            ! (krt, 11/2017) 
+!            !-----------------------------------------
+!            CATEGORY = 'O3@10m-$'
+!            UNIT     = 'ppbv'
+!            GMNL     = 1
+!            GMTRC    = 2
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y, TMPO3, CONV )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
+!     &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
+!               
+!               CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
+!               IF (CONV .lt. 0) CONV = 1.0
+!
+!               ! Case where Monin-Obhukov similarity does not apply
+!               ! and the correction is not valid
+!               ! Drydep code says that similarity applies over the
+!               ! range -2.5 <= z/L <= 1.5
+!               IF ( AD_ZL(I,J) .lt. -2.5   .or.
+!     &              AD_ZL(I,J) .gt.  1.5 ) THEN
+!                  Q(X,Y,1) = -999e+0_fp
+!               ELSE
+!                  Q(X,Y,1)= CONV *TMPO3*1e+9_fp
+!               ENDIF
+!               
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!==============================================================================
 
          ELSE
 
