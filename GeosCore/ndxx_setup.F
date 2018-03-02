@@ -765,6 +765,16 @@
          ! Allocate AD44 array
          ALLOCATE( AD44( IIPAR, JJPAR, NMAX, 2 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44' )
+
+         ALLOCATE( AD44b( IIPAR, JJPAR, NMAX), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD44b' )
+
+	 ALLOCATE( AD_RA(IIPAR, JJPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_RA')
+
+	 ALLOCATE( AD_ZL(IIPAR, JJPAR), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD_ZL')
+
       ENDIF
       
       !=================================================================
