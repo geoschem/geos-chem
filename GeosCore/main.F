@@ -2052,16 +2052,14 @@
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !==============================================================
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "All diagnostics", RC ) 
-         CALL GEOS_Timer_Start( "Output",          RC )
-#endif
-
 #if defined( NC_DIAG )
+ 
          !--------------------------------------------------------------
          !           ***** H I S T O R Y   U P D A T E  *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",           RC ) 
+         CALL GEOS_Timer_Start( "Output",                    RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
@@ -2098,6 +2096,8 @@
          ENDIF
 
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",           RC ) 
+         CALL GEOS_Timer_End( "Output",                    RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
@@ -2113,6 +2113,8 @@
             IF ( ITS_A_NEW_DAY() ) THEN
 
 #if defined( USE_TIMERS )
+               CALL GEOS_Timer_Start( "All diagnostics",             RC) 
+               CALL GEOS_Timer_Start( "Output",                      RC)
                CALL GEOS_Timer_Start( "=> Binary punch diagnostics", RC)
 #endif      
 
@@ -2127,16 +2129,13 @@
                ENDIF
 
 #if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC)
+               CALL GEOS_Timer_End( "All diagnostics",             RC ) 
+               CALL GEOS_Timer_End( "Output",                      RC )
+               CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
 #endif      
             ENDIF
          ENDIF
 
-#endif
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "All diagnostics", RC ) 
-         CALL GEOS_Timer_End( "Output",          RC )
 #endif
 
          !==============================================================
@@ -2325,6 +2324,8 @@
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after TIMESERIES' )
 
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",              RC )
+         CALL GEOS_Timer_End( "Output",                       RC )
          CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
 #endif
 
@@ -2335,6 +2336,8 @@
          !            ***** H I S T O R Y   W R I T E *****
          !--------------------------------------------------------------
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",           RC )
+         CALL GEOS_Timer_Start( "Output",                    RC )
          CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
 #endif
 
@@ -2349,14 +2352,11 @@
          ENDIF
 
 #if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",           RC )
+         CALL GEOS_Timer_End( "Output",                    RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
-#endif
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "All diagnostics", RC )
-         CALL GEOS_Timer_End( "Output",          RC )
 #endif
 
          !==============================================================

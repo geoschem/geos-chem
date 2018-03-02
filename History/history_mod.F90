@@ -175,6 +175,8 @@ CONTAINS
     !=======================================================================
     CALL History_ReadCollectionNames( am_I_root,  Input_Opt, State_Chm,      &
                                       State_Diag, State_Met, RC             )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "History_ReadCollectionNames"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -186,6 +188,8 @@ CONTAINS
     !=======================================================================
     CALL History_ReadCollectionData( am_I_root,  Input_Opt, State_Chm,       &
                                      State_Diag, State_Met, RC              )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "History_ReadCollectionData"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -214,6 +218,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod
+    USe DiagList_Mod,      ONLY : CollList, ColItem
     USE ErrCode_Mod
     USE History_Util_Mod
     USE Input_Opt_Mod,     ONLY : OptInput
@@ -240,7 +245,9 @@ CONTAINS
 ! !REVISION HISTORY:
 !  16 Jun 2017 - R. Yantosca - Initial version
 !  15 Aug 2017 - R. Yantosca - Now initialize string arrays to UNDEFINED_STR
-!   2 Oct 2017 - R. Yantosca - Now initialize CollectionFileName
+!  02 Oct 2017 - R. Yantosca - Now initialize CollectionFileName
+!  28 Feb 2018 - R. Yantosca - Now use the CollList object from diaglist_mod
+!                              to get the collection names
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -248,17 +255,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: EOF
-    INTEGER            :: fId,    IOS      
-    INTEGER            :: N,      nSubs1,  nSubs2
+    LOGICAL                :: EOF
+    INTEGER                :: fId,    IOS      
+    INTEGER                :: N,      nSubs1,  nSubs2
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Line,  Line2
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc, Line,  Line2
     
     ! String arrays
-    CHARACTER(LEN=255) :: Subs1(255)
-    CHARACTER(LEN=255) :: Subs2(255)
-    CHARACTER(LEN=255) :: TmpCollectionName(MAX_COLLECTIONS)
+    CHARACTER(LEN=255)     :: Subs1(255)
+    CHARACTER(LEN=255)     :: Subs2(255)
+    CHARACTER(LEN=255)     :: TmpCollectionName(MAX_COLLECTIONS)
+
+    ! Objects
+    TYPE(ColItem), POINTER :: Current
 
     !=======================================================================
     ! Initialize
@@ -277,89 +287,44 @@ CONTAINS
     TmpCollectionName = ''
 
     !=======================================================================
-    ! Open the file containing the list of requested diagnostics
+    ! Get the number of collections and list of collection names by
+    ! querying the collection list object (CollList, from diaglist_mod.F90).
+    !
+    ! NOTE: We are importing CollList from diaglist_mod.F90 via a USE
+    ! association.  This might not be the best way to share data (it 
+    ! violates data encapsulation).  But it works for now.  Maybe figure
+    ! out a more elegant method later. (bmy, 2/28/18)
     !=======================================================================
 
-    ! Find a free file unit
-    fId     = FindFreeLun()
+    ! Initialize
+    CollectionCount = 0
 
-    ! Open the file
-    OPEN( fId, FILE=TRIM(Input_Opt%HistoryInputFile), STATUS='OLD', IOSTAT=RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Could not open "' // TRIM(Input_Opt%HistoryInputFile) // '"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+    ! Point to head of collection list
+    Current => CollList%Head
 
-    !=======================================================================
-    ! Read data from the file
-    !=======================================================================
-    DO
+    ! While we are not at the end of the collection list
+    DO WHILE ( ASSOCIATED( Current ) ) 
+       
+       ! Increment the collection count
+       CollectionCount = CollectionCount + 1
+       
+       ! Save the collection name in a temporary arrayu
+       TmpCollectionName(CollectionCount) = TRIM( Current%CName )
 
-       ! Read a single line, and strip leading/trailing spaces
-       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       ! Point to next collection
+       Current => Current%Next
 
-       ! Exit the loop if it's the end of the file
-       IF ( EOF ) EXIT
-
-       ! If it's a real I/O error, quit w/ error message
-       IF ( IOS > 0 ) THEN
-          ErrMsg = 'Unexpected end-of-file in "'       // &
-                    TRIM( Input_Opt%HistoryInputFile ) // '"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Skip if the line is commented out
-       IF ( Line(1:1) == "#" ) CYCLE
-      
-       !-------------------------------------------------------------------
-       ! Get the list of collections
-       !-------------------------------------------------------------------
-       IF ( Line(1:12) == 'COLLECTIONS:' ) THEN
-
-          ! Start
-          CollectionCount                    = CollectionCount + 1
-          TmpCollectionName(CollectionCount) = CleanText( Line(14:) )
-          
-          ! Loop over all collections
-          DO
-
-             ! Read next line and strip leading/trailing blanks
-             Line2 = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
-
-             ! Exit the loop if it's the end of the file
-             IF ( EOF ) EXIT
-
-             ! If it's a real I/O error, quit w/ error message
-             IF ( IOS > 0 ) THEN
-                ErrMsg = 'Unexpected error in "'        // &
-                     TRIM( Input_Opt%HistoryInputFile ) // '"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-             ! Skip if the line is commented out
-             IF ( Line2(1:1) == "#" ) CYCLE
-      
-             ! 2 colons signal the end of the collecto
-             IF ( Line2(1:2) == '::' ) EXIT
-
-             CollectionCount                    = CollectionCount + 1
-             TmpCollectionName(CollectionCount) = CleanText( Line2 )
-          ENDDO
-       ENDIF
     ENDDO
 
+    ! Free pointer
+    Current => NULL()
+
     !=======================================================================
-    ! Cleanup and quit
+    ! Now that we now the number of diagnostic collections, we can 
+    ! allocate the arrays that will hold various collection attributes
     !=======================================================================
 
-    ! Close the file
-    CLOSE( fId )
-
-    ! Now that we now the number of diagnostic collections, we can allocate
-    ! the array that will hold the name of each diagnostic collection.
+    ! Allocate CollectionName
     IF ( .not. ALLOCATED( CollectionName ) ) THEN
        ALLOCATE( CollectionName( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
@@ -370,10 +335,11 @@ CONTAINS
     ENDIF
 
     ! Copy the collection names from the temporary array
+    ! NOTE: The linked-list stors in reverse order, so revert here
     DO N = 1, CollectionCount
-       CollectionName(N) = TmpCollectionName(N)
+       CollectionName(N) = TmpCollectionName(CollectionCount-N+1)
     ENDDO
-
+    
     ! Allocate CollectionFileName
     IF ( .not. ALLOCATED( CollectionFileName ) ) THEN
        ALLOCATE( CollectionFileName( CollectionCount ), STAT=RC )
@@ -485,6 +451,7 @@ CONTAINS
 ! !USES:
 !
     USE Charpak_Mod
+    USE DiagList_Mod,          ONLY : CollList, Search_CollList
     USE CMN_Size_Mod,          ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE HistContainer_Mod
@@ -560,8 +527,9 @@ CONTAINS
     CHARACTER(LEN=6  )           :: TStr
     CHARACTER(LEN=8  )           :: DStr
     CHARACTER(LEN=20 )           :: StartTimeStamp, EndTimeStamp
+    CHARACTER(LEN=63 )           :: CName
     CHARACTER(LEN=255)           :: Line,           FileName
-    CHARACTER(LEN=255)           :: ErrMsg,         ThisLoc
+    CHARACTER(LEN=255)           :: OutputName,     ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
     CHARACTER(LEN=255)           :: Title,          Units
     CHARACTER(LEN=255)           :: ItemTemplate,   ItemTemplateUC
@@ -569,7 +537,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: TmpMode,        Contact
     CHARACTER(LEN=255)           :: Pattern,        ItemPrefix
     CHARACTER(LEN=255)           :: tagId,          tagName
-    CHARACTER(LEN=255)           :: OutputName
+    CHARACTER(LEN=512)           :: ErrMsg
 
     ! Arrays
     INTEGER                      :: SubsetDims(3)
@@ -678,6 +646,7 @@ CONTAINS
     DO
 
        ! Read a single line, and strip leading/trailing spaces
+ 500   CONTINUE
        Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
 
        ! Exit the loop if it's the end of the file
@@ -707,11 +676,11 @@ CONTAINS
        !====================================================================
        ! The HISTORY.rc file specifies collection metadata as:
        !
-       !   instantaneous.filename:  './output/GEOSChem.inst.%y4%m2%d2.nc4'
-       !   instantaneous.template:  '%y4%m2%d2.nc4',
-       !   instantaneous.format:    'CFIO',
-       !   instantaneous.frequency:  010000,
-       !   instantaneous.duration:   240000
+       !   SpeciesConc.filename:  './output/GEOSChem.inst.%y4%m2%d2.nc4'
+       !   SpeciesConc.template:  '%y4%m2%d2_%h2%n2.nc4',
+       !   SpeciesConc.format:    'CFIO',
+       !   SpeciesConc.frequency:  010000,
+       !   SpeciesConc.duration:   240000
        !   etc.
        !
        ! where in this example, "instantaneous" is the collection name
@@ -808,11 +777,41 @@ CONTAINS
        !====================================================================
        IF ( INDEX( TRIM( Line ), 'fields' ) > 0 ) THEN
 
+          !-----------------------------------------------------------------
           ! If we can't find the metadata for the collection in HISTORY.rc,
           ! then this might point to a mismatch between names under the
           ! "COLLECTIONS:" list and the corresponding metadata section.
-          ! Quit with error if this occurs.
+          ! Do some further error checking.
+          !-----------------------------------------------------------------
           IF ( C == UNDEFINED_INT ) THEN
+
+             !--------------------------------------------------------------
+             ! If the collection corresponding to this ".fields" tag is
+             ! not active, then keep reading lines from HISTORY.rc 
+             ! until we reach the next collection definition section.
+             ! then cycle back to the top of the loop.
+             !--------------------------------------------------------------
+
+             ! Get the collection name (its to the left of the first ".")
+             N     = INDEX( TRIM( Line ), '.' )
+             CName = Line(1:N-1)
+
+             ! This means skipping over all of the fields listed under
+             ! this collection until we get to the :: separator
+             CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
+             IF ( .not. Found ) THEN
+                DO
+                   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   CALL StrSqueeze( Line )
+                   IF ( TRIM( Line ) == '::' ) GOTO 500
+                ENDDO
+             ENDIF
+             
+             !--------------------------------------------------------------
+             ! If we get to this point, then there is a true error 
+             ! condition.  Print an error message askign the user to
+             ! check the HISTORY.rc file for inconsistencies.
+             !--------------------------------------------------------------
 
              ! List the defined collections
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
@@ -839,6 +838,11 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF 
+
+          !=================================================================
+          ! At this point we are sure that the collection has been
+          ! defined, so we can continue to populate it with fields.
+          !=================================================================
 
           ! Zero the counter of items
           ItemCount = 0
@@ -1294,11 +1298,40 @@ CONTAINS
        ELSE
 
           !=================================================================
-          ! Print an error message if the ".fields" tag is not found
-          ! in HISTORY.rc (or if it has a collection name that is
-          ! not one of those in the list of defined collections).
+          ! If the we have gotten this far tthrough a collection definition 
+          ! section, but still haven't found the ".fields" tag, then we 
+          ! need to do some further error checking.
           !=================================================================
           IF ( C == UNDEFINED_INT ) THEN
+
+             !-------------------------------------------------------------- 
+             ! First, check if the collection isn't activated.  If that
+             ! is the case, then skip over all of the lines in the 
+             ! collection definition section until we hit the "::" 
+             ! termination character.  Then cycle up to the top of the
+             ! loop to read the next collection definition section.
+             !--------------------------------------------------------------
+
+             ! Get the collection name (its to the left of the first ".")
+             N     = INDEX( TRIM( Line ), '.' )
+             CName = Line(1:N-1)
+
+             ! Search for this collection in the list of active collections
+             ! and skip to the next collection if not found
+             CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
+             IF ( .not. Found ) THEN
+                DO
+                   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   CALL StrSqueeze( Line )
+                   IF ( TRIM( Line ) == '::' ) GOTO 500
+                ENDDO
+             ENDIF
+
+             !-------------------------------------------------------------- 
+             ! If we have gotten down to this point, then a true error 
+             ! condition exists.  Print an error message asking the user 
+             ! to check the HISTORY.rc file for inconsistencies.
+             !-------------------------------------------------------------- 
 
              ! List the defined collections
              WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
@@ -2416,7 +2449,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Charpak_Mod,       ONLY: CleanText, StrSplit
+    USE Charpak_Mod,      ONLY: CleanText, StrSplit
+    USE DiagList_Mod,     ONLY: CollList,  Search_CollList
     USE History_Util_Mod
 !
 ! !INPUT PARAMETERS: 
@@ -2445,7 +2479,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                  :: C, Ind, nSubStr, N, P
+    LOGICAL                  :: Found
+    INTEGER                  :: C, Ind, nSubStr, N, P, RC
 
     ! Strings
     CHARACTER(LEN=255)       :: Name
@@ -2464,6 +2499,10 @@ CONTAINS
     ! The collection name is between column 1 and the first "." character
     Ind  = INDEX( TRIM( Line ), '.' )
     Name = Line(1:Ind-1) 
+
+    ! Exit if the collection name is not in the list of active collections
+    CALL Search_CollList( .TRUE., CollList, Name, Found, RC )
+    IF ( .not. Found ) RETURN
 
     ! Non-white-space lengths of the collection cname and search pattern
     N = LEN_TRIM( Name    )
