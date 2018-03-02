@@ -2662,6 +2662,8 @@
 !  24 Jun 2016 - R. Yantosca - Now return id_H2O2 < 0 or id_SO2 < 0 (not == 0)
 !  22 Mar 2017 - M. Sulprizio- Add fixes for LWC unit conversion (V. Shah)
 !  07 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  02 Mar 2018 - M. Sulprizio- Bug fix: reorder IF statements for Fahey and
+!                              Seinfeld decision algorithm (C. Holmes)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3550,6 +3552,49 @@
                IF ( LWC    >= 0.1e-6_fp         .and. 
      &              gno3   <= (NH3 + 2.e-9_fp) ) 
      &              BULK    = 1
+            ELSEIF( LWC    >= 0.5e-6_fp ) THEN
+               IF ( H2O20  >= (0.9e+0_fp * SO2_ss) ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.e-9_fp          .and. 
+     &              ALKds  >= 5.e+0_fp          .and. 
+     &              SO2_ss <= 10.e-9_fp ) 
+     &              BULK    = 1
+            ELSEIF( LWC    >= 0.3e-6_fp ) THEN
+               IF ( NH3    >= (gno3 + 5.e-9_fp) .and. 
+     &              SO2_ss <= 10.e-9_fp )
+     &              BULK    = 1
+               IF ( gno3   <= 1.e-9_fp          .and. 
+     &              NH3    >= (gno3 + 2.e-9_fp) )
+     &              BULK    = 1
+               IF ( gno3   <= 7.e-9_fp          .and. 
+     &              NH3    >= (gno3 + 3.e-9_fp) )
+     &              BULK    = 1
+               IF ( ALKds  >= 3.e+0_fp          .and. 
+     &              NH3 <= 10e-9_fp             .and. 
+     &              SO2_ss <= 5e-9_fp ) 
+     &              BULK    = 1
+               IF ( ALKds  >= 5.e+0_fp          .and. 
+     &              NH3    <= 10.e-9_fp         .and. 
+     &              SO2_ss <= 5.e-9_fp ) 
+     &              BULK    = 1
+               IF ( SO2_ss >= 1.5e-9_fp         .and. 
+     &              H2O20  >= SO2_ss ) 
+     &              BULK    = 1
+               IF ( NH3    <= 12.e-9_fp         .and. 
+     &              ALKds  >=10.e+0_fp ) 
+     &              BULK    = 1
+               IF ( NH3    <= 1.e-9_fp          .and. 
+     &              ALKds  >= 4.e+0_fp          .and. 
+     &              SO2_ss <= 10.e-9_fp ) 
+     &              BULK    = 1
+               IF ( NH3    <= 5.e-9_fp          .and. 
+     &              ALKds  >= 6.e+0_fp          .and. 
+     &              SO2_ss <= 10.e-9_fp ) 
+     &              BULK    = 1
+               IF ( NH3    <= 7.e-9_fp          .and. 
+     &              ALKds   >-8.e+0_fp          .and. 
+     &              SO2_ss <= 10.e-9_fp ) 
+     &              BULK    = 1
             ELSEIF( LWC    >= 0.1e-6_fp ) THEN
                IF ( NH3    <= 1.e-9_fp          .and. 
      &              ALKds  >= 5.e+0_fp   ) 
@@ -3597,49 +3642,6 @@
                IF ( NH3    <= 1.e-9_fp          .and. 
      &              SO2_ss >= 3.e-9_fp          .and. 
      &              H2O20  >= SO2_ss ) 
-     &              BULK    = 1
-            ELSEIF( LWC    >= 0.3e-6_fp ) THEN
-               IF ( NH3    >= (gno3 + 5.e-9_fp) .and. 
-     &              SO2_ss <= 10.e-9_fp )
-     &              BULK    = 1
-               IF ( gno3   <= 1.e-9_fp          .and. 
-     &              NH3    >= (gno3 + 2.e-9_fp) )
-     &              BULK    = 1
-               IF ( gno3   <= 7.e-9_fp          .and. 
-     &              NH3    >= (gno3 + 3.e-9_fp) )
-     &              BULK    = 1
-               IF ( ALKds  >= 3.e+0_fp          .and. 
-     &              NH3 <= 10e-9_fp             .and. 
-     &              SO2_ss <= 5e-9_fp ) 
-     &              BULK    = 1
-               IF ( ALKds  >= 5.e+0_fp          .and. 
-     &              NH3    <= 10.e-9_fp         .and. 
-     &              SO2_ss <= 5.e-9_fp ) 
-     &              BULK    = 1
-               IF ( SO2_ss >= 1.5e-9_fp         .and. 
-     &              H2O20  >= SO2_ss ) 
-     &              BULK    = 1
-               IF ( NH3    <= 12.e-9_fp         .and. 
-     &              ALKds  >=10.e+0_fp ) 
-     &              BULK    = 1
-               IF ( NH3    <= 1.e-9_fp          .and. 
-     &              ALKds  >= 4.e+0_fp          .and. 
-     &              SO2_ss <= 10.e-9_fp ) 
-     &              BULK    = 1
-               IF ( NH3    <= 5.e-9_fp          .and. 
-     &              ALKds  >= 6.e+0_fp          .and. 
-     &              SO2_ss <= 10.e-9_fp ) 
-     &              BULK    = 1
-               IF ( NH3    <= 7.e-9_fp          .and. 
-     &              ALKds   >-8.e+0_fp          .and. 
-     &              SO2_ss <= 10.e-9_fp ) 
-     &              BULK    = 1
-            ELSEIF( LWC    >= 0.5e-6_fp ) THEN
-               IF ( H2O20  >= (0.9e+0_fp * SO2_ss) ) 
-     &              BULK    = 1
-               IF ( NH3    <= 1.e-9_fp          .and. 
-     &              ALKds  >= 5.e+0_fp          .and. 
-     &              SO2_ss <= 10.e-9_fp ) 
      &              BULK    = 1
             ELSE
                SIZE_RES = 1
