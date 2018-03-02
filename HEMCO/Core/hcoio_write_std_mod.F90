@@ -569,7 +569,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN
        GMT      = REAL(MAX(refh,0),dp) + (REAL(MAX(refm,0),dp)/60.0_dp) + (REAL(MAX(refs,0),dp)/3600.0_dp)
        THISDAY  = refDD + ( GMT / 24.0_dp )
-       JD1985   = JULDAY ( refYYYY, refMM, THISDAY ) + 1.0_dp
+       JD1985   = JULDAY ( refYYYY, refMM, THISDAY )
 
     ! Use current time if not found
     ELSE
