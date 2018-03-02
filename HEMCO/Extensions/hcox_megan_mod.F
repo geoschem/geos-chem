@@ -196,7 +196,6 @@
          INTEGER                 :: Instance
          INTEGER                 :: ExtNr        ! Extension number for MEGAN
          INTEGER                 :: ExtNrMono    ! Extension number for MEGAN_Mono
-         INTEGER                 :: ExtNrSoa     ! Extension number for MEGAN_SOA
          REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
          REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
          REAL(hp)                :: ISOPTOSOAP   ! SOAP Emission factor
@@ -213,7 +212,6 @@
    
          ! HEMCO species IDs
          INTEGER                 :: IDTISOP
-         INTEGER                 :: IDTMONX
          INTEGER                 :: IDTACET
          INTEGER                 :: IDTCO 
          INTEGER                 :: IDTPRPE
@@ -354,6 +352,10 @@
 !                              Hco_EmisAdd for the MONX (in order to make MONX
 !                              show up as nonzero in HEMCO diagnostics).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  02 Mar 2018 - M. Sulprizio- Remove species MONX and use MTPA/MTPO/LIMO;
+!                              Consolidate MEGAN_SOA option into MEGAN_Mono
+!                              since there is essentially no difference between
+!                              the two now that SOA (MTPA/MTPO/LIMO) is standard
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -662,7 +664,6 @@
          ! MEGAN monoterpenes
          !--------------------------------------------------------------------
          ! Updated the calls below for new MEGAN routine (dbm, 12/2012)
-
          IF ( Inst%ExtNrMono > 0 ) THEN
 
             ! ---------------------------------------------------
@@ -711,13 +712,7 @@
                ERR = .TRUE.
                EXIT
             ENDIF 
-!            IF ( Inst%ExtNrSoa < 1 ) THEN
-               ! Update FLUXLIMO here for diagnostic purposes if the
-               ! SOA mechanism is turned off.
-               ! Otherwise, FLUXLIMO is updated below.
-               !sfarina - soa mechanism no longer requires limo so update it
-               FLUXLIMO(I,J) = EMIS_LIMO
-!            ENDIF
+            FLUXLIMO(I,J) = EMIS_LIMO
 
             ! ---------------------------------------------------
             ! Sabinene emissions
@@ -1089,8 +1084,8 @@
             FLUXC2H4(I,J) = EMIS_C2H4
          ENDIF
 
-         ! Use CALTECH algorithm if SOA is turned on
-         IF ( Inst%ExtNrSoa > 0 ) THEN
+         ! Use CALTECH algorithm if MEGAN Monoterpene is turned on
+         IF ( Inst%ExtNrMono > 0 ) THEN
            
             ! Error trap: check if SZAFACT is indeed defined
             IF ( .NOT. ASSOCIATED(ExtState%SZAFACT%Arr%Val) ) THEN
@@ -1132,107 +1127,106 @@
             !           -----      --------
             ! TOTAL      129        167.2
             ! see Pye et al. 2010 ACP
-            ! ----------------------------------------------------------------
+            !
+            ! MEGAN emission update for SESQ and other monoterps
+            ! (hotp 3/10/10)
+            ! terpenoid ketones no longer lumped into ALPH
+            ! terpenoid alcohols no longer lumped in ALCO
+            ! Other monoterpenes (OMON from MEGAN) all placed in TERP
+            ! All sesq lumped together into SESQ
+            !
+            ! new mtp lumping (as of 5/20/10) hotp
+            ! GEOS-Chem   MEGAN
+            ! =========   ==========================================
+            ! MTPA        a-pinene   (APIN), b-pinene  (BPIN), 
+            !             sabinene   (SABI), carene    (CARE)
+            ! LIMO        limonene   (LIMO)
+            ! MTPO        myrcene    (MYRC), ocimene   (OCIM),
+            !             other mono (OMON)
+            ! SESQ        farnesene  (FARN), b-caryoph (BCAR), 
+            !             other sesq (OSQT)
+            ! =========   ==========================================
 
-            IF ( Inst%ExtNrMono > 0 ) THEN
+            !--------------------------------------------------------------
+            ! MEGAN MTPA 
+            !--------------------------------------------------------------
+            ! MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
+            IF ( Inst%IDTMTPA > 0 ) THEN
+               FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
+     &                           EMIS_SABI + EMIS_CARE ) * FC1
+            ENDIF
 
-               ! MEGAN emission update for SESQ and other monoterps
-               ! (hotp 3/10/10)
-               ! terpenoid ketones no longer lumped into ALPH
-               ! terpenoid alcohols no longer lumped in ALCO
-               ! Other monoterpenes (OMON from MEGAN) all placed in TERP
-               ! All sesq lumped together into SESQ
+            !--------------------------------------------------------------
+            ! MEGAN Limonene 
+            !--------------------------------------------------------------
+            ! [kg C/m2/s]
+            IF ( Inst%IDTLIMO > 0 ) THEN
+               FLUXLIMO(I,J) = EMIS_LIMO * FC1 
+            ENDIF
 
-               ! new mtp lumping (as of 5/20/10) hotp
-               ! GEOS-Chem   MEGAN
-               ! =========   ==========================================
-               ! MTPA        a-pinene   (APIN), b-pinene  (BPIN), 
-               !             sabinene   (SABI), carene    (CARE)
-               ! LIMO        limonene   (LIMO)
-               ! MTPO        myrcene    (MYRC), ocimene   (OCIM),
-               !             other mono (OMON)
-               ! SESQ        farnesene  (FARN), b-caryoph (BCAR), 
-               !             other sesq (OSQT)
-               ! =========   ==========================================
+            !--------------------------------------------------------------
+            ! MEGAN MTPO
+            !--------------------------------------------------------------
+            ! MTPO is all other monoterpenes (MEGAN categories:
+            ! myrcene, ocimene, OMON) (hotp 5/20/10)
+            ! All other monoterpenes (mostly camphene, linalool,
+            ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
+            ! 14-18% of OMTP is terpinene and terpinolene
+            IF ( Inst%IDTMTPO > 0 ) THEN
+               FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM +
+     &                           EMIS_OMON ) * FC1
+            ENDIF
 
-               !--------------------------------------------------------------
-               ! MEGAN MTPA 
-               !--------------------------------------------------------------
-               ! MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
-               IF ( Inst%IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
-     &                              EMIS_SABI + EMIS_CARE ) * FC1
-               ENDIF
+            !--------------------------------------------------------------
+            ! MEGAN sesquiterpenes
+            !--------------------------------------------------------------
 
-               !--------------------------------------------------------------
-               ! MEGAN Limonene 
-               !--------------------------------------------------------------
-               ! [kg C/m2/s]
-               IF ( Inst%IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = EMIS_LIMO * FC1 
-               ENDIF
+            ! ---------------------------------------------------
+            ! a-Farnesene 
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'FARN', EMIS_FARN, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_FARN', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXFARN(I,J) = EMIS_FARN
 
-               !--------------------------------------------------------------
-               ! MEGAN MTPO
-               !--------------------------------------------------------------
-               ! MTPO is all other monoterpenes (MEGAN categories:
-               ! myrcene, ocimene, OMON) (hotp 5/20/10)
-               ! All other monoterpenes (mostly camphene, linalool,
-               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
-               ! 14-18% of OMTP is terpinene and terpinolene
-               IF ( Inst%IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM +
-     &                              EMIS_OMON ) * FC1
-               ENDIF
+            ! ---------------------------------------------------
+            ! b_Caryophyllene 
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'BCAR', EMIS_BCAR, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_BCAR', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXBCAR(I,J) = EMIS_BCAR
 
-               !--------------------------------------------------------------
-               ! MEGAN sesquiterpenes
-               !--------------------------------------------------------------
+            ! ---------------------------------------------------
+            ! Other sesquiterpene
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'OSQT', EMIS_OSQT, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_OSQT', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXOSQT(I,J) = EMIS_OSQT
 
-               ! ---------------------------------------------------
-               ! a-Farnesene 
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'FARN', EMIS_FARN, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_FARN', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXFARN(I,J) = EMIS_FARN
-
-               ! ---------------------------------------------------
-               ! b_Caryophyllene 
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'BCAR', EMIS_BCAR, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_BCAR', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXBCAR(I,J) = EMIS_BCAR
-
-               ! ---------------------------------------------------
-               ! Other sesquiterpene
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'OSQT', EMIS_OSQT, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_OSQT', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXOSQT(I,J) = EMIS_OSQT
-
-               ! ---------------------------------------------------
-               ! Total sesquiterpenes from MEGAN (hotp 3/10/10)
-               IF ( Inst%IDTSESQ > 0 ) THEN
-                  FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
-     &                              EMIS_OSQT ) * FC3
-               ENDIF
+            ! ---------------------------------------------------
+            ! Total sesquiterpenes from MEGAN (hotp 3/10/10)
+            IF ( Inst%IDTSESQ > 0 ) THEN
+               FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
+     &                           EMIS_OSQT ) * FC3
+            ENDIF
  
-               EMIS_OTHR = EMIS_FARN + EMIS_BCAR + EMIS_OSQT
+            EMIS_OTHR = EMIS_FARN + EMIS_BCAR + EMIS_OSQT
+
+         ELSE
 
             ! If MEGAN Monoterpene is turned off:
             ! NOTE: In the original GEOS-Chem code, many of these fluxes
@@ -1240,48 +1234,46 @@
             ! are only calculated if the MEGAN_MONO option is turned on
             ! and their contributions are hence skipped in the following!
             ! (ckeller, 05/19/14)
-            ELSE
 
-               ! MTPA
-               ! old ALPH is now MTPA (hotp 5/20/10)
-               ! ALPHA-PINENE (0.35)
-               ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
-               ! SABINENE    lumped with ALPHA-PINENE (0.05)
-               ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
+            ! MTPA
+            ! old ALPH is now MTPA (hotp 5/20/10)
+            ! ALPHA-PINENE (0.35)
+            ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
+            ! SABINENE    lumped with ALPHA-PINENE (0.05)
+            ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
 
-               ! TERPENOID KETONE is lumped with SABINENE
-               ! Then SABINENE    is lumped with ALPHA-PINENE
-               IF ( Inst%IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04_hp ! using campher
-               ENDIF
-
-               ! LIMONENE not defined (derived from TERP)
-               IF ( Inst%IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = 0.0_hp
-               ENDIF  
-
-               ! MTPO
-               IF ( Inst%IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09_hp ! using LINALOOL 
-               ENDIF
-
-               ! IDTSESQ 
-               IF ( Inst%IDTSESQ > 0 ) THEN
-                  FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
-               ENDIF
-
-               EMIS_OTHR = 0.0_hp
-
+            ! TERPENOID KETONE is lumped with SABINENE
+            ! Then SABINENE    is lumped with ALPHA-PINENE
+            IF ( Inst%IDTMTPA > 0 ) THEN
+               FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04_hp ! using campher
             ENDIF
+
+            ! LIMONENE not defined (derived from TERP)
+            IF ( Inst%IDTLIMO > 0 ) THEN
+               FLUXLIMO(I,J) = 0.0_hp
+            ENDIF  
+
+            ! MTPO
+            IF ( Inst%IDTMTPO > 0 ) THEN
+               FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09_hp ! using LINALOOL 
+            ENDIF
+
+            ! IDTSESQ 
+            IF ( Inst%IDTSESQ > 0 ) THEN
+               FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
+            ENDIF
+
+            EMIS_OTHR = 0.0_hp
+
          ENDIF
 
          !--------------------------------------------------------------------
          ! Biogenic emissions of SOA and SOA-Precursor from Other terpenes
          !--------------------------------------------------------------------
-         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrSoa>0) ) THEN
+         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrMono>0) ) THEN
             FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_OTHR * Inst%OTHRTOSOAP
          ENDIF
-         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrSoa>0) ) THEN
+         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrMono>0) ) THEN
             FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_OTHR * Inst%OTHRTOSOAS
          ENDIF
 
@@ -1343,31 +1335,6 @@
             CALL HCO_ERROR( HcoState%Config%Err, 
      &                     'HCO_EmisAdd error: FLUXISOP', RC )
             RETURN 
-         ENDIF
-      ENDIF
-
-      ! ----------------------------------------------------------------
-      ! MONOTERPENES 
-      IF ( Inst%ExtNrMono > 0 ) THEN
-
-         IF ( Inst%IDTMONX > 0 ) THEN
-            ! Add flux to emission array
-            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, 
-!----------------------------------------------------------------------------
-! Prior to 6/1/16:
-! MONX belongs to the MEGAN_Mono extension, so we should pass ExtNrMono
-! to HCO_EMISADD.  This will not change the emissions (which get added to
-! HcoState anyway), but it will make  MONX show up properly in diagnostics.
-! (bmy, 6/1/16)
-!     &                        RC,        ExtNr=ExtNr )
-!----------------------------------------------------------------------------
-     &                        Inst%IDTMONX, RC, ExtNr=Inst%ExtNrMono )
-
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXMONO', RC )
-               RETURN 
-            ENDIF
          ENDIF
       ENDIF
 
@@ -1516,8 +1483,8 @@
 
       ! ----------------------------------------------------------------
       ! MTPA 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTMTPA  > 0 )      ) THEN 
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTMTPA   > 0 )      ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPA, Inst%IDTMTPA, 
@@ -1532,8 +1499,8 @@
 
       ! ----------------------------------------------------------------
       ! MTPO 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTMTPO  > 0 )      ) THEN 
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTMTPO   > 0 )      ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPO, Inst%IDTMTPO, 
@@ -1548,8 +1515,8 @@
 
       ! ----------------------------------------------------------------
       ! LIMONENE 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTLIMO  > 0 )      ) THEN
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTLIMO   > 0 )      ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXLIMO, Inst%IDTLIMO, 
@@ -1564,7 +1531,8 @@
 
       ! ----------------------------------------------------------------
       ! SESQ 
-      IF ( (Inst%ExtNrSoa>0) .AND. (Inst%IDTSESQ>0) ) THEN
+      IF ( ( Inst%ExtNrMono > 0 ) .AND.
+     &     ( Inst%IDTSESQ   > 0 )      ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSESQ, Inst%IDTSESQ, 
@@ -3589,8 +3557,8 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
-      ! Only used for SOA simulation:
-      IF ( Inst%ExtNrSoa > 0 ) THEN
+      ! Only used for MEGAN Monoterpene simulation:
+      IF ( Inst%ExtNrMono > 0 ) THEN
          CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), 
      &                     Inst%GEIA_ORVC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4271,11 +4239,12 @@
          CALL HCO_MSG( MSG )
       ENDIF
 
-      ! Check for monoterpene option --> this one is required for 
-      ! CO, OCPI, MONX
+      ! Check for monoterpene option --> required for CO, MTPA, MTPO, LIMO, SESQ
       Inst%IDTCO     = -1 
-!      Inst%IDTOCPI   = -1 
-      Inst%IDTMONX   = -1 
+      Inst%IDTMTPA   = -1 
+      Inst%IDTMTPO   = -1 
+      Inst%IDTLIMO   = -1 
+      Inst%IDTSESQ   = -1
       Inst%ExtNrMono = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
       IF ( Inst%ExtNrMono > 0 ) THEN
 
@@ -4285,7 +4254,7 @@
             CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDIF
 
-         ! Get HEMCO species IDs of CO, MONX, SOAS, SOAP
+         ! Get HEMCO species IDs
          CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrMono, HcoIDs,
      &                         SpcNames, nSpc,           RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4317,97 +4286,9 @@
             !set to zero if not specified
             Inst%MONOTOSOAS = 0.0
          ENDIF
-    
-         DO I = 1, nSpc
-            SELECT CASE ( TRIM(SpcNames(I)) )
-               CASE( 'CO' )
-                  Inst%IDTCO = HcoIDs(I)
-                  WRITE(MSG,*) '   CO         = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTCO
-               CASE( 'MONX' )
-                  Inst%IDTMONX = HcoIDs(I)
-                  WRITE(MSG,*) '   Monoterp.  = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTMONX
-               CASE( 'SOAP' )
-                  IF (Inst%IDTSOAP < 0) THEN
-                     Inst%IDTSOAP = HcoIDs(I)
-                  END IF
-                  WRITE(MSG,*) '     SOA-Precursor = ',
-     &               TRIM(SpcNames(I)),Inst%IDTSOAP
-               CASE( 'SOAS' )
-                  IF (Inst%IDTSOAS < 0) THEN
-                     Inst%IDTSOAS = HcoIDs(I)
-                  END IF
-                  WRITE(MSG,*) '     SOA-Simple = ',
-     &               TRIM(SpcNames(I)),Inst%IDTSOAS
-               CASE DEFAULT
-                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
-                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-                  RETURN
-            END SELECT
-
-            ! Verbose
-            IF ( am_I_Root ) CALL HCO_MSG(HcoState%Config%Err,MSG )
-         ENDDO
-
-         ! Check if at least one of the Mono species is defined 
-         IF ( Inst%IDTCO   < 0 .AND. 
-     &        Inst%IDTSOAP < 0 .AND. 
-     &        Inst%IDTSOAS < 0 .AND. 
-     &        Inst%IDTMONX < 0      ) THEN
-            MSG = 'MEGAN_MONO option is anabled but none of the '// 
-     &            'species is found (CO, SOAP, SOAS, MONX)!'
-            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-            RETURN
-         ENDIF
-
-         IF ( am_I_Root ) THEN
-            !convert back to direct mass basis just for show
-            WRITE(MSG,*) ' --> Monoterpene to SOA-Precursor',
-     &       Inst%MONOTOSOAP / 1.134
-            CALL HCO_MSG( MSG )
-            WRITE(MSG,*) ' --> Monoterpene direct to SOA (Simple)',
-     &       Inst%MONOTOSOAS / 1.134
-            CALL HCO_MSG( MSG )
-         ENDIF
-
-      !-----------------------------------------------------------------
-      ELSE
-
-         ! CO emissions and acetone emissions will be zero/incomplete!
-         IF ( Inst%IDTACET > 0 ) THEN
-            MSG = 'Cannot fully calculate MEGAN acetone ' //
-     &            'emissions because monoterpene switch is off!'
-            CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
-         ENDIF
-         MSG = 'Will not calculate MEGAN CO emissions ' //
-     &         'because monoterpene switch is off!'
-         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
-      ENDIF
-
-      ! --> Check for SOA option. This option is only valid together
-      !     w/ monoterpene!
-      ! This further adds species ALPH/LIMO/ALCO
-      Inst%IDTMTPA = -1 
-      Inst%IDTMTPO = -1 
-      Inst%IDTLIMO = -1 
-      Inst%IDTSESQ = -1
-      Inst%ExtNrSoa = GetExtNr( HcoState%Config%ExtList, 'MEGAN_SOA')
-      IF ( Inst%ExtNrSoa > 0 ) THEN
-         IF ( Inst%ExtNrMono <= 0 ) THEN
-            MSG = 'MEGAN SOA option only valid with monoterpene!'
-            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-            RETURN
-         ENDIF
-
-         ! Verbose
-         IF ( am_I_Root ) THEN
-            MSG = '   - SOA mechanism enabled:' 
-            CALL HCO_MSG(HcoState%Config%Err,MSG )
-         ENDIF
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrSoa,
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
      &                 'Othrterp to SOAP', 
      &                 OptValHp=Inst%OTHRTOSOAP, FOUND=Optfound, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4421,7 +4302,7 @@
          ENDIF
 
          Optfound = .FALSE.
-         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrSoa,
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
      &                 'Othrterp to SOAS', 
      &                 OptValHp=Inst%OTHRTOSOAS, FOUND=Optfound, RC=RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4434,14 +4315,12 @@
             Inst%OTHRTOSOAS = 0.0
          ENDIF
     
-
-         ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
-         CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrSoa, HcoIDs,
-     &                         SpcNames, nSpc,          RC       )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
          DO I = 1, nSpc
             SELECT CASE ( TRIM(SpcNames(I)) )
+               CASE( 'CO' )
+                  Inst%IDTCO = HcoIDs(I)
+                  WRITE(MSG,*) '   CO         = ',
+     &                         TRIM(SpcNames(I)),Inst%IDTCO
                CASE( 'MTPA' )
                   Inst%IDTMTPA = HcoIDs(I)
                   WRITE(MSG,*) '     a-,b-pinene    = ',
@@ -4480,28 +4359,48 @@
             IF ( am_I_Root ) CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDDO
 
-         ! Check if at least one of the SOA species is defined 
-         IF ( Inst%IDTMTPA < 0 .AND. Inst%IDTMTPO < 0 .AND.  
-     &        Inst%IDTLIMO < 0 .AND. Inst%IDTSESQ < 0 .AND.
-     &        Inst%IDTSOAP < 0 .AND. Inst%IDTSOAS < 0        ) THEN
-            MSG = 'MEGAN_SOA option is anabled but none of the '// 
-     &            'SOA species is found (MTPA, MTPO, LIMO, '    //
-     &            'SESQ, SOAS, SOAP)!'
+         ! Check if at least one of the Mono species is defined 
+         IF ( Inst%IDTCO   < 0 .AND.
+     &        Inst%IDTMTPA < 0 .AND.
+     &        Inst%IDTMTPO < 0 .AND.  
+     &        Inst%IDTLIMO < 0 .AND.
+     &        Inst%IDTSESQ < 0 .AND.
+     &        Inst%IDTSOAP < 0 .AND. 
+     &        Inst%IDTSOAS < 0  ) THEN
+            MSG = 'MEGAN_MONO option is anabled but none of the '  // 
+     &            'species is found (CO, MTPA, MTPO, LIMO, SESQ, ' //
+     &            'SOAP, SOAS)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
-
          ENDIF
 
          IF ( am_I_Root ) THEN
             !convert back to direct mass basis just for show
+            WRITE(MSG,*) ' --> Monoterpene to SOA-Precursor',
+     &       Inst%MONOTOSOAP / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Monoterpene direct to SOA (Simple)',
+     &       Inst%MONOTOSOAS / 1.134
+            CALL HCO_MSG( MSG )
             WRITE(MSG,*) ' --> Othrterpene to SOA-Precursor',
-     &    Inst%OTHRTOSOAP / 1.134
+     &       Inst%OTHRTOSOAP / 1.134
             CALL HCO_MSG( MSG )
             WRITE(MSG,*) ' --> Othrterpene direct to SOA (Simple)',
-     &    Inst%OTHRTOSOAS / 1.134
+     &       Inst%OTHRTOSOAS / 1.134
             CALL HCO_MSG( MSG )
          ENDIF
 
+      ELSE
+
+         ! CO emissions and acetone emissions will be zero/incomplete!
+         IF ( Inst%IDTACET > 0 ) THEN
+            MSG = 'Cannot fully calculate MEGAN acetone ' //
+     &            'emissions because monoterpene switch is off!'
+            CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
+         ENDIF
+         MSG = 'Will not calculate MEGAN CO emissions ' //
+     &         'because monoterpene switch is off!'
+         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, ExtNr, 'MEGAN_SUFFIX',  
@@ -4773,8 +4672,8 @@
       ExtState%LAI%DoUse       = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
 
-      ! SZAFACT field is only used for SOA simulation
-      IF ( Inst%ExtNrSoa > 0 ) THEN
+      ! SZAFACT field is only used for MEGAN Monoterpene simulation
+      IF ( Inst%ExtNrMono > 0 ) THEN
          ExtState%SZAFACT%DoUse = .TRUE.
       ENDIF
 
