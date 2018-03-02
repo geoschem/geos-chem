@@ -163,7 +163,9 @@ MODULE GCKPP_HETRATES
 
   ! Effective Henry's Law constant of IEPOX for reactive
   ! uptake to aqueous aerosols (M/atm)
-  REAL(fp), PARAMETER :: HSTAR_EPOX = 5.0e+6_fp
+  !REAL(fp), PARAMETER :: HSTAR_EPOX = 5.0e+6_fp ! Prior to 3/2/18
+  REAL(fp), PARAMETER :: HSTAR_EPOX = 1.7e+7_fp
+
 
   ! Conversion factor from atm to bar
   REAL(fp), PARAMETER :: con_atm_bar = 1.0e+0_fp/1.01325e+0_fp
@@ -230,6 +232,9 @@ MODULE GCKPP_HETRATES
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  15 Nov 2017 - M. Sulprizio- Add modifications for HOBr + S(IV) based on work
 !                              by Qianjie Chen
+!  02 Mar 2018 - M. Sulprizio- Update HSTAR_EPOX following recommendation from 
+!                              E. Marais to address SOAIE being a factor of 2
+!                              lower in v11-02d than in Marais et al. [2016]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1699,6 +1704,10 @@ MODULE GCKPP_HETRATES
 !
 ! !REVISION HISTORY:
 !  15 Jun 2017 - M. Sulprizio- Initial version based on calcrate.F from E.Marais
+!  02 Mar 2018 - M. Sulprizio- Change daytime gamma to 4.4e-3 and nighttime
+!                              gamma to 8.0e-6 based on recommendation from E.
+!                              Marais to address that SOAGX is a factor of 1.5
+!                              lower in v11-02d than in Marais et al. [2016]
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1732,14 +1741,16 @@ MODULE GCKPP_HETRATES
             IF ( SUNCOS .gt. 0 ) THEN
 
                ! Uptake during the day (use Liggio et al., 2005):
-               XSTKCF = 2.9e-3_fp
+               ! XSTKCF = 2.9e-3_fp ! Prior to 3/2/18
+               XSTKCF = 4.4e-3_fp
 
             ELSE
 
                ! Uptake at night (lower uptake than day)
                ! Value is within the range 1d-5 to 1d-6
                ! (Faye McNeill personal communication, eam, 2015):
-               XSTKCF = 5.0e-6_fp
+               ! XSTKCF = 5.0e-6_fp ! Prior to 3/2/18
+               XSTKCF = 8.0e-6_fp
 
             ENDIF
 
