@@ -6770,11 +6770,11 @@
                   FNAME(T,48) = 'Daily LAI'
                   UNIT (T,48) = 'm2/m2'
                CASE( 10 )
-                  NAME (T,48) = 'NO-SOIL'
+                  NAME (T,48) = 'NO_SOIL'
                   FNAME(T,48) = 'Soil NO'
                   UNIT (T,48) = 'molec/cm2/s'
                CASE( 11 )
-                  NAME (T,48) = 'NO-FERT'
+                  NAME (T,48) = 'NO_FERT'
                   FNAME(T,48) = 'Fertilizer NO'
                   UNIT (T,48) = 'molec/cm2/s'
                CASE( 12 )
@@ -7020,15 +7020,15 @@
             ! Get name and unit for each met field
             SELECT CASE( T )
                CASE( 1 )
-                  NAME (T,55) = 'TP-LEVEL'
+                  NAME (T,55) = 'TP_LEVEL'
                   FNAME(T,55) = 'Tropopause level'
                   UNIT (T,55) = 'level'
                CASE( 2 )
-                  NAME (T,55) = 'TP-HGHT'
+                  NAME (T,55) = 'TP_HGHT'
                   FNAME(T,55) = 'Tropopause height'
                   UNIT (T,55) = 'km'
                CASE( 3 )
-                  NAME (T,55) = 'TP-PRESS'
+                  NAME (T,55) = 'TP_PRESS'
                   FNAME(T,55) = 'Tropopause pressure'
                   UNIT (T,55) = 'hPa'
                CASE DEFAULT
@@ -7057,19 +7057,19 @@
             ! Get name and long name for each met field
             SELECT CASE( T )
                CASE( 1 )
-                  NAME (T,56) = 'L-RATE'
+                  NAME (T,56) = 'L_RATE'
                   FNAME(T,56) = 'Total lightning flash rate'
                   UNIT (T,56) = 'flashes/min/km2'
                CASE( 2 )
-                  NAME (T,56) = 'IC-RATE'
+                  NAME (T,56) = 'IC_RATE'
                   FNAME(T,56) = 'Intra-cloud flash rate'
                   UNIT (T,56) = 'flashes/min/km2'
                CASE( 3 )
-                  NAME (T,56) = 'CG-RATE'
+                  NAME (T,56) = 'CG_RATE'
                   FNAME(T,56) = 'Cloud-ground flash rate'
                   UNIT (T,56) = 'flashes/min/km2'
                CASE( 4 )
-                  NAME (T,56) = 'L-TOP'
+                  NAME (T,56) = 'L_TOP'
                   FNAME(T,56) = 'Lightning cloud top height'
                   UNIT (T,56) = 'level'
                CASE DEFAULT
@@ -7113,43 +7113,43 @@
             ! Get name and long name for each tracer
             SELECT CASE( T )
                CASE( 1 )
-                  NAME (T,58) = 'CH4-TOT'
+                  NAME (T,58) = 'CH4_TOT'
                   FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
                CASE( 2 )
-                  NAME (T,58) = 'CH4-GAO'
+                  NAME (T,58) = 'CH4_GAO'
                   FNAME(T,58) = 'CH4 Emissions gas & oil'
                CASE( 3 )
-                  NAME (T,58) = 'CH4-COL'
+                  NAME (T,58) = 'CH4_COL'
                   FNAME(T,58) = 'CH4 Emissions coal'
                CASE( 4 )
-                  NAME (T,58) = 'CH4-LIV'
+                  NAME (T,58) = 'CH4_LIV'
                   FNAME(T,58) = 'CH4 Emissions livestock'
                CASE( 5 )
-                  NAME (T,58) = 'CH4-WST'
+                  NAME (T,58) = 'CH4_WST'
                   FNAME(T,58) = 'CH4 Emissions waste'
                CASE( 6 )
-                  NAME (T,58) = 'CH4-BFL'
+                  NAME (T,58) = 'CH4_BFL'
                   FNAME(T,58) = 'CH4 Emissions biofuel'
                CASE( 7 )
-                  NAME (T,58) = 'CH4-RIC'
+                  NAME (T,58) = 'CH4_RIC'
                   FNAME(T,58) = 'CH4 Emissions rice'
                CASE( 8 )
-                  NAME (T,58) = 'CH4-OTA'
+                  NAME (T,58) = 'CH4_OTA'
                   FNAME(T,58) = 'CH4 Emissions other anthro'
                CASE( 9 )
-                  NAME (T,58) = 'CH4-BBN'
+                  NAME (T,58) = 'CH4_BBN'
                   FNAME(T,58) = 'CH4 Emissions bioburn'
                CASE( 10 )
-                  NAME (T,58) = 'CH4-WTL'
+                  NAME (T,58) = 'CH4_WTL'
                   FNAME(T,58) = 'CH4 Emissions wetlands'
                CASE( 11 )
-                  NAME (T,58) = 'CH4-SAB'
+                  NAME (T,58) = 'CH4_SAB'
                   FNAME(T,58) = 'CH4 Emissions soil abs'
                CASE( 12 )
-                  NAME (T,58) = 'CH4-OTN'
+                  NAME (T,58) = 'CH4_OTN'
                   FNAME(T,58) = 'CH4 Emissions other natural'
                CASE( 13 )
-                  NAME (T,58) = 'CH4-Loss'
+                  NAME (T,58) = 'CH4_Loss'
                   FNAME(T,58) = 'CH4 Loss by Reaction w/ OH'
                CASE DEFAULT
                   ! Nothing
@@ -7214,7 +7214,7 @@
                   NAME (T,61) = 'NUC10NM'
                   FNAME(T,61) = 'Particle Dp>10nm formation rate'
                CASE( 2 )
-                  NAME (T,61) = 'NUC-1NM'
+                  NAME (T,61) = 'NUC_1NM'
                   FNAME(T,61) = 'Nucleation rate (cluster size)'
                CASE DEFAULT
                   !Nothing
@@ -7481,7 +7481,7 @@
                   NAME(T,67) = 'V10M'
                   UNIT(T,67) = 'm/s'
                CASE( 13 )
-                  NAME(T,67) = 'PS-PBL'
+                  NAME(T,67) = 'PS_PBL'
                   UNIT(T,67) = 'hPa'
                CASE( 14 )
                   NAME(T,67) = 'ALBD'
@@ -7493,7 +7493,7 @@
                   NAME(T,67) = 'CLDTOP'
                   UNIT(T,67) = 'level'
                CASE( 17 )
-                  NAME(T,67) = 'TROPP'
+                  NAME(T,67) = 'TROPPRAW'
                   UNIT(T,67) = 'hPa'
                CASE( 18 )
                   NAME(T,67) = 'SLP'
