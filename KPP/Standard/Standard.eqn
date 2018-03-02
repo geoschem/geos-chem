@@ -295,13 +295,13 @@ MO2        = IGNORE; {CH3O2; Methylperoxy radical}
 MONITA     = IGNORE; {Aerosol-phase organic nitrate from monoterpene precursors}
 MONITS     = IGNORE; {Saturated 1st gen monoterpene organic nitrate}
 MONITU     = IGNORE; {Unsaturated 1st gen monoterpene organic nitrate}
-MONX       = IGNORE; {Total monoterpenes}
 MP         = IGNORE; {CH3OOH; Methylhydroperoxide}
 MPN        = IGNORE; {CH3O2NO2; Methyl peroxy nitrate}
 MRO2       = IGNORE; {HOCH2C(OO)(CH3)CHO; RO2 from MACR+OH}
 MRP        = IGNORE; {HOCH2C(OOH)(CH3)CHO; Peroxide from MRO2}
 MSA        = IGNORE; {CH4SO3; Methanesulfonic acid}
 MTPA       = IGNORE; {Lumped monoterpenes: a-pinene, b-pinene, sabinene, carene}
+MTPO       = IGNORE; {Other monoterpenes: Terpinene, terpinolene, myrcene, ocimene, other monoterpenes}
 MVK        = IGNORE; {CH2=CHC(=O)CH3; Methyl vinyl ketone}
 MVKN       = IGNORE; {HOCH2CH(ONO2)C(=O)CH3; Nitrate from MVK}
 MVKOO      = IGNORE; {Criegee intermediate}
@@ -1057,7 +1057,6 @@ TOLU + OH = TRO2 + 1.920CH2O + 0.260GLYX +
 XYLE + OH = XRO2 + 1.920CH2O + 0.268GLYX +
  0.463MGLY + OH :                            GCARR(2.31E-11, 0.0E+00, 0.0);       {2017/03/23; Fischer2014 ; EVF}
 XYLE + NO3 = CO2 :                           GCARR(2.60E-16, 0.0E+00, 0.0);
-MONX = 3.000CH2O :                           GCARR(1.07E-05, 0.0E+00, 0.0);
 BRO2 + HO2 = LBRO2H :                        GCARR(1.40E-12, 0.0E+00, 700.0);
 BRO2 + NO = LBRO2N :                         GCARR(2.60E-12, 0.0E+00, 350.0);
 TRO2 + HO2 = LTRO2H :                        GCARR(1.40E-12, 0.0E+00, 700.0);
@@ -1065,6 +1064,7 @@ TRO2 + NO = LTRO2N :                         GCARR(2.60E-12, 0.0E+00, 350.0);
 XRO2 + HO2 = LXRO2H :                        GCARR(1.40E-12, 0.0E+00, 700.0);
 XRO2 + NO = LXRO2N :                         GCARR(2.60E-12, 0.0E+00, 350.0);
 MTPA + OH = PIO2 :                           GCARR(1.21E-11, 0.0E+00, 440.0);     {2017/03/23; IUPAC2010; EVF}
+MTPO + OH = PIO2 :                           GCARR(1.21E-11, 0.0E+00, 440.0);     {2017/03/23; IUPAC2010; EVF}
 PIO2 + NO = 0.820HO2 + 0.820NO2 +
  0.230CH2O + 0.430RCHO + 0.110ACET +
  0.440MEK + 0.070HCOOH + 0.120MONITS +
@@ -1078,7 +1078,11 @@ PIO2 + NO3 = HO2 + NO2 + RCHO + MEK :        GCARR(1.20E-12, 0.0E+00, 0.0);     
 MTPA + O3 = 0.850OH + 0.100HO2 +
  0.620KO2 + 0.140CO + 0.020H2O2 +
  0.650RCHO + 0.530MEK :                      GCARR(5.00E-16, 0.0E+00, -530.0);    {2017/07/14; Atkinson2003; KRT,JAF,CCM,EAM,KHB,RHS}
+MTPO + O3 = 0.850OH + 0.100HO2 +
+ 0.620KO2 + 0.140CO + 0.020H2O2 +
+ 0.650RCHO + 0.530MEK :                      GCARR(5.00E-16, 0.0E+00, -530.0);    {2017/07/14; Atkinson2003; KRT,JAF,CCM,EAM,KHB,RHS}
 MTPA + NO3 = 0.100OLNN + 0.900OLND :         GCARR(8.33E-13, 0.0E+00, 490.0);     {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+MTPO + NO3 = 0.100OLNN + 0.900OLND :         GCARR(8.33E-13, 0.0E+00, 490.0);     {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 LIMO + OH = LIMO2 :                          GCARR(4.20E-11, 0.0E+00, 401.0);     {2017/07/14; Gill2002; KRT,JAF,CCM,EAM,KHB,RHS}
 LIMO + O3 = 0.850OH + 0.100HO2 +
  0.160ETO2 + 0.420KO2 + 0.020H2O2 +
