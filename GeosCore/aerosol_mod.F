@@ -895,12 +895,18 @@
      &                      Spc(I,J,L,id_SOAME) / AIRVOL(I,J,L)
          ENDIF
 
-         ! SOA from alkyl nitrates (some contribution
-         ! from non-isoprene sources)
-         IF ( id_INDIOL > 0 ) THEN
-            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
-     &                      Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
-         ENDIF
+!------------------------------------------------------------------------------
+! Exclude INDIOL from AOD and aerosol mass calculations. This results in lost
+! mass. As noted in Fisher et al. (2016, ACP), this is a source of uncertainty
+! and would benefit from an update when more information about this process
+! becomes available. (eam, jaf, mps, 3/5/18)
+!         ! SOA from alkyl nitrates (some contribution
+!         ! from non-isoprene sources)
+!         IF ( id_INDIOL > 0 ) THEN
+!            ISOAAQ(I,J,L) = ISOAAQ(I,J,L) +
+!     &                      Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
+!         ENDIF
+!------------------------------------------------------------------------------
 
          ! SOA from ISOPOOH oxidation product
          IF ( id_LVOCOA > 0 ) THEN
