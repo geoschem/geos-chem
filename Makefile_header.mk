@@ -424,46 +424,41 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-## %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
+# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
 ifdef DEVEL
   NC_DIAG            :=yes
   BPCH_DIAG          :=no
+  BPCH_TBPC          :=no
 endif
 
-# %%%%% Always use bpch diagnostics unless otherwise specified %%%%%
-# %%%%% Bpch diagnostics will eventually be disabled           %%%%%
-ifndef BPCH_DIAG
-  BPCH_DIAG          :=yes
-endif
-
-# %%%%% Always use bpch I/O for TPCORE BC's (for nested grids) %%%%%
-# %%%%% Bpch I/O will eventually be disabled                   %%%%%
-ifndef BPCH_TPBC
+# %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
+ifdef NEST}
   BPCH_TPBC          :=yes
 endif
 
-# %%%%% Never use netCDF diagnostics unless explicitly specified %%%%%
-# %%%%% netCDF diagnostics will eventually become the default    %%%%%
-ifndef NC_DIAG
-  NC_DIAG            :=no
-endif
-
-# %%%%% BPCH_DIAG (for using old BPCH diagnostic output) %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_DIAG
-endif
-
-## %%%%% BPCH_TPBC (for using BPCH I/O for nested-grid TPCORE BC's %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_TPBC
-endif
-
-# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+# %%%%% Determine options for netCDF or BPCH diagnostics %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+
+  # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
+
+  # AND turn off bpch diagnostics UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_DIAG
+  endif
+
+  # AND turn off bpch code for nested BC's code UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_TPBC
+  endif
+
+else
+
+  # If netCDF diagnostics have not been explicitly specified,
+  # then only turn on bpch diagnostics AND bpch code for nested BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TPBC
+
 endif
 
 #------------------------------------------------------------------------------
