@@ -204,7 +204,12 @@
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
-      USE DIAG_MOD,           ONLY : AD44b, AD_RA, AD_ZL
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!#if defined ( BPCH_DIAG )
+!      USE DIAG_MOD,           ONLY : AD44b, AD_RA, AD_ZL
+!#endif
+!------------------------------------------------------------------------------
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET

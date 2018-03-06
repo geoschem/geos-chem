@@ -20,7 +20,10 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
+!------------------------------------------------------------------------------
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
@@ -619,8 +622,11 @@
                ! Drydep velocity [cm/s]
                AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
 
-               ! Instantaneous drydep velocity for ND49 [cm/s]
-               AD44b(I,J,D)  = DVZ
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!               ! Instantaneous drydep velocity for ND49 [cm/s]
+!               AD44b(I,J,D)  = DVZ
+!------------------------------------------------------------------------------
             ENDIF
 #endif
 
@@ -1823,6 +1829,7 @@
                RA = 0.0e+0_f8
             ENDIF
 !==============================================================================
+!#if defined ( BPCH_DIAG )
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
 !            IF (RAKT .LT. 0.e+0_f8) THEN
 !               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
@@ -1830,9 +1837,10 @@
 !            ENDIF
 !            ! Store Ra for diagnostic
 !            AD_RA(I,J) = RAKT
+!            ! Store z/L to determine if M/O theory applies
+!            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
+!#endif
 !==============================================================================
-            ! Store z/L to determine if M/O theory applies
-            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
             
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
