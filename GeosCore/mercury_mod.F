@@ -533,9 +533,6 @@
       LOGICAL            :: LGTMM 
       LOGICAL            :: LNLPBL
       LOGICAL            :: LPRT
-      LOGICAL            :: LBRYCHEM
-      LOGICAL            :: LHGAQCHEM
-      LOGICAL            :: LCLCHEM
       INTEGER            :: NA, nAdvect
       INTEGER            :: I, J, L, K, N, NN, MONTH, NSTEPS, Hg_Cat
       REAL(fp)           :: K_DRYD0, K_DRYD2G, K_DRYD2P, K_SALT
@@ -608,28 +605,32 @@
       !%%% NOTE: Someone will have to add tunings for the GEOS-5.7.2
       !%%% nested grids at 0.25 x 0.3125 resolution (bmy, 6/3/13)
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! These K_RED_JNO2 parameters have been defined based on GEOS-5
-      ! runs and remain appropriate for GEOS-5 at 4x5 in v11-01c. Based
-      ! on the GEOS-FP 4x5 run, we need to increase K_RED_JNO2 for
-      ! GEOS-FP. In the absences of benchmark runs for GEOS-FP at other
-      ! resolutions, we assume the same decrease in GEOS-FP relative to
-      ! GEOS-5, regardless of resolution. This should be adapated and
+      ! These K_RED_JNO2 parameters have been defined based on GEOS-5,
+      ! GEOS-FP, and MERRA2 runs with the chemistry from Horowitz 2017.
+      ! It is set up to fail on compilation when an untested MET-GRID
+      ! pair is used. (C. Thackray, 2/2018)
+      ! This should be adapated and
       ! tested by other users as appropriate (J. Fisher, 3/2016)
-      ! Although we have not tested other met fields, we assume same
-      ! parameters apply for GEOS-FP, MERRA, and MERRA-2.
-      ! To simplify this code, for now we remove the various resolution
-      ! differences (which haven't been tested) and simply include
-      ! different versions for GEOS-FP vs GEOS-5 and nested vs.
-      ! non-nested. Users are encouraged to test and adapt. (J. Fisher,
-      ! 4/2016)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-#if defined( GRID4x5 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp
+      ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
+      ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
+#if     defined( GEOS_FP ) || defined( MERRA2 )
+#if     defined( GRID4x5 )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+#elif   defined( GRID2x25 ) 
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp*1.3
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+#endif
+#elif   defined( GEOS_5 ) 
+#if     defined( GRID4x5 ) 
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp
+#elif   defined( GRID2x25 )
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+#else
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
 #endif
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp*1.3
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
 #endif
 
       ! Set of Hg/Br rate constants to use
@@ -978,8 +979,8 @@
 
          ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
          IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( C_BR, T(I,J,L), 
-     &                            State_Met%PMID_DRY(I,J,L), 
+            K_BR = GET_HGBR_RATE( I, J, L, 
+     &                            C_BR, State_Met, 
      &                            C_OH, METHOD )
          ELSE
             K_BR = 0e+0_fp
@@ -994,10 +995,10 @@
 
          ! Oxidation rate by Cl-initiated oxidation                            
          IF (LCLCHEM) THEN
-            K_CLY = GET_HGCL_RATE( C_CL,  C_OH,  C_HO2,
+            K_CLY = GET_HGCL_RATE( I,     J,     L, 
+     &                             C_CL,  C_OH,  C_HO2,
      &                             C_NO2, C_CLO, C_BRO, 
-     &                             C_BR,  T(I,J,L), 
-     &                             State_Met%PMID_DRY(I,J,L) )
+     &                             C_BR,  State_Met )
             K_R1CL = K_CLY(2)
             K_R2CL = K_CLY(3)
             K_CL = K_CLY(1)
@@ -1011,8 +1012,7 @@
          ! Heterogeneous oxidation by OH, O3, and HOCL
          IF (LHGAQCHEM) THEN
             K_AQ_OX = GET_HGAQ_RATE( I, J, L, C_BR, C_OH, 
-     &                               C_O3, C_HOCL,  T(I,J,L),
-     &                               State_Met%PMID_DRY(I,J,L), 
+     &                               C_O3, C_HOCL, 
      &                               State_Met )
             K_HOCL  = K_AQ_OX(1)
             K_OH_AQ = K_AQ_OX(2)
@@ -1027,10 +1027,10 @@
 
          ! Oxidation through Hg0 + Br -> HgBr, HgBr + Y -> Hg2
          IF (LBRYCHEM) THEN
-            K_BRY = GET_HGBRY_RATE( C_BR,  C_OH,  C_NO2,
+            K_BRY = GET_HGBRY_RATE( I,     J,     L, 
+     &                              C_BR,  C_OH,  C_NO2,
      &                              C_HO2, C_CLO, C_BRO, 
-     &                              C_CL,  T(I,J,L),
-     &                              State_Met%PMID_DRY(I,J,L) )
+     &                              C_CL,  State_Met )
             K_BR2    = K_BRY(1)
             K_BROH   = K_BRY(2)
             K_BRHO2  = K_BRY(3)
@@ -1495,7 +1495,7 @@
 !\\                                                                            
 !\\                                                                            
 ! !INTERFACE:                                                                  
-      FUNCTION GET_HGAQ_RATE(I, J, L, BR,OH,O3,HOCL,T,P,State_Met)
+      FUNCTION GET_HGAQ_RATE(I, J, L, BR,OH,O3,HOCL,State_Met)
      &         RESULT( K_AQ_OX )
 !                                                                              
 ! !USES:                                                                       
@@ -1506,14 +1506,13 @@
 !                                                                              
 ! !INPUT PARAMETERS:                                                           
 !                                                                              
-      ! BR     : Concentration of atomic Br [molec/cm3]                        
-      ! T      : Temperature [K]                                               
-      ! P      : Pressure [hPa]                                                
-      ! OH     : Concentration of OH  [molec/cm3]                              
-      ! O3     : Concentration of O3  [molec/cm3]                              
-      ! HOCL   : Concentration of HOCL[molec/cm3]                              
+      ! BR        : Concentration of atomic Br [molec/cm3]                     
+      ! OH        : Concentration of OH  [molec/cm3]                          
+      ! O3        : Concentration of O3  [molec/cm3]                           
+      ! HOCL      : Concentration of HOCL[molec/cm3]                           
+      ! State_Met : Meteorology state object
       INTEGER,            INTENT(IN)  :: I, J, L 
-      REAL(fp),           INTENT(IN)  :: BR, OH, O3, HOCL, T, P
+      REAL(fp),           INTENT(IN)  :: BR, OH, O3, HOCL
       TYPE(MetState),     INTENT(IN)  :: State_Met    ! Meteorology State obj
 !                                                                              
 ! !RETURN VALUE:                                                     
@@ -1542,7 +1541,7 @@
       REAL(fp)               :: FC,     LWC
       REAL(fp)               :: F_Hg0,  F_HOCl,  F_O3
       REAL(fp)               :: R_HOCl, R_OH,    R_O3
-      REAL(fp)               :: Nair
+      REAL(fp)               :: Nair, T, P
 !                                                                              
 ! !DEFINED PARAMETERS:                                                         
 !                                                                              
@@ -1558,6 +1557,11 @@
       !=================================================================      
       ! GET_HGAQ_RATE begins here!                                             
       !=================================================================       
+
+      ! T      : Temperature [K]                                               
+      ! P      : Pressure [hPa]                                                
+      T = State_Met%T(I,J,L)
+      P = State_Met%PMID_DRY(I,J,L)
 
          !==============================================================       
          ! Calculate cloud parameters for aqueous Hg chemistry                 
@@ -1755,17 +1759,23 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_HGBR_RATE( BR, T, P, OH, METHOD ) RESULT( K_HGBR ) 
+      FUNCTION GET_HGBR_RATE( I, J, L, BR, State_Met, OH, METHOD ) 
+     &                                RESULT(K_HGBR) 
+!
+! USES:
+!
+      USE State_Met_Mod,      ONLY : MetState     
 !
 ! !INPUT PARAMETERS: 
 !
-      ! BR     : Concentration of atomic Br [molec/cm3] 
-      ! T      : Temperature [K]
-      ! P      : Pressure [hPa]
-      ! OH     : Concentration of OH [molec/cm3]
-      ! METHOD : Set of rate constants to use in calculation
-      REAL(fp),         INTENT(IN)  :: BR, OH, T, P
-      CHARACTER(LEN=*), INTENT(IN)  :: METHOD 
+      ! BR        : Concentration of atomic Br [molec/cm3] 
+      ! State_Met : Meteorology state object
+      ! OH        : Concentration of OH [molec/cm3]
+      ! METHOD    : Set of rate constants to use in calculation
+      INTEGER,            INTENT(IN)  :: I, J, L
+      REAL(fp),           INTENT(IN)  :: BR, OH
+      CHARACTER(LEN=*),   INTENT(IN)  :: METHOD 
+      TYPE(MetState),     INTENT(IN)  :: State_Met    ! Meteorology State obj
 !
 ! !RETURN VALUE:
 !
@@ -1823,7 +1833,7 @@
 
       REAL(fp)            :: k1,   k2, k2a, k3br, k3oh
       REAL(fp)            :: k1G,  k2G
-      REAL(fp)            :: Nair, N0
+      REAL(fp)            :: Nair, N0, T, P
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1831,6 +1841,11 @@
       !=================================================================
       ! GET_HGBR_RATE begins here!
       !=================================================================
+
+      ! T      : Temperature [K]
+      ! P      : Pressure [hPa]
+      T = State_Met%T(I,J,L)
+      P = State_Met%PMID_DRY(I,J,L)
 
       !number density of air [molec/cm3]
       Nair = P * 1e+2_fp / (AIRMW * Rd * T ) * AVO / 1e+3_fp
@@ -2014,20 +2029,27 @@
 !\\                                                                            
 !\\                                                                            
 ! !INTERFACE:                                                                  
-      FUNCTION GET_HGCL_RATE(CL,OH,HO2,NO2,CLO,BRO,BR,T,P) RESULT(K_CL)
+      FUNCTION GET_HGCL_RATE(I, J, L, CL, OH, HO2, NO2, CLO, BRO, BR, 
+     &                       State_Met)
+     &                                 RESULT(K_CL)
+!
+! USES:
+!
+      USE State_Met_Mod,      ONLY : MetState
 !                                                                              
 ! !INPUT PARAMETERS:                                                           
 !                                                                              
-      ! CL     : Concentration of atomic Cl [molec/cm3]                        
-      ! T      : Temperature [K]                                               
-      ! P      : Pressure [hPa]                                                
-      ! HO2    : Concentration of HO2 [molec/cm3]                              
-      ! OH     : Concentration of OH  [molec/cm3]                              
-      ! NO2    : Concentration of NO2 [molec/cm3]                              
-      ! CLO    : Concentration of ClO [molec/cm3]                              
-      ! BRO    : Concentration of BrO [molec/cm3]                              
-      ! BR     : Concentration of Br  [molec/cm3]                              
-      REAL(fp),    INTENT(IN)  :: CL, OH, HO2, NO2, CLO, BRO, BR, T, P ! add Br
+      ! CL        : Concentration of atomic Cl [molec/cm3]                     
+      ! HO2       : Concentration of HO2 [molec/cm3]                          
+      ! OH        : Concentration of OH  [molec/cm3]                           
+      ! NO2       : Concentration of NO2 [molec/cm3]                           
+      ! CLO       : Concentration of ClO [molec/cm3]                           
+      ! BRO       : Concentration of BrO [molec/cm3]                           
+      ! BR        : Concentration of Br  [molec/cm3]                           
+      ! State_Met : Meteorology state object
+      INTEGER,        INTENT(IN)  :: I, J, L
+      REAL(fp),       INTENT(IN)  :: CL, OH, HO2, NO2, CLO, BRO, BR
+      TYPE(MetState), INTENT(IN)  :: State_Met    ! Meteorology State obj
 !                                                                              
 ! !RETURN VALUE:                
       ! K_Cl : Effective 1st order loss rate of Hg(0) [1/s]                    
@@ -2073,7 +2095,7 @@
       REAL(fp)               :: k1cl,   k2cl, k2acl
       REAL(fp)               :: k3cl, k3no2, k3ho2
       REAL(fp)               :: k0NO2, k0HO2, kinfNO2, kinfHO2
-      REAL(fp)               :: Nair !, N0                                       
+      REAL(fp)               :: Nair, T, P                 
 !                                                                              
 ! !DEFINED PARAMETERS:                                                         
 !                                                                              
@@ -2083,6 +2105,11 @@
       !=================================================================       
       ! GET_HGCL_RATE begins here!                                             
       !=================================================================       
+      
+      ! T      : Temperature [K]                                               
+      ! P      : Pressure [hPa]                                                
+      T = State_Met%T(I,J,L)
+      P = State_Met%PMID_DRY(I,J,L)
 
       !number density of air [molec/cm3]                                       
       Nair = P * 1e2_fp / (0.029e0_fp * R * T ) * 6.02e23_fp / 1e6_fp
@@ -2214,29 +2241,35 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\                                                                            
 !\\                                                                            
 ! !INTERFACE:        
-      FUNCTION GET_HGBRY_RATE(BR,OH,NO2,HO2,CLO,BRO,CL,T,P)
-     &  RESULT(K_HGBRY)
+      FUNCTION GET_HGBRY_RATE(I, J, L, BR, OH, NO2, HO2, CLO, BRO, CL,
+     &                        State_Met)
+     &                                   RESULT(K_HGBRY)
+!
+! !USES:
+!
+      USE State_Met_Mod,      ONLY : MetState
 !                                                                              
 ! !INPUT PARAMETERS:                                                           
 !                                                                              
-      ! BR     : Concentration of atomic Br [molec/cm3]                        
-      ! T      : Temperature [K]                                               
-      ! P      : Pressure [hPa]                                                
-      ! HO2    : Concentration of HO2 [molec/cm3]                              
-      ! OH     : Concentration of OH  [molec/cm3]                              
-      ! NO2    : Concentration of NO2 [molec/cm3]                              
-      ! CLO    : Concentration of ClO [molec/cm3]                              
-      ! BRO    : Concentration of BrO [molec/cm3]                              
-      ! CL     : Concentration of Cl  [molec/cm3]        
-
-      REAL(fp), INTENT(IN) :: BR, OH, NO2, HO2,  T, P
-      REAL(fp)             :: CLO, BRO, CL
-! !RETURN VALUE:                                                               
+      ! BR        : Concentration of atomic Br [molec/cm3]                    
+      ! HO2       : Concentration of HO2 [molec/cm3]                           
+      ! OH        : Concentration of OH  [molec/cm3]                           
+      ! NO2       : Concentration of NO2 [molec/cm3]                           
+      ! CLO       : Concentration of ClO [molec/cm3]                           
+      ! BRO       : Concentration of BrO [molec/cm3]                           
+      ! CL        : Concentration of Cl  [molec/cm3]        
+      ! State_Met : Meteorology state object
+      INTEGER,            INTENT(IN) :: I, J, L
+      REAL(fp),           INTENT(IN) :: BR, OH, NO2, HO2
+      REAL(fp),           INTENT(IN) :: CLO, BRO, CL!
+      TYPE(MetState),     INTENT(IN) :: State_Met    ! Meteorology State obj
+!
+!  !RETURN VALUE:                                                              
 !                                                                              
       ! K_HgBrY : Effective 1st order loss rate of Hg(0) [1/s]                 
       ! each pathway - Br, OH, HO2, NO2, ClO, BrO, Cl in that order.           
       ! #s 8 - 10 are for R1, R2, and R2a!         
-      REAL(fp)             :: K_HGBRY(11)
+      REAL(fp)                       :: K_HGBRY(11)
 !                                                                              
 ! !REMARKS:                                                                    
 !  ============================================================================
@@ -2278,9 +2311,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)             :: k3br, k3no2, k3ho2
       REAL(fp)             :: Nair, N0
       REAL(fp)             :: k0NO2, k0HO2, kinfNO2, kinfHO2
-      REAL(fp)             :: C_HgBr
+      REAL(fp)             :: C_HgBr, T, P
 
       REAL(fp), PARAMETER  :: R = 287e+0_fp
+
+      ! T      : Temperature [K]                                               
+      ! P      : Pressure [hPa]                                                
+      T = State_Met%T(I,J,L)
+      P = State_Met%PMID_DRY(I,J,L)
 
       !number density of air [molec/cm3]                                     
       Nair = P * 1e+2_fp / (0.029e+0_fp * R * T ) * 6.02e+23_fp/1e+6_fp
@@ -5326,260 +5364,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_Br 
-!
-! !DESCRIPTION: Function GET\_BR returns instantaneous Br concentration 
-!  calculated from the monthly mean and an imposed diurnal variation.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_BR_OLD( I, J, L, BRO_MOLEC_CM3, State_Met )
-     &   RESULT( BR_MOLEC_CM3 )
-!
-! !USES:
-!
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
-      USE CMN_SIZE_MOD
-      USE DAO_MOD,            ONLY : GET_OBK
-      USE DAO_MOD,            ONLY : IS_WATER
-      USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
-      USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
-      USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
-      USE GC_GRID_MOD,        ONLY : GET_YMID
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_LOCALTIME 
-      USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
-      USE TIME_MOD,           ONLY : GET_MONTH
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)  :: I              ! Longitude index
-      INTEGER,        INTENT(IN)  :: J              ! Latitude index
-      INTEGER,        INTENT(IN)  :: L              ! Level index
-      REAL(fp),       INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
-!
-! !RETURN VALUE:
-!
-      REAL(fp)                    :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
-! 
-! !REVISION HISTORY: 
-!  06 Jul 2006 - C. Holmes   - Initial version
-!  01 Mar 2012 - R. Yantosca - Now use GET_YMID(I,J,L) from grid_mod.F90
-!  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  28 Nov 2012 - R. Yantosca - Replace SUNCOS with State_Met%SUNCOS
-!  24 Jul 2014 - R. Yantosca - Now compute BOXVL internally
-!  26 Feb 2015 - E. Lundgren - Remove dependency on pressure_mod (not used)
-!  10 Aug 2015 - J. Fisher - implement variable polar BrO concentrations based
-!                            on temperature and incoming solar radiation
-!  10 Aug 2015 - J. Fisher - only apply diurnal cycle to BrO from pTOMCAT
-!                            daily means, NOT to polar BrO which represents
-!                            instantaneous values
-!  10 Aug 2015 - J. Fisher - add upper ice threshold to MERRA conditions for
-!                            polar BrO release
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp)              :: BR_PPTV, BR_MBL, BR_FAC
-      REAL(fp)              :: LOCALTIME, HOUR, BRO_PPTV, FPBL
-      REAL(fp)              :: BOXVL           
-!
-! !DEFINED PARAMETERS:
-!
-      ! Constant concentration of BrO assumed for the marine boundary
-      ! layer, based on finding from the Holmes et al.(2009) box model
-      ! Use 0.5pptv for 24-hr mean, based on 1pptv in box model daytime
-      REAL(fp), PARAMETER   :: BRO_MBL=0.5e+0_fp ! pptv
-
-      ! Constant concentration of BrO assumed for the Polar boundary layer
-      ! during springtime bromine explosion. Based on DOAS observations
-      ! at Alert (Simpson et al. ACP 2007). This concentration applies
-      ! only under stable atmospheric conditions.
-      !REAL(fp), PARAMETER   :: BRO_POLAR=10e+0_fp
-      ! Reduce concentration of BrO in Arctic during depletion events to 5 pptv
-      ! Ref low end of uncertainty range in Holmes et al. 2010
-      ! Ref low [BrO] observed Neuman et al 2010
-      !REAL(fp), PARAMETER   :: BRO_POLAR=5e+0_fp
-
-      ! Make polar BrO variable rather than fixed, varying as a factor of
-      ! solar radiation and temperatures. (jaf, 11/29/11)
-      REAL(fp)           :: BRO_POLAR, BR_POLAR, O3_POLAR, SWRAD
-      LOGICAL            :: IS_MOSTLY_ICE
-      ! Assume 5 ppb O3 when BrO present. Pohler et al. (2010) shows 5 ppb O3
-      ! can exist for 3 ppt < [BrO] < 40 ppt. (jaf, 11/29/11)
-      REAL(fp), PARAMETER  :: O3_POLAR_PPB = 5e+0_fp
-
-      ! Parameters for calculating Br/BrO photostationary state
-      ! BrO J value, /s 
-      ! Rate coefficient BrO + NO -> Br + NO2, cm3/molec/s
-      REAL(fp), PARAMETER   :: K_BRO_NO = 2.1e-11_fp
-      ! Rate coefficient Br + O3 -> BrO + O2, cm3/molec/s
-      REAL(fp), PARAMETER   :: K_BR_O3  = 1.2e-12_fp
-      ! Concentration of NO, based on 10pptv, molec/cm3
-      REAL(fp), PARAMETER   :: C_NO     = 2.5e+8_fp
-
-      !=================================================================
-      ! GET_BR begins here!
-      !=================================================================
-
-      !----------------------------------------------------------------
-      ! Get monthly-mean Br from bromocarbon and halon sources 
-      !----------------------------------------------------------------
-    
-      ! Zero polar BrOx, O3 concentrations (jaf, 11/29/11)
-      BRO_POLAR     = 0e+0_fp
-      BR_POLAR      = 0e+0_fp
-      O3_POLAR      = 0e+0_fp
-      SWRAD         = 0e+0_fp
-
-      BR_PPTV  = BR_MERGE(I,J,L)
-      BRO_PPTV = BRO_MERGE(I,J,L)
-
-      ! Multiple stratospheric concentrations by Factor, if necessary
-      IF ( (ITS_IN_THE_STRAT( I, J, L, State_Met )) .AND.
-     &     (ABS(STRAT_BR_FACTOR - 1e+0_fp) > 1e-2_fp) )    THEN
-
-         BR_PPTV  = BR_PPTV  * STRAT_BR_FACTOR
-         BRO_PPTV = BRO_PPTV * STRAT_BR_FACTOR
-         
-      ENDIF 
-
-
-! Now moved to after imposed diurnal cycle, updated parameters (J. Fisher)
-      !----------------------------------------------------------------
-      ! OLD VERSION: Add Br in polar boundary layer
-      ! 
-      ! Bromine in the polar boundary layer requires cold temperatures
-      ! (below 268K), sunlight and contact between open water and sea ice
-      ! Assuming these conditions are met, we assume a fixed 5-10pptv BrO 
-      ! At the moment, we only have Br north of 60N, i.e. not Hudson's Bay
-      !----------------------------------------------------------------
-
-!      IF ( ( LPOLARBR ) .AND. ( FPBL >  0e+0_fp   ) .AND.
-!     &     ( State_Met%SUNCOS(I,J)   >  0e+0_fp   ) .AND. 
-!     &     ( State_Met%T(I,J,1)      <= 268e+0_fp ) .AND.
-!     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
-!     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
-
-!         IF ( ( (GET_YMID(I,J,L) > 60e+0_fp) .AND. 
-!     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-!     &        ( (GET_YMID(I,J,L) < -50e+0_fp) .AND. 
-!     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
-!
-!            ! Br concentration due to bromine explosion, pptv
-!            ! Assume [O3] is 2ppb during event
-!            BR_MBL = BRO_POLAR *( J_BRO(I,J,L) + K_BRO_NO * C_NO ) / 
-!     &                          ( K_BR_O3 * 5e+10_fp ) * FPBL
-!        
-!            BR_PPTV  = BR_PPTV  + BR_MBL
-!            BrO_PPTV = BrO_PPTV + BRO_POLAR * FPBL
-!
-!         ENDIF
-!
-!      ENDIF
-
-      !----------------------------------------------------------------
-      ! Impose a diurnal cycle
-      !
-      ! This formula comes from the Holmes et al (2009) MBL box model
-      ! which fit RGM observations for Okinawa and a Pacific cruise
-      !----------------------------------------------------------------
-            
-      ! Test for sunlight...
-      IF ( (State_Met%SUNCOS(I,J) > 0e+0_fp) .and. 
-     &     (TTDAY(I,J) > 0e+0_fp) ) THEN
-      
-         ! Use a constant function if daylight is < 2 hours or > 22hours
-         IF ( ( TTDAY(I,J) < 120e+0_fp  ) .OR. 
-     &        ( TTDAY(I,J) > 1320e+0_fp ) ) THEN
-            
-            BR_FAC = SAFE_DIV( 1440e+0_fp, TTDAY(I,J), 0e+0_fp )  
-            
-         ELSE
-
-            ! Local time: 0-23.999
-            LOCALTIME = GET_LOCALTIME( I, J, L )
-      
-            ! Interpolate the real hour to lie within an equinoctal day
-            ! i.e. between 6-18
-            HOUR = 12e+0_fp + ( LOCALTIME - 12e+0_fp ) *
-     &           720e+0_fp / ( TTDAY(I,J) ) 
-
-            ! Multiplicative factor for the diurnal cycle 
-            BR_FAC = (1e+6_fp - 1e+2_fp * (HOUR - 6e+0_fp) ** 4e+0_fp + 
-     &           ( 18e+0_fp - HOUR ) * 1e+6_fp / 12e+0_fp ) / 2e+6_fp
-
-            ! Normalize the multiplicative factor to have a 24-h mean of 1
-            BR_FAC = SAFE_DIV( BR_FAC, (4e-4_fp * TTDAY(I,J)), 0e+0_fp )
-
-         ENDIF
-
-
-         ! Make sure that diurnal scaling factor is non-negative
-         BR_FAC = MAX( BR_FAC, 0e+0_fp )
-
-         ! The instantaneous concentration is the 24-h mean times
-         ! the time-varying factor from the diurnal cycle
-         BR_PPTV = BR_PPTV * BR_FAC
-
-
-      ELSE
-
-         ! At night, BR goes to zero
-         BR_PPTV = 0e+0_fp
-
-      ENDIF
-
-      ! Grid box volume [cm3]
-      BOXVL         = State_Met%AIRVOL(I,J,L) * 1e+6_fp
-
-      ! Do this AFTER application of the diurnal cycle, since polar
-      ! bromine has implicit diurnal cycle driven by solar radiation
-      ! and represents instantaneous concentrations (jaf, 12/16/11)
-      !----------------------------------------------------------------
-      ! Add Br in polar boundary layer (jaf, 11/29/11)
-      ! 
-      ! Bromine in the polar boundary layer requires the following
-      ! criteria be met:
-      ! - In the PBL
-      ! - Downward shortwave radiation > 100 W/m2 (Pohler et al. 2010)
-      ! - Sea ice exists (>50% native boxes have >10% ice cover)
-      ! - Breaks in sea ice exist (<100% native boxes have >90% ice cover) 
-      ! - Month is between Feb & June (Arctic) or Aug & Dec (Antarctic)
-      !   based on http://bro.aeronomie.be/level3_monthly.php?cmd=map
-      ! - Temperature is less than 0C
-      !
-      ! If these criteria are met, BrO is a function of ambient temp.
-      ! with [BrO] based on findings from Pohler et al. (2010) and
-      ! Prados-Roman et al. (2011). O3 used to convert BrO to Br is 5
-      ! ppb, based on data from Pohler et al. (2010).
-      !----------------------------------------------------------------
-
-      ! Convert pptv mixing ratio -> molec/cm3
-      BR_MOLEC_CM3  = BR_PPTV             * 1e-12_fp      *
-     &                ( AVO * 1e+3_fp     / AIRMW ) * 
-     &                State_Met%AD(I,J,L) / BOXVL
-      BRO_MOLEC_CM3 = BRO_PPTV            * 1e-12_fp      *
-     &                ( AVO * 1e+3_fp     / AIRMW ) * 
-     &                State_Met%AD(I,J,L) / BOXVL
-
-      ! Return to calling program
-      END FUNCTION GET_BR_OLD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: ohno3time
 !
 ! !DESCRIPTION: Subroutine OHNO3TIME computes the sum of cosine of the 
@@ -6257,7 +6041,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE DIAG03_MOD,         ONLY : AD03 ! hmh 9/16/15 for Hg_up/down
+      USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
       ! adding hmh 5/17/16
       USE DAO_MOD,            ONLY : IS_WATER 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6534,9 +6318,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! debug 2x2.5 diagnostic?
                FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
-
-!               AD03(I,J,16,NN) = AD03(I,J,16,NN) + FUP(I,J,NN) * DTSRCE
-!               AD03(I,J,17,NN) = AD03(I,J,17,NN) + FDOWN(I,J,NN) *DTSRCE
+               
+               IF ( ND03 > 0 ) THEN
+                  AD03(I,J,16,NN) = AD03(I,J,16,NN) 
+     &                 + FUP(I,J,NN) * DTSRCE
+                  AD03(I,J,17,NN) = AD03(I,J,17,NN) 
+     &                 + FDOWN(I,J,NN) *DTSRCE
+               ENDIF
             ENDDO
 
          ELSE
