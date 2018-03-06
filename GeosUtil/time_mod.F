@@ -745,13 +745,13 @@
       IF ( am_I_Root ) THEN
        WRITE( 6, '(/,a)' ) 'SET_TIMESTEPS: setting GEOS-Chem timesteps!'
        WRITE( 6, '(  a)' ) '-------------------------------------------'
-       WRITE( 6, '(''Chemistry  Timestep [sec] : '', i4 )' ) TS_CHEM
-       WRITE( 6, '(''Convection Timestep [sec] : '', i4 )' ) TS_CONV
-       WRITE( 6, '(''Dynamics   Timestep [sec] : '', i4 )' ) TS_DYN
-       WRITE( 6, '(''Emission   Timestep [sec] : '', i4 )' ) TS_EMIS
-       WRITE( 6, '(''Unit Conv  Timestep [sec] : '', i4 )' ) TS_UNIT
-       WRITE( 6, '(''Diagnostic Timestep [sec] : '', i4 )' ) TS_DIAG
-       WRITE( 6, '(''Radiation  Timestep [sec] : '', i4 )' ) TS_RAD
+       WRITE( 6, '(''Chemistry  Timestep [sec] : '', i6)' ) TS_CHEM
+       WRITE( 6, '(''Convection Timestep [sec] : '', i6)' ) TS_CONV
+       WRITE( 6, '(''Dynamics   Timestep [sec] : '', i6)' ) TS_DYN
+       WRITE( 6, '(''Emission   Timestep [sec] : '', i6)' ) TS_EMIS
+       WRITE( 6, '(''Unit Conv  Timestep [sec] : '', i6)' ) TS_UNIT
+       WRITE( 6, '(''Diagnostic Timestep [sec] : '', i6)' ) TS_DIAG
+       WRITE( 6, '(''Radiation  Timestep [sec] : '', i6)' ) TS_RAD
       ENDIF
 
       END SUBROUTINE SET_TIMESTEPS
