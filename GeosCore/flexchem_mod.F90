@@ -207,7 +207,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,  LDUST,    IsLocNoon
+    LOGICAL                :: prtDebug,  IsLocNoon
     INTEGER                :: I,         J,        L,         N
     INTEGER                :: NA,        F,        SpcID,     KppID
     INTEGER                :: P,         MONTH,    YEAR,      WAVELENGTH
@@ -399,7 +399,7 @@ CONTAINS
     ! in GEOS-CHEM...so read monthly-mean dust files from disk.
     ! (rjp, tdf, bmy, 4/1/04)
     !=======================================================================
-    IF ( LDUST ) THEN
+    IF ( Input_Opt%LDUST ) THEN
        CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
                           State_Diag, SOILDUST,  WAVELENGTH, RC             )
 
