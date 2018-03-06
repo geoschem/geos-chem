@@ -546,8 +546,6 @@ CONTAINS
 ! !USES:
 !
     USE Aerosol_Mod
-    USE Aerosol_Mod,    ONLY : OAOC_POA  => OCFPOA
-    USE Aerosol_Mod,    ONLY : OAOC_OPOA => OCFOPOA
     USE Carbon_Mod,     ONLY : BetaNOSave
     USE CMN_Size_Mod
     USE ErrCode_Mod
@@ -591,7 +589,7 @@ CONTAINS
     LOGICAL                  :: First = .TRUE.
 
     ! Scalars
-    INTEGER                  :: I,      J,        L
+    INTEGER                  :: I, J, L
 
     ! Strings
     CHARACTER(LEN=63)        :: OrigUnit
@@ -978,58 +976,37 @@ CONTAINS
 
        ENDIF
 
-!------------------------------------------------------------------------------
-! Prior to 3/6/18:
-! NOTE: Gfortran 7.1 does not seem to like these statements, it gives
-! an "incompatible ranks" error.  It could be getting confused with
-! some new array feature of F2003 or F2008.  Disable for now until we 
-! have more time to figure out what is going on.
-!
-!       !--------------------------------------
-!       ! Sum of all organic carbon [ug/m3]
-!       !--------------------------------------
-!       IF ( Archive_TotalOC ) THEN
-!          
-!          IF ( Is_POA ) THEN
-!             State_Diag%TotalOC(I,J,L)     = ( ( TSOA(I,J,L)                 &
-!                                               + ISOA(I,J,L)                 &
-!                                               + ASOA(I,J,L)                 &
-!                                               + OCPI(I,J,L)                 &
-!                                               + OPOA(I,J,L) ) / OAOC_OPOA   &
-!                                               + OCPO(I,J,L)   / OAOC_POA  ) &
-!                                           * kgm3_to_ugm3 
-!            
-!          ELSE
-!             State_Diag%TotalOC(I,J,L)     = ( ( TSOA(I,J,L)                 &
-!                                               + ISOA(I,J,L)                 &
-!                                               + ASOA(I,J,L)                 &
-!                                               + OCPO(I,J,L)                 &
-!                                               + OCPI(I,J,L)                 &
-!                                               + OPOA(I,J,L) ) / OAOC_OPOA ) &
-!                                           * kgm3_to_ugm3
-!          ENDIF
-!         
-!          IF ( Input_Opt%LSOA ) THEN
-!             State_Diag%TotalOC(I,J,L)     =                                 &
-!                State_Diag%TotalOC(I,J,L)  + ( ( Spc(I,J,L,id_SOAIE)         &
-!                                              * Fac_SOAIE             )      &
-!                                            + ( Spc(I,J,L,id_SOAME)          &
-!                                              * Fac_SOAME             )      &
-!                                            + ( Spc(I,J,L,id_INDIOL)         &
-!                                              * Fac_INDIOL            )      &
-!                                            + ( Spc(I,J,L,id_SOAGX)          &
-!                                              * Fac_SOAGX             )      &
-!                                            + ( Spc(I,J,L,id_SOAMG)          &
-!                                              * Fac_SOAMG             )      &
-!                                            + ( Spc(I,J,L,id_LVOCOA)         &
-!                                              * Fac_LVOCOA            )      &
-!                                            + ( Spc(I,J,L,id_ISN1OA)         &
-!                                              * Fac_ISN1OA            ) )    &
-!                                           / AirVol(I,J,L)                   &
-!                                           * kgm3_to_ugm3
-!         ENDIF
-!
-!      ENDIF
+       !--------------------------------------
+       ! Sum of all organic carbon [ug/m3]
+       !--------------------------------------
+       IF ( Archive_TotalOC ) THEN
+          
+          IF ( Is_POA ) THEN
+             State_Diag%TotalOC(I,J,L) =                              &
+                  ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)         &
+                    + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J)    &
+                    + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3 
+            
+          ELSE
+             State_Diag%TotalOC(I,J,L) =                              &
+                  ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)         &
+                    + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )       &
+                    / OCFOPOA(I,J) ) * kgm3_to_ugm3
+          ENDIF
+         
+          IF ( Input_Opt%LSOA ) THEN
+             State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L)   &
+                        + ( ( Spc(I,J,L,id_SOAIE)  * Fac_SOAIE  )     &
+                          + ( Spc(I,J,L,id_SOAME)  * Fac_SOAME  )     &
+                          + ( Spc(I,J,L,id_INDIOL) * Fac_INDIOL )     &
+                          + ( Spc(I,J,L,id_SOAGX)  * Fac_SOAGX  )     &
+                          + ( Spc(I,J,L,id_SOAMG)  * Fac_SOAMG  )     &
+                          + ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA )     &
+                          + ( Spc(I,J,L,id_ISN1OA) * Fac_ISN1OA ) )   &
+                        / AirVol(I,J,L) * kgm3_to_ugm3
+         ENDIF
+
+      ENDIF
 !------------------------------------------------------------------------------
 
     ENDDO
