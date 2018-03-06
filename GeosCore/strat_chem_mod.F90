@@ -8,7 +8,7 @@
 ! !DESCRIPTION: Module STRAT\_CHEM\_MOD contains variables and routines for 
 !  performing a simple linearized chemistry scheme in the stratosphere, 
 !  using archived 3D monthly climatological production rates and loss 
-!  frequencies are applied from the GMI combo model.
+!  frequencies saved from a GEOS-Chem UCX simulation.
 !
 !  NOTE: If using UCX, the simple linearized chemistry here will be applied to
 !  the mesosphere instead.
@@ -23,7 +23,7 @@
 !  The updated code includes at least all of these, and many more. The code
 !  is flexible enough to automatically apply the rate to any new species
 !  for future simulations that share the name in species\_mod with the
-!  GMI name.  (See Documentation on wiki).
+!  UCX name.  (See Documentation on wiki).
 !
 !  The prod rates and loss frequencies are now read via HEMCO. They are 
 !  stored in a data structure of flexible length (PLVEC). The file containing
@@ -31,11 +31,11 @@
 !  configuration file for each species of interest. They are then automatically 
 !  read and remapped onto the simulation grid. 
 !  The field names assigned to the production and loss fields are expected to 
-!  be 'GMI\_PROD\_XXX' and 'GMI\_LOSS\_XXX', respectively, where XXX is the 
+!  be 'UCX\_PROD\_XXX' and 'UCX\_LOSS\_XXX', respectively, where XXX is the 
 !  species name. Production rates must be given in units of v/v/s, and loss 
 !  frequencies in s-1.
 !  The module variable PLMUSTFIND (set below) determines the behavior if no
-!  production rates and/or loss frequencies can be found for any of the GMI
+!  production rates and/or loss frequencies can be found for any of the UCX
 !  species defined in this module. IF PLMUSTFIND is set to TRUE, the code stops
 !  with an error if no entry is found. Otherwise, stead-state values are used
 !  for all species with no explicitly given values. 
@@ -100,6 +100,8 @@ MODULE Strat_Chem_Mod
 !  30 May 2017 - M. Sulprizio- SChem_Tend is now public so that it can be
 !                              updated in flexchem_mod.F90 for UCX simulations
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  06 Mar 2018 - M. Sulprizio- Update module to use prod/loss rates from UCX
+!                              instead of GMI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -150,9 +152,8 @@ MODULE Strat_Chem_Mod
   ! value of 0.0 is used for every field that cannotbe found. 
   LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
-  ! Number of species from GMI model
-  ! Now includes some UCX species for Cl and I (mps, 12/5/17)
-  INTEGER, PARAMETER   :: NTR_GMI   = 153
+  ! Number of species from UCX simulation
+  INTEGER, PARAMETER   :: NTR_UCX   = 145
 
   ! Minit_Is_Set indicates whether Minit has been set or not
   LOGICAL              :: Minit_Is_Set = .FALSE. 
@@ -164,11 +165,11 @@ MODULE Strat_Chem_Mod
   INTEGER               :: NSCHEM          ! Number of species upon which to 
                                            ! apply P's & k's in GEOS-Chem
   ! Arrays
-  CHARACTER(LEN=16)     :: GMI_TrName    (NTR_GMI) !Tracer names in GMI
-  INTEGER               :: Strat_TrID_GC (NTR_GMI) !Maps 1:NSCHEM to species
-  INTEGER               :: Strat_TrId_TND(NTR_GMI) !Maps 1:NSCHEM to SCHEM_TEND
-  INTEGER               :: Strat_TrID_GMI(NTR_GMI) !Maps 1:NSCHEM to GMI index
-                     ! (At most NTR_GMI species could overlap between G-C & GMI)
+  CHARACTER(LEN=16)     :: UCX_TrName    (NTR_UCX) !Tracer names in UCX
+  INTEGER               :: Strat_TrID_GC (NTR_UCX) !Maps 1:NSCHEM to species
+  INTEGER               :: Strat_TrId_TND(NTR_UCX) !Maps 1:NSCHEM to SCHEM_TEND
+  INTEGER               :: Strat_TrID_UCX(NTR_UCX) !Maps 1:NSCHEM to UCX index
+                     ! (At most NTR_UCX species could overlap between G-C & UCX)
 
   ! Species index of Bry species in GEOS-Chem species DB(may differ from br_nos)
   INTEGER               :: GC_Bry_TrID(6) 
@@ -436,7 +437,7 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
-       ! which we have explicit prod/loss rates from GMI
+       ! which we have explicit prod/loss rates from UCX
        !--------------------------------------------------------------------
 
        !$OMP PARALLEL DO &
@@ -465,7 +466,7 @@ CONTAINS
                    NA = Strat_TrID_TND(N)
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   ! Use GMI O3 P/L if both LINOZ and SYNOZ are deactivated.
+                   ! Use UCX O3 P/L if both LINOZ and SYNOZ are deactivated.
                    ! This is for test use in assimilation mode (ckeller, 3/7/16).
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 .AND. &
                         ( LLINOZ .OR. LSYNOZ ) ) CYCLE
@@ -997,7 +998,6 @@ CONTAINS
     CHARACTER(LEN=255)  :: FIELDNAME
     INTEGER             :: N, TRCID
     LOGICAL             :: FND
-    LOGICAL             :: Is_UCX_Spc
     INTEGER             :: I, J, L
     REAL(fp)            :: BOXVL, AIRDENS
     REAL(f4)            :: SpcConc
@@ -1040,51 +1040,12 @@ CONTAINS
        ! Get species name
        ThisName = State_Chm%SpcData(TRCID)%Info%Name
 
-       ! Determine if the rates for this species are obtained from UCX
-       ! Otherwise default to GMI rates
-       IF ( TRIM( ThisName ) .eq. 'ClNO3'  .or. &
-            TRIM( ThisName ) .eq. 'ClNO2'  .or. &
-            TRIM( ThisName ) .eq. 'ClOO'   .or. &
-            TRIM( ThisName ) .eq. 'BrSALA' .or. &
-            TRIM( ThisName ) .eq. 'BrSALC' .or. &
-            TRIM( ThisName ) .eq. 'CHCl3'  .or. &
-            TRIM( ThisName ) .eq. 'CH2Cl2' .or. &
-            TRIM( ThisName ) .eq. 'CH3I'   .or. &
-            TRIM( ThisName ) .eq. 'CH2I2'  .or. &
-            TRIM( ThisName ) .eq. 'CH2ICl' .or. &
-            TRIM( ThisName ) .eq. 'CH2IBr' .or. &
-            TRIM( ThisName ) .eq. 'HOI'    .or. &
-            TRIM( ThisName ) .eq. 'I2'     .or. &
-            TRIM( ThisName ) .eq. 'IBr'    .or. &
-            TRIM( ThisName ) .eq. 'ICl'    .or. &
-            TRIM( ThisName ) .eq. 'I'      .or. &
-            TRIM( ThisName ) .eq. 'IO'     .or. &
-            TRIM( ThisName ) .eq. 'HI'     .or. &
-            TRIM( ThisName ) .eq. 'OIO'    .or. &
-            TRIM( ThisName ) .eq. 'INO'    .or. &
-            TRIM( ThisName ) .eq. 'IONO'   .or. &
-            TRIM( ThisName ) .eq. 'IONO2'  .or. &
-            TRIM( ThisName ) .eq. 'I2O2'   .or. &
-            TRIM( ThisName ) .eq. 'I2O3'   .or. &
-            TRIM( ThisName ) .eq. 'I2O4'   .or. &
-            TRIM( ThisName ) .eq. 'ISALA'  .or. &
-            TRIM( ThisName ) .eq. 'ISALC'  .or. &
-            TRIM( ThisName ) .eq. 'AERI' ) THEN
-          Is_UCX_Spc = .TRUE.
-       ELSE
-          Is_UCX_Spc = .FALSE.
-       ENDIF
-
        ! ---------------------------------------------------------------
        ! Get pointers to fields
        ! ---------------------------------------------------------------
 
        ! Production rates [v/v/s]
-       IF ( Is_UCX_Spc ) THEN
-          FIELDNAME = 'UCX_PROD_'//TRIM(ThisName)
-       ELSE
-          FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
-       ENDIF
+       FIELDNAME = 'UCX_PROD_'//TRIM(ThisName)
 
        ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
@@ -1092,7 +1053,7 @@ CONTAINS
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          ErrMsg = 'Cannot get pointer from HEMCO! GMI or UCX prod/loss ' // &
+          ErrMsg = 'Cannot get pointer from HEMCO! UCX prod/loss ' // &
                    'data is expected to be listed in the HEMCO '          // &
                    'configuration file. This error occured when trying '  // &
                    'to get field ' // TRIM( FIELDNAME )
@@ -1102,7 +1063,7 @@ CONTAINS
 
        ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          ErrMsg = 'Cannot find archived GMI production rates for '       // &
+          ErrMsg = 'Cannot find archived UCX production rates for '       // &
                     TRIM(ThisName) // ' - will use value of 0.0. '        // &
                    'To use archived rates, add the following field '      // &
                    'to the HEMCO configuration file: '// TRIM( FIELDNAME )
@@ -1110,11 +1071,7 @@ CONTAINS
        ENDIF
 
        ! Loss frequency [s-1]
-       IF ( Is_UCX_Spc ) THEN
-          FIELDNAME = 'UCX_LOSS_'//TRIM(ThisName)
-       ELSE
-          FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
-       ENDIF
+       FIELDNAME = 'UCX_LOSS_'//TRIM(ThisName)
        
        ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
@@ -1122,7 +1079,7 @@ CONTAINS
 
        ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          ErrMsg = 'Cannot get pointer from HEMCO! GMI or UCX prod/loss ' // &
+          ErrMsg = 'Cannot get pointer from HEMCO! UCX prod/loss ' // &
                    'data is expected to be listed in the HEMCO '          // &
                    'configuration file. This error occured when trying '  // &
                    'to get field ' // TRIM( FIELDNAME )
@@ -1132,7 +1089,7 @@ CONTAINS
 
        ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          ErrMsg= 'Cannot find archived GMI loss frequencies for '        // &
+          ErrMsg= 'Cannot find archived UCX loss frequencies for '        // &
                   TRIM(ThisName) // ' - will use value of 0.0. '          // &
                   'To use archived rates, add the following field '       // &
                   'to the HEMCO configuration file: '//TRIM(FIELDNAME)
@@ -1140,40 +1097,35 @@ CONTAINS
        ENDIF
 
        ! UCX rates are in molec/cm3/s; need to convert to expected units
-       IF ( Is_UCX_Spc ) THEN
+       !$OMP PARALLEL DO &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, BOXVL, AIRDENS, SpcConc )
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
 
-          ! Do not parellelize for now -- this may be replaced in v11-02e
-          ! (also we need to include loop over N)
-          !!!$OMP PARALLEL DO &
-          !!!$OMP DEFAULT( SHARED ) &
-          !!!$OMP PRIVATE( I, J, L, BOXVL, AIRDENS )
-          DO L = 1, LLPAR
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          ! Grid box volume [cm3]
+          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-             ! Grid box volume [cm3]
-             BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+          ! Air density [molec/cm3]
+          AIRDENS= State_Met%AD(I,J,L) * 1000e+0_fp   / &
+                   BOXVL               * AVO / AIRMW
 
-             ! Air density [molec/cm3]
-             AIRDENS= State_Met%AD(I,J,L) * 1000e+0_fp   / &
-                      BOXVL               * AVO / AIRMW
+          ! Convert PROD from molec/cm3/s to v/v/s for
+          PLVEC(N)%PROD(I,J,L) = PLVEC(N)%PROD(I,J,L) / AIRDENS
 
-             ! Convert PROD from molec/cm3/s to v/v/s for
-             PLVEC(N)%PROD(I,J,L) = PLVEC(N)%PROD(I,J,L) / AIRDENS
+          ! Convert LOSS from molec/cm3/s to 1/s
+          SpcConc = State_Chm%Species(I,J,L,TRCID)
+          IF ( SpcConc > 0 ) THEN
+             PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / SpcConc
+          ELSE
+             PLVEC(N)%LOSS(I,J,L) = 0e+0_fp
+          ENDIF
 
-             ! Convert LOSS from molec/cm3/s to 1/s
-             SpcConc = State_Chm%Species(I,J,L,TRCID)
-             IF ( SpcConc > 0 ) THEN
-                PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / SpcConc
-             ELSE
-                PLVEC(N)%LOSS(I,J,L) = 0e+0_fp
-             ENDIF
-
-          ENDDO
-          ENDDO
-          ENDDO
-          !!!$OMP END PARALLEL DO
-       ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
 
 
     ENDDO !N
@@ -1574,91 +1526,65 @@ CONTAINS
     NymdInit                 = GET_NYMD()
     NhmsInit                 = GET_NHMS()
     strat_trID_GC(:)         = 0
-    strat_trID_GMI(:)        = 0
+    strat_trID_UCX(:)        = 0
 
     ! Initialize timestep for chemistry [s]
     dTchem = GET_TS_CHEM()
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Determine the mapping for the GMI to the GC variables based on
+    ! Determine the mapping for the UCX to the GC variables based on
     ! species name, which only needs to be done once per model run.
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! List of available species with archived monthly climatological
     ! production rates, loss frequencies, and mixing ratios from the 
-    ! GMI Combo model (species names here are as used in GMI).
-    !
-    ! Rewrote the GMI_TrName array constructor so that all of the species
-    ! names have the same length.  This will prevent Gfortran from choking 
-    ! with an error.  This is OK since we trim GMI_TrName before using
-    ! it in any string comparisons. (bmy, 9/20/16)
-    !
-    ! Add RIPA, RIPB, RIPD and NPMN, IPMN which replace RIP and PMN
-    ! (mps, 8/31/17)
-    GMI_TrName = (/ 'A3O2    ', 'ACET    ', 'ACTA    ', 'ALD2    ',   &
-                    'ALK4    ', 'ATO2    ', 'B3O2    ', 'Br      ',   &
-                    'BrCl    ', 'BrO     ', 'BrONO2  ', 'C2H6    ',   &
-                    'C3H8    ', 'CCl4    ', 'CF2Br2  ', 'CF2Cl2  ',   &
-                    'CF2ClBr ', 'CF3Br   ', 'CFC113  ', 'CFC114  ',   &
-                    'CFC115  ', 'CFCl3   ', 'CH2O    ', 'CH3Br   ',   &
-                    'CH3CCl3 ', 'CH3Cl   ', 'CH4     ', 'CO      ',   &
-                    'Cl      ', 'Cl2     ', 'Cl2O2   ', 'ClO     ',   &
-                    'ClONO2  ', 'EOH     ', 'ETO2    ', 'ETP     ',   &
-                    'GCO3    ', 'GLYC    ', 'GLYX    ', 'GP      ',   &
-                    'GPAN    ', 'H       ', 'H2      ', 'H2402   ',   &
-                    'H2O     ', 'H2O2    ', 'HAC     ', 'HBr     ',   &
-                    'HCFC141b', 'HCFC142b', 'HCFC22  ', 'HCOOH   ',   &
-                    'HCl     ', 'HNO2    ', 'HNO3    ', 'HNO4    ',   &
-                    'HO2     ', 'HOBr    ', 'HOCl    ', 'IALD    ',   &
-                    'IAO2    ', 'IAP     ', 'INO2    ', 'INPN    ',   &
-                    'ISN1    ', 'ISNP    ', 'ISOP    ', 'KO2     ',   &
-                    'MACR    ', 'MAN2    ', 'MAO3    ', 'MAOP    ',   &
-                    'MAP     ', 'MCO3    ', 'MEK     ', 'MGLY    ',   &
-                    'MO2     ', 'MOH     ', 'MP      ', 'MRO2    ',   &
-                    'MRP     ', 'MVK     ', 'MVN2    ', 'N       ',   &
-                    'N2O     ', 'N2O5    ', 'NO      ', 'NO2     ',   &
-                    'NO3     ', 'NOx     ', 'O       ', 'O1D     ',   &
-                    'O3      ', 'OClO    ', 'OH      ', 'Ox      ',   &
-                    'PAN     ', 'PMN     ', 'PO2     ', 'PP      ',   &
-                    'PPN     ', 'PRN1    ', 'PRPE    ', 'PRPN    ',   &
-                    'R4N1    ', 'R4N2    ', 'R4O2    ', 'R4P     ',   &
-                    'RA3P    ', 'RB3P    ', 'RCHO    ', 'RCO3    ',   &
-                    'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
-                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     ',   &
-                    'RIPA    ', 'RIPB    ', 'RIPD    ', 'NPMN    ',   &
-                    'IPMN    ', 'ClNO3   ', 'ClNO2   ', 'ClOO    ',   &
+    ! GEOS-Chem UCX simulation.
+    UCX_TrName = (/ 'Ox      ', 'NO      ', 'O3      ', 'PAN     ',   & 
+                    'CO      ', 'ALK4    ', 'ISOP    ', 'HNO3    ',   &
+                    'H2O2    ', 'ACET    ', 'MEK     ', 'ALD2    ',   &
+                    'RCHO    ', 'MVK     ', 'MACR    ', 'NPMN    ',   &
+                    'PPN     ', 'R4N2    ', 'PRPE    ', 'C3H8    ',   &
+                    'CH2O    ', 'C2H6    ', 'N2O5    ', 'HNO4    ',   &
+                    'MP      ', 'DMS     ', 'SO2     ', 'SO4     ',   &
+                    'MSA     ', 'Br2     ', 'Br      ', 'BrO     ',   &
+                    'HOBr    ', 'HBr     ', 'BrNO2   ', 'BrNO3   ',   &
+                    'CHBr3   ', 'CH2Br2  ', 'CH3Br   ', 'MPN     ',   &
+                    'ISOPND  ', 'ISOPNB  ', 'MOBA    ', 'PROPNN  ',   &
+                    'HAC     ', 'GLYC    ', 'MVKN    ', 'MACRN   ',   &
+                    'MAP     ', 'NO2     ', 'NO3     ', 'HNO2    ',   &
+                    'HNO2    ', 'BENZ    ', 'TOLU    ', 'XYLE    ',   &
+                    'MTPA    ', 'LIMO    ', 'EOH     ', 'MGLY    ',   &
+                    'GLYX    ', 'ACTA    ', 'HPALD   ', 'DHDN    ',   &
+                    'ETHLN   ', 'HCOOH   ', 'IEPOXA  ', 'IEPOXB  ',   &
+                    'IEPOXD  ', 'ISN1    ', 'RIPA    ', 'RIPB    ',   &
+                    'RIPD    ', 'IMAE    ', 'SOAIE   ', 'SOAME   ',   &
+                    'SOAGX   ', 'SOAMG   ', 'LVOC    ', 'LVOCOA  ',   &
+                    'ISN1OG  ', 'ISN1OA  ', 'MONITS  ', 'MONITU  ',   &
+                    'HONIT   ', 'IONITA  ', 'MONITA  ', 'INDIOL  ',   &
+                    'IPMN    ', 'HC187   ', 'N2O     ', 'OCS     ',   &
+                    'CH4     ', 'BrCl    ', 'HCl     ', 'CCl4    ',   &
+                    'CH3Cl   ', 'CH3CCl3 ', 'CFC113  ', 'CFC114  ',   &
+                    'CFC115  ', 'HCFC123 ', 'HCFC141 ', 'HCFC142 ',   &
+                    'CFC11   ', 'CFC12   ', 'HCFC22  ', 'H1211   ',   &
+                    'H1301   ', 'H2402   ', 'Cl      ', 'ClO     ',   &
+                    'HOCl    ', 'ClNO3   ', 'ClNO2   ', 'ClOO    ',   &
+                    'OClO    ', 'Cl2     ', 'Cl2O2   ', 'H2O     ',   &
                     'BrSALA  ', 'BrSALC  ', 'CHCl3   ', 'CH2Cl2  ',   &
                     'CH3I    ', 'CH2I2   ', 'CH2ICl  ', 'CH2IBr  ',   &
                     'HOI     ', 'I2      ', 'IBr     ', 'ICl     ',   &
                     'I       ', 'IO      ', 'HI      ', 'OIO     ',   &
                     'INO     ', 'IONO    ', 'IONO2   ', 'I2O2    ',   &
                     'I2O3    ', 'I2O4    ', 'ISALA   ', 'ISALC   ',   &
-                    'AERI    '   /)
-
+                    'AERI'       /)
 
     !===========================!
     ! Full chemistry simulation !
     !===========================!
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
-       DO NN = 1, NTR_GMI       
+       DO NN = 1, NTR_UCX       
 
-          sname = TRIM(GMI_TrName(NN))
-
-          ! Some species names don't exactly match GEOS-Chem names
-          !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) sname = 'BrNO3'
-          ! Need to line up CFCs correctly
-          IF     ( TRIM(GMI_TrName(NN)) .eq. 'CF2Br2'  ) THEN
-              sname = 'H1202'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2Cl2'  ) THEN
-              sname = 'CFC12'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2ClBr' ) THEN
-              sname = 'H1211'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF3Br'   ) THEN
-              sname = 'H1311'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CFCl3'   ) THEN
-              sname = 'CFC11'
-          ENDIF
+          sname = TRIM(UCX_TrName(NN))
  
           ! Loop over only the advected species
           DO NA = 1, nAdvect
@@ -1669,7 +1595,7 @@ CONTAINS
              ! Get the corresponding entry in the species database
              SpcInfo => State_Chm%SpcData(N)%Info
 
-             ! For now, guarantee that GMI prod/loss rates are not used for any
+             ! For now, guarantee that UCX prod/loss rates are not used for any
              ! bromine species
              IF ( TRIM( SpcInfo%Name ) .eq.      'Br' .or. &
                   TRIM( SpcInfo%Name ) .eq.    'BrCl' .or. &
@@ -1702,47 +1628,16 @@ CONTAINS
                    IF ( am_I_Root ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
-                ELSE IF ( TRIM( SpcInfo%Name ) .eq. 'ClNO3'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'ClNO2'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'ClOO'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'BrSALA' .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'BrSALC' .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CHCl3'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CH2Cl2' .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CH3I'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CH2I2'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CH2ICl' .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'CH2IBr' .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'HOI'    .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'I2'     .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'IBr'    .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'ICl'    .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'I'      .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'IO'     .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'HI'     .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'OIO'    .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'INO'    .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'IONO'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'IONO2'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'I2O2'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'I2O3'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'I2O4'   .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'ISALA'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'ISALC'  .or. &
-                          TRIM( SpcInfo%Name ) .eq. 'AERI' ) THEN
-                   IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
-                   ENDIF
                 ELSE
                    IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
                    ENDIF
                 ENDIF
 
                 NSCHEM                 = NSCHEM + 1
                 Strat_TrID_GC (NSCHEM) = N  ! Maps 1:NSCHEM to species array
                 Strat_TrId_TND(NSCHEM) = NA ! Maps 1:NSCHEM to SCHEM_TEND
-                Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
+                Strat_TrID_UCX(NSCHEM) = NN ! Maps 1:NSCHEM to UCX_TrName index
              ENDIF
 
              ! Free pointer
