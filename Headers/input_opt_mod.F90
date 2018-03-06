@@ -1112,7 +1112,6 @@ CONTAINS
     Input_Opt%DO_ND49                = .FALSE.
     Input_Opt%N_ND49                 = 0
     Input_Opt%ND49_FILE              = ''
-    Input_Opt%ND49_TRACERS           = 0
     Input_Opt%ND49_FREQ              = 0
     Input_Opt%ND49_IMIN              = 0
     Input_Opt%ND49_IMAX              = 0
@@ -1128,7 +1127,6 @@ CONTAINS
     Input_Opt%N_ND50                 = 0
     Input_Opt%ND50_FILE              = ''
     Input_Opt%LND50_HDF              = .FALSE.
-    Input_Opt%ND50_TRACERS           = 0
     Input_Opt%ND50_IMIN              = 0
     Input_Opt%ND50_IMAX              = 0
     Input_Opt%ND50_JMIN              = 0
@@ -1143,7 +1141,6 @@ CONTAINS
     Input_Opt%N_ND51                 = 0
     Input_Opt%ND51_FILE              = ''
     Input_Opt%LND51_HDF              = .FALSE.
-    Input_Opt%ND51_TRACERS           = 0
     Input_Opt%ND51_HR_WRITE          = 0e+0_fp
     Input_Opt%ND51_HR1               = 0e+0_fp
     Input_Opt%ND51_HR2               = 0e+0_fp
@@ -1160,7 +1157,6 @@ CONTAINS
     Input_Opt%N_ND51b                = 0
     Input_Opt%ND51b_FILE             = ''
     Input_Opt%LND51b_HDF             = .FALSE.
-    Input_Opt%ND51b_TRACERS          = 0
     Input_Opt%ND51b_HR_WRITE         = 0e+0_fp
     Input_Opt%ND51b_HR1              = 0e+0_fp
     Input_Opt%ND51b_HR2              = 0e+0_fp
@@ -1176,7 +1172,6 @@ CONTAINS
     Input_Opt%DO_ND63                = .FALSE.
     Input_Opt%N_ND63                 = 0
     Input_Opt%ND63_FILE              = ''
-    Input_Opt%ND63_TRACERS           = 0
     Input_Opt%ND63_FREQ              = 0
     Input_Opt%ND63_IMIN              = 0
     Input_Opt%ND63_IMAX              = 0
@@ -1326,28 +1321,66 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!
+!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
+!  be removed from GEOS-Chem.
+
 ! !REVISION HISTORY: 
 !  26 Jan 2018 - M. Sulprizio- Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-    ! Assume success
-    RC = GC_SUCCESS
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+       ' -> at Set_Input_Opt_Extra (in module Headers/input_opt_mod.F90)'
+
+    !=======================================================================
+    ! Allocate arrays
+    !=======================================================================
 
     ALLOCATE( Input_Opt%TINDEX(Input_Opt%MAX_DIAG,Input_Opt%N_ADVECT), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%TINDEX', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%TINDEX = 0
 
-    ALLOCATE( Input_Opt%ND49_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND49_TRACERS(Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
               STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%ND49_TRACERS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%ND49_TRACERS = 0
+
     ALLOCATE( Input_Opt%ND50_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
               STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%ND50_TRACERS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%ND50_TRACERS = 0
+
     ALLOCATE( Input_Opt%ND51_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
               STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%ND51_TRACERS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%ND51_TRACERS = 0
+
     ALLOCATE( Input_Opt%ND51b_TRACERS(Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
               STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%ND51b_TRACERS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%ND51b_TRACERS = 0
+
     ALLOCATE( Input_Opt%ND63_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
               STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%ND63_TRACERS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%ND63_TRACERS = 0
 
   END SUBROUTINE Set_Input_Opt_Extra
 !EOC
