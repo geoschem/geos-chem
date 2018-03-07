@@ -322,7 +322,7 @@
 #if defined( RRTMG )
       ! For RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
-      INTEGER                  :: RR
+      INTEGER                  :: RADSPEC
 #endif
 
       ! Arrays
@@ -2008,7 +2008,7 @@
                   RADSPEC = NSPECRADMENU - 1
                ENDIF
 
-               DO N = 1, NSPECRADMENU
+               DO N = 1, RADSPEC
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
