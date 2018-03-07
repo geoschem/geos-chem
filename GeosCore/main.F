@@ -1614,7 +1614,7 @@
 #if defined ( TOMAS )
             ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
             CALL Setup_WetScav( am_I_Root, Input_Opt, 
-                                State_Met, State_Chm, RC )
+     &                          State_Met, State_Chm, RC )
 
                ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
