@@ -2464,9 +2464,9 @@ CONTAINS
        ENDIF
 
        !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
-       ! Add 3 extra species (ISOP, ACET, MONX) for tagged CO 
+       ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO 
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-          nSpc = nSpc + 3 
+          nSpc = nSpc + 5
        ENDIF
 
        ! Assign species variables
@@ -2546,13 +2546,13 @@ CONTAINS
           !------------------------------------------------------------------
           ! %%%%% FOR THE TAGGED CO SIMULATION %%%%%
           !
-          ! Add the non-advected species ISOP, ACET, and MONX
-          ! in the last 3 species slots (bmy, ckeller, 6/1/16)
+          ! Add the non-advected species ISOP, ACET, MTPA, LIMO, MTPO
+          ! in the last 5 species slots (bmy, ckeller, 6/1/16)
           !------------------------------------------------------------------
           IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
        
-             ! Add 3 additional species
-             DO L = 1, 3
+             ! Add 5 additional species
+             DO L = 1, 5
                 
                 ! ISOP, ACET, MONX follow the regular tagged CO species
                 M = State_Chm%nAdvect + L
@@ -2564,7 +2564,11 @@ CONTAINS
                    CASE( 2 )
                       ThisName = 'ACET'
                    CASE( 3 )
-                      ThisName = 'MONX'
+                      ThisName = 'MTPA'
+                   CASE( 4 )
+                      ThisName = 'LIMO'
+                   CASE( 5 )
+                      ThisName = 'MTPO'
                 END SELECT
 
                 ! Add physical properties to the HEMCO state

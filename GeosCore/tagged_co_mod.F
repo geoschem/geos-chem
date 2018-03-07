@@ -467,15 +467,31 @@
             CALL ERROR_STOP( 'ISOP not turned on in MEGAN !', LOC )
          ENDIF
 
-         ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'MONX' )
+         ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
+         HcoId = GetHcoId( 'MTPA' )
          IF ( HcoId > 0 ) THEN
-            SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
-            SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
-            SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
+            ! kgC/m2/s
+            SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
          ELSE
-            CALL ERROR_STOP( 'MONX not turned on in Megan_MONO !', LOC )
+            CALL ERROR_STOP( 'MTPA not turned on in Megan_Mono !', LOC )
          ENDIF
+         HcoId = GetHcoId( 'LIMO' )
+         IF ( HcoId > 0 ) THEN
+            ! kgC/m2/s
+            SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+         ELSE
+            CALL ERROR_STOP( 'LIMO not turned on in Megan_Mono !', LOC )
+         ENDIF
+         HcoId = GetHcoId( 'MTPO' )
+         IF ( HcoId > 0 ) THEN
+            ! kgC/m2/s
+            SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+         ELSE
+            CALL ERROR_STOP( 'MTPO not turned on in Megan_Mono !', LOC )
+         ENDIF
+         ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
+         SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
+         SUMMONOCO = SUMMONOCO * kgs_to_atomsC ! atoms C
 
       ENDIF
 
