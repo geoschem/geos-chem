@@ -1575,7 +1575,7 @@ CONTAINS
                     'I       ', 'IO      ', 'HI      ', 'OIO     ',   &
                     'INO     ', 'IONO    ', 'IONO2   ', 'I2O2    ',   &
                     'I2O3    ', 'I2O4    ', 'ISALA   ', 'ISALC   ',   &
-                    'AERI'       /)
+                    'AERI    ' /)
 
     !===========================!
     ! Full chemistry simulation !
