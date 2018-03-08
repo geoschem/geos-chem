@@ -686,6 +686,7 @@ CONTAINS
 !  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
 !  02 Nov 2017 - R. Yantosca - LWINDO_CU should be .FALSE., not 0
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
+!  08 Mar 2018 - R. Yantosca - Bug fix, remove reference to TINDEX here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -920,8 +921,8 @@ CONTAINS
     Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG          ), STAT=RC )
-    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG          ), STAT=RC )
+    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG  ), STAT=RC )
+    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG  ), STAT=RC )
 
     Input_Opt%ND01                   = 0
     Input_Opt%ND02                   = 0
@@ -1070,7 +1071,6 @@ CONTAINS
     Input_Opt%LD72                   = 0
     Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
-    Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
