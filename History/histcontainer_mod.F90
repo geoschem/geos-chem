@@ -1074,6 +1074,9 @@ CONTAINS
 !  18 Sep 2017 - R. Yantosca - Now return update interval in seconds
 !  26 Oct 2017 - R. Yantosca - Now allow update interval to be greater
 !                              than one month (similar to write, close)
+!  08 Mar 2018 - R. Yantosca - Fixed logic bug that was causing incorrect
+!                              computation of UpdateIvalSec for simulations
+!                              longer than a day.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1099,58 +1102,18 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "UpdateAlarm" 
     !=======================================================================
-    IF ( Container%FileCloseYmd >= 010000 ) THEN
 
-       !--------------------------------------------------------------------
-       ! File close interval is one or more years
-       !--------------------------------------------------------------------
+    ! Split the update interval date and time into constituent values
+    ! NOTE: We assume the update interval will always be less than a day,
+    ! since this is pegged to the "heartbeat" timestep.
+    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
+    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
 
-       ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
-    
-       ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( Year ) ) THEN
-          Container%UpdateIvalSec = 366.0_f8 * SECONDS_PER_DAY
-       ELSE
-          Container%UpdateIvalSec = 365.0_f8 * SECONDS_PER_DAY
-       ENDIF
-       
-    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
-       
-       !--------------------------------------------------------------------
-       ! File close interval is one or more months but less than a year
-       !--------------------------------------------------------------------
-
-       ! Split the current date & time into its constituent values
-       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
-
-       ! Number of days in the month
-       nDays = DaysPerMonth(Month)
-
-       ! Adjust for leap year
-       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
-          nDays = nDays + 1
-       ENDIF
-
-       ! Convert to minutes and set this as the file write interval
-       Container%UpdateIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
-      
-    ELSE
-
-       !--------------------------------------------------------------------
-       ! Update interval is less than a month
-       !--------------------------------------------------------------------
-
-       ! Split the update interval date and time into constituent values
-       CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
-       CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
-
-       ! "Update" interval in seconds
-       Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
-                                 ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
-                                 ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
-                                 ( DBLE( Second )                      )
-    ENDIF
+    ! "Update" interval in seconds
+    Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
+                              ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
+                              ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
+                              ( DBLE( Second )                      )
 
   END SUBROUTINE HistContainer_UpdateIvalSet
 !EOC
