@@ -36,6 +36,7 @@
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
+      PUBLIC  :: GIGC_Cap_Tropopause_Prs
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -136,6 +137,7 @@
 !                              these allocated/deallocated the FULLGRID arrays
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1101,6 +1103,102 @@
 
       END SUBROUTINE INTERP
 !EOC
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_cap_tropopause_prs
+!
+! !DESCRIPTION: Subroutine GIGC\_CAP\_TROPOPAUSE\_PRS caps the tropopause
+!  pressure in polar latitudes to 200 hPa, so that we don't end up doing
+!  troposheric chemistry too high over the poles.  This is done in the
+!  standalone GEOS-Chem, and we also need to apply this when running
+!  GEOS-Chem within the GEOS-5 GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root, IM,        JM, 
+     &                                    Input_Opt, State_Met, RC  )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Met_Mod, ONLY : MetState
+      USE GC_Grid_Mod,   ONLY : Get_XEdge
+      USE GC_Grid_Mod,   ONLY : Get_YEdge
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: IM            ! # of lons on this CPU
+      INTEGER,        INTENT(IN)    :: JM            ! # of lats on this CPU
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
+!
+! !REMARKS:
+!  Jennifer Logan (see correspondence below) suggested that we should cap the 
+!  variable tropopause at 200hPa in near-polar regions (90-60S and 60-90N), 
+!  to avoid the problem with anomalously high tropopause heights at high 
+!  latitudes. This fix was standardized in GEOS-Chem v7-04-13.
+!                                                                             .
+!  Jennifer Logan wrote:
+!     I think we should restrict the tropopause at latitudes > 60 deg. to 
+!     pressures greater than 200 mb (about 11 km). From Fig. 3 in Seidel and 
+!     Randel, there are tropopause (TP) heights as high as 13.5 km in the 
+!     Antarctic (median height is ~9.8 km, 250 mb), but I don't think we want 
+!     to be doing trop. chem there. The median TP pressure at ~80 N is ~300 mb, 
+!     compared to ~250 mb at 70-85 S. The extratropical TP heights are higher
+!     (lower pressure) in the SH than in the NH according to Fig. 3. 
+!     This approach is also very easy to explain in a paper. 
+! 
+! !REVISION HISTORY: 
+!  14 Mar 2013 - R. Yantosca - Initial version
+!  08 Mar 2018 - E. Lundgren - Move this rtn from obsolete GCHP/gchp_utils.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,       J
+      REAL*8  :: YSOUTH,  YNORTH
+      
+      ! Assume success
+      RC = GC_SUCCESS
+      
+      ! Return if option not set
+      IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
+      
+      ! Loop over grid boxes on this PET
+      DO J = 1, JM
+      DO I = 1, IM
+      
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
+      
+         ! Cap tropopause height at 200 hPa polewards of 60N and 60S
+         IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+            State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
+         ENDIF
+      
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE GIGC_Cap_Tropopause_Prs
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
