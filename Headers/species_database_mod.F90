@@ -3626,7 +3626,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'pFe',                        &
                               FullName      = 'Anthropogenic iron',         &
                               Formula       = 'Fe',                         &
                               MW_g          = 55.85_fp,                     &
@@ -4569,7 +4569,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'IBr',                        &
                               FullName      = 'Iodine monobromide',         &
                               Formula       = 'IBr',                        &
                               MW_g          = 207.0_fp,                     &
@@ -4597,7 +4597,7 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
+                              Name          = 'ICl',                        &
                               FullName      = 'Iodine monochloride',        &
                               Formula       = 'ICl',                        &
                               MW_g          = 162.0_fp,                     &
