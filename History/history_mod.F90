@@ -492,6 +492,8 @@ CONTAINS
 !                              from the Input_Opt object
 !  24 Jan 2018 - E. Lundgren - Allow diagnostic names to include input params
 !  06 Feb 2018 - E. Lundgren - Change TS_DYN units from minutes to seconds
+!   9 Mar 2018 - R. Yantosca - Now accept "YYYYMMDD hhmmss" as the long format
+!                              for collection frequency and duration attrs
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -895,14 +897,14 @@ CONTAINS
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
              READ( CollectionFrequency(C), '(i6.6)'  ) FileWriteHms
           ELSE
-             READ( CollectionFrequency(C), '(2i6.6)' ) FileWriteYmd,      &
+             READ( CollectionFrequency(C), '(i8,i6)' ) FileWriteYmd,      &
                                                        FileWriteHms
           ENDIF
 
           ! SPECIAL CASE: If FileWriteHms is 240000, set
           ! FileWriteYmd=000001 and FileWriteHms=000000
           IF ( FileWriteHms == 240000 ) THEN
-             FileWriteYmd = 000001
+             FileWriteYmd = 00000001
              FileWriteHms = 000000
           ENDIF
 
@@ -931,14 +933,14 @@ CONTAINS
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
           ELSE
-             READ( CollectionDuration(C), '(2i6.6)' ) FileCloseYmd,          &
+             READ( CollectionDuration(C), '(i8,i6)' ) FileCloseYmd,          &
                                                       FileCloseHms
           ENDIF
 
           ! SPECIAL CASE: If FileCloseHms is 240000, set
           ! FileCloseYmd=000001 and FileCloseYmd=000000
           IF ( FileCloseHms == 240000 ) THEN
-             FileCloseYmd = 000001
+             FileCloseYmd = 00000001
              FileCloseHms = 000000
           ENDIF
 
@@ -982,13 +984,13 @@ CONTAINS
              IF ( TRIM( CollectionAccInterval(C) ) == UNDEFINED_STR ) THEN
 
                 ! Set UpdateYmd and UpdateHms from the HeartBeat timestep
-                UpdateYmd = 000000
+                UpdateYmd = 00000000
                 UpdateHms = HeartBeatHms
              
                 ! SPECIAL CASE: If FileWriteYmd is 240000 then set
                 ! and set FileWriteYmd=000001 and FileWriteHms=000000
                 IF ( UpdateHms == 240000 ) THEN
-                   UpdateYmd = 000001
+                   UpdateYmd = 00000001
                    UpdateHms = 000000
                 ENDIF
 
@@ -998,14 +1000,14 @@ CONTAINS
                 IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
                    READ( CollectionAccInterval(C), '(i6.6)'  ) UpdateHms
                 ELSE
-                   READ( CollectionAccInterval(C), '(2i6.6)' ) UpdateYmd,    &
+                   READ( CollectionAccInterval(C), '(i8,i6)' ) UpdateYmd,    &
                                                                UpdateHms
                 ENDIF
 
                 ! SPECIAL CASE: If FileWriteYmd is 240000 then set
                 ! and set FileWriteYmd=000001 and FileWriteHms=000000
                 IF ( UpdateHms == 240000 ) THEN
-                   UpdateYmd = 000001
+                   UpdateYmd = 00000001
                    UpdateHms = 000000
                 ENDIF
 
