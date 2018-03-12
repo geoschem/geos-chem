@@ -2823,7 +2823,9 @@
       DO I = 1, IIPAR
 
          ! Initialize for safety's sake 
-         Ld       = 0e+0_fp
+         Ld       = 0.0_fp
+         LSTOT0   = 0.0_fp
+         LSTOT    = 0.0_fp
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -3690,10 +3692,11 @@
                SRo3   = SR * (1-f_srhobr)
 
 	    ELSE
-               SR     = 0.e+0_fp
-               SRhobr = 0.e+0_fp
-               SRo3   = 0.e+0_fp
-               so2_sr = 0.e+0_fp
+               SR     = 0.0_fp
+               SRhobr = 0.0_fp
+               SRo3   = 0.0_fp
+               so2_sr = 0.0_fp
+               LSTOT  = 0.0_fp
 	    ENDIF
 
             ! We have used the in-cloud LWC to compute the sulfate

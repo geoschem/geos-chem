@@ -213,7 +213,9 @@
 !  20 Jul 2016 - R. Yantosca - Remove references to NNPAR (now use nAdvect)
 !  20 Sep 2016 - R. Yantosca - Bug fix for Gfortran: Make sure the IT_IS_*
 !                              variables are declared as LOGICAL, not INTEGER
-!   3 Oct 2016 - R. Yantosca - Bug fix: don't allocate ND71 scalar variables
+!  03 Oct 2016 - R. Yantosca - Bug fix: don't allocate ND71 scalar variables
+!  09 Mar 2018 - R. Yantosca - Now use LLPAR to size diagnostic arrays, 
+!                              which facilitates bpch vs.netCDF comparisons
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,7 +312,9 @@
       ! ND05: Sulfate Prod/loss
       !=================================================================
       IF ( ND05 > 0 ) THEN
-         LD05 = MIN( ND05, LLCHEM )
+
+         ! Now size ND05 for all vertical levels (bmy, 3/9/18)
+         LD05 = MIN( ND05, LLPAR )
 
          ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
@@ -355,7 +359,7 @@
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
       !=================================================================
-      LD12 = MIN( ND12, LLCHEM )
+      LD12 = MIN( ND12, LLPAR )
 
       IF ( ND12 > 0 ) THEN 
          ALLOCATE( AD12( IIPAR, JJPAR, LD12 ), STAT=AS )
@@ -487,7 +491,9 @@
       !       --> uses AD21 array (allocatable) 
       !=================================================================
       IF ( ND21 > 0 ) THEN
-         LD21 = MIN( ND21, LLCHEM )
+
+         ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
+         LD21 = MIN( ND21, LLPAR )
 
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
@@ -500,14 +506,8 @@
       !=================================================================
       IF ( ND22 > 0 ) THEN
 
-         ! For full chemistry, mesospheric boxes (and stratospheric, in
-         ! the non-stratchem run) are ignored. We therefore cap LD22
-         ! at LLCHEM (bmy, 4/2/01)
-         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-            LD22 = MIN( ND22, LLCHEM )
-         ELSE
-            LD22 = MIN( ND22, LLPAR  )
-         ENDIF
+         ! Now size J-value diagnostic for all vertical levels (bmy, 3/9/18)
+         LD22 = MIN( ND22, LLPAR  )
 
          ! Accumulating diagnostic array
          ALLOCATE( AD22( IIPAR, JJPAR, LD22, PD22 ), STAT=AS )
@@ -689,13 +689,8 @@
       !=================================================================
       IF ( ND43 > 0 ) THEN
          
-         ! For full chemistry, only save OH up to the tropopause.  
-         ! For tagged CO ior CO-OH, save OH everywhere (bmy, 2/12/01)
-         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-            LD43 = MIN( ND43, LLCHEM )
-         ELSE
-            LD43 = MIN( ND43, LLPAR  )
-         ENDIF
+         ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
+         LD43 = MIN( ND43, LLPAR  )
 
          ! Accumulating diagnostic array
          ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
@@ -835,6 +830,8 @@
       !        --> uses AD54 array (allocatable)
       !=================================================================
       IF ( ND54 > 0 ) THEN
+
+         ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
          LD54 = MIN( ND54, LLCHEM)
 
          ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
@@ -998,11 +995,9 @@
       !       --> Uses AD65 array (allocatable)
       !=================================================================
       IF ( ND65 > 0 ) THEN
-         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-            LD65 = MIN( ND65, LLCHEM )
-         ELSE
-            LD65 = MIN( ND65, LLPAR  )
-         ENDIF
+         
+         ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
+         LD65 = MIN( ND65, LLPAR  )
 
          ALLOCATE( AD65( IIPAR, JJPAR, LD65, Input_Opt%NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
