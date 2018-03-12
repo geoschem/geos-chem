@@ -615,7 +615,7 @@
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 #if     defined( GEOS_FP ) || defined( MERRA2 )
 #if     defined( GRID4x5 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp
 #elif   defined( GRID2x25 ) 
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #else
@@ -6884,24 +6884,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Switch for only doing reduction in cloud water
       LRED_CLOUDONLY = .FALSE.
 
-      ! Switch turns on Hg+Br chemistry
-      LBRCHEM=.FALSE.
-
-      ! Switch turns on Hg+Br followed by Hg(1)+Y chemistry
-      LBRYCHEM=.TRUE.
-
-      ! Switch turns on Hg+BrO chemistry
-      LBROCHEM=.FALSE.
-
-      ! Switch turn on Hg+OH, Hg+O3 chemistry
-      LOHO3CHEM=.FALSE.
-
-      ! Switch turns on Hg+Cl followed by Hg(1) + Y chemistry
-      LCLCHEM = .TRUE. 
-
-      ! Switch tunrs on aqueous Hg oxidation by OH, HOCl, O3
-      LHGAQCHEM = .TRUE. 
-
       ! Switches for new reduction parameterization
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
 
@@ -7122,12 +7104,24 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       WRITE( 6, 120   ) LGCBROMINE
       WRITE( 6, 130   ) LNEI2005
       WRITE( 6, 140   ) LInPlume
+      WRITE( 6, 150   ) LBRYCHEM
+      WRITE( 6, 160   ) LHGAQCHEM
+      WRITE( 6, 170   ) LBRCHEM
+      WRITE( 6, 180   ) LBROCHEM
+      WRITE( 6, 190   ) LOHO3CHEM
+      WRITE( 6, 200   ) LCLCHEM
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
  130  FORMAT( 'LNEI2005   is set to ', L1                          )
  140  FORMAT( 'LInPlume   is set to ', L1                          )
+ 150  FORMAT( 'LBRYCHEM   is set to ', L1                          )
+ 160  FORMAT( 'LHGAQCHEM  is set to ', L1                          )
+ 170  FORMAT( 'LBRCHEM    is set to ', L1                          )
+ 180  FORMAT( 'LBROCHEM   is set to ', L1                          )
+ 190  FORMAT( 'LOHO3CHEM  is set to ', L1                          )
+ 200  FORMAT( 'LCLCHEM    is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
