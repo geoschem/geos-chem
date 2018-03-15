@@ -5341,14 +5341,14 @@
      &                    TRIM( Input_Opt%ND48_FILE )
          WRITE( 6, 120 ) 'ND48 save frequency [sec]   : ',
      &                    Input_Opt%ND48_FREQ
-      ENDIF
 
-      DO S = 1, Input_Opt%ND48_N_STA
-         WRITE( 6, 130 ) S, Input_Opt%ND48_IARR(S),
-     &                      Input_Opt%ND48_JARR(S),
-     &                      Input_Opt%ND48_LARR(S),
-     &                      Input_Opt%ND48_NARR(S) 
-      ENDDO
+         DO S = 1, Input_Opt%ND48_N_STA
+            WRITE( 6, 130 ) S, Input_Opt%ND48_IARR(S),
+     &                         Input_Opt%ND48_JARR(S),
+     &                         Input_Opt%ND48_LARR(S),
+     &                         Input_Opt%ND48_NARR(S) 
+         ENDDO
+      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )

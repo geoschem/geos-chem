@@ -1682,6 +1682,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
 !  27 Sep 2017 - M. Sulprizio- Define species IDs for ND22 diagnostic
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  29 Dec 2017 - C. Keller   - Print mapping on root CPU only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1877,9 +1878,11 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDIF
 
          ! Print the mapping
-         IF ( GC_Photo_Id(J) > 0 .AND. am_I_Root ) THEN
-            WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
- 200        FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
+         IF ( am_I_Root ) THEN
+            IF ( GC_Photo_Id(J) > 0 ) THEN
+               WRITE( 6, 200 ) RNAMES(J), J, GC_Photo_Id(J), JFACTA(J)
+ 200           FORMAT( a10, ':', i7, 2x, i7, 2x, f7.4 )
+            ENDIF
          ENDIF
       ENDDO
 

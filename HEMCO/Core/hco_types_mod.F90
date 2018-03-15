@@ -308,6 +308,8 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: ScalID         ! Scale factor ID
      INTEGER                     :: Oper           ! Operator
+     INTEGER                     :: levScalID1     ! ID of vertical level field
+     INTEGER                     :: levScalID2     ! ID of vertical level field
      INTEGER                     :: nScalID        ! # of scale factor IDs 
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 

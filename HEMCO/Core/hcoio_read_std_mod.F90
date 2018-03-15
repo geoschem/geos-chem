@@ -2558,7 +2558,6 @@ CONTAINS
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
     USE HCO_TIDX_MOD,         ONLY : tIDx_IsInRange 
-    USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
     USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
     USE HCO_CLOCK_MOD,        ONLY : Get_LastDayOfMonth
 !
@@ -4208,7 +4207,10 @@ CONTAINS
     INTEGER,          INTENT(  OUT)   :: N
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller: Initial version
+!  11 May 2017 - C. Keller - Initial version
+!  07 Jul 2017 - C. Keller - Parse function before evaluation to allow
+!                            the usage of user-defined tokens within the
+!                            function.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4261,6 +4263,12 @@ CONTAINS
     ! GetPrefTimeAttr can return -999 for hour. In this case set to current
     ! simulation hour
     IF ( prefHr < 0 ) prefHr = cHr
+
+    ! Parse function. This will replace any tokens in the function with the
+    ! actual token values. (ckeller, 7/7/17)
+    CALL HCO_CharParse ( HcoState%Config, func, &
+                         prefYr, prefMt, prefDy, prefHr, prefMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Check which variables are in string. 
     ! Possible variables are YYYY, MM, DD, WD, HH, NN, SS, DOY 
@@ -4349,7 +4357,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! N is the number of expressions. This is 1 or 24
+    ! N is the number of expressions.
     Vals(:) = -999.0_hp
     IF ( LHIDX > 0 ) THEN
        N = 24

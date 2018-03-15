@@ -481,12 +481,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,    TC0,       SUNCOS_MID,           
-     &             F0,        HSTAR,     XMW,        AIROSOL,           
-     &             USTAR,     CZ1,       OBK,        CFRAC,               
-     &             ZH,        LSNOW,     DVEL,       AZO,              
-     &             RHB,       PRESSU,    W10,        RC            )
+      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
+     &             RADIAT,     TC0,       SUNCOS_MID,
+     &             F0,         HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,      CZ1,       OBK,        CFRAC,     
+     &             ZH,         LSNOW,     DVEL,       AZO,              
+     &             RHB,        PRESSU,    W10,        RC            )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -838,12 +838,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,    TEMP,      SUNCOS,            
-     &                   F0,        HSTAR,     XMW,       AIROSOL,     
-     &                   USTAR,     CZ1,       OBK,       CFRAC,           
-     &                   ZH,        LSNOW,     DVEL,      ZO,            
-     &                   RHB,       PRESSU,    W10,       RC          )
+      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
+     &                   RADIAT,     TEMP,      SUNCOS,
+     &                   F0,         HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,      CZ1,       OBK,       CFRAC,
+     &                   ZH,         LSNOW,     DVEL,      ZO,
+     &                   RHB,        PRESSU,    W10,       RC          )
 !
 ! !USES:
 !
@@ -863,7 +863,7 @@
 
       REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cosine of solar zenith angle
+      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
@@ -1036,7 +1036,6 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
-!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1126,6 +1125,7 @@
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
+
 
       ! Small number
       REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
@@ -1881,6 +1881,7 @@
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
+
  500     CONTINUE
 
 !** Load array DVEL

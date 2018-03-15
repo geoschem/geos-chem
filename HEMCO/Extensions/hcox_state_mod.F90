@@ -200,6 +200,7 @@ MODULE HCOX_STATE_MOD
      ! in hcoi_esmf_mod.F90 (called from within hcoi_gc_main_mod.F90). 
      !----------------------------------------------------------------------
      TYPE(ExtDat_3S),  POINTER :: BYNCY       ! Buoyancy 
+     TYPE(ExtDat_2S),  POINTER :: LFR         ! Lightning flash rate 
      TYPE(ExtDat_2R),  POINTER :: CNV_FRC     ! convective fraction (filled
                                               ! from State_Met) 
   END TYPE Ext_State
@@ -226,6 +227,7 @@ MODULE HCOX_STATE_MOD
 !  20 Apr 2016 - M. Sulprizio- Change JO1D pointer to JOH to reflect that it now
 !                              points to the effective O3 + hv -> 2OH rates
 !  01 Nov 2016 - M. Sulprizio- Rename TOMAS sea salt to TOMAS Jeagle (J. Kodros)
+!  17 Oct 2017 - C. Keller   - Add lightning flash rate 
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -474,6 +476,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%BYNCY, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%LFR, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%CNV_FRC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -563,6 +568,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%WET_TOTN   )
        CALL ExtDat_Cleanup( ExtState%CNV_FRC    )
        CALL ExtDat_Cleanup( ExtState%BYNCY      )
+       CALL ExtDat_Cleanup( ExtState%LFR        )
 
        ExtState%DRYCOEFF   => NULL()
        ExtState%PBL_MAX    => NULL()
