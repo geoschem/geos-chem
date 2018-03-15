@@ -1087,7 +1087,7 @@
 
 #if defined( NC_DIAG )
       ! For diagnostics
-      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
+      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(NWVSELECT)
 #endif
 
@@ -1381,7 +1381,7 @@
       IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
-         tempOD(:,:,:,:,:) = 0.0_fp
+         tempOD = 0.0_fp
          LINTERPARR(:) = .FALSE.
 
          ! Interpolate?
@@ -1397,34 +1397,50 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
+         DO W = 1, NWVSELECT 
          DO N = 1, NDUST
-         DO W = 1, NWVSELECT
          DO L = 1, LLCHEM
          DO J = 1, JJPAR
          DO I = 1, IIPAR               
+
             IF ( .not. LINTERPARR(W) ) THEN
 
-               tempOD(I,J,L,W,N) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
-
+               tempOD(I,J,L,N,W) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
+            
             ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
      &             (ODMDUST(I,J,L,IWVSELECT(2,W),N).GT.0)) THEN
-
+            
                ! Interpolate using angstrom exponent between
                ! closest available wavelengths (coefs pre-calculated 
                ! in CALC_AOD)
                ! AOD sometimes zero (if Q zero), must catch this!
-               tempOD(I,J,L,W,N) = 
+               tempOD(I,J,L,N,W) = 
      &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)*
      &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
      &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
      &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)))
 
             ENDIF
+
+            !---------------------------------------------------
+            ! Set size-resolved dust optical depth diagnostic
+            !---------------------------------------------------
+            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+               State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
+            ENDIF
+            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+               State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
+            ENDIF
+            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+               State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
+            ENDIF
+
+
          ENDDO ! longitude
          ENDDO ! latitude
          ENDDO ! level
-         ENDDO ! wavelength
          ENDDO ! bin
+         ENDDO ! wavelength
 !$OMP END PARALLEL DO
 
          !---------------------------------------------------
@@ -1432,6 +1448,7 @@
          !---------------------------------------------------
          IF ( ARCHIVE_AODDust ) THEN
 !$OMP PARALLEL DO
+
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
             DO L = 1, LLCHEM
@@ -1442,19 +1459,6 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-         ENDIF
-
-         !---------------------------------------------------
-         ! Set size-resolved dust optical depth diagnostic
-         !---------------------------------------------------
-         IF ( ARCHIVE_AODDustWL1 ) THEN
-            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
-         ENDIF
-         IF ( ARCHIVE_AODDustWL2 ) THEN
-            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
-         ENDIF
-         IF ( ARCHIVE_AODDustWL3 ) THEN
-            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
          ENDIF
 
       ENDIF
@@ -1654,7 +1658,7 @@
 
 #if defined( NC_DIAG )
       ! For diagnostics
-      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NWVSELECT,NDUST)
+      REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(NWVSELECT)
 #endif
 
@@ -1985,7 +1989,7 @@
       IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
-         tempOD(:,:,:,:,:) = 0.0_fp
+         tempOD = 0.0_fp
          LINTERPARR(:) = .FALSE.
 
          ! Interpolate?
@@ -2001,8 +2005,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
-         DO N = 1, NDUST
          DO W = 1, NWVSELECT
+         DO N = 1, NDUST
          DO L = 1, LLCHEM
          DO J = 1, JJPAR
          DO I = 1, IIPAR               
@@ -2021,13 +2025,26 @@
      &                  ACOEF_WV(W)**(BCOEF_WV(W)*LOG(
      &                  ODMDUST(I,J,L,IWVSELECT(1,W),N)/
      &                  ODMDUST(I,J,L,IWVSELECT(2,W),N)))
-
             ENDIF
+
+            !---------------------------------------------------
+            ! Set size-resolved dust optical depth diagnostic
+            !---------------------------------------------------
+            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+               State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
+            ENDIF
+            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+               State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
+            ENDIF
+            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+               State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
+            ENDIF
+
          ENDDO ! longitude
          ENDDO ! latitude
          ENDDO ! level
-         ENDDO ! wavelength
          ENDDO ! bin
+         ENDDO ! wavelength
 !$OMP END PARALLEL DO
 
          !---------------------------------------------------
@@ -2045,19 +2062,6 @@
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
-         ENDIF
-
-         !---------------------------------------------------
-         ! Set size-resolved dust optical depth diagnostic
-         !---------------------------------------------------
-         IF ( ARCHIVE_AODDustWL1 ) THEN
-            State_Diag%AODDustWL1(:,:,:,:) = tempOD(:,:,:,1,:)
-         ENDIF
-         IF ( ARCHIVE_AODDustWL2 ) THEN
-            State_Diag%AODDustWL2(:,:,:,:) = tempOD(:,:,:,2,:)
-         ENDIF
-         IF ( ARCHIVE_AODDustWL3 ) THEN
-            State_Diag%AODDustWL3(:,:,:,:) = tempOD(:,:,:,3,:)
          ENDIF
 
       ENDIF
