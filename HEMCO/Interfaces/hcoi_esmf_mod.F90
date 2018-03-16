@@ -120,6 +120,8 @@ CONTAINS
 !  10 Sep 2015 - C. Keller - Added RESTART=MAPL_RestartSkip.
 !  21 Feb 2016 - C. Keller - Update to v2.0, added default diagnostics (optional)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  16 Mar 2018 - E. Lundgren - Expand log write to specify reading HEMCO
+!                              diagnostic config file and adding HEMCO exports
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -251,6 +253,8 @@ CONTAINS
 
       IF ( LUN > 0 ) THEN
 
+         IF ( am_I_Root ) WRITE(*,*) 'Reading HEMCO configuration file: ', &
+                                     TRIM(HcoConfig%ConfigFileName)
          DO 
 
             ! Get next line
@@ -287,6 +291,8 @@ CONTAINS
             IF ( STATUS /= ESMF_SUCCESS ) THEN
                WRITE(*,*) 'Cannot add to export: ',TRIM(SNAME)
                ASSERT_(.FALSE.)
+            ELSE
+               IF ( am_I_Root ) WRITE(*,*) 'adding HEMCO export: ', TRIM(cName)
             ENDIF
 
          ENDDO
