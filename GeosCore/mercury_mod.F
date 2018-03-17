@@ -619,18 +619,18 @@
 #elif   defined( GRID2x25 ) 
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #endif
 #elif   defined( GEOS_5 ) 
 #if     defined( GRID4x5 ) 
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp
 #elif   defined( GRID2x25 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #endif
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = ???
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #endif
 
       ! Set of Hg/Br rate constants to use
