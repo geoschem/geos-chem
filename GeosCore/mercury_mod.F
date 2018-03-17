@@ -615,7 +615,7 @@
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 #if     defined( GEOS_FP ) || defined( MERRA2 )
 #if     defined( GRID4x5 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 5.2e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #elif   defined( GRID2x25 ) 
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
 #else
