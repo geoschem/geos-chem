@@ -362,8 +362,13 @@
 #endif
       INTEGER,    PARAMETER :: NPOLY    = 20
 
-      ! LLCONVM - Max number of layers for convection
-      INTEGER               :: LLCONVM
+!-----------------------------------------------------------------------------
+! Prior to 3/19/18:
+! This is only used to dimension the ND14 array, but we should use LLPAR
+! instead. (bmy, 3/19/18)
+!      ! LLCONVM - Max number of layers for convection
+!      INTEGER               :: LLCONVM
+!-----------------------------------------------------------------------------
 
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER,    PARAMETER :: MAXFAM = 40
@@ -722,9 +727,12 @@
       !=================================================================
       ! Set values for former variables declared as parameters
       !=================================================================
-
-      ! Max number of layers for convection
-      LLCONVM = LLPAR - 1
+!-----------------------------------------------------------------------------
+! Prior to 3/21/18:
+! Remove reference to LLCONVM (bmy, 3/21/18) 
+!      ! Max number of layers for convection
+!      LLCONVM = LLPAR - 1
+!-----------------------------------------------------------------------------
 
       ! Number of aerosol categories
       IF ( Input_Opt%LUCX ) THEN
