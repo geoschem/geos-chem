@@ -1567,7 +1567,7 @@
          ! Calculate cloud parameters for aqueous Hg chemistry                 
          !==============================================================       
 
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
+#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          !---------------------------------------------                        
          ! GEOS-5/MERRA: Get LWC, FC from met fields                           
          ! (jaf, bmy, 6/30/10)                                                 
