@@ -787,7 +787,7 @@
             ND = IDDEP(N)
 
             ! Drydep flux in chemistry only
-            State_Diag%DryDepChm(I,J,1,ND) = FLUX
+            State_Diag%DryDepChm(I,J,ND) = FLUX
          ENDIF
 #endif
       ENDDO ! I

@@ -1933,7 +1933,7 @@
      &               / AREA_CM2 
 
             ! Drydep flux in chemistry only
-            State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
+            State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
          ENDIF
 #endif
       ENDDO ! I

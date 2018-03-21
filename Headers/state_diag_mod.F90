@@ -60,9 +60,9 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm       (:,:,:,:) ! Drydep flux in chemistry
-     REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
-     REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
+     REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
+     REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
+     REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
@@ -495,7 +495,7 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepChm( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( ArrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepChm = 0.0_f4
@@ -514,7 +514,7 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepMix( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepMix = 0.0_f4
@@ -531,7 +531,7 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDep( IM, JM, LM, nDryDep ), STAT=RC )
+       ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDep = 0.0_f4
@@ -3625,19 +3625,19 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPMIX' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL' ) THEN

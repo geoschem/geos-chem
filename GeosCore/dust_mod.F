@@ -963,7 +963,7 @@
      &                   ( AIRMW * 1.e-3_fp ) / AREA_CM2 
 
                   ! Drydep flux in chemistry only
-                  State_Diag%DryDepChm(I,J,1,ND) = FLUX
+                  State_Diag%DryDepChm(I,J,ND) = FLUX
                ENDIF
 #endif
             ENDDO 

@@ -302,14 +302,12 @@ CONTAINS
     IF ( Archive_DryDep ) THEN
        !$OMP PARALLEL DO          &
        !$OMP DEFAULT( SHARED  )   &
-       !$OMP PRIVATE( I, J, L )
-       DO L = 1, LLPAR
+       !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
        DO N = 1, State_Chm%nDryDep
-          State_Diag%DryDep(I,J,L,N) = State_Diag%DryDepChm(I,J,L,N)         &
-                                     + State_Diag%DryDepMix(I,J,L,N)
-       ENDDO
+          State_Diag%DryDep(I,J,N) = State_Diag%DryDepChm(I,J,N)         &
+                                     + State_Diag%DryDepMix(I,J,N)
        ENDDO
        ENDDO
        ENDDO
