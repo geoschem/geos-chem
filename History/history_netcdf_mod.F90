@@ -490,6 +490,16 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
+          ! Get the dimension ID's that are relevant to each HISTORY ITEM
+          ! and save them in fields of the HISTORY ITEM
+          CALL Get_Var_DimIds( xDimId   = Container%xDimId,                  &
+                               yDimId   = Container%yDimId,                  &
+                               zDimId   = Container%zDimId,                  &
+                               iDimId   = Container%iDimId,                  &
+                               tDimId   = Container%tDimId,                  &
+                               Item     = Current%Item,                      &
+                               VarUnits = VarUnits                          )
+
           ! Replace "TBD"  with the current units of State_Chm%Species
           IF ( TRIM( VarUnits ) == 'TBD' ) THEN
              VarUnits = Container%Spc_Units
@@ -505,6 +515,7 @@ CONTAINS
                            VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
                            levId        = Current%Item%NcZDimId,             &
+                           iLevId       = Current%Item%NcIDimId,             &
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
@@ -567,10 +578,6 @@ CONTAINS
                                 Arr2d   = Current%Item%Source_2d_4          )
 
           ELSE IF ( Current%Item%SpaceDim == 1 ) THEN
-
-             if ( current%item%name == 'time' .or. &
-                  current%item%name == "TIME" ) then
-             endif
 
              ! All other index fields are 1-D (8-byte precision) ...
              CALL Nc_Var_Write( fId     = Container%FileId,                  &
