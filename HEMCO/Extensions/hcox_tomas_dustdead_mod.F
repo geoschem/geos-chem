@@ -77,6 +77,7 @@
 !                              match GC values and update acc due to gravity 
 !                              and universal gas constant to NIST 2014 values
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5488,51 +5489,7 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if defined( GEOS_5 ) && defined( GRID05x0666 )
-
-#if defined(NESTED_CH)  
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_EU)
-      FLX_MSS_FDG_FCT = 4.54d-4
-#elif defined(NESTED_NA)
-      FLX_MSS_FDG_FCT = 2.16d-4
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
-      FLX_MSS_FDG_FCT = 7.0d-4
-
-#elif defined( GEOS_5 ) && defined( GRID2x25 )
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-      FLX_MSS_FDG_FCT = 3.5d-4
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: RETUNING FOR MERRA 1x25 IS NEEDED ONCE MET IS AVAILABLE %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( MERRA ) && defined( GRID4x5 )
-
-      !----------------------------------------------------------------
-      ! Based on results from MERRA 4x5 for years 2004-2005:
-      !
-      !   (GEOS-5 - MERRA)/GEOS-5 * 100  is 26.9% in each size bin.
-      !
-      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the 
-      ! dust emissions consistent.  Consequently, to bring MERRA 4x5 
-      ! dust emissions up to GEOS-5 levels, we need to DIVIDE the 
-      ! FLX_MSS_FDG_FCT used for GEOS-5 by (1. - 0.269) = 0.731.
-      !
-      !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
-      !----------------------------------------------------------------
-      FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
-
-#elif   defined( GEOS_FP ) && defined( GRID025x03125 )
+#if   defined( GEOS_FP ) && defined( GRID025x03125 )
 
 #if defined(NESTED_CH)
 

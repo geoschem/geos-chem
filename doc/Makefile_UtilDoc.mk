@@ -38,7 +38,7 @@ SRC1 :=                     \
 ./util_intro.P              \
 ./util_grid.P               \
 $(UTIL)/pressure_mod.F      \
-$(UTIL)/grid_mod.F90        \
+$(UTIL)/gc_grid_mod.F90     \
 $(UTIL)/regrid_a2a_mod.F90  \
 $(UTIL)/bpch2_mod.F         \
 $(UTIL)/transfer_mod.F      \
@@ -60,9 +60,9 @@ $(UTIL)/charpak_mod.F       \
 $(UTIL)/geos_timers_mod.F
 
 # Output file names
-TEX1 := GC_v11-01_Utility_Modules.tex
-DVI1 := GC_v11-01_Utility_Modules.dvi
-PDF1 := GC_v11-01_Utility_Modules.pdf
+TEX1 := GC_v11-02_Utility_Modules.tex
+DVI1 := GC_v11-02_Utility_Modules.dvi
+PDF1 := GC_v11-02_Utility_Modules.pdf
 
 # Make commands
 utildoc: 

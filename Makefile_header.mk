@@ -40,17 +40,17 @@
 # one string.  The following example is used to ensure that the met field name
 # selected by the user is case-insensitive:
 # 
-#   # %%%%% GEOS-5 %%%%%
-#   REGEXP    :=((^[Gg][Ee][Oo][Ss])?5|.5)
-#   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-#   USER_DEFS += -DGEOS_5
-#   endif
+#  # %%%%% GEOS-FP %%%%%
+#  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+#  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+#    USER_DEFS        += -DGEOS_FP
+#  endif
 #                                                                             .
 # The [[ ]] in bash is an evaluation.  The above ifeq statement uses regular
 # expressions to test if the MET variable matches the string "GEOS" (case-
-# insensitive) and either "5" or "any character and then a 5".  This will
-# return true (via the "echo true" statement) for combinations like "GEOS-5", 
-# "geos5", "Geos-5", "GeOs.5", etc.  This is a robust way of evaluating
+# insensitive) and either "FP" or "any character and then a FP".  This will
+# return true (via the "echo true" statement) for combinations like "GEOS-FP", 
+# "geosfp", "Geos-FP", "GeOs.FP", etc.  This is a robust way of evaluating
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
@@ -191,6 +191,16 @@
 #                              implemented.
 #  12 Dec 2016 - R. Yantosca - Allow gfortran etc. to compile with TAU_PROF=y
 #  13 Dec 2016 - R. Yantosca - Add GPROF=y to compile for GNU profiler gprof
+#  01 Mar 2017 - R. Yantosca - Bug fix: Make sure NO_REDUCED=no works
+#  01 Mar 2017 - R. Yantosca - Set -DNC_HAS_COMPRESSION if the netCDF library
+#                              can write compressed data to disk
+#  07 Mar 2017 - R. Yantosca - Replace makefile variable COMPILER with
+#                              COMPILER_FAMILY; also works if FC=mpif90
+#  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
+#  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
+#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+#  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
+#                              throughout GEOS-Chem.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -205,16 +215,16 @@
 SHELL                :=/bin/bash
 
 # Error message for bad COMPILER input
-ERR_CMPLR            :="Select a compiler: COMPILER=ifort, COMPILER=pgi, COMPILER=gfortran"
+ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortran, pgfortran|pgi|pgf90, or mpifort|mpif90.  Check the FC environment variable in your .bashrc or .cshrc file."
 
 # Error message for unknown compiler/OS combintation
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
+ERR_MET              :="Select a met field: MET=geosfp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
@@ -264,11 +274,15 @@ ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
   export HPC
 endif
 
-# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%
-ifeq ($(HPC),yes)
+# %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%%%
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(HPC)" =~ $(REGEXP) ]] && echo true),true)
+  IS_HPC             :=1
   OMP                :=no
   NO_REDUCED         :=yes
 # PRECISION          :=4
+else
+  IS_HPC             :=0
 endif
 
 # %%%%% Default to 8-byte precision unless specified otherwise %%%%%
@@ -288,34 +302,56 @@ endif
 
 # %%%%% Set default compiler %%%%%
 
-# %%%%% If COMPILER is not defined, default to the $(FC) variable, which %%%%%
-# %%%%% is set in your .bashrc, or when you load the compiler module     %%%%%
-ifndef COMPILER
-  COMPILER           :=$(FC)
-endif
-
-# %%%%% Test if GNU Fortran Compiler is selected %%%%%
-REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
-  USER_DEFS          += -DLINUX_GFORTRAN
+# %%%%% Test if mpif90/mpifort is selected (for now assume ifort) %%%%%
+REGEXP               :=(^[Mm][Pp][Ii])
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DLINUX_IFORT
+  REG_GNU            :=(^[Gg][Nn][Uu])
+  REG_INTEL          :=(^[Ii][Ff][Oo][Rr][Tt])
+  DISCRIM            :=$(word 1,$(shell $(FC) --version ) )
+  ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_INTEL) ]] && echo true),true)
+     COMPILER_FAMILY    :=Intel
+     USER_DEFS          += -DLINUX_IFORT
+  else ifeq ($(shell [[ "$(DISCRIM)" =~ $(REG_GNU) ]] && echo true),true)
+     COMPILER_FAMILY    :=GNU
+     USER_DEFS          += -DLINUX_GFORTRAN
+  else
+     $(error Could not determine compiler underlying mpifort/mpif90 )
+  endif
 endif
 
 # %%%%% Test if Intel Fortran Compiler is selected %%%%%
 REGEXP               :=(^[Ii][Ff][Oo][Rr][Tt])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+
+  # If we are building GCHP, then set the compile command to "mpifort",
+  # which invokes the MPI magic.  Otherwise set it to $(FC). (bmy, 10/17/16)
+  COMPILER_FAMILY    :=Intel
   USER_DEFS          += -DLINUX_IFORT
+endif
+
+# %%%%% Test if GNU Fortran Compiler is selected %%%%%
+REGEXP               :=(^[Gg][Ff][Oo][Rr][Tt][Rr][Aa][Nn])
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILER_FAMILY    :=GNU
+  USER_DEFS          += -DLINUX_GFORTRAN
 endif
 
 # %%%%% Test if PGI Fortran compiler is selected  %%%%%
 REGEXP               :=(^[Pp][Gg])
-ifeq ($(shell [[ "$(COMPILER)" =~ $(REGEXP) ]] && echo true),true)
-  COMPILE_CMD        :=$(FC)
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+  COMPILER_FAMILY    :=PGI
   USER_DEFS          += -DLINUX_PGI
 endif
 
-# %%%%% ERROR CHECK!  Make sure our COMPILER selection is valid! %%%%%
+# Is this GCHP?
+ifeq ($(IS_HPC),1)
+  COMPILE_CMD        :=mpifort
+else
+  COMPILE_CMD        :=$(FC)
+endif
+
+# %%%%% ERROR CHECK!  Make sure our compiler selection is valid! %%%%%
 REGEXP               :=((-DLINUX_)?IFORT|PGI|GFORTRAN)
 ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
   $(error $(ERR_CMPLR))
@@ -392,74 +428,59 @@ endif
 ifdef DEVEL
   NC_DIAG            :=yes
   BPCH_DIAG          :=no
+  BPCH_TBPC          :=no
 endif
 
-# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
-ifndef BPCH_DIAG
-  ifndef NC_DIAG
-    BPCH_DIAG        :=yes
-  endif
+# %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
+ifdef NEST}
+  BPCH_TPBC          :=yes
 endif
 
-# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_DIAG
-  IS_BPCH_DIAG       :=1
-endif
-
-# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+# %%%%% Determine options for netCDF or BPCH diagnostics %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+
+  # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
-  IS_NC_DIAG         :=1
-endif
 
-# %%%%% Test if bpch diagnostics are activated %%%%%
-REGEXP               :=-DBPCH_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_BPCH_DIAG       :=1
-else
-  IS_BPCH_DIAG       :=0
-endif
-
-# %%%%% Test if netCDF diagnostics are activated %%%%%
-REGEXP               :=-DNC_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_NC_DIAG         :=1
-else
-  IS_NC_DIAG         :=0
-endif
-
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-ifeq ($(IS_BPCH_DIAG),1)
-  ifeq ($(IS_NC_DIAG),1)
-    $(error $(ERR_DIAG))
+  # AND turn off bpch diagnostics UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_DIAG
   endif
-endif 
+
+  # AND turn off bpch code for nested BC's code UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_TPBC
+  endif
+
+else
+
+  # If netCDF diagnostics have not been explicitly specified,
+  # then only turn on bpch diagnostics AND bpch code for nested BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TPBC
+
+endif
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
 # (since it is an environent variable), so define a shadow variable KPP_CHEM.
-# %%%%% NOTE: These will probably be obsolete when FLEXCHEM is added. %%%%%
 #------------------------------------------------------------------------------
 
 # Test if the CHEM value is set
 IS_CHEM_SET          :=0
 
-# %%%%% Test if CHEM=UCX (will also turn on UCX) %%%%%
-REGEXP               :=(^[Uu][Cc][Xx])
+# %%%%%  CHEM=Standard (aka benchmark) %%%%%
+REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=y
-  KPP_CHEM           :=UCX
+  KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
-# %%%%% Test if CHEM=SOA %%%%%
+# %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
 REGEXP               :=(^[Ss][Oo][Aa])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  KPP_CHEM           :=SOA
+  KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
@@ -470,15 +491,15 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br %%%%%
-REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
+# %%%%% Test if CHEM=Tropchem %%%%%
+REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
 endif
 
-# %%%%% Test if CHEM=tropchem (synonym for NOx_Ox_HC_Aer_Br) %%%%%
-REGEXP               :=(^[Tt][Rr][Oo][Pp][Cc][Hh][Ee][Mm])
+# %%%%% Test if CHEM=NOx_Ox_HC_Aer_Br (former name for Tropchem) %%%%%
+REGEXP               :=(^[Nn][Oo][Xx]_[Oo][Xx]_[Hh][Cc]_[Aa][Ee][Rr]_[Bb][Rr])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   KPP_CHEM           :=Tropchem
   IS_CHEM_SET        :=1
@@ -491,7 +512,7 @@ ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
   IS_CHEM_SET        :=1
 endif
 
-# %%%%%  Default setting: CHEM=standard (aka benchmark) %%%%%
+# %%%%%  Default setting %%%%%
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # NOTE: For clarify in the future, the default setting should be to not set
 # KPP_CHEM or IS_CHEM_SET if the CHEM compiler option is not passed. The default
@@ -501,17 +522,6 @@ endif
 ifeq ($(IS_CHEM_SET),0)
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-endif
-
-#------------------------------------------------------------------------------
-# UCX stratospheric-tropospheric chemistry settings
-#------------------------------------------------------------------------------
-
-# %%%%% UCX %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DUCX
-  NO_REDUCED         :=yes
 endif
 
 #------------------------------------------------------------------------------
@@ -545,35 +555,10 @@ endif
 # We can skip the following checks for targets that don't require MET
 ifndef NO_MET_NEEDED 
 
-  # %%%%% GCAP %%%%%
-  REGEXP             :=(^[Gg][Cc][Aa][Pp])
+  # %%%%% MERRA-2 %%%%%
+  REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGCAP
-  endif
-
-  # %%%%% GEOS-4 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?4|.4)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_4
-  endif
-
-  # %%%%% GEOS-5 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?5|.5)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_5
-  endif
-
-  # %%%%% MERRA or MERRA2 %%%%%
-  # We have to employ a double regexp test in order to prevent
-  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
-  REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
-    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      USER_DEFS      += -DMERRA2
-    else
-      USER_DEFS      += -DMERRA
-    endif
+    USER_DEFS      += -DMERRA2
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -584,15 +569,15 @@ ifndef NO_MET_NEEDED
 
   # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
   ifndef NO_REDUCED
+    NO_REDUCED       :=no
+  endif
+  REGEXP              :=(^[Nn]|^[Nn][Oo])
+  ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DGRIDREDUCED
-  else
-    REGEXP           :=(^[Yy]|^[Yy][Ee][Ss])
-    ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
-    endif
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
+  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -634,31 +619,6 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DGRID2x25
   endif
 
-  # %%%%% 1 x 1.25 %%%%%
-  REGEXP             :=(^1.125|^1.1\.25|^1\.0.1\.25)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID1x125
-  endif
-
-  # %%%%% 0.5 x 0.666 %%%%%
-  REGEXP             :=(^05.066.|^0\.5.0\.066.)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=geos5
-    REGEXP           := ((^[Gg][Ee][Oo][Ss])?5|.5)
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0666, you can only use MET=geos5)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0666
-    endif
-  endif
-
   # %%%%% 0.5 x 0.625 %%%%%
   REGEXP             :=(^05.0625|^0\.5.0\.625)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
@@ -670,11 +630,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0625
+      USER_DEFS      += -DBPCH_TPBC -DGRID05x0625 
     endif
   endif
 
@@ -689,11 +651,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID025x03125
+      USER_DEFS      += -DBPCH_TPBC -DGRID025x03125
     endif
   endif
 
@@ -919,7 +883,7 @@ endif
 NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
 NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|netCDF ||g')
 NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|\.||g')
-NC_VERSION_LEN       :=$(shell perl -e "print length $(NC_VERSION)")
+NC_VERSION_LEN       :=$(shell perl -e "print length( $(NC_VERSION) )")
 ifeq ($(NC_VERSION_LEN),3)
  NC_VERSION          :=$(NC_VERSION)0
 endif
@@ -1000,8 +964,9 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
 # For the HEMCO standalone
@@ -1013,13 +978,58 @@ LINK_HCO             :=$(LINK_HCO) -lNcUtils $(NC_LINK_CMD)
 
 ###############################################################################
 ###                                                                         ###
+###  Test if the netCDF library was built with compression enabled          ###
+###                                                                         ###
+###  NOTE: Compressing the netCDF files will make it impossible to compare  ###
+###  them for identical-ness in a unit test or diff test.  Therefore, we    ###
+###  have added some extra checks to skip the compression if so desired.    ###
+###                                                                         ###
+###############################################################################
+
+# Assume we will turn on netCDF compression (if present)
+IS_DEFLATE           :=1
+
+# Unless NC_NODEFLATE=y
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NC_NODEFLATE)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
+endif
+
+# Or DEBUG=y.  This will make sure unit tests and diff tests aren't affected.
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
+  IS_DEFLATE         :=0
+endif
+
+# Skip netCDF compression unless it's requested (or not a debug run)
+ifeq ($(IS_DEFLATE),1)
+
+  # Test if the "nf_def_var_deflate" function is defined in netcdf.inc
+  # Look for netcdf.inc where the netCDF-Fortran library is located
+  ifdef GC_F_INCLUDE
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_F_INCLUDE)/netcdf.inc))
+  else
+    GREP :=$(strip $(shell grep nf_def_var_deflate $(GC_INCLUDE)/netcdf.inc))
+  endif
+
+  # Look for the second word of the combined search results
+  WORD               :=$(word 2,"$(GREP)")
+
+  # If it matches "nf_def_var_deflate", then define Cpp flag NC_HAS_COMPRESSION 
+  ifeq ($(WORD),nf_def_var_deflate)
+    USER_DEFS        += -DNC_HAS_COMPRESSION
+  endif
+endif
+
+###############################################################################
+###                                                                         ###
 ###  HPC Settings: Build & use ESMF & MAPL for Grid-Independent GEOS-Chem   ###
 ###                                                                         ###
 ###############################################################################
 
 # If we are building w/ the HPC target, then include GIGC.mk as well
 # Determine if we are building with the hpc target
-ifeq ($(HPC),yes)
+ifeq ($(IS_HPC),1)
   ifneq ("$(wildcard $(CURDIR)/../GCHP/GIGC.mk)","")
     include $(CURDIR)/../GCHP/GIGC.mk
   else
@@ -1038,17 +1048,20 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),gfortran) 
+ifeq ($(COMPILER_FAMILY),GNU) 
 
   # Get the GNU Fortran version
-  VERSIONTEXT        :=$(shell $(FC) --version)
-  VERSION            :=$(word 4, $(VERSIONTEXT))
-  VERSION            :=$(subst .,,$(VERSION))
-  NEWER_THAN_447     :=$(shell perl -e "print ($(VERSION) gt 447)")
+  GNU_VERSION        :=$(shell $(FC) -dumpversion)
+  GNU_VERSION        :=$(subst .,,$(GNU_VERSION))
+  NEWER_THAN_447     :=$(shell perl -e "print ($(GNU_VERSION) gt 447)")
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
-  FFLAGS             += -fconvert=big-endian
+  ifeq ($(IS_HPC),1)
+    FFLAGS             += -fconvert=native
+  else
+    FFLAGS             += -fconvert=big-endian
+  endif
   FFLAGS             += -fno-range-check
 
   # OPTIONAL: Add the GNU Fortran -march option, which compiles for a
@@ -1080,7 +1093,7 @@ ifeq ($(COMPILER),gfortran)
     FFLAGS           += -g -gdwarf-2 -gstrict-dwarf -O0
     FFLAGS           += -Wall -Wextra -Wconversion
     FFLAGS           += -Warray-temporaries -fcheck-array-temporaries
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
@@ -1202,7 +1215,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),ifort) 
+ifeq ($(COMPILER_FAMILY),Intel) 
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -auto -noalign -convert big_endian
@@ -1216,7 +1229,7 @@ ifeq ($(COMPILER),ifort)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0 -check arg_temp_created -debug all
-    TRACEBACK        := yes
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT) -vec-report0
@@ -1309,7 +1322,7 @@ ifeq ($(COMPILER),ifort)
   INCLUDE_ISO        :=$(INCLUDE)
 
   # Append the ESMF/MAPL/FVDYCORE include commands
-  ifeq ($(HPC),yes)
+  ifeq ($(IS_HPC),1)
     INCLUDE          += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
   endif
 
@@ -1332,7 +1345,7 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-ifeq ($(COMPILER),pgfortran) 
+ifeq ($(COMPILER_FAMILY),PGI) 
 
   # Base set of compiler flags
   FFLAGS             :=-Kieee -byteswapio -Mpreprocess -m64
@@ -1346,6 +1359,7 @@ ifeq ($(COMPILER),pgfortran)
   REGEXP             := (^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(DEBUG)" =~ $(REGEXP) ]] && echo true),true)
     FFLAGS           += -g -O0
+    TRACEBACK        :=yes
     USER_DEFS        += -DDEBUG
   else
     FFLAGS           += $(OPT)
@@ -1423,7 +1437,7 @@ ifeq ($(COMPILER),pgfortran)
   INCLUDE_ISO        :=$(INCLUDE)
 
   # Append the ESMF/MAPL/FVDYCORE include commands
-  ifeq ($(HPC),yes)
+  ifeq ($(IS_HPC),1)
    INCLUDE           += $(MAPL_INC) $(ESMF_MOD) $(ESMF_INC) $(FV_INC)
   endif
 
@@ -1459,8 +1473,8 @@ endif
 ###                                                                         ###
 ###  Export global variables so that the main Makefile will see these       ###
 ###                                                                         ###
-###############################################################################
- 
+##############################6#################################################
+
 export CC
 export F90
 export F90ISO
@@ -1491,17 +1505,17 @@ export TIMERS
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########'
-#	@@echo "COMPILER    : $(COMPILER)"
-#	@@echo "DEBUG       : $(DEBUG)"
-#	@@echo "BOUNDS      : $(BOUNDS)"
-#	@@echo "F90         : $(F90)"
-#	@@echo "CC          : $(CC)"
-#	@@echo "INCLUDE     : $(INCLUDE)"
-#	@@echo "LINK        : $(LINK)"
-#	@@echo "USERDEFS    : $(USER_DEFS)"
-#	@@echo "NC_INC_CMD  : $(NC_INC_CMD)"
-#	@@echo "NC_LINK_CMD : $(NC_LINK_CMD)"
-#	@@echo "NC_DIAG     : $(NC_DIAG)"
-#	@@echo "IS_NC_DIAG  : $(IS_NC_DIAG)"	
-#	@@echo "BPCH_DIAG   : $(BPCH_DIAG)"
-#	@@echo "IS_BPCH_DIAG: $(IS_BPCH_DIAG)"
+#	@@echo "COMPILER_FAMILY : $(COMPILER_FAMILY)"
+#	@@echo "COMPILE_CMD     : $(COMPILE_CMD)"
+#	@@echo "DEBUG           : $(DEBUG)"
+#	@@echo "BOUNDS          : $(BOUNDS)"
+#	@@echo "F90             : $(F90)"
+#	@@echo "CC              : $(CC)"
+#	@@echo "INCLUDE         : $(INCLUDE)"
+#	@@echo "LINK            : $(LINK)"
+#	@@echo "USER_DEFS       : $(USER_DEFS)"
+#	@@echo "NC_INC_CMD      : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD     : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG         : $(NC_DIAG)"
+#	@@echo "BPCH_DIAG       : $(BPCH_DIAG)"
+#	@@echo "NO_REDUCED      : $(NO_REDUCED)"

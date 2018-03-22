@@ -139,9 +139,11 @@ MODULE HCOX_LightNOx_Mod
 !                              factors via HEMCO configuration file. 
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  02 Dec 2016 - M. Sulprizio- Update WEST_NS_DIV from 23d0 to 35d0 (K. Travis)
-!  16 Feb 2017 - L. Murray   - Updated BETA factors for all GEOS-FP/MERRA-2 products 
-!                              fields available by v11-01 release (through Dec. 2016),
-!                              and latest version of LIS/OTD satellite climatology.
+!  16 Feb 2017 - L. Murray   - Updated BETA factors for all GEOS-FP/MERRA-2
+!                              products fields available by v11-01 release
+!                              (through Dec. 2016), and latest version of
+!                              LIS/OTD satellite climatology.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -665,11 +667,6 @@ CONTAINS
        ! these places. 
        ! This may become increasingly relevant as GEOS-FP operates 
        ! at even higher resolutions. 
-       ! GEOS-5 also diagnoses buoyancy and the convective fraction. 
-       ! Unlike convective mass flux, these parameter are defined 
-       ! in all grid boxes, e.g. also in those where vertical 
-       ! transport is explicitly resolved and convective 
-       ! parameterization is turned off.
        ! If available, also determine cloud top height from 
        ! buoyancy and the convective fraction. Define it as the
        ! highest level with non-negative buoyancy and for columns 
@@ -720,15 +717,6 @@ CONTAINS
        IF ( Inst%DoDiagn ) THEN 
           TOPDIAGN(I,J) = LTOP
        ENDIF
-
-       !--------------------------
-       ! GEOS-4 only
-       !--------------------------
-#if    defined( GEOS_4 )
-       ! Shallow-cloud inhibition trap (see Murray et al. [2011])
-       IF ( ExtState%TK%Arr%Val(I,J,LTOP) >= T_NEG_TOP ) CYCLE
-
-#endif
 
        ! H0 is the convective cloud top height [m].  This is the
        ! distance from the surface to the top edge of box (I,J,LTOP).
@@ -1312,7 +1300,7 @@ CONTAINS
 
     !=================================================================
     ! Use the CDF for this type of lightnox to partition the total
-    ! column lightnox into the GEOS-3, GEOS-4, or GEOS-5 layers
+    ! column lightnox into the layers
     !=================================================================
     ZHEIGHT = 0.0
 
@@ -1666,7 +1654,6 @@ CONTAINS
     ! 
     ! Beta corresponds to beta in Murray et al. [2011]
     !
-    ! Note: GEOS-5 requires separate factors for GEOS 5.2.0 and 5.1.0.
     ! (ltm, 1/25/11)
 
     ! Initialize

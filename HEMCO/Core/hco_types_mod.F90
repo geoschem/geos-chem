@@ -129,6 +129,8 @@ MODULE HCO_TYPES_MOD
      LOGICAL  :: VertWeight     ! if spreading 2D fields across multiple vert.
                                 ! levels, weight vertical dilution factors based
                                 ! upon level depths?
+     LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
+                                ! in HEMCO configuration file? Defaults to yes.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -510,7 +512,8 @@ MODULE HCO_TYPES_MOD
   END TYPE DiagnBundle
 !                                                                             
 ! !REVISION HISTORY:
-!  15 Feb 2016 - C. Keller   - Initial version (collected from various modules)
+!  15 Feb 2016 - C. Keller - Initial version (collected from various modules)
+!  12 May 2017 - C. Keller - Added option ScaleEmis 
 !EOP
 !------------------------------------------------------------------------------
 !BOC

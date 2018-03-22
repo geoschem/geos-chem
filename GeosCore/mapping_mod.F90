@@ -114,6 +114,8 @@ CONTAINS
 !  18 Apr 2012 - R. Yantosca - Improve error check for sub-fields of mapping
 !                              object so as not to interfere w/ parallel loop
 !  23 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -136,11 +138,7 @@ CONTAINS
 
     ! Define a number of extra boxes to add to FINE_PER_COARSE
     ! in order to prevent out-of-bounds errors
-    IF ( Input_Opt%USE_OLSON_2001 ) THEN
-       ADD = 10
-    ELSE
-       ADD = 5
-    ENDIF
+    ADD = 10
 
     ! Number of "fine" grid boxes that fit into the "coarse" grid box
     ! (roughly, use the +ADD to make sure it is big enough)
@@ -163,7 +161,7 @@ CONTAINS
           ALLOCATE( mapping(I,J)%ii      ( FINE_PER_COARSE ), STAT=as1 )
           ALLOCATE( mapping(I,J)%jj      ( FINE_PER_COARSE ), STAT=as2 )
           ALLOCATE( mapping(I,J)%olson   ( FINE_PER_COARSE ), STAT=as3 )
-          ALLOCATE( mapping(I,J)%ordOlson( 0:NVEGTYPE-1    ), STAT=as4 )
+          ALLOCATE( mapping(I,J)%ordOlson( 0:NSURFTYPE-1   ), STAT=as4 )
           ALLOCATE( mapping(I,J)%area    ( FINE_PER_COARSE ), STAT=as5 )
 
           ! Check for allocation error in such a way

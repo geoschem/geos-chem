@@ -87,6 +87,13 @@
       !   (ewl, 1/4/16)
       REAL(fp), PARAMETER :: CONSVAP  = 6.1078e+03_fp /
      &                                  ( BOLTZ * 1e+7_fp )
+
+      ! Gas constant in: [L.atm/K.mole]
+      REAL(fp), PARAMETER :: RGASLATM = 8.2057e-2_fp
+
+      ! Molecular weight of carbon (kg/mol)
+      REAL(fp), PARAMETER :: MWCARB    = 12.01e-3_fp
+
 !
 ! !REFERENCES:
 ! (1) NIST, 2014. Website: http://physics.nist.gov/cuu/Constants/index.html

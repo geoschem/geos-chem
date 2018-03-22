@@ -358,7 +358,7 @@ CONTAINS
           ! Do the regridding
           CALL MAP_A2A( NX,      NY, LonEdgeI,    LatEdgeI, ORIG_2D,  &
                         HcoState%NX, HcoState%NY, LonEdgeO, LatEdgeO, &
-                        REGR_2D, 0, 0 )
+                        REGR_2D, 0, 0, HCO_MISSVAL )
           ORIG_2D => NULL()
           REGR_2D => NULL()
  
@@ -479,6 +479,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Sep 2015 - C. Keller   - Initial version
+!  22 May 2017 - R. Yantosca - Bug fix: Add MERRA2 to the #elif statement
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -508,43 +510,20 @@ CONTAINS
     ENDIF 
 
     ! Other supported levels that depend on compiler flags
-#if defined( GEOS_4 )
-       ! Full grid
-       IF ( nz == 55 ) THEN
-          IF ( nlev == 72 .OR. & 
-               nlev == 73 .OR. &
-               nlev <= 48       ) THEN
-             IsModelLev = .TRUE.
-          ENDIF
-
-       ! Reduced grid
-       ELSEIF ( nz == 30 ) THEN
-          IF ( nlev == 72 .OR. & 
-               nlev == 73 .OR. &
-               nlev == 55 .OR. &
-               nlev == 56 .OR. &
-               nlev <= 48       ) THEN
-             IsModelLev = .TRUE.
-          ENDIF
+    ! Full grid
+    IF ( nz == 72 ) THEN
+       IF ( nlev <= 73 ) THEN
+          IsModelLev = .TRUE.
        ENDIF
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP )
-       ! Full grid
-       IF ( nz == 72 ) THEN
-          IF ( nlev <= 73 ) THEN
-             IsModelLev = .TRUE.
-          ENDIF
-
-       ! Reduced grid
-       ELSEIF ( nz == 47 ) THEN
-          IF ( nlev == 72 .OR. & 
-               nlev == 73 .OR. &
-               nlev <= 47       ) THEN 
-             IsModelLev = .TRUE.
-          ENDIF
+    ! Reduced grid
+    ELSEIF ( nz == 47 ) THEN
+       IF ( nlev == 72 .OR. & 
+            nlev == 73 .OR. &
+            nlev <= 47       ) THEN 
+          IsModelLev = .TRUE.
        ENDIF
-#endif
-   
+    ENDIF   
 
   END SUBROUTINE ModelLev_Check 
 !EOC
@@ -713,371 +692,8 @@ CONTAINS
     !===================================================================
     IF ( .NOT. DONE ) THEN
 
-    !===================================================================
-    ! GEOS-4 mapping
-    !===================================================================
-#if defined( GEOS_4 )
-
        !----------------------------------------------------------------
-       ! Native GEOS-4
-       !----------------------------------------------------------------
-       IF ( nz == 55 ) THEN
-
-          ! Determine number of output levels:
-
-          ! Input data has 30 levels --> assume to be reduced GEOS-4 levels.
-          IF ( nlev == 30 ) THEN
-             nout = nz
-             NL   = 20
-
-          ! Input data has 31 levels --> assume to be reduced GEOS-4 levels
-          ! on edges
-          ELSEIF ( nlev == 31 ) THEN
-             nz   = nz + 1
-             nout = nz
-             NL   = 21
-
-          ! Input data has 55 levels --> assume to be native GEOS-4 levels.
-          ELSEIF ( nlev == 55 ) THEN 
-             nout = nz
-             NL   = nout
-
-          ! Input data has 56 levels --> assume to be native GEOS-4 levels
-          ! on edges
-          ELSEIF ( nlev == 56 ) THEN 
-             nz   = nz + 1
-             nout = nz
-             NL   = nout
-
-          ! Input data has 72 levels --> assume to be native GEOS-5 levels
-          ELSEIF ( nlev == 72 ) THEN
-             nout = nz
-             NL   = 0
-             G5T4 = 28
-
-          ! Input data has 73 levels --> assume to be native GEOS-5 levels
-          ! on edges
-          ELSEIF ( nlev == 73 ) THEN
-             nz   = nz + 1
-             nout = nz
-             NL   = 0
-             G5T4 = 29
-
-          ! 48 levels or less: assume to be reduced GEOS-5 levels (mid-points)
-          ELSEIF ( nlev <= 48 ) THEN
-             ! 48 levels: reduced GEOS-5 levels (edges)
-             IF ( nlev == 48 ) THEN
-                nz = nz + 1
-                G5T4 = 29
-             ! 47 levels and less: reduced GEOS-5 levels (mid-points)
-             ELSE
-                G5T4 = 28
-             ENDIF
-             nout = nz
-             NL   = 0
-
-          ! Don't know what to do otherwise:
-          ELSE
-             WRITE(MSG,*) 'Cannot remap onto native GEOS-4 grid: ', &
-                TRIM(Lct%Dct%cName), ' - No. of input data levels: ', nlev
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
-             RETURN
-          ENDIF
-
-          ! Make sure output array is allocated
-          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
-
-          ! Do for every time slice
-          DO T = 1, nt
-
-             ! Levels that are passed level-by-level.
-             IF ( NL > 0 ) THEN
-                DO L = 1, NL
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L,T)
-                ENDDO !L
-
-             ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
-             ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
-             ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( HcoState, Lct, REGR_4D, G5T4, T, RC )
-                IF ( RC /= HCO_SUCCESS ) RETURN
-             ENDIF
-
-             ! Inflate from reduced GEOS-4 onto native GEOS-4
-             IF ( ( NL == 20 .AND. nlev == 30 ) .OR. & 
-                  ( NL == 21 .AND. nlev == 31 )       ) THEN
-
-                ! two levels:
-                CALL INFLATE( Lct, REGR_4D, NL   , NL   , 2, T )
-                CALL INFLATE( Lct, REGR_4D, NL+1 , NL+2 , 2, T )
-                CALL INFLATE( Lct, REGR_4D, NL+2 , NL+4 , 2, T )
-                CALL INFLATE( Lct, REGR_4D, NL+3 , NL+6 , 2, T )
-                ! four levels:
-                CALL INFLATE( Lct, REGR_4D, NL+4 , NL+8 , 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+5 , NL+12, 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+6 , NL+16, 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+7 , NL+20, 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+8 , NL+24, 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+9 , NL+28, 4, T )
-                CALL INFLATE( Lct, REGR_4D, NL+10, NL+31, 4, T )
-
-             ! Native GEOS-5 onto native GEOS-4
-             ! Above level 11, the native GEOS-4 levels are the same as GEOS-5
-             ELSEIF ( NL == 0 .AND. nlev == 72 ) THEN
-                DO L = 12, 55
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-             ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
-                DO L = 13, 56
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-             ! Reduced GEOS-5 onto native GEOS-4
-             ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
-             ! but start at appropriate levels
-             ELSEIF ( NL == 0 .AND. nlev == 47 ) THEN
-
-                ! Levels 12-19 in GEOS-4 correspond to levels 29-36 in GEOS-5.
-                DO L = 12, 19
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-                ! Distribute over 2 levels (e.g. level 38 into 22-23):
-                CALL INFLATE( Lct, REGR_4D, 37, 20, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 38, 22, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 39, 24, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 40, 26, 2, T )
-                ! Distribute over 4 levels:
-                CALL INFLATE( Lct, REGR_4D, 41, 28, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 42, 32, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 43, 36, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 44, 40, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 45, 44, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 46, 48, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 47, 52, 4, T )
-
-             ! Reduced GEOS-5 onto native GEOS-4 (edges)
-             ! Use the same mappings as for reduced GEOS-5 to native GEOS-5,
-             ! but start at appropriate levels
-             ELSEIF ( NL == 0 .AND. nlev == 48 ) THEN
-
-                ! Levels 13-20 in GEOS-4 correspond to levels 30-37 in GEOS-5.
-                DO L = 13, 20
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-                ! Distribute over 2 levels (e.g. level 39 into 23-24):
-                CALL INFLATE( Lct, REGR_4D, 38, 21, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 39, 23, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 40, 25, 2, T )
-                CALL INFLATE( Lct, REGR_4D, 41, 27, 2, T )
-                ! Distribute over 4 levels:
-                CALL INFLATE( Lct, REGR_4D, 42, 29, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 43, 33, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 44, 37, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 45, 41, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 46, 45, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 47, 49, 4, T )
-                CALL INFLATE( Lct, REGR_4D, 48, 53, 4, T )
-             ENDIF
-
-          ENDDO !T
-
-          ! Verbose
-          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
-             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto native GEOS-4 levels.'
-             CALL HCO_MSG(HcoState%Config%Err,MSG)
-          ENDIF
-
-          ! Done!
-          DONE = .TRUE.
-
-       !----------------------------------------------------------------
-       ! Reduced GEOS-4
-       !----------------------------------------------------------------
-       ELSEIF ( nz == 30 ) THEN
-
-          ! Determine number of output levels:
-
-          ! Input data has 30 levels --> assume to be reduced GEOS-4 levels.
-          IF ( nlev == 30 ) THEN
-             nout = nlev
-             NL   = nout
-
-          ! Input data has 31 levels --> assume to be native GEOS-4 edges.
-          ELSEIF ( nlev == 31 ) THEN
-             nout = nlev
-             NL   = nout
-
-          ! Input data has 55 levels --> assume to be native GEOS-4 levels.
-          ELSEIF ( nlev == 55 ) THEN
-             nout = nz
-             NL   = 20
-
-          ! Input data has 56 levels --> assume to be native GEOS-4 levels.
-          ELSEIF ( nlev == 56 ) THEN
-             nz   = nz + 1
-             nout = nz
-             NL   = 21
-
-          ! Input data has 72 levels --> assume to be native GEOS-5 levels
-          ELSEIF ( nlev == 72 ) THEN
-             nout = nz
-             NL   = 0
-             G5T4 = 28
-
-          ! Input data has 73 levels --> assume to be native GEOS-5 edges 
-          ELSEIF ( nlev == 73 ) THEN
-             nz   = nz + 1
-             nout = nz
-             NL   = 0
-             G5T4 = 29
-
-          ! 47 levels or less: assume to be reduced GEOS-5 levels
-          ELSEIF ( nlev <= 48 ) THEN
-             ! 48 levels: reduced GEOS-5 levels (edges)
-             IF ( nlev == 48 ) THEN
-                nz = nz + 1
-                G5T4 = 29
-             ! 47 levels and less: reduced GEOS-5 levels (mid-points)
-             ELSE
-                G5T4 = 28
-             ENDIF
-             nout = nz
-             NL   = 0
-
-          ! Don't know what to do otherwise:
-          ELSE
-             WRITE(MSG,*) 'Cannot remap onto reduced GEOS-4 grid: ', &
-                TRIM(Lct%Dct%cName), ' - No. of input data levels: ', nlev
-             CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
-             RETURN
-          ENDIF
-
-          ! Make sure output array is allocated
-          CALL FileData_ArrCheck( HcoState%Config, Lct%Dct%Dta, nx, ny, nout, nt, RC )
-
-          ! Do for every time slice
-          DO T = 1, nt
-
-             ! Levels that are passed level-by-level.
-             IF ( NL > 0 ) THEN
-                DO L = 1, NL
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L,T)
-                ENDDO !L
-
-             ! For GEOS-5 to GEOS-4 conversion, need to remap lowest
-             ! 29 GEOS-5 levels onto lowest 12 GEOS-4 levels.
-             ELSE
-                CALL GEOS5_TO_GEOS4_LOWLEV( HcoState, Lct, REGR_4D, G5T4, T, RC )
-                IF ( RC /= HCO_SUCCESS ) RETURN
-             ENDIF
-
-             ! Collapse from native GEOS-4 onto reduced GEOS-4
-             IF ( ( NL == 20 .AND. nlev == 55 ) .OR. & 
-                  ( NL == 21 .AND. nlev == 56 )       ) THEN
-                ! two levels:
-                CALL COLLAPSE( Lct, REGR_4D, NL,    NL   , 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 1, NL+2 , 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 2, NL+4 , 2, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 3, NL+6 , 2, T, 4 )
-                ! four levels:
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 4, NL+8 , 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 5, NL+12, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 6, NL+16, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 7, NL+20, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 8, NL+24, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+ 9, NL+28, 4, T, 4 )
-                CALL COLLAPSE( Lct, REGR_4D, NL+10, NL+32, 4, T, 4 )
-
-             ! Reduced GEOS-5 onto reduced GEOS-4.
-             ! Above level 11, the reduced GEOS-4 are the same as the reduced
-             ! GEOS-5.
-             ELSEIF ( NL == 0 .AND. nlev == 47 ) THEN
-                DO L = 12, 30
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-             ! Reduced GEOS-5 onto reduced GEOS-4.
-             ! Above level 11, the reduced GEOS-4 are the same as the reduced
-             ! GEOS-5.
-             ELSEIF ( NL == 0 .AND. nlev == 48 ) THEN
-                DO L = 13, 31
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-             ! Native GEOS-5 onto reduced GEOS-4
-             ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
-             ! but starting at level 13 instead of 30.
-             ELSEIF ( NL == 0 .AND. nlev == 72 ) THEN
-
-                ! Map levels 12 to 19 level by level
-                DO L = 12, 19
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-                ! Collapse two levels (e.g. levels 39-40 into level 38):
-                CALL COLLAPSE( Lct, REGR_4D, 20, 37, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 21, 39, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 22, 41, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 23, 43, 2, T, 5 )
-                ! Collapse four levels:
-                CALL COLLAPSE( Lct, REGR_4D, 24, 45, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 25, 49, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 26, 53, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 27, 57, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 28, 61, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 29, 65, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 30, 69, 4, T, 5 )
-             !ENDIF
-
-             ! Native GEOS-5 onto reduced GEOS-4
-             ! Can use same mapping as for native GEOS-5 onto reduced GEOS-5,
-             ! but starting at level 13 instead of 30.
-             ELSEIF ( NL == 0 .AND. nlev == 73 ) THEN
-
-                ! Map levels 13 to 20 level by level
-                DO L = 13, 20
-                   Lct%Dct%Dta%V3(T)%Val(:,:,L) = REGR_4D(:,:,L+17,T)
-                ENDDO
-
-                ! Collapse two levels (e.g. levels 38-39 into level 21):
-                CALL COLLAPSE( Lct, REGR_4D, 21, 38, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 22, 40, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 23, 42, 2, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 24, 44, 2, T, 5 )
-                ! Collapse four levels:
-                CALL COLLAPSE( Lct, REGR_4D, 25, 46, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 26, 50, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 27, 54, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 28, 58, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 29, 62, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 30, 66, 4, T, 5 )
-                CALL COLLAPSE( Lct, REGR_4D, 31, 70, 4, T, 5 )
-             ENDIF
-
-          ENDDO ! T
-
-          ! Verbose
-          IF ( HCO_IsVerb(HcoState%Config%Err, 3) ) THEN
-             WRITE(MSG,*) 'Mapped ', nlev, ' levels onto reduced GEOS-4 levels.'
-             CALL HCO_MSG(HcoState%Config%Err,MSG)
-          ENDIF
-
-          ! Done!
-          DONE = .TRUE.
-
-       ENDIF
-
-    !===================================================================
-    ! GEOS-5 / GEOS-FP / MERRA / MERRA2 mapping
-    ! These all use the same vertical grid, 72 native vertical layers
-    !===================================================================
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-       !----------------------------------------------------------------
-       ! Native GEOS-5
+       ! Native levels
        !----------------------------------------------------------------
        IF ( nz == 72 ) THEN
 
@@ -1141,7 +757,7 @@ CONTAINS
           DONE = .TRUE.
 
        !----------------------------------------------------------------
-       ! Reduced GEOS-5
+       ! Reduced levels
        !----------------------------------------------------------------
        ELSEIF ( nz == 47 ) THEN
 
@@ -1213,7 +829,7 @@ CONTAINS
           ! Done!
           DONE = .TRUE.
        ENDIF
-#endif
+
     ENDIF ! Vertical regridding required
 
     !===================================================================

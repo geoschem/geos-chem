@@ -23,7 +23,7 @@
 ! !DEFINED PARAMETERS:
 !
       ! Maximum number of output:
-      INTEGER, PUBLIC, PARAMETER   :: PD42 = 20
+      INTEGER, PUBLIC, PARAMETER   :: PD42 = 25
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -72,33 +72,45 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE DIAG42( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
 !
 ! !USES:
 !
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG )
+      USE State_Chm_Mod,      ONLY : Ind_
       USE AEROSOL_MOD,        ONLY : BCPI, BCPO, OCPI, OCPO, OCPISOA
       USE AEROSOL_MOD,        ONLY : SALA, SALC, SOILDUST
       USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
       USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
-      USE AEROSOL_MOD,        ONLY : PM25, SOAG, SOAM
+      USE AEROSOL_MOD,        ONLY : PM25
+      USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
       USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants,      ONLY : ATM
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
+      USE CMN_O3_MOD,         ONLY : SAVEOA
+      USE ERROR_MOD
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+      USE PhysConstants,      ONLY : ATM, MWCARB
+#endif
 !
 ! !INPUT PARAMETERS:
 !
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -121,40 +133,97 @@
 !  18 Nov 2016 - M. Sulprizio- Move code for calculating concentrations to
 !                              AEROSOL_CONC (in aerosol_mod.F) so it is in a
 !                              single location
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
+
       INTEGER             :: I, J, L
       REAL(fp)            :: FACTOR
+      CHARACTER(LEN=63)   :: OrigUnit
+      CHARACTER(LEN=255)  :: MSG
      
       ! Species ID flags
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      INTEGER, SAVE       :: id_POA1, id_POA2
-      LOGICAL             :: IS_POA
+      INTEGER, SAVE       :: id_POA1,   id_POA2
+      INTEGER, SAVE       :: id_SOAIE,  id_SOAME, id_INDIOL
+      INTEGER, SAVE       :: id_SOAGX,  id_SOAMG
+      INTEGER, SAVE       :: id_LVOCOA, id_ISN1OA
+      LOGICAL, SAVE       :: IS_BETANOSAVE
+      LOGICAL, SAVE       :: IS_POA
+      LOGICAL, SAVE       :: IS_ISOPOA
+
+      ! Define number of carbon atoms in each irreversible isoprene
+      ! SOA tracer species. Named according to the parent HC (same 
+      ! number of carbons):
+      REAL(fp), PARAMETER :: NCIMAE   = 4e+0_fp
+      REAL(fp), PARAMETER :: NCIEPOX  = 5e+0_fp
+      REAL(fp), PARAMETER :: NCINDIOL = NCIEPOX
+      REAL(fp), PARAMETER :: NCGLYX   = 2e+0_fp
+      REAL(fp), PARAMETER :: NCGLYC   = NCGLYX
+      REAL(fp), PARAMETER :: NCMGLY   = 3e+0_fp
+      REAL(fp), PARAMETER :: NCLVOC   = NCIEPOX
+      REAL(fp), PARAMETER :: NCISN1   = NCIEPOX
+
+      ! Pointers      
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
+      REAL(fp), POINTER   :: AIRVOL(:,:,:)
+#endif
 
       !================================================================= 
       ! DIAG42 begins here! 
       !================================================================= 
 
+      ! Initialize
+      RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG )
+
       ! First-time setup
       IF ( FIRST ) THEN
 
          ! Define species ID flags
-         id_POA1  = Ind_('POA1' )
-         id_POA2  = Ind_('POA2' )
+         id_POA1       = Ind_( 'POA1'   )
+         id_POA2       = Ind_( 'POA2'   )
+         id_SOAIE      = Ind_( 'SOAIE'  )
+         id_SOAME      = Ind_( 'SOAME'  )
+         id_INDIOL     = Ind_( 'INDIOL' )
+         id_SOAGX      = Ind_( 'SOAGX'  )
+         id_SOAMG      = Ind_( 'SOAMG'  )
+         id_LVOCOA     = Ind_( 'LVOCOA' )
+         id_ISN1OA     = Ind_( 'ISN1OA' )
+         IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
+
+         ! Define logical flags
+         IS_POA    = ( id_POA1   > 0 .and. id_POA2   > 0 )
+         IS_ISOPOA = ( id_SOAIE  > 0 .and. id_SOAME  > 0 .and. 
+     &                 id_INDIOL > 0 .and. id_SOAGX  > 0 .and. 
+     &                 id_SOAMG  > 0 .and. id_LVOCOA > 0 .and. 
+     &                 id_ISN1OA > 0 )
 
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
 
-      ! Define logical flags
-      IS_POA = ( id_POA1  > 0 .AND. id_POA2  > 0 )
-
       ! Conversion factor from kg/m3 --> ug/m3
       FACTOR = 1e+9_fp
+
+      ! Convert species units to [kg] for this routine (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'Start of diag42 in diag42_mod.F')
+         RETURN
+      ENDIF 
+
+      ! Initialize pointers
+      Spc    => State_Chm%Species
+      AIRVOL => State_Met%AIRVOL
 
       ! Loop over grid boxes     
 !$OMP PARALLEL DO 
@@ -174,7 +243,9 @@
          ! ISOA [ug/m3]
          ! (isoprene SOA)
          !--------------------------------------------------------------
-         AD42(I,J,L,2) = AD42(I,J,L,2) + ISOA(I,J,L) * FACTOR
+         ! Semivolatile isoprene OA + mechanistic isoprene OA
+         AD42(I,J,L,2) = AD42(I,J,L,2) +
+     &                   ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
 
          !--------------------------------------------------------------
          ! ASOA [ug/m3]
@@ -202,8 +273,8 @@
          !-----------------------------------------------------------
          AD42(I,J,L,6) = AD42(I,J,L,6) +
      &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                   * FACTOR
+     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
+     &                     ISOAAQ(I,J,L) ) * FACTOR
 
          !-----------------------------------------------------------
          ! Sum of all organic carbon [ugC/m3]
@@ -211,44 +282,70 @@
          IF ( IS_POA ) THEN
             AD42(I,J,L,7) = AD42(I,J,L,7) +
      &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA +
-     &                        OCPO(I,J,L) / OCFPOA ) * FACTOR
+     &                        OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
+     &                        OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,7) = AD42(I,J,L,7)  +
      &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
      &                        OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                      / OCFOPOA ) * FACTOR
+     &                      / OCFOPOA(I,J) ) * FACTOR
+         ENDIF
+
+         ! Add mechanistic isoprene OA
+         IF ( IS_ISOPOA ) THEN
+
+            ! Convert from kg to ugC/m3
+            AD42(I,J,L,7) = AD42(I,J,L,7) + (
+     &                Spc(I,J,L,id_SOAIE) * ( NCIEPOX * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAIE)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAME) * ( NCIMAE  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAME)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_INDIOL)* ( NCINDIOL* MWCARB / 
+     &              ( State_Chm%SpcData(id_INDIOL)%Info%MW_g* 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAGX) * ( NCGLYX  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAGX)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_SOAMG) * ( NCMGLY  * MWCARB /
+     &              ( State_Chm%SpcData(id_SOAMG)%Info%MW_g * 1e-3_fp ))
+     &              + Spc(I,J,L,id_LVOCOA)* ( NCLVOC  * MWCARB /
+     &              ( State_Chm%SpcData(id_LVOCOA)%Info%MW_g* 1e-3_fp ))
+     &              + Spc(I,J,L,id_ISN1OA)* ( NCISN1  * MWCARB /
+     &              ( State_Chm%SpcData(id_ISN1OA)%Info%MW_g* 1e-3_fp ))
+     &              ) / AIRVOL(I,J,L) * FACTOR
+
          ENDIF
 
          !--------------------------------------------------------------
          ! Sum of biogenic aerosol [ug/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,8) = AD42(I,J,L,8) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) ) * FACTOR
+     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ISOAAQ(I,J,L) ) *
+     &                   FACTOR
           
          !--------------------------------------------------------------
          ! NO branching ratio [dimless]
          !--------------------------------------------------------------
-         ! will have zero or junk values if not in troposphere
-         AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         IF ( IS_BETANOSAVE ) THEN
+            ! will have zero or junk values if not in troposphere
+            AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+         ENDIF
 
          !--------------------------------------------------------------
          ! POA [ugC/m3]
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10) +
-     &                       ( OCPO(I,J,L) / OCFPOA ) * FACTOR
+     &                       ( OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,10) = AD42(I,J,L,10) + 
-     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / OCFOPOA )
-     &                       * FACTOR
+     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
+     &                       OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          !--------------------------------------------------------------
          ! OPOA [ugC/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,11) = AD42(I,J,L,11) +
-     &                    OPOA(I,J,L) / OCFOPOA * FACTOR
+     &                    OPOA(I,J,L) / OCFOPOA(I,J) * FACTOR
 
          !--------------------------------------------------------------
          ! Additional aerosol tracers
@@ -256,8 +353,8 @@
 
          ! OC [ugC/m3]
          AD42(I,J,L,12) = AD42(I,J,L,12) + 
-     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / OCFOPOA )
-     &                    * FACTOR
+     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
+     &                    OCFOPOA(I,J) ) * FACTOR
 
          ! BC [ugC/m3]
          AD42(I,J,L,13) = AD42(I,J,L,13) + 
@@ -282,21 +379,63 @@
          AD42(I,J,L,18) = AD42(I,J,L,18) + PM25(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
-         ! Additional diagnostics for SOAG, SOAM (tmf, 12/8/07) 
+         ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07) 
          !
-         ! Assume SOAG mass = GLYX mass, SOAM mass = MGLY mass
+         ! Assume SOAGX mass = GLYX mass, SOAMG mass = MGLY mass
          !--------------------------------------------------------------
 
-         ! SOAG [ug/m3]
-         AD42(I,J,L,19) = AD42(I,J,L,19) + SOAG(I,J,L) * FACTOR
+         ! SOAGX [ug/m3]
+         AD42(I,J,L,19) = AD42(I,J,L,19) + SOAGX(I,J,L) * FACTOR
 
-         ! SOAM [ug/m3]
-         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAM(I,J,L) * FACTOR
+         ! SOAMG [ug/m3]
+         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
+
+         !--------------------------------------------------------------
+         ! Isoprene SOA obtained from irreversible uptake of isoprene
+         ! SOA precursors IEPOX and IMAE (eam,  2014)
+         !--------------------------------------------------------------
+         IF ( IS_ISOPOA ) THEN
+
+            ! IEPOX-OA [ug/m3]:
+            AD42(I,J,L,21) = AD42(I,J,L,21) + Spc(I,J,L,id_SOAIE )
+     &                       * FACTOR / AIRVOL(I,J,L) 
+
+            ! IMAE-OA [ug/m3]:
+            AD42(I,J,L,22) = AD42(I,J,L,22) + Spc(I,J,L,id_SOAME )
+     &                       * FACTOR / AIRVOL(I,J,L) 
+
+            ! INDIOL [ug/m3]:
+            AD42(I,J,L,23) = AD42(I,J,L,23) + Spc(I,J,L,id_INDIOL)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+            ! LVOCOA [ug/m3]:
+            AD42(I,J,L,24) = AD42(I,J,L,24) + Spc(I,J,L,id_LVOCOA)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+            ! ISN1OA [ug/m3]:
+            AD42(I,J,L,25) = AD42(I,J,L,25) + Spc(I,J,L,id_ISN1OA)
+     &                       * FACTOR / AIRVOL(I,J,L)
+
+         ENDIF
 
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Convert back to original unit (ewl, 8/12/15)
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         MSG = 'Unit conversion error!'
+         CALL GC_Error( MSG, RC, 'End of diag42 in diag42_mod.F')
+         RETURN
+      ENDIF 
+
+      ! Free pointers
+      Spc    => NULL()
+      AIRVOL => NULL()
+#endif
 
       END SUBROUTINE DIAG42
 !EOC
@@ -323,12 +462,14 @@
       !=================================================================
       ! ZERO_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
 
       ! Zero arrays
       AD42(:,:,:,:) = 0e0
+#endif
 
       END SUBROUTINE ZERO_DIAG42
 !EOC
@@ -349,18 +490,21 @@
 !
 ! !USES:
 !
+      USE Input_Opt_Mod,      ONLY : OptInput
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE CMN_DIAG_MOD             ! TINDEX
-      USE CMN_SIZE_MOD             ! Size parameters
       USE FILE_MOD,           ONLY : IU_BPCH
+      USE CMN_SIZE_MOD             ! Size parameters
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET
       USE GC_GRID_MOD,        ONLY : GET_YOFFSET
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : GET_CT_DIAG
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
+#endif
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -381,6 +525,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG )
       INTEGER           :: CENTER180, HALFPOLAR
       INTEGER           :: L,         M,         N
       INTEGER           :: IFIRST,    JFIRST,    LFIRST        
@@ -398,7 +543,7 @@
       ! WRITE_DIAG42 begins here!
       !=================================================================
 
-      ! Exit if ND03 is turned off
+      ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
 
       ! Initialize
@@ -419,7 +564,7 @@
       ! Write data to the bpch file
       !=================================================================
 
-      ! Loop over ND03 diagnostic tracers
+      ! Loop over ND42 diagnostic tracers
       DO M = 1, TMAX(42)
 
          ! Define quantities
@@ -449,6 +594,7 @@
      &               IIPAR,     JJPAR,     LD42,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD42) )
       ENDDO
+#endif
 
       END SUBROUTINE WRITE_DIAG42
 !EOC
@@ -468,11 +614,13 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD   
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
+#if defined( BPCH_DIAG )
 
+      USE CMN_SIZE_MOD   
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -496,12 +644,14 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
-
-      ! Turn off ND42 if SOA tracers are not used
-      IF ( .not. Input_Opt%LSOA ) THEN
-         ND42 = 0
-         RETURN
-      ENDIF
+#if defined( BPCH_DIAG )
+     
+      ! This is no longer necessary (bmy, 12/13/17)
+      !! Turn off ND42 if SOA tracers are not used
+      !IF ( .not. Input_Opt%LSOA ) THEN
+      !   ND42 = 0
+      !   RETURN
+      !ENDIF
 
       ! Exit if ND42 is turned off
       IF ( ND42 == 0 ) RETURN
@@ -509,12 +659,14 @@
       ! Number of levels to save for this diagnostic
       LD42 = MIN( ND42, LLPAR )
 
-      ! 2-D array ("LFLASH-$")
+      ! 4-D array ("IJ-SOA-$")
       ALLOCATE( AD42( IIPAR, JJPAR, LD42, PD42 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD42' )
+      AD42 = 0.0_fp
 
       ! Zero arrays
       CALL ZERO_DIAG42
+#endif
 
       END SUBROUTINE INIT_DIAG42
 !EOC
@@ -541,7 +693,9 @@
       !=================================================================
       ! CLEANUP_DIAG42 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( AD42 ) ) DEALLOCATE( AD42 ) 
+#endif
 
       END SUBROUTINE CLEANUP_DIAG42
 !EOC

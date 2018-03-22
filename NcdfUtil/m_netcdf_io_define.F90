@@ -125,7 +125,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (len=128) :: err_msg
+    CHARACTER (len=512) :: err_msg
     INTEGER :: ierr
 !
     ierr = Nf_Def_Dim (ncid, name, len, id)
@@ -147,7 +147,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_variable(ncid,name,type,ndims,dims,var_id)
+  SUBROUTINE NcDef_variable(ncid,name,type,ndims,dims,var_id,compress)
 !
 ! !USES:
 !
@@ -165,12 +165,16 @@ CONTAINS
 !!           (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
 !!  ndims  : number of dimensions of the variable
 !!  dims   : netCDF dimension id of the variable
-!!  varid  : netCDF varid id
-
-    CHARACTER (LEN=*), INTENT(IN) :: name
-    INTEGER,           INTENT(IN) :: ncid, ndims, var_id
-    INTEGER,           INTENT(IN) :: dims(ndims)
-    INTEGER,           INTENT(IN) :: type
+    CHARACTER (LEN=*), INTENT(IN)  :: name
+    INTEGER,           INTENT(IN)  :: ncid, ndims
+    INTEGER,           INTENT(IN)  :: dims(ndims)
+    INTEGER,           INTENT(IN)  :: type
+    LOGICAL, OPTIONAL, INTENT(IN)  :: compress
+!
+! !OUTPUT PARAMETERS:
+!
+!!  varid  : netCDF variable id returned by NF_DEF_VAR
+    INTEGER,           INTENT(OUT) :: var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable.
 !\\
@@ -180,14 +184,23 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  Initial code.
-!
+!  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
+!  01 Mar 2017 - R. Yantosca - Add an #ifdef to enable netCDF4 compression
+!                              only if the library has nf_def_var_deflate
+!  10 May 2017 - R. Yantosca - Bug fix: var_id needs to be INTENT(OUT),
+!                              because it's returned from NF_DEF_VAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer ::  ierr
+    logical ::  doStop
+    ! Compression settings
+    ! choose deflate_level=1 for fast, minimal compression. 
+    ! Informal testing suggests minimal benefit from higher compression level
+    integer, parameter :: shuffle=1, deflate=1, deflate_level=1
 !
     ierr = Nf_Def_Var (ncid, name, type, ndims, dims, var_id)
 
@@ -195,6 +208,41 @@ CONTAINS
        err_msg = 'Nf_Def_Var: can not define variable : '// Trim (name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
+
+#if defined( NC_HAS_COMPRESSION )
+    !=====================================================================
+    ! If the optional "compress" variable is used and set to TRUE, 
+    ! then enable variable compression (cdh, 0/17/17) 
+    !
+    ! NOTE: We need to block this out with an #ifdef because some
+    ! netCDF installations might lack the nf_def_var_deflate function
+    ! which would cause a compile-time error. (bmy, 3/1/17)
+    !=====================================================================
+    if (present(Compress)) then
+
+       if (Compress) then
+   
+          ! Set compression
+          ierr = nf_def_var_deflate( ncid, var_id,  shuffle,       &
+                                           deflate, deflate_level )
+
+          ! Check for errors. 
+          ! No message will be generated if the error is simply that the 
+          ! file is not netCDF-4
+          ! (i.e. netCDF-3 don't support compression)
+          IF ( (ierr.ne.NF_NOERR) .and. (ierr.ne.NF_ENOTNC4)) THEN
+
+             ! Errors enabling compression will not halt the program
+             doStop = .False.
+
+             ! Print error
+             err_msg = 'Nf_Def_Var_Deflate: can not compress variable : '// Trim (name)
+             CALL Do_Err_Out (err_msg, doStop, 0, 0, 0, 0, 0.0d0, 0.0d0)
+          END IF
+
+       endif
+    endif
+#endif
 
   END SUBROUTINE NcDef_variable
 !EOC
@@ -240,7 +288,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = LEN(att_val)
@@ -290,17 +338,18 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
-    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
-                               NF_INT, mylen,  att_val )
+    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
+                            NF_INT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i: can not define attribute : ' // &
@@ -351,12 +400,12 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = 1
     ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                               NF_FLOAT, mylen,  att_val )
+                             NF_FLOAT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4: can not define attribute : ' // &
@@ -407,12 +456,12 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  mylen, ierr
 !
     mylen = 1
     ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                                 NF_DOUBLE, mylen,  att_val )
+                               NF_DOUBLE, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r8: can not define attribute : ' // &
@@ -458,17 +507,18 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Real( ncid,   var_id, att_name, &
-                               NF_INT, mylen,  att_val )
+    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
+                            NF_INT, mylen,  att_val )
 
     iF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i_arr: can not define attribute : ' &
@@ -519,12 +569,12 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
     ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                               NF_FLOAT, mylen,  att_val )
+                             NF_FLOAT, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : ' &
@@ -575,12 +625,12 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             ::  mylen, ierr
 !
     mylen = size( att_val )
     ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                                 NF_DOUBLE, mylen,  att_val )
+                               NF_DOUBLE, mylen,  att_val )
 
     IF (ierr.ne.NF_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : '&
@@ -632,7 +682,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  mylen, ierr
 !
     mylen = len(att_val)
@@ -683,12 +733,13 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix, should call NF_PUT_ATT_INT
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = 1
@@ -745,7 +796,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
@@ -802,7 +853,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = 1
@@ -854,12 +905,13 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  26 Sep 2013 - R. Yantosca - Initial version
+!  12 Jun 2017 - R. Yantosca - Bug fix: Should call NF_PUT_ATT_INT
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -916,7 +968,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -973,7 +1025,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
     mylen = SIZE( att_val )
@@ -1026,7 +1078,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             ::  mylen, ierr
 !
     ierr = Nf_Set_Fill (ncid, NF_NOFILL, omode)
@@ -1076,7 +1128,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    CHARACTER (LEN=128) :: err_msg
+    CHARACTER (LEN=512) :: err_msg
     INTEGER             ::  ierr
 !
     ierr = Nf_Enddef (ncid)
@@ -1126,7 +1178,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
 !
     ierr = Nf_Redef (ncid)

@@ -118,15 +118,6 @@ CONTAINS
 #elif defined( GRID2x25 ) 
     resString = '2x25.nc4'
 
-#elif defined( GRID1x125 )
-    resString = '1x125.nc4'
-
-#elif defined( GRID1x1 ) 
-    resString = '1x1.nc4'
-
-#elif defined( GRID05x0666 )
-    resString = '05x0666.nc4'
-
 #elif defined( GRID05x0625 ) && defined( NESTED_AS )
     resString = '05x0625.AS.nc4'
 
@@ -549,10 +540,13 @@ CONTAINS
     CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
     State_Met%EFLUX = Q
 
-    ! Read EVAP
-    v_name = "EVAP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
-    State_Met%EVAP = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read EVAP
+    !v_name = "EVAP"
+    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !State_Met%EVAP = Q
+    !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
@@ -564,10 +558,13 @@ CONTAINS
     CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
     State_Met%FRSNO = Q
 
-    ! Read GRN
-    v_name = "GRN"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
-    State_Met%GRN = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read GRN
+    !v_name = "GRN"
+    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !State_Met%GRN = Q
+    !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
@@ -594,10 +591,13 @@ CONTAINS
     CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
     State_Met%LWI = Q
 
-    ! Read LWGNT 
-    v_name = "LWGNT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
-    State_Met%RADLWG = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read LWGNT 
+    !v_name = "LWGNT"
+    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !State_Met%RADLWG = Q
+    !--------------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
@@ -637,10 +637,13 @@ CONTAINS
     CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
     State_Met%PRECLSC = Q
 
-    ! Read PRECSNO
-    v_name = "PRECSNO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
-    State_Met%PRECSNO = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read PRECSNO
+    !v_name = "PRECSNO"
+    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !State_Met%PRECSNO = Q
+    !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
@@ -1131,6 +1134,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  12 Aug 2015 - R. Yantosca - Initial version, based on geosfp_read_mod.F90
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  03 Feb 2017 - M. Sulprizio- Activate reading OMEGA fields from file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1219,10 +1223,10 @@ CONTAINS
     CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
     CALL Transfer_3d( Q, State_Met%DTRAIN )
 
-    !! Read OMEGA  from file
-    !v_name = "OMEGA"
-    !CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q, State_Met%OMEGA )
+    ! Read OMEGA
+    v_name = "OMEGA"
+    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
+    CALL Transfer_3d( Q, State_Met%OMEGA )
 
     ! Read RH
     v_name = "RH"
@@ -1252,11 +1256,12 @@ CONTAINS
     State_Met%RH = State_Met%RH * 100d0
 
 #if defined( BPCH_DIAG )
-    ! ND66 diagnostic: U, V, DTRAIN met fields
+    ! ND66 diagnostic: U, V, DTRAIN, OMEGA met fields
     IF ( ND66 > 0 ) THEN
        AD66(:,:,1:LD66,1) = AD66(:,:,1:LD66,1) + State_Met%U     (:,:,1:LD66)
        AD66(:,:,1:LD66,2) = AD66(:,:,1:LD66,2) + State_Met%V     (:,:,1:LD66)
        AD66(:,:,1:LD66,6) = AD66(:,:,1:LD66,6) + State_Met%DTRAIN(:,:,1:LD66)
+       AD66(:,:,1:LD66,7) = AD66(:,:,1:LD66,7) + State_Met%OMEGA (:,:,1:LD66)
     ENDIF
 
     ! ND67 diagnostic: CLDTOPS
@@ -1771,7 +1776,6 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
@@ -1994,7 +1998,6 @@ CONTAINS
     ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     !----------------------------------------------------------------
-    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"

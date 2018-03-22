@@ -101,6 +101,8 @@
       ! ZERO_DIAG53 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG )
+
       ! Exit if ND53 is turned off
       IF ( ND53 == 0 ) RETURN
 
@@ -118,6 +120,7 @@
       AD53_POPP_OCPI_NO3 = 0e+0_fp
       AD53_POPP_BCPO_NO3 = 0e+0_fp
       AD53_POPP_BCPI_NO3 = 0e+0_fp
+#endif
 
       END SUBROUTINE ZERO_DIAG53
 !EOC
@@ -138,7 +141,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+#endif
       USE FILE_MOD,     ONLY : IU_BPCH
       USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
       USE TIME_MOD,     ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
@@ -180,6 +185,7 @@
       !=================================================================
       ! WRITE_DIAG53 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND53 is turned off
       IF ( ND53 == 0 ) RETURN
@@ -373,6 +379,7 @@
      &               IIPAR,     JJPAR,     LMAX,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
       ENDDO
+#endif
 
       END SUBROUTINE WRITE_DIAG53
 !EOC
@@ -410,6 +417,7 @@
       !=================================================================
       ! INIT_DIAG53 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Exit if ND53 is turned off
       IF ( ND53 == 0 ) THEN
@@ -462,6 +470,7 @@
     
       ! Zero arrays
       CALL ZERO_DIAG53
+#endif
 
       END SUBROUTINE INIT_DIAG53
 !EOC
@@ -488,6 +497,7 @@
       !=================================================================
       ! CLEANUP_DIAG53 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF (ALLOCATED(AD53_PG_OC_NEG    )) DEALLOCATE(AD53_PG_OC_NEG    ) 
       IF (ALLOCATED(AD53_PG_OC_POS    )) DEALLOCATE(AD53_PG_OC_POS    )
       IF (ALLOCATED(AD53_PG_BC_NEG    )) DEALLOCATE(AD53_PG_BC_NEG    )
@@ -501,6 +511,7 @@
       IF (ALLOCATED(AD53_POPP_OCPI_NO3)) DEALLOCATE(AD53_POPP_OCPI_NO3)
       IF (ALLOCATED(AD53_POPP_BCPO_NO3)) DEALLOCATE(AD53_POPP_BCPO_NO3)
       IF (ALLOCATED(AD53_POPP_BCPI_NO3)) DEALLOCATE(AD53_POPP_BCPI_NO3)
+#endif
 
       END SUBROUTINE CLEANUP_DIAG53
 !EOC

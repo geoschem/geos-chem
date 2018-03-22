@@ -63,6 +63,7 @@ MODULE HCOX_GC_POPs_Mod
 !  18 Aug 2015 - M. Sulprizio  - Add VEGEMISPOP, LAKEEMISPOP, and SOILEMISPOP
 !                                routines from new land_pops_mod.F written by
 !                                C.L. Friedman.
+!  24 Aug 2017 - M. Sulprizio  - Remove support for GCAP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -745,13 +746,8 @@ CONTAINS
          ! snow or ice
          IF ((IS_LAND_OR_ICE) .AND. .NOT. ( IS_SNOW_OR_ICE )) THEN
 
-#if defined ( GCAP )
-            ! Lake surface is not defined for GCAP
-            FRAC_LAKE = 0e+0_hp
-#else
             ! Get fraction of grid box covered by lake surface area
             FRAC_LAKE = ExtState%FRLAKE%Arr%Val(I,J)
-#endif      
 
             ! Get fraction of land remaining
             ! Assume the remaining land is soil and get OC content.
@@ -762,11 +758,7 @@ CONTAINS
             FRAC_SOIL = MAX(1e+0_hp - FRAC_LAKE, 0e+0_hp)
 
             ! Get surface skin temp [K]
-#if defined ( GCAP )
-            TK_SURF = ExtState%T2M%Arr%Val(I,J)
-#else
             TK_SURF = ExtState%TSKIN%Arr%Val(I,J)
-#endif
 
             ! Get air temp [K]
             TK = ExtState%TK%Arr%Val(I,J,1)
@@ -1078,19 +1070,6 @@ CONTAINS
 !         EPOP_LAKE = 0e+0_hp
 !      ELSE
 
-#if defined ( GCAP )
-      ! No definition of lakes, consider emission from lakes to be zero
-       EPOP_LAKE     = 0e+0_hp
-       FLUX          = 0e+0_hp
-       EMIS_LAKE     = 0e+0_hp 
-       FLUX_LAKE2AIR = 0e+0_hp
-       FLUX_AIR2LAKE = 0e+0_hp
-       FUG_LAKEAIR   = 0e+0_hp
-              
-      ! Return to calling program
-      RETURN
-#endif
-      
       ! Do lake emissions routine:
 
       ! Copy values from ExtState
@@ -1489,11 +1468,8 @@ CONTAINS
             IF ( LAI > 0e+0_hp ) THEN
 
                ! Get surface skin temp [K]
-#if defined ( GCAP )
-               TK_SURF = ExtState%T2M%Arr%Val(I,J)
-#else
                TK_SURF = ExtState%TSKIN%Arr%Val(I,J)
-#endif
+
                ! Get air temp [K]
                TK = ExtState%TK%Arr%Val(I,J,1)
 
@@ -1749,28 +1725,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a land box if 50% or more of the box is covered by 
-      ! land and less than 50% of the box is covered by ice
-      LAND = ( ExtState%WLI%Arr%Val(I,J)   >= 0.5e+0_hp .and. &
-               ExtState%SNICE%Arr%Val(I,J) <  0.5e+0_hp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( ExtState%WLI%Arr%Val(I,J) ) == 1   .and. &
                      ExtState%ALBD%Arr%Val(I,J)  <  0.695e+0_hp )
-
-#endif
 
       END FUNCTION IS_LAND
 !EOC
@@ -1814,26 +1771,9 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( ExtState%SNICE%Arr%Val(I,J) >= 0.5e+0_hp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( ExtState%WLI%Arr%Val(I,J) ) == 2       .or. &
                     ExtState%ALBD%Arr%Val(I,J)  >= 0.695e+0_hp )
-
-#endif
 
       END FUNCTION IS_ICE
 !EOC
@@ -1963,15 +1903,11 @@ CONTAINS
     ExtState%LAI%DoUse         = .TRUE.
     ExtState%PSC2_WET%DoUse    = .TRUE. 
     ExtState%SNOWHGT%DoUse     = .TRUE.
-    ExtState%T2M%DoUse         = .TRUE. 
     ExtState%TK%DoUse          = .TRUE. 
     ExtState%TSKIN%DoUse       = .TRUE. 
     ExtState%U10M%DoUse        = .TRUE. 
     ExtState%V10M%DoUse        = .TRUE. 
     ExtState%WLI%DoUse         = .TRUE. 
-#if defined ( GCAP )
-    ExtState%SNICE%DoUse       = .TRUE. 
-#endif
 
     ! Activate this extension
     ExtState%GC_POPs           = .TRUE.

@@ -132,14 +132,8 @@
       ! ----------------------------------------------
 
       ! IWC in [g/cm3]
-#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       iwc = CLDF(I,J,L) * QI * AIRDEN(I,J,L)
       iwc = iwc / 1.e+3_f8
-#else
-      ! Convert cm3/cm3 to g/cm3
-      ! (cm3 ice * 0.92 g ice/cm3 H2O ) / cm3 air
-      iwc = CLDF(I,J,L) * ( QI * 1e+3_f8 * dens_ice )
-#endif
 
       !%%% ERROR CHECK!  Do not let IWC<=0 because it will cause the
       !%%% LOG10 statement in the upcoming section (bmy, 10/23/12)
@@ -272,12 +266,8 @@
          RETURN
       ENDIF
 
-!#if defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-!      ! get the volume of cloud ice [cm3]
-!      Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
-!#else
 !      ! Doesn't matter, Vc is not used.
-!#endif
+!      Vc = CLDF(I,J,L) * QI * AD(I,J,L) / dens_ice
 !      ! now calculate the cloud ice surface area [cm2_ice/ cm3_air]
 !         XAIRCM3 = AIRVOL(I,J,L) * (100.e+0_f8)**3 ! volume of air [cm3]
 !jpt      AREA    = 3.d0 * (Vc/XAIRCM3) / (RADIUS) ! keep Radius in [cm]

@@ -20,7 +20,9 @@
      &                         WVAA, SPECMASK, LSPECRADMENU,
      &                         NSPECRADMENU
       USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
+#endif
       USE OMP_LIB
       USE PARRRTM,      ONLY : NBNDLW
       USE PARRRSW,      ONLY : NBNDSW
@@ -130,8 +132,6 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem modules
       !-----------------------------------------------------------------
-      USE CHEMGRID_MOD,        ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,        ONLY : GET_CHEMGRID_LEVEL
       USE CMN_FJX_MOD,         ONLY : NSPECRAD  ! NUMBER OF SPECIES FOR RT
       USE CMN_FJX_MOD,         ONLY : NASPECRAD ! NUMBER OF AEROSOL SPECIES
       USE CMN_FJX_MOD,         ONLY : SPECMASK,   IRTWVSELECT
@@ -139,7 +139,6 @@
       USE CMN_FJX_MOD,         ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV 
       USE CMN_FJX_MOD,         ONLY : WVAA,       NWVAA
       USE CMN_FJX_MOD,         ONLY : NWVAA0
-      USE DIAG_MOD,            ONLY : AD72
       USE ErrCode_Mod
       USE ERROR_MOD
       USE GC_GRID_MOD,         ONLY : GET_YMID
@@ -151,7 +150,10 @@
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-      USE UnitConv_Mod
+      USE UnitConv_Mod,        ONLY : Convert_Spc_Units
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,            ONLY : AD72
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -212,6 +214,8 @@
 !                              on comode_loop_mod.F
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,8 +231,9 @@
       LOGICAL                :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
       INTEGER                :: NAD72        ! NUMBER OF OUTPUTS PER FIELD
       INTEGER                :: ITIMEVALS(8)
-      INTEGER                :: IDIAGOUT     ! INDEX OF SPECIES OPTICS FOR OUTPUT     
+      INTEGER                :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
       REAL*8                 :: OLDSECS, NEWSECS
+      CHARACTER(LEN=63)      :: OrigUnit
       
       ! SAVEd scalars
       LOGICAL, SAVE          :: FIRST = .TRUE.
@@ -499,8 +504,8 @@
       RC = GC_SUCCESS
 
       ! Convert species units to [kg] for RRTMG (ewl, 8/12/15)
-      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')
@@ -635,6 +640,7 @@
 !$OMP END PARALLEL DO
 
       !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
+      !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
       DO I = 1, IIPAR
       DO J = 1, JJPAR
       DO L = 1, LLPAR
@@ -642,7 +648,7 @@
          PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
          TLAY   (I,J,L) = State_Met%T(I,J,L)
-         INTROP (I,J,L) = ITS_IN_THE_TROP( I, J, L, State_Met )
+         INTROP (I,J,L) = State_Met%InTroposphere(I,J,L)
          SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
       ENDDO
       TSFC  (I,J)   = State_Met%TSKIN(I,J)
@@ -691,11 +697,13 @@
        T_CTM(LLPAR+1)  = T_CTM(LLPAR)
 
        ! Overhead ozone column [DU]
+       ! These values are either from the met fields or TOMS/SBUV,
+       ! depending on the settings in input.geos
        O3COL = GET_OVERHEAD_O3(I,J)
 
        ! CTM ozone densities (molec/cm3)
        O3_CTM          = 0d0
-       LCHEM           = GET_CHEMGRID_LEVEL(I,J,State_Met)
+       LCHEM           = State_Met%ChemGridLev(I,J)
        DO L = 1, LCHEM
           O3_CTM(L)    = State_Chm%Species(I,J,L,id_O3)
        ENDDO
@@ -722,20 +730,26 @@
             ENDIF !CLOUDS
 
        IF (INTROP(I,J,L).EQ..TRUE.) THEN 
-           !-----------------------------
-            ! WE ARE IN THE TROPOSPHERE
-            !-----------------------------
+          !-----------------------------
+          ! WE ARE IN THE TROPOSPHERE
+          !-----------------------------
 
-            ! SET O3, CH4, N2O AND CFC PROFILES
-            ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
-            ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
+          ! SET O3, CH4, N2O AND CFC PROFILES
+          ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
+          ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
 
-            !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
-            !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
-            !(WHEN SPECMASK DEFAULTS TO 1)
-            !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
-            !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
-#if defined( UCX )
+          !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
+          !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
+          !(WHEN SPECMASK DEFAULTS TO 1)
+          !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
+          !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
+
+          IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !          %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)*AIRMW /
      &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
@@ -769,10 +783,15 @@
 
             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
+     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g*
      &                         State_Met%AD(I,J,L) )
 
-#else
+         ELSE
+
+            !--------------------------------------------------------
+            !        %%%%%%% Tropchem only mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
              O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)/
      &                          State_Met%AIRNUMDEN(I,J,L)
@@ -788,22 +807,28 @@
             CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
-#endif
-       ELSE
-           !-----------------------------
-           ! WE ARE IN THE STRATOSPHERE
-           !-----------------------------
+         ENDIF
 
-#if defined( UCX )
+       ELSE
+          !-----------------------------
+          ! WE ARE IN THE STRATOSPHERE
+          !-----------------------------
+
+          IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !          %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
-     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )  
+            O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
+     &                      ( State_Chm%SpcData(id_O3)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )  
  
-             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
-     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )   
+            CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                      ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
+     &                        State_Met%AD(I,J,L) )   
 
             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
      &                      ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
@@ -835,7 +860,12 @@
 !            CCL4VMR(I,J,L)  = 0.0d0
 !            CFC22VMR(I,J,L) = 0.0d0
 
-#else      
+         ELSE
+      
+            !--------------------------------------------------------
+            !        %%%%%%% Tropchem only mechanisms %%%%%%%
+            !--------------------------------------------------------
+
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
 
@@ -870,7 +900,7 @@
             CFC12VMR(I,J,L) = CFC12CLIM(I,J,L)/1E9
             CCL4VMR(I,J,L)  = CCL4CLIM(I,J,L)/1E9
             CFC22VMR(I,J,L) = CFC22CLIM(I,J,L)/1E9
-#endif
+         ENDIF
        ENDIF
       ENDDO
       ENDDO
@@ -908,14 +938,12 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get 
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif    
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+
            !MAKE SURE WE HAVE SENSIBLE DATA
            !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
            IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
@@ -975,14 +1003,11 @@
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
 
            IF ((TAUAER_SW(I,J,L,IB_SW).GT.0).AND.
      $        (    SSAAER(I,J,L,IB_SW).GT.0)) THEN
@@ -1029,14 +1054,12 @@
         DO L = 1, LLPAR
         DO J = 1, JJPAR
         DO I = 1, IIPAR
-#if defined( UCX )
+
           !if UCX on, we need to go above the tropopause to get
           !the strat AOD, but only for IS=8 and IS=9
           IF ((INTROP(I,J,L).EQ..TRUE.).OR.
-     &        ((IS.EQ.8).OR.(IS.EQ.9))) THEN
-#else
-          IF (INTROP(I,J,L).EQ..TRUE.) THEN
-#endif
+     &        (Input_Opt%LUCX .and. ((IS.EQ.8).OR.(IS.EQ.9)))) THEN
+
           IF (IB.LE.16) THEN
            TAUAER_LW(I,J,L,IB)    = 0.0
           ELSE
@@ -1508,7 +1531,11 @@
       OUTIDX = ISPECMENU + 1
 
       !THE NUMBER OF ND72 OUTPUTS PER FIELD
-      NAD72 = NSPECRADMENU + 1
+      IF ( Input_Opt%LUCX ) THEN
+         NAD72 = NSPECRADMENU + 1
+      ELSE
+         NAD72 = NSPECRADMENU
+      ENDIF
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
       !(I.E. IF BOTH ALL-SKY AND CLEAR-SKY ARE SWITCHED ON)
@@ -1531,6 +1558,7 @@
 !$OMP+SCHEDULE( DYNAMIC )
       DO J=1,JJPAR
       DO I=1,IIPAR
+#if defined( BPCH_DIAG )
        IF (ICLD.GT.0) THEN
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
@@ -1561,6 +1589,7 @@
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
+#endif
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
@@ -1601,6 +1630,7 @@
          !DIVIDE THROUGH BY AOD
          SSAOUT=SSAOUT/AODOUT
          !offsetting output depending on wavelength
+#if defined( BPCH_DIAG )
          AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) = 
      &   AD72(I,J,OUTIDX+(8+3*(W-1))*NAD72) + AODOUT
          AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) = 
@@ -1608,15 +1638,16 @@
      &   AD72(I,J,OUTIDX+(9+3*(W-1))*NAD72) + SSAOUT
          AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72)= 
      &   AD72(I,J,OUTIDX+(10+3*(W-1))*NAD72) + ASYMOUT
+#endif
         ENDDO !NWVSELECT
        ENDIF
       ENDDO 
       ENDDO
 !$OMP END PARALLEL DO
 
-      ! Convert species units back to [kg/kg] after RRTMG (ewl, 8/12/15)
-      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,  
-     &                               State_Chm, RC ) 
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')
@@ -1651,7 +1682,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                           LSPECRADMENU,NSPECRADMENU
+     &                           LSPECRADMENU
 !
 ! !INPUT PARAMETERS:
 !

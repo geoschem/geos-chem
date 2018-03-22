@@ -135,6 +135,10 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Diagnostic flags
+      LOGICAL               :: Do_ND43
+      LOGICAL               :: Archive_OHconcAfterChem
+
       ! Species ID flag
       INTEGER               :: id_CH4
 
@@ -180,7 +184,7 @@
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN, GET_TS_CHEM
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS:
 !
@@ -211,13 +215,15 @@
 !  26 Feb 2015 - E. Lundgren - Replace GET_PCENTER with State_Met%PMID and
 !                              remove dependency on pressure_mod
 !  01 Apr 2015 - E. Lundgren - Change State_Met%PMID to State_Met%PMID_DRY
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER               :: NTDT, NMIN
+      INTEGER               :: NTDT, NSEC
       INTEGER               :: I, J, L, NTIMES, MNDT
       INTEGER               :: NNEW, NNCOUNT 
       
@@ -226,32 +232,32 @@
       !=================================================================
 
       ! Get quantities from "time_mod.f"
-      NTDT   = GET_TS_DYN() * 60
-      NMIN   = GET_ELAPSED_MIN()
-      MNDT   = NTDT  / 60 
-      NTIMES = GET_TS_CHEM() / MNDT
+      NTDT   = GET_TS_DYN()
+      NSEC   = GET_ELAPSED_SEC()
+      MNDT   = NTDT
+      NTIMES = GET_TS_CHEM() / GET_TS_DYN()
 
       ! NTIMES is the number of dynamic timesteps in a chem timestep
-      IF ( NMIN <= GET_TS_CHEM() ) NTIMES = NTIMES + 1
+      IF ( NSEC <= GET_TS_CHEM() ) NTIMES = NTIMES + 1
 
       ! At the start of the run...
-      IF ( NMIN == 0 ) THEN
+      IF ( NSEC == 0 ) THEN
 
          ! Initialize NNEW
          NNEW = 0
 
          ! No longer true (kjw, 11/17/11).
-         !! Error check --  NCHEM has to be 1440 min
-         !IF ( GET_TS_CHEM() /= 1440 ) THEN   
+         !! Error check --  NCHEM has to be 86400 sec
+         !IF ( GET_TS_CHEM() /= 86400 ) THEN   
          !   WRITE(*,*) ' '
          !   WRITE(*,*) 'CH4-OH parameterization option (i.e., NSRCX=5)!' 
          !   WRITE(*,*) 'Use a chemistry time step = 24 hours'
-         !   WRITE(*,*) '(i.e., NCHEM=1440 min.)'
+         !   WRITE(*,*) '(i.e., NCHEM=86400 sec.)'
          !   WRITE(*,*) ' '
          !   CALL GEOS_CHEM_STOP
          !ENDIF
 
-         ! Error check -- need chem timestep (1440) to be divisible by 
+         ! Error check -- need chem timestep to be divisible by 
          ! dyn timestep
          IF ( mod( GET_TS_CHEM(), MNDT ) /= 0 ) THEN   
             WRITE(*,*) ' '
@@ -271,7 +277,7 @@
             WRITE(*,*) ' '
             WRITE(*,*) 'When using the CH4-OH parameterization'
             WRITE(*,*) 'option (i.e., NSRCX=5), take a 24-hour'
-            WRITE(*,*) 'time step (i.e., NCHEM=1440 min.) because'
+            WRITE(*,*) 'time step (i.e., NCHEM=86400 sec.) because'
             WRITE(*,*) 'the OH parameterization produces a 24-hour'
             WRITE(*,*) 'average [OH]'
             WRITE(*,*) ' '
@@ -342,9 +348,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD58
+#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -426,11 +434,14 @@
       LOGICAL                  :: ITS_A_FULLCHEM_SIM
 
       ! Pointers
-      REAL(f4),        POINTER :: Ptr2D(:,:) => NULL()
+      REAL(f4),        POINTER :: Ptr2D(:,:)
 
       !=================================================================
       ! EMISSCH4 begins here!
       !=================================================================
+
+      ! Nullify pointers
+      Ptr2D => NULL()
 
       ! Assume success
       RC                  = GC_SUCCESS
@@ -559,7 +570,7 @@
       Ptr2D => NULL()
 
       ! Biomass burning 
-      DgnName = 'CH4_BIOMASS'
+      DgnName = 'BIOMASS_CH4'
       CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
       IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( TRIM(DgnName), LOC )
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
@@ -662,7 +673,10 @@
          ! Grid box surface area [m2]
          AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-         ! Update diagnostics
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND58 (bpch) diagnostic
+         !--------------------------------------------------------------
          IF ( ND58 > 0 ) THEN
 
             ! All emission sources excluding soil absorption [kg]
@@ -675,6 +689,7 @@
      &            CH4_EMIS(IREF,JREF,N) * DTSRCE * AREA_M2
             ENDDO
          ENDIF
+#endif
 
       ENDDO
       ENDDO
@@ -702,20 +717,24 @@
             ! Grid box surface area [m2]
             AREA_M2 = HcoState%Grid%AREA_M2%Val(I,J)
 
-            ! Gas, oil, mine
+            ! Anthropogenic (gas and oil, coal, biofuel, other anthro)
             TCH4(I,J,1,5) = TCH4(I,J,1,5) +
-     &           ( ( CH4_EMIS(I,J,2) + CH4_EMIS(I,J,3) ) * 
+     &           ( ( CH4_EMIS(I,J,2) + 
+     &               CH4_EMIS(I,J,3) 
+     &               CH4_EMIS(I,J,6)
+     &               CH4_EMIS(I,J,8) ) * 
      &              * XNUMOL_CH4 * AREA_M2 * DTSRCE )
                
-            ! agriculture (rice, animals, waste)
+            ! Agriculture (rice, animals, waste)
             TCH4(I,J,1,6) = TCH4(I,J,1,6) +
-     &           ( ( CH4_EMIS(I,J,4) + CH4_EMIS(I,J,7) + 
-     &               CH4_EMIS(I,J,5) ) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( ( CH4_EMIS(I,J,4) +
+     &               CH4_EMIS(I,J,7) + 
+     &               CH4_EMIS(I,J,5) ) *
+     &               XNUMOL_CH4 * AREA_M2 * DTSRCE )
             
-            ! Biomass burning (and biofuel?)
+            ! Biomass burning
             TCH4(I,J,1,7) = TCH4(I,J,1,7)+
-     &           ( ( CH4_EMIS(I,J,9) + CH4_EMIS(I,J,6) ) *
-     &               * XNUMOL_CH4 * AREA_M2 * DTSRCE )
+     &           ( CH4_EMIS(I,J,9)  * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
             ! Termites
             TCH4(I,J,1,8) = TCH4(I,J,1,8)+
@@ -730,6 +749,7 @@
      &           ( CH4_EMIS(I,J,11) * XNUMOL_CH4 * AREA_M2 * DTSRCE )
 
 
+            ! Total emissions
             TCH4(I,J,1,4) = TCH4(I,J,1,4) + 
      &          ( CH4_EMIS(I,J,1)  + ( 2 * CH4_EMIS(IREF,JREF,11) ))
      &          * XNUMOL_CH4 * AREA_M2 * DTSRCE
@@ -859,15 +879,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,
-     &                    State_Met, State_Chm, RC )
+      SUBROUTINE CHEMCH4( am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD43
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN, IT_IS_FINITE
@@ -875,6 +896,7 @@
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_DAY,   GET_MONTH
 !
@@ -887,6 +909,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -945,6 +968,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1045,15 +1069,42 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
+      IF ( Do_ND43 .or. Archive_OHconcAfterChem ) THEN
 
-      IF ( ND43 > 0 ) THEN
-         DO L = 1, LD43
+         ! Zero the diagnostic array for OH to avoid leftover values
+         IF ( Archive_OHconcAfterChem ) THEN
+            State_Diag%OHconcAfterChem = 0.0_f4
+         ENDIF
+
+         ! NOTE: Can parallelize this loop later
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
-!               AD43(I,J,L,1) = AD43(I,J,L,1) + BOH(I,J,L,LMN)
-               AD43(I,J,L,1) = AD43(I,J,L,1) + 
-     &                       ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
+#if defined( BPCH_DIAG )
+               !--------------------------------------------------------
+               ! ND43 (bpch) diagnostic
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( Do_ND43 .and. L <= LD43 ) THEN
+                  AD43(I,J,L,1) = AD43(I,J,L,1) +
+     &                            ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
+
+#if defined( NC_DIAG )
+               !--------------------------------------------------------
+               ! HISTORY (aka netCDF diagnostics)
+               ! OH concentration in [molec/cm3] after chemistry
+               !--------------------------------------------------------
+               IF ( Archive_OHconcAfterChem ) THEN
+                  State_Diag%OHconcAfterChem(I,J,L) =
+     &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
+               ENDIF
+#endif
+
             ENDIF
          ENDDO
          ENDDO
@@ -1173,10 +1224,11 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD19   	      
+#endif
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, ITS_A_NEW_YEAR
@@ -1231,7 +1283,7 @@
       !=================================================================
 
       ! Chemistry timestep in seconds
-      DT = GET_TS_CHEM() * 60e+0_fp
+      DT = GET_TS_CHEM()
 
       ! Point to the chemical species array
       Spc => State_Chm%Species
@@ -1256,7 +1308,7 @@
       DO I = 1, IIPAR
 
          ! Only consider tropospheric boxes
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Use 24-hr avg temperature to calc. rate coeff.
             ! citation needed
@@ -1286,8 +1338,12 @@
 
             TROPOCH4=TROPOCH4 + GCH4 * KRATE * C_OH * DT / Spc2GCH4
 
-            ! Modify AD19 Diagnostic
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND19 (bpch) diagnostic
+            !
             ! How much CH4 (kg) is lost by reaction with OH
+            !-----------------------------------------------------------
             IF ( ND19 > 0 ) THEN  ! --> [kg/box]
                IF ( L <= LD19 ) THEN
 !	    	AD19(I,J,12) = AD19(I,J,12) + 
@@ -1295,6 +1351,7 @@
      &                 ( GCH4 * KRATE * C_OH * DT ) / Spc2GCH4
                ENDIF
             ENDIF
+#endif
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
             GCH4 = GCH4 * ( 1e+0_fp - KRATE * C_OH * DT )
@@ -1334,7 +1391,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
       USE CMN_SIZE_MOD
       USE DIAG_OH_MOD,        ONLY : DO_DIAG_OH_CH4
       USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
@@ -1399,7 +1455,7 @@
       DO I = 1, IIPAR 
 
          ! Only process tropospheric boxes (bmy, 4/17/00)
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             ! Grid box volume [cm3]
             BOXVL  = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1495,10 +1551,12 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE CHEMGRID_MOD,       ONLY : GET_MIN_TPAUSE_LEVEL
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      USE ERROR_MOD,          ONLY : CHECK_SPC
+!-----------------------------------------------------------------------------
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1551,7 +1609,7 @@
 !
       ! Scalars
       INTEGER           :: N,  NA,   nAdvect
-      INTEGER           :: I,  J,    L,        BASELEV
+      INTEGER           :: I,  J,    L
       REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE,  BOXVL
 
       ! Local variables for quantities from Input_Opt
@@ -1579,7 +1637,7 @@
       IF ( .not. LUCX ) THEN
 
          ! Chemistry timestep [s]
-         DT  = GET_TS_CHEM() * 60e+0_fp
+         DT  = GET_TS_CHEM()
 
          IF ( ITS_A_FULLCHEM_SIM ) THEN
             
@@ -1622,11 +1680,20 @@
          !=================================================================
          ! Loop over stratospheric boxes only
          !=================================================================
-         BASELEV = GET_MIN_TPAUSE_LEVEL()
-         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+! Prior to 1/11/19:
+! Better to just loop over all levels and test if we are in the chem grid;
+! can also parallelize this loop later
+! (bmy, 1/11/19)
+!         BASELEV = GET_MIN_TPAUSE_LEVEL()
+!         DO L = BASELEV, LLPAR 
+!------------------------------------------------------------------------------
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met) ) THEN
+
+            ! Only proceed if we are outside of the chemistry grid
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
 
                ! Conversion factor [kg/box] --> [molec/cm3]
                ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
@@ -1676,9 +1743,13 @@
 
 !      FIRSTCHEM = .FALSE.
 
-      ! Check Spc for negatives and NaN
-      CALL CHECK_SPC( State_Chm, Input_Opt,
-     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
+! Prior to 12/11/17:
+! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
+!      ! Check Spc for negatives and NaN
+!      CALL CHECK_SPC( State_Chm, Input_Opt,
+!     &                'IN global_ch4_mod.F: CH4_STRAT' )
+!----------------------------------------------------------------------------
 
       ! Free pointer
       Spc => NULL()
@@ -2093,7 +2164,7 @@
       IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
-      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,,State_Met0)
+      NTP=SUM_CH4(1,IIPAR,JJPAR/2+1,JJPAR/2+1,1,LLPAR,11,11,0,State_Met)
       IF(NTP.GE.0.e+0_fp) THEN
          SOURCES=SOURCES+NTP
       ENDIF
@@ -2201,8 +2272,6 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_CHEMGRID
-      USE CHEMGRID_MOD,      ONLY : ITS_IN_THE_NOCHEMGRID
       USE CMN_SIZE_MOD
       USE State_Met_Mod,     ONLY : State_Met
 !
@@ -2213,9 +2282,7 @@
       INTEGER, INTENT(IN) :: L1, L2 ! Min/max altitude  indices of TCH4 to sum
       INTEGER, INTENT(IN) :: K1, K2 ! Min/max species   indices of TCH4 to sum
       INTEGER, INTENT(IN) :: UPDOWN ! Sum in trop (=1) or in strat (=0)
-
-      ! Also need to pass the State_Met for the CHEMGRID functons
-      TYPE(MetState), INTENT(IN) :: State_Met
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
 !  Store the sources/sinks of CH4 in TCH4 in total molecules
@@ -2276,7 +2343,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF
          ENDDO
@@ -2293,7 +2360,7 @@
          DO L = 1,  LLPAR
          DO J = J1, J2
          DO I = I1, I2
-            IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+            IF (  .not. State_Met%InChemGrid(I,J,L) ) THEN
                SUM_CH4 = SUM_CH4 + TCH4(I,J,L,K)
             ENDIF            
          ENDDO
@@ -2518,22 +2585,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_GLOBAL_CH4( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2551,6 +2622,7 @@
 !  16 Jun 2016 - M. Sulprizio- Now define IDT_CH4 locally
 !  20 Jun 2016 - R. Yantosca - Rename IDTCH4 to id_CH4 for consistency
 !  20 Jun 2016 - R. Yantosca - Now stop run if id_CH4 is undefined
+!  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2593,7 +2665,12 @@
       TCH4 = 0e+0_fp      
 #endif
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+! Prior to 1/12/18:
+! Remove dependence on PD58 (bmy, 1/12/18)
+!      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
+!------------------------------------------------------------------
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, 12 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp
 
@@ -2607,6 +2684,16 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
+
+      ! Set a flag to denote if netCDF diagnostics are activated
+      Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
+
+      ! Set a flag to denote if bpch diagnostics are activated
+#if defined( BPCH_DIAG )
+      Do_ND43 = ( ND43 > 0 )
+#else
+      Do_ND43 = .FALSE.
+#endif
 
       END SUBROUTINE INIT_GLOBAL_CH4
 !EOC

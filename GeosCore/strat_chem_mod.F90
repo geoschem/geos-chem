@@ -8,7 +8,10 @@
 ! !DESCRIPTION: Module STRAT\_CHEM\_MOD contains variables and routines for 
 !  performing a simple linearized chemistry scheme in the stratosphere, 
 !  using archived 3D monthly climatological production rates and loss 
-!  frequencies are applied from the GMI combo model.
+!  frequencies saved from a GEOS-Chem UCX simulation.
+!
+!  NOTE: If using UCX, the simple linearized chemistry here will be applied to
+!  the mesosphere instead.
 !
 !  In the original schem code (schem.F), only the following species
 !  were destroyed by photolysis in the stratosphere:
@@ -20,7 +23,7 @@
 !  The updated code includes at least all of these, and many more. The code
 !  is flexible enough to automatically apply the rate to any new species
 !  for future simulations that share the name in species\_mod with the
-!  GMI name.  (See Documentation on wiki).
+!  UCX name.  (See Documentation on wiki).
 !
 !  The prod rates and loss frequencies are now read via HEMCO. They are 
 !  stored in a data structure of flexible length (PLVEC). The file containing
@@ -28,11 +31,11 @@
 !  configuration file for each species of interest. They are then automatically 
 !  read and remapped onto the simulation grid. 
 !  The field names assigned to the production and loss fields are expected to 
-!  be 'GMI\_PROD\_XXX' and 'GMI\_LOSS\_XXX', respectively, where XXX is the 
+!  be 'UCX\_PROD\_XXX' and 'UCX\_LOSS\_XXX', respectively, where XXX is the 
 !  species name. Production rates must be given in units of v/v/s, and loss 
 !  frequencies in s-1.
 !  The module variable PLMUSTFIND (set below) determines the behavior if no
-!  production rates and/or loss frequencies can be found for any of the GMI
+!  production rates and/or loss frequencies can be found for any of the UCX
 !  species defined in this module. IF PLMUSTFIND is set to TRUE, the code stops
 !  with an error if no entry is found. Otherwise, stead-state values are used
 !  for all species with no explicitly given values. 
@@ -69,6 +72,9 @@ MODULE Strat_Chem_Mod
 !
 ! !PUBLIC DATA MEMBERS:
 !
+  PUBLIC  :: SChem_Tend
+  PUBLIC  :: Minit_Is_Set
+!
 ! !REMARKS:
 !
 !  References:
@@ -91,6 +97,11 @@ MODULE Strat_Chem_Mod
 !  06 Apr 2016 - C. Keller   - Add Minit_Is_Set and SET_MINIT.
 !  03 Oct 2016 - R. Yantosca - Now dynamically allocate BrPtrDay, BrPtrNight
 !  03 Oct 2016 - R. Yantosca - Dynamically allocate BrPtrDay, BrPtrNight
+!  30 May 2017 - M. Sulprizio- SChem_Tend is now public so that it can be
+!                              updated in flexchem_mod.F90 for UCX simulations
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  06 Mar 2018 - M. Sulprizio- Update module to use prod/loss rates from UCX
+!                              instead of GMI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -141,8 +152,11 @@ MODULE Strat_Chem_Mod
   ! value of 0.0 is used for every field that cannotbe found. 
   LOGICAL, PARAMETER   :: PLMUSTFIND = .FALSE.
 
-  ! Number of species from GMI model
-  INTEGER, PARAMETER   :: NTR_GMI   = 120  
+  ! Number of species from UCX simulation
+  INTEGER, PARAMETER   :: NTR_UCX   = 145
+
+  ! Minit_Is_Set indicates whether Minit has been set or not
+  LOGICAL              :: Minit_Is_Set = .FALSE. 
 !
 ! !PRIVATE TYPES:
 !
@@ -151,11 +165,11 @@ MODULE Strat_Chem_Mod
   INTEGER               :: NSCHEM          ! Number of species upon which to 
                                            ! apply P's & k's in GEOS-Chem
   ! Arrays
-  CHARACTER(LEN=16)     :: GMI_TrName    (NTR_GMI) !Tracer names in GMI
-  INTEGER               :: Strat_TrID_GC (NTR_GMI) !Maps 1:NSCHEM to species
-  INTEGER               :: Strat_TrId_TND(NTR_GMI) !Maps 1:NSCHEM to SCHEM_TEND
-  INTEGER               :: Strat_TrID_GMI(NTR_GMI) !Maps 1:NSCHEM to GMI index
-                     ! (At most NTR_GMI species could overlap between G-C & GMI)
+  CHARACTER(LEN=16)     :: UCX_TrName    (NTR_UCX) !Tracer names in UCX
+  INTEGER               :: Strat_TrID_GC (NTR_UCX) !Maps 1:NSCHEM to species
+  INTEGER               :: Strat_TrId_TND(NTR_UCX) !Maps 1:NSCHEM to SCHEM_TEND
+  INTEGER               :: Strat_TrID_UCX(NTR_UCX) !Maps 1:NSCHEM to UCX index
+                     ! (At most NTR_UCX species could overlap between G-C & UCX)
 
   ! Species index of Bry species in GEOS-Chem species DB(may differ from br_nos)
   INTEGER               :: GC_Bry_TrID(6) 
@@ -168,10 +182,6 @@ MODULE Strat_Chem_Mod
   REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
-
-  ! Minit_Is_Set indicates whether Minit has been set or not
-  LOGICAL               :: Minit_Is_Set = .FALSE. 
-
   ! Species ID flags
   INTEGER               :: id_Br2,   id_Br,     id_BrNO3
   INTEGER               :: id_BrO,   id_CHBr3,  id_CH2Br2
@@ -201,9 +211,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-    USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
@@ -214,7 +221,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -269,6 +276,10 @@ CONTAINS
 !  12 Jul 2016 - R. Yantosca - Bug fix: ISBR2 should be held !$OMP PRIVATE
 !  18 Jul 2016 - M. Yannetti - Replaced TCVV with spec db and phys constant
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  19 Oct 2016 - R. Yantosca - Add routine Set_Init_Conc_Strat_Chem for GCHP
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  17 Jan 2018 - R. Yantosca - Replace GET_TPAUSE_LEVEL w/ State_Met%TropLev
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -276,50 +287,57 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd quantities
-    LOGICAL, SAVE     :: FIRST      = .TRUE.
-    INTEGER, SAVE     :: LASTMONTH  = -99
+    LOGICAL, SAVE      :: FIRST      = .TRUE.
+    INTEGER, SAVE      :: LASTMONTH  = -99
 
     ! Flags for simulation types
-    LOGICAL           :: IT_IS_A_FULLCHEM_SIM
-    LOGICAL           :: IT_IS_A_TAGO3_SIM
-    LOGICAL           :: IT_IS_A_H2HD_SIM
+    LOGICAL            :: IT_IS_A_FULLCHEM_SIM
+    LOGICAL            :: IT_IS_A_TAGO3_SIM
+    LOGICAL            :: IT_IS_A_H2HD_SIM
 
     ! Scalars
-    LOGICAL           :: prtDebug
-    CHARACTER(LEN=16) :: STAMP
-    INTEGER           :: I,    J,       L,   N
-    INTEGER           :: NN,   nAdvect, NA
-    REAL(fp)          :: dt,   P,       k,   M0,  RC,     M
-    REAL(fp)          :: TK,   RDLOSS,  T1L, mOH, BryTmp
-    REAL(fp)          :: BOXVL
-    LOGICAL           :: LLINOZ
-    LOGICAL           :: LSYNOZ
-    LOGICAL           :: LPRT
-    LOGICAL           :: LBRGCCM
-    LOGICAL           :: LRESET, LCYCLE
-    LOGICAL           :: ISBR2 
+    LOGICAL            :: prtDebug
+    INTEGER            :: I,    J,       L,   N
+    INTEGER            :: NN,   nAdvect, NA
+    REAL(fp)           :: dt,   P,       k,   M0,  RC,     M
+    REAL(fp)           :: TK,   RDLOSS,  T1L, mOH, BryTmp
+    REAL(fp)           :: BOXVL
+    LOGICAL            :: LLINOZ
+    LOGICAL            :: LSYNOZ
+    LOGICAL            :: LPRT
+    LOGICAL            :: LUCX
+    LOGICAL            :: LCYCLE
+    LOGICAL            :: ISBR2 
+
+    ! Strings
+    CHARACTER(LEN=16)  :: STAMP
+    CHARACTER(LEN=63)  :: OrigUnit
+    CHARACTER(LEN=255) :: ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
 
     ! Arrays
-    REAL(fp)          :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-    REAL(fp)          :: BEFORE(IIPAR,JJPAR,LLPAR                  )
+    REAL(fp)           :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+    REAL(fp)           :: BEFORE(IIPAR,JJPAR,LLPAR                  )
 
     ! Pointers
-    REAL(fp), POINTER :: Spc(:,:,:,:)
-    REAL(fp), POINTER :: AD (:,:,:  )
-    REAL(fp), POINTER :: T  (:,:,:  )
+    REAL(fp), POINTER  :: Spc(:,:,:,:)
+    REAL(fp), POINTER  :: AD (:,:,:  )
+    REAL(fp), POINTER  :: T  (:,:,:  )
 
     !=======================================================================
     ! DO_STRAT_CHEM begins here!
     !=======================================================================
 
-    ! Assume Success
-    errCode              = GC_SUCCESS
-
     ! Initialize
+    errCode = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Do_Strat_Chem (in module GeosCore/strat_chem_mod.F90)'
+
+    ! Initialize further
     LLINOZ               = Input_Opt%LLINOZ
     LSYNOZ               = Input_Opt%LSYNOZ
     LPRT                 = Input_Opt%LPRT
-    LBRGCCM              = Input_Opt%LBRGCCM
+    LUCX                 = Input_Opt%LUCX
     IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
     IT_IS_A_TAGO3_SIM    = Input_Opt%ITS_A_TAGO3_SIM  
     IT_IS_A_H2HD_SIM     = Input_Opt%ITS_A_H2HD_SIM
@@ -356,36 +374,53 @@ CONTAINS
           ! Get pointers to Bry fields via HEMCO
           CALL Set_BryPointers ( am_I_Root, Input_Opt,          &
                                  State_Chm, State_Met, errCode )
-          IF ( errCode /= GC_SUCCESS ) RETURN
+
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_BryPointers"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
 
           ! Get pointers to prod/loss fields via HEMCO
           CALL Set_PLVEC ( am_I_Root, Input_Opt,                &
                            State_Chm, State_Met, errCode )
-          IF ( errCode /= GC_SUCCESS ) RETURN
+
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_PlVec"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
     ENDIF
-
-    ! SDE 2014-01-14: Allow the user to overwrite stratospheric
-    ! concentrations at model initialization if necessary
-    LRESET = (FIRST.AND.LBRGCCM)
 
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
-    ! Eventually set Minit
+#if defined( ESMF_ )
+    ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
     IF ( .NOT. Minit_Is_Set ) THEN
        CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
                        State_Chm, errCode )
-       IF ( errCode /= GC_SUCCESS ) RETURN
+
+       ! Trap potential errors
+       IF ( errCode /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Set_Minit"!'
+          CALL GC_Error( ErrMsg, errCode, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
+#endif
 
     !======================-================================================
     ! FULL CHEMISTRY SIMULATIONS
     !
     ! %%% NOTE: For now, the algorithm assumes that the advected species
     ! %%% are listed first.  We may have to also store the advected ID's
-    ! %%% in an array for SCHEM_TEND.
+    ! %%% in an array for SCHEM_TEND for tropchem simulations. SCHEM_TEND
+    ! %%% for UCX simulations is handled in flexchem_mod.F90.
     !=======================================================================
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
@@ -402,7 +437,7 @@ CONTAINS
 
        !--------------------------------------------------------------------
        ! Do chemical production and loss for non-ozone species for
-       ! which we have explicit prod/loss rates from GMI
+       ! which we have explicit prod/loss rates from UCX
        !--------------------------------------------------------------------
 
        !$OMP PARALLEL DO &
@@ -412,14 +447,15 @@ CONTAINS
           DO I=1,IIPAR
 
              ! Add to tropopause level aggregator for later determining STE flux
-             TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+             TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
              ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
+                ! Only consider boxes above the chemistry grid
+                IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
                 ! Loop over the # of active strat chem species
                 DO N = 1, NSCHEM
@@ -430,7 +466,7 @@ CONTAINS
                    NA = Strat_TrID_TND(N)
 
                    ! Skip O3; we'll always use either Linoz or Synoz
-                   ! Use GMI O3 P/L if both LINOZ and SYNOZ are deactivated.
+                   ! Use UCX O3 P/L if both LINOZ and SYNOZ are deactivated.
                    ! This is for test use in assimilation mode (ckeller, 3/7/16).
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 .AND. &
                         ( LLINOZ .OR. LSYNOZ ) ) CYCLE
@@ -467,9 +503,12 @@ CONTAINS
                       Spc(I,J,L,NN) = M0 + P*dt
                    ENDIF
 
-                   ! Aggregate chemical tendency [kg box-1]
-                   SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
-                                          ( Spc(I,J,L,NN) - M0 )
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,NA) = SCHEM_TEND(I,J,L,NA) + &
+                                             ( Spc(I,J,L,NN) - M0 )
+                   ENDIF
 
                 ENDDO ! N
              ENDDO ! L
@@ -495,15 +534,19 @@ CONTAINS
              CALL Do_Synoz( am_I_Root, Input_Opt,             &
                             State_Met, State_Chm, RC=errCode )
           ENDIF
+
+          ! Put ozone back to [kg]
+          Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
+                             / State_Chm%SpcData(id_O3)%Info%emMW_g )
+
        ENDIF
  
-       ! Put ozone back to [kg]
-       Spc(:,:,:,id_O3) = Spc(:,:,:,id_O3) * AD / ( AIRMW  &
-                          / State_Chm%SpcData(id_O3)%Info%emMW_g )
-
-       ! Put tendency into diagnostic array [kg box-1]
-       SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
-                                 ( Spc(:,:,:,id_O3) - BEFORE )
+       IF ( .not. LUCX ) THEN
+          ! Aggregate stratospheric chemical tendency [kg box-1]
+          ! for tropchem simulations
+          SCHEM_TEND(:,:,:,id_O3) = SCHEM_TEND(:,:,:,id_O3) + &
+                                    ( Spc(:,:,:,id_O3) - BEFORE )
+       ENDIF
 
        !--------------------------------------------------------------------
        ! Reactions with OH
@@ -524,7 +567,7 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
-                IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) CYCLE
+                IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
                 ! Grid box volume [cm3]
                 BOXVL = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -546,8 +589,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH3Br) * RDLOSS
                    Spc(I,J,L,id_CH3Br) = Spc(I,J,L,id_CH3Br) - T1L
-                   SCHEM_TEND(I,J,L,id_CH3Br) = &
-                     SCHEM_TEND(I,J,L,id_CH3Br) - T1L
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CH3Br) = &
+                        SCHEM_TEND(I,J,L,id_CH3Br) - T1L
+                   ENDIF
                 ENDIF
 
                 !============!
@@ -558,8 +605,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CHBr3) * RDLOSS
                    Spc(I,J,L,id_CHBr3) = Spc(I,J,L,id_CHBr3) - T1L
-                   SCHEM_TEND(I,J,L,id_CHBr3) = &
-                     SCHEM_TEND(I,J,L,id_CHBr3) - T1L
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CHBr3) = &
+                        SCHEM_TEND(I,J,L,id_CHBr3) - T1L
+                   ENDIF
                 ENDIF
 
                 !=============!
@@ -570,8 +621,12 @@ CONTAINS
                    RDLOSS = MIN( RC * mOH * DTCHEM, 1e+0_fp )
                    T1L    = Spc(I,J,L,id_CH2Br2) * RDLOSS
                    Spc(I,J,L,id_CH2Br2) = Spc(I,J,L,id_CH2Br2) - T1L
-                   SCHEM_TEND(I,J,L,id_CH2Br2) = &
-                     SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
+                   IF ( .not. LUCX ) THEN
+                      ! Aggregate stratospheric chemical tendency [kg box-1]
+                      ! for tropchem simulations
+                      SCHEM_TEND(I,J,L,id_CH2Br2) = &
+                        SCHEM_TEND(I,J,L,id_CH2Br2) - T1L
+                   ENDIF
                 ENDIF
 
              ENDDO ! J
@@ -607,11 +662,7 @@ CONTAINS
              DO J = 1, JJPAR
              DO I = 1, IIPAR  
                  
-                IF ( LRESET ) THEN
-                   LCYCLE = ITS_IN_THE_TROP( I, J, L, State_Met )
-                ELSE 
-                   LCYCLE = ITS_IN_THE_CHEMGRID( I, J, L, State_Met )
-                ENDIF
+                LCYCLE = State_Met%InChemGrid(I,J,L)
                 IF ( LCYCLE ) CYCLE
 
                 ! Now get Br data through HEMCO pointers (ckeller, 12/30/14).
@@ -643,10 +694,13 @@ CONTAINS
              ENDDO
              ENDDO
 
-             ! Put tendency into diagnostic array [kg box-1]
-             SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
-                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
-                ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+             IF ( .not. LUCX ) THEN
+                ! Aggregate stratospheric chemical tendency [kg box-1]
+                ! for tropchem simulations
+                SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) = &
+                   SCHEM_TEND(:,:,:,GC_Bry_TrID(NN)) + &
+                   ( Spc(:,:,:,GC_Bry_TrID(NN)) - BEFORE )
+             ENDIF
           
           ENDIF
 
@@ -680,34 +734,40 @@ CONTAINS
 
        ENDDO
 
-       ! Convert units from [kg] to [v/v dry air] for Linoz and Synoz
-       ! (ewl, 10/05/15)
-       CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
-                                    State_Chm, errCode      )
-       IF ( errCode /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error', errCode,    &
-                        'DO_STRAT_CHEM in strat_chem_mod.F')
-          RETURN
-       ENDIF
+       IF ( LLINOZ .OR. LSYNOZ ) THEN
 
-       ! Call either LINOZ or SYNOZ
-       ! NOTE: If you don't want either, comment this block out
-       IF ( LLINOZ ) THEN
-          CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, errCode )
-       ELSE 
-          CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                         State_Met, State_Chm, errCode )
-       ENDIF
+          ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
+          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                  State_Chm, 'v/v dry', errCode,   &
+                                  OrigUnit=OrigUnit )
 
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Unit conversion error (forward) in "Convert_Spc_Units"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
 
-       ! Convert units back to [kg] after Linoz and Synoz (ewl, 10/05/15)
-       CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met,  &
-                                    State_Chm, errCode    )
-       IF ( errCode /= GC_SUCCESS ) THEN
-          CALL GC_Error('Unit conversion error', errCode,     &
-                        'DO_STRAT_CHEM in strat_chem_mod.F')
-          RETURN
+          ! Do LINOZ or SYNOZ
+          IF ( LLINOZ ) THEN
+             CALL Do_Linoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, errCode )
+          ELSE 
+             CALL Do_Synoz( am_I_Root, Input_Opt,             &
+                            State_Met, State_Chm, errCode )
+          ENDIF
+
+         ! Convert species units back to original unit 
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                                 State_Chm, OrigUnit,  errCode )
+
+          ! Trap potential errors
+          IF ( errCode /= GC_SUCCESS ) THEN
+             ErrMsg = 'Unit conversion error (backward) in "Convert_Spc_Units"!'
+             CALL GC_Error( ErrMsg, errCode, ThisLoc )
+             RETURN
+          ENDIF
+
        ENDIF
 
        ! Add to tropopause level aggregator for later determining STE flux
@@ -718,7 +778,7 @@ CONTAINS
        !$OMP PRIVATE( I, J )
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          TpauseL(I,J) = TpauseL(I,J) + GET_TPAUSE_LEVEL( I, J, State_Met )
+          TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -746,14 +806,20 @@ CONTAINS
     ! but would need to be tested.
     !======================================================================
     ELSE
-       IF ( am_I_Root ) THEN
-          WRITE( 6, '(a)' ) 'Strat chemistry needs to be activated for ' // &
-                            'your simulation type.'
-          WRITE( 6, '(a)' ) 'Please see GeosCore/strat_chem_mod.F90' // &
-                            'or disable in input.geos'
-       ENDIF
-       CALL GEOS_CHEM_STOP()
-       
+
+       ! Free pointers
+       Spc => NULL()
+       AD  => NULL()
+       T   => NULL() 
+
+       ! Exit with error if strat chemistry is not activated
+       ErrMsg = 'Linearized strat chemistry needs to be activated for '   // &
+                'activated for your simulation type.  Please see      '   // &
+                'module see GeosCore/strat_chem_mod.F90 or disable    '   // &
+                'stratospheric chemistry in your "input.geos" file.'
+       CALL GC_Error( ErrMsg, errCode, ThisLoc )
+       RETURN
+
     ENDIF
 
     ! Set first-time flag to false
@@ -785,7 +851,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -815,21 +880,21 @@ CONTAINS
 !
     ! Scalars
     CHARACTER(LEN=16)   :: ThisName
-    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME
-    CHARACTER(LEN=1023) :: MSG
+    CHARACTER(LEN=255)  :: PREFIX, FIELDNAME, ThisLoc
+    CHARACTER(LEN=1024) :: ErrMsg
     INTEGER             :: N
 
     !=================================================================
     ! Set_BryPointers begins here 
     !=================================================================
 
-    ! Construct error message
-    MSG = 'Cannot get pointer from HEMCO! Stratospheric Bry data ' // &
-          'is expected to be listed in the HEMCO configuration '   // &
-          'file. This error occured when trying to get field'
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Set_BryPointers (in module GeosCore/strat_chem_mod.F90)'
 
     ! Do for every Bry species
-    DO N = 1,6
+    DO N = 1, 6
 
        ! Skip if species is not defined    
        IF ( GC_Bry_TrID(N) <= 0 ) CYCLE
@@ -845,17 +910,29 @@ CONTAINS
        ! Day
        FIELDNAME = TRIM(PREFIX) // '_DAY'
        CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrDay(N)%MR, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
-                            'Set_BryPointers (start_chem_mod.F90)' )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get pointer from HEMCO! Stratospheric Bry data '//&
+                   'is expected to be listed in the HEMCO configuration '  //&
+                  'file. This error occured when trying to get field '     //&
+                  TRIM( FieldName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Night
        FIELDNAME = TRIM(PREFIX) // '_NIGHT'
        CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, BrPtrNight(N)%MR, RC )
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL ERROR_STOP ( TRIM(MSG)//' '//TRIM(FIELDNAME), &
-                            'Set_BryPointers (start_chem_mod.F90)' )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Cannot get pointer from HEMCO! Stratospheric Bry data '//&
+                   'is expected to be listed in the HEMCO configuration '  //&
+                   'file. This error occured when trying to get field '    //&
+                   TRIM( FieldName )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
     ENDDO !N
@@ -879,17 +956,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_PLVEC ( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE Set_PLVEC( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
 !
 ! !USES:
 !
+    USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE PhysConstants,      ONLY : AVO, AIRMW
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -897,15 +976,17 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorological State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  16 Jan 2015 - C. Keller   - Initial version
+!  05 Dec 2017 - M. Sulprizio- Update to use prod/loss rates from UCX for 
+!                              certain Cl and I species
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -915,21 +996,37 @@ CONTAINS
     ! Scalars
     CHARACTER(LEN=16)   :: ThisName
     CHARACTER(LEN=255)  :: FIELDNAME
-    CHARACTER(LEN=1023) :: MSG, ERR
     INTEGER             :: N, TRCID
     LOGICAL             :: FND
+    INTEGER             :: I, J, L
+    REAL(fp)            :: BOXVL, AIRDENS
+    REAL(f4)            :: SpcConc
+
+    ! Strings
+    CHARACTER(LEN=63)   :: OrigUnit
+    CHARACTER(LEN=255)  :: ThisLoc
+    CHARACTER(LEN=1024) :: ErrMsg
 
     !=================================================================
     ! Set_PLVEC begins here 
     !=================================================================
 
-    ! Assume error until success
-    RC = GC_FAILURE
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Set_PlVec (in module GeosCore/strat_chem_mod.F90)'
 
-    ! Construct error message
-    ERR = 'Cannot get pointer from HEMCO! GMI prod/loss data is '  // &
-          'expected to be listed in the HEMCO configuration file. '// &
-          'This error occured when trying to get field'
+    ! Convert species to [molec/cm3]
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
+                            State_Chm, 'molec/cm3', RC, &
+                            OrigUnit=OrigUnit )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error in "Convert_Spc_Units"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF 
 
     ! Do for every species 
     DO N = 1,NSCHEM
@@ -948,49 +1045,112 @@ CONTAINS
        ! ---------------------------------------------------------------
 
        ! Production rates [v/v/s]
-       FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+       FIELDNAME = 'UCX_PROD_'//TRIM(ThisName)
+
+       ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%PROD, RC,       FOUND=FND )
+
+       ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
-                            'Set_PLVEC (start_chem_mod.F90)' )
+          ErrMsg = 'Cannot get pointer from HEMCO! UCX prod/loss ' // &
+                   'data is expected to be listed in the HEMCO '          // &
+                   'configuration file. This error occured when trying '  // &
+                   'to get field ' // TRIM( FIELDNAME )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          MSG = 'Cannot find archived GMI production rates for ' // &
-                TRIM(ThisName) // ' - will use value of 0.0. '   // &
-                'To use archived rates, add the following field '// &
-                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
-          WRITE(6,*) TRIM(MSG)
+          ErrMsg = 'Cannot find archived UCX production rates for '       // &
+                    TRIM(ThisName) // ' - will use value of 0.0. '        // &
+                   'To use archived rates, add the following field '      // &
+                   'to the HEMCO configuration file: '// TRIM( FIELDNAME )
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
        ENDIF
 
        ! Loss frequency [s-1]
-       FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+       FIELDNAME = 'UCX_LOSS_'//TRIM(ThisName)
+       
+       ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%LOSS, RC,       FOUND=FND )
+
+       ! Trap potential errors
        IF ( RC /= HCO_SUCCESS .OR. ( PLMUSTFIND .AND. .NOT. FND) ) THEN
-          CALL ERROR_STOP ( TRIM(ERR)//' '//TRIM(FIELDNAME), &
-                            'Set_PLVEC (start_chem_mod.F90)' )
+          ErrMsg = 'Cannot get pointer from HEMCO! UCX prod/loss ' // &
+                   'data is expected to be listed in the HEMCO '          // &
+                   'configuration file. This error occured when trying '  // &
+                   'to get field ' // TRIM( FIELDNAME )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Warning message
        IF ( .NOT. FND .AND. AM_I_ROOT ) THEN
-          MSG = 'Cannot find archived GMI loss frequencies for ' // &
-                TRIM(ThisName) // ' - will use value of 0.0. '   // &
-                'To use archived rates, add the following field '// &
-                'to the HEMCO configuration file: '//TRIM(FIELDNAME)
-          WRITE(6,*) TRIM(MSG)
+          ErrMsg= 'Cannot find archived UCX loss frequencies for '        // &
+                  TRIM(ThisName) // ' - will use value of 0.0. '          // &
+                  'To use archived rates, add the following field '       // &
+                  'to the HEMCO configuration file: '//TRIM(FIELDNAME)
+          CALL GC_Warning( ErrMsg, RC, ThisLoc )
        ENDIF
 
+       ! UCX rates are in molec/cm3/s; need to convert to expected units
+       !$OMP PARALLEL DO &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, BOXVL, AIRDENS, SpcConc )
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+
+          ! Grid box volume [cm3]
+          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
+
+          ! Air density [molec/cm3]
+          AIRDENS= State_Met%AD(I,J,L) * 1000e+0_fp   / &
+                   BOXVL               * AVO / AIRMW
+
+          ! Convert PROD from molec/cm3/s to v/v/s for
+          PLVEC(N)%PROD(I,J,L) = PLVEC(N)%PROD(I,J,L) / AIRDENS
+
+          ! Convert LOSS from molec/cm3/s to 1/s
+          SpcConc = State_Chm%Species(I,J,L,TRCID)
+          IF ( SpcConc > 0 ) THEN
+             PLVEC(N)%LOSS(I,J,L) = PLVEC(N)%LOSS(I,J,L) / SpcConc
+          ELSE
+             PLVEC(N)%LOSS(I,J,L) = 0e+0_fp
+          ENDIF
+
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+
     ENDDO !N
+
+    ! Convert species back to original units (ewl, 8/16/16)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
+       RETURN
+    ENDIF  
 
     ! Get pointer to STRAT_OH
     CALL HCO_GetPtr( am_I_Root, HcoState, 'STRAT_OH', &
                      STRAT_OH,  RC,        FOUND=FND )
+
+    ! Trap potential errors
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
-       MSG = 'Cannot find monthly archived strat. OH field '    // &
-             '`STRAT_OH`. Please add a corresponding entry to ' // &
-             'the HEMCO configuration file.'
-       CALL ERROR_STOP ( TRIM(MSG), 'Set_PLVEC (strat_chem_mod.F90)' )
+       ErrMsg = 'Cannot find monthly archived strat. OH field '           // &
+                '`STRAT_OH`. Please add a corresponding entry to '        // &
+                'the HEMCO configuration file.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1019,13 +1179,12 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GC_Error
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1061,6 +1220,8 @@ CONTAINS
 !                              species ID from State_Chm%Map_Advect.
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1072,6 +1233,7 @@ CONTAINS
     INTEGER                :: N,         I,       J,    L
     INTEGER                :: nAdvect,   NA,      NN
     REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
+    CHARACTER(LEN=63)      :: OrigUnit
 
     ! Arrays
     INTEGER                :: LTP(IIPAR,JJPAR      )
@@ -1108,9 +1270,9 @@ CONTAINS
     RETURN
 #else
 
-    ! Convert State_Chm%SPECIES from [kg/kg dry air] to [kg] so that
-    ! units are consistently mixing ratio in main (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1180,6 +1342,8 @@ CONTAINS
        dStrat   = SUM(M2)-SUM(M1)
 
        ! The total chemical tendency (P-L) over the period for species N [kg]
+       ! Schem_tend is computed in this module for tropchem simulations and
+       ! in flexchem_mod.F90 for UCX simulations
        Tend   = SUM(Schem_tend(:,:,:,N))
 
        ! Calculate flux as STE = (P-L) - dStrat/dt
@@ -1224,9 +1388,9 @@ CONTAINS
 
     ENDDO
 
-    ! Convert State_Chm%SPECIESfrom [kg] back to [kg/kg dry air] 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Calc_STE in strat_chem_mod.F')
@@ -1258,7 +1422,7 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ALLOC_ERR, GC_Error
+    USE ERROR_MOD,          ONLY : ALLOC_ERR
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1302,6 +1466,7 @@ CONTAINS
 !  12 Jul 2016 - R. Yantosca - Now also store advected species ID's
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  20 Sep 2016 - R. Yantosca - Rewrote GMI_TrName statement for Gfortran
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1310,6 +1475,7 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=16)      :: sname
+    CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
     ! Scalars
     INTEGER                :: AS, N, NN, NA, nAdvect
@@ -1321,14 +1487,16 @@ CONTAINS
     ! Pointers
     TYPE(Species), POINTER :: SpcInfo
 
+    !================================================================
+    ! Initialize 
     !=================================================================
-    ! INIT_STRAT_CHEM begins here!
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> Init_Strat_Chem (in Headers/strat_chem_mod.F90)'
+
     !=================================================================
-
-    ! Assume success
-    RC                       = GC_SUCCESS
-
     ! Get species ID flags
+    !=================================================================
     id_Br                    = Ind_('Br'     )
     id_Br2                   = Ind_('Br2'    )
     id_BrNO3                 = Ind_('BrNO3'  ) 
@@ -1358,79 +1526,65 @@ CONTAINS
     NymdInit                 = GET_NYMD()
     NhmsInit                 = GET_NHMS()
     strat_trID_GC(:)         = 0
-    strat_trID_GMI(:)        = 0
+    strat_trID_UCX(:)        = 0
 
     ! Initialize timestep for chemistry [s]
-    dTchem = GET_TS_CHEM() * 60e+0_fp
+    dTchem = GET_TS_CHEM()
 
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! Determine the mapping for the GMI to the GC variables based on
+    ! Determine the mapping for the UCX to the GC variables based on
     ! species name, which only needs to be done once per model run.
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! List of available species with archived monthly climatological
     ! production rates, loss frequencies, and mixing ratios from the 
-    ! GMI Combo model (species names here are as used in GMI).
-    !
-    ! Rewrote the GMI_TrName array constructor so that all of the species
-    ! names have the same length.  This will prevent Gfortran from choking 
-    ! with an error.  This is OK since we trim GMI_TrName before using
-    ! it in any string comparisons. (bmy, 9/20/16)
-    GMI_TrName = (/ 'A3O2    ', 'ACET    ', 'ACTA    ', 'ALD2    ',   &
-                    'ALK4    ', 'ATO2    ', 'B3O2    ', 'Br      ',   &
-                    'BrCl    ', 'BrO     ', 'BrONO2  ', 'C2H6    ',   &
-                    'C3H8    ', 'CCl4    ', 'CF2Br2  ', 'CF2Cl2  ',   &
-                    'CF2ClBr ', 'CF3Br   ', 'CFC113  ', 'CFC114  ',   &
-                    'CFC115  ', 'CFCl3   ', 'CH2O    ', 'CH3Br   ',   &
-                    'CH3CCl3 ', 'CH3Cl   ', 'CH4     ', 'CO      ',   &
-                    'Cl      ', 'Cl2     ', 'Cl2O2   ', 'ClO     ',   &
-                    'ClONO2  ', 'EOH     ', 'ETO2    ', 'ETP     ',   &
-                    'GCO3    ', 'GLYC    ', 'GLYX    ', 'GP      ',   &
-                    'GPAN    ', 'H       ', 'H2      ', 'H2402   ',   &
-                    'H2O     ', 'H2O2    ', 'HAC     ', 'HBr     ',   &
-                    'HCFC141b', 'HCFC142b', 'HCFC22  ', 'HCOOH   ',   &
-                    'HCl     ', 'HNO2    ', 'HNO3    ', 'HNO4    ',   &
-                    'HO2     ', 'HOBr    ', 'HOCl    ', 'IALD    ',   &
-                    'IAO2    ', 'IAP     ', 'INO2    ', 'INPN    ',   &
-                    'ISN1    ', 'ISNP    ', 'ISOP    ', 'KO2     ',   &
-                    'MACR    ', 'MAN2    ', 'MAO3    ', 'MAOP    ',   &
-                    'MAP     ', 'MCO3    ', 'MEK     ', 'MGLY    ',   &
-                    'MO2     ', 'MOH     ', 'MP      ', 'MRO2    ',   &
-                    'MRP     ', 'MVK     ', 'MVN2    ', 'N       ',   &
-                    'N2O     ', 'N2O5    ', 'NO      ', 'NO2     ',   &
-                    'NO3     ', 'NOx     ', 'O       ', 'O1D     ',   &
-                    'O3      ', 'OClO    ', 'OH      ', 'Ox      ',   &
-                    'PAN     ', 'PMN     ', 'PO2     ', 'PP      ',   &
-                    'PPN     ', 'PRN1    ', 'PRPE    ', 'PRPN    ',   &
-                    'R4N1    ', 'R4N2    ', 'R4O2    ', 'R4P     ',   &
-                    'RA3P    ', 'RB3P    ', 'RCHO    ', 'RCO3    ',   &
-                    'RCOOH   ', 'RIO1    ', 'RIO2    ', 'RIP     ',   &
-                    'ROH     ', 'RP      ', 'VRO2    ', 'VRP     '  /)
-
+    ! GEOS-Chem UCX simulation.
+    UCX_TrName = (/ 'Ox      ', 'NO      ', 'O3      ', 'PAN     ',   & 
+                    'CO      ', 'ALK4    ', 'ISOP    ', 'HNO3    ',   &
+                    'H2O2    ', 'ACET    ', 'MEK     ', 'ALD2    ',   &
+                    'RCHO    ', 'MVK     ', 'MACR    ', 'NPMN    ',   &
+                    'PPN     ', 'R4N2    ', 'PRPE    ', 'C3H8    ',   &
+                    'CH2O    ', 'C2H6    ', 'N2O5    ', 'HNO4    ',   &
+                    'MP      ', 'DMS     ', 'SO2     ', 'SO4     ',   &
+                    'MSA     ', 'Br2     ', 'Br      ', 'BrO     ',   &
+                    'HOBr    ', 'HBr     ', 'BrNO2   ', 'BrNO3   ',   &
+                    'CHBr3   ', 'CH2Br2  ', 'CH3Br   ', 'MPN     ',   &
+                    'ISOPND  ', 'ISOPNB  ', 'MOBA    ', 'PROPNN  ',   &
+                    'HAC     ', 'GLYC    ', 'MVKN    ', 'MACRN   ',   &
+                    'MAP     ', 'NO2     ', 'NO3     ', 'HNO2    ',   &
+                    'HNO2    ', 'BENZ    ', 'TOLU    ', 'XYLE    ',   &
+                    'MTPA    ', 'LIMO    ', 'EOH     ', 'MGLY    ',   &
+                    'GLYX    ', 'ACTA    ', 'HPALD   ', 'DHDN    ',   &
+                    'ETHLN   ', 'HCOOH   ', 'IEPOXA  ', 'IEPOXB  ',   &
+                    'IEPOXD  ', 'ISN1    ', 'RIPA    ', 'RIPB    ',   &
+                    'RIPD    ', 'IMAE    ', 'SOAIE   ', 'SOAME   ',   &
+                    'SOAGX   ', 'SOAMG   ', 'LVOC    ', 'LVOCOA  ',   &
+                    'ISN1OG  ', 'ISN1OA  ', 'MONITS  ', 'MONITU  ',   &
+                    'HONIT   ', 'IONITA  ', 'MONITA  ', 'INDIOL  ',   &
+                    'IPMN    ', 'HC187   ', 'N2O     ', 'OCS     ',   &
+                    'CH4     ', 'BrCl    ', 'HCl     ', 'CCl4    ',   &
+                    'CH3Cl   ', 'CH3CCl3 ', 'CFC113  ', 'CFC114  ',   &
+                    'CFC115  ', 'HCFC123 ', 'HCFC141 ', 'HCFC142 ',   &
+                    'CFC11   ', 'CFC12   ', 'HCFC22  ', 'H1211   ',   &
+                    'H1301   ', 'H2402   ', 'Cl      ', 'ClO     ',   &
+                    'HOCl    ', 'ClNO3   ', 'ClNO2   ', 'ClOO    ',   &
+                    'OClO    ', 'Cl2     ', 'Cl2O2   ', 'H2O     ',   &
+                    'BrSALA  ', 'BrSALC  ', 'CHCl3   ', 'CH2Cl2  ',   &
+                    'CH3I    ', 'CH2I2   ', 'CH2ICl  ', 'CH2IBr  ',   &
+                    'HOI     ', 'I2      ', 'IBr     ', 'ICl     ',   &
+                    'I       ', 'IO      ', 'HI      ', 'OIO     ',   &
+                    'INO     ', 'IONO    ', 'IONO2   ', 'I2O2    ',   &
+                    'I2O3    ', 'I2O4    ', 'ISALA   ', 'ISALC   ',   &
+                    'AERI    ' /)
 
     !===========================!
     ! Full chemistry simulation !
     !===========================!
     IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
-       DO NN = 1, NTR_GMI       
+       DO NN = 1, NTR_UCX       
 
-          sname = TRIM(GMI_TrName(NN))
-
-          ! Some species names don't exactly match GEOS-Chem names
-          !IF ( TRIM(GMI_TrName(NN)) .eq. 'BrONO2' ) sname = 'BrNO3'
-          ! Need to line up CFCs correctly
-          IF     ( TRIM(GMI_TrName(NN)) .eq. 'CF2Br2'  ) THEN
-              sname = 'H1202'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2Cl2'  ) THEN
-              sname = 'CFC12'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF2ClBr' ) THEN
-              sname = 'H1211'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CF3Br'   ) THEN
-              sname = 'H1311'
-          ELSEIF ( TRIM(GMI_TrName(NN)) .eq. 'CFCl3'   ) THEN
-              sname = 'CFC11'
-          ENDIF
+          sname = TRIM(UCX_TrName(NN))
  
           ! Loop over only the advected species
           DO NA = 1, nAdvect
@@ -1441,7 +1595,7 @@ CONTAINS
              ! Get the corresponding entry in the species database
              SpcInfo => State_Chm%SpcData(N)%Info
 
-             ! For now, guarantee that GMI prod/loss rates are not used for any
+             ! For now, guarantee that UCX prod/loss rates are not used for any
              ! bromine species
              IF ( TRIM( SpcInfo%Name ) .eq.      'Br' .or. &
                   TRIM( SpcInfo%Name ) .eq.    'BrCl' .or. &
@@ -1476,14 +1630,14 @@ CONTAINS
                    ENDIF
                 ELSE
                    IF ( am_I_Root ) THEN
-                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
+                      WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
                    ENDIF
                 ENDIF
 
                 NSCHEM                 = NSCHEM + 1
                 Strat_TrID_GC (NSCHEM) = N  ! Maps 1:NSCHEM to species array
                 Strat_TrId_TND(NSCHEM) = NA ! Maps 1:NSCHEM to SCHEM_TEND
-                Strat_TrID_GMI(NSCHEM) = NN ! Maps 1:NSCHEM to GMI_TrName index
+                Strat_TrID_UCX(NSCHEM) = NN ! Maps 1:NSCHEM to UCX_TrName index
              ENDIF
 
              ! Free pointer
@@ -1553,12 +1707,17 @@ CONTAINS
     ! initial atm. conditions from restart file converted to [kg/kg].
     ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
+    MInit = 0.0_fp
 
+#if !defined( ESMF_ )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
-#if !defined( ESMF_ )
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Set_MInit"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 #endif
 
     ! Array to determine the mean tropopause level over the period
@@ -1593,12 +1752,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,     ONLY : GC_ERROR
     USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Chm_Mod, ONLY : ChmState
     USE State_Met_Mod, ONLY : MetState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1620,34 +1778,51 @@ CONTAINS
 !  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
 !                              INIT_STRAT_CHEM so that it can be called from
 !                              within DO_STRAT_CHEM (for ESMF applications).
+!  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
+!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N, NA
+    ! Scalars
+    INTEGER            :: N, NA
+    LOGICAL            :: UNITCHANGE
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=63)  :: OrigUnit
 
     !=================================================================
     ! SET_MINIT begins here!
     !=================================================================
+    
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = '-> Set_MInit (in GeosCore/strat_chem_mod.F90)'
 
-    ! Assume success
-    RC                       = GC_SUCCESS
+    ! Assume no unit change is necessary and species are already in kg
+    UNITCHANGE = .FALSE.
 
-    ! Safety check that STT is non-zero.
-    IF ( SUM(State_Chm%Species) <= 0.0_fp ) RETURN
-
-    ! Convert species from [kg/kg dry air] to [kg] so
-    ! that initial state of atmosphere is in same units as 
-    ! chemistry ([kg]), and then convert back after MInit is assigned 
-    ! (ewl, 8/10/15)
-    CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+    ! Safety check that the advected species are non-zero.
+    IF ( SUM( State_Chm%Species(:,:,:,1:State_Chm%nAdvect) ) <= 0.0_fp ) THEN
+       ErrMsg = 'One or more advected species have negative concentrations!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Convert species to [kg] so that initial state of atmosphere is 
+    ! in same units as chemistry (ewl, 8/10/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF 
 
     ! Loop over only the advected species
     DO NA = 1, State_Chm%nAdvect
@@ -1660,13 +1835,14 @@ CONTAINS
 
     ENDDO
 
-    ! Convert species back to [kg/kg dry air]
-    CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC )
+    ! Convert species units back to original unit 
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Routine INIT_STRAT_CHEM in strat_chem_mod.F')
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
+    ENDIF  
 
     ! Minit is now set
     MInit_Is_Set = .TRUE.
@@ -1754,7 +1930,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -1898,40 +2073,21 @@ CONTAINS
 !
     ! Select the grid boxes at the edges of the O3 release region, 
     ! for the proper model resolution (qli, bmy, 12/1/04)
-#if   defined( GRID4x5 ) && defined( GCAP )
-    ! GCAP has 45 latitudes, shift by 1/2 grid box (swu, bmy, 5/25/05)
-    INTEGER, PARAMETER   :: J30S = 16, J30N = 30 
-
-#elif defined( GRID4x5 )
+#if defined( GRID4x5 )
     INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
 
 #elif defined( GRID2x25 ) 
     INTEGER, PARAMETER   :: J30S = 31, J30N = 61
 
-#elif defined( GRID1x125 ) 
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121
-
 #elif defined( GRID05x0625 )
 
     !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
 #if   defined( NESTED_AS )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 83
 #elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 41
 #elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
-#endif
-
-
-#elif defined( GRID05x0666 )
-
-! jtl, 10/26/11 
-#if   defined( NESTED_CH )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif defined( NESTED_NA )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif defined( NESTED_EU )
-      INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
+    INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
 #endif
 
 #elif defined( GRID025x03125 )
@@ -1943,14 +2099,6 @@ CONTAINS
 !Anna Prot added 8 May 2015
 #elif defined( NESTED_EU )
     INTEGER, PARAMETER   :: J30S = 1, J30N = 115
-#endif
-
-#elif defined( GRID1x1 ) 
-
-#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined(NESTED_EU)
-    INTEGER, PARAMETER   :: J30S = 1,  J30N = JJPAR  ! 1x1 nested grids
-#else  
-    INTEGER, PARAMETER   :: J30S = 61, J30N = 121    ! 1x1 global grid
 #endif
 
 #elif defined( EXTERNAL_GRID )
@@ -1972,7 +2120,7 @@ CONTAINS
 
     ! Chemical timestep [s]
     ! Originally, Synoz was in transport code, and used dynamic dT.
-    DTCHEM = GET_TS_CHEM() * 60e+0_fp
+    DTCHEM = GET_TS_CHEM()
 
     ! For O3 flux printout
     STFLUX = 0e+0_fp
@@ -1998,19 +2146,9 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if   defined( GEOS_4 )
-    PO3_vmr = 5.14e-14_fp                                 ! 3,3,7
+#if  defined( GEOS_FP ) || defined( MERRA2 )
 
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-    ! For now assume GEOS-5 has same PO3_vmr value 
-    ! as GEOS-4; we can redefine later (bmy, 5/25/05)
     PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GCAP )
-
-    ! For GCAP, assuming 3,3,7 (swu, bmy, 5/25/05)
-    PO3_vmr = 5.0e-14_fp
 
 #elif defined( GISS ) && defined( MODELE )
 
@@ -2045,32 +2183,13 @@ CONTAINS
     DO J = J30S, J30N 
        DO I = 1,    IIPAR
 
-          !==============================================================
-          ! L70mb is the 1st layer where pressure is equal to
-          ! or smaller than 70 mb 
-          !==============================================================
-
-          !--------------------------------------------------------------
-          ! Comment out for now (bmy, 10/2/07)
-          ! replace L70mb with Tropopause pressure if the later is 
-          ! lower -PHS #### still Beta testing ####
-          !IF ( Input_Opt%LVARTROP ) THEN
-          !   PTP = State_Met%TROPP(I,J)
-          !   IF ( PTP < P70mb ) THEN
-          !      P70mb = PTP
-          !      !#### TESTING ####
-          !      write(6,*)'#### RAISED bottom of O3 release region'
-          !      write(6,*)'at ', i, j
-          !      first=.true.
-          !   ENDIF
-          !ENDIF
-          !--------------------------------------------------------------
-
           DO L = 1, LLPAR
 
              ! P2 = pressure [hPa] at the sigma center of level L70mb
              P2 = State_Met%PMID(I,J,L) 
 
+             ! L70mb is the 1st layer where pressure is equal to
+             ! or smaller than 70 mb 
              IF ( P2 < P70mb ) THEN
                 L70mb = L
                 EXIT
@@ -2124,7 +2243,6 @@ CONTAINS
              ! Convert O3 in grid box (I,J,L) from v/v/s to v/v/box
              PO3 = PO3_vmr * DTCHEM 
 
-#if   !defined( GCAP ) 
              ! For both 2 x 2.5 and 4 x 5 GEOS grids, 30S and 30 N are
              ! grid box centers.  However, the O3 release region is 
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
@@ -2132,7 +2250,7 @@ CONTAINS
              IF ( J == J30S .or. J == J30N ) THEN
                 PO3 = PO3 / 2e+0_fp
              ENDIF
-#endif
+
              ! If we are in the lower level, compute the fraction
              ! of this level that lies above 70 mb, and scale 
              ! the O3 flux accordingly.

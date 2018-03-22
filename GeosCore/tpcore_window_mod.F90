@@ -299,9 +299,7 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if   defined( GEOS5 )
- dlon = 2.*pi / float(540)       !(dan)
-#elif defined( GEOS_FP )
+#if defined( GEOS_FP )
  dlon = 2.*pi / float(1152)      !(dan)
 #elif defined( MERRA2 )
  dlon = 2.*pi / float(576)       !(dan)
@@ -459,7 +457,7 @@ CONTAINS
  !%%% arrays are instantaneous since cumulative sum is abstracted to
  !%%% to high-level diagnostic container update code.
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
                         MASSFLEW, MASSFLNS, MASSFLUP,                   &
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -580,7 +578,7 @@ CONTAINS
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Added netcdf diagnostic arrays (ewl, 1/11/16)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
  REAL,    INTENT(INOUT) :: MASSFLEW(:,:,:,:) ! east/west mass flux
  REAL,    INTENT(INOUT) :: MASSFLNS(:,:,:,:) ! north/south mass flux
  REAL,    INTENT(INOUT) :: MASSFLUP(:,:,:,:) ! up/down vertical mass flux
@@ -610,7 +608,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
 ! Local arrays for mass fluxes to save memory if diagnostics not used.
 ! (ccc, 9/9/10)
  real MFLEW(im, jm), MFLNS(im, jm)
@@ -777,7 +775,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
 !$omp private( i, j, k, q2, MFLEW, MFLNS )
 #else
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -796,7 +794,7 @@ CONTAINS
  !%%%
  !%%% Add new netcdf diagnostic code (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
     MFLEW(:,:) = 0.d0
     MFLNS(:,:) = 0.d0
 #endif
@@ -817,7 +815,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
     IF ( ND24 > 0 ) THEN 
        MFLEW = MASSFLEW(:,:,K,IQ)
     ELSE
@@ -865,7 +863,7 @@ CONTAINS
  !%%% (bdf, bmy, 9/28/04). 
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
                MFLEW, MFLNS,                                &
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -877,7 +875,7 @@ CONTAINS
  !%%% Add new netcdf diagnostic code and separate bpch from netcdf diag
  !%%% code with pre-processor blocks (ewl, 1/11/2016)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
     ! Save mass flux diagnostics (clb, 7/2/12)
     IF ( ND24 > 0 ) THEN
        MASSFLEW(:,:,K,IQ) = MFLEW
@@ -993,9 +991,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
        MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K,IQ) / DT
 
-#endif
-#if defined( NC_DIAG )
-       MASSFLUP(I,J,K,IQ) = DTC(I,J,K,IQ) / DT
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1360,7 +1355,7 @@ CONTAINS
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% Add diagnostics for writing to netcdf (ewl, 1/11/16)
  !%%%
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
                 MFLEW, MFLNS,                          &
 #endif 
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1398,7 +1393,7 @@ CONTAINS
  !%%% GEOS-CHEM mass-flux diagnostics (bdf, bmy, 9/28/04)
  !%%% Remove TCVV since now using kg/kg total air tracer units (ewl, 6/24/15)
  !%%% 
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
    REAL,    INTENT(INOUT) :: MFLEW(IM,JM)   ! E/W mass flux array
    REAL,    INTENT(INOUT) :: MFLNS(IM,JM)   ! N/S mass flux array
 #endif
@@ -1483,9 +1478,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLEW(I,J) = MFLEW(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLEW(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1500,9 +1492,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
          MFLEW(IM,J) = MFLEW(I,J) + DTC
-#endif
-#if defined( NC_DIAG )
-         MFLEW(IM,J) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -1530,9 +1519,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
          MFLNS(I,J) = MFLNS(I,J) + DTC
 #endif
-#if defined( NC_DIAG )
-         MFLNS(I,J) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ENDDO
@@ -1553,9 +1539,6 @@ CONTAINS
 #if defined( BPCH_DIAG )
             MFLNS(I,1) = MFLNS(I,1) + DTC
 #endif
-#if defined( NC_DIAG )
-            MFLNS(I,1) = DTC
-#endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          ENDDO
@@ -1575,9 +1558,6 @@ CONTAINS
  !%%%
 #if defined( BPCH_DIAG )
             MFLNS(I,JM) = MFLNS(I,JM) + DTC
-#endif
-#if defined( NC_DIAG )
-            MFLNS(I,JM) = DTC
 #endif
  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -2373,6 +2353,13 @@ CONTAINS
  integer i, j, imh, jm1, lmt
  integer js1g1, js2g0, js2g1, jn1g2, jn1g1, jn2g1
 
+      !---------------------------------------------------------------------
+      ! Initialize local variables (bmy, 7/10/17)
+      ar = 0.0
+      al = 0.0
+      a6 = 0.0
+      !---------------------------------------------------------------------
+
       imh = im / 2
       jm1 = jm - 1
 
@@ -2597,6 +2584,10 @@ CONTAINS
  real       r3, r23
  real temp
  parameter (r3 = 1./3., r23 = 2./3.)
+
+ ! Initialize local arrays (bmy, 7/10/17)
+ dp1 = 0.0
+ q4  = 0.0
 
       do k=1,km
          do i=i1,i2

@@ -122,7 +122,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -192,7 +192,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -262,7 +262,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -332,7 +332,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -402,7 +402,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -472,7 +472,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -542,7 +542,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg
+    CHARACTER(LEN=512) :: errMsg
     INTEGER            :: status, vId
 
     ! Zero return value
@@ -611,7 +611,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -670,7 +670,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -729,7 +729,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -788,7 +788,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -847,7 +847,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -906,7 +906,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value
@@ -965,7 +965,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=128) :: errMsg, varName
+    CHARACTER(LEN=512) :: errMsg, varName
     INTEGER            :: status
 
     ! Zero return value

@@ -20,10 +20,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      LOGICAL, PUBLIC :: DO_SAVE_DIAG50    ! On/off flag for ND50 diagnostic
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CLEANUP_DIAG50
@@ -33,7 +29,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 ! 
       PRIVATE :: ACCUMULATE_DIAG50
-      PRIVATE :: ITS_TIME_FOR_WRITE_DIAG50
       PRIVATE :: WRITE_DIAG50
       PRIVATE :: GET_I
 !
@@ -41,29 +36,29 @@
 !  ND50 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
-!  151           : OH concentration                         [molec/cm3]
-!  152           : NOy concentration                        [v/v      ]
-!  153           : Relative Humidity                        [%        ]
-!  154           : 3-D Cloud fractions                      [unitless ]
-!  155           : Column optical depths                    [unitless ]
-!  156           : Cloud top heights                        [hPa      ]
-!  157           : Air density                              [molec/cm3]
-!  158           : Total seasalt tracer concentration       [unitless ]
-!  159           : PBL heights                              [m        ]
-!  160           : PBL heights                              [levels   ]
-!  161           : Grid box heights                         [m        ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa      ]
-!  163           : Sea level pressure                       [hPa      ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  166           : Temperature                              [K        ]
-!  167           : Sulfate aerosol optical depth            [unitless ]
-!  168           : Black carbon aerosol optical depth       [unitless ]
-!  169           : Organic carbon aerosol optical depth     [unitless ]
-!  170           : Accumulation mode seasalt optical depth  [unitless ]
-!  171           : Coarse mode seasalt optical depth        [unitless ]
-!  172           : Total dust optical depth                 [unitless ]
-!  173-179       : Size resolved dust optical depth         [unitless ]
+!  501           : OH concentration                         [molec/cm3]
+!  502           : NOy concentration                        [v/v      ]
+!  503           : Relative Humidity                        [%        ]
+!  504           : 3-D Cloud fractions                      [unitless ]
+!  505           : Column optical depths                    [unitless ]
+!  506           : Cloud top heights                        [hPa      ]
+!  507           : Air density                              [molec/cm3]
+!  508           : Total seasalt tracer concentration       [unitless ]
+!  509           : PBL heights                              [m        ]
+!  510           : PBL heights                              [levels   ]
+!  511           : Grid box heights                         [m        ]
+!  512           : PEDGE-$ (Pressure @ level edges          [hPa      ]
+!  513           : Sea level pressure                       [hPa      ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  516           : Temperature                              [K        ]
+!  517           : Sulfate aerosol optical depth            [unitless ]
+!  518           : Black carbon aerosol optical depth       [unitless ]
+!  519           : Organic carbon aerosol optical depth     [unitless ]
+!  520           : Accumulation mode seasalt optical depth  [unitless ]
+!  521           : Coarse mode seasalt optical depth        [unitless ]
+!  522           : Total dust optical depth                 [unitless ]
+!  523-529       : Size resolved dust optical depth         [unitless ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -115,18 +110,9 @@
       ! IOFF             : Longitude offset
       ! JOFF             : Latitude offset
       ! LOFF             : Altitude offset
-      ! ND50_IMIN        : Minimum latitude  index for DIAG51 region
-      ! ND50_IMAX        : Maximum latitude  index for DIAG51 region
-      ! ND50_JMIN        : Minimum longitude index for DIAG51 region
-      ! ND50_JMAX        : Maximum longitude index for DIAG51 region
-      ! ND50_LMIN        : Minimum altitude  index for DIAG51 region
-      ! ND50_LMAX        : Minimum latitude  index for DIAG51 region
       ! ND50_NI          : Number of longitudes in DIAG51 region 
       ! ND50_NJ          : Number of latitudes  in DIAG51 region
       ! ND50_NL          : Number of levels     in DIAG51 region
-      ! ND50_N_TRACERS   : Number of tracers for DIAG51
-      ! ND50_OUTPUT_FILE : Name of bpch file w  timeseries data
-      ! ND50_TRACERS     : Array of DIAG51 tracer numbers
       ! Q                : Accumulator array for various quantities
       ! TAU0             : Starting TAU used to index the bpch file
       ! TAU1             : Ending TAU used to index the bpch file
@@ -145,10 +131,6 @@
       INTEGER              :: LOFF,           I0
       INTEGER              :: J0,             ND50_NI
       INTEGER              :: ND50_NJ,        ND50_NL
-      INTEGER              :: ND50_N_TRACERS, ND50_TRACERS(100)
-      INTEGER              :: ND50_IMIN,      ND50_IMAX
-      INTEGER              :: ND50_JMIN,      ND50_JMAX
-      INTEGER              :: ND50_LMIN,      ND50_LMAX
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1
       REAL*4               :: LONRES,         LATRES
@@ -156,7 +138,6 @@
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = ''
       CHARACTER(LEN=80)    :: TITLE
-      CHARACTER(LEN=255)   :: ND50_OUTPUT_FILE
 
       ! Arrays
       REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
@@ -186,6 +167,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
+      USE Time_Mod,           ONLY : ITS_A_NEW_DAY
 !
 ! !INPUT PARAMETERS:
 !
@@ -219,7 +201,7 @@
      &    ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
       ! Write data to disk at the end of the day
-      IF ( ITS_TIME_FOR_WRITE_DIAG50() .and. 
+      IF ( ITS_A_NEW_DAY() .and. 
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
          CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
@@ -244,10 +226,10 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH
+!      USE CMN_O3_MOD               ! SAVEOH
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
@@ -255,8 +237,9 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN, GET_TS_CHEM
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
+      USE Aerosol_Mod,        ONLY : PM25
 !
 ! !INPUT PARAMETERS:
 !
@@ -320,6 +303,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -331,8 +316,9 @@
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
       LOGICAL, SAVE       :: IS_CLDTOPS,  IS_NOy,  IS_OPTD, IS_SLP
       INTEGER, SAVE       :: id_HNO3,     id_HNO4, id_N2O5, id_NO
-      INTEGER, SAVE       :: id_PAN,      id_PMN,  id_PPN,  id_O3
+      INTEGER, SAVE       :: id_PAN,      id_NPMN,  id_PPN,  id_O3
       INTEGER, SAVE       :: id_R4N2,     id_SALA, id_SALC, id_NO2
+      INTEGER, SAVE       :: id_IPMN,     id_OH
 
       ! Scalars
       LOGICAL             :: IS_CHEM
@@ -343,8 +329,12 @@
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
-      ! Aerosol types (rvm, aad, bmy, 7/20/04)
-      INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+!------------------------------------------------------------------------------
+! Prior to 1/3/18:
+! IND is not used here (mps, 1/3/18)
+!      ! Aerosol types (rvm, aad, bmy, 7/20/04)
+!      INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
+!------------------------------------------------------------------------------
 
       ! Pointers
       REAL(fp), POINTER     :: Spc(:,:,:,:)
@@ -355,6 +345,8 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
+
+#if defined( BPCH_DIAG )
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
@@ -371,13 +363,15 @@
          id_N2O5 = Ind_('N2O5')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_NPMN = Ind_('NPMN' )
+         id_IPMN = Ind_('IPMN' )
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
+         id_OH   = Ind_('OH'  )
 
          ! Set logical flags
          IS_OPTD     = ASSOCIATED( State_Met%OPTD    )
@@ -387,16 +381,17 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Reset first-time flag
          FIRST       = .FALSE.
       ENDIF
 
       ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_MIN()-GET_TS_DYN(), 
+      IS_CHEM = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(), 
      &                 GET_TS_CHEM() ) == 0 )
 
       ! Echo time information to the screen
@@ -441,7 +436,7 @@
             I = GET_I( X )
 
             ! Only increment if we were in the chemistry grid
-            IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InChemGrid(I,J,L) ) THEN
                COUNT_CHEM3D(X,Y,K) = COUNT_CHEM3D(X,Y,K) + 1
             ENDIF
 
@@ -459,10 +454,10 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( W, N, X, Y, K, I, J, L, TMP, H, R, SCALEAODnm )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO W = 1, ND50_N_TRACERS
+      DO W = 1, Input_Opt%N_ND50
 
          ! ND50 Tracer number
-         N = ND50_TRACERS(W)
+         N = Input_Opt%ND50_TRACERS(W)
 
          ! Loop over levels
          DO K = 1, ND50_NL
@@ -486,15 +481,18 @@
      &                      ( AIRMW 
      &                      / State_Chm%SpcData(N)%Info%emMW_g ) )
 
-            ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+! NOTE: We can restore this once we figure out what the proper unit
+! conversion is (bmy, 11/20/17)
+!            ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!               !--------------------------------------
+!               ! OH CONCENTRATION [molec/cm3]
+!               ! NOTE: Only archive at chem timestep
+!               !--------------------------------------
+!!               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
+!               Q(X,Y,K,W) = Q(X,Y,K,W) + Spc(I,J,L,id_OH)
 
-               !--------------------------------------
-               ! OH CONCENTRATION [molec/cm3]
-               ! NOTE: Only archive at chem timestep
-               !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + SAVEOH(I,J,L)
-
-            ELSE IF ( N == 152 .and. IS_NOy ) THEN
+            ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
                !--------------------------------------
                ! NOy CONCENTRATION [v/v]
@@ -522,10 +520,14 @@
      &                / State_Chm%SpcData(id_HNO3)%Info%emMW_g )        
      &                       * Spc(I,J,L,id_HNO3) )
             
-               ! PMN
+               ! NPMN
                TMP = TMP + ( ( AIRMW 
-     &                / State_Chm%SpcData(id_PMN)%Info%emMW_g )         
-     &                       * Spc(I,J,L,id_PMN) )
+     &                / State_Chm%SpcData(id_NPMN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_NPMN) )
+               ! IPMN
+               TMP = TMP + ( ( AIRMW 
+     &                / State_Chm%SpcData(id_IPMN)%Info%emMW_g )         
+     &                       * Spc(I,J,L,id_IPMN) )
 
                ! PPN
                TMP = TMP + ( ( AIRMW 
@@ -550,28 +552,28 @@
                ! Accumulate into Q
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-            ELSE IF ( N == 153 ) THEN
+            ELSE IF ( N == 503 ) THEN
 
                !--------------------------------------
                ! RELATIVE HUMIDITY [%]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%RH(I,J,L)
 
-            ELSE IF ( N == 154 ) THEN
+            ELSE IF ( N == 504 ) THEN
 
                !--------------------------------------
                ! 3-D CLOUD FRACTIONS [unitless]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%CLDF(I,J,L)
 
-            ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+            ELSE IF ( N == 505 .and. IS_OPTD ) THEN
 
                !--------------------------------------
                ! COLUMN OPTICAL DEPTHS [unitless]
                !--------------------------------------
                Q(X,Y,1,W) = Q(X,Y,1,W) + State_Met%OPTD(I,J,L)
 
-            ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+            ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
 
                !--------------------------------------
                ! CLOUD TOP HEIGHTS [mb]
@@ -581,7 +583,7 @@
      &                       State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
                ENDIF
               
-            ELSE IF ( N == 157 ) THEN
+            ELSE IF ( N == 507 ) THEN
 
                !--------------------------------------
                ! AIR DENSITY [molec/cm3] 
@@ -589,7 +591,7 @@
                Q(X,Y,K,W) = Q(X,Y,K,W) + ( State_Met%AIRDEN(I,J,L) *
      &                      XNUMOLAIR  * 1d-6 )
 
-            ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+            ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
 
                !--------------------------------------
                ! TOTAL SEASALT TRACER [v/v]
@@ -600,7 +602,7 @@
      &                        ( AIRMW 
      &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )
 
-            ELSE IF ( N == 159 ) THEN
+            ELSE IF ( N == 509 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [m] 
@@ -609,7 +611,7 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_m( I, J )
                ENDIF
  
-            ELSE IF ( N == 160 ) THEN
+            ELSE IF ( N == 510 ) THEN
 
                !--------------------------------------
                ! PBL HEIGHTS [levels] 
@@ -618,21 +620,21 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + GET_PBL_TOP_L( I, J )
                ENDIF
 
-            ELSE IF ( N == 161 ) THEN
+            ELSE IF ( N == 511 ) THEN
 
                !--------------------------------------
                ! GRID BOX HEIGHTS [m]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%BXHEIGHT(I,J,L)
 
-            ELSE IF ( N == 162 ) THEN
+            ELSE IF ( N == 512 ) THEN
 
                !--------------------------------------
                ! PEDGE-$ [hPa]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%PEDGE( I, J, K )
 
-            ELSE IF ( N == 163 .and. IS_SLP ) THEN
+            ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
                !--------------------------------------
                ! SEA LEVEL PRESSURE [hPa]
@@ -641,28 +643,28 @@
                   Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%SLP(I,J)
                ENDIF
 
-            ELSE IF ( N == 164 ) THEN
+            ELSE IF ( N == 514 ) THEN
 
                !--------------------------------------
                ! ZONAL (U) WIND [m/s]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%U(I,J,L)
 
-            ELSE IF ( N == 165 ) THEN
+            ELSE IF ( N == 515 ) THEN
 
                !--------------------------------------
                ! MERIDIONAL (V) WIND [m/s]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%V(I,J,L)
 
-            ELSE IF ( N == 166 ) THEN 
+            ELSE IF ( N == 516 ) THEN 
 
                !--------------------------------------
                ! TEMPERATURE [K]
                !--------------------------------------
                Q(X,Y,K,W) = Q(X,Y,K,W) + State_Met%T(I,J,L)
 
-            ELSE IF ( N == 167 ) THEN
+            ELSE IF ( N == 517 ) THEN
 
                !--------------------------------------
                ! SULFATE AOD [unitless]
@@ -689,7 +691,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 168 ) THEN
+            ELSE IF ( N == 518 ) THEN
 
                !--------------------------------------
                ! BLACK CARBON AOD [unitless]
@@ -716,7 +718,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 169 ) THEN
+            ELSE IF ( N == 519 ) THEN
 
                !--------------------------------------
                ! ORG CARBON AOD [unitless]
@@ -743,7 +745,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 170 ) THEN
+            ELSE IF ( N == 520 ) THEN
 
                !--------------------------------------
                ! ACCUM SEASALT AOD [unitless]
@@ -770,7 +772,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 171 ) THEN
+            ELSE IF ( N == 521 ) THEN
 
                !--------------------------------------
                ! COARSE SEASALT AOD [unitless]
@@ -797,7 +799,7 @@
                   ENDIF
                ENDIF
 
-            ELSE IF ( N == 172 ) THEN
+            ELSE IF ( N == 522 ) THEN
                
                !--------------------------------------
                ! TOTAL DUST OPTD [unitless]
@@ -827,7 +829,7 @@
 
                ENDDO
 
-            ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+            ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
                !--------------------------------------
                ! DUST OPTD BINS1-7 [unitless]
@@ -835,7 +837,7 @@
                !
                ! NOTE: Only archive at chem timestep
                !--------------------------------------
-               ISPC = N - 114
+               ISPC = N - 522
 
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
@@ -855,6 +857,13 @@
                   ENDIF
                ENDIF
 
+            ELSE IF ( N == 530 ) THEN
+
+               !--------------------------------------
+               ! PM 2.5, ug/m3 at STP
+               !--------------------------------------
+               Q(X,Y,K,W) = Q(X,Y,K,W) + PM25(I,J,L)
+               
             ELSE
 
                ! Skip other tracers
@@ -870,61 +879,8 @@
       ! Free pointers
       Spc => NULL()
 
+#endif
       END SUBROUTINE ACCUMULATE_DIAG50
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: its_time_for_write_diag50
-!
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG50 returns TRUE if it's 
-!  time to write the ND50 bpch file to disk.  We test the time at the next 
-!  dynamic timestep, so that we can close the file before the end of the 
-!  run properly.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION ITS_TIME_FOR_WRITE_DIAG50() RESULT( ITS_TIME )
-!
-! !USES:
-!
-      USE TIME_MOD, ONLY : GET_HOUR
-      USE TIME_MOD, ONLY : GET_MINUTE
-      USE TIME_MOD, ONLY : GET_TS_DYN
-!
-! !RETURN VALUE:
-!
-      LOGICAL :: ITS_TIME
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) The time is already updated to the next time step in main.f 
-!        (ccc, 8/12/09)
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      REAL(fp) :: HR1
-
-      !=================================================================
-      ! ITS_TIME_FOR_WRITE_DIAG50 begins here!
-      !=================================================================
-
-      ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
-
-      ! Hour at the next dynamic timestep
-
-      ! If the next dyn step is the start of a new day, return TRUE
-      ITS_TIME = ( INT( HR1 ) == 0 )
-
-      END FUNCTION ITS_TIME_FOR_WRITE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -943,10 +899,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG ) 
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
+#endif
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -1026,9 +984,6 @@
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
 
-      ! For fields from Input_Opt
-      LOGICAL            :: LND50_HDF
-
       !=================================================================
       ! WRITE_DIAG50 begins here!
       !=================================================================
@@ -1036,14 +991,13 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! Nubmer of advected species
       nAdvect   = State_Chm%nAdvect
 
-      ! Copy values from Input_Opt
-      LND50_HDF = Input_Opt%LND50_HDF
-
       ! Replace time & date tokens in the filename
-      FILENAME = ND50_OUTPUT_FILE
+      FILENAME = Input_Opt%ND50_FILE
 
       ! Change to get the good timestamp: day that was run and not next 
       ! day if saved at midnight
@@ -1060,11 +1014,13 @@
  100  FORMAT( '     - DIAG50: Opening file ', a, ' on unit ', i4 ) 
 
       ! Open output file
-      IF ( LND50_HDF ) THEN
+      IF ( Input_Opt%LND50_HDF ) THEN
 #if   defined( USE_HDF5 )
          ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
-         CALL OPEN_HDF( IU_ND50_HDF, FILENAME,  ND50_IMAX, ND50_IMIN,   
-     &                  ND50_JMAX,   ND50_JMIN, ND50_NI,   ND50_NJ )
+         CALL OPEN_HDF( IU_ND50_HDF,         FILENAME,
+     &                  Input_Opt%ND50_IMAX, Input_Opt%ND50_IMIN,   
+     &                  Input_Opt%ND50_JMAX, Input_Opt%ND50_JMIN,
+     &                  ND50_NI,             ND50_NJ )
 #endif
       ELSE
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND50, FILENAME, TITLE )
@@ -1085,16 +1041,19 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, W, DIVISOR )
-      DO W = 1, ND50_N_TRACERS
+      DO W = 1, Input_Opt%N_ND50
 
-         ! Pick the proper divisor, depending on whether or not the
-         ! species in question is archived only each chem timestep
-         SELECT CASE ( ND50_TRACERS(W) )
-            CASE (91, 92, 76, 77 )
-               DIVISOR = COUNT_CHEM3D
-            CASE DEFAULT
-               DIVISOR = COUNT
-         END SELECT
+         ! ND50 Tracer number
+         N = Input_Opt%ND50_TRACERS(W)
+         
+         ! Pick the proper divisor
+         ! OH is defined only in boxes with active chemistry
+         ! Others are defined everywhere
+         IF ( N == 501 ) THEN
+            DIVISOR = COUNT_CHEM3D
+         ELSE
+            DIVISOR = COUNT
+         ENDIF
 
          ! Loop over grid boxes
          DO K = 1, ND50_NL
@@ -1117,10 +1076,10 @@
       !=================================================================
       ! Write each tracer from "timeseries.dat" to the timeseries file
       !=================================================================
-      DO W = 1, ND50_N_TRACERS
+      DO W = 1, Input_Opt%N_ND50
 
          ! ND50 tracer number
-         N = ND50_TRACERS(W)
+         N = Input_Opt%ND50_TRACERS(W)
 
          ! Save by simulation
          IF ( N <= nAdvect ) THEN
@@ -1133,7 +1092,7 @@
             GMNL     = ND50_NL
             GMTRC    = N
 
-         ELSE IF ( N == 151 ) THEN
+         ELSE IF ( N == 501 ) THEN
 
             !---------------------
             ! OH 
@@ -1143,7 +1102,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 152 ) THEN
+         ELSE IF ( N == 502 ) THEN
 
             !---------------------
             ! NOy 
@@ -1153,7 +1112,7 @@
             GMNL     = ND50_NL
             GMTRC    = 2
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !---------------------
             ! Relative humidity
@@ -1163,7 +1122,7 @@
             GMNL     = ND50_NL
             GMTRC    = 3
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !---------------------
             ! 3-D Cloud fractions
@@ -1173,7 +1132,7 @@
             GMNL     = ND50_NL
             GMTRC    = 4
 
-         ELSE IF ( N == 155 ) THEN
+         ELSE IF ( N == 505 ) THEN
 
             !---------------------
             ! Column opt depths 
@@ -1183,7 +1142,7 @@
             GMNL      = 1
             GMTRC     = 5
             
-         ELSE IF ( N == 156 ) THEN
+         ELSE IF ( N == 506 ) THEN
         
             !---------------------
             ! Cloud top heights 
@@ -1193,7 +1152,7 @@
             GMNL      = 1
             GMTRC     = 6
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
             !---------------------
             ! Air Density 
@@ -1203,7 +1162,7 @@
             GMNL     = ND50_NL
             GMTRC    = 7
 
-         ELSE IF ( N == 158 ) THEN
+         ELSE IF ( N == 508 ) THEN
 
             !----------------------
             ! Total Seasalt
@@ -1213,7 +1172,7 @@
             GMNL     = ND50_NL
             GMTRC    = 8
 
-         ELSE IF ( N == 159 ) THEN 
+         ELSE IF ( N == 509 ) THEN 
 
             !---------------------
             ! PBL Height [m] 
@@ -1223,7 +1182,7 @@
             GMNL     = 1
             GMTRC    = 1
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !---------------------
             ! PBL Height [levels]
@@ -1233,7 +1192,7 @@
             GMNL     = 1
             GMTRC    = 2
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !---------------------
             ! Grid box heights
@@ -1243,7 +1202,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-        ELSE IF ( N == 162 ) THEN
+        ELSE IF ( N == 512 ) THEN
 
             !---------------------
             ! PEDGE-$ [hPa] 
@@ -1253,7 +1212,7 @@
             GMNL      = ND50_NL
             GMTRC     = 1
 
-          ELSE IF ( N == 163 ) THEN
+          ELSE IF ( N == 513 ) THEN
 
             !---------------------
             ! Sea level prs [hPa]
@@ -1263,7 +1222,7 @@
             GMNL     = 1
             GMTRC    = 18
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !---------------------
             ! U-wind [m/s]
@@ -1273,7 +1232,7 @@
             GMNL     = ND50_NL
             GMTRC    = 1
 
-         ELSE IF ( N == 165 ) THEN
+         ELSE IF ( N == 515 ) THEN
 
             !---------------------
             ! V-wind [m/s]
@@ -1283,7 +1242,7 @@
             GMNL      = ND50_NL
             GMTRC     = 2
 
-          ELSE IF ( N == 166 ) THEN
+          ELSE IF ( N == 516 ) THEN
 
             !---------------------
             ! Temperature
@@ -1293,17 +1252,17 @@
             GMNL      = ND50_NL
             GMTRC     = 3
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !---------------------
             ! Sulfate AOD
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 6
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !---------------------
             ! Black Carbon AOD
@@ -1313,17 +1272,17 @@
             GMNL      = ND50_NL
             GMTRC     = 9
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !---------------------
             ! Organic Carbon AOD
             !---------------------            
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMNL      = ND50_ NL
+            GMNL      = ND50_NL
             GMTRC     = 12
             
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
 
             !---------------------
             ! SS Accum AOD
@@ -1333,7 +1292,7 @@
             GMNL      = ND50_NL
             GMTRC     = 15
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !---------------------
             ! SS Coarse AOD
@@ -1343,7 +1302,7 @@
             GMNL      = ND50_NL
             GMTRC     = 18
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !---------------------
             ! Total dust OD
@@ -1353,7 +1312,7 @@
             GMNL      = ND50_NL
             GMTRC     = 4
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !---------------------
             ! Dust OD (bins 1-7)
@@ -1361,7 +1320,17 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND50_NL
-            GMTRC     = 21+(N-173)
+            GMTRC     = 21+(N-523)
+
+         ELSE IF ( N == 530 ) THEN
+
+            !---------------------
+            ! PM2.5
+            !---------------------   
+            CATEGORY  = 'IJ-SOA-$'
+            UNIT      = 'ug/m3'
+            GMNL      = ND50_NL
+            GMTRC     = 18
 
          ELSE
 
@@ -1374,7 +1343,7 @@
          ! Save to bpch file 
          ! or HDF5 file
          !------------------------
-         IF ( LND50_HDF ) THEN
+         IF ( Input_Opt%LND50_HDF ) THEN
 #if   defined( USE_HDF5 )
             ! Only include this if we are linking to HDF5 library 
             ! (bmy, 12/21/09)
@@ -1382,7 +1351,9 @@
      &                      CATEGORY,     GMTRC,        UNIT,
      &                      TAU0,         TAU1,         RESERVED,
      &                      ND50_NI,      ND50_NJ,      GMNL,
-     &                      ND50_IMIN+I0, ND50_JMIN+J0, ND50_LMIN,
+     &                      Input_Opt%ND50_IMIN+I0,
+     &                      Input_Opt%ND50_JMIN+J0,
+     &                      Input_Opt%ND50_LMIN,
      &                      REAL( Q(1:ND50_NI, 1:ND50_NJ, 1:GMNL, W)))
 #endif
          ELSE
@@ -1391,7 +1362,9 @@
      &                  CATEGORY,     GMTRC,        UNIT,      
      &                  TAU0,         TAU1,         RESERVED,  
      &                  ND50_NI,      ND50_NJ,      GMNL,     
-     &                  ND50_IMIN+I0, ND50_JMIN+J0, ND50_LMIN, 
+     &                  Input_Opt%ND50_IMIN+I0,
+     &                  Input_Opt%ND50_JMIN+J0,
+     &                  Input_Opt%ND50_LMIN, 
      &                  REAL( Q(1:ND50_NI, 1:ND50_NJ, 1:GMNL, W),4))
          ENDIF
       ENDDO
@@ -1401,7 +1374,7 @@
  120  FORMAT( '     - DIAG50: Closing file ', a )
 
       ! Close file
-      IF ( LND50_HDF ) THEN
+      IF ( Input_Opt%LND50_HDF ) THEN
 #if   defined( USE_HDF5 )
          ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
          CALL CLOSE_HDF( IU_ND50_HDF )
@@ -1420,7 +1393,7 @@
  130  FORMAT( '     - DIAG50: Zeroing arrays at ', a )
 
       ! Set STARTING TAU for the next bpch write
-      TAU0       = GET_TAU() + ( GET_TS_DYN() / 60e+0_fp )
+      TAU0       = GET_TAU() + ( GET_TS_DYN() / 3600e+0_fp )
 
       ! Zero counters
       COUNT        = 0
@@ -1428,6 +1401,8 @@
       
       ! Zero accumulating array
       Q            = 0e+0_fp
+
+#endif
 
       END SUBROUTINE WRITE_DIAG50
 !EOC
@@ -1492,39 +1467,31 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG50( DO_ND50, N_ND50, TRACERS, IMIN, IMAX,    
-     &                        JMIN,    JMAX,   LMIN,    LMAX, FILE )
+      SUBROUTINE INIT_DIAG50( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
+#if defined( BPCH_DIAG )
+      USE BPCH2_MOD,     ONLY : GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+#endif
       USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,     ONLY : GET_TAUb
+      USE ERROR_MOD,     ONLY : ALLOC_ERR
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_TAUb
 !
 ! !INPUT PARAMETERS: 
 !
-      ! DO_ND50 : Switch to turn on ND50 timeseries diagnostic
-      ! N_ND50  : Number of ND50 read by "input_mod.f"
-      ! TRACERS : Array w/ ND50 tracer #'s read by "input_mod.f"
-      ! IMIN    : Min longitude index read by "input_mod.f"
-      ! IMAX    : Max longitude index read by "input_mod.f" 
-      ! JMIN    : Min latitude index read by "input_mod.f" 
-      ! JMAX    : Min latitude index read by "input_mod.f" 
-      ! LMIN    : Min level index read by "input_mod.f" 
-      ! LMAX    : Min level index read by "input_mod.f" 
-      ! FILE    : ND50 output file name read by "input_mod.f"
-      LOGICAL,            INTENT(IN) :: DO_ND50
-      INTEGER,            INTENT(IN) :: N_ND50, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -1552,24 +1519,13 @@
       ! INIT_DIAG50 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG )
+
       ! Initialize
       LOCATION               = 'INIT_DIAG50 ("diag50_mod.f")'
-      ND50_TRACERS(:)        = 0
-
-      ! Get values from "input_mod.f"
-      DO_SAVE_DIAG50         = DO_ND50 
-      ND50_N_TRACERS         = N_ND50
-      ND50_TRACERS(1:N_ND50) = TRACERS(1:N_ND50)
-      ND50_IMIN              = IMIN
-      ND50_IMAX              = IMAX
-      ND50_JMIN              = JMIN
-      ND50_JMAX              = JMAX
-      ND50_LMIN              = LMIN
-      ND50_LMAX              = LMAX
-      ND50_OUTPUT_FILE       = TRIM( FILE )
 
       ! Exit if ND50 is turned off 
-      IF ( .not. DO_SAVE_DIAG50 ) RETURN
+      IF ( .not. Input_Opt%DO_ND50 ) RETURN
 
       !=================================================================
       ! Error check longitude, latitude, altitude limits
@@ -1589,21 +1545,24 @@
       !-----------
 
       ! Error check ND50_IMIN
-      IF ( ND50_IMIN+I0 < 1 .or. ND50_IMIN+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND50_IMIN+I0 < 1       .or.
+     &     Input_Opt%ND50_IMIN+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND50_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND50_IMAX
-      IF ( ND50_IMAX+I0 < 1 .or. ND50_IMAX+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND50_IMAX+I0 < 1      .or.
+     &     Input_Opt%ND50_IMAX+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND50_IMAX value!', LOCATION )
       ENDIF
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND50_IMAX >= ND50_IMIN ) THEN
-         ND50_NI = ( ND50_IMAX - ND50_IMIN ) + 1
+      IF ( Input_Opt%ND50_IMAX >= Input_Opt%ND50_IMIN ) THEN
+         ND50_NI = ( Input_Opt%ND50_IMAX - Input_Opt%ND50_IMIN ) + 1
       ELSE 
-         ND50_NI = ( IIPAR - ND50_IMIN ) + 1 + ND50_IMAX
+         ND50_NI = ( IIPAR - Input_Opt%ND50_IMIN ) + 1 +
+     &               Input_Opt%ND50_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping around the date line!'
       ENDIF
 
@@ -1617,18 +1576,20 @@
       !-----------
       
       ! Error check JMIN_AREA
-      IF ( ND50_JMIN+J0 < 1 .or. ND50_JMIN+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND50_JMIN+J0 < 1       .or.
+     &     Input_Opt%ND50_JMIN+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND50_JMIN value!', LOCATION )
       ENDIF
      
       ! Error check JMAX_AREA
-      IF ( ND50_JMAX+J0 < 1 .or.ND50_JMAX+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND50_JMAX+J0 < 1       .or.
+     &     Input_Opt%ND50_JMAX+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND50_JMAX value!', LOCATION )
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND50_JMAX >= ND50_JMIN ) THEN
-         ND50_NJ = ( ND50_JMAX - ND50_JMIN ) + 1
+      IF ( Input_Opt%ND50_JMAX >= Input_Opt%ND50_JMIN ) THEN
+         ND50_NJ = ( Input_Opt%ND50_JMAX - Input_Opt%ND50_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND50_JMAX < ND50_JMIN!', LOCATION )
       ENDIF     
@@ -1638,13 +1599,14 @@
       !-----------
 
       ! Error check ND50_LMIN, ND50_LMAX
-      IF ( ND50_LMIN < 1 .or. ND50_LMAX > LLPAR ) THEN 
+      IF ( Input_Opt%ND50_LMIN < 1       .or.
+     &     Input_Opt%ND50_LMAX > LLPAR ) THEN 
          CALL ERROR_STOP( 'Bad ND50 altitude values!', LOCATION )
       ENDIF
 
       ! # of levels to save in ND50 timeseries
-      IF ( ND50_LMAX >= ND50_LMIN ) THEN  
-         ND50_NL = ( ND50_LMAX - ND50_LMIN ) + 1
+      IF ( Input_Opt%ND50_LMAX >= Input_Opt%ND50_LMIN ) THEN  
+         ND50_NL = ( Input_Opt%ND50_LMAX - Input_Opt%ND50_LMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND50_LMAX < ND50_LMIN!', LOCATION )
       ENDIF
@@ -1652,9 +1614,9 @@
       !-----------
       ! Offsets
       !-----------
-      IOFF      = ND50_IMIN - 1
-      JOFF      = ND50_JMIN - 1
-      LOFF      = ND50_LMIN - 1
+      IOFF      = Input_Opt%ND50_IMIN - 1
+      JOFF      = Input_Opt%ND50_JMIN - 1
+      LOFF      = Input_Opt%ND50_LMIN - 1
 
       !------------
       ! Counter
@@ -1680,7 +1642,7 @@
       !=================================================================
 
       ! Accumulator array
-      ALLOCATE( Q( ND50_NI, ND50_NJ, ND50_NL, ND50_N_TRACERS), STAT=AS )
+      ALLOCATE( Q( ND50_NI, ND50_NJ, ND50_NL, Input_Opt%N_ND50),STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
       Q = 0e+0_fp
 
@@ -1688,6 +1650,8 @@
       ALLOCATE( COUNT_CHEM3D( ND50_NI, ND50_NJ, ND50_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0e+0_fp
+
+#endif
 
       END SUBROUTINE INIT_DIAG50
 !EOC
@@ -1715,8 +1679,10 @@
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG50
 !EOC

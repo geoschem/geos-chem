@@ -74,6 +74,7 @@
 !                              29/11/11)
 !  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,8 +284,10 @@
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
-      USE DIAG03_MOD,         ONLY : AD03, ND03
       USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG )
+      USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -335,13 +338,6 @@
       ! Return if snowpack model is disabled
       IF ( .NOT. LHGSNOW ) RETURN
 
-      ! Except with MERRA, we can't distinguish land fractions, so we use a 
-      ! land fraction of 1 and only use boxes that are mostly snow/ice. 
-      ! For MERRA we use the actual fractions, so FRAC_SNOW_OR_ICE is 
-      ! overwritten (jaf, 4/25/11)
-      FRAC_SNOW_OR_ICE = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
      &                        State_Met%FRSEAICE(I,J)  + 
@@ -350,28 +346,6 @@
 
       ! Ocean fraction (vs land)
       FRAC_O = State_Met%FROCEAN(I,J)
-
-#elif defined( GEOS_5 )
-      ! Use GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
-     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOMAS(I,J) > 10e+0_fp ))
-
-      ! Ocean fraction (vs land)
-      FRAC_O = State_Met%FROCEAN(I,J)
-
-#else
-      ! Use GEOS1-4 snow height (water equivalent) in mm
-      IS_SNOW_OR_ICE   = (( IS_ICE ( I, J, State_Met     )) .OR. 
-     &                    ( IS_LAND( I, J, State_Met     )  .AND. 
-     &                      State_Met%SNOW(I,J)   > 10e+0_fp ))
-
-      ! Ocean fraction (vs land)
-      ! NOTE: GEOS-4 and GCAP don't have an equivalent field for FRLAND
-      ! so FRAC_O will be set to 1
-      FRAC_O = 1e+0_fp - State_Met%FRLAND(I,J)
-
-#endif 
 
       ! Check if there is snow on the ground, or if this is sea ice
       IF ( IS_SNOW_OR_ICE ) THEN
@@ -404,6 +378,7 @@
      7                               FRAC_SNOW_OR_ICE
      &                               * MAX( 0.4e+0_fp*DEP_HG2, 0e+0_fp )
 
+#if defined( BPCH_DIAG )
 !----------------------------------------------------------------------------
 ! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
 ! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
@@ -432,6 +407,8 @@
      &                                    FRAC_SNOW_OR_ICE *
      &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
+#endif
+
       ENDIF
 
       END SUBROUTINE ADD_HG2_SNOWPACK
@@ -613,10 +590,11 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   Input_Opt,  
+      SUBROUTINE READ_GTMM_RESTART( am_I_Root,   
+     &                              Input_Opt,   State_Chm, 
      &                              YYYYMMDD,    HHMMSS,     
      &                              Hg0dryGEOS,  HgIIdryGEOS, 
-     &                              HgIIwetGEOS, RC )
+     &                              HgIIwetGEOS, RC           )
 ! 
 ! !USES:
 !
@@ -636,6 +614,10 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?!
@@ -643,10 +625,14 @@
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIdryGEOS
       REAL(fp), DIMENSION(IIPAR, JJPAR)   :: HgIIwetGEOS     
 !
+! !REMAKRS:
+!  NOTE: THIS ROUTINE WILL HAVE TO BE UPDATED TO CONVERT TO NETCDF FORMAT!!!
+!
 ! !REVISION HISTORY:
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  25 Jun 2014 - R. Yantosca - Remove references to tracer_mod.F
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  16 Mar 2017 - R. Yantosca - Replace NNPAR with State_Chm%nAdvect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -654,7 +640,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER               :: IOS, I, IU_FILE, J, L, NN, N_gtmm
-      INTEGER               :: NCOUNT(NNPAR) 
+      INTEGER               :: NCOUNT(State_Chm%nAdvect) 
       REAL*4                :: FLUX(IIPAR,JJPAR)
       CHARACTER(LEN=255)    :: FILENAME
 

@@ -166,6 +166,8 @@ CONTAINS
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  07 Jul 2017 - R. Yantosca - Bug fix: Skip DustAlk IF block unless that
+!                              extension has been turned on in the config file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -392,17 +394,20 @@ CONTAINS
 
        ENDIF
 
-       IF ( HcoIDsAlk(N) > 0 ) THEN
+       ! This block is only relevant if the DustAlk extension
+       ! has been turned on.  Skip othewrise. (bmy, 7/7/17)
+       IF ( ExtNrAlk > 0 ) THEN
+          IF ( HcoIDsAlk(N) > 0 ) THEN
 
-          ! Add flux to emission array
-          CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), & 
-                            HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
-          IF ( RC /= HCO_SUCCESS ) THEN
-             WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
-             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-             RETURN 
+             ! Add flux to emission array
+             CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), &
+                               HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
+             IF ( RC /= HCO_SUCCESS ) THEN
+                WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
+                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+                RETURN
+             ENDIF
           ENDIF
-
        ENDIF
 
     ENDDO
@@ -803,6 +808,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller   - Initial version 
 !  25 Sep 2014 - R. Yantosca - Updated for TOMAS
+!  24 Aug 2017 - M. Sulprizio- Remove support for GRID1x1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -818,19 +824,6 @@ CONTAINS
     ! All 4x5 simulations (including TOMAS)
     !-----------------------------------------------------------------------
     CH_DUST  = 9.375d-10
-
-#elif defined( GRID1x1 ) && defined( NESTED_CH )
-
-    !-----------------------------------------------------------------------
-    ! Note: monthly emission over the China nested-grid domain is about
-    !       2 times higher compared to the same domain in 4x5 resolution
-    !       Thus applying 1/2  factor to correct the emission.
-    !
-    !%%% NOTE: MAY NEED TO UPDATE THIS STATEMENT FOR HIGHER RESOLUTION
-    !%%% NESTED GRIDS.  THIS WAS ORIGINALLY DONE FOR THE GEOS-3 1x1
-    !%%% NESTED GRID.  LOOK INTO THIS LATER.  (bmy, 9/25/14)
-    !-----------------------------------------------------------------------
-    CH_DUST  = 9.375d-10 * 0.5d0
 
 #else
 

@@ -40,9 +40,9 @@ $(wildcard $(HCO)/Extensions/*.F*) \
 $(wildcard $(HCO)/Interfaces/*.F*)
 
 # Output file names
-TEX4 := GC_v11-01_HEMCO_Modules.tex
-DVI4 := GC_v11-01_HEMCO_Modules.dvi
-PDF4 := GC_v11-01_HEMCO_Modules.pdf
+TEX4 := GC_v11-02_HEMCO_Modules.tex
+DVI4 := GC_v11-02_HEMCO_Modules.dvi
+PDF4 := GC_v11-02_HEMCO_Modules.pdf
 
 # Make commands
 hemcodoc: 

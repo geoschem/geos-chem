@@ -18,11 +18,11 @@
       USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
-      USE CHEMGRID_MOD,            ONLY : CLEANUP_CHEMGRID
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
       USE CMN_SIZE_Mod,            ONLY : Cleanup_CMN_SIZE
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,                ONLY : CLEANUP_DIAG
       USE DIAG03_MOD,              ONLY : CLEANUP_DIAG03
       USE DIAG04_MOD,              ONLY : CLEANUP_DIAG04
@@ -30,17 +30,22 @@
       USE DIAG41_MOD,              ONLY : CLEANUP_DIAG41
       USE DIAG50_MOD,              ONLY : CLEANUP_DIAG50
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
-      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53 !(clf, 3/11/11)
+      USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53
+#endif
       USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
+      USE ErrCode_Mod
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
       USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
+      USE GEOS_TIMERS_MOD
+      USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
+      USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
@@ -56,6 +61,7 @@
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
       USE Regrid_A2A_Mod,          ONLY : Cleanup_Map_A2a
       USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
+      USE Set_Global_CH4_Mod,      ONLY : Cleanup_Set_Global_CH4
       USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
       USE STRAT_CHEM_MOD,          ONLY : CLEANUP_STRAT_CHEM
       USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
@@ -70,18 +76,12 @@
 #endif
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
-      USE PASSIVE_TRACEr_MOD,      ONLY : Cleanup_Passive_Tracer
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
       ! HEMCO
 !#if !defined(ESMF_) 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 !#endif
-
-#if defined( NC_DIAG )
-      ! Cleanup routine for netCDF diagnostics structure
-      USE DIAGNOSTICS_MOD,         ONLY : DIAGNOSTICS_FINAL
-#endif
 
 #if   defined( RRTMG )
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
@@ -246,41 +246,75 @@
 !  18 May 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE; it's obsolete
 !  30 Jun 2016 - M. Sulprizio- Remove call to CLEANUP_COMODE_LOOP; it's obsolete
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  09 Aug 2017 - R. Yantosca - Pass am_I_Root, RC to Cleanup_Grid
+!  16 Aug 2017 - R. Yantosca - Now call History_Cleanup from here
+!  23 Aug 2017 - R. Yantosca - Now time how long HISTORY_CLEANUP takes
+!  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
+!  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! CLEANUP begins here!
       !=================================================================
 
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at CLEANUP (in module GeosCore/cleanup.F)'
+
       ! Echo info
       IF ( am_I_Root ) THEN
-         WRITE( 6, 100 ) 
+         WRITE( 6, 100 )
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
+
+#if defined( NC_DIAG )
+      !=================================================================
+      !         ***** H I S T O R Y   C L E A N U P *****
+      !
+      ! Finalize the History Component.
+      ! Also closes all netCDF files that may still be open.
+      !=================================================================
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+#endif
+
+      ! Finalize the history component
+      CALL History_Cleanup( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "History_Cleanup"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+#endif
+
+#endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
       ! restart variables needs to be passed to the HEMCO diagnostics
       ! first.
       CALL CLEANUP_UCX( am_I_Root )
 
-#if defined( NC_DIAG )
-      ! Cleanup the netCDF diagnostics structure
-      ! Input_Opt is cleaned up before CLEANUP. Remove as argument.
-      ! (ckeller, 3/28/16)
-      !!!CALL DIAGNOSTICS_FINAL( am_I_Root, Input_Opt, RC )
-      CALL DIAGNOSTICS_FINAL( am_I_Root, RC )
-#endif
-
       ! Cleanup HEMCO
-      CALL EMISSIONS_FINAL ( am_I_Root, ERROR )
+      CALL EMISSIONS_FINAL( am_I_Root, ERROR, RC )
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_AEROSOL()
       CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
-      CALL CLEANUP_CHEMGRID()
       CALL CLEANUP_CO2()
+#if defined( BPCH_DIAG )
       CALL CLEANUP_DIAG()
       CALL CLEANUP_DIAG03()
       CALL CLEANUP_DIAG04()
@@ -289,13 +323,35 @@
       CALL CLEANUP_DIAG50()
       CALL CLEANUP_DIAG51()
       CALL CLEANUP_DIAG53()
+#endif
       CALL CLEANUP_DIAG_OH()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
-      CALL CLEANUP_FLEXCHEM()
+
+      CALL Cleanup_FlexChem( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_FlexChem"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       CALL CLEANUP_GLOBAL_CH4()
-      CALL CLEANUP_GRID()
-      CALL CLEANUP_HDF()
+
+      CALL CLEANUP_GRID( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Grid"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_Grid_Registry( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Grid_Registry"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL CLEANUP_HDF()  
       CALL CLEANUP_ISOROPIAII()
       CALL CLEANUP_LINOZ()
       CALL CLEANUP_MAP_A2A()
@@ -309,6 +365,7 @@
       CALL CLEANUP_PLANEFLIGHT()
       CALL CLEANUP_PRESSURE()
       CALL CLEANUP_SEASALT()
+      Call Cleanup_Set_Global_CH4()
       CALL CLEANUP_SULFATE()
       CALL CLEANUP_STRAT_CHEM()
       CALL CLEANUP_TAGGED_CO()
@@ -316,30 +373,64 @@
       CALL CLEANUP_TRANSPORT()
 #endif
       CALL CLEANUP_TOMS()
-      CALL CLEANUP_WETSCAV()
+      CALL CLEANUP_WETSCAV( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
 #if   defined( TOMAS )
       CALL CLEANUP_TOMAS()
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM
-      CALL CLEANUP_MCICA_CLOUDS
+      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
+      CALL CLEANUP_STRAT_CLIM()
+      CALL CLEANUP_MCICA_CLOUDS()
 #endif
 
-#if   defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125)
+#if   defined( GRID05x0625 ) || defined( GRID025x03125)
       CALL EXIT_TPCORE_WINDOW() 
 #else
       CALL EXIT_TPCORE()
 #endif
 
       ! Call extra cleanup routines, mostly from modules in Headers/
-      CALL Cleanup_CMN_O3     ( am_I_Root, RC )
-      CALL Cleanup_CMN_SIZE   ( am_I_Root, RC )
-      CALL Cleanup_Get_Ndep   ( am_I_Root, RC )
-      CALL Cleanup_VDIFF_PRE  ( am_I_Root, RC )
-      CALL Cleanup_CMN_FJX    ( am_I_Root, RC )
+      CALL Cleanup_CMN_O3( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_CMN_O3"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_CMN_SIZE( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_CMN_SIZE"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_Get_Ndep( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Get_Ndep"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_VDIFF_PRE( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Vdiff_Pre"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_CMN_FJX( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_CMN_FJX"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Close GEOS-FP or MERRA2 met field files that may still be open
 #if defined( GEOS_FP )
@@ -347,6 +438,6 @@
 #elif defined( MERRA2 )
       CALL Cleanup_Merra2_Read()
 #endif
-      
+
       END SUBROUTINE CLEANUP
 !EOC

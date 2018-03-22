@@ -199,6 +199,7 @@ CONTAINS
     USE HCO_tIdx_Mod,     ONLY : tIDx_Init
     USE HCO_Clock_Mod,    ONLY : HcoClock_Init
     USE HCO_Config_Mod,   ONLY : SetReadList 
+    USE HCO_Scale_Mod,    ONLY : HCO_ScaleInit
 !
 ! !INPUT PARAMETERS:
 !
@@ -246,6 +247,10 @@ CONTAINS
     CALL SetReadList ( am_I_Root, HcoState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Define universal scale factor for each HEMCO species
+    CALL Hco_ScaleInit ( am_I_Root, HcoState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Leave w/ success
     CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
 
@@ -274,6 +279,7 @@ CONTAINS
     USE HCO_DataCont_Mod,  ONLY : ListCont_Cleanup
     USE HCO_ExtList_Mod,   ONLY : ExtFinal
     USE HCOIO_DIAGN_MOD,   ONLY : HcoDiagn_Write
+    USE HCO_Scale_Mod,     ONLY : HCO_ScaleFinal
 !
 ! !INPUT PARAMETERS:
 !
@@ -318,6 +324,9 @@ CONTAINS
     CALL ListCont_Cleanup ( HcoState%Config%ConfigList, .TRUE. )
     HcoState%nnEmisCont = 0
     HcoState%SetReadListCalled = .FALSE.
+
+    ! Cleanup scaling factors
+    CALL HCO_ScaleFinal()
 
     ! Cleanup the extension list object
     CALL ExtFinal         ( HcoState%Config%ExtList )

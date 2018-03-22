@@ -96,6 +96,7 @@
 !  03 Aug 2012 - R. Yantosca - Reference file LUN routines from inquireMod.F90
 !  02 Dec 2014 - M. Yannetti - Added PRECISION_MOD
 !  11 Aug 2015 - R. Yantosca - Add modifications for MERRA2 data
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -148,6 +149,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
       INTEGER                                  :: IOS
       CHARACTER(LEN=40)                        :: FTI
       CHARACTER(LEN=80)                        :: TMP_TITLE
@@ -201,6 +203,7 @@
       ! Copy value of TMP_TITLE to TITLE for return 
       IF ( PRESENT( TITLE ) ) TITLE = TMP_TITLE
 
+#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_READ
 !EOC
@@ -250,6 +253,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+
       INTEGER           :: IOS
       CHARACTER(LEN=80) :: TMP_TITLE
 
@@ -279,6 +284,7 @@
       ! Write the top-of-file title to disk
       CALL BPCH2_HDR( IUNIT, TMP_TITLE )
 
+#endif
       ! Return to calling program
       END SUBROUTINE OPEN_BPCH2_FOR_WRITE
 !EOC
@@ -323,6 +329,8 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+
       INTEGER                       :: IOS
       CHARACTER(LEN=40)             :: FTI = 'CTM bin 02'
 
@@ -337,6 +345,8 @@
 
       WRITE ( IUNIT, IOSTAT=IOS ) TITLE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IUNIT, 'bpch2_hdr:2' )
+
+#endif
 
       ! Return to calling program    
       END SUBROUTINE BPCH2_HDR
@@ -387,8 +397,7 @@
 !
 ! !REMARKS:
 !  ############################################################################
-!  ##### BINARY PUNCH OUTPUT IS BEING PHASED OUT.  IT WILL BE COMPLETELY  #####
-!  ##### REMOVED IN THE VERISON FOLLOWING GEOS-Chem v10-01. (bmy, 4/1/15) #####
+!  ##### BINARY PUNCH OUTPUT IS BEING PHASED OUT. (bmy, 4/1/15)           #####
 !  ############################################################################
 !
 ! !REVISION HISTORY:
@@ -401,6 +410,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -443,6 +453,7 @@
       !=================================================================
       ! Return to calling program      
       !=================================================================
+#endif
       END SUBROUTINE BPCH2
 !EOC
 !------------------------------------------------------------------------------
@@ -521,6 +532,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -530,19 +542,12 @@
       INTEGER            :: I1, I2, J1, J2, L1,  L2
       CHARACTER(LEN=255) :: MSG
       
-      ! Make TEMPARRAY big enough for a global grid.  For 0.5 x 0.666 nested
-      ! grid simulations we need to define this as 540x361x73.  However, this
-      ! may cause memory problems on some Linux boxes for people who want to
-      ! run only the global simulations.  Therefore increase the size of 
-      ! TEMPARRAY only if we are doing a 0.5 x 0.666 nested simulation.
-      ! (yxw, bmy, dan, 11/6/08)
+      ! Make TEMPARRAY big enough for a global grid.
       !
-      ! Also use the same limits for GRID025x03125.  We do not need to set
-      ! the global limits since we will never run the model at the full
-      ! global resolution, due to memory restrictions. (bmy, 5/25/12)
-#if   defined( GRID05x0666 )
-      REAL*4             :: TEMPARRAY(540,361,73)  
-#elif defined( GRID025x03125 ) 
+      ! For GRID025x03125 we need to define this as 1152x721x73.
+      ! We do not need to set the global limits since we currently don't run
+      ! the model at the full global resolution, due to memory restrictions.
+#if defined( GRID025x03125 ) 
       REAL*4             :: TEMPARRAY(1152,721,73)  
 #else
       REAL*4             :: TEMPARRAY(360,181,73)   
@@ -628,7 +633,7 @@
       !=================================================================
       IF ( FOUND ) THEN 
 
-#if   defined( GRID1x1 ) || defined( GRID05x0666 ) || defined( GRID025x03125 )
+#if   defined( GRID025x03125 )
 #if   defined(NESTED_CH) || defined(NESTED_NA)     || defined( NESTED_EU ) || defined( NESTED_AS )
          ! *** NOTE: now use NESTED_CH/NESTED_NA/NESTED_EU cpp switches ***
          ! *** to block off this section of code (bmy, 12/1/04)  ***
@@ -670,9 +675,10 @@
       !=================================================================
       CLOSE( IU_FILE )
 
+#endif
+
       ! Return to calling program
       END SUBROUTINE READ_BPCH2
-
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -682,8 +688,8 @@
 ! !IROUTINE: Get_Modelname
 !
 ! !DESCRIPTION: Function GET\_MODELNAME returns the proper value of MODELNAME 
-!  for current GEOS or GCAP met field type.  MODELNAME is written to the 
-!  binary punch file and is also used by the GAMAP package.
+!  for current met field type.  MODELNAME is written to the binary punch file
+!  and is also used by the GAMAP package.
 !\\
 !\\
 ! !INTERFACE:
@@ -724,28 +730,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GEOS_4 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS4_30L'
-
-#elif defined( GEOS_4 )
-      MODELNAME = 'GEOS4'
-
-#elif defined( GEOS_5 ) && defined( GRIDREDUCED )
-      MODELNAME = 'GEOS5_47L'
-      
-#elif defined( GEOS_5 ) 
-      MODELNAME = 'GEOS5'
-
-#elif defined( GCAP )
-      MODELNAME = 'GCAP'
-
-#elif defined( MERRA ) && defined( GRIDREDUCED )
-      MODELNAME = 'MERRA_47L'
-      
-#elif defined( MERRA ) 
-      MODELNAME = 'MERRA'
-
-#elif defined( GEOS_FP ) && defined( GRIDREDUCED )
+#if defined( GEOS_FP ) && defined( GRIDREDUCED )
       MODELNAME = 'GEOSFP_47L'
 
 #elif defined( GEOS_FP )
@@ -773,8 +758,7 @@
 ! !IROUTINE: Get_Name_Ext
 !
 ! !DESCRIPTION: Function GET\_NAME\_EXT returns the proper filename extension 
-!  the current GEOS-Chem met field type (e.g. "geos3", "geos4", "geos5", or 
-!  "gcap").  
+!  the current GEOS-Chem met field type.  
 !\\
 !\\
 ! !INTERFACE:
@@ -783,21 +767,9 @@
 !
 ! !RETURN VALUE:
 !
-#if   defined( GEOS_4 )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'geos4'
-
-#elif defined( GEOS_5 ) || defined( GEOS_FP )
+#if defined( GEOS_FP )
       CHARACTER(LEN=5) :: NAME_EXT
       NAME_EXT = 'geos5'
-
-#elif defined( GCAP )
-      CHARACTER(LEN=4) :: NAME_EXT
-      NAME_EXT = 'gcap'
-
-#elif defined( MERRA )
-      CHARACTER(LEN=5) :: NAME_EXT
-      NAME_EXT = 'merra'
 
 #elif defined( MERRA2 )
       CHARACTER(LEN=6) :: NAME_EXT
@@ -813,9 +785,6 @@
 !  We now read many data files via HEMCO, so we don't have much of a need
 !  of constructing file names w/in the code.  This routine is now pretty
 !  much obsolete and is slated for eventual removal.
-!
-!  NOTE: GEOS-FP and GEOS-5 met products use the same vertical grid, so we 
-!  can return the name extension "geos5" for both.
 !
 ! !REVISION HISTORY:
 !  (1 ) Added name string for GEOS-4/fvDAS model type (bmy, 11/20/01)
@@ -845,7 +814,7 @@
 !
 ! !DESCRIPTION: Function GET\_NAME\_EXT\_2D returns the proper filename 
 !  extension for CTM model name for files which do not contain any vertical 
-!  information (i.e. "geos" or "gcap").
+!  information (i.e. "geos").
 !\\
 !\\
 ! !INTERFACE:
@@ -854,7 +823,7 @@
 !
 ! !RETURN VALUE:
 !
-      CHARACTER(LEN=4) :: NAME_EXT_2D   ! Return 1st 4 chars of "geos", "gcap"
+      CHARACTER(LEN=4) :: NAME_EXT_2D
 !
 ! !REMARKS:
 !  We now read many data files via HEMCO, so we don't have much of a need
@@ -884,15 +853,15 @@
       ! Get the name extension
       TEMP_NAME   = GET_NAME_EXT()
 
-#if   defined( MERRA ) || defined( MERRA2 )
+#if defined( MERRA2 )
 
-      ! Return "geos" for MERRA meteorology, to denote data
-      ! that is only defined at the surface. (bmy, 7/19/12)
+      ! Return "geos" for MERRA-2 meteorology, to denote data
+      ! that is only defined at the surface
       NAME_EXT_2D = 'geos'
 
 #else
 
-      ! Take the 1st 4 characters ("geos" or "gcap") and return
+      ! Take the 1st 4 characters ("geos") and return
       NAME_EXT_2D = TEMP_NAME(1:4)
 
 #endif
@@ -908,7 +877,7 @@
 ! !IROUTINE: Get_Res_Ext
 !
 ! !DESCRIPTION: Function GET\_RES\_EXT returns the proper filename extension 
-!  for the GEOS-Chem horizontal grid resolution (e.g. "1x1", "2x25", "4x5").
+!  for the GEOS-Chem horizontal grid resolution.
 !\\
 !\\
 ! !INTERFACE:
@@ -924,18 +893,6 @@
 #elif defined( GRID2x25 ) 
       CHARACTER(LEN=4) :: RES_EXT
       RES_EXT = '2x25'
-
-#elif defined( GRID1x125 )
-      CHARACTER(LEN=5) :: RES_EXT
-      RES_EXT = '1x125'
-
-#elif defined( GRID1x1 ) 
-      CHARACTER(LEN=3) :: RES_EXT
-      RES_EXT = '1x1'
-
-#elif defined( GRID05x0666 )
-      CHARACTER(LEN=7) :: RES_EXT
-      RES_EXT = '05x0666'
 
 #elif defined( GRID05x0625 )
       CHARACTER(LEN=7) :: RES_EXT
@@ -976,7 +933,7 @@
 ! !IROUTINE: Get_Halfpolar
 !
 ! !DESCRIPTION: Function GET\_HALFPOLAR returns 1 if the current grid has 
-!  half-sized polar boxes (e.g. GEOS), or zero otherwise (e.g. GCAP).  
+!  half-sized polar boxes (e.g. GEOS) or zero otherwise (e.g. GCAP).  
 !\\
 !\\
 ! !INTERFACE:
@@ -995,17 +952,8 @@
 !------------------------------------------------------------------------------
 !BOC
 ! 
-#if   defined( GCAP ) 
-
-      ! GCAP grid does not have half-sized polar boxes
-      HALFPOLAR = 0
-
-#else
-
       ! All GEOS grids have half-sized polar boxes
       HALFPOLAR = 1
-
-#endif
 
       ! Return to calling program
       END FUNCTION GET_HALFPOLAR

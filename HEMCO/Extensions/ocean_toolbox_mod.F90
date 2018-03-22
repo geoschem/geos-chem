@@ -26,6 +26,8 @@
 ! \item  E. Fuller et al.: "New method for prediction of binary gas-phase 
 !        diffusion coefficients", Industrial \& Engineering Chemistry, 58, 
 !        1966.
+! \item Saltzman et al.: Experimental determination of the diffusion
+!    coefficient of dimethylsulfide in water, J. Geophys. Res., 98, 1993.
 ! \end{itemize}
 !
 ! !INTERFACE: 
@@ -53,6 +55,7 @@ MODULE Ocean_ToolBox_Mod
   PRIVATE :: Schmidt_W
   PRIVATE :: Schmidt_Saltzmann
   PRIVATE :: Schmidt_Acet
+  PRIVATE :: Schmidt_Ald2
   PRIVATE :: N_Air
   PRIVATE :: P_Air
   PRIVATE :: V_Air
@@ -67,6 +70,7 @@ MODULE Ocean_ToolBox_Mod
 ! !REVISION HISTORY:
 !  11 Apr 2013 - C. Keller: Adapted from F. Paulot
 !  03 Oct 2-14 - C. Keller: Added error trap for negative Schmidt numbers
+!  10 Mar 2017 - M. Sulprizio- Add function Schmidt_Ald2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,6 +293,8 @@ CONTAINS
        SC = SCHMIDT_SALTZMANN(T)
     ELSEIF ( SCW == 3 ) THEN
        SC = SCHMIDT_ACET(T)
+    ELSEIF ( SCW == 4 ) THEN
+       SC = SCHMIDT_ALD2(T)
     ENDIF
 
     ! Schmidt number for CO2
@@ -690,6 +696,13 @@ CONTAINS
 !
     REAL*8             :: SC
 !
+! !NOTES:
+!  Coefficients for fitting the Schmidt number for acetone [unitless]
+!    A0 =  3287.687d0
+!    A1 = -136.2176d0
+!    A2 =  2.20642d0
+!    A3 = -0.01410642d0
+!
 ! !REVISION HISTORY:
 !  11 Aug 2013 - C. Keller: Initial version 
 !EOP
@@ -703,6 +716,54 @@ CONTAINS
     SC = 3287.687d0 + T * ( -136.2176d0 + T * ( 2.20642d0 - T*0.01410642d0 ) )  
 
   END FUNCTION Schmidt_Acet
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Schmidt_Ald2
+!
+! !DESCRIPTION: Schmidt\_Ald2 returns the Schmidt number of acetaldehyde.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Schmidt_Ald2(T) RESULT(SC)
+!
+! !INPUT PARAMETERS:
+!
+    REAL*8, INTENT(IN) :: T   ! Temperature in C
+!
+! !RETURN VALUE:
+!
+    REAL*8             :: SC
+!
+! !NOTES:
+!  Coefficients for fitting the Schmidt number for acetaldehyde [unitless]
+!  Derived using polynomial fit (code provided by qli, same as used
+!  for acetone, methanol)
+!  and partial molal volume of acetaldehyde at its normal boiling
+!  temperature (51.8 cm3/g/mole) calculated using Le Bas method
+!  see "The Properties of Gases and Liquids", Reid, Prausnitz, Sherwood.
+!    A0 = 2581.709d0
+!    A1 = -106.9671d0
+!    A2 = 1.73263d0
+!    A3 = -0.0110773d0
+!
+! !REVISION HISTORY:
+!  10 Mar 2017 - M. Sulprizio- Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    !=================================================================
+    ! SCHMIDT_ALD2 begins here!
+    !=================================================================
+
+    SC = 2581.709d0 + T * ( -106.9671d0 + T * ( 1.73263d0 - T*0.0110773d0 ) )  
+
+  END FUNCTION Schmidt_Ald2
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
