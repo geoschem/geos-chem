@@ -103,6 +103,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input Options object
     INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
     INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
     INTEGER,        OPTIONAL      :: value_I_HI       ! Max local lon index
@@ -113,10 +114,6 @@ CONTAINS
     INTEGER,        OPTIONAL      :: value_IM_WORLD   ! Global # of lons
     INTEGER,        OPTIONAL      :: value_JM_WORLD   ! Global # of lats
     INTEGER,        OPTIONAL      :: value_LM_WORLD   ! Global # of levels
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt        ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -149,6 +146,7 @@ CONTAINS
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
 !  20 Dec 2017 - R. Yantosca - Return when encountering errors
 !  29 Dec 2017 - C. Keller   - Now accept value of LLSTRAT from Input_Opt
+!  14 Mar 2018 - E. Lundgren - Input_Opt parameter is IN only, not INOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC

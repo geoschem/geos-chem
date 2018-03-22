@@ -60,9 +60,9 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm       (:,:,:,:) ! Drydep flux in chemistry
-     REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
-     REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
+     REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
+     REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
+     REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
@@ -3625,19 +3625,19 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPMIX' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL' ) THEN

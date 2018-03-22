@@ -221,6 +221,7 @@ CONTAINS
     INTEGER                     :: VarXDimId,  VarYDimId
     INTEGER                     :: VarZDimId,  VarTDimId
     INTEGER                     :: yyyymmdd,   hhmmss
+    INTEGER                     :: nLev,       nILev
     INTEGER                     :: DataType
 
     ! Strings                   
@@ -360,6 +361,15 @@ CONTAINS
        Container%ProdDateTime = ''
 !------------------------------------------------------------------------------
 
+       ! Pick the dimensions of the lev and ilev variables properly
+       IF ( Container%OnLevelEdges ) THEN
+          nILev = Container%NZ
+          nLev  = nILev - 1
+       ELSE
+          nLev  = Container%NZ
+          nILev = nLev  + 1
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Create the file and add global attributes
        ! Remain in netCDF define mode upon exiting this routine
@@ -372,8 +382,8 @@ CONTAINS
                        NcFile         = FileName,                            &
                        nLon           = Container%nX,                        &
                        nLat           = Container%nY,                        &
-                       nLev           = Container%nZ,                        &
-                       nIlev          = Container%nZ+1,                      &
+                       nLev           = nLev,                                &
+                       nIlev          = nILev,                               &
                        nTime          = NF_UNLIMITED,                        &
                        NcFormat       = Container%NcFormat,                  &
                        Conventions    = Container%Conventions,               &
@@ -480,17 +490,6 @@ CONTAINS
        ! As long as this node of the list is valid ...
        DO WHILE( ASSOCIATED( Current ) )
 
-          ! Get the dimension ID's that are relevant to each HISTORY ITEM
-          ! and save them in fields of the HISTORY ITEM
-          CALL Get_Var_DimIds( xDimId   = Container%xDimId,                  &
-                               yDimId   = Container%yDimId,                  &
-                               zDimId   = Container%zDimId,                  &
-                               iDimId   = Container%iDimId,                  &
-                               tDimId   = Container%tDimId,                  &
-                               Item     = Current%Item,                      &
-                               VarUnits = VarUnits                          )
-
-
           ! Replace "TBD"  with the current units of State_Chm%Species
           IF ( TRIM( VarUnits ) == 'TBD' ) THEN
              VarUnits = Container%Spc_Units
@@ -568,6 +567,10 @@ CONTAINS
                                 Arr2d   = Current%Item%Source_2d_4          )
 
           ELSE IF ( Current%Item%SpaceDim == 1 ) THEN
+
+             if ( current%item%name == 'time' .or. &
+                  current%item%name == "TIME" ) then
+             endif
 
              ! All other index fields are 1-D (8-byte precision) ...
              CALL Nc_Var_Write( fId     = Container%FileId,                  &

@@ -53,7 +53,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,                 &
+  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt, State_Met,                 &
                            State_Chm, State_Diag, RC                        )
 !
 ! !USES:
@@ -814,7 +814,7 @@ CONTAINS
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
                    IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
-                      State_Diag%DryDepMix(I,J,L,DryDepId) = Flux
+                      State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
 #endif
 

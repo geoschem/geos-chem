@@ -371,10 +371,15 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-         LD14 = MIN( ND14, LLCONVM )
+!------------------------------------------------
+! Prior to 3/19/18:
+! Use LLPAR instead of LLCONVM (bmy, 3/19/18)
+!         LD14 = MIN( ND14, LLCONVM )
+!------------------------------------------------
+         LD14 = MIN( ND14, LLPAR )
          NMAX = nAdvect
 
-         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
+         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
       ENDIF
 
@@ -832,7 +837,12 @@
       IF ( ND54 > 0 ) THEN
 
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
-         LD54 = MIN( ND54, LLCHEM)
+!----------------------------------------------
+! Prior to 3/19/18:
+! Now set max value as LLPAR (bmy, 3/19/18)
+!         LD54 = MIN( ND54, LLCHEM)
+!----------------------------------------------
+         LD54 = MIN( ND54, LLPAR )
 
          ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
