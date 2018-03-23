@@ -376,7 +376,7 @@ CONTAINS
                      OptValChar=DiagnPrefix, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       DiagnPrefix = 'HEMCO_Diagnostics.$YYYY$MM$DD$HH$MN.nc'
+       DiagnPrefix = 'HEMCO_diagnostics'
     ENDIF
 
     ! Output time stamp location
@@ -432,7 +432,7 @@ CONTAINS
     deltaYMD = 99999999
     deltaHMS = 999999
 #endif
-    DiagnPrefix = 'HEMCO_restart.$YYYY$MM$DD$HH$MN.nc'
+    DiagnPrefix = 'HEMCO_restart'
     CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
@@ -461,7 +461,7 @@ CONTAINS
     deltaYMD = -1
     deltaHMS = -1
 #endif
-    DiagnPrefix = 'HEMCO_manual.$YYYY$MM$DD$HH$MN.nc'
+    DiagnPrefix = 'HEMCO_manual'
     CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,             &
                                  NX        = HcoState%NX,               &
                                  NY        = HcoState%NY,               &
