@@ -22,7 +22,6 @@ MODULE State_Diag_Mod
 ! USES:
 
   USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
-  USE CMN_FJX_Mod,     ONLY : STRWVSELECT
   USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod

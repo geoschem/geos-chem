@@ -1059,6 +1059,7 @@
 !  27 Mar 2017 - R. Yantosca - Fixed bug in formula for NOUT diagnostic index
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  15 Nov 2017 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
+!  23 Mar 2018 - E. Lundgren - Get number of wavelengths from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1088,7 +1089,7 @@
 #if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
-      LOGICAL             :: LINTERPARR(NWVSELECT)
+      LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
 #endif
 
       !=================================================================
@@ -1295,7 +1296,7 @@
 !###!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
 !#############################################################################
          DO N=1, NDUST
-         DO W = 1, NWVSELECT !loop over required number of wavelengths
+         DO W = 1, Input_Opt%NWVSELECT !loop over number of wavelengths
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
                LINTERP=.FALSE.
             ELSE
@@ -1385,7 +1386,7 @@
          LINTERPARR(:) = .FALSE.
 
          ! Interpolate?
-         DO W = 1, NWVSELECT
+         DO W = 1, Input_Opt%NWVSELECT
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
                LINTERPARR(W) =.FALSE.
             ELSE
@@ -1397,7 +1398,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
-         DO W = 1, NWVSELECT 
+         DO W = 1, Input_Opt%NWVSELECT 
          DO N = 1, NDUST
          DO L = 1, LLCHEM
          DO J = 1, JJPAR
@@ -1627,6 +1628,7 @@
 !                              IIPAR instead.
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  25 Jan 2018 - E. Lundgren - Implement dust AOD and surf area nc diagnostics
+!  23 Mar 2018 - E. Lundgren - Get number of wavelengths from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1659,7 +1661,7 @@
 #if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
-      LOGICAL             :: LINTERPARR(NWVSELECT)
+      LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
 #endif
 
       !=================================================================
@@ -1905,7 +1907,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
          DO N=1, NDUST
-         DO W = 1, NWVSELECT !different to NWVSELECT if interp
+         DO W = 1, Input_Opt%NWVSELECT !different to NWVSELECT if interp
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
                LINTERP=.FALSE.
             ELSE
@@ -1993,7 +1995,7 @@
          LINTERPARR(:) = .FALSE.
 
          ! Interpolate?
-         DO W = 1, NWVSELECT
+         DO W = 1, Input_Opt%NWVSELECT
             IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
                LINTERPARR(W) =.FALSE.
             ELSE
@@ -2005,7 +2007,7 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
-         DO W = 1, NWVSELECT
+         DO W = 1, Input_Opt%NWVSELECT
          DO N = 1, NDUST
          DO L = 1, LLCHEM
          DO J = 1, JJPAR

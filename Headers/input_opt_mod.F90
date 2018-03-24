@@ -192,11 +192,14 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! RADIATION MENU fields
      !----------------------------------------
-     LOGICAL                     :: LRAD
-     LOGICAL                     :: LLWRAD
-     LOGICAL                     :: LSWRAD
-     LOGICAL, POINTER            :: LSKYRAD(:)
-     INTEGER                     :: TS_RAD
+     LOGICAL                       :: LRAD
+     LOGICAL                       :: LLWRAD
+     LOGICAL                       :: LSWRAD
+     LOGICAL, POINTER              :: LSKYRAD(:)
+     INTEGER                       :: TS_RAD
+     INTEGER                       :: NWVSELECT
+     REAL(8), ALLOCATABLE          :: WVSELECT(:)
+     CHARACTER(LEN=5), ALLOCATABLE :: STRWVSELECT(:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -868,13 +871,18 @@ CONTAINS
     !----------------------------------------
     ! RADIATION MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%LSKYRAD( 2 ), STAT=RC )
+    ALLOCATE( Input_Opt%LSKYRAD( 2 ),     STAT=RC )
+    ALLOCATE( Input_Opt%WVSELECT( 3 ),    STAT=RC )
+    ALLOCATE( Input_Opt%STRWVSELECT( 3 ), STAT=RC )
 
     Input_Opt%LRAD                   = .FALSE.
     Input_Opt%LLWRAD                 = .FALSE.
     Input_Opt%LSWRAD                 = .FALSE.
     Input_Opt%LSKYRAD                = .FALSE.
     Input_Opt%TS_RAD                 = 0
+    Input_Opt%NWVSELECT              = 0
+    Input_Opt%WVSELECT               = 0e+0_fp
+    Input_Opt%STRWVSELECT            = ''
 
     !----------------------------------------
     ! TRANSPORT MENU fields

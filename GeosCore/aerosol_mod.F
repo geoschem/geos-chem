@@ -2192,7 +2192,7 @@
          DO N = 1, NRHAER 
 
             ! Loop over wavelengths in input.geos radiation menu
-            DO W = 1, NWVSELECT 
+            DO W = 1, Input_Opt%NWVSELECT 
 
                !no interpolation required if these are the same
                IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -2303,7 +2303,7 @@
          DO N = 1, NRHAER 
 
             ! Loop over wavelengths set in input.geos radiation menu
-            DO W = 1, NWVSELECT 
+            DO W = 1, Input_Opt%NWVSELECT 
 
                ! Set wavelength logical
                IsWL1 = .FALSE.

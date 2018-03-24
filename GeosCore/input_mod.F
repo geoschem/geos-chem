@@ -2664,7 +2664,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD              ! Fast-JX flux diagnostics
+      USE CMN_FJX_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 !
@@ -2686,6 +2686,8 @@
 !  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
 !  10 Mar 2017 - C. Keller   - Wrapped print out in am_I_Root statement.
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  23 Mar 2018 - E. Lundgren - Store wavelength data in Input_Opt instead of 
+!                              variables formerly declared in CMN_FJX_MOD.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2720,19 +2722,16 @@
       ENDIF
 
       ! AOD wavelength selection?
-      CALL SPLIT_ONE_LINE( SUBSTRS, NWVSELECT, -1, 'Wavelengths', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%NWVSELECT, -1, 
+     &                     'Wavelengths', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      STRWVSELECT(1)=''
-      STRWVSELECT(2)=''
-      STRWVSELECT(3)=''
-
-      DO N = 1, NWVSELECT
-         READ( SUBSTRS(N), * ) WVSELECT(N)
+      DO N = 1, Input_Opt%NWVSELECT
+         READ( SUBSTRS(N), * ) Input_Opt%WVSELECT(N)
          ! save the string version also
-         STRWVSELECT(N) = TRIM(SUBSTRS(N))
+         Input_Opt%STRWVSELECT(N) = TRIM(SUBSTRS(N))
       ENDDO
 
       ! Turn on RRTMG?
@@ -2853,9 +2852,9 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'RADIATION MENU'
          WRITE( 6, '(  a)' ) '--------------'
-         DO N=1, NWVSELECT
+         DO N=1, Input_Opt%NWVSELECT
             WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
-     &                           WVSELECT(N)
+     &                           Input_Opt%WVSELECT(N)
          ENDDO
          WRITE( 6, 100     ) 'Turn on radiation?          : ',
      &                        Input_Opt%LRAD

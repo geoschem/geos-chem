@@ -2347,6 +2347,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !                                M. Hammer 
 !  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
 !  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
+!  23 Mar 2018 - E. Lundgren   - Pass Input_Opt to Calc_AOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2448,7 +2449,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
       !now calculate the required wavelengths in the LUT to calculate
       !the requested AOD
-      CALL CALC_AOD( am_I_Root )
+      CALL CALC_AOD( am_I_Root, Input_Opt )
 
       END SUBROUTINE RD_AOD
 !EOC
@@ -2468,17 +2469,18 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_AOD( am_I_Root )
+      SUBROUTINE CALC_AOD( am_I_Root, Input_Opt )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD, ONLY : NWVAA, NWVAA0, WVAA
-      USE CMN_FJX_MOD, ONLY : WVSELECT, IWVSELECT, NWVSELECT
+      USE CMN_FJX_MOD, ONLY : IWVSELECT
       USE CMN_FJX_MOD, ONLY : IRTWVSELECT
       USE CMN_FJX_MOD, ONLY : ACOEF_WV, BCOEF_WV, CCOEF_WV
       USE CMN_FJX_MOD, ONLY : ACOEF_RTWV, BCOEF_RTWV, CCOEF_RTWV
       USE CMN_FJX_MOD, ONLY : NWVREQUIRED, IWVREQUIRED
       USE CMN_FJX_MOD, ONLY : NRTWVREQUIRED, IRTWVREQUIRED
+      USE Input_Opt_Mod, ONLY : OptInput
 #if defined( RRTMG ) 
       USE PARRRTM,     ONLY : NBNDLW
 #endif
@@ -2486,6 +2488,7 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 ! !INPUT PARAMETERS:
 !     
       LOGICAL,          INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput),   INTENT(IN) :: Input_Opt
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
@@ -2513,6 +2516,8 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  18 Jun 2013 - D. Ridley   - Initial version
 !  15 Dec 2014 - M. Sulprizio- Added ProTeX headers
 !  02 Apr 2015 - C. Keller   - Added am_I_Root argument
+!  23 Mar 2018 - E. Lundgren - Added Input_Opt argument for wavelength vars
+!                              read in input.geos now stored in Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2531,11 +2536,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       N1=NWVAA0
       NSTEP=1
       NWVREQUIRED=0
-      DO W=1,NWVSELECT
+      DO W=1,Input_Opt%NWVSELECT
        MINWV     = -999
        MAXWV     =  999
        DO N=N0,N1,NSTEP
-        WVDIF = WVAA(N,1)-WVSELECT(W)
+        WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
         IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
          MINWV = WVDIF
          IWVSELECT(1,W)=N
@@ -2588,25 +2593,25 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !now calcualte the angstrom exponent coefs for interpolation -
       !this is done here to save time and repetition in aerosol_mod.F
       IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
-       ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/WVSELECT(W)
+       ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
        BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/
      &                         WVAA(IWVSELECT(1,W),1)))
        !relative location of selected wavelength between tie points
        !for interpolating SSA and ASYM for output in aerosol_mod.F and
        !dust_mod.F
-       CCOEF_WV(W) =(WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
+       CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/
      &              (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
       ENDIF
       IF ( am_I_Root ) THEN
-         write(6,*) 'N WAVELENGTHS: ',NWVSELECT
-         write(6,*) 'WAVELENGTH REQUESTED:',WVSELECT(W)
+         write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
+         write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
          write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
          !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
          !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
          !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
          write(6,*) '*********************************'
       ENDIF
-      ENDDO !NWVSELECT
+      ENDDO !Input_Opt%NWVSELECT
 #if defined( RRTMG )
       !repeat for RRTMG wavelengths to get the closest wavelength
       !indices and the interpolation coefficients
@@ -2616,11 +2621,11 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       N1=NWVAA
       NSTEP=1
       NRTWVREQUIRED=0
-      DO W=1,NWVSELECT
+      DO W=1,Input_Opt%NWVSELECT
        MINWV     = -999
        MAXWV     =  999
        DO N=N0,N1,NSTEP
-        WVDIF = WVAA(N,1)-WVSELECT(W)
+        WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
         IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
          MINWV = WVDIF
          IRTWVSELECT(1,W)=N
@@ -2686,15 +2691,15 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
       IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
       IF ( am_I_Root ) THEN
-      write(6,*) 'N RT WAVELENGTHS: ',NWVSELECT
-      write(6,*) 'RT WAVELENGTH REQUESTED:',WVSELECT(W)
+      write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
+      write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
       write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
       write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
       write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
       write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
       write(6,*) '*********************************'
       ENDIF
-      ENDDO !NWVSELECT
+      ENDDO !Input_Opt%NWVSELECT
 #endif
       END SUBROUTINE CALC_AOD
 !EOC

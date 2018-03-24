@@ -2041,13 +2041,13 @@
 
            ! Is this something that we want to output?
            ! Only output extra wavelengths if they are requested
-           IF (NWVSELECT.eq.3) THEN
+           IF (Input_Opt%NWVSELECT.eq.3) THEN
                IS_AD21 = .TRUE.
-           ELSEIF (NWVSELECT.eq.2) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.2) THEN
                ! Exclude wavelength 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
-           ELSEIF (NWVSELECT.eq.1) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.1) THEN
                ! Exclude wavelengths 2 and 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
@@ -6281,7 +6281,7 @@
       IF ( Input_Opt%LRAD ) THEN
       IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
-         write(6,*) 'NWVSELECT',NWVSELECT
+         write(6,*) 'Input_Opt%NWVSELECT',Input_Opt%NWVSELECT
 
          ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
@@ -6304,9 +6304,11 @@
              IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQV..TRUE.)).OR.
      &           ((N.GT.4).AND.(N.LE.8).AND.
      &                         (Input_Opt%LSKYRAD(1).EQV..TRUE.)).OR.
-     &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
-     &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
-     &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
+     &           ((N.GT.8).AND.(N.LE.11)).OR.                !1st set of optics
+     &           ((N.GT.11).AND.(N.LE.14).AND.
+     &                          (Input_Opt%NWVSELECT.GT.1)).OR.   !2nd set
+     &           ((N.GT.14).AND.(N.LE.17).AND.
+     &                          (Input_Opt%NWVSELECT.GT.2))) THEN !3rd set
 
              ! Select proper unit string (cf list above)
              IF (N.LE.8) THEN

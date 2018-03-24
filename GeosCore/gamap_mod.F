@@ -1764,7 +1764,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
+      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -1861,6 +1861,7 @@
 !  23 Jan 2017 - R. Yantosca - Now write metadata for all species (advected
 !                              or not) for the ND45 tracer conc. diagnostic
 !  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
+!  23 Mar 2018 - E. Lundgren - Get lambda array from Input_Opt not cmn_fjx_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5202,9 +5203,9 @@
                   FNAME(T,21) = 'Mineral dust surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 6  )
-                  NAME (T,21) = 'OPSO4'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSO4'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Sulfate opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 7  )
                   NAME (T,21) = 'HGSO4'
                   FNAME(T,21) = 'Hygr growth of SO4'
@@ -5213,9 +5214,9 @@
                   FNAME(T,21) = 'Sulfate surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 9  )
-                  NAME (T,21) = 'OPBC'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPBC'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Black carbon opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 10 )
                   NAME (T,21) = 'HGBC'
                   FNAME(T,21) = 'Hygr growth of BC'
@@ -5224,9 +5225,9 @@
                   FNAME(T,21) = 'BC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 12 )
-                  NAME (T,21) = 'OPOC'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPOC'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Org carbon opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 13 )
                   NAME (T,21) = 'HGOC'
                   FNAME(T,21) = 'Hygr growth of OC'
@@ -5235,9 +5236,9 @@
                   FNAME(T,21) = 'OC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 15 )
-                  NAME (T,21) = 'OPSSa'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSSa'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 16 ) 
                   NAME (T,21) = 'HGSSa'
                   FNAME(T,21) = 'Hygr growth of seasalt (accum)'
@@ -5246,9 +5247,9 @@
                   FNAME(T,21) = 'Seasalt (accum) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 18 )
-                  NAME (T,21) = 'OPSSc'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSSc'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Seasalt (coarse) opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 19 ) 
                   NAME (T,21) = 'HGSSc'
                   FNAME(T,21) = 'Hygr growth of seasalt (coarse)'
@@ -5257,129 +5258,129 @@
                   FNAME(T,21) = 'Seasalt (coarse) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 21 )
-                  NAME (T,21) = 'OPD1'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD1'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 22 )
-                  NAME (T,21) = 'OPD2'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD2'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 23 )
-                  NAME (T,21) = 'OPD3'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD3'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 24 )
-                  NAME (T,21) = 'OPD4'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD4'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 25 )
-                  NAME (T,21) = 'OPD5'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD5'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 26 )
-                  NAME (T,21) = 'OPD6'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD6'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 27 )
-                  NAME (T,21) = 'OPD7'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD7'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 28 )
-                  NAME (T,21) = 'OPSO4'//STRWVSELECT(2)
+                  NAME (T,21) = 'OPSO4'//Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 29 )
-                  NAME (T,21) = 'OPBC' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPBC' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'BC opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 30 )
-                  NAME (T,21) = 'OPOC' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPOC' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'OC opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 31 )
-                  NAME (T,21) = 'OPSSa' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPSSa' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 32 )
-                  NAME (T,21) = 'OPSSc' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPSSc' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'seasalt (coarse) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 33 )
-                  NAME (T,21) = 'OPD1' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD1' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 34 )
-                  NAME (T,21) = 'OPD2' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD2' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 35 )
-                  NAME (T,21) = 'OPD3' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD3' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 36 )
-                  NAME (T,21) = 'OPD4' // STRWVSELECT(2) 
+                  NAME (T,21) = 'OPD4' // Input_Opt%STRWVSELECT(2) 
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 37 )
-                  NAME (T,21) = 'OPD5' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD5' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 38 )
-                  NAME (T,21) = 'OPD6' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD6' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 39 )
-                  NAME (T,21) = 'OPD7' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD7' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 40 )
-                  NAME (T,21) = 'OPSO4' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSO4' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 41 )
-                  NAME (T,21) = 'OPBC' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPBC' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'BC opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 42 )
-                  NAME (T,21) = 'OPOC' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPOC' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'OC opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 43 )
-                  NAME (T,21) = 'OPSSa' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSSa' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 44 )
-                  NAME (T,21) = 'OPSSc' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSSc' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'seasalt (coarse) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 45 )
-                  NAME (T,21) = 'OPD1' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD1' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 46 )
-                  NAME (T,21) = 'OPD2' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD2' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 47 )
-                  NAME (T,21) = 'OPD3' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD3' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 48 )
-                  NAME (T,21) = 'OPD4' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD4' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 49 )
-                  NAME (T,21) = 'OPD5' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD5' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 50 )
-                  NAME (T,21) = 'OPD6' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD6' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 51 )
-                  NAME (T,21) = 'OPD7' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD7' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
 
                ! For the UCX simualtion
                CASE( 52 )
@@ -7678,40 +7679,49 @@
                   FNAME0      = 'Surface LW Clear-sky'
                CASE( 9  )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0  = 'aer. op. depth ('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0  = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 10 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0  = 'Single scat. alb.('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0  = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 11 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0     = 'asym param ('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 12  )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0     = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 13 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0   = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 14 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0     = 'asym param ('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 15 )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0     = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
                CASE( 16 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0   = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
                CASE( 17 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0     = 'asym param ('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
             END SELECT
 
             ! Get name long-name (and sometimes, unit)
