@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Function.f90
-! Time                 : Fri Mar  2 14:29:24 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.v11-02e/KPP/Tropchem
+! Time                 : Mon Mar 26 14:11:33 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -533,7 +533,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(473) = RCT(473)*V(209)
   A(474) = RCT(474)*V(202)
   A(475) = RCT(475)*V(201)
-  A(476) = RCT(476)*V(92)
+  A(476) = RCT(476)*V(92)*F(3)
   A(477) = RCT(477)*V(92)*V(192)
   A(478) = RCT(478)*V(92)
   A(479) = RCT(479)*V(120)*F(3)

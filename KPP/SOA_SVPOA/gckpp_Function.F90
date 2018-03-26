@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Function.f90
-! Time                 : Fri Mar  2 14:29:29 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.v11-02e/KPP/SOA_SVPOA
+! Time                 : Mon Mar 26 14:11:42 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -536,7 +536,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(476) = RCT(476)*V(215)
   A(477) = RCT(477)*V(207)
   A(478) = RCT(478)*V(208)
-  A(479) = RCT(479)*V(97)
+  A(479) = RCT(479)*V(97)*F(3)
   A(480) = RCT(480)*V(97)*V(196)
   A(481) = RCT(481)*V(97)
   A(482) = RCT(482)*V(124)*F(3)

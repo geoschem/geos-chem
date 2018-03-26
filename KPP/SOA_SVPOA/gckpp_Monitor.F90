@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Fri Mar  2 14:29:29 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.v11-02e/KPP/SOA_SVPOA
+! Time                 : Mon Mar 26 14:11:42 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -602,7 +602,7 @@ MODULE gckpp_Monitor
      '           HO2 --> O2                                                                               ', & ! index 476
      '           NO2 --> 0.5 LOx + 0.5 HNO2 + 0.5 HNO3                                                    ', & ! index 477
      '           NO3 --> LOx + HNO3                                                                       ', & ! index 478
-     '          N2O5 --> LOx + 2 HNO3                                                                     ', & ! index 479
+     '    N2O5 + H2O --> LOx + 2 HNO3                                                                     ', & ! index 479
      '    N2O5 + HCl --> LOx + ClNO2 + HNO3                                                               ' /)
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_16 = (/ &
      '          N2O5 --> LOx + ClNO2 + HNO3                                                               ', & ! index 481

@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Monitor.f90
-! Time                 : Fri Mar  2 14:29:24 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.v11-02e/KPP/Tropchem
+! Time                 : Mon Mar 26 14:11:33 2018
+! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -598,7 +598,7 @@ MODULE gckpp_Monitor
      '           HO2 --> O2                                                                               ', & ! index 473
      '           NO2 --> 0.5 LOx + 0.5 HNO2 + 0.5 HNO3                                                    ', & ! index 474
      '           NO3 --> LOx + HNO3                                                                       ', & ! index 475
-     '          N2O5 --> LOx + 2 HNO3                                                                     ', & ! index 476
+     '    N2O5 + H2O --> LOx + 2 HNO3                                                                     ', & ! index 476
      '    N2O5 + HCl --> LOx + ClNO2 + HNO3                                                               ', & ! index 477
      '          N2O5 --> LOx + ClNO2 + HNO3                                                               ', & ! index 478
      '   BrNO3 + H2O --> HOBr + HNO3                                                                      ', & ! index 479
