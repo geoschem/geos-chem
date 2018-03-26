@@ -506,7 +506,7 @@ CONTAINS
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: C,              N,             W
     INTEGER                      :: nX,             nY,            nZ
-    INTEGER                      :: fId,            IOS
+    INTEGER                      :: fId,            IOS,           LineNum
     INTEGER                      :: nSubs1,         nSubs2
     INTEGER                      :: Ind1,           Ind2
     INTEGER                      :: UpdateYmd,      UpdateHms    
@@ -530,6 +530,7 @@ CONTAINS
     CHARACTER(LEN=8  )           :: DStr
     CHARACTER(LEN=20 )           :: StartTimeStamp, EndTimeStamp
     CHARACTER(LEN=63 )           :: CName
+    CHARACTER(LEN=80 )           :: ErrorLine
     CHARACTER(LEN=255)           :: Line,           FileName
     CHARACTER(LEN=255)           :: OutputName,     ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
@@ -572,6 +573,7 @@ CONTAINS
     FileCloseHms   =  0
     FileWriteYmd   =  0
     FileWriteHms   =  0
+    LineNum        =  0
     SpaceDim       =  0
     SubsetDims     =  0 
     HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
@@ -648,17 +650,22 @@ CONTAINS
     DO
 
        ! Read a single line, and strip leading/trailing spaces
+       ! and keep track of the line number for error output
  500   CONTINUE
-       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       LineNum = LineNum + 1
 
        ! Exit the loop if it's the end of the file
        IF ( EOF ) EXIT
 
        ! If it's a real I/O error, quit w/ error message
        IF ( IOS > 0 ) THEN
-          ErrMsg = 'Unexpected end-of-file in "'       // &
-                    TRIM( Input_Opt%HistoryInputFile ) // '"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          ErrMsg = 'Unexpected end-of-file in "'                          // &
+                    TRIM( Input_Opt%HistoryInputFile )
+          WRITE( ErrorLine, 250 ) LineNum
+ 250      FORMAT( ' -> ERROR occurred at (or near) line ', i6,               &
+                      ' of the HISTORY.rc file' )
+          CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
           RETURN
        ENDIF
 
@@ -718,34 +725,100 @@ CONTAINS
           IF ( C > 0 ) CollectionFormat(C) = Metadata
        ENDIF
 
-       ! "frequency": Specifies how often diagnostics are updated
+       ! "frequency": Specifies how often diagnostics are updated,
+       ! Must be either in "YYYYMMDD hhmmss" or "hhmmss" format.
        Pattern = 'frequency'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionFrequency(C) = Metadata
+          IF ( C > 0 ) THEN 
+             IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
+                  LEN_TRIM( MetaData ) == 14 ) THEN
+                CollectionFrequency(C) = Metadata
+             ELSE
+                ErrMsg = 'Error in defining "frequency" for collection "' // &
+                          TRIM( CollectionName(C) ) // '"!  This field '  // &
+                          'must either be of the format "YYYYMMDD '       // &
+                          'hhmmss" or "hhmmss".  Please check the '       // &
+                          '"frequency" setting in the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+          ENDIF
        ENDIF
 
        ! "acc_interval": Specifies how often time-averaged diagnostics
-       ! are updated.  Defaults to "frequncy"
+       ! are updated.   ! Must be either in "YYYYMMDD hhmmss" or "hhmmss" 
+       ! format.   If omitted, "acc_interval" will be set from "frequency"
+       !%%%%% NOTE: The "acc_interval" attribute is not really needed; 
+       !%%%%% we only really need "frequency" and "duration".  We will
+       !%%%%% leave this as an "undocumented feature". (bmy, 3/26/18)
        Pattern = 'acc_interval'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionAccInterval(C) = Metadata
+          IF ( C > 0 ) THEN
+             IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
+                  LEN_TRIM( MetaData ) == 14 ) THEN
+                CollectionAccInterval(C) = Metadata
+             ELSE
+                ErrMsg = 'Error in defining "acc_interval" for '          // &
+                         'collection "'// TRIM( CollectionName(C) )       // &
+                         '"!  This field must either be of the format '   // &
+                         '"YYYYMMDD hhmmss" or "hhmmss".  Please check '  // &
+                         'the "acc_interval" setting in the HISTORY.rc '  // &
+                         'file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+              ENDIF
+          ENDIF
        ENDIF
 
-       ! "duration:: Specifies how often files will be written
-       ! Defaults to "frequency"
+       ! "duration:: Specifies how often files will be written.
+       ! Must be either in "YYYYMMDD hhmmss" or "hhmmss" format.
+       ! If omitted, "duration" will be set from "frequency"
        Pattern = 'duration'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionDuration(C) = Metadata
+          IF ( C > 0 ) THEN
+             IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
+                  LEN_TRIM( MetaData ) == 14 ) THEN
+                CollectionDuration(C) = Metadata
+             ELSE
+                ErrMsg = 'Error in defining "duration" for collection "'  // &
+                          TRIM( CollectionName(C) ) // '"!  This field '  // &
+                         'must either be of the format "YYYYMMDD '        // &
+                         'hhmmss" or "hhmmss".  Please check the '        // &
+                         '"duration" setting in the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+          ENDIF
        ENDIF
 
-       ! "mode": Specifies instantaneous or time-averaged archiving
+       ! "mode": Specifies instantaneous or time-averaged archiving.
+       ! Throw an error if anything else is specified
        Pattern = 'mode'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionMode(C) = Metadata
+          IF ( C > 0 ) THEN
+             TmpMode = Metadata
+             CALL TranUc( TmpMode )
+             SELECT CASE( TmpMode )
+                CASE( 'INSTANTANEOUS', 'TIME-AVERAGED', 'TIMEAVERAGED' )
+                   CollectionMode(C) = Metadata
+                CASE DEFAULT
+                   ErrMsg = 'Error in defining "mode" for collection "'   // &
+                             TRIM( CollectionName(C) ) // '"!  The mode ' // &
+                            'value can either be "instantaneous" or '     // &
+                            '"time-averaged".  Please check the "mode"'   // &
+                            'setting in the HISTORY.rc file.'
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                   RETURN
+             END SELECT
+          ENDIF
        ENDIF
 
        ! "subsetdims": Specifies a subset of the data grid
@@ -803,7 +876,8 @@ CONTAINS
              CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
-                   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   LineNum = LineNum + 1
                    CALL StrSqueeze( Line )
                    IF ( TRIM( Line ) == '::' ) GOTO 500
                 ENDDO
@@ -811,7 +885,7 @@ CONTAINS
              
              !--------------------------------------------------------------
              ! If we get to this point, then there is a true error 
-             ! condition.  Print an error message askign the user to
+             ! condition.  Print an error message asking the user to
              ! check the HISTORY.rc file for inconsistencies.
              !--------------------------------------------------------------
 
@@ -837,7 +911,8 @@ CONTAINS
              ! Write error message and then return
              ErrMsg = 'Inconsistency in collection names and attributes!' // &
                       ' Please check "HISTORY.rc" for typos.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF 
 
@@ -870,10 +945,12 @@ CONTAINS
                 ! but the collection is instantaneous.
                 IF ( .not. TRIM( CollectionAccInterval(C) ) ==               &
                                  UNDEFINED_STR                 ) THEN
-                   ErrMsg = 'Acc_interval cannot be defined for ' //         &
-                            'instantaneous collection: "'         //         &
-                            TRIM( CollectionName(C) )             // '"!' 
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   ErrMsg = 'Acc_interval cannot be defined for '         // &
+                            'instantaneous collection: "'                 // &
+                            TRIM( CollectionName(C) )                     // &
+                            '"!' 
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
 
@@ -892,12 +969,12 @@ CONTAINS
           ! that to be FileWriteHms.  If longer, then assume that it is 
           ! both FileWriteYmd and FileWriteHms.  This is a hack that we 
           ! introduced for GEOS-Chem "Classic" only, as this feature is
-          ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
           !-----------------------------------------------------------------
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
-             READ( CollectionFrequency(C), '(i6.6)'  ) FileWriteHms
-          ELSE
-             READ( CollectionFrequency(C), '(i8,i6)' ) FileWriteYmd,      &
+             READ( CollectionFrequency(C), '(i6.6)'  ) FileWriteHms           
+          ELSE IF ( LEN_TRIM( CollectionFrequency(C) ) == 14 ) THEN
+             READ( CollectionFrequency(C), '(i8,i6)' ) FileWriteYmd,         &
                                                        FileWriteHms
           ENDIF
 
@@ -925,16 +1002,17 @@ CONTAINS
           ! that to be FileCloseHms.  If longer, then assume that it is 
           ! both FileCloseYmd and FileCloseHms.  This is a hack that we 
           ! introduced for GEOS-Chem "Classic" only, as this feature is
-          ! not supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
           !-----------------------------------------------------------------
           IF ( TRIM( CollectionDuration(C) ) == UNDEFINED_STR ) THEN
              FileCloseYmd = FileWriteYmd
              FileCloseHms = FileWriteHms
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 6 ) THEN
              READ( CollectionDuration(C), '(i6.6)'  ) FileCloseHms
-          ELSE
+          ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 14 ) THEN
              READ( CollectionDuration(C), '(i8,i6)' ) FileCloseYmd,          &
                                                       FileCloseHms
+          ELSE
           ENDIF
 
           ! SPECIAL CASE: If FileCloseHms is 240000, set
@@ -999,7 +1077,7 @@ CONTAINS
                 ! Set UpdateYmd and UpdateHms from the ".acc_interval" tag
                 IF ( LEN_TRIM( CollectionAccInterval(C) ) == 6 ) THEN
                    READ( CollectionAccInterval(C), '(i6.6)'  ) UpdateHms
-                ELSE
+                ELSE IF ( LEN_TRIM( CollectionAccInterval(C) ) == 14 ) THEN
                    READ( CollectionAccInterval(C), '(i8,i6)' ) UpdateYmd,    &
                                                                UpdateHms
                 ENDIF
@@ -1025,7 +1103,8 @@ CONTAINS
                    ErrMsg = 'Update interval is greater than File Write ' // &
                             'interval for collection: '                   // &
                             TRIM( CollectionName(C) ) 
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
 
@@ -1070,7 +1149,8 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Could not create Collection: ' // &
                       TRIM( CollectionName(C) ) 
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
 
@@ -1085,7 +1165,8 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HistContainer_SetTime"'      // &
                       ' for collection: ' // TRIM( CollectionName(C) ) 
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
 
@@ -1108,7 +1189,8 @@ CONTAINS
                 'will occur.'
 
              ! Return error
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
 
@@ -1138,7 +1220,8 @@ CONTAINS
                 !----------------------------------------------------------
 
                 ! Read a single line, and strip leading/trailing spaces
-                Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                LineNum = LineNum + 1
 
                 ! IF we have hit the end of file then 
                 iF ( EOF ) GOTO 999
@@ -1147,7 +1230,8 @@ CONTAINS
                 IF ( IOS > 0 ) THEN
                    ErrMsg = 'Unexpected end-of-file in '        // &
                              TRIM( Input_Opt%HistoryInputFile ) //'!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
                              
@@ -1190,7 +1274,8 @@ CONTAINS
                 IF ( RC /= GC_SUCCESS ) THEN
                    ErrMsg = 'Error retrieving # of tags for' //              &
                             ' wildcard ' // TRIM(tagId)
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
                 
@@ -1204,7 +1289,8 @@ CONTAINS
                    IF ( RC /= GC_SUCCESS ) THEN
                       ErrMsg = 'Error retrieving tag name for' //            &
                                ' wildcard ' // TRIM(tagId)
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
+                      WRITE( ErrorLine, 250 ) LineNum
+                      CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                       RETURN
                    ENDIF
 
@@ -1237,7 +1323,8 @@ CONTAINS
                       ErrMsg = 'Could not add diagnostic "'               // &
                                TRIM( OutputName ) // '" to collection: '  // &
                                TRIM( CollectionName(C) ) 
-                      CALL GC_Error( ErrMsg, RC, ThisLoc )
+                      WRITE( ErrorLine, 250 ) LineNum
+                      CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                       RETURN
                    ENDIF
                 ENDDO
@@ -1273,7 +1360,8 @@ CONTAINS
                 IF ( RC /= GC_SUCCESS ) THEN
                    ErrMsg = 'Could not add diagnostic "' // TRIM( OutputName ) &
                             // '" to collection: ' // TRIM( CollectionName(C) ) 
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
              ENDIF
@@ -1293,7 +1381,8 @@ CONTAINS
              ErrMsg = 'Could not add Container' //                           &
                       TRIM( CollectionName(C) ) //                           &
                       ' to the list of collections!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
 
@@ -1323,7 +1412,8 @@ CONTAINS
              CALL Search_CollList( am_I_Root, CollList, CName, Found, RC )
              IF ( .not. Found ) THEN
                 DO
-                   Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                   LineNum = LineNum + 1
                    CALL StrSqueeze( Line )
                    IF ( TRIM( Line ) == '::' ) GOTO 500
                 ENDDO
@@ -1347,7 +1437,8 @@ CONTAINS
              ! Write error message and then return
              ErrMsg = 'Inconsistency in collection names and attributes!' // &
                       ' Please check "HISTORY.rc" for typos.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
        ENDIF
@@ -1383,7 +1474,8 @@ CONTAINS
           IF ( TRIM( CollectionFrequency(C) ) == UNDEFINED_STR ) THEN
              ErrMsg = 'Collection: ' // TRIM( CollectionName(C) ) //         &
                       ' is undefined!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
        ENDDO
