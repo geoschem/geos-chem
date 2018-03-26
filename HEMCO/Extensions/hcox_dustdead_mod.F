@@ -78,6 +78,8 @@
 !                              and universal gas constant to NIST 2014 values
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
+!  17 Oct 2017 - C. Keller   - Now estimate default scale factor from
+!                              model resolution.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5439,6 +5441,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Output argument
       REAL*8  :: FLX_MSS_FDG_FCT
+      REAL*8  :: DY
 
       ! Local variables
       CHARACTER(LEN=255)  :: MSG
@@ -5607,16 +5610,43 @@ c Fix up for negative argument, erf, etc.
 !      FLX_MSS_FDG_FCT = 7.0d-4
       FLX_MSS_FDG_FCT = -999.0d0
 
-      ! Error 
-      MSG = 'Cannot assign mass flux tuning factor - ' //
-     &      'please explicitly set it by adding ' //
-     &      '` --> Mass tuning factor: XX.X` to the extension ' //
-     &      'options in your config. file.'
-         CALL HCO_ERROR(HcoState%Config%Err, MSG, 
-     &                  RC, THISLOC='HCOX_DustDead_GetFluxTun')
-      RETURN
-
 #endif
+
+      ! If not defined yet, try to estimate it from grid spacing
+      ! ckeller, 6/6/2017
+      IF ( FLX_MSS_FDG_FCT == -999.0d0 ) THEN
+         ! average latitude spacing
+         DY = ABS(MAXVAL(HcoState%Grid%YMID%Val)
+     &          - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
+
+         ! 0.125 degrees / C720
+         IF ( DY < 0.175d0 ) THEN
+            FLX_MSS_FDG_FCT = 2.3d-4
+         ! 0.25 degrees / C360
+         ELSEIF ( DY < 0.375d0 ) THEN
+            FLX_MSS_FDG_FCT = 2.35d-4
+         ! 0.5 degrees / C180
+         ELSEIF ( DY < 0.75d0 ) THEN
+            FLX_MSS_FDG_FCT = 3.23d-4
+         ! 1.0 degrees / C90
+         ELSEIF ( DY < 1.5d0 ) THEN
+            FLX_MSS_FDG_FCT = 4.5d-4
+         ! 2.0 degrees / C48
+         ELSEIF ( DY < 3.0d0 ) THEN
+            FLX_MSS_FDG_FCT = 5.0416d-4
+         ENDIF
+      ENDIF
+
+      ! Error 
+      IF ( FLX_MSS_FDG_FCT == -999.0d0 ) THEN
+         MSG = 'Cannot assign mass flux tuning factor - ' //
+     &         'please explicitly set it by adding ' //
+     &         '` --> Mass tuning factor: XX.X` to the extension ' //
+     &         'options in your config. file.'
+            CALL HCO_ERROR(HcoState%Config%Err, MSG, 
+     &                     RC, THISLOC='HCOX_DustDead_GetFluxTun')
+         RETURN
+      ENDIF
 
       ! Return to calling program
       END FUNCTION HCOX_DustDead_GetFluxTun

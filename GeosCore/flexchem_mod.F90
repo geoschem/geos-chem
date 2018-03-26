@@ -41,6 +41,7 @@ MODULE FlexChem_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
 !                              us remove arrays in CMN_O3_SIZE_mod.F
+!  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
 !  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
 !EOP
 !------------------------------------------------------------------------------
@@ -69,12 +70,12 @@ MODULE FlexChem_Mod
   INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
-  INTEGER,  ALLOCATABLE :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(fp), ALLOCATABLE :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
-  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
+  INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
+  REAL(fp), ALLOCATABLE, PUBLIC :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
+  REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
 
 CONTAINS
 !EOC

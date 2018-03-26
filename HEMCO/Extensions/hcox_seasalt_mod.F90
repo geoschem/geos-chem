@@ -550,7 +550,8 @@ CONTAINS
 !  09 Jul 2015 - E. Lundgren - Add marine organic aerosols (B.Gantt, M.Johnson)
 !  21 Sep 2016 - R. Yantosca - Bug fix: don't initialize SS_DEN before
 !                              it is allocated.  This causes a segfault.
-!  27 Nov 2017 - C. Keller   - Use nSpcSS to fill IDTBrSALA and IDTBrSALC.
+!  29 Dec 2017 - C. Keller   - Bug fix: define index location of BrSALA and
+!                              BrSALC based upon # of species ID entries.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -620,8 +621,7 @@ CONTAINS
        BrContent = 0.0d0
     ENDIF
 
-    ! Get HEMCO species IDs. The ordering must be:
-    ! SALA, SALC, (Br2), (BrSALA, BrSALC)
+    ! Get HEMCO species IDs
     CALL HCO_GetExtHcoID( HcoState,   ExtNrSS, HcoIDsSS,     &
                           SpcNamesSS, nSpcSS,  RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -716,7 +716,7 @@ CONTAINS
           WRITE(MSG,*) 'BrSALC: ', TRIM(SpcNamesSS(nSpcSS)), IDTBrSALC
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Br- mass content: ', BrContent
-          CALL HCO_MSG(MSG)
+          CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        IF ( ExtNrMPOA > 0 ) THEN

@@ -446,7 +446,7 @@ CONTAINS
     ! Initialize all HEMCO extensions. This also selects the required 
     ! met fields used by each extension.
     !=======================================================================
-    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC                     )
+    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN

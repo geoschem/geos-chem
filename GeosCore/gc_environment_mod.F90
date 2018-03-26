@@ -145,12 +145,14 @@ CONTAINS
 !                              which is called after species database init
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
 !  20 Dec 2017 - R. Yantosca - Return when encountering errors
+!  29 Dec 2017 - C. Keller   - Now accept value of LLSTRAT from Input_Opt
 !  14 Mar 2018 - E. Lundgren - Input_Opt parameter is IN only, not INOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
     ! Strings
+    INTEGER            :: LLSTRAT
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     
     !=======================================================================
@@ -174,6 +176,10 @@ CONTAINS
     ! (bmy, 12/3/12)
     !-----------------------------------------------------------------------
 
+    ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
+    LLSTRAT = Input_Opt%LLSTRAT
+    IF ( LLSTRAT <= 0 ) LLSTRAT = 59 
+
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root      = am_I_Root,       &
                         Input_Opt      = Input_Opt,       &
@@ -189,7 +195,8 @@ CONTAINS
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
                         value_LLTROP   = 40,              &
-                        value_LLSTRAT  = 59               )
+                        value_LLSTRAT  = LLSTRAT,         &
+                        RC             = RC              )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

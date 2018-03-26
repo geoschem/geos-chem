@@ -188,6 +188,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
+     INTEGER                     :: LLSTRAT
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -515,6 +516,7 @@ MODULE Input_Opt_Mod
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
      LOGICAL                     :: haveImpRst
+     LOGICAL                     :: AlwaysSetH2O 
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -599,6 +601,8 @@ MODULE Input_Opt_Mod
 !                              overhead O3 in chemistry menu
 !  02 Nov 2017 - R. Yantosca - Bug fix: LBIOFUEL should be LOGICAL
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
+!  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
+!  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -867,6 +871,7 @@ CONTAINS
     Input_Opt%USE_ONLINE_O3          = .FALSE.
     Input_Opt%USE_O3_FROM_MET        = .FALSE.
     Input_Opt%USE_TOMS_O3            = .FALSE.
+    Input_Opt%LLSTRAT                = -999
 
     !----------------------------------------
     ! RADIATION MENU fields
@@ -1278,6 +1283,7 @@ CONTAINS
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
+    Input_Opt%AlwaysSetH2O           = .FALSE.
 
     !----------------------------------------
     ! Fields for LINOZ strat chem

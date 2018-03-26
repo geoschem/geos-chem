@@ -338,6 +338,7 @@
 !                              We now set several variables here that depend on
 !                              LLPAR, since LLPAR is no longer a parameter and
 !                              can't be used to define a parameter.
+!  29 Dec 2017 - C. Keller   - Initialize RNAMES to empty strings.
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  23 Mar 2018 - E. Lundgren - Move NWVSELECT, WVSELECT, and STRWVSELECT to 
 !                              Input_Opt since read in from input.geos
@@ -487,6 +488,9 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       RTASYMAER = 0d0
 #endif
+
+      ! Initialize RNAMES to empty string (ckeller,12/29/17)
+      RNAMES(:) = ""
 
       ! Return w/ success
       RC = GC_SUCCESS

@@ -158,6 +158,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
 !  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
+!  29 Dec 2017 - C. Keller   - Look for GEOSCHEMCHEM instead of GIGCchem when
+!                              on NCCS Discover.
 !  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
 !  26 Jan 2018 - E. Lundgren - Read collection names and skip collection diags
 !                              where HISTORY.rc declared col name commented out
@@ -347,7 +349,13 @@ CONTAINS
        !==================================================================== 
    
        ! Skip line if GIGCchem not present
+       ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
+       ! scan accordingly (ckeller, 12/29/17)
+#if defined( DISCOVER )
+       IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
+#else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
+#endif
 
        ! Get diagnostic name
        CALL CStrip( Line, KeepSpaces=.TRUE. )
