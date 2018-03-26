@@ -183,7 +183,6 @@
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
-!  26 Mar 2018 - M. Sulprizio- Add fix from Xuan Wang, allowing for negative pKa
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -195,12 +194,7 @@
       RC = 0
 
       ! Calculate correction term.
-!------------------------------------------------------------------------------
-! Prior to 3/26/18:
-! Change from thispKa > 0 to pH >= 0 since pKa can be negative (Xuan Wang)
-!      IF ( thispKa > 0d0 ) THEN
-!------------------------------------------------------------------------------
-      IF ( pH >= 0d0 ) THEN
+      IF ( thispKa > 0d0 ) THEN
          HEFF = KH * ( 1d0 + 10d0**( pH - thispKa ) )
       ELSE
          HEFF = KH
