@@ -1173,7 +1173,7 @@
             !===========================================================
             !       ***** S T R A T - T R O P   F L U X E S *****
             !===========================================================
-            IF ( LSCHEM ) THEN
+            IF ( LCHEM .and. LSCHEM ) THEN
 
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_Start( "=> Strat chem", RC )

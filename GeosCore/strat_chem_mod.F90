@@ -452,7 +452,7 @@ CONTAINS
 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, dt, M0 )
+       !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, dt, M0, MW_g, SpcConc )
        DO J=1,JJPAR
           DO I=1,IIPAR
 
