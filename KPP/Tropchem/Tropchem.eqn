@@ -1037,6 +1037,8 @@ MONITU + OH = HONIT :                        GCARR(7.29E-11, 0.0E+00, 0.0);     
 MONITU + O3 = HONIT :                        GCARR(1.67E-16, 0.0E+00, 0.0);       {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
 MONITU + NO3 = HONIT :                       GCARR(3.15E-13, 0.0E+00, -448.0);    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 MONITS + NO3 = HONIT :                       GCARR(3.15E-13, 0.0E+00, -448.0);    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+IONITA = INDIOL + HNO3 :                     GCARR(2.78E-04, 0.0E+00, 0.0);       {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
+MONITA = INDIOL + HNO3 :                     GCARR(2.78E-04, 0.0E+00, 0.0);       {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 HONIT + OH = NO3 + HAC :                     GC_OHHNO3(2.41E-14, 0.0E+00, 460.0, 2.69E-17, 0.E0, 2199., 6.51E-34, 0.E0, 1335.0); {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}
 HC187 + OH = 0.500MCO3 + 0.500MGLY +
  0.500HO2 + 0.500CO + CH2O :                 GCARR(1.40E-11, 0.0E+00, 0.0);       {2017/07/14; Bates2014; KRT,JAF,CCM,EAM,KHB,RHS}
@@ -1119,8 +1121,6 @@ DHDN = IONITA :                              HET(ind_DHDN,1);                   
 MONITS = MONITA :                            HET(ind_MONITS,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 MONITU = MONITA :                            HET(ind_MONITU,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 HONIT = MONITA :                             HET(ind_HONIT,1);                    {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-IONITA = INDIOL + HNO3 :                     HET(ind_IONITA,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
-MONITA = INDIOL + HNO3 :                     HET(ind_MONITA,1);                   {2017/07/14; Fisher2016; KRT,JAF,CCM,EAM,KHB,RHS}
 //
 // Photolysis reactions
 //
