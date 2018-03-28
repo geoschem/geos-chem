@@ -2680,13 +2680,13 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       !now calcualte the angstrom exponent coefs for interpolation -
       !this is done here to save time and repetition in aerosol_mod.F
       IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
-       ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/WVSELECT(W)
+       ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
        BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/
      &                         WVAA(IRTWVSELECT(1,W),1)))
        !relative location of selected wavelength between tie points
        !for interpolating SSA and ASYM for output in aerosol_mod.F and
        !dust_mod.F
-       CCOEF_RTWV(W) =(WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/
+       CCOEF_RTWV(W) =(Input_Opt%WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/
      &              (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
       ENDIF
       !convert wavelength index to that required by rrtmg_rad_transfer
