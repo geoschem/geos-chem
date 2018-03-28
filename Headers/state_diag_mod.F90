@@ -3748,7 +3748,7 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSLS' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale ' // &
                                 'precipitation'
-       IF ( isUnits   ) Units = 'placeholder'
+       IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
