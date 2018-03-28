@@ -3093,7 +3093,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_Convection_Menu (in module GeosCore/input_mod.F)'
 
@@ -3104,6 +3103,8 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
+
+      ErrMsg  = 'Error reading the "input.geos" file!'
 
       ! Turn on convection?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCONV', RC )
@@ -3143,6 +3144,7 @@
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
          IF ( Input_Opt%LNLPBL .and. am_I_Root ) THEN
 
+            WRITE( 6,* ) '' 
             WRITE( 6,* ) 'It has been noted in GEOS-Chem v11-01 and'
             WRITE( 6,* ) ' later that VDIFF (the non-local mixing'
             WRITE( 6,* ) ' option) does not strictly conserve mass.'
@@ -3161,6 +3163,7 @@
             WRITE( 6,* ) ' wiki.geos-chem.org/Boundary_layer_mixing'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
+
          ENDIF
       ENDIF
 
@@ -4021,7 +4024,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND19x
 #if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 19, ND19x, SUBSTRS(2:N), N-1, 1 )
+      CALL SET_TINDEX( am_I_Root, 19, ND19x, SUBSTRS(2:N), N-1, 3 )
 #endif
 
       !--------------------------
@@ -7194,6 +7197,11 @@
 !                              controlled by an #ifdef in global_ch4_mod.F)
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  20 Sep 2016 - R. Yantosca - Rewrote IF statement to avoid Gfortran error
+!  16 Jun 2017 - M. Sulprizio- Remove emission options since they are now
+!                              handled by HEMCO
+!  16 Jun 2017 - M. Sulprizio- Add option for GOSAT CH4 observation operator
+!  17 Aug 2017 - M. Sulprizio- Add option for TCCON CH4 observation operator
+!  18 Oct 2017 - M. Sulprizio- Remove CH4 budget option
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
@@ -7219,109 +7227,29 @@
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_CH4_Menu (in module GeosCore/input_mod.F)'
+                                                
+      ! Use GOSAT CH4 observation operator?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GOSAT_CH4_OBS', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%GOSAT_CH4_OBS
 
-      ! Compute CH4 budget
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCH4BUD', RC )
+      ! Use TCCON CH4 observation operator?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TCCON_CH4_OBS', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4BUD
-
-      ! Use Gas & Oil emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LGAO', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LGAO
-
-      ! Use Coal emissions?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCOL', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCOL              
-                                                
-      ! Use Livestock emissions?                
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LLIV', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LLIV              
-                                                
-      ! Use Waste emissions?                    
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWAST', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWAST             
-                                                
-      ! Use Biofuel emissions?                  
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBFCH4', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LBFCH4          
-                                                
-      ! Use Rice emissions?                     
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LRICE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LRICE             
-                                                
-      ! Use Other Anthropogenic emissions?      
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOTANT', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LOTANT            
-                                                
-      ! Use Biomass emissions?                  
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBMCH4', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LBMCH4          
-                                                
-      ! Use Wetlands emissions?                 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWETL', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWETL             
-                                                
-      ! Use Soil Absorption?          
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOABS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSOABS            
-                                                
-      ! Use Other Natural emissions?            
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LOTNAT', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LOTNAT            
-                                                
-      ! Separator line                          
+      READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
+                                 
+      ! Separator line   
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF
+      ENDIF  
 
       !=================================================================
       ! Print to screen
@@ -7329,42 +7257,11 @@
       IF( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'CH4 MENU'
          WRITE( 6, '(  a)' ) '-----------'
-         WRITE( 6, 100     ) 'Compute CH4 budget?   : ',
-     &                        Input_Opt%LCH4BUD
-         WRITE( 6, 100     ) 'Use Gas & Oil emis?   : ',
-     &                        Input_Opt%LGAO
-         WRITE( 6, 100     ) 'Use Coal Mine emis?   : ',
-     &                        Input_Opt%LCOL
-         WRITE( 6, 100     ) 'Use Livestock emis?   : ',
-     &                        Input_Opt%LLIV
-         WRITE( 6, 100     ) 'Use Waste emis?       : ',
-     &                        Input_Opt%LWAST
-         WRITE( 6, 100     ) 'Use Biofuel emis?     : ',
-     &                        Input_Opt%LBFCH4
-         WRITE( 6, 100     ) 'Use Rice emis?        : ',
-     &                        Input_Opt%LRICE
-         WRITE( 6, 100     ) 'Use Ot. Anthro emis?  : ',
-     &                        Input_Opt%LOTANT
-         WRITE( 6, 100     ) 'Use Biomass emis?     : ',
-     &                        Input_Opt%LBMCH4
-         WRITE( 6, 100     ) 'Use Wetlands emis?    : ',
-     &                        Input_Opt%LWETL
-         WRITE( 6, 100     ) 'Use Soil Absorption?  : ',
-     &                        Input_Opt%LSOABS
-         WRITE( 6, 100     ) 'Use Ot. Natural emis? : ',
-     &                        Input_Opt%LOTNAT
+         WRITE( 6, 100     ) 'Use GOSAT obs operator: ',
+     &                        Input_Opt%GOSAT_CH4_OBS
+         WRITE( 6, 100     ) 'Use TCCON obs operator: ',
+     &                        Input_Opt%TCCON_CH4_OBS
       END IF
-
-      ! Error check (kjw)
-      IF ( Input_Opt%LCH4BUD ) THEN
-         ErrMsg = 'To print CH4 budget information, be sure that '   //
-     &            'USE_CH4_BUDGET_DIAG is defined at the beginning ' //
-     &            'of global_ch4_mod.F'
-         IF ( am_I_Root ) THEN
-            print*,'CH4 Budget warning:'
-            print*, TRIM( ErrMsg )
-         ENDIF
-      ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
@@ -8195,9 +8092,6 @@
       IF ( TS_DIAG == -999999 ) THEN
          TS_DIAG = TS_CHEM
       ENDIF
-
-      ! Change TS_DIAG to TS_DYN for methane simulation. (ccc, 8/27/09)
-      IF ( Input_Opt%ITS_A_CH4_SIM ) TS_DIAG = TS_DYN
 
       ! Check if all time steps are multiples of the smallest.
       ! (ccc, 5/13/09)

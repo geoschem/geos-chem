@@ -56,7 +56,6 @@
       !-----------------------------------------------------------------
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
-      USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
@@ -91,7 +90,9 @@
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
-      USE HCOI_GC_MAIN_MOD       ! Writes out HEMCO diagnostics (C. Keller)
+      USE GOSAT_CH4_MOD         ! For GOSAT observation operator
+      USE TCCON_CH4_MOD         ! For TCCON observation operator
+      USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -283,6 +284,8 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
+!  17 Aug 2017 - M. Sulprizio- Add call for TCCON CH4 observation operator
 !  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
@@ -316,6 +319,7 @@
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
       INTEGER                  :: ND40x
       REAL(f8)                 :: TAU,           TAUb      
+      REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
       CHARACTER(LEN=255)       :: historyConfigFile
       CHARACTER(LEN=512)       :: ErrMsg
@@ -353,7 +357,6 @@
 
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
-      LOGICAL                  :: ITS_A_CH4_SIM
       LOGICAL                  :: ITS_A_MERCURY_SIM  
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
@@ -517,7 +520,6 @@
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
-      ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
@@ -1853,9 +1855,6 @@
          ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
          CALL Get_Overhead_O3_For_FastJ( am_I_Root )
          
-         ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( ITS_A_CH4_SIM ) CALL CH4_AvgTp( State_Met )
-
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
@@ -2120,7 +2119,7 @@
 
                ! Initialize planeflight diagnostic
                CALL Setup_PlaneFlight( am_I_Root, Input_Opt, 
-     &                                 State_Chm, RC )
+     &                                 State_Chm, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2133,6 +2132,55 @@
                CALL GEOS_Timer_End( "Output",                      RC )
                CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
 #endif      
+
+            ENDIF
+         ENDIF
+
+         !================================================================
+         ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
+         !================================================================
+
+         IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+               CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
+
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
+            ENDIF
+         ENDIF
+
+         !================================================================
+         ! CH4 columns from the TCCON instrument (mps, 8/17/17)
+         !================================================================
+
+         IF ( Input_Opt%TCCON_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+               CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
+
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
             ENDIF
          ENDIF
 

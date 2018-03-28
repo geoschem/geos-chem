@@ -484,18 +484,8 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CH4 MENU fields
      !----------------------------------------  
-     LOGICAL                     :: LCH4BUD
-     LOGICAL                     :: LGAO
-     LOGICAL                     :: LCOL
-     LOGICAL                     :: LLIV
-     LOGICAL                     :: LWAST
-     LOGICAL                     :: LBFCH4
-     LOGICAL                     :: LRICE
-     LOGICAL                     :: LOTANT
-     LOGICAL                     :: LBMCH4
-     LOGICAL                     :: LWETL
-     LOGICAL                     :: LSOABS
-     LOGICAL                     :: LOTNAT
+     LOGICAL                     :: GOSAT_CH4_OBS
+     LOGICAL                     :: TCCON_CH4_OBS
 
      !----------------------------------------
      ! POPS MENU fields
@@ -591,6 +581,8 @@ MODULE Input_Opt_Mod
 !  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
+!  16 Jun 2017 - M. Sulprizio- Remove switches for CH4 emissions since these
+!                              are now handled by HEMCO
 !  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
 !  13 Jul 2017 - E. Lundgren - Add passive species variables
 !  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
@@ -1251,18 +1243,8 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------  
-    Input_Opt%LCH4BUD                = .FALSE.
-    Input_Opt%LGAO                   = .FALSE.
-    Input_Opt%LCOL                   = .FALSE.
-    Input_Opt%LLIV                   = .FALSE.
-    Input_Opt%LWAST                  = .FALSE.
-    Input_Opt%LBFCH4                 = .FALSE.
-    Input_Opt%LRICE                  = .FALSE.
-    Input_Opt%LOTANT                 = .FALSE.
-    Input_Opt%LBMCH4                 = .FALSE.
-    Input_Opt%LWETL                  = .FALSE.
-    Input_Opt%LSOABS                 = .FALSE.
-    Input_Opt%LOTNAT                 = .FALSE.
+    Input_Opt%GOSAT_CH4_OBS          = .FALSE.
+    Input_Opt%TCCON_CH4_OBS          = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields

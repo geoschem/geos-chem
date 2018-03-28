@@ -450,6 +450,10 @@ CONTAINS
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
 
+    ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
+    LOGICAL                 :: ITS_A_CH4_SIM
+    REAL(fp)                :: total_ch4_pre_soil_absorp(IIPAR,JJPAR,LLPAR)
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
@@ -461,11 +465,12 @@ CONTAINS
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
 
     ! Initialize
-    LSCHEM     = Input_Opt%LSCHEM
-    LEMIS      = Input_Opt%LEMIS 
-    LDRYD      = Input_Opt%LDRYD 
-    PBL_DRYDEP = Input_Opt%PBL_DRYDEP
-    nAdvect    = State_Chm%nAdvect
+    LSCHEM        = Input_Opt%LSCHEM
+    LEMIS         = Input_Opt%LEMIS
+    LDRYD         = Input_Opt%LDRYD
+    PBL_DRYDEP    = Input_Opt%PBL_DRYDEP
+    ITS_A_CH4_SIM = Input_Opt%ITS_A_CH4_SIM
+    nAdvect       = State_Chm%nAdvect
 
     ! Initialize pointer
     SpcInfo    => NULL()
@@ -537,9 +542,17 @@ CONTAINS
 
 #if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', RC )
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'FLUX', RC )
 #endif
+
+    ! For tagged CH4 simulations
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+
+       ! Save the total CH4 concentration before apply soil absorption
+       total_ch4_pre_soil_absorp(:,:,:) = State_Chm%Species(:,:,:,1)
+
+    ENDIF
 
     ! Do for every advected species and grid box
 !$OMP PARALLEL DO                                                    &
@@ -826,7 +839,7 @@ CONTAINS
              ! These are always taken from HEMCO
              !----------------------------------------------------------
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
-    
+
                 ! Get HEMCO emissions. Units are [kg/m2/s].
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
            
@@ -841,6 +854,44 @@ CONTAINS
                    ! Add to species array
                    State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) & 
                                               + FLUX 
+                ENDIF
+             ENDIF
+
+             !----------------------------------------------------------
+             ! For tagged CH4 simulations
+             !----------------------------------------------------------
+             IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+
+                IF ( ( L <= EMIS_TOP ) ) THEN
+
+                   ! Total CH4 tracer
+                   IF ( NA == 1 ) THEN
+
+                      ! Get soil absorption from HEMCO. Units are [kg/m2/s].
+                      ! CH4_SAB is species #15
+                      CALL GetHcoVal ( 15, I, J, L, FND, emis=TMP )
+
+                      ! Remove soil absorption from total CH4 emissions
+                      IF ( FND ) THEN
+
+                         ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
+                         FLUX = TMP * TS
+
+                         ! Apply soil absorption as loss
+                         State_Chm%Species(I,J,L,N)=State_Chm%Species(I,J,L,N) &
+                                                    - FLUX 
+                      ENDIF
+
+                   ! Tagged CH4 tracers
+                   ELSEIF ( NA >= 2 .and. NA <= nAdvect-1 ) THEN
+
+                      ! Apply soil absorption (Xueying Yu, 12/08/2017)
+                      State_Chm%Species(I,J,L,N) = &
+                         SAFE_DIV(State_Chm%Species(I,J,L,N), &
+                                  total_ch4_pre_soil_absorp(I,J,L), &
+                                  0.e+0_fp) * &
+                                  State_Chm%Species(I,J,L,1)
+                   ENDIF
                 ENDIF
              ENDIF
 

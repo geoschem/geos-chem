@@ -915,7 +915,67 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
-          CASE( 'CH4' )
+          ! Now include both total and tagged CH4 species (mps, 6/21/17)
+          ! All of these have identical properties except for the names
+          CASE( 'CH4',     'CH4_OIL', 'CH4_GAS', 'CH4_COL', 'CH4_LIV', &
+                'CH4_LDF', 'CH4_WST', 'CH4_RIC', 'CH4_OTA', 'CH4_BBN', &
+                'CH4_WTL', 'CH4_SEE', 'CH4_LAK', 'CH4_TER', 'CH4_SAB' )
+
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CH4_OIL' )
+                   Name     = 'CH4_oil'
+                   FullName = 'CH4 from oil emissions'
+                CASE( 'CH4_GAS' )
+                   Name     = 'CH4_oil'
+                   FullName = 'CH4 from gas emissions'
+                CASE( 'CH4_COL' )
+                   Name     = 'CH4_col'
+                   FullName = 'CH4 from coal mining emissions'
+                CASE( 'CH4_LIV' )
+                   Name     = 'CH4_liv'
+                   FullName = 'CH4 from livestock emissions'
+                CASE( 'CH4_LDF' )
+                   Name     = 'CH4_ldf'
+                   FullName = 'CH4 from landfill emissions'
+                CASE( 'CH4_WST' )
+                   Name     = 'CH4_wst'
+                   FullName = 'CH4 from waste emissions'
+                CASE( 'CH4_RIC' )
+                   Name     = 'CH4_ric'
+                   FullName = 'CH4 from rice emissions'
+                CASE( 'CH4_OTA' )
+                   Name     = 'CH4_ota'
+                   FullName = 'CH4 from other anthropogenic emissions'
+                CASE( 'CH4_BBN' )
+                   Name     = 'CH4_bbn'
+                   FullName = 'CH4 from biomass burning emissions'
+                CASE( 'CH4_WTL' )
+                   Name     = 'CH4_wtl'
+                   FullName = 'CH4 from wetland emissions'
+                CASE( 'CH4_SEE' )
+                   Name     = 'CH4_see'
+                   FullName = 'CH4 from geological seep emissions'
+                CASE( 'CH4_LAK' )
+                   Name     = 'CH4_lak'
+                   FullName = 'CH4 from lake emissions'
+                CASE( 'CH4_TER' )
+                   Name     = 'CH4_ter'
+                   FullName = 'CH4 from termite emissions'
+                CASE( 'CH4_SAB' )
+                   Name     = 'CH4_sab'
+                   FullName = 'CH4 from soil absorption emissions'
+                CASE DEFAULT
+                   Name     = 'CH4'
+                   FullName = 'Methane'
+             END SELECT
+
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CH4' )
+                   BackgroundVV = 1.7e-06_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -923,10 +983,10 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'Methane',                    &
+                              FullName      = FullName,                     &
                               Formula       = 'CH4',                        &
                               MW_g          = 16.0_fp,                      &
-                              BackgroundVV  = 1.7e-06_fp,                   &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &

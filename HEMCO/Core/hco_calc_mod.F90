@@ -1989,8 +1989,13 @@ CONTAINS
     ENDIF
 
     ! For operator set to 3, mirror value
+    ! MaskVal=1 becomes 0 and MaskVal=0/missing becomes 1
     IF ( Dct%Oper == 3 ) THEN
-       MaskVal = 1.0_sp - MaskVal 
+       IF ( (MaskVal == 0.0_sp) .OR. (MaskVal == HCO_MISSVAL) ) THEN
+          MaskVal = 1.0_sp
+       ELSEIF ( MaskVal == 1.0_sp ) THEN
+          MaskVal = 1.0_sp - MaskVal 
+       ENDIF
     ENDIF
 
     ! Treat as binary?

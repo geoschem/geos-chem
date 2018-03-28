@@ -5154,17 +5154,34 @@
       IF ( ND19 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(19) = 1
-         T = 1
-          
-         ! Define quantities
-         NAME (T,19) = 'CH4Loss'
-         FNAME(T,19) = 'CH4 Loss from Reaction with OH'
-         UNIT (T,19) = 'kg'
-         INDEX(T,19) = T + ( SPACING * 32 )
-         MWT  (T,19) = 1.6e-3
-         MOLC (T,19) = 1
-         SCALE(T,19) = 1e0
+         NTRAC(19) = 3
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(19)
+
+            ! Define quantities
+            UNIT (T,19) = 'kg'
+            INDEX(T,19) = T + ( SPACING * 32 )
+            MWT  (T,19) = 1.6e-3
+            MOLC (T,19) = 1
+            SCALE(T,19) = 1e0
+            
+            ! Get name long-name (and sometimes, unit)
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,19) = 'OHLoss'
+                  FNAME(T,19) = 'CH4 Loss from Reaction with OH'
+               CASE( 2 )
+                  NAME (T,19) = 'StLoss'
+                  FNAME(T,19) = 'CH4 Loss in the stratosphere'
+               CASE( 3 )
+                  NAME (T,19) = 'ClLoss'
+                  FNAME(T,19) = 'CH4 Loss from Reaction with Cl'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
 
       ENDIF
 
@@ -7118,7 +7135,7 @@
       IF ( ND58 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(58) = 12
+         NTRAC(58) = 15
 
          ! Loop over tracers
          DO T = 1, NTRAC(58)
@@ -7129,41 +7146,47 @@
                   NAME (T,58) = 'CH4_TOT'
                   FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
                CASE( 2 )
-                  NAME (T,58) = 'CH4_GAO'
-                  FNAME(T,58) = 'CH4 Emissions gas & oil'
+                  NAME (T,58) = 'CH4_OIL'
+                  FNAME(T,58) = 'CH4 Emissions oil'
                CASE( 3 )
+                  NAME (T,58) = 'CH4_GAS'
+                  FNAME(T,58) = 'CH4 Emissions gas'
+               CASE( 4 )
                   NAME (T,58) = 'CH4_COL'
                   FNAME(T,58) = 'CH4 Emissions coal'
-               CASE( 4 )
+               CASE( 5 )
                   NAME (T,58) = 'CH4_LIV'
                   FNAME(T,58) = 'CH4 Emissions livestock'
-               CASE( 5 )
-                  NAME (T,58) = 'CH4_WST'
-                  FNAME(T,58) = 'CH4 Emissions waste'
                CASE( 6 )
-                  NAME (T,58) = 'CH4_BFL'
-                  FNAME(T,58) = 'CH4 Emissions biofuel'
+                  NAME (T,58) = 'CH4_LDF'
+                  FNAME(T,58) = 'CH4 Emissions landfills'
                CASE( 7 )
+                  NAME (T,58) = 'CH4_WST'
+                  FNAME(T,58) = 'CH4 Emissions wastewater'
+               CASE( 8 )
                   NAME (T,58) = 'CH4_RIC'
                   FNAME(T,58) = 'CH4 Emissions rice'
-               CASE( 8 )
+               CASE( 9 )
                   NAME (T,58) = 'CH4_OTA'
                   FNAME(T,58) = 'CH4 Emissions other anthro'
-               CASE( 9 )
+               CASE( 10 )
                   NAME (T,58) = 'CH4_BBN'
                   FNAME(T,58) = 'CH4 Emissions bioburn'
-               CASE( 10 )
+               CASE( 11 )
                   NAME (T,58) = 'CH4_WTL'
                   FNAME(T,58) = 'CH4 Emissions wetlands'
-               CASE( 11 )
+               CASE( 12 )
+                  NAME (T,58) = 'CH4_SEE'
+                  FNAME(T,58) = 'CH4 Emissions seeps'
+               CASE( 13 )
+                  NAME (T,58) = 'CH4_LAK'
+                  FNAME(T,58) = 'CH4 Emissions lakes'
+               CASE( 14 )
+                  NAME (T,58) = 'CH4_TER'
+                  FNAME(T,58) = 'CH4 Emissions termites'
+               CASE( 15 )
                   NAME (T,58) = 'CH4_SAB'
                   FNAME(T,58) = 'CH4 Emissions soil abs'
-               CASE( 12 )
-                  NAME (T,58) = 'CH4_OTN'
-                  FNAME(T,58) = 'CH4 Emissions other natural'
-               CASE( 13 )
-                  NAME (T,58) = 'CH4_Loss'
-                  FNAME(T,58) = 'CH4 Loss by Reaction w/ OH'
                CASE DEFAULT
                   ! Nothing
             END SELECT

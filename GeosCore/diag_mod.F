@@ -155,7 +155,7 @@
       REAL*4,  ALLOCATABLE :: AD57(:,:,:)
 
       ! -- for methane simulation diagnostics
-      REAL*4,  ALLOCATABLE :: AD19(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD19(:,:,:,:)
       REAL*4,  ALLOCATABLE :: AD58(:,:,:)
       REAL*4,  ALLOCATABLE :: AD60(:,:)
 
