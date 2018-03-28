@@ -270,15 +270,6 @@
          print*,'BEGIN SUBROUTINE: EMISSCH4' 
       ENDIF
 
-      IF ( FIRST .and. Input_Opt%Analytical_Inv ) THEN
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'CH4_CLUSTERS', CLUSTERS,
-     &                    RC)
-         IF ( RC /= HCO_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to CLUSTERS', LOC )
-
-         FIRST = .FALSE.
-      ENDIF
-
       ! =================================================================
       ! --> All emission calculations are now done through HEMCO
       ! HEMCO stores emissions of all species internally in the HEMCO
@@ -510,42 +501,6 @@
          WRITE(*,*) 'Lakes        : ', SUM(CH4_EMIS(:,:,13))
          WRITE(*,*) 'Termites     : ', SUM(CH4_EMIS(:,:,14))
          WRITE(*,*) 'Soil absorb  : ', SUM(CH4_EMIS(:,:,15))
-      ENDIF
- 
-      ! =================================================================
-      ! Do scaling for analytical inversion
-      ! =================================================================
-      IF ( Input_Opt%Analytical_Inv ) THEN
-
-         ! Don't optimize for soil absorption so remove from the total
-         ! emissions array
-         CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) + CH4_EMIS(:,:,15)
-
-         ! Rescale emissions
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J)	 
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! Only apply emission perturbation to current cluster number
-            IF ( Input_Opt%Emis_Pert_Num .GT. 0 ) THEN
-            IF ( CLUSTERS(I,J) == Input_Opt%Emis_Pert_Num ) THEN
-               CH4_EMIS(I,J,1) = CH4_EMIS(I,J,1) * Input_Opt%Emis_Pert
-               Print*, 'Analytical Inv: Scaled cluster ',
-     &                  Input_Opt%Emis_Pert_Num, ' by ',
-     &                  Input_Opt%Emis_Pert
-            ENDIF
-            ENDIF
-
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-
-         ! Now that we've done the emission factor scaling, add soil absorption
-         ! back to the total emissions array
-         CH4_EMIS(:,:,1) = CH4_EMIS(:,:,1) - CH4_EMIS(:,:,15)
-
       ENDIF
 
 !$OMP PARALLEL DO

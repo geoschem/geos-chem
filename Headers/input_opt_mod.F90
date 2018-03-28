@@ -505,9 +505,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------  
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
-     LOGICAL                     :: Analytical_Inv
-     REAL(fp)                    :: Emis_Pert
-     INTEGER                     :: Emis_Pert_Num
 
      !----------------------------------------
      ! POPS MENU fields
@@ -1298,9 +1295,6 @@ CONTAINS
     !----------------------------------------  
     Input_Opt%GOSAT_CH4_OBS          = .FALSE.
     Input_Opt%TCCON_CH4_OBS          = .FALSE.
-    Input_Opt%Analytical_Inv         = .FALSE.
-    Input_Opt%Emis_Pert              = 1.0
-    Input_Opt%Emis_Pert_Num          = 0
 
     !----------------------------------------
     ! POPS MENU fields

@@ -263,7 +263,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE Global_CH4_Mod,     ONLY : CH4_EMIS
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -755,29 +754,10 @@ CONTAINS
 
              !----------------------------------------------------------
              ! Apply emissions.
+             ! These are always taken from HEMCO
              !----------------------------------------------------------
-             IF ( ITS_A_CH4_SIM .and. Input_Opt%Analytical_Inv ) THEN
+             IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
 
-                ! Only apply CH4 emissions to level 1
-                IF ( L == 1 ) THEN
-
-                   ! Overwrite emissions for offline CH4 simulation.
-                   ! CH4 emissions are stored in CH4_EMIS [kg/m2/s] in
-                   ! global_ch4_mod.F. We use CH4_EMIS here instead of
-                   ! the HEMCO internal emissions so that we can apply
-                   ! emission perturbations for analytical inversions.
-                   ! Convert to flux [kg/m2] here. (mps, 12/14/17)
-                   FLUX = CH4_EMIS(I,J,N) * TS
-
-                   ! Add to species array
-                   State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) &
-                                              + FLUX
-
-                ENDIF
-
-             ELSEIF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
-
-                ! These are always taken from HEMCO
                 ! Get HEMCO emissions. Units are [kg/m2/s].
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
            
