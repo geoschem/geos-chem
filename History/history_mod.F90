@@ -812,7 +812,7 @@ CONTAINS
                    ErrMsg = 'Error in defining "mode" for collection "'   // &
                              TRIM( CollectionName(C) ) // '"!  The mode ' // &
                             'value can either be "instantaneous" or '     // &
-                            '"time-averaged".  Please check the "mode"'   // &
+                            '"time-averaged".  Please check the "mode" '  // &
                             'setting in the HISTORY.rc file.'
                    WRITE( ErrorLine, 250 ) LineNum
                    CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
