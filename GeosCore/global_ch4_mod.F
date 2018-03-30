@@ -1206,7 +1206,9 @@
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD19
+#endif
       USE ErrCode_Mod
 !-----------------------------------------------------------------------------
 ! Prior to 12/11/17:
@@ -1323,11 +1325,17 @@
                ! Convert back from [molec CH4/cm3] --> [kg/box] 
                Spc(I,J,L,1) = GCH4 / Spc2GCH4
 
-               ! Write to AD19 diagnostic (jdm, mps, 6/16/17)
+#if defined( BPCH_DIAG )
+               !------------------------------------------------------------
+               ! ND19 (bpch) diagnostic
+               !
+               ! Loss of CH4 by OH above tropopause
+               !------------------------------------------------------------
                IF ( ND19 > 0 ) THEN ! --> [kg/box]
                   AD19(I,J,L,2) = AD19(I,J,L,2) +
      &	                          ( LRATE * DT ) / Spc2GCH4
                ENDIF
+#endif
 
             ENDIF
          ENDDO
