@@ -861,14 +861,17 @@ CONTAINS
              ENDIF
 
              !--------------------------------------------------------------
-             ! Special handling For tagged CH4 simulations
+             ! Special handling for tagged CH4 simulations
+             !
+             ! Tagged CH4 species are split off into a separate loop to
+             ! ensure we remove soil absorption from NA=1 (total CH4) first
              !--------------------------------------------------------------
              IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
 
                 ! If we are in the chemistry grid
                 IF ( L <= EMIS_TOP ) THEN
 
-                   ! Total CH4 tracer
+                   ! Total CH4 species
                    IF ( NA == 1 ) THEN
 
                       ! Get soil absorption from HEMCO. Units are [kg/m2/s].
@@ -886,17 +889,10 @@ CONTAINS
                          State_Chm%Species(I,J,L,N) - FLUX 
                       ENDIF
 
-                   ! Tagged CH4 tracers
-                   ELSEIF ( NA >= 2 .and. NA <= nAdvect-1 ) THEN
-
-                      ! Apply soil absorption (Xueying Yu, 12/08/2017)
-                      State_Chm%Species(I,J,L,N) = &
-                         SAFE_DIV(State_Chm%Species(I,J,L,N), &
-                                  total_ch4_pre_soil_absorp(I,J,L), &
-                                  0.e+0_fp) * &
-                                  State_Chm%Species(I,J,L,1)
                    ENDIF
+
                 ENDIF
+
              ENDIF
 
              ! Prevent negative concentrations. (ckeller, 3/29/16)
@@ -912,10 +908,52 @@ CONTAINS
     ENDDO !N
 !$OMP END PARALLEL DO
 
+    !--------------------------------------------------------------
+    ! Special handling for tagged CH4 simulations
+    !--------------------------------------------------------------
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+
+!$OMP PARALLEL DO               &
+!$OMP DEFAULT( SHARED         ) &
+!$OMP PRIVATE( I, J, L, N, NA )
+       DO NA = 1, nAdvect
+
+          ! Get the species ID from the advected species ID
+          N = State_Chm%Map_Advect(NA)
+
+          ! Loop over all grid boxes
+          DO L = 1, LLPAR
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Tagged CH4 tracers
+             IF ( NA >= 2 .and. NA <= nAdvect-1 ) THEN
+
+                ! Apply soil absorption to each tagged CH4 species
+                ! (Xueying Yu, 12/08/2017)
+                State_Chm%Species(I,J,L,N) =                    &
+                     SAFE_DIV(State_Chm%Species(I,J,L,N),       &
+                              total_ch4_pre_soil_absorp(I,J,L), &
+                              0.e+0_fp) *                       &
+                     State_Chm%Species(I,J,L,1)
+
+             ENDIF
+
+             ! Prevent negative concentrations. (ckeller, 3/29/16)
+             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+
+    ENDIF
+
 #if defined( USE_TEND )
-      ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', TS, RC )
+    ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
+    CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'FLUX', TS, RC )
 #endif
 
     ! Convert State_Chm%species back to original units
