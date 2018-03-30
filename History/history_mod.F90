@@ -531,6 +531,7 @@ CONTAINS
     CHARACTER(LEN=20 )           :: StartTimeStamp, EndTimeStamp
     CHARACTER(LEN=63 )           :: CName
     CHARACTER(LEN=80 )           :: ErrorLine
+    CHARACTER(LEN=255)           :: FileExpId
     CHARACTER(LEN=255)           :: Line,           FileName
     CHARACTER(LEN=255)           :: OutputName,     ThisLoc
     CHARACTER(LEN=255)           :: MetaData,       Reference
@@ -605,6 +606,7 @@ CONTAINS
     ThisLoc        =  &
      ' -> at History_ReadCollectionData (in module History/history_mod.F90)'
     Units          =  ''
+    FileExpId      =  ''
 
     ! Create the timestamp at the start of the simulation
     WRITE( DStr,          '(i8.8)' ) yyyymmdd
@@ -681,6 +683,32 @@ CONTAINS
        UpdateYmd      = 0
        UpdateHms      = 0
        UpdateCheck    = 0.0_f8
+
+       !====================================================================
+       ! Get the EXPID string.  This is the "front part" of the netCDF
+       ! file path for each collection.  In other words, if EXPID is
+       ! "OutputDir/GEOSChem", then the default SpeciesConc collection file
+       ! names will be "OutputDir/GEOSChem.SpeciesConc_YYYYMMDD_hhmmz.nc4"
+       !====================================================================
+       IF ( INDEX( Line, 'EXPID' ) > 0  ) THEN
+
+          ! Split the line on the colon
+          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+
+          ! Stop with error if there are more than 2 substrings
+          IF ( nSubs1 /= 2 ) THEN
+             ErrMsg = 'Error in extracting the EXPID value from the '     // &
+                      'HISTORY.rc file.  This forms the start of the '    // &
+                      'netCDF file name for each collection.  Please '    // &
+                      'check the HISTORY.rc file for typos.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+          ENDIF
+
+          ! Save the EXPID parameter
+          FileExpId = Subs1(2)
+          CALL CStrip( FileExpId )
+       ENDIF
 
        !====================================================================
        ! The HISTORY.rc file specifies collection metadata as:
@@ -1130,6 +1158,7 @@ CONTAINS
                                      UpdateHms      = UpdateHms,             &
                                      Operation      = Operation,             &
                                      HeartBeatDtSec = HeartBeatDtSec,        &
+                                     FileExpId      = FileExpId,             &
                                      FileWriteYmd   = FileWriteYmd,          &
                                      FileWriteHms   = FileWriteHms,          &
                                      FileCloseYmd   = FileCloseYmd,          &

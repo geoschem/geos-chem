@@ -142,6 +142,7 @@ MODULE HistContainer_Mod
      CHARACTER(LEN=20)           :: StartTimeStamp      ! Timestamps at start
      CHARACTER(LEN=20)           :: EndTimeStamp        !  and end of sim
      CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
+     CHARACTER(LEN=255)          :: FileExpId           ! Filename ExpId
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -212,13 +213,13 @@ CONTAINS
                                    FileWriteYmd,   FileWriteHms,             &
                                    FileWriteAlarm, FileCloseYmd,             &
                                    FileCloseHms,   FileCloseAlarm,           &
-                                   FileId,         FilePrefix,               &
-                                   FileName,       FileTemplate,             &
-                                   Conventions,    NcFormat,                 &
-                                   History,        ProdDateTime,             &
-                                   Reference,      Title,                    &
-                                   Contact,        StartTimeStamp,           &
-                                   EndTimeStamp                             )
+                                   FileId,         FileExpId,                &
+                                   FilePrefix,     FileName,                 &
+                                   FileTemplate,   Conventions,              &
+                                   NcFormat,       History,                  &
+                                   ProdDateTime,   Reference,                &
+                                   Title,          Contact,                  &
+                                   StartTimeStamp, EndTimeStamp             )
 !
 ! !USES:
 !
@@ -271,6 +272,7 @@ CONTAINS
     ! OPTIONAL INPUTS: netCDF file identifiers and metadata
     !-----------------------------------------------------------------------
     INTEGER,             OPTIONAL    :: FileId         ! netCDF file ID
+    CHARACTER(LEN=*),    OPTIONAL    :: FileExpId      ! Dir name + file string
     CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix     ! Filename prefix
     CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate   ! YMDhms template
     CHARACTER(LEN=*),    OPTIONAL    :: Conventions    ! e.g. "COARDS"
@@ -325,7 +327,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: ThisId
+    INTEGER            :: ThisId, C
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, TempStr
@@ -517,13 +519,32 @@ CONTAINS
     ENDIF
 
     !----------------------------------
+    ! File ExpId (the dir name plus
+    ! beginning of file name)
+    !----------------------------------
+    IF ( LEN_TRIM( FileExpId ) > 0 ) THEN
+       TempStr             = FileExpId
+       Container%FileExpId = TempStr
+    ELSE
+       Container%FileExpId = 'GEOSChem'
+    ENDIF
+
+    ! Add an error check.  The netCDF routines apparently cannot write
+    ! files with "./" in the file path.  Strip out such occurrences.
+    C = INDEX( Container%FileExpId, './' )
+    IF ( C > 0 ) THEN
+       Container%FileExpId = Container%FileExpId(C+2:)
+    ENDIF
+
+    !----------------------------------
     ! File Prefix
     !----------------------------------
     IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
        TempStr              = FilePrefix
        Container%FilePrefix = TempStr
     ELSE
-       Container%FilePrefix = 'GEOSChem.' // TRIM( Name ) // '.'
+       Container%FilePrefix = TRIM( Container%FileExpId ) // '.' //         &
+                              TRIM( Name                ) // '.'
     ENDIF
 
     !----------------------------------
@@ -537,14 +558,14 @@ CONTAINS
           TempStr                = FileTemplate
           Container%FileTemplate = TempStr
        ELSE
-          Container%FileTemplate = '%y4%m2%d2.nc4'
+          Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
        ENDIF
 
     ELSE
 
        ! If the FILETEMPLATE argument isn't passed, 
        ! then construct a default template 
-       Container%FileTemplate = '%y4%m2%d2.nc4'
+       Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
 
     ENDIF
 
@@ -900,7 +921,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId 
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId 
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId 
-       WRITE( 6, 120 ) 'FileName         : ', TRIM( Container%FileName     )
+       WRITE( 6, 120 ) 'FileExpId        : ', TRIM( Container%FileExpId    )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename         : ', TRIM( Container%FileName     )
