@@ -178,7 +178,7 @@
 
       ! Make sure the file exists (ajt, 03/31/2013)
       INQUIRE( FILE=TRIM( nc_file ), EXIST=EXIST_VAR )
-      IF ( EXIST_VAR /= .TRUE. ) THEN
+      IF ( .not. EXIST_VAR ) THEN
          NGOS = -1
          RETURN
       ENDIF
@@ -333,7 +333,7 @@
 
       ! Echo info
       WRITE( 6, 20 ) YYYYMMDD
- 20   FORMAT( '     - Finished reading GOSAT CH4 observations for ', i)
+ 20   FORMAT( '     - Finished reading GOSAT CH4 observations for ', i8)
 
       ! Close netCDF file
       CALL NcCl( fId )
@@ -930,7 +930,7 @@
          TotalObs = TotalObs + 1
 
          ! Record information for satellite diagnostics
-         IF ( LDCH4SAT .EQ. .TRUE. ) THEN 
+         IF ( LDCH4SAT ) THEN 
             WRITE( 117, 282 ) TotalObs, I, J, GOS(NT)%LON(1),
      &           GOS(NT)%LAT(1),GOS(NT)%YEAR(1), 
      &           GOS(NT)%MONTH(1),GOS(NT)%DAY(1), GOS(NT)%HOUR(1), 

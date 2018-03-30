@@ -192,7 +192,7 @@
 
       ! Make sure the file exists (ajt, 03/31/2013)
       INQUIRE( FILE=nc_file, EXIST=EXIST_VAR )
-      IF ( EXIST_VAR /= .TRUE. ) THEN
+      IF ( .not. EXIST_VAR ) THEN
          NTCC = -1d0
          RETURN
       ENDIF
@@ -449,7 +449,7 @@
 
       ! Echo info
       WRITE( 6, 20 ) YYYYMMDD
- 20   FORMAT( '     - Finished reading TCCON CH4 observations for ', i)
+ 20   FORMAT( '     - Finished reading TCCON CH4 observations for ', i8)
 
       ! Close netCDF file
       CALL NcCl( fId )
@@ -1086,7 +1086,7 @@
          TotalObs = TotalObs + 1
 
          ! Record information for satellite diagnostics
-         IF ( LDCH4SAT .EQ. .TRUE. ) THEN 
+         IF ( LDCH4SAT ) THEN 
             WRITE( 119, 282 ) TotalObs, I, J, TCC(NT)%LON(1),
      &           TCC(NT)%LAT(1),TCC(NT)%YEAR(1), 
      &           TCC(NT)%MONTH(1),TCC(NT)%DAY(1), TCC(NT)%HOUR(1), 

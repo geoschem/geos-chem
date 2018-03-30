@@ -465,15 +465,15 @@ CONTAINS
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
 
     ! Initialize
-    LSCHEM        = Input_Opt%LSCHEM
-    LEMIS         = Input_Opt%LEMIS
-    LDRYD         = Input_Opt%LDRYD
-    PBL_DRYDEP    = Input_Opt%PBL_DRYDEP
-    ITS_A_CH4_SIM = Input_Opt%ITS_A_CH4_SIM
-    nAdvect       = State_Chm%nAdvect
+    LSCHEM            = Input_Opt%LSCHEM
+    LEMIS             = Input_Opt%LEMIS
+    LDRYD             = Input_Opt%LDRYD
+    PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
+    ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
+    nAdvect           = State_Chm%nAdvect
 
     ! Initialize pointer
-    SpcInfo    => NULL()
+    SpcInfo           => NULL()
 
     ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
     ! is not called in ESMF environment (ckeller, 11/29/17).
@@ -546,21 +546,22 @@ CONTAINS
                       State_Chm, 'FLUX', RC )
 #endif
 
+    !-----------------------------------------------------------------
     ! For tagged CH4 simulations
+    ! Save the total CH4 concentration before apply soil absorption
+    !-----------------------------------------------------------------
     IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
-
-       ! Save the total CH4 concentration before apply soil absorption
-       total_ch4_pre_soil_absorp(:,:,:) = State_Chm%Species(:,:,:,1)
-
+       total_ch4_pre_soil_absorp = State_Chm%Species(:,:,:,1)
     ENDIF
 
     ! Do for every advected species and grid box
-!$OMP PARALLEL DO                                                    &
-!$OMP DEFAULT ( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID  ) &
-!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
-!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
-!$OMP PRIVATE( DENOM, SpcInfo, NA                                  )
+!$OMP PARALLEL DO                                                        &
+!$OMP DEFAULT( SHARED                                                  ) &
+!$OMP PRIVATE( I,        J,            L,          L1,       L2        ) &
+!$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId  ) &
+!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2   ) &
+!$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP  ) &
+!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA        )
     DO NA = 1, nAdvect
 
        ! Get the species ID from the advected species ID
