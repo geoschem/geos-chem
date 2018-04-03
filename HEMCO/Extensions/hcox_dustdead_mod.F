@@ -80,6 +80,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
 !  17 Oct 2017 - C. Keller   - Now estimate default scale factor from
 !                              model resolution.
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,6 +187,9 @@
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
 
+      ! Anthropogenic PM2.5 dust emission
+      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -205,7 +209,7 @@
 !
 ! !USES:
 !
-      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
+      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld, HCO_CalcEmis
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
@@ -243,6 +247,7 @@
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -367,6 +372,26 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
+         ! For AFCID (S. Philip)
+         HcoState%Options%SpcMin = Inst%HcoIDs(1)
+         HcoState%Options%SpcMax = Inst%HcoIDs(1)
+         HcoState%Options%CatMin =  1
+         HcoState%Options%CatMax = -1
+         HcoState%Options%ExtNr  = Inst%ExtNr
+
+         HcoState%Options%AutoFillDiagn = .FALSE.
+         HcoState%Options%FillBuffer = .TRUE.
+         HcoState%Buffer3D%Val => MyDST1e
+    
+         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         ! Reset settings to standard
+         HcoState%Buffer3D%Val          => NULL()
+         HcoState%Options%FillBuffer    = .FALSE.
+         HcoState%Options%ExtNr         = 0
+         HcoState%Options%AutoFillDiagn = .TRUE.
+
 !         FIRST = .FALSE.
       !ENDIF
 
@@ -392,6 +417,11 @@
 
       ! Error check
       ERR = .FALSE.
+
+      ! Debug AFCID emissions added (S. Philip)
+      !print*, 'test = ', SUM(MyDST1e(:,:,:))
+      !print*, 'test = ', MyDST1e(50,40,1)
+      !print*, 'test = ', FLUX(50,40,1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -488,6 +518,12 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
+
+	          ! Add AFCID to bin 1 (S. Philip)
+                  IF ( N == 1 ) THEN   ! kg/m2/s
+                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
+                  ENDIF
+
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
@@ -886,6 +922,14 @@
       Inst%MSS_FRC_SRC(1) = 0.036d0
       Inst%MSS_FRC_SRC(2) = 0.957d0
       Inst%MSS_FRC_SRC(3) = 0.007d0
+
+      ! AFCID emissions (S. Philip)
+      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
+      IF ( AS /= 0 ) THEN
+         CALL HCO_ERROR ( 'MyDST1e', RC )
+         RETURN
+      ENDIF
+      MyDST1e = 0.0_hp
 
       !=================================================================
       ! Compute mass overlaps, Mij, between "source" PDFs
@@ -5843,6 +5887,7 @@ c Fix up for negative argument, erf, etc.
       ! Cleanup module arrays 
       !-----------------------------------------------------------------
 
+      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
 !      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
 !      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) ) 
