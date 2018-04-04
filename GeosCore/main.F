@@ -420,7 +420,6 @@
       Input_Opt%MAX_DIAG      = 1        ! or placeholder value if BPCH_DIAG=n
 #endif
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
-      Input_Opt%MAX_PASV      = 50       ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7

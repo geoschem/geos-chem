@@ -1178,7 +1178,7 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput, Set_Input_Opt_Extra
+      USE Input_Opt_Mod, ONLY : OptInput, Set_Input_Opt_Advect
 !
 ! !INPUT PARAMETERS:
 !
@@ -1381,7 +1381,7 @@
       ENDIF
 
       ! Initialize arrays in Input_Opt that depend on N_ADVECT
-      CALL Set_Input_Opt_Extra( am_I_Root, Input_Opt, RC )
+      CALL Set_Input_Opt_Advect( am_I_Root, Input_Opt, RC )
 
       ! Set menu counter
       CT1 = CT1 + 1
@@ -7494,7 +7494,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput, Set_Input_Opt_Passive
 !
 ! !INPUT PARAMETERS:
 !
@@ -7516,6 +7516,7 @@
 !                              passive species so as to not conflict with
 !                              the returned # of substrings
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  04 Apr 2018 - E. Lundgren - Call routine to init Input_Opt passive spc arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7541,13 +7542,16 @@
       ThisLoc = 
      & ' -> at Read_Passive_Species_Menu (in mod. GeosCore/input_mod.F)'
 
-      ! # of passive speciess
+      ! # of passive species
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'NPASSIVE', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
       READ( SUBSTRS(1), * ) Input_Opt%NPASSIVE
+
+      ! Initialize Input_Opt arrays that are dependent on Input_Opt%NPASSIVE
+      CALL Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
