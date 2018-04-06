@@ -346,8 +346,6 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
-
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
 
@@ -879,7 +877,6 @@
       ! Free pointers
       Spc => NULL()
 
-#endif
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -899,12 +896,10 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG ) 
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
-#endif
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -991,7 +986,6 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
 
       ! Nubmer of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1402,8 +1396,6 @@
       ! Zero accumulating array
       Q            = 0e+0_fp
 
-#endif
-
       END SUBROUTINE WRITE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -1471,10 +1463,8 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
-#endif
       USE CMN_SIZE_MOD
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -1518,8 +1508,6 @@
       !=================================================================
       ! INIT_DIAG50 begins here!
       !=================================================================
-
-#if defined( BPCH_DIAG )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG50 ("diag50_mod.f")'
@@ -1651,8 +1639,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0e+0_fp
 
-#endif
-
       END SUBROUTINE INIT_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -1679,10 +1665,8 @@
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG50
 !EOC

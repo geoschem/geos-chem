@@ -96,9 +96,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-#endif
       USE CMN_O3_MOD	      ! Pure O3, SAVENO2
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : SAFE_DIV, ERROR_STOP
@@ -149,7 +147,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                       :: N,    R,     H,    W, X, Y
       INTEGER                       :: NHMS, TS_DIAG
@@ -344,7 +341,6 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-#endif
 
       RC = GC_SUCCESS
 
@@ -559,7 +555,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       CHARACTER(LEN=255)             :: LOCATION
       
       !=================================================================
@@ -665,7 +660,6 @@
       ! Reset grid offsets to global values for bpch write
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )
       J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
-#endif
 
       END SUBROUTINE INIT_DIAG63
 !EOC

@@ -1729,8 +1729,9 @@
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
-      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
+      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
+         
          ! Expand date tokens in the file name
          FILENAME = TRIM( Input_Opt%ND49_FILE )
 !--- Previous to (ccc, 8/12/09)

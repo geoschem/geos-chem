@@ -438,8 +438,8 @@
                RETURN
             ENDIF
                                                   
-#if defined( BPCH_DIAG )
-         ! Only read if compiled with BPCH_DIAG=y (bmy, 1/12/18)
+         ! Read even if BPCH_DIAG=n so that time series diags may be
+         ! output if other diagnostics are output as netcdf (ewl, 4/5/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
             CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
             IF ( RC /= GC_SUCCESS ) THEN
@@ -488,6 +488,7 @@
                RETURN
             ENDIF
 
+#if defined( BPCH_DIAG )
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
             CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
             IF ( RC /= GC_SUCCESS ) THEN
@@ -3599,9 +3600,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD        ! Size parameters
+      USE CMN_DIAG_MOD        ! Needed for timeseries diags (binary only)
 #if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
-      USE CMN_DIAG_MOD        ! NDxx flags, TINDEX, TCOUNT, TMAX
       USE DIAG03_MOD,    ONLY : ND03,      PD03,      PD03_PL
       USE DIAG04_MOD,    ONLY : ND04,      PD04
       USE DIAG41_MOD,    ONLY : ND41,      PD41
@@ -4875,7 +4876,21 @@
       !
       ! When BPCH_DIAG=n, we still need to define the Input_Opt%LPRT 
       ! flag for debugging.  We will eventually move this elsewhere.
+      ! Also set values for time series diagnostics which can still be
+      ! output as binary if other diangostics are netcdf.
       !=================================================================
+      ND40                         = ND40x
+      ND48                         = ND48x
+      ND49                         = ND49x
+      ND50                         = ND50x
+      ND51                         = ND51x
+      ND63                         = ND63x
+      Input_Opt%ND40               = ND40x
+      Input_Opt%ND48               = ND48x
+      Input_Opt%ND49               = ND49x
+      Input_Opt%ND50               = ND50x
+      Input_Opt%ND51               = ND51x
+      Input_Opt%ND63               = ND63x
       Input_Opt%ND70 = ND70x
       Input_Opt%LPRT = ( ND70x > 0 )
 
@@ -5261,13 +5276,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER            :: N, S
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND48_MENU begins here!
@@ -5275,8 +5288,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
@@ -5358,8 +5369,6 @@
  120  FORMAT( A, I5    )                   
  130  FORMAT( 'ND48 timeseries station', i4, ' : ', 4i5 )
 
-#endif
-
       END SUBROUTINE READ_ND48_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5407,7 +5416,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER             :: N
  
       ! Strings
@@ -5415,7 +5423,6 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND49_MENU begins here!
@@ -5423,8 +5430,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
@@ -5560,8 +5565,6 @@
  120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
 
-#endif
-
       END SUBROUTINE READ_ND49_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5613,7 +5616,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       ! Scalars
       INTEGER            :: N
 
@@ -5622,7 +5624,6 @@
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND50_MENU begins here!
@@ -5631,7 +5632,6 @@
       ! Initialize
       RC      = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND50_Menu (in module GeosCore/input_mod.F)'
@@ -5745,8 +5745,6 @@
  120  FORMAT( A, 100I4 )
  130  FORMAT( A, 2I5   )
 
-#endif
-
       END SUBROUTINE READ_ND50_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5798,7 +5796,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       ! Scalars
       INTEGER            :: N
 
@@ -5807,7 +5804,6 @@
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND51_MENU begins here!
@@ -5816,7 +5812,6 @@
       ! Initialize
       RC      = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51_Menu (in module GeosCore/input_mod.F)'
@@ -5954,8 +5949,6 @@
  130  FORMAT( A, 2I5   )
  140  FORMAT( A, 2F5.1 )
 
-#endif
-
       END SUBROUTINE READ_ND51_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -6003,7 +5996,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       ! Scalars
       INTEGER              :: N
 
@@ -6012,7 +6004,6 @@
 
       ! Arrays
       CHARACTER(LEN=255)   :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND51b_MENU begins here!
@@ -6021,7 +6012,6 @@
       ! Initialize
       RC      = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND51b_MENU  (in module GeosCore/input_mod.F)'
@@ -6162,8 +6152,6 @@
  130  FORMAT( A, 2I5   )
  140  FORMAT( A, 2F5.1 )
 
-#endif
-
       END SUBROUTINE READ_ND51b_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -6214,7 +6202,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER             :: N
 
       ! Strings
@@ -6222,7 +6209,6 @@
 
       ! Arrays
       CHARACTER(LEN=255)  :: SUBSTRS(MAXDIM)
-#endif
 
       !=================================================================
       ! READ_ND63_MENU begins here!
@@ -6231,7 +6217,6 @@
       ! Initialize
       RC      = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = 
      &   ' -> at Read_ND63_Menu (in module GeosCore/input_mod.F)'
@@ -6336,8 +6321,6 @@
  110  FORMAT( A, A     )
  120  FORMAT( A, 100I3 )
  130  FORMAT( A, 2I5   )
-
-#endif
 
       END SUBROUTINE READ_ND63_MENU
 !EOC

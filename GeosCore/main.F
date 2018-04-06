@@ -76,17 +76,20 @@
       !-----------------------------------------------------------------
 #if defined( BPCH_DIAG )
       USE BENCHMARK_MOD         ! For the 1-month benchmark simulations
-      USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG_MOD              ! G-C diagnostic arrays & counters
       USE DIAG41_MOD            ! For ND41  (afternoon PBL       ) diag
       USE DIAG42_MOD            ! For ND42  (SOA products        ) diag
+#endif
+      ! Keep time series diags out of BPCH_DIAG block. Output as binary
+      ! even if other diags are netcdf
+      USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG48_MOD            ! For ND48  (station timeseries  ) diag
       USE DIAG49_MOD            ! For ND49  (inst. timeseries    ) diag
       USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
       USE DIAG51_MOD            ! For ND51  (satellite timeseries) diag
       USE DIAG51b_MOD           ! For ND51b (satellite timeseries) diag
       USE DIAG63_MOD            ! For ND63  (PARANOX timeseries  ) diag
-#endif
+
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
@@ -317,7 +320,6 @@
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
-      INTEGER                  :: ND40x
       REAL(f8)                 :: TAU,           TAUb      
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
@@ -414,11 +416,7 @@
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
-#if defined( BPCH_DIAG )
       Input_Opt%MAX_DIAG      = MAX_DIAG ! Max # of diags from CMN_DIAG_mod.F
-#else
-      Input_Opt%MAX_DIAG      = 1        ! or placeholder value if BPCH_DIAG=n
-#endif
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
@@ -462,9 +460,7 @@
       CALL GEOS_Timer_Add( "RRTMG",                                RC )
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
-#if defined( BPCH_DIAG )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
-#endif
 #if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
@@ -541,13 +537,6 @@
       LUCX                =  Input_Opt%LUCX
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
-
-      ! Define a shadow variable for ND40
-#if defined( BPCH_DIAG )
-      ND40x               = ND40
-#else
-      ND40x               = 0
-#endif
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -1139,7 +1128,6 @@
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
-#if defined( BPCH_DIAG )
             !===========================================================
             ! *****  W R I T E   B P C H   D I A G N O S T I C S *****
             !===========================================================
@@ -1155,13 +1143,14 @@
             ! Write bpch file
             IF ( DO_DIAG_WRITE ) THEN
 
+#if defined( BPCH_DIAG )
                ! Write data to the "trac_avg." bpch file
                CALL DIAG3
      &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
                ! Flush file units
                CALL CTM_FLUSH()
-
+#endif 
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -1170,7 +1159,6 @@
             CALL GEOS_Timer_End( "Output",                       RC )
 #endif
 
-#endif 
             !===========================================================
             !       ***** S T R A T - T R O P   F L U X E S *****
             !===========================================================
@@ -1243,10 +1231,10 @@
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
 
+#if defined( BPCH_DIAG )
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
-#if defined( BPCH_DIAG )
             CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
 #endif
@@ -1416,7 +1404,6 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
-#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
          !   ***** B P C H   D I A G N O S T I C   U P D A T E *****
          !--------------------------------------------------------------
@@ -1425,6 +1412,7 @@
          CALL GEOS_Timer_Start( "=> Binary punch diagnostics",  RC )
 #endif
 
+#if defined( BPCH_DIAG )
          !-------------------------------------------------------------
          ! ND55 (bpch) DIAGNOSTIC
          !
@@ -1439,6 +1427,7 @@
             AD55(:,:,2) = AD55(:,:,2) + State_Met%TropHt
             AD55(:,:,3) = AD55(:,:,3) + State_Met%TropP
          ENDIF
+#endif
 
          ! Update dynamic timestep (for bpch diagnostics
          CALL SET_CT_DYN( INCREMENT=.TRUE. )
@@ -1454,8 +1443,6 @@
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "All diagnostics",              RC )
          CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-#endif
-
 #endif
 
          !### Debug
@@ -2101,13 +2088,12 @@
 
 #endif
 
-#if defined( BPCH_DIAG )
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
          !
-         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         ! %%%%% NOTE: Works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
          !--------------------------------------------------------------
-         IF ( ND40x > 0 .and. DO_DIAG_WRITE ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
 
 #if defined( USE_TIMERS )
@@ -2135,6 +2121,7 @@
             ENDIF
          ENDIF
 
+#if defined( BPCH_DIAG )
          !================================================================
          ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
          !================================================================
@@ -2198,7 +2185,6 @@
             CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
          ENDIF
 
-#if defined( BPCH_DIAG )
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !
@@ -2217,9 +2203,9 @@
          ! with species array and not be biased by emissions, kyu 30
          ! jan 2015
          !
-         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         ! %%%%% NOTE: works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
          !--------------------------------------------------------------
-         IF ( ND40x > 0 ) THEN 
+         IF ( ND40 > 0 ) THEN 
             ! Archive data along the flight track
             CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC )
@@ -2230,7 +2216,6 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
-
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG40' )
 
          !--------------------------------------------------------------
@@ -2241,6 +2226,7 @@
             !### Debug
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: b DIAGNOSTICS' )
 
+#if defined( BPCH_DIAG )
             ! Accumulate several diagnostic quantities
             CALL Diag1( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
@@ -2269,6 +2255,7 @@
                ENDIF
             ENDIF
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG42' )
+#endif
 
             ! 24-hr timeseries
             IF ( Input_Opt%DO_ND50 ) THEN
@@ -2374,8 +2361,6 @@
          CALL GEOS_Timer_End( "All diagnostics",              RC )
          CALL GEOS_Timer_End( "Output",                       RC )
          CALL GEOS_Timer_End( "=> Binary punch diagnostics",  RC )
-#endif
-
 #endif
 
 #if defined( NC_DIAG )

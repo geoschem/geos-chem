@@ -292,7 +292,6 @@
       !=================================================================
       ! DIAG51b begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       
       ! Construct array of where local times are between HR1, HR2
       CALL GET_LOCAL_TIME( Input_Opt )
@@ -307,7 +306,6 @@
          CALL WRITE_DIAG51b( am_I_Root, Input_Opt, State_Chm, TAU_W, RC)
       ENDIF
 
-#endif
       END SUBROUTINE DIAG51b
 !EOC
 !------------------------------------------------------------------------------
@@ -517,8 +515,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Number of advected species
       nAdvect   =  State_Chm%nAdvect
@@ -1164,8 +1160,6 @@
 
       ENDIF
 
-#endif
-
       END SUBROUTINE ACCUMULATE_DIAG51b
 !EOC
 !------------------------------------------------------------------------------
@@ -1381,8 +1375,6 @@
 
       ! Assume success
       RC         =  GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Copy values from Input_Opt
       nAdvect    = State_Chm%nAdvect
@@ -1867,8 +1859,6 @@
       GOOD_EMIS    = 0e+0_fp
       GOOD_CT_EMIS = 0e+0_fp
 
-#endif
-
       END SUBROUTINE WRITE_DIAG51b
 !EOC
 !------------------------------------------------------------------------------
@@ -1978,8 +1968,6 @@
       !=================================================================
       ! INIT_DIAG51b begins here!
       !=================================================================
-
-#if defined( BPCH_DIAG )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG51b ("diag51b_mod.f")'
@@ -2137,8 +2125,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0
 
-#endif
-
       END SUBROUTINE INIT_DIAG51b
 !EOC
 !------------------------------------------------------------------------------
@@ -2167,7 +2153,6 @@
       !=================================================================
       ! CLEANUP_DIAG51b begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
@@ -2176,7 +2161,6 @@
       IF ( ALLOCATED( GOOD_CT_EMIS ) ) DEALLOCATE( GOOD_CT_EMIS )
       IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG51b
 !EOC

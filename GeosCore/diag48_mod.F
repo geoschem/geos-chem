@@ -289,7 +289,7 @@
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          IF ( DO_DIAG_WRITE ) THEN
-
+           
             ! Open file for writing
             CALL OPEN_ND48_FILE( FILENAME )
 
@@ -980,7 +980,7 @@
       !=================================================================
       
       IF ( Input_Opt%DO_ND48 ) THEN
-         
+
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
 

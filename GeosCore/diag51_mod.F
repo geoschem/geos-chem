@@ -531,8 +531,6 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
-
       ! Copy values from INPUT_OPT
       LSOA      = Input_Opt%LSOA
 
@@ -1344,7 +1342,6 @@
 
       ENDIF
 
-#endif
       END SUBROUTINE ACCUMULATE_DIAG51
 !EOC
 !------------------------------------------------------------------------------
@@ -1466,10 +1463,8 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
-#endif
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
@@ -1555,8 +1550,6 @@
 
       ! Assume success
       RC        =  GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Copy values from Input_Opt
       nAdvect   = State_Chm%nAdvect
@@ -2095,8 +2088,6 @@
       GOOD_EMIS    = 0e+0_fp
       GOOD_CT_EMIS = 0e+0_fp
 
-#endif
-
       END SUBROUTINE WRITE_DIAG51
 !EOC
 !------------------------------------------------------------------------------
@@ -2161,10 +2152,8 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
-#endif
       USE CMN_SIZE_MOD
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
@@ -2209,7 +2198,6 @@
       ! INIT_DIAG51 begins here!
       !=================================================================
 
-#if defined( BPCH_DIAG )
       ! Initialize
       LOCATION               = 'INIT_DIAG51 ("diag51_mod.f")'
 
@@ -2365,8 +2353,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0
 
-#endif
-
       END SUBROUTINE INIT_DIAG51
 !EOC
 !------------------------------------------------------------------------------
@@ -2395,7 +2381,6 @@
       !=================================================================
       ! CLEANUP_DIAG51 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
@@ -2404,7 +2389,6 @@
       IF ( ALLOCATED( GOOD_CT_EMIS ) ) DEALLOCATE( GOOD_CT_EMIS )
       IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
-#endif
 
       END SUBROUTINE CLEANUP_DIAG51
 !EOC

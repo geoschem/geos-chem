@@ -1514,11 +1514,9 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
-#if   defined( TOMAS )
+#if defined( BPCH_DIAG ) && defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
 #endif
 !
 ! !INPUT PARAMETERS:
