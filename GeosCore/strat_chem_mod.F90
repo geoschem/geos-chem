@@ -288,6 +288,7 @@ CONTAINS
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  17 Jan 2018 - R. Yantosca - Replace GET_TPAUSE_LEVEL w/ State_Met%TropLev
+!  09 Apr 2018 - R. Yantosca - Now use safe division in expression for k
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -305,12 +306,11 @@ CONTAINS
 
     ! Scalars
     LOGICAL            :: prtDebug
-    INTEGER            :: I,    J,       L,   N
-    INTEGER            :: NN,   nAdvect, NA
-    REAL(fp)           :: dt,   P,       k,   M0,  RC,     M
-    REAL(fp)           :: TK,   RDLOSS,  T1L, mOH, BryTmp
-    REAL(fp)           :: BOXVL
-    REAL(fp)           :: SpcConc
+    INTEGER            :: I,     J,       L,   N
+    INTEGER            :: NN,    nAdvect, NA
+    REAL(fp)           :: dt,    P,       k,   M0,  RC
+    REAL(fp)           :: TK,    RDLOSS,  T1L, mOH, BryTmp
+    REAL(fp)           :: BOXVL, SpcConc, Num, Den, M
     REAL(fp)           :: MW_g
     LOGICAL            :: LLINOZ
     LOGICAL            :: LSYNOZ
@@ -450,9 +450,12 @@ CONTAINS
        ! which we have explicit prod/loss rates from UCX/GMI
        !--------------------------------------------------------------------
 
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, dt, M0, MW_g, SpcConc )
+       ! Timestep [s], can be pulled outside of parallel loop
+       dt = DTCHEM
+
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED )                                               &
+       !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, M0, MW_g, SpcConc, Num, Den )
        DO J=1,JJPAR
           DO I=1,IIPAR
 
@@ -464,15 +467,27 @@ CONTAINS
              ! (bmy, 7/18/12)
              DO L = 1, LLPAR
 
+                ! For safety's sake, zero variables at each (I,J,L) box
+                Den     = 0.0_fp
+                k       = 0.0_fp
+                M0      = 0.0_fp
+                Mw_g    = 0.0_fp
+                Num     = 0.0_fp
+                P       = 0.0_fp
+                SpcConc = 0.0_fp
+
                 ! Only consider boxes above the chemistry grid
                 IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
+                !-----------------------------------------------------------
                 ! Loop over the # of active strat chem species
+                !-----------------------------------------------------------
                 DO N = 1, NSCHEM
 
                    ! Species ID (use this for State_Chm%Species)
                    NN = Strat_TrID_GC(N)
 
+                   ! Advected species ID (use this for SCHEM_TEND)
                    NA = Strat_TrID_TND(N)
 
                    ! Skip O3; we'll always use either Linoz or Synoz
@@ -481,67 +496,95 @@ CONTAINS
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 .AND. &
                         ( LLINOZ .OR. LSYNOZ ) ) CYCLE
 
-                   ! timestep [s]
-                   dt = DTCHEM
-
                    ! Molecular weight for the species [g]
                    MW_g = State_Chm%SpcData(NN)%Info%emMW_g
 
+                   !--------------------------------------------------------
                    ! Loss freq [s-1] 
+                   !--------------------------------------------------------
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%LOSS) ) THEN
 
+                      ! If the PLVEC(N)%LOSS pointer is null, then the
+                      ! species doesn't have a loss rate.  Set k to 0.
                       k = 0.0_fp
 
                    ELSE
 
+                      ! Determine if we are using a UCX-based simulation
+                      ! or a tropchem simulation (without UCX)
                       IF ( LUCX ) THEN
 
-                         ! Loss rates from GMI are in s-1
+                         ! %%%%% SIMULATION USES THE UCX MECHANISM %%%%%
+                         ! Loss rates (archived from GMI) are in s-1
                          k = PLVEC(N)%LOSS(I,J,L)
 
                       ELSE
 
-                         ! Loss rates from UCX are in molec/cm3/s
+                         ! %%%%% SIMULATION USES THE TROPCHEM MECHANISM %%%%%
+                         ! Loss rates (archived from UCX) are in molec/cm3/s
                          ! Convert to s-1 here
-                         SpcConc = Spc(I,J,L,NN)                         &
-                                   * ( AVO / ( MW_g * 1.e-3_fp ) )       &
+                         SpcConc = Spc(I,J,L,NN)                             &
+                                   * ( AVO / ( MW_g * 1.e-3_fp ) )           &
                                    / ( State_Met%AIRVOL(I,J,L) * 1e+6_fp )
-                         k = PLVEC(N)%LOSS(I,J,L) / SpcConc
+
+                         ! k is the loss rate divided by the concentration
+                         ! Return 0 if the division cannot be done
+                         Num = PLVEC(N)%LOSS(I,J,L)
+                         Den = SpcConc
+                         k   = Safe_Div( N         = Num,                    &
+                                         D         = Den,                    &
+                                         Alt_NaN   = 0.0_fp,                 &
+                                         Alt_Over  = 0.0_fp,                 &
+                                         Alt_Under = 0.0_fp                 )
 
                       ENDIF
 
                    ENDIF
 
+                   !--------------------------------------------------------
                    ! Prod term [kg/s]
+                   !--------------------------------------------------------
                    IF ( .NOT. ASSOCIATED(PLVEC(N)%PROD) ) THEN
 
+                      ! If the PLVEC(N)%PROD pointer is null, then the
+                      ! species doesn't have a production rate.  Set P to 0.
                       P = 0.0_fp 
 
                    ELSE
 
+                      ! Determine if we are using a UCX-based simulation
+                      ! or a tropchem simulation (without UCX) 
                       IF ( LUCX ) THEN
 
-                         ! Prod rates from GMI are in v/v/s
+                         ! %%%%% SIMULATION USES THE UCX MECHANISM %%%%%
+                         ! Prod rates (archived from GMI) are in v/v/s
                          ! Convert to kg/s here
-                         P = PLVEC(N)%PROD(I,J,L) &
-                             * AD(I,J,L) / ( AIRMW / MW_g )
+                         P = PLVEC(N)%PROD(I,J,L)                            &
+                           * AD(I,J,L) / ( AIRMW / MW_g )
 
                       ELSE
 
-                         ! Prod rates from UCX are in molec/cm3/s
+                         ! %%%%% SIMULATION USES THE TROPCHEM MECHANISM %%%%%
+                         ! Prod rates (archived from UCX) are in molec/cm3/s
                          ! Convert to kg/s here
-                         P = PLVEC(N)%PROD(I,J,L)                  &
-                             / ( AVO / ( MW_g  * 1.e-3_fp ) )      &
-                             * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp ) 
+                         P = PLVEC(N)%PROD(I,J,L)                            &
+                           / ( AVO / ( MW_g  * 1.e-3_fp ) )                  &
+                           * ( State_Met%AIRVOL(I,J,L) * 1e+6_fp ) 
 
                       ENDIF
 
                    ENDIF
+
+                   !--------------------------------------------------------
+                   ! Apply prod and loss
+                   !--------------------------------------------------------
 
                    ! Initial mass [kg]
                    M0 = Spc(I,J,L,NN)
 
                    ! No prod or loss at all
+                   ! NOTE: Bad form to test for equality on zero!
+                   ! Replace this later (bmy, 4/9/18)
                    IF ( k .eq. 0e+0_fp .and. P .eq. 0e+0_fp ) CYCLE
 
                    ! Simple analytic solution to dM/dt = P - kM over [0,t]
@@ -560,9 +603,9 @@ CONTAINS
                    ENDIF
 
                 ENDDO ! N
-             ENDDO ! L
-          ENDDO ! I
-       ENDDO ! J
+             ENDDO    ! L
+          ENDDO       ! I
+       ENDDO          ! J
        !$OMP END PARALLEL DO
 
        !--------------------------------------------------------------------
