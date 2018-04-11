@@ -3818,7 +3818,7 @@ CONTAINS
     ! Standard name (optional) -- skip if null string
     IF ( PRESENT( StandardName ) ) THEN
        IF ( LEN_TRIM( StandardName ) > 0 ) THEN
-          Att = 'standard_Name'
+          Att = 'standard_name'
           CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(StandardName))
        ENDIF
     ENDIF
