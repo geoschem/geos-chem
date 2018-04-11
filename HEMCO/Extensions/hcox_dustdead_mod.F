@@ -187,8 +187,16 @@
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
 
-      ! Anthropogenic PM2.5 dust emission
-      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      ! Anthropogenic PM2.5 dust emission
+!      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
+!------------------------------------------------------------------------------
 
       CONTAINS
 !EOC
@@ -372,25 +380,33 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-         ! For AFCID (S. Philip)
-         HcoState%Options%SpcMin = Inst%HcoIDs(1)
-         HcoState%Options%SpcMax = Inst%HcoIDs(1)
-         HcoState%Options%CatMin =  1
-         HcoState%Options%CatMax = -1
-         HcoState%Options%ExtNr  = Inst%ExtNr
-
-         HcoState%Options%AutoFillDiagn = .FALSE.
-         HcoState%Options%FillBuffer = .TRUE.
-         HcoState%Buffer3D%Val => MyDST1e
-    
-         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
-         ! Reset settings to standard
-         HcoState%Buffer3D%Val          => NULL()
-         HcoState%Options%FillBuffer    = .FALSE.
-         HcoState%Options%ExtNr         = 0
-         HcoState%Options%AutoFillDiagn = .TRUE.
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!         ! For AFCID (S. Philip)
+!         HcoState%Options%SpcMin = Inst%HcoIDs(1)
+!         HcoState%Options%SpcMax = Inst%HcoIDs(1)
+!         HcoState%Options%CatMin =  1
+!         HcoState%Options%CatMax = -1
+!         HcoState%Options%ExtNr  = Inst%ExtNr
+!
+!         HcoState%Options%AutoFillDiagn = .FALSE.
+!         HcoState%Options%FillBuffer = .TRUE.
+!         HcoState%Buffer3D%Val => MyDST1e
+!    
+!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!         ! Reset settings to standard
+!         HcoState%Buffer3D%Val          => NULL()
+!         HcoState%Options%FillBuffer    = .FALSE.
+!         HcoState%Options%ExtNr         = 0
+!         HcoState%Options%AutoFillDiagn = .TRUE.
+!------------------------------------------------------------------------------
 
 !         FIRST = .FALSE.
       !ENDIF
@@ -519,10 +535,18 @@
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
 
-	          ! Add AFCID to bin 1 (S. Philip)
-                  IF ( N == 1 ) THEN   ! kg/m2/s
-                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
-                  ENDIF
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!                 ! Add AFCID to bin 1 (S. Philip)
+!                  IF ( N == 1 ) THEN   ! kg/m2/s
+!                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
+!                  ENDIF
+!------------------------------------------------------------------------------
 
                ENDIF
 
@@ -923,13 +947,21 @@
       Inst%MSS_FRC_SRC(2) = 0.957d0
       Inst%MSS_FRC_SRC(3) = 0.007d0
 
-      ! AFCID emissions (S. Philip)
-      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
-      IF ( AS /= 0 ) THEN
-         CALL HCO_ERROR ( 'MyDST1e', RC )
-         RETURN
-      ENDIF
-      MyDST1e = 0.0_hp
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      ! AFCID emissions (S. Philip)
+!      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
+!      IF ( AS /= 0 ) THEN
+!         CALL HCO_ERROR ( 'MyDST1e', RC )
+!         RETURN
+!      ENDIF
+!      MyDST1e = 0.0_hp
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Compute mass overlaps, Mij, between "source" PDFs
@@ -5887,7 +5919,15 @@ c Fix up for negative argument, erf, etc.
       ! Cleanup module arrays 
       !-----------------------------------------------------------------
 
-      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
+!------------------------------------------------------------------------------
 !      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
 !      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) ) 
