@@ -104,7 +104,7 @@
       !=================================================================
       ! MODULE VARIABLES 
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Scalars
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1 
@@ -127,6 +127,7 @@
       INTEGER              :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER              :: id_R4N2, id_SALA, id_SALC, id_NO2
       INTEGER              :: id_IPMN, id_OH
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -176,22 +177,24 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState,           Ind_
+      USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
-      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
-      USE State_Chm_Mod,      ONLY : ChmState,           Ind_
-      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -209,6 +212,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -229,13 +233,15 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-
+#endif
       !=================================================================
       ! DIAG48 begins here!
       !=================================================================
 
       ! Assume success
       RC            =  GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Number of advected species
       nAdvect       = State_Chm%nAdvect
@@ -882,6 +888,7 @@
 
       ! Free pointers
       Spc => NULL()
+#endif
 
       END SUBROUTINE DIAG48
 
@@ -900,11 +907,15 @@
 !  NOTES:
 !******************************************************************************
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR
+#endif
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Local variables
       INTEGER                      :: IOS
@@ -941,6 +952,7 @@
       ! Write top title
       WRITE ( IU_ND48, IOSTAT=IOS ) TITLE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_ND48, 'open_nd48_file:3' )
+#endif
 
       ! Return to calling program
       END SUBROUTINE OPEN_ND48_FILE
@@ -959,9 +971,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_DIAG
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -970,6 +984,8 @@
 ! !RETURN VALUE:
 !
       LOGICAL :: ITS_TIME
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Local variables
       INTEGER :: XSEC, TS_DIAG
@@ -1003,6 +1019,7 @@
       ELSE
          ITS_TIME = Input_Opt%DO_ND48
       ENDIF
+#endif
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG48
@@ -1022,11 +1039,14 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,         ONLY : OptInput
+      USE State_Chm_Mod,         ONLY : Ind_
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
-      USE Input_Opt_Mod,         ONLY : OptInput
-      USE State_Chm_Mod,         ONLY : Ind_
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1037,13 +1057,20 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Local variables
-      INTEGER                        :: AS, N
-      CHARACTER(LEN=255)             :: LOCATION
+      INTEGER                     :: AS, N
+      CHARACTER(LEN=255)          :: LOCATION
+#endif
 
       !=================================================================
       ! INIT_DIAG48 begins here!
       !=================================================================
+      
+      ! Assume success
+      RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'
@@ -1106,13 +1133,14 @@
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
       HALFPOLAR = GET_HALFPOLAR()
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_DIAG48
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CLEANUP_DIAG48
+      SUBROUTINE CLEANUP_DIAG48()
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG48 deallocates all module arrays (bmy, 7/20/04)
@@ -1120,6 +1148,7 @@
 !  NOTES:
 !******************************************************************************
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! CLEANUP_DIAG48 begins here!
       !=================================================================
@@ -1127,6 +1156,7 @@
       IF ( ALLOCATED( ND48_J ) ) DEALLOCATE( ND48_J )
       IF ( ALLOCATED( ND48_L ) ) DEALLOCATE( ND48_L )
       IF ( ALLOCATED( ND48_N ) ) DEALLOCATE( ND48_N )
+#endif
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG48

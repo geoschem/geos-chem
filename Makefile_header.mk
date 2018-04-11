@@ -443,6 +443,15 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
 
+  # If we are compiling GEOS-Chem "Classic", then also activate all bpch
+  # timeseries diagnostics.  At this point (v11-02) there are some special
+  # timeseries diagnostics that require local-time binning, which is not
+  # yet available in the netCDF diagnostic output.  This will preserve
+  # backwards compatibility for the time being. (bmy, 4/11/18)
+  ifeq ($(IS_HPC),0)
+     USER_DEFS       += -DBPCH_TIMESER
+  endif
+
   # AND turn off bpch diagnostics UNLESS specified otherwise
   ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
     USER_DEFS        += -DBPCH_DIAG
@@ -455,9 +464,9 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
 
 else
 
-  # If netCDF diagnostics have not been explicitly specified,
-  # then only turn on bpch diagnostics AND bpch code for nested BC's
-  USER_DEFS          += -DBPCH_DIAG -DBPCH_TPBC
+  # If netCDF diagnostics have not been explicitly specified, then activate
+  # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TIMESER -DBPCH_TPBC
 
 endif
 
