@@ -173,6 +173,10 @@ CONTAINS
     ! Species ID flags
     INTEGER            :: id_CO
     INTEGER            :: id_O3
+    INTEGER            :: id_NO
+    INTEGER            :: id_NO2
+    INTEGER            :: id_HNO3
+    INTEGER            :: id_tmp
 
     ! Strings
     CHARACTER(LEN=255) :: MSG
@@ -191,8 +195,11 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Define species ID flags
-    id_CO = Ind_('CO')
-    id_O3 = Ind_('O3') 
+    id_CO   = Ind_('CO')
+    id_O3   = Ind_('O3') 
+    id_NO   = Ind_('NO') 
+    id_NO2  = Ind_('NO2') 
+    id_HNO3 = Ind_('HNO3') 
        
     ! Execute only if DoTend is enabled
     IF ( DoTend ) THEN
@@ -223,35 +230,114 @@ CONTAINS
        ! Activate tendency computations for O3 (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'DRYD',   id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX',   id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_O3, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD',   id_O3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_O3, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------------------------------------------------
        ! Activate tendency computations for CO (add more as you wish)
        !--------------------------------------------------------------------
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'ADV',    id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CHEM',   id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'CONV',   id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_CO, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
-       CALL Tend_Add ( am_I_Root, Input_Opt, 'PBLMIX', id_CO, RC )
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_CO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_CO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_CO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for NO (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_NO, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for NO2 (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_NO2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Activate tendency computations for HNO3 (add more as you wish)
+       !--------------------------------------------------------------------
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'ADV',    id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM',   id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CONV',   id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'PBLMIX', id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'WETD', id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'FLUX', id_HNO3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       id_tmp = Ind_('OH') 
+       CALL Tend_Add ( am_I_Root, Input_Opt, State_Chm, 'CHEM', id_tmp, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF ! test toggle
@@ -312,9 +398,10 @@ CONTAINS
 
     IF ( .NOT. FOUND ) THEN 
 
-       ! Eventually set local # of advected species
+       ! Eventually set local # of species
        IF ( nSpc <= 0 ) THEN
-          nSpc = State_Chm%nAdvect
+          !nSpc = State_Chm%nAdvect
+          nSpc = State_Chm%nSpecies
        ENDIF
 
        ! Initialize class
@@ -521,6 +608,7 @@ CONTAINS
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update for linked list 
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -598,6 +686,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if !defined( ESMF_ )
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
 
@@ -622,6 +711,7 @@ CONTAINS
        MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
        CALL ERROR_STOP( MSG, LOC ) 
     ENDIF
+#endif
 
     ! Initialize
     ThisTend => NULL()
@@ -670,6 +760,8 @@ CONTAINS
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
+!  17 Oct 2017 - C. Keller   - Stage2 now updates internal array to tendency
+!                              array (instead of resetting it to zero).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -705,8 +797,8 @@ CONTAINS
     IF ( .NOT. FOUND .OR. .NOT. ASSOCIATED(ThisTend) ) RETURN
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -722,8 +814,8 @@ CONTAINS
        ! Convert from kg/kg dry to v/v dry
        Ptr3D = 0.0_f4
        Ptr3D = State_Chm%Species(:,:,:,I) &
-             * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g ) &
-             / State_Met%AD(:,:,:)
+             * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g )
+!!!             / State_Met%AD(:,:,:)
 
        ! Cleanup
        Ptr3D => NULL()
@@ -733,8 +825,8 @@ CONTAINS
     ThisTend%Stage = 1
 
     ! Convert tracers back to original unit 
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup
@@ -789,6 +881,7 @@ CONTAINS
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
+!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -847,8 +940,8 @@ CONTAINS
     ENDIF
 
     ! Convert tracers to kg/kg dry
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'kg/kg dry', RC, InUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Loop over # of tendencies species
@@ -871,17 +964,18 @@ CONTAINS
 
           ! TMP is the current concentration in v/v
           ! Convert from kg/kg dry to v/v dry
-          TMP = ( ( State_Chm%Species(:,:,:,I)                   &
-                  * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g ) &
-                  / State_Met%AD(:,:,:) ) &
+          TMP = State_Chm%Species(:,:,:,I)                   &
+              * ( AIRMW / State_Chm%SpcData(I)%Info%emMW_g )
+!!!              / State_Met%AD(:,:,:) ) &
 
           ! Calculate tendency 
           Tend = ( TMP - Ptr3D ) / REAL(DT,f4)
        ENDIF
 
+#if !defined( ESMF_ )
        ! Update diagnostics array
        CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
-               Array3D_SP=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
+               Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
        IF ( RC /= HCO_SUCCESS ) THEN 
           WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
@@ -889,9 +983,12 @@ CONTAINS
           RC = GC_FAILURE
           RETURN
        ENDIF
+#endif
 
-       ! Reset values 
-       Ptr3D = 0.0_fp
+       !! Reset values 
+       !Ptr3D = 0.0_fp
+       ! Update values in the internal array to current tendency
+       Ptr3D =  Tend
        Ptr3D => NULL()
 
     ENDDO !I
@@ -900,8 +997,8 @@ CONTAINS
     ThisTend%Stage = 2
 
     ! Convert tracers back to original unit 
-    CALL Convert_Units( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                            State_Chm, OrigUnit,  RC )
     IF ( RC/= HCO_SUCCESS ) RETURN
 
     ! Cleanup

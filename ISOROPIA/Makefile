@@ -129,10 +129,15 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-isoropiaIIcode.o:  isoropiaIIcode.F  isrpia.inc
+isorropiaII_main_mod.o: isorropiaII_main_mod.F
+
 ifeq ($(PRECISION),8)
 	$(F90ISO) $(R8) -c $<
 endif
+
+# NOTE: For now, even if PRECISION=4, force the default floating point
+# precision to be REAL*8.  This should avoid any numerical issues.
+# Investigate changing this later. (bmy, 1/24/17)
 ifeq ($(PRECISION),4)
 	$(F90ISO) $(R8) -c $<
 endif

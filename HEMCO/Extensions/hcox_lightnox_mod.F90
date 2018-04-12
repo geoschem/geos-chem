@@ -139,6 +139,13 @@ MODULE HCOX_LightNOx_Mod
 !                              factors via HEMCO configuration file. 
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  02 Dec 2016 - M. Sulprizio- Update WEST_NS_DIV from 23d0 to 35d0 (K. Travis)
+!  16 Feb 2017 - L. Murray   - Updated BETA factors for all GEOS-FP/MERRA-2
+!                              products fields available by v11-01 release
+!                              (through Dec. 2016), and latest version of
+!                              LIS/OTD satellite climatology.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  17 Oct 2017 - C. Keller   - Add option to use GEOS-5 lightning flash rate
+!                              (LFR). Autoselection of flash rate scale factor.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -174,6 +181,7 @@ MODULE HCOX_LightNOx_Mod
    LOGICAL                       :: OTD_LIS_PRESC ! Is OTD_LIS_SCALE prescribed?
    LOGICAL                       :: LOTDLOC       ! Use OTD-LIS dist factors?
    LOGICAL                       :: LCNVFRC       ! Use convective fractions? 
+   LOGICAL                       :: LLFR          ! Use GEOS-5 flash rates 
 
    ! Arrays
    REAL(dp), POINTER             :: PROFILE(:,:)
@@ -387,6 +395,7 @@ CONTAINS
     INTEGER           :: I,         J,           L,        LCHARGE
     INTEGER           :: LMAX,      LTOP,        LBOTTOM,  L_MFLUX
     INTEGER           :: cMt,       MTYPE,       LTOP1,    LTOP2 
+    INTEGER           :: LTOP_LFR
     REAL*8            :: A_KM2,     A_M2,        CC,       DLNP     
     REAL*8            :: DZ,        FLASHRATE,   H0,       HBOTTOM
     REAL*8            :: HCHARGE,   IC_CG_RATIO, MFLUX,    P1
@@ -396,6 +405,7 @@ CONTAINS
     REAL*8            :: YMID,      Z_IC,        Z_CG,     ZUP
     REAL*8            :: XMID
     REAL*8            :: VERTPROF(HcoState%NZ)
+    REAL*8            :: RATE_LFR, IC_CG_RATIO_LFR, H0_LFR
     INTEGER           :: LNDTYPE, SFCTYPE
     INTEGER           :: DiagnID
     REAL(hp), TARGET  :: DIAGN(HcoState%NX,HcoState%NY,3)
@@ -467,22 +477,6 @@ CONTAINS
     ! LMAX: the highest L-level to look for lightnox (usually LLPAR-1)
     LMAX   = HcoState%NZ - 1
 
-#if defined( GEOS_5 ) 
-    ! Get scaling factor to match annual average global flash rate
-    ! (ltm, 09/24/07)
-    ! Because of different convection in GEOS 5.1.0 and GEOS 5.2.0,
-    ! this value is different before and after Sept 1, 2008. 
-    ! So reset value at start of each month, just in case it's
-    ! a 2008 simulation. (ltm,1/26/11)
-    ! Added option to prescribe OTD_LIS_SCALE in configuration file. 
-    ! In this case, never call GET_OTD_LIS_SCALE but always use the 
-    ! prescribed value. (ckeller,1/13/15)
-    IF ( .NOT. Inst%OTD_LIS_PRESC ) THEN
-       CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-    ENDIF
-#endif
-
     ! Get current month (to be passed to LIGHTDIST)
     CALL HcoClock_Get( am_I_Root, HcoState%Clock, cMM=cMt, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -502,6 +496,7 @@ CONTAINS
 !$OMP PRIVATE( X,           TOTAL_IC, TOTAL_CG, TOTAL,  REDIST    ) &
 !$OMP PRIVATE( RATE_SAVE,   VERTPROF, SFCTYPE,  LNDTYPE, TROPP    ) &
 !$OMP PRIVATE( MTYPE,       LTOP1,    LTOP2                       ) &
+!$OMP PRIVATE( RATE_LFR,    H0_LFR,   IC_CG_RATIO_LFR, LTOP_LFR   ) &
 !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over surface boxes
@@ -559,6 +554,48 @@ CONTAINS
        ENDIF
 
        !===========================================================
+       ! Use GEOS-5 LFR if option is selected
+       ! LFR is in flashes s-1 km-2
+       ! Use arbitrary value of 1.0 for IC/CG ratio. This value has
+       ! no impact on the total lightning emissions. 
+       !===========================================================
+       IF ( Inst%LLFR                                  &
+            .AND. ASSOCIATED( ExtState%LFR%Arr%Val   ) &
+            .AND. ASSOCIATED( ExtState%BYNCY%Arr%Val )  ) THEN
+          RATE_LFR        = ExtState%LFR%Arr%Val(I,J) * A_KM2 * 60.0d0 * 360.0d0
+          IC_CG_RATIO_LFR = 1.0
+
+          ! Apply scaling factor to make sure annual average flash rate 
+          ! equals that of the climatology. (ltm, 09/24/07)
+          RATE_LFR = RATE_LFR * Inst%OTD_LIS_SCALE
+
+          ! Set LTOP to top of buoyancy
+          DO L = HcoState%NZ, 1, -1
+             IF ( ExtState%BYNCY%Arr%Val(I,J,L) >= 0.0_sp ) THEN
+                LTOP_LFR = L + 1
+                EXIT
+             ENDIF
+          ENDDO
+          !LTOP = MAX( LTOP, LMAX )
+
+          ! H0 is the convective cloud top height [m].  This is the
+          ! distance from the surface to the top edge of box (I,J,LTOP).
+          H0_LFR = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LTOP_LFR))
+
+       ELSE
+          IC_CG_RATIO_LFR = -999.0
+          RATE_LFR        = -999.0
+          H0_LFR          = -999.0
+          LTOP_LFR        = -999.0
+
+       ENDIF
+
+       ! Init
+       RATE        = -999.0
+       H0          = -999.0
+       IC_CG_RATIO = -999.0
+
+       !===========================================================
        ! (1) FIND NEGATIVE CHARGE LAYER
        !
        ! LCHARGE is the L-value where the negative charge layer is
@@ -589,7 +626,8 @@ CONTAINS
 
        ! Error check LCHARGE
        IF ( LCHARGE >= LMAX ) LCHARGE = LMAX
-       IF ( LCHARGE <= 1    ) CYCLE
+       !IF ( LCHARGE <= 1    ) CYCLE
+       IF ( LCHARGE > 1 ) THEN
 
        !-----------------------------------------------------------
        ! (1a) Define more quantities
@@ -678,11 +716,6 @@ CONTAINS
        ! these places. 
        ! This may become increasingly relevant as GEOS-FP operates 
        ! at even higher resolutions. 
-       ! GEOS-5 also diagnoses buoyancy and the convective fraction. 
-       ! Unlike convective mass flux, these parameter are defined 
-       ! in all grid boxes, e.g. also in those where vertical 
-       ! transport is explicitly resolved and convective 
-       ! parameterization is turned off.
        ! If available, also determine cloud top height from 
        ! buoyancy and the convective fraction. Define it as the
        ! highest level with non-negative buoyancy and for columns 
@@ -723,25 +756,18 @@ CONTAINS
        !----------------------------------------------------------------
 
        ! Error check LTOP
-       IF ( LTOP == 0 ) CYCLE
+       !IF ( LTOP == 0 ) CYCLE
+       IF ( LTOP > 0 ) THEN
 
        ! Error check LTOP as described above
        IF ( LTOP        >  LMAX      ) LTOP = LMAX
-       IF ( LTOP        <  LCHARGE   ) CYCLE
+       !IF ( LTOP        <  LCHARGE   ) CYCLE
+       IF ( LTOP        >= LCHARGE   ) THEN
 
        ! Diagnose used LTOP
-       IF ( Inst%DoDiagn ) THEN 
+       IF ( Inst%DoDiagn ) THEN
           TOPDIAGN(I,J) = LTOP
        ENDIF
-
-       !--------------------------
-       ! GEOS-4 only
-       !--------------------------
-#if    defined( GEOS_4 )
-       ! Shallow-cloud inhibition trap (see Murray et al. [2011])
-       IF ( ExtState%TK%Arr%Val(I,J,LTOP) >= T_NEG_TOP ) CYCLE
-
-#endif
 
        ! H0 is the convective cloud top height [m].  This is the
        ! distance from the surface to the top edge of box (I,J,LTOP).
@@ -784,7 +810,8 @@ CONTAINS
 
        ! Error check LBOTTOM as described above
        IF ( LBOTTOM >= LMAX ) LBOTTOM = LMAX
-       IF ( LBOTTOM <= 1    ) CYCLE 
+       !IF ( LBOTTOM <= 1    ) CYCLE 
+       IF ( LBOTTOM > 1    ) THEN 
 
        !-----------------------------------------------------------
        ! (3a) Define more quantities
@@ -985,6 +1012,25 @@ CONTAINS
        ! Apply scaling factor to make sure annual average flash rate 
        ! equals that of the climatology. (ltm, 09/24/07)
        RATE = RATE * Inst%OTD_LIS_SCALE
+
+       END IF ! LBOTTOM >  1
+       END IF ! LTOP    >= LCHARGE 
+       END IF ! LTOP    >  0 
+       END IF ! LCHARGE >  1 
+
+       !-----------------------------------------------------------
+       ! Eventually overwrite with values determined from imported
+       ! flash rate 
+       !-----------------------------------------------------------
+       IF ( RATE_LFR > RATE ) THEN
+          RATE        = RATE_LFR
+          H0          = H0_LFR
+          LTOP        = LTOP_LFR
+          IC_CG_RATIO = IC_CG_RATIO_LFR
+       END IF
+
+       ! Error check: continue if flash rate is zero
+       IF ( RATE <= 0.0 ) CYCLE
 
        !-----------------------------------------------------------
        ! (6b) Compute cloud-ground/total flash ratio
@@ -1325,7 +1371,7 @@ CONTAINS
 
     !=================================================================
     ! Use the CDF for this type of lightnox to partition the total
-    ! column lightnox into the GEOS-3, GEOS-4, or GEOS-5 layers
+    ! column lightnox into the layers
     !=================================================================
     ZHEIGHT = 0.0
 
@@ -1603,6 +1649,9 @@ CONTAINS
 !  01 Apr 2015 - R. Yantosca - Bug fix: GRID025x0325 should be GRID025x03125
 !  01 Mar 2016 - L. Murray   - Add preliminary values for MERRA-2 4x5, NA, CH
 !  19 Jul 2016 - L. Murray   - Add preliminary values for MERRA-2 2x2.5
+!  24 Sep 2017 - L. Murray   - Removed legacy resolutions. Updated LIS/OTD
+!                              HRMC climatology. Final global MERRA-2 values.
+!                              Updated GEOS-FP and regional MERRA-2 values.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1611,44 +1660,44 @@ CONTAINS
 !
     ! lun of error log
     INTEGER :: cYr, cMt
+    REAL*8  :: DY
 
     !=================================================================
     ! Define the average annual flash rate (flashes per second), as
-    ! calculated from the OTD-LIS HR Monthly Climatology observations
-    ! from May 1995 through Dec 2005.  Slight difference when
-    ! averaging over different resolutions. (ltm, 09/24/07, 11/14/08)
+    ! calculated from the LIS/OTD High Resolution Monthly Climatology
+    ! (LISOTD_HRMC_V2.3.2015.hdf)
+    ! 
+    ! doi: 10.5067/LIS/LIS-OTD/DATA303
+    ! 
+    ! The climatology contains data from May 1995 through Dec 2014.
+    ! Slight difference in global mean total when averaging over different
+    ! GEOS-Chem horizontal resolutions.
     !=================================================================
-#if   defined( GRID2x25     ) 
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8650d0
+#if   defined( GRID2x25      ) 
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
 
 #elif defined( GRID4x5       )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8658d0
-
-#elif defined( GRID1x125     )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 45.8655d0
-
-#elif defined( GRID05x0666   ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 8.7549280d0
-
-#elif defined( GRID05x0666   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9685368d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
 
 #elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.6591586d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.8334473d0    
+
+#elif defined( GRID025x03125 ) && defined( NESTED_EU )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3384335d0
 
 #elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7167603d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.4666451d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_AS )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.1040315d0
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.2583674d0
+
+#elif defined( GRID05x0625   ) && defined( NESTED_EU )
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.7925457d0
 
 #elif defined( GRID05x0625   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.9683646d0
-
+    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7011175d0
+    
 #endif
-
-    ! Are we using GEOS 5.2.0 or GEOS 5.1.0?
-    LOGICAL :: GEOS_520
 
     !=================================================================
     ! GET_OTD_LIS_SCALE begins here!
@@ -1661,18 +1710,6 @@ CONTAINS
     ! Extract current year and month
     CALL HcoClock_Get( am_I_Root, HcoState%Clock, cYYYY=cYr, cMM=cMt, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-
-#if   defined( GEOS_5 )
-    ! LightNOX is sensitive to which convection scheme
-    ! is used in the GCM used for the data assimilation.
-    ! GEOS-5 changed its scheme in met fields following 9/1/2008,
-    ! and requires special treatment. (ltm, 1/25/11)
-    IF (   cYr >  2009 .OR. ( cYr == 2008 .AND. cMt >= 8 ) ) THEN 
-       GEOS_520 = .TRUE.      ! Using GEOS 5.2.0
-    ELSE
-       GEOS_520 = .FALSE.     ! Using GEOS 5.1.0
-    ENDIF
-#endif
 
     ! The lightnox flash rate equations are sensitive to model resolution
     ! and convection scheme used in the data assimilation.
@@ -1689,7 +1726,6 @@ CONTAINS
     ! 
     ! Beta corresponds to beta in Murray et al. [2011]
     !
-    ! Note: GEOS-5 requires separate factors for GEOS 5.2.0 and 5.1.0.
     ! (ltm, 1/25/11)
 
     ! Initialize
@@ -1700,14 +1736,12 @@ CONTAINS
     !---------------------------------------
     ! GEOS-FP: 4 x 5 global simulation
     !---------------------------------------
-
+    
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 82.373293d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-24).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 85.362449d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1715,16 +1749,14 @@ CONTAINS
     !---------------------------------------
     ! GEOS-FP: 2 x 2.5 global simulation
     !---------------------------------------
-
+    
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2014-12-10).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 260.40253d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-24).    
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 269.13945d0
     ENDIF
-
+    
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
 
     !---------------------------------------
@@ -1732,60 +1764,37 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2013 - Dec 2013. Will need to be updated as more
-    ! met fields become available (ltm, 2014-10-22).
-    IF ( ( cYr .eq. 2013 .and. cMt .ge. 1  )   .or. &
-         ( cYr .eq. 2013 .and. cMt .le. 12 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 1052.6366d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 1030.6438d0
+    ENDIF
+
+#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
+
+    !---------------------------------------
+    ! GEOS-FP: Nested Europe simulation
+    !---------------------------------------
+
+    ! Constrained with simulated "climatology" for
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 90.403359d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
 
     !---------------------------------------
-    ! GEOS-FP: Nested SEAC4RS simulation
+    ! GEOS-FP: Nested North America simulation
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Oct 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2015-01-13).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4  ) .or. &
-         ( cYr .eq. 2013                   ) .or. &
-         ( cYr .eq. 2014 .and. cMt .le. 10 ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 720.10258d0
+    ! April 2012 - Jan 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-28).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
+       BETA = ANN_AVG_FLASHRATE / 770.29078d0
     ENDIF
-
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
-
-    !------------------------------------------
-    ! MERRA-2: Nested North America simulation
-    !------------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 256.00370d0
-
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
-
-    !---------------------------------------
-    ! MERRA-2: Nested Asia simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 1096.5130d0
-    
-#elif defined( MERRA2 ) && defined( GRID2x25 )
-
-    !---------------------------------------
-    ! MERRA2: 2 x 2.5 global simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-07-19).
-    BETA = ANN_AVG_FLASHRATE / 319.85d0
 
 #elif defined( MERRA2 ) && defined( GRID4x5 )
 
@@ -1794,132 +1803,118 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! Jan 2009 - Dec 2014. Will need to be updated as more
-    ! met fields become available (ltm, 2016-03-01).
-    BETA = ANN_AVG_FLASHRATE / 99.585661d0
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-24).
+    BETA = ANN_AVG_FLASHRATE / 102.38173d0
 
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-    !---------------------------------------
-    ! MERRA: 2 x 2.5 global simulation
-    !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 253.55888d0
-
-#elif defined( MERRA ) && defined( GRID4x5 )
+#elif defined( MERRA2 ) && defined( GRID2x25 )
 
     !---------------------------------------
-    ! MERRA: 4 x 5 global simulation
+    ! MERRA2: 2 x 2.5 global simulation
     !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 76.019042d0
 
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_NA)
+    ! Constrained with simulated "climatology" for
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-24).
+    BETA = ANN_AVG_FLASHRATE / 322.83040d0
 
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
+    
     !---------------------------------------
-    ! GEOS 5: 0.5 x 0.666
-    ! Nested grid simulation: North America
+    ! MERRA-2: Nested Asia simulation
     !---------------------------------------
-    if ( GEOS_520 ) then
-       ! Constrained with simulated climatology for
-       ! Sept 2009 - May 2013 (ltm, 11/07/13)
-       BETA = ANN_AVG_FLASHRATE / 170.05559d0
-    else
-       BETA = ANN_AVG_FLASHRATE / 160.51908d0
-    endif
 
-    ! Discourage users from using lightning outside the constraint period.
-    ! You may comment out these lines, but should verify that lightning
-    ! doesn't become unreasonably high anywere in the domain. (ltm, 2015-01-15)
-    IF (   cYr .gt. 2014 .or. &
-         ( cYr .eq. 2014 .and. cMt .gt. 10 ) ) BETA = 1d0
+    ! Constrained with simulated "climatology" for
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-28).
+    BETA = ANN_AVG_FLASHRATE / 1177.4952d0
+    
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_EU )
 
-#elif defined( GEOS_5 ) && defined( GRID05x0666 ) && defined( NESTED_CH)
+    !------------------------------------------
+    ! MERRA-2: Nested Europe simulation
+    !------------------------------------------
 
-    !---------------------------------------
-    ! GEOS 5: 0.5 x 0.666
-    ! Nested grid simulation: China
-    !---------------------------------------
-    if ( GEOS_520 ) then
-       BETA = ANN_AVG_FLASHRATE / 573.24835d0
-    else
-       BETA = ANN_AVG_FLASHRATE / 546.56367d0
-    endif
+    ! Constrained with simulated "climatology" for
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-23).
+    BETA = ANN_AVG_FLASHRATE / 47.187111d0
+    
+#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
 
-#elif defined( GEOS_5 ) && defined( GRID2x25 )
+    !------------------------------------------
+    ! MERRA-2: Nested North America simulation
+    !------------------------------------------
 
-    !---------------------------------------
-    ! GEOS 5: 2 x 2.5 global simulation
-    !---------------------------------------
-    if ( GEOS_520 ) then
-       BETA = ANN_AVG_FLASHRATE / 221.72962d0
-    else
-       BETA = ANN_AVG_FLASHRATE / 199.54964d0
-    endif
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
-
-    !---------------------------------------
-    ! GEOS 5: 4 x 5 global simulation
-    !---------------------------------------
-    if ( GEOS_520 ) then
-       BETA = ANN_AVG_FLASHRATE / 70.236997d0
-    else
-       BETA = ANN_AVG_FLASHRATE / 64.167893d0
-    endif
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-
-    !---------------------------------------
-    ! GEOS 4: 2 x 2.5 global simulation
-    !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 83.522403d0
-
-#elif defined( GEOS_4 ) && defined( GRID4x5 )
-
-    !---------------------------------------
-    ! GEOS 4: 4 x 5 global simulation
-    !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 29.359449d0
-
-#elif   defined( GCAP )
-
-    !---------------------------------------
-    ! GCAP: 4 x 5 global simulation
-    !---------------------------------------
-    BETA = ANN_AVG_FLASHRATE / 48.681763d0
-
+    ! Constrained with simulated "climatology" for
+    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+    ! Does not need to be updated (ltm, 2017-09-28).
+    BETA = ANN_AVG_FLASHRATE / 305.06467d0
+    
 #endif
+
+    ! If not defined yet, try to estimate it from grid spacing
+    ! ckeller, 6/6/2017
+    IF ( BETA == 1d0 ) THEN
+       ! average latitude spacing
+       DY = ABS(MAXVAL(HcoState%Grid%YMID%Val) - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
+
+       ! 0.125 degrees / C720
+       IF ( DY < 0.175d0 ) THEN
+          BETA = 1.4152d-3
+       ! 0.25 degrees / C360
+       ELSEIF ( DY < 0.375d0 ) THEN
+          BETA = 7.024d-3
+       ! 0.5 degrees / C180
+       ELSEIF ( DY < 0.75d0 ) THEN
+          BETA = 1.527d-2
+       ! 1.0 degrees / C90
+       ELSEIF ( DY < 1.5d0 ) THEN
+          BETA = 0.10d0
+       ! 2.0 degrees / C48
+       ELSEIF ( DY < 3.0d0 ) THEN
+          BETA = 0.355d0
+       ENDIF
+    ENDIF
 
     IF ( BETA == 1d0 ) THEN
 
-       WRITE( *,* ) 'Your model framework has not had its'
-       WRITE( *,* ) 'lightnox code reprocessed for the correction'
-       WRITE( *,* ) 'to how CLDTOPS are calculated, probably due to'
-       WRITE( *,* ) 'the lack of your met fields at Harvard.'
+       WRITE( *,* ) 'WARNING:'       
        WRITE( *,* ) ''
-       WRITE( *,* ) 'Please contact Lee Murray'
-       WRITE( *,* ) '(ltmurray@post.harvard.edu), who can help you'
-       WRITE( *,* ) 'prepare the necessary modifications and files'
-       WRITE( *,* ) 'to get lightnox working for you.'
+       WRITE( *,* ) 'Your model configuration has not had lightning NOx'       
+       WRITE( *,* ) 'emissions processed, or you are outside the period'
+       WRITE( *,* ) 'for which lightning has been constrained to observations.'
+       WRITE( *,* ) 'As a precaution, the model has gracefully stopped.'
        WRITE( *,* ) ''
-       WRITE( *,* ) 'You may remove this trap in lightnox_nox_mod.f'
-       WRITE( *,* ) 'at your own peril, by either commenting out'
-       WRITE( *,* ) 'the call to HCO_ERROR in '
+       WRITE( *,* ) 'Please contact Lee Murray (lee.murray@rochester.edu),'
+       WRITE( *,* ) 'who can help you pepare the necessary modifications'
+       WRITE( *,* ) 'and files. You may also find what you are looking for at'
+       WRITE( *,* ) 'http://ees.rochester.edu/atmos/data.html'
+       WRITE( *,* ) ''
+       WRITE( *,* ) 'You may remove this error trap at your peril by either'
+       WRITE( *,* ) 'commenting out the call to HCO_ERROR in'
        WRITE( *,* ) 'HEMCO/Extensions/hcox_lightnox_mod.F90, or by manually'
        WRITE( *,* ) 'setting BETA in the HEMCO configuration file to a'
-       WRITE( *,* ) ' value other than 1.0 (see below).'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'However, be aware that the magnitude and distribution'
-       WRITE( *,* )' of lightning NOx may be wildly unrealistic.'
-       WRITE( *,* ) ''
-       WRITE( *,* ) 'You can explicitly set the beta value in your'
-       WRITE( *,* ) 'HEMCO configuration file by adding it to the'
-       WRITE( *,* ) 'Lightning NOx settings:'
+       WRITE( *,* ) 'value other than 1.0 in the Lightning NOx settings:'
+       WRITE( *,* )
        WRITE( *,* ) '# ExtNr ExtName            on/off Species'
        WRITE( *,* ) '103     LightNOx         : on     NO'
-       WRITE( *,* ) '    --> OTD-LIS scaling  :        1.00e-3'
-         
-       CALL HCO_ERROR( HcoState%Config%Err, 'Wrong beta - see information in standard output', RC )
-       RETURN        
+       WRITE( *,* ) '    --> OTD-LIS scaling  :        0.55'
+       WRITE( *,* ) ''
+       WRITE( *,* ) 'For a description of BETA, see Murray et al. [2012].'
+       WRITE( *,* ) 'It is the scaling factor that scales the incorrect'
+       WRITE( *,* ) 'total mean flash rate in the model to the correct'
+       WRITE( *,* ) 'climatological global mean of 46 fl/s.'
+       WRITE( *,* ) ''
+       WRITE( *,* ) 'However, if you disable the error trap, be aware that'
+       WRITE( *,* ) 'the magnitude and distribution of lightning NOx may'
+       WRITE( *,* ) 'be wildly unrealistic. This is especially possible for the'
+       WRITE( *,* ) 'regional simulations, especially GEOS-FP.'
+       WRITE( *,* ) 'You should always check to make sure that you have'
+       WRITE( *,* ) '~6 Tg N a-1 globally, or typical regional values.'
+       
+       CALL HCO_ERROR( HcoState%Config%Err, 'No beta - see information in standard output', RC )
+       RETURN
  
     ENDIF
 
@@ -2048,6 +2043,14 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) Inst%LCNVFRC = .TRUE. 
 
+    ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
+    ! flash rates (where available) are used instead of the computed flash
+    ! rates. This is off by default.
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'GEOS-5 flash rates', &
+                     OptValBool=Inst%LLFR, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
+
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2074,6 +2077,8 @@ CONTAINS
        WRITE(MSG,*) ' - Use species ', TRIM(SpcNames(1)), '->', Inst%IDTNO 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use OTD-LIS factors from file? ', Inst%LOTDLOC 
+       CALL HCO_MSG(HcoState%Config%Err,MSG)
+       WRITE(MSG,*) ' - Use GEOS-5 flash rates: ', Inst%LLFR 
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) ' - Use scalar scale factor: ', Inst%SpcScalVal(1)
        CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -2179,6 +2184,7 @@ CONTAINS
     ExtState%BYNCY%DoUse   = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
+    ExtState%LFR%DoUse     = .TRUE.
 
     ! Cleanup
     Inst => NULL()

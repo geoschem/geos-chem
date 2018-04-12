@@ -73,7 +73,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
 !
     ierr = Nf_Open (filname, NF_NOWRITE, ncid)
@@ -130,7 +130,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
 !
     ierr = Nf_Open (filname, NF_WRITE, ncid)

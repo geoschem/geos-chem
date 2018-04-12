@@ -77,6 +77,10 @@
 !                              match GC values and update acc due to gravity 
 !                              and universal gas constant to NIST 2014 values
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
+!  17 Oct 2017 - C. Keller   - Now estimate default scale factor from
+!                              model resolution.
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -183,6 +187,17 @@
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
 
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      ! Anthropogenic PM2.5 dust emission
+!      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
+!------------------------------------------------------------------------------
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -202,7 +217,7 @@
 !
 ! !USES:
 !
-      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
+      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld, HCO_CalcEmis
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
@@ -240,6 +255,7 @@
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -364,6 +380,34 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!         ! For AFCID (S. Philip)
+!         HcoState%Options%SpcMin = Inst%HcoIDs(1)
+!         HcoState%Options%SpcMax = Inst%HcoIDs(1)
+!         HcoState%Options%CatMin =  1
+!         HcoState%Options%CatMax = -1
+!         HcoState%Options%ExtNr  = Inst%ExtNr
+!
+!         HcoState%Options%AutoFillDiagn = .FALSE.
+!         HcoState%Options%FillBuffer = .TRUE.
+!         HcoState%Buffer3D%Val => MyDST1e
+!    
+!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!         ! Reset settings to standard
+!         HcoState%Buffer3D%Val          => NULL()
+!         HcoState%Options%FillBuffer    = .FALSE.
+!         HcoState%Options%ExtNr         = 0
+!         HcoState%Options%AutoFillDiagn = .TRUE.
+!------------------------------------------------------------------------------
+
 !         FIRST = .FALSE.
       !ENDIF
 
@@ -389,6 +433,11 @@
 
       ! Error check
       ERR = .FALSE.
+
+      ! Debug AFCID emissions added (S. Philip)
+      !print*, 'test = ', SUM(MyDST1e(:,:,:))
+      !print*, 'test = ', MyDST1e(50,40,1)
+      !print*, 'test = ', FLUX(50,40,1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -485,6 +534,20 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
+
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!                 ! Add AFCID to bin 1 (S. Philip)
+!                  IF ( N == 1 ) THEN   ! kg/m2/s
+!                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
+!                  ENDIF
+!------------------------------------------------------------------------------
+
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
@@ -883,6 +946,22 @@
       Inst%MSS_FRC_SRC(1) = 0.036d0
       Inst%MSS_FRC_SRC(2) = 0.957d0
       Inst%MSS_FRC_SRC(3) = 0.007d0
+
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      ! AFCID emissions (S. Philip)
+!      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
+!      IF ( AS /= 0 ) THEN
+!         CALL HCO_ERROR ( 'MyDST1e', RC )
+!         RETURN
+!      ENDIF
+!      MyDST1e = 0.0_hp
+!------------------------------------------------------------------------------
 
       !=================================================================
       ! Compute mass overlaps, Mij, between "source" PDFs
@@ -5438,6 +5517,7 @@ c Fix up for negative argument, erf, etc.
 
       ! Output argument
       REAL*8  :: FLX_MSS_FDG_FCT
+      REAL*8  :: DY
 
       ! Local variables
       CHARACTER(LEN=255)  :: MSG
@@ -5448,51 +5528,7 @@ c Fix up for negative argument, erf, etc.
       !=================================================================
 
       ! Global mass flux tuning factor (a posteriori) [frc]
-#if defined( GEOS_5 ) && defined( GRID05x0666 )
-
-#if defined(NESTED_CH)  
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      FLX_MSS_FDG_FCT = 3.23d-4
-#elif defined(NESTED_EU)
-      FLX_MSS_FDG_FCT = 4.54d-4
-#elif defined(NESTED_NA)
-      FLX_MSS_FDG_FCT = 2.16d-4
-#endif
-
-#elif defined( GEOS_5 ) && defined( GRID4x5 )
-      FLX_MSS_FDG_FCT = 7.0d-4
-
-#elif defined( GEOS_5 ) && defined( GRID2x25 )
-      ! retuned based upon updated GEOS-4 tuning (amv, Nov 9, 2009)
-      FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( GEOS_4 ) && defined( GRID2x25 )
-      FLX_MSS_FDG_FCT = 3.5d-4
-
-#elif defined( MERRA ) && defined( GRID2x25 )
-
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      !%%% NOTE: RETUNING FOR MERRA 1x25 IS NEEDED ONCE MET IS AVAILABLE %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      FLX_MSS_FDG_FCT = 4.9d-4
-
-#elif defined( MERRA ) && defined( GRID4x5 )
-
-      !----------------------------------------------------------------
-      ! Based on results from MERRA 4x5 for years 2004-2005:
-      !
-      !   (GEOS-5 - MERRA)/GEOS-5 * 100  is 26.9% in each size bin.
-      !
-      ! We need to scale to the parameter FLX_MSS_FDG_FCT to make the 
-      ! dust emissions consistent.  Consequently, to bring MERRA 4x5 
-      ! dust emissions up to GEOS-5 levels, we need to DIVIDE the 
-      ! FLX_MSS_FDG_FCT used for GEOS-5 by (1. - 0.269) = 0.731.
-      !
-      !    -- Duncan Fairlie (t.d.fairlie@nasa.gov), 29 Oct 2010
-      !----------------------------------------------------------------
-      FLX_MSS_FDG_FCT = 7.0d-4 / 0.731d0
-
-#elif   defined( GEOS_FP ) && defined( GRID025x03125 )
+#if   defined( GEOS_FP ) && defined( GRID025x03125 )
 
 #if defined(NESTED_CH)
 
@@ -5650,16 +5686,43 @@ c Fix up for negative argument, erf, etc.
 !      FLX_MSS_FDG_FCT = 7.0d-4
       FLX_MSS_FDG_FCT = -999.0d0
 
-      ! Error 
-      MSG = 'Cannot assign mass flux tuning factor - ' //
-     &      'please explicitly set it by adding ' //
-     &      '` --> Mass tuning factor: XX.X` to the extension ' //
-     &      'options in your config. file.'
-         CALL HCO_ERROR(HcoState%Config%Err, MSG, 
-     &                  RC, THISLOC='HCOX_DustDead_GetFluxTun')
-      RETURN
-
 #endif
+
+      ! If not defined yet, try to estimate it from grid spacing
+      ! ckeller, 6/6/2017
+      IF ( FLX_MSS_FDG_FCT == -999.0d0 ) THEN
+         ! average latitude spacing
+         DY = ABS(MAXVAL(HcoState%Grid%YMID%Val)
+     &          - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
+
+         ! 0.125 degrees / C720
+         IF ( DY < 0.175d0 ) THEN
+            FLX_MSS_FDG_FCT = 2.3d-4
+         ! 0.25 degrees / C360
+         ELSEIF ( DY < 0.375d0 ) THEN
+            FLX_MSS_FDG_FCT = 2.35d-4
+         ! 0.5 degrees / C180
+         ELSEIF ( DY < 0.75d0 ) THEN
+            FLX_MSS_FDG_FCT = 3.23d-4
+         ! 1.0 degrees / C90
+         ELSEIF ( DY < 1.5d0 ) THEN
+            FLX_MSS_FDG_FCT = 4.5d-4
+         ! 2.0 degrees / C48
+         ELSEIF ( DY < 3.0d0 ) THEN
+            FLX_MSS_FDG_FCT = 5.0416d-4
+         ENDIF
+      ENDIF
+
+      ! Error 
+      IF ( FLX_MSS_FDG_FCT == -999.0d0 ) THEN
+         MSG = 'Cannot assign mass flux tuning factor - ' //
+     &         'please explicitly set it by adding ' //
+     &         '` --> Mass tuning factor: XX.X` to the extension ' //
+     &         'options in your config. file.'
+            CALL HCO_ERROR(HcoState%Config%Err, MSG, 
+     &                     RC, THISLOC='HCOX_DustDead_GetFluxTun')
+         RETURN
+      ENDIF
 
       ! Return to calling program
       END FUNCTION HCOX_DustDead_GetFluxTun
@@ -5856,6 +5919,15 @@ c Fix up for negative argument, erf, etc.
       ! Cleanup module arrays 
       !-----------------------------------------------------------------
 
+!------------------------------------------------------------------------------
+! NOTE: Adding the fine dust emissions causes the dust emissions total to
+! change by orders of magnitude, and we do not yet understand why.  It could
+! be that something in a recent HEMCO update changed.  For the time being, 
+! comment out this code so that it can be quickly restored at a later date.
+!     -- Bob Yantosca (11 Apr 2018)
+!-
+!      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
+!------------------------------------------------------------------------------
 !      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
 !      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) ) 

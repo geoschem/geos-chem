@@ -6,12 +6,7 @@
 ! !MODULE: hcox_gfed_mod.F90
 !
 ! !DESCRIPTION: Module HCOX\_GFED\_MOD contains routines to calculate
-! GFED biomass burning emissions in HEMCO. This can be GFED-3 or GFED-4,
-! depending on the input data selected in the HEMCO configuration file. 
-!
-! !NOTES:
-!
-! !REFERENCES:
+! GFED4 biomass burning emissions in HEMCO. 
 !
 ! !INTERFACE: 
 !
@@ -46,8 +41,7 @@ MODULE HCOX_GFED_MOD
 ! factor of 1.05 and restrict them to North America, as well as to scale NO
 ! emissions by a factor of 1.5: 
 !
-!111     GFED              : on    NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO
-!    --> GFED3             :       false
+!111     GFED              : on  NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BC/OC/GLYC/MGLY/BENZ/TOLU/XYLE/C2H4/C2H2/GLYC/CO2/CH4/HCOOH/DMS/ISOP/LIMO/MOH/EOH/ACTA/GLYX/HAC
 !    --> GFED4             :       true
 !    --> GFED_daily        :       false
 !    --> GFED_3hourly      :       false
@@ -102,7 +96,11 @@ MODULE HCOX_GFED_MOD
 !  12 Mar 2015 - C. Keller / P. Kasibhatla - Added GFED-4.
 !  03 Jun 2015 - C. Keller / P. Kasibhatla - GFED-4 update: now use GFED-4
 !                                            specific emission factors and DM data.
-!  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  14 Oct 2016 - C. Keller    - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  11 Feb 2017 - S. Farina    - Increase N_SPEC to 27 (+SOAP)
+!  23 Mar 2017 - M. Sulprizio - Increase N_SPEC to 29 (+EOH+MTPA)
+!  29 Mar 2018 - K. Travis    - Update GFED4 emission factors, increase to 34 species
+!  29 Mar 2018 - K. Travis    - Remove GFED3
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -115,7 +113,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 26
+  INTEGER,           PARAMETER :: N_SPEC  = 34
 !
 ! !PRIVATE TYPES:
 !
@@ -129,7 +127,6 @@ MODULE HCOX_GFED_MOD
   INTEGER                       :: ExtNr
   LOGICAL                       :: DoDay
   LOGICAL                       :: Do3Hr
-  LOGICAL                       :: IsGFED3
   LOGICAL                       :: IsGFED4
 
   !=================================================================
@@ -163,12 +160,12 @@ MODULE HCOX_GFED_MOD
   ! POG1frac   : Fraction of SVOC that is assigned to POG1.
   !              Can be set in HEMCO configuration file (default=0.49)
   !=================================================================
-  REAL(hp), ALLOCATABLE, TARGET  :: GFED3_EMFAC(:,:)
   REAL(hp), ALLOCATABLE, TARGET  :: GFED4_EMFAC(:,:)
   REAL(hp),              POINTER :: GFED_EMFAC (:,:) => NULL()
   REAL(sp)                       :: OCPIfrac 
   REAL(sp)                       :: BCPIfrac
   REAL(sp)                       :: POG1frac
+  REAL(sp)                       :: SOAPfrac
 
   !=================================================================
   ! DATA ARRAY POINTERS 
@@ -176,23 +173,12 @@ MODULE HCOX_GFED_MOD
   ! These are the pointers to the 6 input data specified in the 
   ! the configuration file
   !=================================================================
-!  REAL(sp), POINTER   :: GFED_WDL(:,:) => NULL()
-!  REAL(sp), POINTER   :: GFED_SAV(:,:) => NULL()
-!  REAL(sp), POINTER   :: GFED_PET(:,:) => NULL()
-!  REAL(sp), POINTER   :: GFED_FOR(:,:) => NULL()
-!  REAL(sp), POINTER   :: GFED_AGW(:,:) => NULL()
-!  REAL(sp), POINTER   :: GFED_DEF(:,:) => NULL()
-!  REAL(sp), POINTER   :: HUMTROP (:,:) => NULL()
-!  REAL(sp), POINTER   :: DAYSCAL (:,:) => NULL()
-!  REAL(sp), POINTER   :: HRSCAL  (:,:) => NULL()
- 
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_WDL(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_SAV(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_PET(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_FOR(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_AGW(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: GFED_DEF(:,:)
-  REAL(hp), ALLOCATABLE, TARGET   :: HUMTROP (:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_SAVA(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_BORF(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_TEMP(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_DEFO(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_PEAT(:,:)
+  REAL(hp), ALLOCATABLE, TARGET   :: GFED_AGRI(:,:)
   REAL(hp), ALLOCATABLE, TARGET   :: DAYSCAL (:,:)
   REAL(hp), ALLOCATABLE, TARGET   :: HRSCAL  (:,:)
 
@@ -239,6 +225,13 @@ CONTAINS
 !                                any more but fraction (0.0 - 1.0).
 !  21 Sep 2016 - R. Yantosca   - Bug fix: move WHERE statement for HUMTROP
 !                                into the GFED3 block to avoid segfault
+!  10 Mar 2017 - M. Sulprizio  - Add SpcArr3D for emitting 65% of biomass
+!                                burning emissions into the PBL and 35% into the
+!                                free troposphere, following code from E.Fischer
+!  24 Apr 2017 - M. Sulprizio  - Comment out vertical distribution of biomass 
+!                                burning emissions for now. 
+!  12 May 2017 - M. Sulprizio  - Comment out partitioning of NO directly to PAN
+!                                and HNO3 for now.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -252,6 +245,16 @@ CONTAINS
 
     REAL(hp), TARGET    :: SpcArr(HcoState%NX,HcoState%NY)
     REAL(hp), TARGET    :: TypArr(HcoState%NX,HcoState%NY)
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    INTEGER             :: I, J, L, N, M
+!    INTEGER             :: PBL_MAX
+!    REAL(hp)            :: PBL_FRAC, F_OF_PBL, F_OF_FT
+!    REAL(hp)            :: DELTPRES, TOTPRESFT
+!    REAL(hp), TARGET    :: SpcArr3D(HcoState%NX,HcoState%NY,HcoState%NZ)
+!==============================================================================
    
     !=================================================================
     ! HCOX_GFED_Run begins here!
@@ -264,46 +267,31 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GFED_Run (hcox_gfed_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Add only 65% biomass burning source to boundary layer, the
+!    ! rest is emitted into the free troposphere (mps from evf+tjb, 3/10/17)
+!    PBL_FRAC = 0.65_hp
+!==============================================================================
+
     !-----------------------------------------------------------------
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------
     !IF ( FIRST ) THEN
 
-       ! Get pointers to GFED3 data 
-       IF ( IsGFED3 ) THEN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_WDL', GFED_WDL, RC )
+    IF ( IsGFED4 ) THEN
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAVA', GFED_SAVA, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAV', GFED_SAV, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_BORF', GFED_BORF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PET', GFED_PET, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_TEMP', GFED_TEMP, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_FOR', GFED_FOR, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEFO', GFED_DEFO, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGW', GFED_AGW, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PEAT', GFED_PEAT, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEF', GFED_DEF, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_HUMTROP', HUMTROP, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Make sure HUMTROP does not exceed one
-          WHERE ( HUMTROP > 1.0_sp ) 
-             HUMTROP = 1.0_sp
-          END WHERE
-
-       ! Get pointers to GFED4 data
-       ELSEIF ( IsGFED4 ) THEN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_TEMP', GFED_WDL, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_SAVA', GFED_SAV, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_PEAT', GFED_PET, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_BORF', GFED_FOR, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGRI', GFED_AGW, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_DEFO', GFED_DEF, RC )
+          CALL HCO_EvalFld ( am_I_Root, HcoState, 'GFED_AGRI', GFED_AGRI, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
@@ -333,7 +321,12 @@ CONTAINS
 
        ! SpcArr are the total biomass burning emissions for this
        ! species. TypArr are the emissions from a given source type. 
-       SpcArr = 0.0_hp
+       SpcArr   = 0.0_hp
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!       SpcArr3D = 0.0_hp
+!==============================================================================
 
        ! Calculate emissions for all source types
        DO M = 1, N_EMFAC
@@ -341,17 +334,17 @@ CONTAINS
           ! Point to the emission factor array for each source type
           SELECT CASE ( M ) 
              CASE( 1 )
-                TMPPTR => GFED_AGW
+                TMPPTR => GFED_SAVA
              CASE( 2 )
-                TMPPTR => GFED_DEF
+                TMPPTR => GFED_BORF
              CASE( 3 )
-                TMPPTR => GFED_FOR
+                TMPPTR => GFED_TEMP
              CASE( 4 )
-                TMPPTR => GFED_PET
+                TMPPTR => GFED_DEFO
              CASE( 5 )
-                TMPPTR => GFED_SAV
+                TMPPTR => GFED_PEAT
              CASE( 6 )
-                TMPPTR => GFED_WDL
+                TMPPTR => GFED_AGRI
              CASE DEFAULT
                 CALL HCO_ERROR ( HcoState%Config%Err, 'Undefined emission factor', RC )
                 RETURN
@@ -367,13 +360,8 @@ CONTAINS
           ! deforestation and woodland scale factors, based on the value
           ! of the humid tropical forest mask. This makes the calculation
           ! less dependent on model resolution. (ckeller, 4/3/15) 
-          IF ( M == 2 .AND. IsGFED3 ) THEN
-             TypArr = TmpPtr *         HUMTROP  * GFED_EMFAC(GfedIDs(N),M) &
-                    + TmpPtr * (1.0_sp-HUMTROP) * GFED_EMFAC(GfedIDs(N),6)
-          ELSE
-             TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
-          ENDIF
-
+          TypArr = TmpPtr * GFED_EMFAC(GfedIDs(N),M)
+          
           ! Eventually add daily / 3-hourly scale factors. These scale
           ! factors are unitless.
           IF ( DoDay ) THEN
@@ -411,11 +399,102 @@ CONTAINS
              SpcArr = SpcArr * POG1frac
           CASE ( 'POG2' )
              SpcArr = SpcArr * (1.0_sp - POG1frac)
+          CASE ( 'SOAP' )
+             SpcArr = SpcArr * SOAPfrac
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!          ! Put 40% of NOx Biomass emissions into PAN
+!          ! and 20% into HNO3 (evf, 9/9/11, 9/15/11)
+!          ! Sensitivity study with Hudman 2007 recommendation
+!          ! of 80% of NOX as PAN. (evf, 4/25/12)
+!          CASE ( 'NO' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'PAN' )
+!             SpcArr = SpcArr * 0.40_sp
+!          CASE ( 'HNO3' )
+!             SpcArr = SpcArr * 0.20_sp
+!==============================================================================
        END SELECT
 
        ! Check for masking
        CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!
+!       !--------------------------------------------------------------------
+!       ! For grid boxes with emissions, distribute 65% to PBL and 35% to FT
+!       !--------------------------------------------------------------------
+!       DO J = 1, HcoState%Ny
+!       DO I = 1, HcoState%Nx
+!
+!          IF ( SpcArr(I,J) > 0e+0_hp ) THEN
+!
+!             ! Initialize
+!             PBL_MAX  = 1
+!             F_OF_PBL = 0e+0_hp
+!             F_OF_FT  = 0e+0_hp
+!             DELTPRES = 0e+0_hp
+!
+!             ! Determine PBL height
+!             DO L = HcoState%NZ, 1, -1
+!                IF ( ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) > 0.0_hp ) THEN
+!                   PBL_MAX = L
+!                   EXIT
+!                ENDIF
+!             ENDDO
+!
+!             ! Loop over the boundary layer
+!             DO L = 1, PBL_MAX
+!
+!                ! Fraction of PBL that box (I,J,L) makes up [unitless]
+!                F_OF_PBL = ExtState%FRAC_OF_PBL%Arr%Val(I,J,L) 
+!
+!                ! Add only 65% biomass burning source to PBL
+!                ! Distribute emissions thru the entire boundary layer
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * PBL_FRAC * F_OF_PBL
+!
+!             ENDDO
+!
+!
+!             ! Total thickness of the free troposphere [hPa]
+!             ! (considered here to be 10 levels above the PBL)
+!             TOTPRESFT = HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+1) - &
+!                         HcoState%Grid%PEDGE%Val(I,J,PBL_MAX+11)
+!
+!
+!             ! Loop over the free troposphere
+!             DO L = PBL_MAX+1, PBL_MAX+10
+!
+!                ! Thickness of level L [hPa]
+!                DELTPRES = HcoState%Grid%PEDGE%Val(I,J,L) - &
+!                           HcoState%Grid%PEDGE%Val(I,J,L+1)
+!
+!                ! Fraction of FT that box (I,J,L) makes up [unitless]
+!                F_OF_FT = DELTPRES / TOTPRESFT
+!
+!                ! Add 35% of biomass burning source to free troposphere
+!                ! Distribute emissions thru 10 model levels above the BL
+!                ! (mps from evf+tjb, 3/10/17)
+!                SpcArr3D(I,J,L) = SpcArr(I,J) * (1.0-PBL_FRAC) * F_OF_FT
+!
+!             ENDDO
+!
+!          ENDIF
+!
+!       ENDDO
+!       ENDDO
+!
+!       ! Add flux to HEMCO emission array
+!       ! Now 3D flux (mps, 3/10/17)
+!       CALL HCO_EmisAdd( am_I_Root, HcoState,   SpcArr3D, HcoIDs(N), &
+!                         RC,        ExtNr=ExtNr ) 
+!==============================================================================
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState, SpcArr, HcoIDs(N), RC, ExtNr=ExtNr ) 
@@ -495,7 +574,6 @@ CONTAINS
     REAL(sp)           :: ValSp
 
     CHARACTER(LEN=255), POINTER :: GFED_SPEC_NAME (:) => NULL()
-    CHARACTER(LEN=255), TARGET  :: GFED3_SPEC_NAME(N_SPEC)
     CHARACTER(LEN=255), TARGET  :: GFED4_SPEC_NAME(N_SPEC)
 
     !=================================================================
@@ -510,12 +588,7 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GFED_Init (hcox_gfed_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Check if this is GFED3 or GFED4
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'GFED3', &
-                     OptValBool=IsGFED3, FOUND=FOUND, RC=RC )
-    IF ( .NOT. FOUND ) THEN
-       IsGFED3 = .FALSE.
-    ENDIF
+    ! Check if this is GFED4
     CALL GetExtOpt( HcoState%Config, ExtNr, 'GFED4', &
                      OptValBool=IsGFED4, FOUND=FOUND, RC=RC )
     IF ( .NOT. FOUND ) THEN
@@ -523,19 +596,13 @@ CONTAINS
     ENDIF
 
     ! Error checks
-    IF ( .NOT. IsGFED4 .AND. .NOT. IsGFED3 ) THEN
+    IF ( .NOT. IsGFED4  ) THEN
        MSG = 'GFED is enabled but no GFED version is selected. ' // &
-             'Please set GFED3 or GFED4 in HEMCO configuration file.'
+             'Please set GFED4 in HEMCO configuration file.'
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
-    IF ( IsGFED4 .AND. IsGFED3 ) THEN
-       MSG = 'Cannot use GFED3 and GFED4 together! Please select ' // &
-             'only one model version in the HEMCO configuration file.'
-       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-       RETURN
-    ENDIF
-
+    
     ! ---------------------------------------------------------------------- 
     ! Get settings
     ! The speciation of carbon aerosols into hydrophilic and hydrophobic
@@ -580,12 +647,22 @@ CONTAINS
        POG1frac = ValSp
     ENDIF
 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'CO to SOAP', &
+                     OptValSp=ValSp, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) THEN
+       SOAPfrac = 0.0
+    ELSE
+       SOAPfrac = ValSp
+    ENDIF
+
     ! Error check: OCPIfrac, BCPIfrac, and POG1frac must be between 0 and 1
     IF ( OCPIfrac < 0.0_sp .OR. OCPIfrac > 1.0_sp .OR. &
          BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp .OR. &
+         SOAPfrac < 0.0_sp .OR. SOAPfrac > 1.0_sp .OR. &
          POG1frac < 0.0_sp .OR. POG1frac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'fractions must be between 0-1: ', &
-          OCPIfrac, BCPIfrac, POG1frac
+          OCPIfrac, BCPIfrac, POG1frac, SOAPfrac
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
@@ -611,22 +688,19 @@ CONTAINS
     !----------------------------------------------------------------------- 
 
     ! Allocate scale factors table
-    ALLOCATE ( GFED3_EMFAC ( N_SPEC, N_EMFAC ),        &
-               GFED4_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
+    ALLOCATE ( GFED4_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate GFED_EMFAC', RC )
        RETURN
     ENDIF
     GFED4_EMFAC = 0.0_hp
-    GFED3_EMFAC = 0.0_hp
 
-    ALLOCATE( GFED_WDL(HcoState%NX,HcoState%NY) )
-    ALLOCATE( GFED_SAV(HcoState%NX,HcoState%NY) )
-    ALLOCATE( GFED_PET(HcoState%NX,HcoState%NY) )
-    ALLOCATE( GFED_FOR(HcoState%NX,HcoState%NY) )
-    ALLOCATE( GFED_AGW(HcoState%NX,HcoState%NY) )
-    ALLOCATE( GFED_DEF(HcoState%NX,HcoState%NY) )
-    ALLOCATE( HUMTROP (HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_SAVA(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_BORF(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_TEMP(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_DEFO(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_PEAT(HcoState%NX,HcoState%NY) )
+    ALLOCATE( GFED_AGRI(HcoState%NX,HcoState%NY) )
     ALLOCATE( DAYSCAL (HcoState%NX,HcoState%NY) )
     ALLOCATE( HRSCAL  (HcoState%NX,HcoState%NY) )
 
@@ -635,14 +709,10 @@ CONTAINS
     ! the emission factors, one just needs to modify the include file.
     ! This can be done with the script HEMCO/Extensions/Preprocess/gfed.pl,
     ! (bmy, 8/14/14)
-#include "hcox_gfed_include_gfed3.H"
 #include "hcox_gfed_include_gfed4.H"
 
     ! Set working pointers
-    IF ( IsGFED3 ) THEN
-       GFED_EMFAC     => GFED3_EMFAC
-       GFED_SPEC_NAME => GFED3_SPEC_NAME
-    ELSEIF ( IsGFED4 ) THEN
+    IF ( IsGFED4 ) THEN
        GFED_EMFAC     => GFED4_EMFAC
        GFED_SPEC_NAME => GFED4_SPEC_NAME
     ENDIF
@@ -657,8 +727,6 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use GFED extension'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
-       WRITE(MSG,*) '   - Use GFED-3              : ', IsGFED3 
-       CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - Use GFED-4              : ', IsGFED4 
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - Use daily scale factors : ', DoDay 
@@ -670,6 +738,8 @@ CONTAINS
        WRITE(MSG,*) '   - Hydrophilic BC fraction : ', BCPIfrac
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - POG1 fraction           : ', POG1frac
+       CALL HCO_MSG(HcoState%Config%Err,MSG )
+       WRITE(MSG,*) '   - SOAP fraction           : ', SOAPfrac
        CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
@@ -745,6 +815,18 @@ CONTAINS
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'POG2' ) SpcName = 'OC'
        IF ( TRIM(SpcName) == 'NAP'  ) SpcName = 'CO'
+!==============================================================================
+! This code is required for partitioning NOx emissions directly to PAN and HNO3.
+! We will keep it here as an option for users focusing on North American fires.
+! (mps, 5/12/17)
+!       IF ( TRIM(SpcName) == 'PAN'  ) SpcName = 'NO'
+!       IF ( TRIM(SpcName) == 'HNO3' ) SpcName = 'NO'
+!==============================================================================
+
+       ! adjust SOAP scale factor by CO scale factor (SOAP co-emitted with CO)
+       IF ( TRIM(SpcName) == 'CO' ) THEN
+         SOAPfrac = SOAPfrac * SpcScal(N)
+       END IF
 
        ! Search for matching GFED species by name
        Matched = .FALSE.
@@ -773,6 +855,17 @@ CONTAINS
           RETURN
        ENDIF
     ENDDO !N
+
+    !=======================================================================
+    ! Activate this module and the fields of ExtState that it uses
+    !=======================================================================
+
+!==============================================================================
+! This code is required for the vertical distribution of biomass burning emiss.
+! We will keep it here for a future implementation. (mps, 4/24/17)
+!    ! Activate met fields required by this extension
+!    ExtState%FRAC_OF_PBL%DoUse = .TRUE.
+!==============================================================================
 
     ! Enable module
     ExtState%GFED = .TRUE.
@@ -818,23 +911,20 @@ CONTAINS
 !    GFED_FOR   => NULL()
 !    GFED_AGW   => NULL()
 !    GFED_DEF   => NULL()
-!    HUMTROP    => NULL()
 !    DAYSCAL    => NULL()
 !    HRSCAL     => NULL()
     GFED_EMFAC => NULL()
   
-    DEALLOCATE( GFED_WDL)
-    DEALLOCATE( GFED_SAV)
-    DEALLOCATE( GFED_PET)
-    DEALLOCATE( GFED_FOR)
-    DEALLOCATE( GFED_AGW)
-    DEALLOCATE( GFED_DEF)
-    DEALLOCATE( HUMTROP )
+    DEALLOCATE( GFED_SAVA)
+    DEALLOCATE( GFED_BORF)
+    DEALLOCATE( GFED_TEMP)
+    DEALLOCATE( GFED_DEFO)
+    DEALLOCATE( GFED_PEAT)
+    DEALLOCATE( GFED_AGRI)
     DEALLOCATE( DAYSCAL )
     DEALLOCATE( HRSCAL  )
 
     ! Cleanup module arrays
-    IF ( ALLOCATED( GFED3_EMFAC  ) ) DEALLOCATE( GFED3_EMFAC  )
     IF ( ALLOCATED( GFED4_EMFAC  ) ) DEALLOCATE( GFED4_EMFAC  )
     IF ( ALLOCATED( GfedIDs      ) ) DEALLOCATE( GfedIds      )
     IF ( ALLOCATED( HcoIDs       ) ) DEALLOCATE( HcoIDs       )

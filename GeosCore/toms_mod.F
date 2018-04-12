@@ -218,8 +218,8 @@
       ! READ_TOMS begins here
       !=================================================================
       
-      ! Exit if we are getting the overhead O3 columns from the met fields
-      IF ( Input_Opt%USE_O3_FROM_MET ) RETURN
+      ! Exit if we are not using TOMS overhead O3 columns
+      IF ( .not. Input_Opt%USE_TOMS_O3 ) RETURN
 
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]

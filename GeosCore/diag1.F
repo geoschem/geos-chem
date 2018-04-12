@@ -17,24 +17,19 @@
 ! !USES:
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : IS_ICE, IS_WATER, IS_LAND
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD33, AD35, AD54 
       USE DIAG_MOD,           ONLY : AD47
-#if defined( BPCH_DIAG )
       USE DIAG_MOD,           ONLY : AD30, AD31, AD45, AD57 
       USE DIAG_MOD,           ONLY : AD67, AD68, AD69, LTOTH
-#endif
       USE DIAG_MOD,           ONLY : AD71
       USE DIAG_MOD,           ONLY : AD71_DAY,   AD71_HR
       USE DIAG_MOD,           ONLY : AD71_LDAY,  AD71_LHR
       USE DIAG_MOD,           ONLY : AD71_COUNT, AD71_HRCT
       USE DIAG03_MOD,         ONLY : AD03_RGM, AD03_PBM, ND03   
-#if defined( NC_DIAG ) 
-      USE DIAGNOSTICS_MOD,    ONLY : DiagnSpec, DiagnUpdate_Met
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -169,385 +164,277 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: AVGW_ALLOCATED, IS_FULLCHEM, IS_CHEM
-      INTEGER            :: I, J, K, L, N, NN, IREF, JREF, LN45
-      INTEGER            :: NA, nAdvect
-      REAL(fp)           :: FDTT, XLOCTM, AREA_M2
-      REAL(fp), TARGET   :: Spc_VV(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+      ! Scalars
+      INTEGER       :: I,          J,          K
+      INTEGER       :: L,          N,          NA
+      REAL(fp)      :: EmMW_g,     P0,         Spc_VV
+      REAL(fp)      :: EmMW_g_Hg2, EmMW_g_HgP
 
-      ! For FP potential temperature (hotp 7/31/09)
-      REAL(fp)          :: P0
-
-      ! For fields from Input_Opt
-      LOGICAL            :: ITS_A_FULLCHEM_SIM
-
-      ! For netCDF diagnostics via HEMCO
-      REAL(fp), TARGET   :: Landmap(IIPAR, JJPAR)
-      INTEGER            :: TPL
-      REAL(fp)           :: PRESS
-      REAL(fp), POINTER  :: Ptr3D(:,:,:)
-      REAL(fp), POINTER  :: Ptr2D(:,:)
-      REAL(fp)           :: Arr3D(IIPAR,JJPAR,LLPAR)
-      REAL(fp)           :: Arr2D(IIPAR,JJPAR)
-      CHARACTER(LEN=255) :: DiagnName
-
-      ! For species ID's
-      TYPE(Species), POINTER :: SpcInfo
-      LOGICAL,       SAVE    :: FIRST = .TRUE.
-      INTEGER,       SAVE    :: id_Hg2
-      INTEGER,       SAVE    :: id_HgP
+      ! SAVEd scalars
+      LOGICAL, SAVE :: FIRST   = .TRUE.
+      LOGICAL, SAVE :: Do_ND03 = .FALSE.
+      LOGICAL, SAVE :: Do_ND30 = .FALSE.
+      LOGICAL, SAVE :: Do_ND31 = .FALSE.
+      LOGICAL, SAVE :: Do_ND45 = .FALSE.
+      LOGICAL, SAVE :: Do_ND47 = .FALSE.
+      LOGICAL, SAVE :: Do_ND54 = .FALSE.
+      LOGICAL, SAVE :: Do_ND57 = .FALSE.
+      LOGICAL, SAVE :: Do_ND67 = .FALSE.
+      LOGICAL, SAVE :: Do_ND68 = .FALSE.
+      LOGICAL, SAVE :: Do_ND71 = .FALSE.
+      INTEGER, SAVE :: id_Hg2  = -1
+      INTEGER, SAVE :: id_HgP  = -1
 
       !=================================================================
       ! DIAG1 begins here!
       !=================================================================
-      
-      ! Assume success
-      RC                 =  GC_SUCCESS
 
       ! Initialize
-      Ptr3D              => NULL()
-      Ptr2D              => NULL()
-      SpcInfo            => NULL()
-      ITS_A_FULLCHEM_SIM =  Input_Opt%ITS_A_FULLCHEM_SIM
-      IS_FULLCHEM        =  ITS_A_FULLCHEM_SIM
-      IS_CHEM            =  ITS_TIME_FOR_CHEM()
-      nAdvect            =  State_Chm%nAdvect
+      RC      =  GC_SUCCESS
 
-      !---------------------------------------------
+#if defined( BPCH_DIAG )
+      !=================================================================
       ! First-time setup
-      !---------------------------------------------
+      !=================================================================
       IF ( FIRST ) THEN 
 
          ! Define species ID's  on the first call
-         id_Hg2  = Ind_('Hg2' )
-         id_HgP  = Ind_('HgP' )
+         id_Hg2  = Ind_( 'Hg2' )
+         id_HgP  = Ind_( 'HgP' )
+
+         ! Pre-save the molecular weight of Hg2 [g]
+         IF ( id_Hg2 > 0 ) THEN
+            EmMW_g_Hg2 = State_Chm%SpcData(id_Hg2)%Info%EmMW_g
+         ENDIF
+
+         ! Pre-save the molecuar weight of HgP [s]
+         IF ( id_HgP > 0 ) THEN
+            EmMW_g_HgP = State_Chm%SpcData(id_HgP)%Info%EmMW_g
+         ENDIF
+
+         ! Are certain diagnostics turned on?
+         Do_ND03 = ( Input_Opt%ND03 > 0 ) 
+         Do_ND30 = ( Input_Opt%ND30 > 0 )
+         Do_ND31 = ( Input_Opt%ND31 > 0 )
+         Do_ND45 = ( Input_Opt%ND45 > 0 )
+         Do_ND47 = ( Input_Opt%ND47 > 0 )
+         Do_ND54 = ( Input_Opt%ND54 > 0 )
+         Do_ND57 = ( Input_Opt%ND57 > 0 )
+         Do_ND67 = ( Input_Opt%ND67 > 0 )
+         Do_ND68 = ( Input_Opt%ND68 > 0 )
+         Do_ND71 = ( Input_Opt%ND71 > 0 )
+         
+         !--------------------------------------------------------------
+         ! ND69: Surface area [m2]
+         !
+         ! NOTE: This is a time-invariant diagnostic, 
+         ! so we can just archive this on the first call
+         !--------------------------------------------------------------
+         IF ( Input_Opt%ND69 > 0 ) THEN
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               AD69(I,J,1) = GET_AREA_M2( I, J, 1 )
+            ENDDO
+            ENDDO
+         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
 
-      ! Compute conc. in mixing ratio for ND35, ND45, ND47 diagnostics 
-      IF ( ND35 > 0 .or. ND45 > 0 .or. ND47 > 0 .or. ND71 > 0 ) THEN
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, N, NA, SpcInfo )
-         DO NA = 1, nAdvect
+      !=================================================================
+      ! Archive diagnostics.  For better efficiency, place everything
+      ! within a single OpenMP parallel loop, so that we can enclose
+      ! more work within the parallel region than the prior code.
+      !=================================================================
 
-            ! Species ID
-            N = State_Chm%Map_Advect(NA)
+      ! Loop over advected species
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED                             )
+!$OMP+PRIVATE( I, J, L, N, NA, EmMw_g, P0, Spc_VV )
+!$OMP+SCHEDULE( DYNAMIC, 4                        )
+      DO NA = 1, State_Chm%nAdvect
 
-            ! Get info about this species from the database
-            SpcInfo => State_Chm%SpcData(N)%Info
-            
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+         ! Initialize
+         N      = State_Chm%Map_Advect(NA)          ! Species ID #
+         EmMW_g = State_Chm%SpcData(N)%Info%EmMW_g  ! Emitted MW (g)
 
-               ! Species conc. in v/v dry air
-               Spc_VV(I,J,L,NA) = 
-     &              MAX( State_Chm%Species(I,J,L,N) * 
-     &                   AIRMW / SpcInfo%emMW_g, 0e+0_fp )
-
-            ENDDO
-            ENDDO
-            ENDDO
-
-            ! Free pointer
-            SpcInfo => NULL()
-         ENDDO
-!!$OMP END PARALLEL DO
-      ENDIF
-
-! H Amos, 25 Oct 2011--------------------------------------------------
-
-#if defined( BPCH_DIAG )
-      !-----------------------------------------------!
-      ! Write ND03 diagnostics for RGM and PBM (pptv) !
-      !-----------------------------------------------!
-      IF(ND03 > 0) THEN
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L)
+         ! Loop over grid boxes
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
-            ! Reactive gaseous mercury, RGM
-            IF ( id_Hg2 > 0 ) THEN
-               AD03_RGM(I,J,L) = AD03_RGM(I,J,L) +
-     &              State_Chm%Species(I,J,L,id_Hg2) * AIRMW /
-     &              State_Chm%SpcData(id_Hg2)%Info%emMW_g * 
-     &              1e+12_fp
+            ! Initialize
+            P0      = 0.0_fp
+            Spc_VV  = 0.0_fp
+
+            !===========================================================
+            ! ND03: Hg speciality simulation diagnostics
+            !===========================================================
+            IF ( Do_ND03 .and. NA == 1 ) THEN
+
+               !--------------------------------------------------------
+               ! Reactive gaseous mercury (RGM), [pptv]
+               !--------------------------------------------------------
+               IF ( N == id_Hg2 ) THEN
+                  AD03_RGM(I,J,L) = AD03_RGM(I,J,L) 
+     &                            + State_Chm%Species(I,J,L,id_Hg2)
+     &                            * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
+               ENDIF
+
+               !--------------------------------------------------------
+               ! Reactive particulate mercury (RGM), [pptv]
+               !--------------------------------------------------------
+               IF ( N == id_HgP ) THEN
+                  AD03_PBM(I,J,L) = AD03_PBM(I,J,L) 
+     &                            + State_Chm%Species(I,J,L,id_HgP)
+     &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )
+               ENDIF
+            ENDIF
+         
+            !===========================================================
+            ! ND30: Land/water/ice flags
+            !===========================================================
+            IF ( Do_ND30 .and. NA == 1 .and. L == 1 ) THEN
+            
+               ! Water
+               IF ( IS_WATER( I, J, State_Met ) ) THEN
+                  AD30(I,J) = AD30(I,J) + 0e0
+               ENDIF
+
+               ! Land
+               IF ( IS_LAND ( I, J, State_Met ) ) THEN
+                  AD30(I,J) = AD30(I,J) + 1e0
+               ENDIF
+               
+               ! Ice
+               IF ( IS_ICE  ( I, J, State_Met ) ) THEN
+                  AD30(I,J) = AD30(I,J) + 2e0
+               ENDIF
+
             ENDIF
 
-            ! Reactive particulate mercury, PBM
-            IF ( id_HgP > 0 ) THEN
-               AD03_PBM(I,J,L) = AD03_PBM(I,J,L) + 
-     &              State_Chm%Species(I,J,L,id_HgP) * AIRMW /
-     &              State_Chm%SpcData(id_HgP)%Info%emMW_g *
-     &              1e+12_fp
+            !===========================================================
+            ! ND31: Pressure [hPa] at level edges
+            !===========================================================
+            IF ( Do_ND31 .and. NA == 1 .and. L <= LD31 ) THEN
+               AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE(I,J,L) 
+
+               ! Also archive the LLPAR+1th pressure edge
+               IF ( L == LLPAR ) THEN
+                  AD31(I,J,L+1) = AD31(I,J,L+1) 
+     &                          + State_Met%PEDGE(I,J,L+1) 
+               ENDIF
             ENDIF
-                                                       
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO 
-      ENDIF
 
-      !================================================================= 
-      ! ND30: Land/water/ice flags
-      !=================================================================
-      IF ( ND30 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            IF ( IS_WATER( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 0e0
-            IF ( IS_LAND ( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 1e0
-            IF ( IS_ICE  ( I, J, State_Met ) )
-     &           AD30(I,J) = AD30(I,J) + 2e0
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
+            !===========================================================
+            ! ND45/ND47/ND71: Species concentrations [v/v dry air]
+            !===========================================================
+            IF ( Do_ND45 .or. Do_ND47 .or. Do_ND71 ) THEN
 
-      !================================================================= 
-      ! ND31: Surface pressure diagnostic (PS - PTOP) in hPa
-      !=================================================================
-      IF ( ND31 > 0 ) THEN
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LD31
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD31(I,J,L) = AD31(I,J,L) + State_Met%PEDGE( I, J, L ) 
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
-      !================================================================= 
-      ! ND33: Atmospheric column sum of species [kg]
-      !=================================================================  
-      IF ( ND33 > 0 ) THEN   
+               ! Species concentration in [v/v dry air]
+               Spc_VV = State_Chm%Species(I,J,L,N) * AIRMW / EmMW_g
 
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NA )
-         DO NA = 1, nAdvect
+               !--------------------------------------------------------
+               ! ND45: Species concentration between HR_OTH1 and HR_OTH2
+               !--------------------------------------------------------
+               IF ( Do_ND45 .and. L <= LD45 ) THEN
+                  AD45(I,J,L,NA) = AD45(I,J,L,NA) 
+     &                           + ( Spc_VV * LTOTH(I,J) )
+               ENDIF
 
-            ! Species ID
-            N = State_Chm%Map_Advect(NA)
+               !--------------------------------------------------------
+               ! ND47: 24-hr average species concentration
+               !--------------------------------------------------------
+               IF ( Do_ND47 .and. L <= LD47 ) THEN
+                  AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV
+               ENDIF
 
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               AD33(I,J,N) = AD33(I,J,N) + State_Chm%Species(I,J,L,N)
-            ENDDO
-            ENDDO
-            ENDDO
-         ENDDO  
-!$OMP END PARALLEL DO
-
-      ENDIF
-
-      !================================================================= 
-      ! ND35: 500 HPa fields.  
-      !
-      ! NOTES: 
-      ! (1 ) Use level 9 for both GEOS-1 and GEOS-STRAT.
-      !       They are both close to 500 hPa (bmy, 4/7/99)  
-      !================================================================= 
-      IF ( ND35 > 0 ) THEN
-         L = 9
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, NA )
-         DO NA = 1, nAdvect
-         DO J  = 1, JJPAR
-         DO I  = 1, IIPAR
-            AD35(I,J,NA) = AD35(I,J,NA) + Spc_VV(I,J,L,NA)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-
-#if defined( BPCH_DIAG )
-      !================================================================= 
-      ! ND45: Species (V/V) at level 1 to level LD45, averaged over 
-      !       the time period OTH_HR1 to OTH_HR2.  
-      !
-      !  NOTES: 
-      !  (1 ) AD45 array replaces the AIJ array for this diagnostic 
-      !        (bmy, 3/22/99)
-      !  (2 ) Add parallel loop over tracers (bmy, 5/4/00)
-      !  (3 ) Use LTO3 and not LTOTH for O3. (ccc, 7/20/09)
-      !  (4 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
-      !       is now a tracer (mpayer, 3/14/13)
-      !================================================================= 
-      IF ( ND45 > 0 ) THEN
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NA )
-         DO NA = 1, nAdvect
+               !--------------------------------------------------------
+               ! ND71: Maximum hourly surface PPBV
+               !       Save data into hourly tracking array AD71_HR
+               !       and then compute the max outside of the loop
+               !--------------------------------------------------------
+               IF ( Do_ND71 .and. L== 1 ) THEN
+                  AD71_HR(I,J,NA) = AD71_HR(I,J,NA) + Spc_VV
+               ENDIF
             
-            ! Species ID
-            N = State_Chm%Map_Advect(NA)
+            ENDIF
 
-            DO L  = 1, LD45  
-            DO J  = 1, JJPAR 
-            DO I  = 1, IIPAR
-               AD45(I,J,L,NA) = AD45  (I,J,L,NA) + 
-     &                          Spc_VV(I,J,L,NA) * LTOTH(I,J)
+            !===========================================================
+            ! ND54: Count time the box was tropospheric
+            !=========================================================== 
+            IF ( Do_ND54 .and. NA == 1 .and. L <= LD54 ) THEN
 
-            ENDDO
-            ENDDO
-            ENDDO
-         ENDDO   
+               IF ( State_Met%InTroposphere(I,J,L) ) THEN
+                  AD54(I,J,L) = AD54(I,J,L) + 1.0_f4
+               ENDIF
+               
+            ENDIF
+
+            !===========================================================
+            ! ND57: Potential temperature
+            !===========================================================
+            IF ( Do_ND57 .and. NA == 1 .and. L <= LD57 ) THEN
+               AD57(I,J,L) = AD57(I,J,L) + State_Met%THETA(I,J,L)
+            ENDIF
+
+            !===========================================================
+            ! ND67: Store PBL top pressure [hPa]
+            !===========================================================
+            IF ( Do_ND67 .and. NA == 1 .and. L == 1 ) THEN
+
+               ! PBL is in [m], use hydrostatic law to get [hPa]
+               AD67(I,J,13) = AD67(I,J,13)
+     &                      +  ( State_Met%PEDGE(I,J,1) 
+     &                      *    EXP( -State_Met%PBLH(I,J)
+     &                      /          SCALE_HEIGHT        ) )
+            ENDIF
+
+            !===========================================================
+            ! ND68: 1: BXHEIGHT   - box height [m] 
+            !       2: AD         - dry air mass [kg]
+            !       3: AVGW       - mol H2O / mol dry air [v/v]
+            !       4: AIRNUMDEN  - dry air number density [molecs/cm3]
+            !       5: T          - temperature [K]
+            !       6: PMID       - arithmetic mean pressure [hPa]
+            !       7: PEDGE      - level pressure (bottom edge) [hPa]
+            !       8: RH         - relative humidity [%]
+            !=========================================================== 
+            IF ( Do_ND68 .and. NA == 1 .and. L <= LD68 ) THEN
+
+               AD68(I,J,L,1) = AD68(I,J,L,1)
+     &                       + State_Met%BXHEIGHT(I,J,L)
+
+               AD68(I,J,L,2) = AD68(I,J,L,2)
+     &                       + State_Met%AD(I,J,L)
+
+               AD68(I,J,L,3) = AD68(I,J,L,3)
+     &                       + State_Met%AVGW(I,J,L)
+
+               AD68(I,J,L,4) = AD68(I,J,L,4)
+     &                       + State_Met%AIRNUMDEN(I,J,L) 
+
+               AD68(I,J,L,5) = AD68(I,J,L,5)
+     &                       + State_Met%T(I,J,L)
+
+               AD68(I,J,L,6) = AD68(I,J,L,6)
+     &                       + State_Met%PMID(I,J,L)
+
+               AD68(I,J,L,7) = AD68(I,J,L,7) 
+     &                       + State_Met%PEDGE(I,J,L)
+
+               AD68(I,J,L,8) = AD68(I,J,L,8)
+     &                       + State_Met%RH(I,J,L)
+
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+      ENDDO
 !$OMP END PARALLEL DO
-      ENDIF
-#endif
 
-      !================================================================= 
-      ! ND47: Species (V/V) at level 1 to level LD45, 
-      ! averaged from 0-24 hours
-      !
-      !  (1 ) Added parallel loop over tracers (bmy, 5/4/00)
-      !  (2 ) Removed code for storing pure O3 as N_TRACERS+1 because O3
-      !       is now a tracer (mpayer, 3/14/13)
-      !================================================================= 
-      IF ( ND47 > 0 ) THEN
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, NA )
-         DO NA = 1, nAdvect
-
-            ! Species ID
-            N = State_Chm%Map_Advect(NA)
-
-            DO L  = 1, LD47
-            DO J  = 1, JJPAR
-            DO I  = 1, IIPAR
-               AD47(I,J,L,NA) = AD47(I,J,L,NA) + Spc_VV(I,J,L,NA) 
-            ENDDO   
-            ENDDO
-            ENDDO
-         ENDDO 
-!$OMP END PARALLEL DO   
-      ENDIF
-
-      !================================================================= 
-      ! ND54: Count time the box was tropospheric
-      !================================================================= 
-      IF ( ND54 > 0 ) THEN
-
-            DO L = 1, LD54
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) )
-     &              AD54(I,J,L) = AD54(I,J,L) + 1.
-            ENDDO   
-            ENDDO
-            ENDDO
-            
-      ENDIF
-#if defined( BPCH_DIAG )
-      !================================================================= 
-      ! ND57: Potential temperature
-      !================================================================= 
-      IF ( ND57 > 0 ) THEN
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P0 )
-         DO L = 1, LD57
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            P0          = State_Met%PEDGE(I,J,1)
-
-            AD57(I,J,L) = AD57(I,J,L) + State_Met%T(I,J,L) *
-     &                    ( P0 / State_Met%PMID( I, J, L ) )**0.286
-
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
-#if defined( BPCH_DIAG )
-      !=================================================================  
-      ! ND67: Store PBL top pressure [hPa]
-      !=================================================================  
-      IF ( ND67 > 0 ) THEN
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-
-            ! PBL is in [m], use hydrostatic law to get [hPa]
-            AD67(I,J,13) = AD67(I,J,13) + 
-     &                     ( State_Met%PEDGE(I,J,1) 
-     &                     * EXP( -State_Met%PBLH(I,J)
-     &                     / SCALE_HEIGHT ) )
-         ENDDO
-         ENDDO
-      ENDIF
-#endif
-#if defined( BPCH_DIAG )
-      !================================================================= 
-      ! ND68: 1:  BXHEIGHT     - box height [m] 
-      !       2:  AD           - dry air mass [kg]
-      !       3:  AVGW         - mol H2O / mol dry air [v/v]
-      !       4:  AIRNUMDEN    - dry air number density [molecules/m3]
-      !       5:  T            - temperature [K]
-      !       6:  PMID         - arithmetic mean pressure [hPa]
-      !       7:  PEDGE        - level pressure (bottom edge) [hPa]
-      !       8:  RH           - relative humidity [%]
-      !================================================================= 
-      IF ( Input_Opt%ND68 > 0 ) THEN
-
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-         DO L = 1, LD68
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD68(I,J,L,1) = AD68(I,J,L,1) + State_Met%BXHEIGHT(I,J,L)
-            AD68(I,J,L,2) = AD68(I,J,L,2) + State_Met%AD(I,J,L)
-            AD68(I,J,L,3) = AD68(I,J,L,3) + State_Met%AVGW(I,J,L)
-            AD68(I,J,L,4) = AD68(I,J,L,4) + State_Met%AIRNUMDEN(I,J,L) 
-            AD68(I,J,L,5) = AD68(I,J,L,5) + State_Met%T(I,J,L)
-            AD68(I,J,L,6) = AD68(I,J,L,6) + State_Met%PMID(I,J,L)
-            AD68(I,J,L,7) = AD68(I,J,L,7) + State_Met%PEDGE(I,J,L)
-            AD68(I,J,L,8) = AD68(I,J,L,8) + State_Met%RH(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO
-      ENDIF
-#endif
-#if defined( BPCH_DIAG )
-      !================================================================= 
-      ! ND69: Grid box surface areas [m2]
-      !
-      ! NOTE: Only save areas on the first timestep since the
-      !       grid box surface areas are a time-invariant field.
-      !================================================================= 
-      IF ( ND69 > 0 ) THEN
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD69(I,J,1) = GET_AREA_M2( I, J, 1 )
-         ENDDO
-         ENDDO
-      ENDIF
-#endif
-      
       !================================================================= 
       ! ND71: Species (V/V) at level 1, daily maximum hourly avg.
       !================================================================= 
@@ -567,7 +454,7 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NA )
-            DO NA = 1, nAdvect
+            DO NA = 1, State_Chm%nAdvect
             DO J = 1, JJPAR
             DO I = 1, IIPAR
                AD71_DAY(I,J,NA) = MAX(AD71_DAY(I,J,NA),
@@ -580,141 +467,11 @@
             AD71_HRCT = 0
          ENDIF
 
-         ! Set the tracking variables
-!$OMP PARALLEL DO 
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, NA )
-         DO NA = 1, nAdvect
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            AD71_HR(I,J,NA) = AD71_HR(I,J,NA) + Spc_VV(I,J,1,NA)
-         ENDDO   
-         ENDDO
-         ENDDO
-!$OMP END PARALLEL DO   
-
          AD71_LDAY = GET_DAY()
-         AD71_LHR = GET_HOUR()
+         AD71_LHR  = GET_HOUR()
          AD71_HRCT = AD71_HRCT + 1
       ENDIF
 
-!##############################################################################
-!###                                                                        ###
-!###   NEW GEOS-Chem DIAGNOSTICS VIA HEMCO LINKED LIST --> netCDF output    ###
-!###                                                                        ###
-!##############################################################################
-
-#if defined( NC_DIAG )
-
-      !=================================================================
-      ! ND30: Landmap diagnostics (netCDF diagnostic structure)
-      !=================================================================
-      IF ( Input_Opt%ND30 > 0 ) THEN
-
-         ! Construct diagnostic name
-         ! (better to have function to get it since already defined)
-         DiagnName = 'LANDMAP'
-
-         ! Compute landmap
-         IF ( ND30 > 0 ) THEN  
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
-               IF ( IS_WATER( I, J, State_Met ) )
-     &           Landmap(I,J) = 0e0
-               IF ( IS_LAND ( I, J, State_Met ) )
-     &           Landmap(I,J) = 1e0
-               IF ( IS_ICE  ( I, J, State_Met ) )
-     &           Landmap(I,J) = 2e0
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-         ENDIF
-
-         ! Point to the landmap array
-         Ptr2D => Landmap
-    
-         ! Update the landmap diagnostic
-         CALL Diagn_Update( am_I_Root, HcoState,
-     &                      cName   = TRIM( DiagnName ),
-     &                      Array2D = Ptr2D,
-     &                      RC      = RC )
-    
-         ! Free the pointer before error handling
-         Ptr2D => NULL()
-    
-         ! Stop with error if the diagnostics were unsuccessful
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL ERROR_STOP(
-     &           'Cannot update landmap diagnostic (ND30)',
-     &           'DIAG1 (diag1.F)')
-         ENDIF
- 
-      ENDIF
-
-      !=================================================================
-      ! ND45: Species concentrations (netCDF diagnostic structure)
-      !=================================================================
-      IF ( Input_Opt%ND45 > 0 ) THEN
-
-         ! Loop over all species
-         DO N = 1, State_Chm%nSpecies
-
-            ! Entry in the species database
-            SpcInfo => State_Chm%SpcData(N)%Info
-
-            ! Only save out chemical species if DiagnSpec option is on
-            IF ( .not. DiagnSpec .and. .not. SpcInfo%Is_Advected ) THEN
-               CYCLE
-            ENDIF
-
-            ! If this species number NN is scheduled for output in input.geos,
-            ! then archive the latest concentration into the diagnostic
-            ! structure
-            IF ( ANY( Input_Opt%TINDEX(45,:) == N ) ) THEN
-
-               ! Construct diagnostic name
-               DiagnName = 'SPECIES_CONC_' // TRIM( SpcInfo%Name )
-
-               ! Point to the proper slice of the DEPSAV array
-               Ptr3D => Spc_VV(:,:,:,N)
-
-               ! Update the deposition velocity diagostics
-               CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array3D = Ptr3D,
-     &                            RC      = RC )
-
-               ! Free the pointer
-               Ptr3D => NULL()
-
-               ! STOP wieth error if the diagnostics were unsuccessful
-               IF ( RC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP(
-     &                 'Cannot update SPECIES_CONC diag diagnostics',
-     &                 'DIAG1 (diag1.F)')
-               ENDIF
-            ENDIF
-
-            ! Free pointer
-            SpcInfo => NULL()
-
-         ENDDO
-
-      ENDIF !ND45
-
-      !=================================================================
-      ! Met diagnostics: ND31, ND55, ND56, ND57, ND66, ND67, ND68, ND69
-      !=================================================================
-
-      ! For now, use ND68 as indicator that Met diagnostic group is on
-      IF ( Input_Opt%ND68 > 0 ) THEN
-         CALL DiagnUpdate_Met( am_I_Root, Input_Opt, State_Met, RC ) 
-      ENDIF
-
 #endif
-
       END SUBROUTINE DIAG1
 !EOC

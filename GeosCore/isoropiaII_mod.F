@@ -30,7 +30,6 @@
       PUBLIC  :: CLEANUP_ISOROPIAII
       PUBLIC  :: DO_ISOROPIAII
       PUBLIC  :: GET_GNO3
-      PUBLIC  :: GET_ISRINFO
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -85,21 +84,29 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Array for offline HNO3 (for relaxation of M.M.)
-      REAL(fp),  ALLOCATABLE :: HNO3_sav(:,:,:)
+      REAL(fp), ALLOCATABLE :: HNO3_sav(:,:,:)
 
       ! Array for offline use in sulfate_mod (SEASALT_CHEM) 
-      REAL(fp),  ALLOCATABLE :: GAS_HNO3(:,:,:)
-
-      ! AEROPH: Save information related to aerosol pH (hotp 8/11/09)
-      REAL(fp),  ALLOCATABLE :: PH_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: HPLUS_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: WATER_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SULRAT_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: NARAT_SAV(:,:,:)
-      REAL(fp),  ALLOCATABLE :: ACIDPUR_SAV(:,:,:)
+      REAL(fp), ALLOCATABLE :: GAS_HNO3(:,:,:)
 
       ! HEMCO pointers
-      REAL(sp), POINTER    :: HNO3(:,:,:) => NULL()
+      REAL(sp), POINTER     :: HNO3(:,:,:) => NULL()
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
+!%%% and/or temperature lie outside of the range that will produce a stable
+!%%% solution.  This will eliminate the random noise observed in the
+!%%% ISORROPIA output.
+!%%%
+!%%% Leaving this feature deactivated will replicate the prior behavior in 
+!%%% v11-01 and earlier GEOS-Chem versions.  This will become the default
+!%%% setting in a future version, but give the user the choice to activate
+!%%% or deactivate this for now.
+!%%% 
+!%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+!%%%
+!#define SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE 1
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       CONTAINS
 !EOC
@@ -117,25 +124,30 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MONTH
-      USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+      USE ERROR_MOD,            ONLY : DEBUG_MSG
+      USE ERROR_MOD,            ONLY : ERROR_STOP
+      USE ERROR_MOD,            ONLY : SAFE_DIV
+      USE HCO_INTERFACE_MOD,    ONLY : HcoState
+      USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr
+      USE Input_Opt_Mod,        ONLY : OptInput
+      USE State_Chm_Mod,        ONLY : ChmState
+      USE State_Diag_Mod,       ONLY : DgnState
+      USE State_Chm_Mod,        ONLY : Ind_
+      USE State_Met_Mod,        ONLY : MetState
+      USE TIME_MOD,             ONLY : GET_MONTH
+      USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
+      USE IsorropiaII_Main_Mod, ONLY : Isoropia
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
+      USE DIAG_MOD,             ONLY : AD73
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -146,6 +158,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -175,6 +188,11 @@
 !  30 Jun 2016 - R. Yantosca  - Remove instances of STT.  Now get the advected
 !                               species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca  - Remove temporary tracer-removal code
+!  25 Jan 2017 - S. Eastham   - Can skip calling ISORROPIA if P and T are not 
+!                               in the proper range to yield a valid solution.
+!                               (Activate this with the #ifdef block above.)
+!  10 Mar 2017 - C. Keller    - Add print out statement after initialization. 
+!  02 Nov 2017 - R. Yantosca  - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -202,7 +220,7 @@
       ! Scalars
       INTEGER                  :: I,    J,    L,    N
       REAL(fp)                 :: ANO3, GNO3
-      REAL(f8)                 :: RHI,  TEMPI
+      REAL(f8)                 :: RHI,  TEMPI, P_Pa
       REAL(fp)                 :: TCA,  TMG,  TK,   HNO3_DEN
       REAL(fp)                 :: TNA,  TCL,  TNH3, TNH4
       REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
@@ -221,6 +239,13 @@
               
       ! AEROPH: Temporary variable for pH (hotp 8/11/09)
       REAL(fp)                 :: HPLUSTEMP
+      ! Temporary variable for SO4--
+      REAL(fp)                 :: SULFTEMP
+      ! Temporary variable for HSO4-
+      REAL(fp)                 :: BISULTEMP
+      ! Temporary variable for NO3-
+      REAL(fp)                 :: NITRTEMP
+
 
       ! debug variables
       INTEGER                  :: Itemp, Jtemp, Ltemp
@@ -235,6 +260,9 @@
 
       ! For getting fields from HEMCO 
       LOGICAL                  :: aIR
+
+      ! Are we out of the range of valid inputs?
+      Logical                  :: OutOfBounds
 
       !=================================================================
       ! DO_ISOROPIAII begins here!
@@ -308,18 +336,19 @@
             ENDIF
          ENDIF
 
+         ! Print out
+         IF ( am_I_Root ) THEN
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+            WRITE( 6, 110 )
+            WRITE( 6, 100 ) REPEAT( '=', 79 )
+         ENDIF
+
+100      FORMAT( a                                            )
+110      FORMAT( 'Successfully initialized ISORROPIA code II' )
+
          ! Reset first-time flag
          FIRST = .FALSE. 
       ENDIF
-
-      ! AEROPH: Initialize arrays all the way up to LLPAR for
-      ! aeroph. Arrays go up to LLPAR due to ND42 use (hotp 8/11/09)
-      PH_SAV      = 0e+0_fp
-      HPLUS_SAV   = 0e+0_fp
-      WATER_SAV   = 0e+0_fp
-      SULRAT_SAV  = 0e+0_fp
-      NARAT_SAV   = 0e+0_fp
-      ACIDPUR_SAV = 0e+0_fp
 
       ! Initialize for each timestep (bec, bmy, 4/15/05)
       IF ( IT_IS_AN_AEROSOL_SIM ) THEN
@@ -334,22 +363,23 @@
       ! ISOROPIA routine ISOROPIAIICODE.f which describes
       ! the input/output args)
       !=================================================================
-
-      ! AEROPH: add HPLUSTEMP as private (hotp 8/11/09)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I,    J,      L,       N,      WI,   WT,  GAS,  TEMPI )
-!$OMP+PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  )
-!$OMP+PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  )
-!$OMP+PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             )
-!$OMP+PRIVATE( HPLUSTEMP,    NUM_SAV, DEN_SAV, HNO3_DEN              )
-!$OMP+SCHEDULE( DYNAMIC )
+!$OMP+PRIVATE( I,       J,        L,          N,         WI      )
+!$OMP+PRIVATE( WT,      GAS,      TEMPI,      RHI,       VOL     )    
+!$OMP+PRIVATE( TSO4,    TNH3,     TNA,        TCL,       ANO3    )
+!$OMP+PRIVATE( GNO3,    TCA,      TMG,        TK,        CNTRL   )
+!$OMP+PRIVATE( SCASI,   P_PA,     TNO3,       AERLIQ,    AERSLD  )
+!$OMP+PRIVATE( OTHER,   TNH4,     TNIT,       HPLUSTEMP, NUM_SAV )
+!$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
+!$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP                     )
+!$OMP+SCHEDULE( DYNAMIC, 1 )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Only applying ISORROPIA II in troposphere
-         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
+         IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
          ! Initialize WI, WT
          DO N = 1, NCOMPA
@@ -364,6 +394,9 @@
 
          ! Temperature [K]
          TEMPI    = State_Met%T(I,J,L)
+
+         ! Pressure [Pa]
+         P_Pa    = State_Met%PMid(I,J,L)*100.0e+0_f8
 
          ! Relative humidity [unitless]
          RHI      = State_Met%RH(I,J,L) * 1.e-2_fp
@@ -465,6 +498,9 @@
             TNO3  = GET_HNO3( I, J, L, State_Met ) * 1.e-6_fp / 
      &              63.e+0_fp
 
+            ANO3 = 0.0e+0_fp
+            GNO3 = TNO3
+
          ENDIF
 
          !---------------------------------
@@ -490,21 +526,83 @@
          WI(7)    = MAX( TK,   CONMIN )
          WI(8)    = MAX( TMG,  CONMIN )
 
-         ! Perform aerosol thermodynamic equilibrium 
-         ! ISOROPIA can be found in ISOROPIAIICODE.f
-         ! inputs are WI, RHI, TEMPI, CNTRL
-         CALL ISOROPIA (WI,    RHI,  TEMPI,  CNTRL, 
-     &                  WT,    GAS,  AERLIQ, AERSLD,
-     &                  SCASI, OTHER)
+#if defined( SKIP_IF_P_AND_T_ARE_OUT_OF_RANGE )
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% If the C-preprocessor switch is activated then check if
+         !%%% pressure and temperature are in the range that will result
+         !%%% in a stable solution.  If not, then we will skip calling
+         !%%% ISORROPIA to avoid random noise in the output.
+         !%%%
+         !%%% NOTE: Turning this feature on will result in differences
+         !%%% with respect to prior GEOS-Chem versions.  So we'll give
+         !%%% the user the option to activate it or not.  At some point
+         !%%% in the future this will become the default setting.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! SDE 2017-01-18: Recommendation from Shannon Capps
+         ! Skip equilibrium if T < 250 K or P < 200 hPa
+         OutOfBounds = ((P_Pa.lt.200.0e+2_f8).or.(TEMPI.lt.250.0e+0_f8))
+
+#else
+
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% Always call ISORROPIA, regardless of the values of pressure
+         !%%% and temperature.  This will match the prior behavior of
+         !%%% when comparing to v11-01 and earlier versions.
+         !%%%
+         !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+         ! Never skip calling ISORROPIA
+         OutOfBounds = .FALSE.
+
+#endif
+
+         IF ( OutOfBounds ) THEN
+
+            ! %%% Skip equilibrium %%%
+            ! Just keep things the way they are 
+            ! and spoof the other outputs
+            WT(:)     = WI(:)
+            AERLIQ(:) = 0.0e+0_f8
+            AERSLD(:) = 0.0e+0_f8
+            GAS(:)    = 0.0e+0_f8
+            OTHER(:)  = 0.0e+0_f8
+
+            ! Separate NH3 and NH4
+            TNH3 = Spc(I,J,L,id_NH3) * 1.e+3_fp / (17.e+0_fp * VOL )
+            TNH4 = Spc(I,J,L,id_NH4) * 1.e+3_fp / (18.e+0_fp * VOL )
+
+         ELSE
+
+            ! %%% Perform aerosol thermodynamic equilibrium %%%
+            ! ISOROPIA can be found in ISOROPIAIICODE.F
+            ! inputs are WI, RHI, TEMPI, CNTRL
+            CALL ISOROPIA( WI,    RHI,  TEMPI,  CNTRL, 
+     &                     WT,    GAS,  AERLIQ, AERSLD,
+     &                     SCASI, OTHER                 )
+
+            ! Retrieve concentrations in mol/m3
+            TSO4 = WT(2)
+            TNH3 = GAS(1)
+            TNH4 = WT(3) - GAS(1)
+            GNO3 = GAS(2)
+            TNO3 = WT(4)
+            ANO3 = TNO3 - GNO3
+
+         ENDIF
         
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
          ! Convert ISOROPIA output from [mole/m3] to [kg]
-         TSO4 = MAX( 96.e-3_fp * VOL *   WT(2),            CONMIN )
-         TNH3 = MAX( 17.e-3_fp * VOL *   GAS(1),           CONMIN )
-         TNH4 = MAX( 18.e-3_fp * VOL * ( WT(3) - GAS(1) ), CONMIN )
-         TNIT = MAX( 62.e-3_fp * VOL * ( WT(4) - GAS(2) ), CONMIN )
+         TSO4 = MAX( 96.e-3_fp * VOL * TSO4, CONMIN )
+         TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
+         TNH4 = MAX( 18.e-3_fp * VOL * TNH4, CONMIN )
+         TNIT = MAX( 62.e-3_fp * VOL * ANO3, CONMIN )
 
          ! Save tracers back into Spc array [kg]
          ! no longer save TSO4 back into Spc. SO4 is all aerosol phase
@@ -523,7 +621,7 @@
 
             ! HNO3 [mole/m3] is in GAS(2); convert & store in Spc [kg]
             Spc(I,J,L,id_HNO3)
-     &           = MAX( 63.e-3_fp * VOL * GAS(2), CONMIN )
+     &           = MAX( 63.e-3_fp * VOL * GNO3, CONMIN )
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
             HNO3_DEN           = Spc(I,J,L,id_HNO3)
@@ -537,14 +635,14 @@
             ! Convert total inorganic nitrate from [mole/m3] to [ug/m3] 
             ! and save for next time
             ! WT(4) is in [mole/m3] -- unit conv is necessary!
-            CALL SET_HNO3( I, J, L, 63.e+6_f8 * WT(4) )
+            CALL SET_HNO3( I, J, L, 63.e+6_f8 * TNO3 )
 
             ! Save for use in sulfate_mod (SEASALT_CHEM) for offline
             ! aerosol simulations (bec, 4/15/05)
-            GAS_HNO3(I,J,L) = GAS(2)
+            GAS_HNO3(I,J,L) = GNO3
 
             ! Save for use in DEN_SAV expression below (sofen, 4/21/10)
-            HNO3_DEN        = GAS(2) * VOL * 63e-3_fp
+            HNO3_DEN        = GNO3 * VOL * 63e-3_fp
 
          ENDIF
 
@@ -555,24 +653,31 @@
          ! AEROPH: get pH related info to SAV arrays (hotp 8/11/09)
          ! HPLUSTEMP is H+ in mol/L water, AERLIQ1 is H, AERLIQ8 is H2O
          ! in mol/m3 air --> convert to mol/L water
-         IF ( AERLIQ(8) < 1e-32_fp ) THEN
+         IF ( AERLIQ(8) < 1e-18_fp ) THEN
             ! Aerosol is dry so HPLUSTEMP and PH_SAV are undefined
             ! We force HPLUSTEMP to 1d20 and PH_SAV to -999e+0_fp.
             ! (hotp, ccc, 12/18/09)
             HPLUSTEMP       = 1e+20_fp
-            PH_SAV(I,J,L)   = -999e+0_fp
+            SULFTEMP        = 1e-30_fp
+            BISULTEMP       = 1e-30_fp
+            NITRTEMP        = 1e-30_fp
+            State_Chm%pHSav(I,J,L) = -999e+0_fp
          ELSE
             HPLUSTEMP       = AERLIQ(1) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            SULFTEMP        = AERLIQ(5) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            BISULTEMP       = AERLIQ(6) / AERLIQ(8) * 1e+3_fp/18e+0_fp
+            NITRTEMP        = AERLIQ(7) / AERLIQ(8) * 1e+3_fp/18e+0_fp
 
             ! Use SAFELOG10 to prevent NAN
-            PH_SAV(I,J,L)   = -1e+0_fp * SAFELOG10( HPLUSTEMP )
+            State_Chm%pHSav(I,J,L) = -1e+0_fp * SAFELOG10( HPLUSTEMP )
          ENDIF
 
          ! Additional Info
-         HPLUS_SAV(I,J,L)   = AERLIQ(1)
-         WATER_SAV(I,J,L)   = AERLIQ(8)
-         SULRAT_SAV(I,J,L)  = OTHER(2)
-         NARAT_SAV(I,J,L)   = OTHER(4)
+         State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
+         State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
+         State_Chm%SulratSav(I,J,L) = SULFTEMP
+         State_Chm%NaRatSav(I,J,L)  = NITRTEMP
+         State_Chm%BisulSav(I,J,L)  = BISULTEMP
 
          NUM_SAV    = ( Spc(I,J,L,id_NH3) /17e+0_fp         +
      &                  Spc(I,J,L,id_NH4) /18e+0_fp         +
@@ -584,9 +689,26 @@
      &                  Spc(I,J,L,id_SALA) *0.55e+0_fp / 35.45e+0_fp)
 
          ! Value if DEN_SAV and NUM_SAV too small.
-         ACIDPUR_SAV(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
-     &                                 0e+0_fp,       
-     &                                 999e+0_fp)
+         State_Chm%AcidPurSav(I,J,L) = SAFE_DIV(NUM_SAV, DEN_SAV,
+     &                                          0e+0_fp, 999e+0_fp)
+
+         !==============================================================
+         ! DIAGNOSTICS: Archive ISORROPIA H+ and pH values
+         !==============================================================
+
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! ND73: bpch diagnostic (eam, 04/2015)
+         !--------------------------------------------------------------
+         IF ( ND73 > 0 ) THEN
+            IF ( L <= LD73 ) THEN
+               AD73(I,J,L,1) = AD73(I,J,L,1)+State_Chm%pHSav(   I,J,L)
+               AD73(I,J,L,2) = AD73(I,J,L,2)+State_Chm%HplusSav(I,J,L)
+               AD73(I,J,L,3) = AD73(I,J,L,3)+State_Chm%WaterSav(I,J,L)
+            ENDIF
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
       ENDDO 
@@ -643,59 +765,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_isrinfo
-!
-! !DESCRIPTION: Subroutine GET\_ISRINFO returns information related to 
-!  aerosol pH.
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_ISRINFO( I, J, L, N ) RESULT ( RETURNVALUE )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: I   ! GEOS-Chem longitude index
-      INTEGER, INTENT(IN) :: J   ! GEOS-Chem latitude index
-      INTEGER, INTENT(IN) :: L   ! GEOS-Chem level index
-      INTEGER, INTENT(IN) :: N   ! Flag for which information is desired
-!
-! !RETURN VALUE:
-!
-      REAL(fp)              :: RETURNVALUE
-! 
-! !REVISION HISTORY: 
-!  11 Aug 2009 - H. O. T. Pye - Initial version
-!  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IF     ( N == 1 ) THEN
-         RETURNVALUE = PH_SAV( I, J, L )
-      ELSEIF ( N == 2 ) THEN
-         RETURNVALUE = HPLUS_SAV( I, J, L ) 
-      ELSEIF ( N == 3 ) THEN
-         RETURNVALUE = WATER_SAV( I, J, L ) 
-      ELSEIF ( N == 4 ) THEN
-         RETURNVALUE = SULRAT_SAV( I, J, L ) 
-      ELSEIF ( N == 5 ) THEN
-         RETURNVALUE = NARAT_SAV( I, J, L ) 
-      ELSEIF ( N == 6 ) THEN
-         RETURNVALUE = ACIDPUR_SAV( I, J, L ) 
-      ELSE
-         ! return large value to indicate problem
-         RETURNVALUE = 99999e+0_fp
-         !FP_ISOP
-         WRITE(*,*) 'VALUE NOT DEFINED IN GET_ISRINFO'
-      ENDIF
-
-      END FUNCTION GET_ISRINFO
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: get_hno3
 !
 ! !DESCRIPTION: Subroutine GET\_HNO3 allows the HNO3 concentrations to evolve 
@@ -712,7 +781,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 !
 ! !INPUT PARAMETERS: 
 !
@@ -730,6 +799,8 @@
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
 !  23 Sep 2014 - M. Sulprizio - Now get HNO3 for offline aerosol sims from HEMCO
 !  06 Jan 2016 - E. Lundgren  - Use global physical parameters
+!  06 Feb 2018 - E. Lundgren  - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                               match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -744,7 +815,7 @@
 
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
-      IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+      IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /
@@ -893,32 +964,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 
-      ! AEROPH: diagnostic info (hotp 8/11/09)
-      ! Allocate up to LLPAR, but zero above LLTROP
-      ALLOCATE( PH_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'PH_SAV' )
-      PH_SAV = 0e+0_fp
-
-      ALLOCATE( HPLUS_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0  ) CALL ALLOC_ERR( 'HPLUS_SAV' )
-      HPLUS_SAV = 0e+0_fp
-      
-      ALLOCATE( WATER_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'WATER_SAV' )
-      WATER_SAV = 0e+0_fp
-
-      ALLOCATE( SULRAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SULRAT_SAV' )
-      SULRAT_SAV = 0e+0_fp
-
-      ALLOCATE( NARAT_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'NARAT_SAV' )
-      NARAT_SAV = 0e+0_fp
-
-      ALLOCATE( ACIDPUR_SAV( IIPAR, JJPAR, LLPAR ) , STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ACIDPUR_SAV' )
-      ACIDPUR_SAV = 0e+0_fp
-
       ! Return to calling program
       END SUBROUTINE INIT_ISOROPIAII
 !EOC
@@ -945,13 +990,6 @@
 
       IF ( ALLOCATED( HNO3_sav    ) ) DEALLOCATE( HNO3_sav )
       IF ( ALLOCATED( GAS_HNO3    ) ) DEALLOCATE( GAS_HNO3 )
-      ! AEROPH: Deallocate arrays for pH (hotp 8/11/09)
-      IF ( ALLOCATED( PH_SAV      ) ) DEALLOCATE( PH_SAV     )
-      IF ( ALLOCATED( HPLUS_SAV   ) ) DEALLOCATE( HPLUS_SAV  )
-      IF ( ALLOCATED( WATER_SAV   ) ) DEALLOCATE( WATER_SAV  )
-      IF ( ALLOCATED( SULRAT_SAV  ) ) DEALLOCATE( SULRAT_SAV )
-      IF ( ALLOCATED( NARAT_SAV   ) ) DEALLOCATE( NARAT_SAV  )
-      IF ( ALLOCATED( ACIDPUR_SAV ) ) DEALLOCATE( ACIDPUR_SAV)
 
       ! Free pointers
       IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()

@@ -184,6 +184,9 @@
 !  05 Nov 2015 - C. Keller   - Reorganize restart variables to running averages.
 !  08 Dec 2015 - C. Keller   - Now treat previous' day LAI as running avg, too.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  05 Oct 2015 - M. Sulprizio- Activate MEGAN ethanol emissions for PAN updates
+!                              from E. Fischer
+!  17 Jul 2017 - C. Keller   - Now normalize LAI by PFTs.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -194,10 +197,16 @@
          INTEGER                 :: Instance
          INTEGER                 :: ExtNr        ! Extension number for MEGAN
          INTEGER                 :: ExtNrMono    ! Extension number for MEGAN_Mono
-         INTEGER                 :: ExtNrSoa     ! Extension number for MEGAN_SOA
          REAL(hp)                :: ISOP_SCALING ! Isoprene emissions scaling
          REAL(hp)                :: GLOBCO2      ! Global CO2 conc (ppmv)
+         REAL(hp)                :: ISOPTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: MONOTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: OTHRTOSOAP   ! SOAP Emission factor
+         REAL(hp)                :: ISOPTOSOAS   ! Direct SOA Emission factor
+         REAL(hp)                :: MONOTOSOAS   ! Direct SOA Emission factor
+         REAL(hp)                :: OTHRTOSOAS   ! Direct SOA Emission factor
          LOGICAL                 :: LISOPCO2     ! Include CO2 inhibition of ISOP?
+         LOGICAL                 :: NORMLAI      ! Normalize LAI by PFT? 
    
          ! Physical parameter
          REAL(hp)                :: D2RAD  ! Degrees to radians 
@@ -205,17 +214,19 @@
    
          ! HEMCO species IDs
          INTEGER                 :: IDTISOP
-         INTEGER                 :: IDTMONX
          INTEGER                 :: IDTACET
          INTEGER                 :: IDTCO 
          INTEGER                 :: IDTPRPE
          INTEGER                 :: IDTC2H4
          INTEGER                 :: IDTALD2
-         INTEGER                 :: IDTOCPI
+         INTEGER                 :: IDTEOH
+!         INTEGER                 :: IDTOCPI
          INTEGER                 :: IDTLIMO
          INTEGER                 :: IDTMTPA
          INTEGER                 :: IDTMTPO
          INTEGER                 :: IDTSESQ
+         INTEGER                 :: IDTSOAP
+         INTEGER                 :: IDTSOAS
    
          ! Pointers to annual emission factor arrays.
          ! These fields are obtained from ext. data (from config file)
@@ -237,7 +248,7 @@
          REAL(hp), POINTER       :: AEF_OMON(:,:)              ! Other monoterpenes
          REAL(hp), POINTER       :: AEF_MOHX(:,:)              ! Methanol
          REAL(hp), POINTER       :: AEF_ACET(:,:)              ! Acetone
-         REAL(hp), POINTER       :: AEF_ETOH(:,:)              ! Ethanol
+         REAL(hp), POINTER       :: AEF_EOH(:,:)               ! Ethanol
          REAL(hp), POINTER       :: AEF_CH2O(:,:)              ! Formaldehyde
          REAL(hp), POINTER       :: AEF_ALD2(:,:)              ! Acetaldehyde
          REAL(hp), POINTER       :: AEF_FAXX(:,:)              ! Formic acid
@@ -261,7 +272,10 @@
    
          ! previous LAI values (ckeller, 10/09/2014)
          REAL(sp), POINTER       :: LAI_PREVDAY(:,:)      ! LAI of prev. day
-   
+
+         ! Array for PFT
+         REAL(hp), POINTER       :: ARRAY_16(:,:,:)  
+ 
          ! Days between mid-months (updated by HEMCO clock)
          INTEGER                 :: DAYS_BTW_M
 
@@ -284,6 +298,8 @@
                                                         ! short-term past conditions (in hours)
       REAL(hp), PARAMETER  :: WM2_TO_UMOLM2S = 4.766_hp ! W/m2 -> umol/m2/s
 
+      ! Maximum LAI value
+      REAL(hp), PARAMETER  :: LAI_MAX        = 6.0_hp   ! cm2/cm2
 
       ! testing only
       integer, parameter  :: ix = 20 !20 !25 !13 !20
@@ -343,6 +359,10 @@
 !                              Hco_EmisAdd for the MONX (in order to make MONX
 !                              show up as nonzero in HEMCO diagnostics).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  02 Mar 2018 - M. Sulprizio- Remove species MONX and use MTPA/MTPO/LIMO;
+!                              Consolidate MEGAN_SOA option into MEGAN_Mono
+!                              since there is essentially no difference between
+!                              the two now that SOA (MTPA/MTPO/LIMO) is standard
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -353,9 +373,10 @@
       REAL(hp)            :: EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN
       REAL(hp)            :: EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE
       REAL(hp)            :: EMIS_OCIM, EMIS_OMON, EMIS_MONO, EMIS_ALD2
-      REAL(hp)            :: EMIS_MOHX, EMIS_ETOH, EMIS_FAXX, EMIS_AAXX
+      REAL(hp)            :: EMIS_MOHX, EMIS_EOH,  EMIS_FAXX, EMIS_AAXX
       REAL(hp)            :: EMIS_ACET, EMIS_PRPE, EMIS_C2H4
       REAL(hp)            :: EMIS_FARN, EMIS_BCAR, EMIS_OSQT
+      REAL(hp)            :: EMIS_OTHR
       REAL(hp)            :: BIOG_ALPH, BIOG_LIMO
       REAL(hp)            :: BIOG_ALCO
       REAL(hp)            :: MONO_MOL
@@ -380,11 +401,12 @@
       REAL(hp), TARGET    :: FLUXCO    (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXPRPE  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXC2H4  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXOCPI  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXLIMO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPA  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMTPO  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXSESQ  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXSOAP  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXSOAS  (HcoState%NX,HcoState%NY)
 
       ! Emission arrays for use in diagnostics only (kgC/m2/s)
       REAL(hp), TARGET    :: FLUXMBOX  (HcoState%NX,HcoState%NY)
@@ -397,7 +419,7 @@
       REAL(hp), TARGET    :: FLUXOMON  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXALD2  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXMOHX  (HcoState%NX,HcoState%NY)
-      REAL(hp), TARGET    :: FLUXETOH  (HcoState%NX,HcoState%NY)
+      REAL(hp), TARGET    :: FLUXEOH   (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXFAXX  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXAAXX  (HcoState%NX,HcoState%NY)
       REAL(hp), TARGET    :: FLUXFARN  (HcoState%NX,HcoState%NY)
@@ -470,7 +492,7 @@
       FLUXMONO   = 0.0_hp
       FLUXALD2   = 0.0_hp
       FLUXMOHX   = 0.0_hp
-      FLUXETOH   = 0.0_hp
+      FLUXEOH    = 0.0_hp
       FLUXFAXX   = 0.0_hp
       FLUXAAXX   = 0.0_hp
       FLUXACETmo = 0.0_hp
@@ -479,7 +501,6 @@
       FLUXCO     = 0.0_hp
       FLUXPRPE   = 0.0_hp
       FLUXC2H4   = 0.0_hp
-      FLUXOCPI   = 0.0_hp
       FLUXLIMO   = 0.0_hp
       FLUXMTPA   = 0.0_hp
       FLUXMTPO   = 0.0_hp
@@ -487,6 +508,8 @@
       FLUXBCAR   = 0.0_hp
       FLUXOSQT   = 0.0_hp
       FLUXSESQ   = 0.0_hp
+      FLUXSOAP   = 0.0_hp
+      FLUXSOAS   = 0.0_hp
 
       !IF ( FIRST ) THEN
          ! Generate annual emission factors for MEGAN inventory
@@ -500,11 +523,13 @@
 
       ! Fill restart variables. This has to be done on the first call
       ! or after rewinding the clock (in replay simulations). 
-      IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
+      ! For safety's sake fill it on every call. It doesn't hurt and 
+      ! avoids possible errors in GEOS applications (ckeller, 12/29/17).
+      !IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, 
      &                           ExtState,  Inst, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
-      ENDIF
+      !ENDIF
 
       ! LAI_PREVDAY is now continuously updated (ckeller, 12/8/15)
 !      ! On a new day, copy previous LAI values to array that holds
@@ -531,9 +556,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J,      EMIS_ISOP, EMIS_MBOX, EMIS_APIN, EMIS_BPIN   )
 !$OMP+PRIVATE( EMIS_LIMO, EMIS_SABI, EMIS_MYRC, EMIS_CARE, EMIS_OCIM   )
-!$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_ETOH, EMIS_FAXX   )
+!$OMP+PRIVATE( EMIS_OMON, EMIS_MONO, EMIS_MOHX, EMIS_EOH,  EMIS_FAXX   )
 !$OMP+PRIVATE( EMIS_AAXX, EMIS_ACET, EMIS_PRPE, EMIS_C2H4              )
-!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2              )
+!$OMP+PRIVATE( EMIS_FARN, EMIS_BCAR, EMIS_OSQT, EMIS_ALD2, EMIS_OTHR   )
 !$OMP+PRIVATE( MONO_MOL,  TMP,       MBOX_MOL                          )
 !$OMP+PRIVATE( DIURFACT,  DIURORVC,  BIOG_ALPH                         ) 
 !$OMP+PRIVATE( BIOG_LIMO, BIOG_ALCO, X, Y, RC                          )
@@ -556,9 +581,10 @@
          EMIS_OCIM  = 0.0_hp
          EMIS_OMON  = 0.0_hp
          EMIS_MONO  = 0.0_hp
+         EMIS_OTHR  = 0.0_hp
          EMIS_ALD2  = 0.0_hp
          EMIS_MOHX  = 0.0_hp
-         EMIS_ETOH  = 0.0_hp
+         EMIS_EOH   = 0.0_hp
          EMIS_FAXX  = 0.0_hp
          EMIS_AAXX  = 0.0_hp
          EMIS_ACET  = 0.0_hp
@@ -633,20 +659,20 @@
          IF ( Inst%IDTISOP > 0 ) THEN
             FLUXISOP(I,J) = EMIS_ISOP 
 
-!            ! testing only
-!            if ( i==ix .and. j==iy ) then
-!               write(*,*) 'HEMCO MEGAN @ ', ix, iy
-!               write(*,*) 'ISOP_SCAL      : ', ISOP_SCALING
-!               write(*,*) 'ISOP (kgC/m2/s): ', EMIS_ISOP
-!            endif
+         ENDIF
 
+         ! Biogenic emissions of SOA and SOA-Precursor from isopene
+         IF ( (Inst%IDTISOP>0) .AND. (Inst%IDTSOAP>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_ISOP * Inst%ISOPTOSOAP
+         ENDIF
+         IF ( (Inst%IDTISOP>0) .AND. (Inst%IDTSOAS>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_ISOP * Inst%ISOPTOSOAS
          ENDIF
 
          !--------------------------------------------------------------------
          ! MEGAN monoterpenes
          !--------------------------------------------------------------------
          ! Updated the calls below for new MEGAN routine (dbm, 12/2012)
-
          IF ( Inst%ExtNrMono > 0 ) THEN
 
             ! ---------------------------------------------------
@@ -695,12 +721,7 @@
                ERR = .TRUE.
                EXIT
             ENDIF 
-            IF ( Inst%ExtNrSoa < 1 ) THEN
-               ! Update FLUXLIMO here for diagnostic purposes if the
-               ! SOA mechanism is turned off.
-               ! Otherwise, FLUXLIMO is updated below.
-               FLUXLIMO(I,J) = EMIS_LIMO
-            ENDIF
+            FLUXLIMO(I,J) = EMIS_LIMO
 
             ! ---------------------------------------------------
             ! Sabinene emissions
@@ -811,6 +832,22 @@
             FLUXALD2(I,J) = EMIS_ALD2
          ENDIF
 
+         ! ---------------------------------------------------
+         ! MEGAN Ethanol
+         IF ( Inst%IDTEOH > 0 ) THEN
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                                Inst, I, J, 'EOH', EMIS_EOH, RC)
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_EOH', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF
+
+            ! Add to tracer tendency array [kg C/m2/s]
+            FLUXEOH(I,J) = EMIS_EOH
+         ENDIF
+
          !--------------------------------------------------------------------
          ! Other MEGAN biogenics
          ! Calls included here for future incorporation or
@@ -829,19 +866,6 @@
 !            EXIT
 !         ENDIF 
 !         FLUXMOHX(I,J) = EMIS_MOHX
-
-         ! ---------------------------------------------------
-         ! MEGAN Ethanol
-         ! Uncomment this to compute biogenic ethanol emissions
-!         CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-!     &                             Inst, I, J, 'ETOH', EMIS_ETOH, RC )
-!         IF ( RC /= HCO_SUCCESS ) THEN 
-!            CALL HCO_ERROR( HcoState%Config%Err, 
-!     &                        'GET_MEGAN_EMISSIONS_ETOH', RC )
-!            ERR = .TRUE.
-!            EXIT
-!         ENDIF
-!         FLUXETOH(I,J) = EMIS_ETOH
 
          ! ---------------------------------------------------
          ! MEGAN Formic acid
@@ -1014,6 +1038,16 @@
          ENDIF
 
          !--------------------------------------------------------------------
+         ! Biogenic emissions of SOA and SOA-Precursor from monoterpenes
+         !--------------------------------------------------------------------
+         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_MONO * Inst%MONOTOSOAP
+         ENDIF
+         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_MONO * Inst%MONOTOSOAS
+         ENDIF
+
+         !--------------------------------------------------------------------
          ! Biogenic emissions of PRPE
          !
          ! Now uses MEGAN2.1 (dbm, 12/2012)
@@ -1059,33 +1093,8 @@
             FLUXC2H4(I,J) = EMIS_C2H4
          ENDIF
 
-         !--------------------------------------------------------------------
-         ! Biogenic emissions of OC
-         ! Assume a 10% yield of hydrophilic OC from terpene emissions
-         ! if secondary organic aerosols are turned off. Otherwise,
-         ! use CALTECH algorithm to calculate biogenic VOC emissions.
-         !--------------------------------------------------------------------
-
-         ! Get monoterpenes from MEGAN [kg C/m2/s]
-         ! terpene emissions
-         IF ( (Inst%ExtNrMono > 0 ) .AND. ( Inst%IDTOCPI > 0 ) ) THEN
-
-            ! Convert monoterpenes into hydrophilic OC and pass to
-            ! OC emissions array 
-            FLUXOCPI(I,J) = EMIS_MONO * EMMT2OC
-
-!            ! testing only
-!            if ( i==ix .and. j==iy ) then
-!                  write(*,*) ' '
-!                  write(*,*) 'HEMCO MEGAN @ ', ix, iy
-!                  write(*,*) 'OCPI (NOSOA) (kg/m2/s): ', FLUXOCPI(I,J)
-!                  write(*,*) 'EMIS_MONO             : ', EMIS_MONO
-!                  write(*,*) 'EMMT2OC               : ', EMMT2OC
-!            endif
-         ENDIF
-
-         ! Use CALTECH algorithm if SOA is turned on
-         IF ( Inst%ExtNrSoa > 0 ) THEN
+         ! Use CALTECH algorithm if MEGAN Monoterpene is turned on
+         IF ( Inst%ExtNrMono > 0 ) THEN
            
             ! Error trap: check if SZAFACT is indeed defined
             IF ( .NOT. ASSOCIATED(ExtState%SZAFACT%Arr%Val) ) THEN
@@ -1127,105 +1136,106 @@
             !           -----      --------
             ! TOTAL      129        167.2
             ! see Pye et al. 2010 ACP
-            ! ----------------------------------------------------------------
+            !
+            ! MEGAN emission update for SESQ and other monoterps
+            ! (hotp 3/10/10)
+            ! terpenoid ketones no longer lumped into ALPH
+            ! terpenoid alcohols no longer lumped in ALCO
+            ! Other monoterpenes (OMON from MEGAN) all placed in TERP
+            ! All sesq lumped together into SESQ
+            !
+            ! new mtp lumping (as of 5/20/10) hotp
+            ! GEOS-Chem   MEGAN
+            ! =========   ==========================================
+            ! MTPA        a-pinene   (APIN), b-pinene  (BPIN), 
+            !             sabinene   (SABI), carene    (CARE)
+            ! LIMO        limonene   (LIMO)
+            ! MTPO        myrcene    (MYRC), ocimene   (OCIM),
+            !             other mono (OMON)
+            ! SESQ        farnesene  (FARN), b-caryoph (BCAR), 
+            !             other sesq (OSQT)
+            ! =========   ==========================================
 
-            IF ( Inst%ExtNrMono > 0 ) THEN
+            !--------------------------------------------------------------
+            ! MEGAN MTPA 
+            !--------------------------------------------------------------
+            ! MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
+            IF ( Inst%IDTMTPA > 0 ) THEN
+               FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
+     &                           EMIS_SABI + EMIS_CARE ) * FC1
+            ENDIF
 
-               ! MEGAN emission update for SESQ and other monoterps
-               ! (hotp 3/10/10)
-               ! terpenoid ketones no longer lumped into ALPH
-               ! terpenoid alcohols no longer lumped in ALCO
-               ! Other monoterpenes (OMON from MEGAN) all placed in TERP
-               ! All sesq lumped together into SESQ
+            !--------------------------------------------------------------
+            ! MEGAN Limonene 
+            !--------------------------------------------------------------
+            ! [kg C/m2/s]
+            IF ( Inst%IDTLIMO > 0 ) THEN
+               FLUXLIMO(I,J) = EMIS_LIMO * FC1 
+            ENDIF
 
-               ! new mtp lumping (as of 5/20/10) hotp
-               ! GEOS-Chem   MEGAN
-               ! =========   ==========================================
-               ! MTPA        a-pinene   (APIN), b-pinene  (BPIN), 
-               !             sabinene   (SABI), carene    (CARE)
-               ! LIMO        limonene   (LIMO)
-               ! MTPO        myrcene    (MYRC), ocimene   (OCIM),
-               !             other mono (OMON)
-               ! SESQ        farnesene  (FARN), b-caryoph (BCAR), 
-               !             other sesq (OSQT)
-               ! =========   ==========================================
+            !--------------------------------------------------------------
+            ! MEGAN MTPO
+            !--------------------------------------------------------------
+            ! MTPO is all other monoterpenes (MEGAN categories:
+            ! myrcene, ocimene, OMON) (hotp 5/20/10)
+            ! All other monoterpenes (mostly camphene, linalool,
+            ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
+            ! 14-18% of OMTP is terpinene and terpinolene
+            IF ( Inst%IDTMTPO > 0 ) THEN
+               FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM +
+     &                           EMIS_OMON ) * FC1
+            ENDIF
 
-               !--------------------------------------------------------------
-               ! MEGAN MTPA 
-               !--------------------------------------------------------------
-               ! MTPA=a-,b-pinene,sabinene,carene (hotp 5/20/10)
-               IF ( Inst%IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = ( EMIS_APIN + EMIS_BPIN +
-     &                              EMIS_SABI + EMIS_CARE ) * FC1
-               ENDIF
+            !--------------------------------------------------------------
+            ! MEGAN sesquiterpenes
+            !--------------------------------------------------------------
 
-               !--------------------------------------------------------------
-               ! MEGAN Limonene 
-               !--------------------------------------------------------------
-               ! [kg C/m2/s]
-               IF ( Inst%IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = EMIS_LIMO * FC1 
-               ENDIF
+            ! ---------------------------------------------------
+            ! a-Farnesene 
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'FARN', EMIS_FARN, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_FARN', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXFARN(I,J) = EMIS_FARN
 
-               !--------------------------------------------------------------
-               ! MEGAN MTPO
-               !--------------------------------------------------------------
-               ! MTPO is all other monoterpenes (MEGAN categories:
-               ! myrcene, ocimene, OMON) (hotp 5/20/10)
-               ! All other monoterpenes (mostly camphene, linalool,
-               ! terpinolene, terpinolene, phellandrene) (hotp 3/10/10)
-               ! 14-18% of OMTP is terpinene and terpinolene
-               IF ( Inst%IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = ( EMIS_MYRC + EMIS_OCIM +
-     &                              EMIS_OMON ) * FC1
-               ENDIF
+            ! ---------------------------------------------------
+            ! b_Caryophyllene 
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'BCAR', EMIS_BCAR, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_BCAR', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXBCAR(I,J) = EMIS_BCAR
 
-               !--------------------------------------------------------------
-               ! MEGAN sesquiterpenes
-               !--------------------------------------------------------------
+            ! ---------------------------------------------------
+            ! Other sesquiterpene
+            CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
+     &                            Inst, I, J, 'OSQT', EMIS_OSQT, RC )
+            IF ( RC /= HCO_SUCCESS ) THEN 
+               CALL HCO_ERROR( HcoState%Config%Err, 
+     &                        'GET_MEGAN_EMISSIONS_OSQT', RC )
+               ERR = .TRUE.
+               EXIT
+            ENDIF 
+            FLUXOSQT(I,J) = EMIS_OSQT
 
-               ! ---------------------------------------------------
-               ! a-Farnesene 
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'FARN', EMIS_FARN, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_FARN', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXFARN(I,J) = EMIS_FARN
+            ! ---------------------------------------------------
+            ! Total sesquiterpenes from MEGAN (hotp 3/10/10)
+            IF ( Inst%IDTSESQ > 0 ) THEN
+               FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
+     &                           EMIS_OSQT ) * FC3
+            ENDIF
+ 
+            EMIS_OTHR = EMIS_FARN + EMIS_BCAR + EMIS_OSQT
 
-               ! ---------------------------------------------------
-               ! b_Caryophyllene 
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'BCAR', EMIS_BCAR, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_BCAR', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXBCAR(I,J) = EMIS_BCAR
-
-               ! ---------------------------------------------------
-               ! Other sesquiterpene
-               CALL GET_MEGAN_EMISSIONS( am_I_Root, HcoState, ExtState,
-     &                               Inst, I, J, 'OSQT', EMIS_OSQT, RC )
-               IF ( RC /= HCO_SUCCESS ) THEN 
-                  CALL HCO_ERROR( HcoState%Config%Err, 
-     &                           'GET_MEGAN_EMISSIONS_OSQT', RC )
-                  ERR = .TRUE.
-                  EXIT
-               ENDIF 
-               FLUXOSQT(I,J) = EMIS_OSQT
-
-               ! ---------------------------------------------------
-               ! Total sesquiterpenes from MEGAN (hotp 3/10/10)
-               IF ( Inst%IDTSESQ > 0 ) THEN
-                  FLUXSESQ(I,J) = ( EMIS_FARN + EMIS_BCAR +
-     &                              EMIS_OSQT ) * FC3
-               ENDIF
+         ELSE
 
             ! If MEGAN Monoterpene is turned off:
             ! NOTE: In the original GEOS-Chem code, many of these fluxes
@@ -1233,37 +1243,47 @@
             ! are only calculated if the MEGAN_MONO option is turned on
             ! and their contributions are hence skipped in the following!
             ! (ckeller, 05/19/14)
-            ELSE
 
-               ! MTPA
-               ! old ALPH is now MTPA (hotp 5/20/10)
-               ! ALPHA-PINENE (0.35)
-               ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
-               ! SABINENE    lumped with ALPHA-PINENE (0.05)
-               ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
+            ! MTPA
+            ! old ALPH is now MTPA (hotp 5/20/10)
+            ! ALPHA-PINENE (0.35)
+            ! BETA-PINENE lumped with ALPHA-PINENE (0.23)
+            ! SABINENE    lumped with ALPHA-PINENE (0.05)
+            ! D3-CARENE   lumped with ALPHA-PINENE (0.04)
 
-               ! TERPENOID KETONE is lumped with SABINENE
-               ! Then SABINENE    is lumped with ALPHA-PINENE
-               IF ( Inst%IDTMTPA > 0 ) THEN
-                  FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04_hp ! using campher
-               ENDIF
-
-               ! LIMONENE not defined (derived from TERP)
-               IF ( Inst%IDTLIMO > 0 ) THEN
-                  FLUXLIMO(I,J) = 0.0_hp
-               ENDIF  
-
-               ! MTPO
-               IF ( Inst%IDTMTPO > 0 ) THEN
-                  FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09_hp ! using LINALOOL 
-               ENDIF
-
-               ! IDTSESQ 
-               IF ( Inst%IDTSESQ > 0 ) THEN
-                  FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
-               ENDIF
-
+            ! TERPENOID KETONE is lumped with SABINENE
+            ! Then SABINENE    is lumped with ALPHA-PINENE
+            IF ( Inst%IDTMTPA > 0 ) THEN
+               FLUXMTPA(I,J) = DIURORVC * FC4 * 0.04_hp ! using campher
             ENDIF
+
+            ! LIMONENE not defined (derived from TERP)
+            IF ( Inst%IDTLIMO > 0 ) THEN
+               FLUXLIMO(I,J) = 0.0_hp
+            ENDIF  
+
+            ! MTPO
+            IF ( Inst%IDTMTPO > 0 ) THEN
+               FLUXMTPO(I,J) = DIURORVC * FC2 * 0.09_hp ! using LINALOOL 
+            ENDIF
+
+            ! IDTSESQ 
+            IF ( Inst%IDTSESQ > 0 ) THEN
+               FLUXSESQ(I,J) = DIURORVC * FC3 * 0.05_hp
+            ENDIF
+
+            EMIS_OTHR = 0.0_hp
+
+         ENDIF
+
+         !--------------------------------------------------------------------
+         ! Biogenic emissions of SOA and SOA-Precursor from Other terpenes
+         !--------------------------------------------------------------------
+         IF ( (Inst%IDTSOAP>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAP(I,J) = FLUXSOAP(I,J) + EMIS_OTHR * Inst%OTHRTOSOAP
+         ENDIF
+         IF ( (Inst%IDTSOAS>0) .AND. (Inst%ExtNrMono>0) ) THEN
+            FLUXSOAS(I,J) = FLUXSOAS(I,J) + EMIS_OTHR * Inst%OTHRTOSOAS
          ENDIF
 
          !-----------------------------------------------------------------
@@ -1328,31 +1348,6 @@
       ENDIF
 
       ! ----------------------------------------------------------------
-      ! MONOTERPENES 
-      IF ( Inst%ExtNrMono > 0 ) THEN
-
-         IF ( Inst%IDTMONX > 0 ) THEN
-            ! Add flux to emission array
-            CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMONO, 
-!----------------------------------------------------------------------------
-! Prior to 6/1/16:
-! MONX belongs to the MEGAN_Mono extension, so we should pass ExtNrMono
-! to HCO_EMISADD.  This will not change the emissions (which get added to
-! HcoState anyway), but it will make  MONX show up properly in diagnostics.
-! (bmy, 6/1/16)
-!     &                        RC,        ExtNr=ExtNr )
-!----------------------------------------------------------------------------
-     &                        Inst%IDTMONX, RC, ExtNr=Inst%ExtNrMono )
-
-            IF ( RC /= HCO_SUCCESS ) THEN
-               CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXMONO', RC )
-               RETURN 
-            ENDIF
-         ENDIF
-      ENDIF
-
-      ! ----------------------------------------------------------------
       ! ACETALDEHYDE
       IF ( Inst%IDTALD2 > 0 ) THEN
 
@@ -1362,6 +1357,20 @@
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXALD2', RC )
+            RETURN 
+         ENDIF
+      ENDIF
+
+      ! ----------------------------------------------------------------
+      ! ETHANOL
+      IF ( Inst%IDTEOH > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXEOH, Inst%IDTEOH,
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'HCO_EmisAdd error: FLUXEOH', RC )
             RETURN 
          ENDIF
       ENDIF
@@ -1397,6 +1406,38 @@
      &                  'HCO_EmisAdd error: FLUXACETbg', RC )
             RETURN 
          ENDIF
+      ENDIF
+
+      ! ----------------------------------------------------------------
+      ! SOA-Precursor (SOAP) and SOA-Simplified (SOAS)
+      IF (  Inst%IDTSOAP > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSOAP, Inst%IDTSOAP, 
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSOAP', RC )
+            RETURN 
+         ENDIF
+
+      ENDIF
+
+      IF (  Inst%IDTSOAS > 0 ) THEN
+
+         ! Add flux to emission array
+         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSOAS, Inst%IDTSOAS, 
+     &                     RC,        ExtNr=Inst%ExtNr )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            CALL HCO_ERROR( 'HCO_EmisAdd error: FLUXSOAS', RC )
+            RETURN 
+         ENDIF
+
+         ! Also archive the BIOGENIC_SOAS diagnostic
+         DiagnName =  'BIOGENIC_SOAS'
+         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
+     &      cName=TRIM(DiagnName), Array2D=FLUXSOAS, RC=RC)
+         IF ( RC /= HCO_SUCCESS ) RETURN
+         Arr2D => NULL()
       ENDIF
 
       ! ----------------------------------------------------------------
@@ -1450,32 +1491,9 @@
       ENDIF
 
       ! ----------------------------------------------------------------
-      ! OC
-      ! Note: OC emissions will only be non-zero if OC species is defined
-      ! and Monoterpene option is enabled.
-      IF ( Inst%IDTOCPI > 0 ) THEN 
-
-         ! Add flux to emission array
-         CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXOCPI, Inst%IDTOCPI, 
-     &                     RC,        ExtNr=Inst%ExtNr )
-         IF ( RC /= HCO_SUCCESS ) THEN
-            CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'HCO_EmisAdd error: FLUXOCPI', RC )
-            RETURN 
-         ENDIF
-
-         ! Also archive the BIOGENIC_OCPI diagnostic (ckeller, 9/30/15)
-         DiagnName =  'BIOGENIC_OCPI'
-         CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr,
-     &      cName=TRIM(DiagnName), Array2D=FLUXOCPI, RC=RC)
-         IF ( RC /= HCO_SUCCESS ) RETURN
-         Arr2D => NULL()
-      ENDIF
-
-      ! ----------------------------------------------------------------
       ! MTPA 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTMTPA  > 0 )      ) THEN 
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTMTPA   > 0 )      ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPA, Inst%IDTMTPA, 
@@ -1490,8 +1508,8 @@
 
       ! ----------------------------------------------------------------
       ! MTPO 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTMTPO  > 0 )      ) THEN 
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTMTPO   > 0 )      ) THEN 
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPO, Inst%IDTMTPO, 
@@ -1506,8 +1524,8 @@
 
       ! ----------------------------------------------------------------
       ! LIMONENE 
-      IF ( ( Inst%ExtNrSoa > 0 ) .AND. 
-     &     ( Inst%IDTLIMO  > 0 )      ) THEN
+      IF ( ( Inst%ExtNrMono > 0 ) .AND. 
+     &     ( Inst%IDTLIMO   > 0 )      ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXLIMO, Inst%IDTLIMO, 
@@ -1522,7 +1540,8 @@
 
       ! ----------------------------------------------------------------
       ! SESQ 
-      IF ( (Inst%ExtNrSoa>0) .AND. (Inst%IDTSESQ>0) ) THEN
+      IF ( ( Inst%ExtNrMono > 0 ) .AND.
+     &     ( Inst%IDTSESQ   > 0 )      ) THEN
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSESQ, Inst%IDTSESQ, 
@@ -1639,21 +1658,13 @@
       ! Calls included here for future incorporation or
       ! specialized simulations. (dbm, 12/2012)
       !
-      ! These diagnostics will be zero because FLUXMOHX,
-      !  FLUXETOH, FLUXFAXX, and FLUXAAXX are commented out
-      !  above (mps, 2/19/15)
+      ! These diagnostics will be zero because FLUXMOHX, FLUXFAXX,
+      !  and FLUXAAXX are commented out above (mps, 2/19/15)
       ! ----------------------------------------------------------------
       ! Methanol
       DiagnName =  'BIOGENIC_MOHX'
       CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, 
      &   cName=TRIM(DiagnName), Array2D=FLUXMOHX, RC=RC)
-      IF ( RC /= HCO_SUCCESS ) RETURN 
-
-      ! ----------------------------------------------------------------
-      ! Ethanol
-      DiagnName =  'BIOGENIC_ETOH'
-      CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, 
-     &   cName=TRIM(DiagnName), Array2D=FLUXETOH, RC=RC)
       IF ( RC /= HCO_SUCCESS ) RETURN 
 
       ! ----------------------------------------------------------------
@@ -1782,6 +1793,7 @@
 !                              routine for all MEGAN compounds
 !  15 Sep 2015 - M. Sulprizio- Add CO2 inhibition effect on isoprene emissions
 !                              from Amos Tai (Jan 2013)
+!  17 Jul 2017 - C. Keller   - Now normalize LAI by PFT's.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1802,6 +1814,7 @@
       REAL(hp)  :: BETA, LDF, CT1, CEO
       REAL(hp)  :: ANEW, AGRO, AMAT, AOLD
       REAL(hp)  :: ISOLAI, PMISOLAI, MISOLAI
+      REAL(hp)  :: PFTSUM 
       LOGICAL   :: BIDIR    
 
       !=================================================================
@@ -1841,6 +1854,16 @@
       ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
       Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
       Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
+  
+      ! Eventually normalize LAI by PFT (if setting is set
+      ! accordingly). ckeller, 7/17/17.
+      IF ( Inst%NORMLAI ) THEN
+         PFTSUM = SUM( Inst%ARRAY_16(I,J,2:16) )
+         IF ( PFTSUM > 0.0_hp ) THEN
+            MISOLAI  = MIN( MISOLAI  / PFTSUM, LAI_MAX )
+            PMISOLAI = MIN( PMISOLAI / PFTSUM, LAI_MAX )
+         ENDIF
+      ENDIF
 
       ! --------------------------------------------
       ! Get MEGAN parameters for this compound
@@ -1878,12 +1901,10 @@
      &                                      Inst%PARDF_LASTXDAYS(I,J) )
 !     &                                      PARDR_15_AVG(I,J),
 !     &                                      PARDF_15_AVG(I,J)  )
-
          ELSE             
  
             ! If night
             GAMMA_PAR = 0.0_hp  
-            
          ENDIF 
 
          ! --------------------------------------------------
@@ -2163,7 +2184,7 @@
          
       ! Bidirectional VOC: Ethanol, formaldehyde, acetaldehyde, formic acid,
       ! acetic acid
-      ELSE IF ( TRIM(CPD) == 'ETOH' .OR.
+      ELSE IF ( TRIM(CPD) == 'EOH'  .OR.
      &          TRIM(CPD) == 'CH2O' .OR. 
      &          TRIM(CPD) == 'ALD2' .OR.
      &          TRIM(CPD) == 'FAXX' .OR.
@@ -2318,8 +2339,8 @@
             EMFAC = Inst%AEF_MOHX(I,J)
          CASE ( 'ACET' )
             EMFAC = Inst%AEF_ACET(I,J)
-         CASE ( 'ETOH' )
-            EMFAC = Inst%AEF_ETOH(I,J)
+         CASE ( 'EOH' )
+            EMFAC = Inst%AEF_EOH(I,J)
          CASE ( 'CH2O' )
             EMFAC = Inst%AEF_CH2O(I,J)
          CASE ( 'ALD2' )
@@ -2727,14 +2748,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) RESULT( GAMMA_LAI )
+      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) 
+     &   RESULT( GAMMA_LAI )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
-      LOGICAL,  INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
-                                          ! the compound undergoes bidirectional
-                                          ! exchange
+      REAL(hp),     INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
+      LOGICAL,      INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
+                                              ! the compound undergoes bidirectional
+                                              ! exchange
 !
 ! !RETURN VALUE:
 !
@@ -2758,7 +2780,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
       !-----------------------
       ! Compute GAMMA_LAI
       !-----------------------
@@ -2989,14 +3010,10 @@
       ! By default gamma_sm is 1.0
       GAMMA_SM = 1.0_hp
 
-      ! GWETROOT is only defined for GEOS-5
-#if defined( GEOS_5 ) || defined( GEOS_FP ) || defined( MERRA ) || defined( MERRA2 )
-
-      !GWETROOT = ExtState%GWETROOT%Arr%Val(I,J)
       ! Error trap: GWETROOT must be between 0.0 and 1.0 (ckeller, 4/16/15)
       GWETROOT = MIN(MAX(ExtState%GWETROOT%Arr%Val(I,J),0.0_hp),1.0_hp)
 
-      IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'ETOH' ) THEN
+      IF ( TRIM( CMPD ) == 'ALD2' .OR. TRIM ( CMPD ) == 'EOH' ) THEN
          
          ! GWETROOT = degree of saturation or wetness in the root-zone
          ! (top meter of soil). This is defined as the ratio of the volumetric
@@ -3008,8 +3025,6 @@
          GAMMA_SM = MAX( 20.0_hp * GWETROOT - 17.0_hp, 1.0_hp)
 
       ENDIF
-
-#endif
 
       ! return to calling program
       END FUNCTION GET_GAMMA_SM
@@ -3444,6 +3459,7 @@
 !  17 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2015 - M. Sulprizio- Bug fix: Now convert sesquiterpenes (FARN, BCAR,
 !                              OSQT) from ug compound/m2/h to kg C/m2/s
+!  17 Jul 2017 - C. Keller   - PFT values (ARRAY_16) are now stored in Inst object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3452,7 +3468,7 @@
 !
       INTEGER                 :: I, J, P, ARR_IND
       REAL(hp)                :: FACTOR, SPECIES2CARBON
-      REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
+      !REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
       REAL(hp)                :: PFT_EF_STRS(15), PFT_EF_OTHR(15)
@@ -3464,7 +3480,7 @@
 ! <---
       REAL(hp)                :: PFT_EF_FARN(15), PFT_EF_BCAR(15)
       REAL(hp)                :: PFT_EF_OSQT(15)
-      REAL(hp)                :: EM_FRAC_ALD2(15), EM_FRAC_ETOH(15)
+      REAL(hp)                :: EM_FRAC_ALD2(15), EM_FRAC_EOH(15)
       REAL(hp)                :: EM_FRAC_FAXX(15), EM_FRAC_AAXX(15)
       REAL(hp)                :: EM_FRAC_CH2O(15)
      
@@ -3561,8 +3577,8 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
       ENDIF
 
-      ! Only used for SOA simulation:
-      IF ( Inst%ExtNrSoa > 0 ) THEN
+      ! Only used for MEGAN Monoterpene simulation:
+      IF ( Inst%ExtNrMono > 0 ) THEN
          CALL HCO_EvalFld( am_I_Root, HcoState, 'MEGAN_ORVC'//TRIM(SFX), 
      &                     Inst%GEIA_ORVC, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3670,22 +3686,22 @@
       IF ( RC /= HCO_SUCCESS ) RETURN
 
       ! Copy PFTs into ARRAY_16
-      ARRAY_16(:,:, 1) = PFT_BARE
-      ARRAY_16(:,:, 2) = PFT_NDLF_EVGN_TMPT_TREE
-      ARRAY_16(:,:, 3) = PFT_NDLF_EVGN_BORL_TREE
-      ARRAY_16(:,:, 4) = PFT_NDLF_DECD_BORL_TREE
-      ARRAY_16(:,:, 5) = PFT_BDLF_EVGN_TROP_TREE
-      ARRAY_16(:,:, 6) = PFT_BDLF_EVGN_TMPT_TREE
-      ARRAY_16(:,:, 7) = PFT_BDLF_DECD_TROP_TREE
-      ARRAY_16(:,:, 8) = PFT_BDLF_DECD_TMPT_TREE
-      ARRAY_16(:,:, 9) = PFT_BDLF_DECD_BORL_TREE
-      ARRAY_16(:,:,10) = PFT_BDLF_EVGN_SHRB
-      ARRAY_16(:,:,11) = PFT_BDLF_DECD_TMPT_SHRB
-      ARRAY_16(:,:,12) = PFT_BDLF_DECD_BORL_SHRB
-      ARRAY_16(:,:,13) = PFT_C3_ARCT_GRSS
-      ARRAY_16(:,:,14) = PFT_C3_NARC_GRSS
-      ARRAY_16(:,:,15) = PFT_C4_GRSS
-      ARRAY_16(:,:,16) = PFT_CROP
+      Inst%ARRAY_16(:,:, 1) = PFT_BARE
+      Inst%ARRAY_16(:,:, 2) = PFT_NDLF_EVGN_TMPT_TREE
+      Inst%ARRAY_16(:,:, 3) = PFT_NDLF_EVGN_BORL_TREE
+      Inst%ARRAY_16(:,:, 4) = PFT_NDLF_DECD_BORL_TREE
+      Inst%ARRAY_16(:,:, 5) = PFT_BDLF_EVGN_TROP_TREE
+      Inst%ARRAY_16(:,:, 6) = PFT_BDLF_EVGN_TMPT_TREE
+      Inst%ARRAY_16(:,:, 7) = PFT_BDLF_DECD_TROP_TREE
+      Inst%ARRAY_16(:,:, 8) = PFT_BDLF_DECD_TMPT_TREE
+      Inst%ARRAY_16(:,:, 9) = PFT_BDLF_DECD_BORL_TREE
+      Inst%ARRAY_16(:,:,10) = PFT_BDLF_EVGN_SHRB
+      Inst%ARRAY_16(:,:,11) = PFT_BDLF_DECD_TMPT_SHRB
+      Inst%ARRAY_16(:,:,12) = PFT_BDLF_DECD_BORL_SHRB
+      Inst%ARRAY_16(:,:,13) = PFT_C3_ARCT_GRSS
+      Inst%ARRAY_16(:,:,14) = PFT_C3_NARC_GRSS
+      Inst%ARRAY_16(:,:,15) = PFT_C4_GRSS
+      Inst%ARRAY_16(:,:,16) = PFT_CROP
 
       ! --------------------------------------------------------------------------------
       ! PFT-specific EFs from Table 2 in Guenther et al., 2012
@@ -3810,7 +3826,7 @@
 
       ! Ethanol: 40% of bidirectional category flux, except 25%
       ! for grasses and crops
-      EM_FRAC_ETOH = (/0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
+      EM_FRAC_EOH  = (/0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
      &                 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp, 0.40_hp,
      &                 0.40_hp, 0.25_hp, 0.25_hp, 0.25_hp, 0.25_hp/)
 
@@ -3846,76 +3862,76 @@
 ! ---> Now compute EFs for a-pinene and myrcene as well (dbm, 12/2012)
             ! a-pinene: 100% of category
             Inst%AEF_APIN(:,:) = Inst%AEF_APIN(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_APIN(P)
 
             ! Myrcene: 100% of category
             Inst%AEF_MYRC(:,:) = Inst%AEF_MYRC(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_MYRC(P)
 ! <---
             ! Other monoterpenes: 100% of category
             Inst%AEF_OMON(:,:) = Inst%AEF_OMON(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OMON(P)
 
             ! a-Farnesene: 100% of category
             Inst%AEF_FARN(:,:) = Inst%AEF_FARN(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_FARN(P)
 
             ! b-Caryophyllene: 100% of category
             Inst%AEF_BCAR(:,:) = Inst%AEF_BCAR(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_BCAR(P)
 
             ! Other sesquiterpenes: 100% of category
             Inst%AEF_OSQT(:,:) = Inst%AEF_OSQT(:,:) + 
-     &           ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
+     &           Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OSQT(P)
 
          ENDIF
 
          ! Methanol: 100% of category
          Inst%AEF_MOHX(:,:) = Inst%AEF_MOHX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_MOHX(P)
 
          ! Acetone: 100% of category
          Inst%AEF_ACET(:,:) = Inst%AEF_ACET(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_ACET(P)
 
          ! Ethanol: variable fraction of category
-         Inst%AEF_ETOH(:,:) = Inst%AEF_ETOH(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_ETOH(P)
+         Inst%AEF_EOH(:,:) = Inst%AEF_EOH(:,:) + 
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_EOH(P)
 
          ! Formaldehyde: variable fraction of category
          Inst%AEF_CH2O(:,:) = Inst%AEF_CH2O(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_CH2O(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_CH2O(P)
 
          ! Acetaldehyde: variable fraction of category
          Inst%AEF_ALD2(:,:) = Inst%AEF_ALD2(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_ALD2(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_ALD2(P)
 
          ! Formic acid: variable fraction of category
          Inst%AEF_FAXX(:,:) = Inst%AEF_FAXX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_FAXX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_FAXX(P)
 
          ! Acetic acid: variable fraction of category
          Inst%AEF_AAXX(:,:) = Inst%AEF_AAXX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_BIDR(P) * EM_FRAC_AAXX(P)
+     &        Inst%ARRAY_16(:,:,ARR_IND)*PFT_EF_BIDR(P)*EM_FRAC_AAXX(P)
 
          ! Ethene: 58% of "stress" category for all PFTs
          Inst%AEF_C2H4(:,:) = Inst%AEF_C2H4(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.58_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.58_hp
 
          ! Toluene: 3% of "stress" category for all PFTs
          Inst%AEF_TOLU(:,:) = Inst%AEF_TOLU(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.03_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.03_hp
 
          ! HCN: 1.5% of "stress" category for all PFTs
          Inst%AEF_HCNX(:,:) = Inst%AEF_HCNX(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.015_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_STRS(P) * 0.015_hp
 
          ! Propene: 48% of "other" category for all PFTs
          ! Butene:  24% of "other" category for all PFTs
          ! Larger alkenes: 0.2% of "other" category for all PFTs
          ! Total: 72.2% 
          Inst%AEF_PRPE(:,:) = Inst%AEF_PRPE(:,:) + 
-     &        ARRAY_16(:,:,ARR_IND) * PFT_EF_OTHR(P) * 0.722_hp
+     &        Inst%ARRAY_16(:,:,ARR_IND) * PFT_EF_OTHR(P) * 0.722_hp
          
       ENDDO
 
@@ -3970,7 +3986,7 @@
 
          Inst%AEF_ACET(I,J) = Inst%AEF_ACET(I,J) 
      &                      * FACTOR *  36.0_hp /  58.079_hp 
-         Inst%AEF_ETOH(I,J) = Inst%AEF_ETOH(I,J) 
+         Inst%AEF_EOH(I,J)  = Inst%AEF_EOH(I,J) 
      &                      * FACTOR *  24.0_hp /  46.068_hp 
          Inst%AEF_ALD2(I,J) = Inst%AEF_ALD2(I,J) 
      &                      * FACTOR *  24.0_hp /  44.053_hp 
@@ -4052,6 +4068,7 @@
 !  18 Feb 2015 - M. Sulprizio- Now allocate AEF arrays for species not read
 !                              from file
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  17 Jul 2017 - C. Keller   - Added optional setting NORMLAI
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4067,6 +4084,7 @@
       TYPE(MyInst), POINTER          :: Inst
       CHARACTER(LEN=255)             :: MSG
       CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:) 
+      LOGICAL                        :: Optfound
  
       !=================================================================
       ! HCOX_MEGAN_INIT begins here!
@@ -4113,6 +4131,15 @@
      &                 OptValHp=Inst%GLOBCO2, RC=RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
 
+      ! Normalize LAI by PFT? Default setting is 'yes'
+      ! ckeller, 7/17/17.
+      Inst%NORMLAI = .TRUE.
+      CALL GetExtOpt( HcoState%Config, ExtNr,
+     &                 'Normalize LAI', OptValBool=OptFound,
+     &                 Found=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+      IF ( FOUND ) Inst%NORMLAI = OptFound
+
       ! Check GLOBCO2 if CO2 inhibition is turned on (LISOPCO2 = .TRUE.)
       ! GLOBCO2 should be between 150-1250 ppmv. Isoprene response to
       ! CO2 outside this range has no empirical basis. (Tai, Jan 2013)
@@ -4123,6 +4150,34 @@
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
          ENDIF
+      ENDIF
+
+      Optfound = .FALSE.
+      !optional arguments for SOAP
+      CALL GetExtOpt ( HcoState%Config, ExtNr, 'Isoprene to SOAP', 
+     &                 OptValHp=Inst%ISOPTOSOAP, FOUND=Optfound, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      IF ( Optfound ) THEN
+         !convert from carbon basis to mass basis
+         Inst%ISOPTOSOAP = Inst%ISOPTOSOAP * 1.134
+      ELSE
+         !set to zero if not specified
+         Inst%ISOPTOSOAP = 0.0
+      ENDIF
+
+      Optfound = .FALSE.
+      !optional arguments for SOAS
+      CALL GetExtOpt ( HcoState%Config, ExtNr, 'Isoprene to SOAS', 
+     &                 OptValHp=Inst%ISOPTOSOAS, FOUND=Optfound, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) RETURN
+
+      IF ( Optfound ) THEN
+         !convert from carbon basis to mass basis
+         Inst%ISOPTOSOAS = Inst%ISOPTOSOAS * 1.134
+      ELSE
+         !set to zero if not specified
+         Inst%ISOPTOSOAS = 0.0
       ENDIF
 
       ! Verbose mode
@@ -4145,6 +4200,9 @@
       Inst%IDTPRPE = -1
       Inst%IDTC2H4 = -1
       Inst%IDTALD2 = -1
+      Inst%IDTEOH  = -1
+      Inst%IDTSOAP = -1
+      Inst%IDTSOAS = -1
       DO I = 1, nSpc
          SELECT CASE ( TRIM(SpcNames(I)) )
             CASE( 'ISOP' )
@@ -4163,10 +4221,22 @@
                Inst%IDTALD2 = HcoIDs(I)
                WRITE(MSG,*) '   ALD2       = ',
      &                      TRIM(SpcNames(I)),Inst%IDTALD2
+            CASE( 'EOH' )
+               Inst%IDTEOH  = HcoIDs(I)
+               WRITE(MSG,*) '   EOH        = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTEOH
             CASE( 'C2H4' )
                Inst%IDTC2H4 = HcoIDs(I)
                WRITE(MSG,*) '   Ethene     = ',
      &                      TRIM(SpcNames(I)),Inst%IDTC2H4
+            CASE( 'SOAP' )
+               Inst%IDTSOAP = HcoIDs(I)
+               WRITE(MSG,*) 'SOA-Precursor = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTSOAP
+            CASE( 'SOAS' )
+               Inst%IDTSOAS = HcoIDs(I)
+               WRITE(MSG,*) '  SOA-Simple  = ',
+     &                      TRIM(SpcNames(I)),Inst%IDTSOAS
             CASE DEFAULT
                MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4187,13 +4257,27 @@
          WRITE(MSG,*) ' --> Global atmospheric CO2 concentration : ', 
      &                Inst%GLOBCO2, ' ppmv'
          CALL HCO_MSG(HcoState%Config%Err,MSG )
+         WRITE(MSG,*) ' --> Normalize LAI by PFT: ',
+     &                Inst%NORMLAI
+         CALL HCO_MSG(HcoState%Config%Err,MSG )
       ENDIF
 
-      ! Check for monoterpene option --> this one is required for 
-      ! CO, OCPI, MONX
+      IF ( am_I_Root ) THEN
+         !convert back to direct mass basis just for show
+         WRITE(MSG,*) ' --> Isoprene to SOA-Precursor',
+     &       Inst%ISOPTOSOAP / 1.134
+         CALL HCO_MSG( MSG )
+         WRITE(MSG,*) ' --> Isoprene direct to SOA (Simple)',
+     &       Inst%ISOPTOSOAS / 1.134
+         CALL HCO_MSG( MSG )
+      ENDIF
+
+      ! Check for monoterpene option --> required for CO, MTPA, MTPO, LIMO, SESQ
       Inst%IDTCO     = -1 
-      Inst%IDTOCPI   = -1 
-      Inst%IDTMONX   = -1 
+      Inst%IDTMTPA   = -1 
+      Inst%IDTMTPO   = -1 
+      Inst%IDTLIMO   = -1 
+      Inst%IDTSESQ   = -1
       Inst%ExtNrMono = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
       IF ( Inst%ExtNrMono > 0 ) THEN
 
@@ -4203,10 +4287,66 @@
             CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDIF
 
-         ! Get HEMCO species IDs of CO, OCPI and MONX
+         ! Get HEMCO species IDs
          CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrMono, HcoIDs,
      &                         SpcNames, nSpc,           RC       )
          IF ( RC /= HCO_SUCCESS ) RETURN
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Monoterp to SOAP', 
+     &                 OptValHp=Inst%MONOTOSOAP, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%MONOTOSOAP = Inst%MONOTOSOAP! * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%MONOTOSOAP = 0.0
+         ENDIF
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Monoterp to SOAS', 
+     &                 OptValHp=Inst%MONOTOSOAS, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%MONOTOSOAS = Inst%MONOTOSOAS! * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%MONOTOSOAS = 0.0
+         ENDIF
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Othrterp to SOAP', 
+     &                 OptValHp=Inst%OTHRTOSOAP, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%OTHRTOSOAP = Inst%OTHRTOSOAP * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%OTHRTOSOAP = 0.0
+         ENDIF
+
+         Optfound = .FALSE.
+         CALL GetExtOpt ( HcoState%Config, Inst%ExtNrMono,
+     &                 'Othrterp to SOAS', 
+     &                 OptValHp=Inst%OTHRTOSOAS, FOUND=Optfound, RC=RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+   
+         IF ( Optfound ) THEN
+            !convert from carbon basis to mass basis
+            Inst%OTHRTOSOAS = Inst%OTHRTOSOAS * 1.134
+         ELSE
+            !set to zero if not specified
+            Inst%OTHRTOSOAS = 0.0
+         ENDIF
     
          DO I = 1, nSpc
             SELECT CASE ( TRIM(SpcNames(I)) )
@@ -4214,76 +4354,6 @@
                   Inst%IDTCO = HcoIDs(I)
                   WRITE(MSG,*) '   CO         = ',
      &                         TRIM(SpcNames(I)),Inst%IDTCO
-               CASE( 'OC', 'OCPI' )
-                  Inst%IDTOCPI = HcoIDs(I)
-                  WRITE(MSG,*) '   OC aerosol = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTOCPI
-               CASE( 'MONX' )
-                  Inst%IDTMONX = HcoIDs(I)
-                  WRITE(MSG,*) '   Monoterp.  = ',
-     &                         TRIM(SpcNames(I)),Inst%IDTMONX
-               CASE DEFAULT
-                  MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
-                  CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-                  RETURN
-            END SELECT
-
-            ! Verbose
-            IF ( am_I_Root ) CALL HCO_MSG(HcoState%Config%Err,MSG )
-         ENDDO
-
-         ! Check if at least one of the Mono species is defined 
-         IF ( Inst%IDTCO   < 0 .AND. 
-     &        Inst%IDTOCPI < 0 .AND. 
-     &        Inst%IDTMONX < 0      ) THEN
-            MSG = 'MEGAN_MONO option is anabled but none of the '// 
-     &            'species is found (CO, OC/OCPI, MONX)!'
-            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-            RETURN
-         ENDIF
-
-      !-----------------------------------------------------------------
-      ELSE
-
-         ! CO emissions and acetone emissions will be zero/incomplete!
-         IF ( Inst%IDTACET > 0 ) THEN
-            MSG = 'Cannot fully calculate MEGAN acetone ' //
-     &            'emissions because monoterpene switch is off!'
-            CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
-         ENDIF
-         MSG = 'Will not calculate MEGAN CO emissions ' //
-     &         'because monoterpene switch is off!'
-         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
-      ENDIF
-
-      ! --> Check for SOA option. This option is only valid together
-      !     w/ monoterpene!
-      ! This further adds species ALPH/LIMO/ALCO
-      Inst%IDTMTPA = -1 
-      Inst%IDTMTPO = -1 
-      Inst%IDTLIMO = -1 
-      Inst%IDTSESQ = -1
-      Inst%ExtNrSoa = GetExtNr( HcoState%Config%ExtList, 'MEGAN_SOA')
-      IF ( Inst%ExtNrSoa > 0 ) THEN
-         IF ( Inst%ExtNrMono <= 0 ) THEN
-            MSG = 'MEGAN SOA option only valid with monoterpene!'
-            CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
-            RETURN
-         ENDIF
-
-         ! Verbose
-         IF ( am_I_Root ) THEN
-            MSG = '   - SOA mechanism enabled:' 
-            CALL HCO_MSG(HcoState%Config%Err,MSG )
-         ENDIF
-
-         ! Get HEMCO species IDs of ALPH/LIMO/ALCO 
-         CALL HCO_GetExtHcoID( HcoState, Inst%ExtNrSoa, HcoIDs,
-     &                         SpcNames, nSpc,          RC       )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
-         DO I = 1, nSpc
-            SELECT CASE ( TRIM(SpcNames(I)) )
                CASE( 'MTPA' )
                   Inst%IDTMTPA = HcoIDs(I)
                   WRITE(MSG,*) '     a-,b-pinene    = ',
@@ -4300,6 +4370,18 @@
                   Inst%IDTSESQ = HcoIDs(I)
                   WRITE(MSG,*) '     Sesquiterpenes = ',
      &               TRIM(SpcNames(I)),Inst%IDTSESQ
+               CASE( 'SOAP' )
+                  IF (Inst%IDTSOAP < 0) THEN
+                     Inst%IDTSOAP = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Precursor = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAP
+               CASE( 'SOAS' )
+                  IF (Inst%IDTSOAS < 0) THEN
+                     Inst%IDTSOAS = HcoIDs(I)
+                  END IF
+                  WRITE(MSG,*) '     SOA-Simple = ',
+     &               TRIM(SpcNames(I)),Inst%IDTSOAS
                CASE DEFAULT
                   MSG = 'Invalid species names: ' // TRIM(SpcNames(I))
                   CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -4310,24 +4392,48 @@
             IF ( am_I_Root ) CALL HCO_MSG(HcoState%Config%Err,MSG )
          ENDDO
 
-         ! Check if at least one of the SOA species is defined 
-         IF ( Inst%IDTMTPA < 0 .AND. Inst%IDTMTPO < 0 .AND.  
-     &        Inst%IDTLIMO < 0 .AND. Inst%IDTSESQ < 0        ) THEN
-            MSG = 'MEGAN_SOA option is anabled but none of the '// 
-     &            'SOA species is found (MTPA, MTPO, LIMO, SESQ)!'
+         ! Check if at least one of the Mono species is defined 
+         IF ( Inst%IDTCO   < 0 .AND.
+     &        Inst%IDTMTPA < 0 .AND.
+     &        Inst%IDTMTPO < 0 .AND.  
+     &        Inst%IDTLIMO < 0 .AND.
+     &        Inst%IDTSESQ < 0 .AND.
+     &        Inst%IDTSOAP < 0 .AND. 
+     &        Inst%IDTSOAS < 0  ) THEN
+            MSG = 'MEGAN_MONO option is anabled but none of the '  // 
+     &            'species is found (CO, MTPA, MTPO, LIMO, SESQ, ' //
+     &            'SOAP, SOAS)!'
             CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
             RETURN
          ENDIF
 
-         ! Never calculate OCPI if SOA is turned on!!
-         IF ( Inst%IDTOCPI > 0 ) THEN
-            Inst%IDTOCPI = -1
-            IF ( am_I_Root ) THEN
-               MSG = 'SOA option is turned on - '// 
-     &               'no OCPI emissions will be calculated'
-               CALL HCO_WARNING(HcoState%Config%Err,MSG,RC)
-            ENDIF
+         IF ( am_I_Root ) THEN
+            !convert back to direct mass basis just for show
+            WRITE(MSG,*) ' --> Monoterpene to SOA-Precursor',
+     &       Inst%MONOTOSOAP / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Monoterpene direct to SOA (Simple)',
+     &       Inst%MONOTOSOAS / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Othrterpene to SOA-Precursor',
+     &       Inst%OTHRTOSOAP / 1.134
+            CALL HCO_MSG( MSG )
+            WRITE(MSG,*) ' --> Othrterpene direct to SOA (Simple)',
+     &       Inst%OTHRTOSOAS / 1.134
+            CALL HCO_MSG( MSG )
          ENDIF
+
+      ELSE
+
+         ! CO emissions and acetone emissions will be zero/incomplete!
+         IF ( Inst%IDTACET > 0 ) THEN
+            MSG = 'Cannot fully calculate MEGAN acetone ' //
+     &            'emissions because monoterpene switch is off!'
+            CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
+         ENDIF
+         MSG = 'Will not calculate MEGAN CO emissions ' //
+     &         'because monoterpene switch is off!'
+         CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, ExtNr, 'MEGAN_SUFFIX',  
@@ -4382,6 +4488,14 @@
         RETURN
       ENDIF
       Inst%LAI_PREVDAY = 0.0_sp
+
+      ALLOCATE( Inst%ARRAY_16( NX, NY, 16 ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'ARRAY_16', RC )
+        RETURN
+      ENDIF
+      Inst%ARRAY_16 = 0.0_hp
 
       ! Normalization factor
       ! There should be a different normalization factor for each compound, but
@@ -4462,13 +4576,13 @@
       ENDIF
       Inst%AEF_ACET = 0.0_hp
 
-      ALLOCATE( Inst%AEF_ETOH( NX, NY ), STAT=AS )
+      ALLOCATE( Inst%AEF_EOH( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
          CALL HCO_ERROR( HcoState%Config%Err,
-     &                  'AEF_ETOH', RC )
+     &                  'AEF_EOH', RC )
          RETURN
       ENDIF
-      Inst%AEF_ETOH = 0.0_hp
+      Inst%AEF_EOH = 0.0_hp
 
       ALLOCATE( Inst%AEF_CH2O( NX, NY ), STAT=AS )
       IF ( AS /= 0 ) THEN 
@@ -4533,6 +4647,14 @@
          RETURN
       ENDIF
       Inst%AEF_PRPE = 0.0_hp
+
+      ALLOCATE( Inst%ARRAY_16( NX, NY, 16 ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+         CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'ARRAY_16', RC )
+         RETURN
+      ENDIF
+      Inst%ARRAY_16 = 0.0_hp
 
       ALLOCATE ( Inst%AEF_ISOP ( NX, NY ),
      &           Inst%AEF_MBOX ( NX, NY ),
@@ -4599,8 +4721,8 @@
       ExtState%LAI%DoUse       = .TRUE.
       ExtState%GWETROOT%DoUse  = .TRUE.
 
-      ! SZAFACT field is only used for SOA simulation
-      IF ( Inst%ExtNrSoa > 0 ) THEN
+      ! SZAFACT field is only used for MEGAN Monoterpene simulation
+      IF ( Inst%ExtNrMono > 0 ) THEN
          ExtState%SZAFACT%DoUse = .TRUE.
       ENDIF
 
@@ -4845,6 +4967,7 @@
        IF( ASSOCIATED( Inst%AEF_LIMO  ) ) DEALLOCATE(Inst%AEF_LIMO)
        IF( ASSOCIATED( Inst%AEF_OCIM  ) ) DEALLOCATE(Inst%AEF_OCIM)
        IF( ASSOCIATED( Inst%AEF_SABI  ) ) DEALLOCATE(Inst%AEF_SABI)
+       IF( ASSOCIATED( Inst%ARRAY_16  ) ) DEALLOCATE(Inst%ARRAY_16)
  
        ! Cleanup module arrays
        IF ( ASSOCIATED( Inst%LAI_PREVDAY     ) ) 
@@ -4869,8 +4992,8 @@
      &      DEALLOCATE( Inst%AEF_MOHX        )
        IF ( ASSOCIATED( Inst%AEF_ACET        ) ) 
      &      DEALLOCATE( Inst%AEF_ACET        )
-       IF ( ASSOCIATED( Inst%AEF_ETOH        ) ) 
-     &      DEALLOCATE( Inst%AEF_ETOH        )
+       IF ( ASSOCIATED( Inst%AEF_EOH         ) ) 
+     &      DEALLOCATE( Inst%AEF_EOH         )
        IF ( ASSOCIATED( Inst%AEF_CH2O        ) ) 
      &      DEALLOCATE( Inst%AEF_CH2O        )
        IF ( ASSOCIATED( Inst%AEF_ALD2        ) ) 

@@ -7,7 +7,6 @@
 !
 !  Module Variables:
 !  ============================================================================
-!  (1 ) DO_SAVE_DIAG48 (LOGICAL ) : Switch to turn ND48 timeseries on/off 
 !  (2 ) I0             (INTEGER ) : Lon offset between global & nested grid
 !
 !  Module Routines:
@@ -31,30 +30,30 @@
 !  ND48 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v      ]
-!  151           : OH concentration                         [molec/cm3]
-!  152           : NOy concentration                        [v/v      ]
-!  153           : Relative Humidity                        [%        ]
-!  154           : 3-D Cloud fractions                      [unitless ]
-!  155           : Column optical depths                    [unitless ]
-!  156           : Cloud top heights                        [hPa      ]
-!  157           : Air density                              [molec/cm3]
-!  158           : Total seasalt tracer concentration       [unitless ]
-!  159           : PBL heights                              [m        ]
-!  160           : PBL heights                              [levels   ]
-!  161           : Grid box heights                         [m        ]
-!  162           : PEDGE-$ (Pressure @ level edges)         [hPa      ]
+!  501           : OH concentration                         [molec/cm3]
+!  502           : NOy concentration                        [v/v      ]
+!  503           : Relative Humidity                        [%        ]
+!  504           : 3-D Cloud fractions                      [unitless ]
+!  505           : Column optical depths                    [unitless ]
+!  506           : Cloud top heights                        [hPa      ]
+!  507           : Air density                              [molec/cm3]
+!  508           : Total seasalt tracer concentration       [unitless ]
+!  509           : PBL heights                              [m        ]
+!  510           : PBL heights                              [levels   ]
+!  511           : Grid box heights                         [m        ]
+!  512           : PEDGE-$ (Pressure @ level edges)         [hPa      ]
 !                  (lower edge, moist air pressure) 
-!  163           : Sea level pressure                       [hPa      ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s      ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s      ]
-!  166           : Temperature                              [K        ]
-!  167           : Sulfate aerosol optical depth            [unitless ]
-!  168           : Black carbon aerosol optical depth       [unitless ]
-!  169           : Organic carbon aerosol optical depth     [unitless ]
-!  170           : Accumulation mode seasalt optical depth  [unitless ]
-!  171           : Coarse mode seasalt optical depth        [unitless ]
-!  172           : Total dust optical depth                 [unitless ]
-!  173-179       : Size resolved dust optical depth         [unitless ]
+!  513           : Sea level pressure                       [hPa      ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s      ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s      ]
+!  516           : Temperature                              [K        ]
+!  517           : Sulfate aerosol optical depth            [unitless ]
+!  518           : Black carbon aerosol optical depth       [unitless ]
+!  519           : Organic carbon aerosol optical depth     [unitless ]
+!  520           : Accumulation mode seasalt optical depth  [unitless ]
+!  521           : Coarse mode seasalt optical depth        [unitless ]
+!  522           : Total dust optical depth                 [unitless ]
+!  523-529       : Size resolved dust optical depth         [unitless ]
 !  
 !  NOTES:
 !  (1 ) Now save out cld frac and grid box heights (bmy, 4/20/05)
@@ -96,10 +95,6 @@
       ! Make everything PRIVATE ...
       PRIVATE
  
-      ! ... except these variables ...
-      PUBLIC :: DO_SAVE_DIAG48
-      PUBLIC :: ND48_MAX_STATIONS
-
       ! ... and these routines
       PUBLIC :: CLEANUP_DIAG48
       PUBLIC :: DIAG48
@@ -109,12 +104,8 @@
       !=================================================================
       ! MODULE VARIABLES 
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Scalars
-      LOGICAL              :: DO_SAVE_DIAG48
-      INTEGER, PARAMETER   :: ND48_MAX_STATIONS=1000
-      INTEGER              :: ND48_FREQ
-      INTEGER              :: ND48_N_STATIONS
       INTEGER              :: HALFPOLAR
       INTEGER, PARAMETER   :: CENTER180=1 
       REAL*4               :: LONRES
@@ -122,7 +113,6 @@
       CHARACTER(LEN=20)    :: MODELNAME
       CHARACTER(LEN=40)    :: RESERVED = 'ND48 station timeseries'
       CHARACTER(LEN=80)    :: TITLE
-      CHARACTER(LEN=255)   :: ND48_OUTPUT_FILE
 
       ! LUN for ND48 diagnostic file
       INTEGER              :: IU_ND48
@@ -134,9 +124,10 @@
       INTEGER, ALLOCATABLE :: ND48_N(:)
 
       INTEGER              :: id_HNO3, id_N2O5, id_HNO4, id_NO
-      INTEGER              :: id_PAN,  id_PMN,  id_PPN,  id_O3
+      INTEGER              :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER              :: id_R4N2, id_SALA, id_SALC, id_NO2
-
+      INTEGER              :: id_IPMN, id_OH
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -186,21 +177,24 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE BPCH2_MOD,          ONLY : BPCH2
-      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
-      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE State_Chm_Mod,      ONLY : ChmState,           Ind_
       USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE BPCH2_MOD,          ONLY : BPCH2
+      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
+      USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
+      USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
+!      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
+      USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
+      USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS,           GET_TAU
       USE TIME_MOD,           ONLY : EXPAND_DATE,        ITS_A_NEW_DAY
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -218,6 +212,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       LOGICAL, SAVE      :: IS_CLDTOPS,  IS_OPTD, IS_SEASALT, IS_SLP
       LOGICAL, SAVE      :: IS_FULLCHEM, IS_NOy
       LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -238,13 +233,15 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
-
+#endif
       !=================================================================
       ! DIAG48 begins here!
       !=================================================================
 
       ! Assume success
       RC            =  GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Number of advected species
       nAdvect       = State_Chm%nAdvect
@@ -270,13 +267,15 @@
          id_HNO4 = Ind_('HNO4')
          id_NO   = Ind_('NO'  )
          id_PAN  = Ind_('PAN' )
-         id_PMN  = Ind_('PMN' )
+         id_NPMN = Ind_('NPMN')
+         id_IPMN = Ind_('IPMN')
          id_PPN  = Ind_('PPN' )
          id_O3   = Ind_('O3'  )
          id_R4N2 = Ind_('R4N2')
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
+         id_OH   = Ind_('OH'  )
 
          ! Set logical flags on first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
@@ -286,16 +285,17 @@
          IS_SEASALT  = ( id_SALA > 0 .and. id_SALC > 0 )
          IS_NOy      = ( IS_FULLCHEM .and. id_NO   > 0 .and.
      &                   id_NO2  > 0 .and. id_PAN  > 0 .and.
-     &                   id_HNO3 > 0 .and. id_PMN  > 0 .and.
+     &                   id_HNO3 > 0 .and. id_NPMN > 0 .and.
      &                   id_PPN  > 0 .and. id_R4N2 > 0 .and.
-     &                   id_N2O5 > 0 .and. id_HNO4 > 0 ) 
+     &                   id_N2O5 > 0 .and. id_HNO4 > 0 .and.
+     &                   id_IPMN > 0 ) 
 
          ! Replace YYYYMMDD tokens in filename
-         FILENAME = TRIM( ND48_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND48_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          IF ( DO_DIAG_WRITE ) THEN
-
+           
             ! Open file for writing
             CALL OPEN_ND48_FILE( FILENAME )
 
@@ -323,7 +323,7 @@
       ENDIF
 
       ! Loop over each station
-      DO W = 1, ND48_N_STATIONS
+      DO W = 1, Input_Opt%ND48_N_STA
 
          ! Get lon, lat, alt, tracer indices
          I = ND48_I(W)             
@@ -351,20 +351,22 @@
      &                State_Chm%SpcData(N)%Info%emMW_g )
             ENDDO
 
-         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+! NOTE: Restore this when we figure out what the right unit conversion is
+! This can be replaced by the netCDF diagnostic (bmy, 11/20/17)
+!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!            !-------------------------------------
+!            ! OH CONCENTRATION [molec/cm3]
+!            !-------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm3'
+!            GMTRC    = 1
+!
+!            DO L = 1, K
+!               Q(L) = SAVEOH(I,J,L)
+!            ENDDO
 
-            !-------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !-------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMTRC    = 1
-
-            DO L = 1, K
-               Q(L) = SAVEOH(I,J,L)
-            ENDDO
-
-         ELSE IF ( N == 152 .and. IS_NOy ) THEN
+         ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
             !-------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -398,10 +400,15 @@
      &                 / State_Chm%SpcData(id_HNO3)%Info%emMW_g )       
      &                         * SPC(I,J,L,id_HNO3) )
             
-               ! PMN
+               ! NPMN
                Q(L) = Q(L) + ( ( AIRMW 
-     &                 / State_Chm%SpcData(id_PMN)%Info%emMW_g )        
-     &                         * SPC(I,J,L,id_PMN) )
+     &                 / State_Chm%SpcData(id_NPMN)%Info%emMW_g )        
+     &                         * SPC(I,J,L,id_NPMN) )
+
+               ! IPMN
+               Q(L) = Q(L) + ( ( AIRMW 
+     &                 / State_Chm%SpcData(id_IPMN)%Info%emMW_g )        
+     &                         * SPC(I,J,L,id_IPMN) )
 
                ! PPN
                Q(L) = Q(L) + ( ( AIRMW 
@@ -424,7 +431,7 @@
      &                         * SPC(I,J,L,id_HNO4) )
             ENDDO
 
-         ELSE IF ( N == 153 ) THEN 
+         ELSE IF ( N == 503 ) THEN 
 
             !-------------------------------------
             ! RELATIVE HUMIDITY [%]
@@ -437,7 +444,7 @@
                Q(L) = State_Met%RH(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 154 ) THEN
+         ELSE IF ( N == 504 ) THEN
 
             !-------------------------------------
             ! 3-D CLOUD FRACTIONS [unitless]
@@ -450,7 +457,7 @@
                Q(L) = State_Met%CLDF(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 155 .and. IS_OPTD ) THEN
+         ELSE IF ( N == 505 .and. IS_OPTD ) THEN
             
             !-------------------------------------
             ! COLUMN OPTICAL DEPTHS [unitless]
@@ -461,7 +468,7 @@
 
             Q(1) = SUM( State_Met%OPTD(I,J,:) )
 
-         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN
+         ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN
 
             !-------------------------------------
             ! CLOUD TOP HEIGHTS [hPa]
@@ -474,7 +481,7 @@
                Q(1) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDIF
 
-         ELSE IF ( N == 157 ) THEN 
+         ELSE IF ( N == 507 ) THEN 
 
             !-------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -487,7 +494,7 @@
                Q(L) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1e-6_fp
             ENDDO
 
-         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+         ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
 
             !-------------------------------------
             ! TOTAL SEASALT TRACER [v/v]
@@ -501,7 +508,7 @@
      &                  (AIRMW / State_Chm%SpcData(id_SALA)%Info%emMW_g)
             ENDDO
 
-         ELSE IF ( N == 159 ) THEN
+         ELSE IF ( N == 509 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [m] 
@@ -514,7 +521,7 @@
                Q(1) = GET_PBL_TOP_m( I, J )
             ENDIF
                
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !-------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -527,7 +534,7 @@
                Q(1) = GET_PBL_TOP_L( I, J )
             ENDIF
 
-         ELSE IF ( N == 161 ) THEN 
+         ELSE IF ( N == 511 ) THEN 
 
             !-------------------------------------
             ! GRID BOX HEIGHT [m]
@@ -540,7 +547,7 @@
                Q(L) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 162 ) THEN
+         ELSE IF ( N == 512 ) THEN
 
             !-------------------------------------
             ! PEDGE-$ [hPa]
@@ -553,7 +560,7 @@
                Q(L) = State_Met%PEDGE( I, J, L )
             ENDDO
 
-         ELSE IF ( N == 163 .and. IS_SLP ) THEN
+         ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
             !-------------------------------------
             ! SEA LEVEL PRESSURE [hPa]
@@ -566,7 +573,7 @@
                Q(1) = State_Met%SLP(I,J)
             ENDIF
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !-------------------------------------
             ! ZONAL (U) WIND [m/s]
@@ -579,7 +586,7 @@
                Q(L) = State_Met%U(I,J,L)
             ENDDO
             
-         ELSE IF ( N == 165 ) THEN 
+         ELSE IF ( N == 515 ) THEN 
 
             !-------------------------------------
             ! MERIDIONAL (V) WIND [m/s]
@@ -592,7 +599,7 @@
                Q(L) = State_Met%V(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 166 ) THEN
+         ELSE IF ( N == 516 ) THEN
 
             !-------------------------------------
             ! TEMPERATURE [K]
@@ -605,7 +612,7 @@
                Q(L) = State_Met%T(I,J,L)
             ENDDO
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !-------------------------------------
             ! SULFATE AOD [unitless]
@@ -637,7 +644,7 @@
                ENDDO
             ENDIF
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !-------------------------------------
             ! BLACK CARBON AOD [unitless]
@@ -669,7 +676,7 @@
                ENDDO
             ENDIF
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !-------------------------------------
             ! ORGANIC CARBON AOD [unitless]
@@ -701,7 +708,7 @@
                ENDDO
             ENDIF
 
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
             
             !-------------------------------------
             ! ACCUM SEASALT AOD [unitless]
@@ -733,7 +740,7 @@
                ENDDO
             ENDIF
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !-------------------------------------
             ! COARSE SEASALT AOD [unitless]
@@ -765,7 +772,7 @@
                ENDDO
             ENDIF
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !-------------------------------------
             ! TOTAL DUST OPT DEPTH [unitless]
@@ -800,7 +807,7 @@
 
             ENDDO
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !-------------------------------------
             ! DUST BINS 1-7 OPT DEPTH [unitless]
@@ -808,9 +815,9 @@
             !-------------------------------------
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
-            GMTRC     = 21+(N-173)
+            GMTRC     = 21+(N-523)
 
-            R = N - 172
+            R = N - 522
 
             IF ( .not. LINTERP ) THEN
                DO L = 1, K
@@ -881,6 +888,7 @@
 
       ! Free pointers
       Spc => NULL()
+#endif
 
       END SUBROUTINE DIAG48
 
@@ -899,11 +907,15 @@
 !  NOTES:
 !******************************************************************************
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! References to F90 modules
       USE FILE_MOD, ONLY : IOERROR
+#endif
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: FILENAME
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Local variables
       INTEGER                      :: IOS
@@ -940,13 +952,14 @@
       ! Write top title
       WRITE ( IU_ND48, IOSTAT=IOS ) TITLE
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_ND48, 'open_nd48_file:3' )
+#endif
 
       ! Return to calling program
       END SUBROUTINE OPEN_ND48_FILE
 
 !------------------------------------------------------------------------------
 
-      FUNCTION ITS_TIME_FOR_DIAG48() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_DIAG48( Input_Opt ) RESULT( ITS_TIME )
 !
 !******************************************************************************
 !  Function ITS_TIME_FOR_DIAG48 returns TRUE if it's time for the next
@@ -958,26 +971,38 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN, GET_TS_DIAG
+      USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC, GET_TS_DIAG
+#endif
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
+!
+! !RETURN VALUE:
+!
+      LOGICAL :: ITS_TIME
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Local variables
-      LOGICAL :: ITS_TIME
-      INTEGER :: XMIN, TS_DIAG
+      INTEGER :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! ITS_TIME_FOR_DIAG48 begins here!
       !=================================================================
       
-      IF ( DO_SAVE_DIAG48 ) THEN
-         
+      IF ( Input_Opt%DO_ND48 ) THEN
+
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
 
             ! Check if ND48_FREQ is a multiple of TS_DIAG
-            IF ( MOD( ND48_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND48', ND48_FREQ, TS_DIAG
+            IF ( MOD( Input_Opt%ND48_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND48', Input_Opt%ND48_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -985,37 +1010,27 @@
             FIRST = .FALSE.
          ENDIF
       
-         ! Get elapsed minutes
-         XMIN     = GET_ELAPSED_MIN()
+         ! Get elapsed seconds
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is it time to save the next timeseries station?
-         ITS_TIME = ( DO_SAVE_DIAG48 .and. MOD( XMIN, ND48_FREQ ) == 0 )
+         ITS_TIME = ( Input_Opt%DO_ND48 .and.
+     &                MOD( XSEC, Input_Opt%ND48_FREQ ) == 0 )
       ELSE
-         ITS_TIME = DO_SAVE_DIAG48
+         ITS_TIME = Input_Opt%DO_ND48
       ENDIF
+#endif
 
       ! Return to calling program
       END FUNCTION ITS_TIME_FOR_DIAG48
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_DIAG48( DO_ND48, FREQ, N_STA, IARR, 
-     &                        JARR,    LARR, NARR,  FILE )
+      SUBROUTINE INIT_DIAG48( am_I_Root, Input_Opt, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_DIAG48 allocates and zeroes all module arrays (bmy, 7/20/04)
 !
-!  Arguments as Input:
-!  ============================================================================
-!  (1 ) DO_ND48 (LOGICAL ) : Switch to turn on ND49 timeseries diagnostic
-!  (2 ) FREQ    (INTEGER ) : Frequency for saving to disk [min]
-!  (3 ) N_STA   (INTEGER ) : Number of ND48 stations from "input_mod.f"
-!  (4 ) IARR    (INTEGER ) : Array w/ ND48 lon    indices from "input_mod.f"
-!  (5 ) JARR    (INTEGER ) : Array w/ ND48 lat    indices from "input_mod.f"
-!  (6 ) LARR    (INTEGER ) : Array w/ ND48 alt    indices from "input_mod.f"
-!  (7 ) NARR    (INTEGER ) : Array w/ ND48 tracer indices from "input_mod.f"
-!  (8 ) FILE    (CHAR*255) : ND48 output file name read by "input_mod.f"
-! 
 !  NOTES:
 !  (1 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
@@ -1024,89 +1039,91 @@
 !******************************************************************************
 !
       ! References to F90 modules
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,         ONLY : OptInput
+      USE State_Chm_Mod,         ONLY : Ind_
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
-      USE State_Chm_Mod,         ONLY : Ind_
+#endif
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 
-
-      ! Arguments
-      LOGICAL,            INTENT(IN) :: DO_ND48
-      INTEGER,            INTENT(IN) :: FREQ
-      INTEGER,            INTENT(IN) :: N_STA
-      INTEGER,            INTENT(IN) :: IARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: JARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: LARR(ND48_MAX_STATIONS)
-      INTEGER,            INTENT(IN) :: NARR(ND48_MAX_STATIONS)
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Local variables
-      INTEGER                        :: AS, N
-      CHARACTER(LEN=255)             :: LOCATION
+      INTEGER                     :: AS, N
+      CHARACTER(LEN=255)          :: LOCATION
+#endif
 
       !=================================================================
       ! INIT_DIAG48 begins here!
       !=================================================================
+      
+      ! Assume success
+      RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'
 
-      !-----------------------------
-      ! Get values from input_mod.f
-      !-----------------------------
-      DO_SAVE_DIAG48   = DO_ND48
-      ND48_FREQ        = FREQ
-      ND48_N_STATIONS  = N_STA
-      ND48_OUTPUT_FILE = TRIM( FILE )
-
-      ! Error check
-      IF ( ND48_N_STATIONS > ND48_MAX_STATIONS ) THEN
-         CALL ERROR_STOP( 'Too many ND48 stations!', LOCATION )
-      ENDIF
+      ! Return if we are not saving ND48 diagnostics
+      IF ( .not. Input_Opt%DO_ND48 ) RETURN
 
       !------------------------------
       ! Allocate module arrays
       !------------------------------
-      ALLOCATE( ND48_I( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_I( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_I' )
 
-      ALLOCATE( ND48_J( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_J( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_J' )
 
-      ALLOCATE( ND48_L( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_L( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_L' )
 
-      ALLOCATE( ND48_N( ND48_N_STATIONS ), STAT=AS )
+      ALLOCATE( ND48_N( Input_Opt%ND48_N_STA ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'ND48_N' )
 
       !-------------------------------
       ! Copy values & error check
       !-------------------------------
-      DO N = 1, ND48_N_STATIONS
+      DO N = 1, Input_Opt%ND48_N_STA
 
          ! Error check longitude
-         IF ( IARR(N) < 1 .or. IARR(N) > IIPAR ) THEN
+         IF ( Input_Opt%ND48_IARR(N) < 1       .or.
+     &        Input_Opt%ND48_IARR(N) > IIPAR ) THEN
             CALL ERROR_STOP( 'Bad longitude index!', LOCATION )
          ELSE
-            ND48_I(N) = IARR(N)
+            ND48_I(N) = Input_Opt%ND48_IARR(N)
          ENDIF
 
          ! Error check latitude
-         IF ( JARR(N) < 1 .or. JARR(N) > JJPAR ) THEN
+         IF ( Input_Opt%ND48_JARR(N) < 1       .or.
+     &        Input_Opt%ND48_JARR(N) > JJPAR ) THEN
             CALL ERROR_STOP( 'Bad latitude index!', LOCATION )
          ELSE
-            ND48_J(N) = JARR(N)
+            ND48_J(N) = Input_Opt%ND48_JARR(N)
          ENDIF
 
          ! Error check longitude
-         IF ( LARR(N) < 1 .or. LARR(N) > LLPAR ) THEN
+         IF ( Input_Opt%ND48_LARR(N) < 1       .or.
+     &        Input_Opt%ND48_LARR(N) > LLPAR ) THEN
             CALL ERROR_STOP( 'Bad altitude index!', LOCATION )
          ELSE
-            ND48_L(N) = LARR(N)
+            ND48_L(N) = Input_Opt%ND48_LARR(N)
          ENDIF
 
          ! Tracer array
-         ND48_N(N) = NARR(N)
+         ND48_N(N) = Input_Opt%ND48_NARR(N)
       ENDDO
 
       !-------------------------------
@@ -1116,13 +1133,14 @@
       LATRES    = DJSIZE
       MODELNAME = GET_MODELNAME()
       HALFPOLAR = GET_HALFPOLAR()
+#endif
 
       ! Return to calling program
       END SUBROUTINE INIT_DIAG48
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CLEANUP_DIAG48
+      SUBROUTINE CLEANUP_DIAG48()
 !
 !******************************************************************************
 !  Subroutine CLEANUP_DIAG48 deallocates all module arrays (bmy, 7/20/04)
@@ -1130,6 +1148,7 @@
 !  NOTES:
 !******************************************************************************
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! CLEANUP_DIAG48 begins here!
       !=================================================================
@@ -1137,6 +1156,7 @@
       IF ( ALLOCATED( ND48_J ) ) DEALLOCATE( ND48_J )
       IF ( ALLOCATED( ND48_L ) ) DEALLOCATE( ND48_L )
       IF ( ALLOCATED( ND48_N ) ) DEALLOCATE( ND48_N )
+#endif
 
       ! Return to calling program
       END SUBROUTINE CLEANUP_DIAG48

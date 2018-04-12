@@ -296,7 +296,8 @@ C (10) S    : VALUES AT POINTS IN SURFACE AREA DIMENSION
         RC       = GC_SUCCESS
 
         ! Data directory path in shared disk space where files live
-        DATA_DIR = TRIM( Input_Opt%DATA_DIR_1x1 ) // 'TOMAS_201402/'
+        DATA_DIR = TRIM( Input_Opt%DATA_DIR ) //
+     &             'GEOS_NATIVE/TOMAS_201402/'
 
         WRITE(6,*) "Read IMN look-up tables"
 

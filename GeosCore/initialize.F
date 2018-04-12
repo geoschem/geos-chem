@@ -22,12 +22,13 @@
 !
       ! Modules from Headers subdirectory
       USE CMN_SIZE_MOD          
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE PRECISION_MOD
 
       ! Modules from GeosCore subdirectory
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD
       USE DIAG03_MOD
       USE DIAG04_MOD
@@ -35,6 +36,8 @@
       USE DIAG42_MOD
       USE DIAG53_MOD
       USE DIAG56_MOD
+#endif
+
       USE ERROR_MOD
       USE TIME_MOD
 
@@ -152,6 +155,7 @@
       !=================================================================
       ! INITIALIZE begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Error condition if IFLAG does not equal 2, or 3!
       IF ( IFLAG < 2 .or. IFLAG > 3 ) THEN
@@ -165,10 +169,8 @@
 
          ! Allocatable arrays are zeroed only if their
          ! respective diagnostics are turned on (bmy, 2/17/00)
-#if defined( BPCH_DIAG )
          IF ( ND01 > 0 ) AD01     = 0e0
          IF ( ND02 > 0 ) AD02     = 0e0
-#endif
          IF ( ND05 > 0 ) AD05     = 0e0
          IF ( ND12 > 0 ) AD12     = 0e0
          IF ( ND14 > 0 ) CONVFLUP = 0e+0_fp
@@ -178,43 +180,40 @@
          IF ( ND18 > 0 ) AD18     = 0e0         
          IF ( ND19 > 0 ) AD19     = 0e0
          IF ( ND22 > 0 ) AD22     = 0e0
-#if defined( BPCH_DIAG )
          IF ( ND24 > 0 ) MASSFLEW = 0e+0_fp  ! netcdf TRANSPORT diag group
          IF ( ND25 > 0 ) MASSFLNS = 0e+0_fp  ! netcdf TRANSPORT diag group
          IF ( ND26 > 0 ) MASSFLUP = 0e+0_fp  ! netcdf TRANSPORT diag group
          IF ( ND30 > 0 ) AD30     = 0e0      ! netcdf LANDMAP (remove?)
          IF ( ND31 > 0 ) AD31     = 0e0      ! netcdf MET diag group
-#endif
          IF ( ND33 > 0 ) AD33     = 0e0
          IF ( ND35 > 0 ) AD35     = 0e0
          IF ( ND37 > 0 ) AD37     = 0e0
-#if defined( BPCH_DIAG )
          IF ( ND38 > 0 ) AD38     = 0e0      ! netcdf WETSCAV diag group
          IF ( ND39 > 0 ) AD39     = 0e0      ! netcdf WETSCAV diag group
-#endif
          IF ( ND43 > 0 ) AD43     = 0e0
-#if defined( BPCH_DIAG )
          IF ( ND44 > 0 ) AD44     = 0e0      ! netcdf DRYDEP diag group
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!         IF ( ND44 > 0 ) AD44b    = 0e0
+!         IF ( ND44 > 0 ) AD_RA    = 0e0
+!         IF ( ND44 > 0 ) AD_ZL    = 0e0
+!------------------------------------------------------------------------------
          IF ( ND45 > 0 ) AD45     = 0e0      ! netcdf TRACER diag group
-#endif
          IF ( ND47 > 0 ) AD47     = 0e0
          IF ( ND52 > 0 ) AD52     = 0e0
          IF ( ND54 > 0 ) AD54     = 0e0
-#if defined( BPCH_DIAG )
          IF ( ND55 > 0 ) AD55     = 0e0      ! netcdf MET diag group
          IF ( ND57 > 0 ) AD57     = 0e0      ! netcdf MET diag group
-#endif
          IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND65 > 0 ) AD65     = 0e0
-#if defined( BPCH_DIAG )
          IF ( ND66 > 0 ) AD66     = 0e0      ! netcdf MET diag group
          IF ( ND67 > 0 ) AD67     = 0e0      ! netcdf MET diag group
          IF ( ND68 > 0 ) AD68     = 0e0      ! netcdf MET diag group
          IF ( ND69 > 0 ) AD69     = 0e0      ! netcdf MET diag group
-#endif
          IF ( ND72 > 0 ) AD72     = 0e0
+         IF ( ND73 > 0 ) AD73     = 0e0
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN
@@ -247,7 +246,6 @@
             AD07_BC    = 0e0
             AD07_OC    = 0e0
             AD07_HC    = 0e0
-            AD07_SOAGM = 0e0
          ENDIF
 
          ! ND09 -- HCN & CH3CN simulation (xyp, bmy, 6/27/05)
@@ -259,7 +257,6 @@
          ! ND21 -- optical depths
          IF ( ND21 > 0 ) THEN
             AD21 = 0e0
-            IF ( Input_Opt%LCRYST ) AD21_cr = 0e0
          ENDIF
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
@@ -318,14 +315,12 @@
          ! Now reset timesteps here for now 
          CALL SET_CT_A1(   RESET=.TRUE. )
          CALL SET_CT_A3(   RESET=.TRUE. )
-         CALL SET_CT_A6(   RESET=.TRUE. )
          CALL SET_CT_CHEM( RESET=.TRUE. )
          CALL SET_CT_RAD ( RESET=.TRUE. )
          CALL SET_CT_CONV( RESET=.TRUE. )
          CALL SET_CT_DYN(  RESET=.TRUE. )
          CALL SET_CT_EMIS( RESET=.TRUE. )
          CALL SET_CT_I3(   RESET=.TRUE. )
-         CALL SET_CT_I6(   RESET=.TRUE. )
          CALL SET_CT_XTRA( RESET=.TRUE. )
          CALL SET_CT_DIAG( RESET=.TRUE. )
 
@@ -340,20 +335,9 @@
          IF ( ND43 >               0 ) CTOH       = 0
          IF ( ND43 >               0 ) CTO1D      = 0
          IF ( ND43 >               0 ) CTO3P      = 0
-#if defined( BPCH_DIAG )
          IF ( ND45 >               0 ) CTOTH      = 0
-#endif
          IF ( ND47 > 0 .OR. ND65 > 0 ) CTO3_24h   = 0
          IF ( ND43 >               0 ) CTHO2      = 0
-         ! update for arom (dkh, 06/21/07)  
-         IF ( ND43 > 0 ) THEN
-            IF ( ALLOCATED( CTLBRO2H ) ) CTLBRO2H   = 0
-            IF ( ALLOCATED( CTLBRO2N ) ) CTLBRO2N   = 0
-            IF ( ALLOCATED( CTLTRO2H ) ) CTLTRO2H   = 0
-            IF ( ALLOCATED( CTLTRO2N ) ) CTLTRO2N   = 0
-            IF ( ALLOCATED( CTLXRO2H ) ) CTLXRO2H   = 0
-            IF ( ALLOCATED( CTLXRO2N ) ) CTLXRO2N   = 0
-         ENDIF
 
          ! Daily max mean hourly surface v/v
          IF ( ND71 > 0 ) THEN
@@ -371,6 +355,7 @@
             WRITE( 6, '(a)' ) '     - INITIALIZE: Diag counters zeroed!'
          ENDIF
       ENDIF
+#endif
 
       END SUBROUTINE INITIALIZE
 !EOC

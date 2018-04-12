@@ -111,6 +111,7 @@ CONTAINS
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Init
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
+    USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Init
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Init
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Init  
@@ -200,7 +201,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #if defined( TOMAS )
     CALL HCOX_TOMAS_DustDead_Init( amIRoot, HcoState, 'TOMAS_DustDead', &
-    	 		     	      ExtState,  RC )
+                   ExtState,  RC )
     IF ( RC /= HCO_SUCCESS ) RETURN 
 #endif 
     !-----------------------------------------------------------------------
@@ -260,6 +261,13 @@ CONTAINS
     !-----------------------------------------------------------------------
     CALL HCOX_AeroCom_Init( amIRoot,  HcoState, 'AeroCom_Volcano', &
                             ExtState,  RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    !-----------------------------------------------------------------------
+    ! Ocean inorganic iodine emissions
+    !-----------------------------------------------------------------------
+    CALL HCOX_Iodine_Init( amIRoot,  HcoState, 'Inorg_Iodine', &
+                           ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
 #if defined( TOMAS )
@@ -334,6 +342,7 @@ CONTAINS
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
+    USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Run
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Run
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Run
@@ -437,7 +446,7 @@ CONTAINS
     ENDIF
 
 #if defined( TOMAS )
-    IF ( ExtState%TOMAS_DustDead ) THEN
+    IF ( ExtState%TOMAS_DustDead > 0) THEN
        !print*, 'JACK TOMAS_DustDead is on'
        CALL HCOX_TOMAS_DustDead_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
@@ -526,6 +535,14 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! Ocean inorganic iodine emissions 
+    !-----------------------------------------------------------------------
+    IF ( ExtState%Inorg_Iodine ) THEN
+       CALL HCOX_Iodine_Run( amIRoot, ExtState, HcoState, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+    ENDIF
+
     !-----------------------------------------------------------------
     ! Add extensions here ...
     !-----------------------------------------------------------------
@@ -578,6 +595,7 @@ CONTAINS
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
     USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
+    USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Final
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Final
     USE HCOX_TOMAS_DustDead_Mod, ONLY : HCOX_TOMAS_DustDead_Final
@@ -624,7 +642,7 @@ CONTAINS
        IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
        IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
-       IF ( ExtState%TOMAS_DustDead )  CALL HCOX_TOMAS_DustDead_Final(ExtState)
+       IF ( ExtState%TOMAS_DustDead > 0)  CALL HCOX_TOMAS_DustDead_Final(ExtState)
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
        IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
@@ -636,6 +654,7 @@ CONTAINS
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
        IF ( ExtState%Wetland_CH4>0 ) CALL HCOX_CH4Wetland_Final( ExtState )
        IF ( ExtState%AeroCom > 0   ) CALL HCOX_AeroCom_Final( ExtState )
+       IF ( ExtState%Inorg_Iodine  ) CALL HCOX_Iodine_Final()
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_Jeagle  ) CALL HCOX_TOMAS_Jeagle_Final()
 #endif       

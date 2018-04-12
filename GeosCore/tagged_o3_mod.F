@@ -128,6 +128,10 @@
 
       ! Species ID flags
       INTEGER                      :: id_O3Strat
+
+      ! Diagnostic flags
+      LOGICAL                      :: Archive_Loss
+      LOGICAL                      :: Archive_Prod
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -174,13 +178,14 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
       USE CMN_SIZE_MOD             ! Size parameters
       USE GC_GRID_MOD,        ONLY : GET_XMID,  GET_YMID
       USE PhysConstants            ! SCALE_HEIGHT
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND44, ND65, LD65
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -241,7 +246,7 @@
       PP(I,J,L,:) = 0e+0_fp
       
       ! IS TROP is TRUE if we are in the troposphere
-      ITS_IN_TROP = ITS_IN_THE_TROP( I, J, L, State_Met )
+      ITS_IN_TROP = State_Met%InTroposphere(I,J,L)
       
       ! Skip stratospheric boxes
       IF ( .not. ITS_IN_TROP ) RETURN
@@ -252,13 +257,8 @@
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa
-#if   defined( GEOS_4 )
-      PBLTOP = 5
-      MTTOP  = 10
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       PBLTOP = 16
       MTTOP  = 27
-#endif
 
 #if defined( USE_ALL_TAGO3_SPECIES )
 
@@ -296,7 +296,7 @@
 
       ! P(O3) [kg]
       ! P24H is in kg/m3 per emission time step (ckeller, 9/17/2014).
-      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()*60e+0_fp/TS_EMIS )
+      PPROD = P24H(I,J,L) * BOXVL * ( GET_TS_CHEM()/TS_EMIS )
 
       !-----------------------
       ! #1: Total P(O3)
@@ -385,15 +385,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_TAGGED_O3( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
-      USE DIAG_MOD,           ONLY : AD65
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -401,8 +398,13 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,           ONLY : AD65
+#endif
 
       IMPLICIT NONE
 !
@@ -415,6 +417,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -462,6 +465,7 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -498,7 +502,12 @@
       Spc       => State_Chm%Species   ! Points to chemical species [kg]
 
       ! Chemistry timestep [s]
-      DTCHEM    =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM    =  GET_TS_CHEM()
+
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
 
       !=================================================================
       ! Get production and loss frequencies from HEMCO. The target
@@ -582,14 +591,17 @@
             ENDIF
             
             ! L(O3) is now in [1/m3] (ckeller, 9/17/2014)
-            IF ( ITS_IN_THE_TROP( I, J, L, State_Met ) ) THEN
+            IF ( State_Met%InTroposphere(I,J,L) ) THEN
                LL = Spc(I,J,L,N) * L24H(I,J,L) * BOXVL * DT
             ELSE
                LL = 0.0e+0_fp
             ENDIF 
 
+#if defined( BPCH_DIAG )
             !===========================================================
-            ! ND65 diagnostic: Chemical prod/loss [kg/s]
+            ! ND65 (bpch) diagnostic
+            !
+            ! Chemical production and loss of tagged O3 species
             !===========================================================
             IF ( ND65 > 0 ) THEN
 
@@ -605,6 +617,29 @@
                AD65(I,J,L,nAdvect+N) = AD65(I,J,L,nAdvect+N) + PL
 
             ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !===========================================================
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Chemical production and loss of tagged O3 species
+            !===========================================================
+
+            ! Production of tagged O3 species [kg/s]
+            IF ( Archive_Prod ) THEN
+               IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
+                  State_Diag%Prod(I,J,L,N) = P24H(I,J,L) 
+     &                                     * BOXVL / TS_EMIS
+               ENDIF
+            ENDIF
+
+            ! Loss of tagged O3 species [kg/s]
+            IF ( Archive_Loss ) THEN
+               State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) 
+     &                                  * BOXVL        / TS_EMIS
+            ENDIF
+#endif
 
             !===========================================================
             ! Apply chemical P(O3) - L(O3) to each tagged species
@@ -634,24 +669,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_TAGGED_O3( am_I_Root, Input_Opt, 
+     &                           State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -671,36 +707,47 @@
 !  20 Jun 2016 - R. Yantosca - Now define species ID's in the init phase
 !  20 Jun 2016 - R. Yantosca - Add check to prevent array OOB errors
 !  21 Jun 2016 - R. Yantosca - Rename IDTO3Strt to id_O3Strat
+!  05 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_TAGGED_O3 begins here
       !=================================================================
 
       ! Assume success
-      RC = GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &     ' -> at Init_Tagged_O3 (in module GeosCore/tagged_o3_mod.F)'
 
       ! Define species ID flag
       id_O3Strat = Ind_('O3Strat')
 
       ! Add error check to make sure O3Strt is defined (bmy, 6/20/16)
       IF ( id_O3Strat <= 0 ) THEN
-         CALL ERROR_STOP( 'O3Strat is an undefined species!', 
-     &                    'INIT_TAGGED_O3 (tagged_o3_mod.f)' )
+         ErrMsg = 'O3Strat is an undefined species!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
 
       ! Safety valve
       IF ( State_Chm%nAdvect > N_TAGGED ) THEN
-         CALL ERROR_STOP( 'nAdvected is too large for Tagged O3!', 
-     &                    'INIT_TAGGED_O3 (tagged_o3_mod.f)' )
+         ErrMsg = 'State_Chm%nAdvect is too large for Tagged O3!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
+
+      ! Test if netCDF diagnostics have been activated
+      Archive_Loss = ASSOCIATED( State_Diag%Loss )
+      Archive_Prod = ASSOCIATED( State_Diag%Prod )
 
       END SUBROUTINE INIT_TAGGED_O3
 !EOC

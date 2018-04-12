@@ -97,6 +97,8 @@ MODULE HCOX_SeaFlux_Mod
 !  01 Jul 2014 - R. Yantosca - Cosmetic changes in ProTeX headers
 !  06 Nov 2015 - C. Keller   - Now use land type definitions instead of FRCLND
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  10 Mar 2017 - M. Sulprizio- Add fix for acetone parameterization of Schmidt
+!                              number - use SCWPAR = 3 instead of 1
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -383,19 +385,6 @@ CONTAINS
     ! Get parameterization type for Schmidt number in water 
     SCW     = OcSpecs(OcID)%SCWPAR
 
-    ! Molecular weight [g/mol]
-    ! Use real species molecular weight and not the emitted 
-    ! molecular weight. The molecular weight is only needed to
-    ! calculate the air-side Schmidt number, which should be 
-    ! using the actual species MW.
-    MW = HcoState%Spc(HcoID)%MW_g
-
-    ! Liquid molar volume at boiling point [cm3/mol]
-    VB = OcSpecs(OcID)%LiqVol
-
-    ! Get parameterization type for Schmidt number in water 
-    SCW = OcSpecs(OcID)%SCWPAR
-
     ! Model surface layer
     L       = 1
 
@@ -607,8 +596,9 @@ CONTAINS
 !
 ! \begin{enumerate}
 ! \item Parameterization as in Johnson, 2010 (default).
-! \item Parameteriaztion for DMS according to Saltzman et al., 1993.
-! \item Parameteriaztion for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for DMS according to Saltzman et al., 1993.
+! \item Parameterization for Acetone as in former acetone\_mod.F in GC. 
+! \item Parameterization for Acetaldehyde as in ald2\_mod.F from D. Millet
 ! \end{enumerate}
 
 ! The oceanic surface concentrations of all species are obtained from
@@ -683,7 +673,7 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     
     ! # of species for which air-sea exchange will be calculated
-    nOcSpc = 3
+    nOcSpc = 4
 
     ! Initialize vector w/ species information
     ALLOCATE ( OcSpecs(nOcSpc) ) 
@@ -711,7 +701,7 @@ CONTAINS
     OcSpecs(I)%OcSpcName  = 'CH3I'
     OcSpecs(I)%OcDataName = 'CH3I_SEAWATER'
     OcSpecs(I)%LiqVol     = 1d0*7d0 + 3d0*7d0 + 1d0*38.5d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 1
+    OcSpecs(I)%SCWPAR     = 1 ! Schmidt number following Johnson, 2010
 
     ! ----------------------------------------------------------------------
     ! DMS:
@@ -726,7 +716,7 @@ CONTAINS
     OcSpecs(I)%OcSpcName  = 'DMS'
     OcSpecs(I)%OcDataName = 'DMS_SEAWATER'
     OcSpecs(I)%LiqVol     = 2d0*7d0 + 6d0*7d0 + 1d0*21.0d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 2
+    OcSpecs(I)%SCWPAR     = 2 ! Schmidt number following Saltzman et al., 1993
 
     ! ----------------------------------------------------------------------
     ! Acetone:
@@ -741,7 +731,22 @@ CONTAINS
     OcSpecs(I)%OcSpcName  = 'ACET'
     OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
     OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 1
+    OcSpecs(I)%SCWPAR     = 3 ! Schmidt number of acetone
+
+    ! ----------------------------------------------------------------------
+    ! Acetaldehyde:
+    ! ----------------------------------------------------------------------
+
+    I = I + 1
+    IF ( I > nOcSpc ) THEN
+       CALL HCO_ERROR ( ERR, RC )
+       RETURN
+    ENDIF
+
+    OcSpecs(I)%OcSpcName  = 'ALD2'
+    OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
+    OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    OcSpecs(I)%SCWPAR     = 4 ! Schmidt number of acetaldehyde
 
     ! ----------------------------------------------------------------------
     ! Match module species with species assigned to this module in config.

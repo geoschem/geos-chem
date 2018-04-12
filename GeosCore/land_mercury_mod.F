@@ -46,6 +46,7 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -116,10 +117,10 @@
 !
 ! !LOCAL VARIABLES:
 !  
-      REAL(fp)                :: DTSRCE, REEMFRAC
-      REAL(fp)                :: FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND 
-      LOGICAL               :: IS_SNOW_OR_ICE, IS_LAND_OR_ICE 
-      REAL(fp), PARAMETER     :: SEC_PER_YR = 365.25e+0_fp * 86400e+0_fp
+      REAL(fp)              :: DTSRCE, REEMFRAC
+      REAL(fp)              :: FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND 
+      LOGICAL               :: IS_LAND_OR_ICE 
+      REAL(fp), PARAMETER   :: SEC_PER_YR = 365.25e+0_fp * 86400e+0_fp
       INTEGER               :: I,      J,      NN
 
       !=================================================================
@@ -127,27 +128,17 @@
       !=================================================================
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e+0_fp     
+      DTSRCE = GET_TS_EMIS()
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I,              J,                NN                 )
 !$OMP+PRIVATE( REEMFRAC,       FRAC_SNOW_OR_ICE, FRAC_SNOWFREE_LAND )  
-!$OMP+PRIVATE( IS_SNOW_OR_ICE, IS_LAND_OR_ICE                       )
+!$OMP+PRIVATE( IS_LAND_OR_ICE                                       )
       DO J  = 1, JJPAR
       DO I  = 1, IIPAR
       DO NN = 1, N_Hg_CATS
     
-
-         ! For versions prior to MERRA, have to set snow/land fractions
-         ! to 1 depending which type of box we are in.
-         ! Assume here default of land box with no snow. We will reset
-         ! fractions for MERRA here and for prior versions snow/ice boxes
-         ! below (jaf, 4/26/11)
-         FRAC_SNOW_OR_ICE    = 0e+0_fp
-         FRAC_SNOWFREE_LAND  = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          ! Distinguish between ice/snow and snow-free land
          FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     +
      &                              State_Met%FRSEAICE(I,J)  + 
@@ -155,34 +146,8 @@
          FRAC_SNOWFREE_LAND  = MAX( State_Met%FRLAND(I,J)    - 
      &                              State_Met%FRSNO(I,J),    0e+0_fp)
 
-         ! Set this to FALSE in MERRA to avoid overwriting fractions
-         IS_SNOW_OR_ICE      = .FALSE.
          IS_LAND_OR_ICE      = (( FRAC_SNOWFREE_LAND > 0e+0_fp ) .OR.
      &                          ( FRAC_SNOW_OR_ICE   > 0e+0_fp ))
-
-#elif defined( GEOS_5 )
-         ! GEOS5 snow height (water equivalent) in mm. (Docs incorrectly say m)
-         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR. 
-     &                     ( IS_LAND( I, J, State_Met     )   .AND.
-     &                       State_Met%SNOMAS(I,J) > 10e+0_fp ))
-         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
-     &                     ( IS_ICE ( I, J, State_Met     )))
-
-#else
-         ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOW_OR_ICE = (( IS_ICE ( I, J, State_Met     ))  .OR.
-     &                     ( IS_LAND( I, J, State_Met     )   .AND. 
-     &                       State_Met%SNOW(I,J)   > 10e+0_fp ))
-         IS_LAND_OR_ICE = (( IS_LAND( I, J, State_Met     ))  .OR.
-     &                     ( IS_ICE ( I, J, State_Met     )))
-#endif
-
-         ! Reset land fractions if we are in a version prior to MERRA
-         ! and also in an ice- or snow-covered box (jaf, 4/26/11)
-         IF ( IS_SNOW_OR_ICE ) THEN
-            FRAC_SNOW_OR_ICE = 1e+0_fp
-            FRAC_SNOWFREE_LAND  = 0e+0_fp
-         ENDIF
 
          ! If snow or ice on the ground, reemission fraction is 0.6,
          ! otherwise 0.2
@@ -238,7 +203,6 @@
 ! !USES:
 !     
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
@@ -370,7 +334,6 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -445,9 +408,7 @@
       ! No emissions through transpiration if we use Bess' GCAP emissions
       ! Bug fix: VEGEMIS shouldn't be tied to GCAP emissions
       ! (jaf, eds, 4/1/11)
-      !IF (LGCAPEMIS) THEN
-
-         EHg0_vg = 0e+0_fp
+      EHg0_vg = 0e+0_fp
 
       END SUBROUTINE VEGEMIS
 !EOC
@@ -471,10 +432,8 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD,            ONLY : IS_LAND
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE MODIS_LAI_MOD,      ONLY : ISOLAI  => GC_LAI
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
-      USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
 !
@@ -552,17 +511,13 @@
       ! This parameter is tuned in the preindustrial simulation 
       ! so that total deposition to soil equals total emission from soil,
       ! while also requiring global mean soil Hg concentration of 45 ng/g 
-      ! Update for v11 GEOS-5 & GEOS-FP at 4x5 (J Fisher 3/2016)
+      ! Update for v11 GEOS-FP at 4x5 (J Fisher 3/2016)
       ! Assume same factor for all resolutions for now and therefore
       ! comment out resolution dependence. Users of 2x2.5 or nested
       ! resolutions are encouraged to test and update these as needed (J
       ! Fisher 4/2016)
 !#if defined (GRID4x5)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
       REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.9688e+0_fp
-#else
-      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp * 0.7156e+0_fp
-#endif
 !#elif defined(GRID2x25)
 !      REAL(fp), PARAMETER :: SOIL_EMIS_FAC=1.6e-2_fp
 !#elif defined(GRID05x0625)
@@ -573,13 +528,6 @@
       !
       ! %%% NOTE: Bob Y. used same value as for GRID05x0666  %%%
       ! %%% Team Hg will have to supply a better value later %%%
-!      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!#elif defined(GRID05x0666)
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! lhu, 1/5/2012, add pre-defined SOIL_EMIS_FAC for 05x0667 simulation
-      ! This is a non-physical value and would need to be changed for an
-      ! actual mercury simulation
 !      REAL(fp), PARAMETER :: SOIL_EMIS_FAC = 1.6e-2_fp  ! yzh
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !#elif defined(GRID025x03125)
@@ -605,31 +553,15 @@
       DO J=1, JJPAR
       DO I=1, IIPAR
          
-         ! Except in MERRA, assume whole box is land if conditions met
-         ! (jaf, 4/26/11)
-         FRAC_SNOWFREE_LAND = 1e+0_fp
-
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - 
      &                             State_Met%FRSNO(I,J), 0e+0_fp )
          IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )
-
-#elif defined( GEOS_5 )
-         ! GEOS5 snow height (water equivalent) in mm. (Docs wrongly say m)
-         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
-     &                      ( State_Met%SNOMAS(I,J) < 10e+0_fp ))
-
-#else
-         ! GEOS1-4 snow heigt (water equivalent) in mm
-         IS_SNOWFREE_LAND = ( IS_LAND( I, J, State_Met ) .AND.
-     &                      ( State_Met%SNOW(I,J)   < 10e+0_fp ))
-#endif
 
          IF ( IS_SNOWFREE_LAND ) THEN
 
             ! attenuate solar radiation based on function of leaf area index
             ! Jacob and Wofsy 1990 equations 8 & 9
-            TAUZ = ISOLAI(I,J) * 0.5e+0_fp
+            TAUZ = State_Met%MODISLAI(I,J) * 0.5e+0_fp
 
             ! For very low and below-horizon solar zenith angles, use
             ! same attenuation as for SZA=85 degrees
@@ -643,22 +575,10 @@
             DRYSOIL_HG = DRYSOIL_PREIND_HG * EHg0_dist(I,J)           
 
             ! Soil emissions, ng /m2 /h
-            ! NOTE: State_Met%RADSWG is net radiation at ground for all
-            ! MET fields except GEOS-FP and MERRA2. For those data sets,
-            ! net radiation was not processed and therefore we use
-            ! incident radiation at ground. We split them up below for
-            ! clarity, using the new SWGDN field for incident radiation.
-            ! SWGDN is also available for MERRA but we do not use it
-            ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined( GEOS_FP ) || defined( MERRA2 )
             SOIL_EMIS = 
      &           EXP( 0.0011 * State_Met%SWGDN(I,J) * LIGHTFRAC ) *
      &           DRYSOIL_HG * SOIL_EMIS_FAC
-#else
-            SOIL_EMIS = 
-     &           EXP( 0.0011 * State_Met%RADSWG(I,J) * LIGHTFRAC ) *
-     &           DRYSOIL_HG * SOIL_EMIS_FAC
-#endif     
+
             ! Grid box surface area [m2]
             AREA_M2   = GET_AREA_M2( I, J, 1 )
  
@@ -728,11 +648,6 @@
 !  constant is in the mid-range of values estimated by Durnford and Dastoor
 !  (2011) and consistent with surface air Hg0 observations, as described in
 !  Fisher et al. (2011, in review).
-!
-!  Note that only MERRA provides incident shortwave radiation; other met
-!  fields only provide *net* shortwave radiation. The parameterization was
-!  designed and tested using MERRA, and therefore may not work as well with
-!  other met fields
 ! 
 ! !REVISION HISTORY: 
 !  15 Sep 2009 - C. Holmes, S. Carouge - Initial version
@@ -750,7 +665,6 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: I, J, NN, MONTH
-      LOGICAL, SAVE :: FIRSTTIME = .TRUE.
       REAL(fp)      :: DTSRCE, SNOW_HG_OC_NEW, K_EMIT, SWRAD
       REAL(fp)      :: SNOW_HG_LN_NEW, FLUX_TMP
       ! For solar flux dependent photo-reduction (jaf, 11/18/11)
@@ -770,21 +684,7 @@
       IF ( .NOT. LHGSNOW ) RETURN
 
       ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e+0_fp      
-
-! Warning for non-MERRA (jaf, 6/19/13)
-! NOTE:  Incident shortwave radiation is currently only available for
-! GEOS-FP and MERRA-2 in GEOS-Chem. It is available from MERRA data sets
-! but is not currently stored in State_Met (ewl, 9/14/15) 
-      IF ( FIRSTTIME ) THEN 
-#if !defined( MERRA2 ) || !defined( GEOS_FP )
-         WRITE( 6, * ) 'WARNING: Snow emission parameterization '//
-     &        'designed for use with incident '
-         WRITE( 6, * ) 'shortwave radiation. Only net shortwave '//
-     &        'radiation available.'
-#endif
-         FIRSTTIME = .FALSE.
-      ENDIF
+      DTSRCE = GET_TS_EMIS()
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -818,20 +718,7 @@
          SWRAD  = 0e+0_fp
 
          ! Set solar radiation @ ground
-         ! NOTE: State_Met%RADSWG represents surface incident shortwave
-         ! flux for GEOS-FP and MERRA-2 and net shortwave radiation at 
-         ! ground for all other MET fields. Surface incident shortwave
-         ! flux is available for GMAO but is not stored globally 
-         ! (ewl, 8/26/15)
-! KLUDGE: can't get SWGDN in State_Met; add this later (jaf)
-! Use incident radiation at ground (State_Met%SWGDN) where available. 
-! Otherwise, use net radiation at ground (State_Met%RADSWG)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
          SWRAD = State_Met%SWGDN(I,J)
-#else       
-         SWRAD = State_Met%RADSWG(I,J)
-#endif
-! END KLUDGE
 
          ! Compute K_EMIT
          K_EMIT = K_EMIT_0 * SWRAD
@@ -898,7 +785,8 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, Hg0gtm, RC )
+      SUBROUTINE GTMM_DR( am_I_Root, Input_Opt, State_Met, 
+     &                    State_Chm, Hg0gtm,    RC )
 ! 
 ! !USES:
 !
@@ -913,22 +801,27 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE, YMD_EXTRACT
       USE TIME_MOD,           ONLY : GET_NYMD, GET_NHMS
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object      
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object      
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS: 
 !
       ! Emission of Hg0 calculated by GTMM for the month [kg/s]
-      REAL(fp),         INTENT(OUT) :: Hg0gtm(IIPAR, JJPAR) 
+      REAL(fp),       INTENT(OUT)   :: Hg0gtm(IIPAR, JJPAR) 
 
       ! Success or failure?
-      INTEGER,        INTENT(OUT) :: RC
+      INTEGER,        INTENT(OUT)   :: RC
 ! 
 ! !REMARKS:
 !  ##########################################################################
@@ -941,6 +834,7 @@
 !  15 Sep 2009 - C. Carouge  - Initial version
 !  03 Aug 2012 - R. Yantosca - Move calls to findFreeLUN out of DEVEL block
 !  05 Mar 2015 - R. Yantosca - Now add Input_Opt%RES_DIR to data path
+!  16 Mar 2017 - R. Yantosca - Now pass State_Chm to READ_GTMM_RESTART
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1106,9 +1000,9 @@
       !=================================================================
       ! Read GTMM restart file to get data from previous month
       !=================================================================
-      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  NYMD,      
-     &                        NHMS,       Hg0mth_dry, Hg2mth_dry, 
-     &                        Hg2mth_wet, RC  )
+      CALL READ_GTMM_RESTART( am_I_Root,  Input_Opt,  State_Chm,
+     &                        NYMD,       NHMS,       Hg0mth_dry, 
+     &                        Hg2mth_dry, Hg2mth_wet, RC  )
 
       !=================================================================
       ! Call GTMM model

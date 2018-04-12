@@ -1,0 +1,8 @@
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOS
+! !SECTION: History modules
+! !DESCRIPTION: These modules contain routines to archive various diagnostic quantities (concentrations, emissions, chemical production and loss, etc.) from GEOS-Chem into netCDF diagnostic output
+!EOS
+!------------------------------------------------------------------------------m

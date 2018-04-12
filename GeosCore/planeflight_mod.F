@@ -129,11 +129,11 @@
 
       ! Parameters
       INTEGER,           PARAMETER   :: MAXVARS   = 800
-      INTEGER,           PARAMETER   :: MAXPOINTS = 10000
+      INTEGER,           PARAMETER   :: MAXPOINTS = 100000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
-      INTEGER,           PARAMETER   :: MAXAN     = 10 ! FP 04/01/2010 (AN) 
-      INTEGER,           PARAMETER   :: MAXNOY    = 12 ! FP 04/01/2010 (NOy)
+      INTEGER,           PARAMETER   :: MAXAN     = 15
+      INTEGER,           PARAMETER   :: MAXNOY    = 15
 
       ! For specifying flight track points
       INTEGER                        :: NPOINTS           
@@ -149,7 +149,13 @@
       REAL*4,            ALLOCATABLE :: PLAT(:)               
       REAL*4,            ALLOCATABLE :: PLON(:)               
       REAL*4,            ALLOCATABLE :: PPRESS(:)             
-      CHARACTER(LEN=5),  ALLOCATABLE :: PTYPE(:)              
+      REAL*4,            ALLOCATABLE :: POBS(:)
+      REAL*4,            ALLOCATABLE :: PTAMB(:)
+      REAL*4,            ALLOCATABLE :: PH2OMR(:)
+      REAL*4,            ALLOCATABLE :: PPOTTEMP(:)
+      REAL*4,            ALLOCATABLE :: PRH(:)
+      REAL*4,            ALLOCATABLE :: PGPSALT(:)
+      CHARACTER(LEN=7),  ALLOCATABLE :: PTYPE(:)              
 
       ! For specifying variables to save at each flight point
       INTEGER                        :: NPVAR        
@@ -160,6 +166,10 @@
       INTEGER                        :: NPREAC        
       INTEGER,           ALLOCATABLE :: PREAC(:) 
       REAL(fp),          ALLOCATABLE :: PRRATE(:,:,:,:) 
+
+      ! For rate of production
+      INTEGER                        :: NPROD
+      INTEGER,           ALLOCATABLE :: IPROD(:)
 
       ! For specifying RO2 constituents at each flight point
       INTEGER                        :: NPRO2
@@ -201,7 +211,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, State_Chm,
-     &                              RC )
+     &                              State_Met, RC )
 !
 ! !USES:
 !
@@ -210,6 +220,7 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput 
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -219,6 +230,7 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -253,9 +265,7 @@
       LOGICAL            :: IS_OPEN
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
-      CHARACTER(LEN=7)   :: NAMES
-      CHARACTER(LEN=20)  :: LINE
-      CHARACTER(LEN=10)  :: TYPE
+      CHARACTER(LEN=6)   :: TYPE
 
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
@@ -320,7 +330,7 @@
      &                     IU_FILE,   RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC)
+      CALL READ_POINTS( am_I_Root, Input_Opt, State_Met, IU_FILE, RC)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -370,18 +380,20 @@
 
       ! Write header
       IF ( am_I_Root ) THEN
-         WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
-     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+
+         WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE',  'YYYYMMDD', 'HHMM',
+     &                          'LAT',   'LON',   'PRESS',    'OBS', 
+     &                          'T-IND', 'P-IND', 'I-IND',    'J-IND',
+     &                          ( PNAME(I), I=1,NPVAR )
       ENDIF
 
       ! FORMAT string
-      ! Replace 95 by 250 (win)
-      ! use 200 for non-Tomas sims (sfarina)
-
 #if   defined( TOMAS )
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
+ 110  FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X,
+     &        A9,X,A3,X,A5,X,A5,X,250(a10,x) )
 #else
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+ 110  FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X,
+     &        A9,X,A3,X,A5,X,A5,X,200(a11,x) )
 #endif
 
       END SUBROUTINE SETUP_PLANEFLIGHT
@@ -457,7 +469,9 @@
 !
       LOGICAL             :: IS_FULLCHEM
       INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect
+      INTEGER             :: PR, J, NF, FM
       CHARACTER(LEN=255)  :: LINE
+      CHARACTER(LEN=10)   :: PRODNAME
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -506,6 +520,9 @@
 
       ! Zero reaction counter
       R = 0
+
+      ! Zero production counter
+      PR = 0
 
       ! Loop over all variables
       DO N = 1, NPVAR
@@ -581,6 +598,12 @@
                IF ( LINE == 'GMAO_IIEV'  ) PVAR(N) = 1007
                IF ( LINE == 'GMAO_JJEV'  ) PVAR(N) = 1008
                IF ( LINE == 'GMAO_LLEV'  ) PVAR(N) = 1009
+               IF ( LINE == 'GMAO_RELH'  ) PVAR(N) = 1010
+               IF ( LINE == 'GMAO_PVRT'  ) PVAR(N) = 1011
+               IF ( LINE == 'GMAO_PSLV'  ) PVAR(N) = 1012
+               IF ( LINE == 'GMAO_AVGW'  ) PVAR(N) = 1013
+               IF ( LINE == 'GMAO_THTA'  ) PVAR(N) = 1014
+               IF ( LINE == 'GMAO_PRES'  ) PVAR(N) = 1015
                IF ( LINE == 'GMAO_ICE00' ) PVAR(N) = 1100
                IF ( LINE == 'GMAO_ICE10' ) PVAR(N) = 1101
                IF ( LINE == 'GMAO_ICE20' ) PVAR(N) = 1102
@@ -603,6 +626,7 @@
                IF ( LINE == 'AODC_ORGC'  ) PVAR(N) = 2003
                IF ( LINE == 'AODC_SALA'  ) PVAR(N) = 2004
                IF ( LINE == 'AODC_SALC'  ) PVAR(N) = 2005   
+               IF ( LINE == 'AODC_DUST'  ) PVAR(N) = 2006
 
             !===========================================================
             ! Aerosol optical depths below the plane
@@ -615,6 +639,7 @@
                IF ( LINE == 'AODB_ORGC'  ) PVAR(N) = 3003
                IF ( LINE == 'AODB_SALA'  ) PVAR(N) = 3004
                IF ( LINE == 'AODB_SALC'  ) PVAR(N) = 3005
+               IF ( LINE == 'AODB_DUST'  ) PVAR(N) = 3006
  
             !===========================================================
             ! Hg(II) Partitioning - eds 10/27/11  PVAR offset: 4000
@@ -624,6 +649,111 @@
                IF ( LINE == 'HG2_FRACG'  ) PVAR(N) = 4001
                IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
+            !===========================================================
+            ! ISORROPIA H+, pH, water, and bisulfate (eam, 06/2015)
+            !===========================================================
+            CASE( 'ISOR' )
+
+               ! ISORROPIA H+ (mol/L):
+               IF ( LINE == 'ISOR_HPLUS' ) PVAR(N) = 5001
+               ! ISORROPIA pH (non-ideal system, so pH can be negative)
+               IF ( LINE == 'ISOR_PH'    ) PVAR(N) = 5002
+               ! ISORROPIA aerosol water (ug/m3 air)
+               IF ( LINE == 'ISOR_AH2O'  ) PVAR(N) = 5003
+               ! ISORROPIA bisulfate (mol/L):
+               IF ( LINE == 'ISOR_HSO4'  ) PVAR(N) = 5004
+
+            !===========================================================
+            ! Local time (eam, 06/2015)
+            !===========================================================
+            CASE( 'TIME' )
+
+               ! Local time:
+               IF ( LINE == 'TIME_LT' ) PVAR(N) = 6001
+
+            !===========================================================
+            ! Uptake coefficient for SOA formation (eam, 06/2015)
+            !===========================================================
+            CASE( 'GAMM' )
+
+               ! Skip if not full-chemistry
+               IF ( IS_FULLCHEM ) THEN 
+
+                  ! Increment reaction counter:
+                  R = R + 1
+
+                  IF ( LINE == 'GAMM_EPOX' ) THEN
+                     PVAR(N)  = 22001
+                     PREAC(R) = 22001
+                     
+                  ELSE IF ( LINE == 'GAMM_IMAE' ) THEN
+                     PVAR(N)  = 22002
+                     PREAC(R) = 22002
+                     
+                  ELSE IF ( LINE == 'GAMM_ISOPN' ) THEN
+                     PVAR(N)  = 22003
+                     PREAC(R) = 22003
+
+                  ELSE IF ( LINE == 'GAMM_DHDN' ) THEN
+                     PVAR(N)  = 22004
+                     PREAC(R) = 22004
+
+                  ELSE IF ( LINE == 'GAMM_GLYX' ) THEN
+                     PVAR(N)  = 22005
+                     PREAC(R) = 22005
+
+                  ENDIF
+
+               ENDIF
+
+            !===========================================================
+            ! AQUEOUS AEROSOL properties (eam, 08/2015)
+            !===========================================================
+            CASE( 'AQAE' )
+
+               ! Aqueous aerosol radius (cm):
+               IF ( LINE == 'AQAER_RAD'  ) PVAR(N) = 7001
+               ! Aqueous aerosol surface area (cm2/cm3):
+               IF ( LINE == 'AQAER_SURF' ) PVAR(N) = 7002
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! This code needs to be updated to work with FlexChem (mps, 6/13/17)
+!            !===========================================================
+!            ! Production rate of CSPEC species (molec/cm3/s) 
+!            ! (eam, 08/2015):
+!            !===========================================================
+!            CASE( 'PROD' )
+!
+!               ! Skip if not full chem:
+!               IF ( IS_FULLCHEM ) THEN
+!
+!                  ! Increment prod rate reaction counter:
+!                  PR = PR + 1
+!
+!                  ! Initialize:
+!                  PRODNAME = ''
+!
+!                  ! Extract species name:
+!                  PRODNAME = LINE(6:15)
+!
+!                  ! Get family integer:
+!                  DO NF = 1, NFAMILIES
+!                     IF ( FAM_NAME(NF) == TRIM(PRODNAME) ) THEN
+!                        ! Loop through family members:
+!                        DO FM = 1, FAM_NMEM(NF)
+!                           ! Loop through JSPEC species:
+!                           DO J = 1, NSPEC(NCS) 
+!                              IF ( NAMEGAS(J) == FAM_MEMB(FM, NF) ) THEN
+!                                 IPROD(PR) = J
+!                              ENDIF
+!                           ENDDO   ! CSPEC species
+!                        ENDDO   ! family members
+!                     ENDIF
+!                  ENDDO 
+!                  
+!                  PVAR(N) = 8000 + PR
+!
+!               ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 6/20/16:
 ! This diagnostic does not work with the FlexChem implementation. We need to
@@ -744,7 +874,7 @@
       
          ! Echo species names/numbers to screen
          WRITE( 6, 120 ) N, TRIM( LINE ), PVAR(N)
- 120     FORMAT( i4, 1x, a10, 1x, i10 )
+ 120     FORMAT( i4, 1x, a12, 1x, i10 )
 
       ENDDO
 
@@ -764,20 +894,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC )
+      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Met,
+     &                        IU_FILE,   RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE GC_GRID_MOD,        ONLY : GET_IJ
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : g0
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)  :: IU_FILE     ! Logical unit # of file
 !
 ! !OUTPUT PARAMETERS:
@@ -798,8 +934,14 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: N, IOS, QYY, QMM, QDD, QHH, QMN
-      REAL*4            :: LAT, LON, PRES
-      CHARACTER(LEN=10) :: TYPE
+      REAL*4            :: LAT, LON, PRES, OBS
+      REAL*4            :: TAMB, H2OMR, POTTEMP, GPSALT
+      CHARACTER(LEN=7)  :: TYPE
+      CHARACTER(LEN=7)  :: NAME
+
+      ! ajt for CCGG
+      INTEGER           :: IJ(2), L, L_ALT
+      REAL(fp)          :: MOD_ELEV
 
       !=================================================================
       ! READ_POINTS begins here!
@@ -819,8 +961,9 @@
          
          ! Read a line from the file
          READ( IU_FILE, 100, IOSTAT=IOS ) 
-     &        TYPE, QDD, QMM, QYY, QHH, QMN, LAT, LON, PRES
- 100     FORMAT( 6x,a5,x,i2,x,i2,x,i4,x,i2,x,i2,x,f7.2,x,f7.2,x,f7.2 )
+     &        TYPE, QDD, QMM, QYY, QHH, QMN, LAT, LON, PRES, OBS
+ 100     FORMAT( 5x,a7,x,i2,x,i2,x,i4,x,i2,x,i2,x,f7.2,x,f7.2,x,f7.2,
+     &           x,f10.3 )
 
          ! Error check
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_points:2' )
@@ -894,7 +1037,7 @@
          IF ( LON > 180.0 ) LON = LON - 360e0
 
          ! Error check LONGITUDE
-         IF ( LON < -180 .OR. LON > 180 ) THEN 
+         IF ( LON < -180.0 .OR. LON > 180.0 ) THEN 
             IF ( am_I_Root ) THEN
                WRITE( 6, 125 ) LON
                WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
@@ -913,6 +1056,67 @@
             CALL GEOS_CHEM_STOP
          ENDIF
         
+         ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+         IF ( LAT <   10e0 .OR. LAT >  70e0  .OR. 
+     &        LON < -140e0 .OR. LON > -40e0 ) THEN
+            PRINT*, ' Outside nested domain, skipping record ', N
+            CYCLE
+         ENDIF
+#endif
+
+         ! Convert from altitude to pressure if we have CCCG data or
+         ! tower data
+         NAME = ADJUSTL(PTYPE(N))
+         IF ( NAME(1:1)  .EQ. 'S'      .OR. ! NOAA Surface
+     &        TRIM(NAME) .EQ. 'Aacg'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Abne'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acar'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acma'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acrv'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Adnd'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Aesp'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Aetl'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Ahil'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Ahip'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Alef'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Anha'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Apfa'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Arta'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Asca'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Asgp'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Atgc'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Athd'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Awbi'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Tamt'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tbao'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tcrv'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tlef'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tlew'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmbo'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmvy'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmwo'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tnwr'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tsct'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tsgp'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tstr'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twbi'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twgc'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twkt' ) THEN ! NOAA Tower
+            ! Change units
+            L_ALT = 0
+            IJ = GET_IJ(LON,LAT)
+            DO L = 1, LLPAR
+               MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0
+     &                  + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
+               IF ( (L_ALT    .EQ.    0)  .AND.
+     &              (MOD_ELEV .GT. PRES) ) THEN
+                  L_ALT = L
+               ENDIF
+            ENDDO
+            PRES = State_Met%PMID(IJ(1),IJ(2),L_ALT)
+         ENDIF
+
          ! Assign LAT value into global PLAT array
          PLAT(N)   = LAT
 
@@ -921,6 +1125,9 @@
 
          ! Assign PRES value into global PPRESS array
          PPRESS(N) = PRES
+
+         ! Assign OBS value into global PPRESS array
+         POBS(N) = OBS
 
       ENDDO
 
@@ -1126,8 +1333,8 @@
 
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-           CASE ( 'NO', 'NO2', 'NO3', 'HNO2', 'HNO4', 'HNO3',
-     &            'PAN', 'PYPAN', 'PMN', 'PPN')
+           CASE ( 'NO',  'NO2',   'NO3',  'HNO2', 'HNO4', 'HNO3',
+     &            'PAN', 'PYPAN', 'IPMN', 'NPMN', 'PPN')
 
                NPNOY       = NPNOY + 1
                PNOY(NPNOY) = M
@@ -1241,9 +1448,9 @@
          ! the AN global array, and increment counter
          SELECT CASE( TRIM( SpcInfo%Name ) )
 
-           CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN',
-     &            'ISN2',   'MNO3',   'ISNO3', 'R4N2',
-     &            'PROPNN', 'ETHLN' ) 
+           CASE ( 'ISOPNB', 'ISOPND', 'MVKN',  'MACRN', 'R4N2',
+     &            'ISN1',   'PROPNN', 'ETHLN', 'DHDN',  'HONIT',
+     &            'MONITU', 'MONITS', 'INPN' )
 
                NPAN       = NPAN + 1
                P_AN(NPAN) = M
@@ -1287,20 +1494,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
+     &                        State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
-      USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
       USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_SIZE_MOD
-#if   defined( TOMAS )
-      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP  
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -1308,8 +1510,14 @@
       USE OCEAN_MERCURY_MOD,  ONLY : OMMFp => Fp
       USE PhysConstants,      ONLY : CONSVAP, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+      USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
+#if defined( BPCH_DIAG ) && defined( TOMAS )
+      USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1320,6 +1528,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1365,6 +1574,10 @@
 !                              computing locally
 !  17 May 2016 - M. Sulprizio- Remove PCHEM, IJLOOP and use IS_FULLCHEM instead
 !  22 Jun 2016 - M. Yannetti - Replaced references to TCVV with spec db
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1373,11 +1586,15 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: IS_FULLCHEM, LINTERP
-      INTEGER             :: I, IP, IRHN, J, L, M, N, R, RH, V
+      INTEGER             :: I, J, L, M, N, R, PR, V
       INTEGER             :: LL     !eds
       INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
+      LOGICAL             :: CHEMSTEP
+      REAL*8              :: FLTGMT   ! eam (06/2015)
+      REAL*8              :: XRH      ! MET field RH (eam, 08/2015)
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1396,6 +1613,8 @@
       ! Expand from 4 to 5 for Fast-JX
       INTEGER, PARAMETER  :: IND999  = 4
 
+      REAL*8, PARAMETER   :: CRITRH  = 35.0e+0_fp
+
       !=================================================================
       ! PLANEFLIGHT begins here!
       !=================================================================
@@ -1408,6 +1627,12 @@
 
       ! Return if there is no flighttrack data for today
       IF ( .not. DO_PF ) RETURN
+
+      ! Update from kyu (03/2015):
+      !print*, 'IN PLANEFLIGHT, ELAPSED_SEC', GET_ELAPSED_SEC()
+      CHEMSTEP = ( MOD(GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 
+     &           ( GET_TS_DIAG() / 2) )
+      !print*, 'CHEMSTEP', CHEMSTEP
 
       ! Get date & time values
       YEAR   = GET_YEAR()
@@ -1429,9 +1654,30 @@
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
 
-         ! Starting & end times of chemistry interval
+         ! Starting & end times of transport timestep
          PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
-         PTAUS = PTAUE - ( GET_TS_DIAG() / 60e+0_fp )
+         ! Modification from kyu (eam, 03/2015)
+         !PTAUS = PTAUE - ( GET_TS_DIAG() / 3600e+0_fp )
+         ! If we just finished a chemistry timestep, write out one full
+         ! diagnostic timestep's worth of data
+         IF ( CHEMSTEP ) THEN
+            PTAUS = PTAUE - ( GET_TS_DIAG() / 3600d0 )
+         ! Otherwise write out only half a timestep's worth of data
+         ELSE
+            ! Write half hour only if we are on last time step, otherwise
+            ! exit the subroutine
+            IF (MOD(GET_ELAPSED_SEC(), (GET_TS_DIAG()*1440)) == 0) THEN 
+               PTAUS = PTAUE - ( GET_TS_DIAG() / (2.0 * 3600d0) )
+            ELSE
+               EXIT
+            ENDIF
+         ENDIF
+         
+         !print*, 'PTAUE = ', PTAUE
+         !print*, 'PTAUS = ', PTAUS
+         !print*, 'PTAU(M) = ', PTAU(M)
+         !print*, 'M = ', M
+         ! End modification from kyu (eam, 03/2015)
 
          ! Initialize VARI to missing value for this point
          DO V = 1, NPVAR
@@ -1443,11 +1689,11 @@
          !==============================================================
          IF ( PTAU(M) < PTAUS ) THEN
 
-            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUS
+!            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
-            CALL WRITE_VARS_TO_FILE( M, VARI )      
+            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )      
 
             ! Increment pointer
             PPOINT = PPOINT + 1
@@ -1459,8 +1705,8 @@
          ! (skim, 7/24/13)
          ELSE IF ( PTAU(M) > PTAUE ) THEN
 
-            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            PRINT*, PTAU(M), PTAUE
+!            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUE
 
             ! Exit this loop and the subroutine
             EXIT
@@ -1472,13 +1718,76 @@
             
             ! Print the flight track point number
             WRITE( 6, 100 ) PTYPE(M), PDATE(M), PTIME(M) 
- 100        FORMAT( '     - PLANEFLIGHT: Archived ',a5,1x,i8.8,1x,i4.4 )
+ 100        FORMAT( '     - PLANEFLIGHT: Archived ',a7,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
             CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
 
+            !kjw. if not INTEX-A observation, set L=1
+            ! Add calnx (mpayer, 1/8/13)
+            ! Add HIPPO (ajt, 5/23/13)
+            ! Add CCGG (ajt, 7/5/13)
+            ! Add NOAA towers (ajt, 4/2/15)
+            IF ( TRIM(ADJUSTL(PTYPE(M))) .NE. 'DC-8'  .AND.
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'ER2'   .AND.
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'calnx' .AND. ! Calnex
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'calne' .AND. ! Calnex
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aacg'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Abne'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acar'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acrv'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acma'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Adnd'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aesp'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aetl'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Ahil'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Ahip'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Alef'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Anha'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Apfa'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Arta'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Asca'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Asgp'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Atgc'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Athd'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Awbi'  .AND. ! NOAA Aircraft
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tamt'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tbao'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tcrv'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tlef'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tlew'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmbo'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmvy'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmwo'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tnwr'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tsct'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tsgp'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tstr'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twbi'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twgc'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twkt'  .AND. ! NOAA TOWER
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp1' .AND. ! HIPPO
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp2' .AND. ! HIPPO
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp3' .AND. ! HIPPO
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp4' .AND. ! HIPPO
+     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp5' ) THEN
+               print*,'WARNING: GMD Observation. forcing L=1'
+               L = 1
+            ENDIF
+
             ! Initialize reaction counter
             R = 0
+
+            ! Initialize production count:
+            PR = 0
+
+            ! Convert species units to [v/v]
+            CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                              State_Chm, 'v/v dry', RC, 
+     &                              OrigUnit=OrigUnit )
+
+            ! Initialize GEOS-Chem species array
+            Spc => State_Chm%Species
 
             ! Loop over all variables to save out
             DO V = 1, NPVAR
@@ -1487,16 +1796,18 @@
                SELECT CASE ( PVAR(V) )
 
                   !-------------------------
-                  ! Chemical species
+                  ! GEOS-Chem Chemical species [molec/cm3]
                   !-------------------------
                   !997 and 998 are now special flags for NOy and AN
                   CASE ( 1:996) !( 1:998 )
 
                      ! Only archive where chemistry is done
-                     ! Save as mixing ratio [v/v]
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
-                        VARI(V) = State_Chm%Species(I,J,L,PVAR(V)) / 
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
+                        ! Species concentration [v/v] -> [molec/cm3]
+                        VARI(V) = Spc(I,J,L,PVAR(V)) * 
      &                            State_Met%AIRNUMDEN(I,J,L)
+
                      ENDIF
 
                   ! FP 04/01/2010
@@ -1510,14 +1821,14 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPNOY
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,PNOY(N))
-                        ENDDO
 
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,PNOY(N))
+
+                        ENDDO
 
                      ENDIF
 
@@ -1532,14 +1843,14 @@
                      VARI(V) = 0e+0_fp
 
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPAN
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,P_AN(N))
-                        ENDDO
 
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,P_AN(N))
+
+                        ENDDO
 
                      ENDIF
 
@@ -1553,14 +1864,14 @@
                      VARI(V) = 0e+0_fp
                            
                      IF ( IS_FULLCHEM .and. 
-     &                    ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+     &                    State_Met%InChemGrid(I,J,L) ) THEN
 
                         DO N = 1, NPRO2
-                           VARI(V) = VARI(V) +
-     &                               State_Chm%Species(I,J,L,PRO2(N))
+
+                           ! Species concentration [v/v]
+                           VARI(V) = VARI(V) + Spc(I,J,L,PRO2(N))
+
                         ENDDO
-                           
-                        VARI(V) = VARI(V) / State_Met%AIRNUMDEN(I,J,L)
 
                      ENDIF
 
@@ -1577,7 +1888,7 @@
                      
                      ! Only archive where chemistry is done
                      ! Code skalooched from "calcrate.f"
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
                         VARI(V)  = State_Met%AVGW(I,J,L) *
      &                             State_Met%AIRNUMDEN(I,J,L)
                         TK       = State_Met%T(I,J,L)
@@ -1600,7 +1911,7 @@
                      ! Only archive where chemistry is done
                      VARI(V) = 0e+0_fp
 
-                     IF ( ITS_IN_THE_CHEMGRID(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InChemGrid(I,J,L) ) THEN
                         DO N = 1, NDUST + NAER
                            VARI(V) = VARI(V) +
      &                               State_Chm%AeroArea(I,J,L,N)
@@ -1643,7 +1954,49 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+                  !--------------------------
+                  ! GEOS-Chem Relative Humidity [%]
+                  !--------------------------
+                  CASE ( 1010 )
+                     VARI(V) = State_Met%RH(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Ertel's potential vorticity
+                  !--------------------------
+                  CASE ( 1011 )
+                     ! Disable for now. State_Met%PV is not defined.
+                     !VARI(V) = State_Met%PV(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Sea Level pressure [hPa]
+                  !--------------------------
+                  CASE ( 1012 )
+                     VARI(V) = State_Met%SLP(I,J)
+
+                  !--------------------------
+                  ! GEOS-Chem Water Vapor
+                  !  mixing ratio [v/v]
+                  !--------------------------
+                  CASE ( 1013 )
+                     VARI(V) = State_Met%AVGW(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Potential Temp
+                  !  (Theta) [k]
+                  !  (same calc used in diag1.F)
+                  !--------------------------
+                  CASE ( 1014 )
+                   VARI(V) = State_Met%T(I,J,L) *
+     &                     ( State_Met%PEDGE(I,J,1) /
+     &                       State_Met%PMID(I,J,L) )**0.286
+
+                  !--------------------------
+                  ! GEOS-Chem Pressure
+                  ! at center of grid box [hPa]
+                  !--------------------------
+                  CASE ( 1015 )
+                  VARI(V) = State_Met%PMID(I,J,L)
+
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
                   !--------------------------
@@ -1667,13 +2020,12 @@
                      VARI(V) = State_Met%SEAICE80(I,J)
                   CASE ( 1109 )
                      VARI(V) = State_Met%SEAICE90(I,J)
-#endif
 
                   !--------------------------
                   ! Column aerosol optical 
                   ! depths [unitless]
                   !--------------------------
-                  CASE ( 2001:2005 )
+                  CASE ( 2001:2006 )
                   
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
@@ -1737,7 +2089,7 @@
                   ! Aerosol optical depths
                   ! below plane [unitless]
                   !--------------------------
-                  CASE ( 3001:3005 )
+                  CASE ( 3001:3006 )
                   
                    ! Remove MISSING flag
                    VARI(V) = 0e+0_fp
@@ -1814,6 +2166,80 @@
                   CASE ( 4002 )
                      VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
+                  !--------------------------
+                  ! ISORROPIA H+ and pH (eam, 06/2015)
+                  !--------------------------
+                  CASE( 5001 )
+                     VARI(V) = State_Chm%HplusSav(I,J,L)
+
+                  CASE( 5002 )
+                     VARI(V) = State_Chm%pHSaV(I,J,L)
+
+                  CASE( 5003 )
+                     VARI(V) = State_Chm%WaterSav(I,J,L)
+
+                  CASE( 5004 )
+                     VARI(V) = State_Chm%BisulSav(I,J,L)
+
+                  !--------------------------
+                  ! Local Time (eam, 06/2015)
+                  !--------------------------
+                  CASE( 6001 )
+
+                     ! Convert GMT from integer to real and
+                     ! change format from HHMM to HH.MM:
+                     FLTGMT = REAL(PTIME(M))*1.d-2
+
+                     VARI(V) = GET_LOCALTIME(I,J,L,FLTGMT)
+
+                  !--------------------------
+                  ! Aqueous aerosol properties (eam, 08/2015)
+                  !--------------------------
+                  ! MET field relative humidity (%):
+                  XRH = State_Met%RH( I, J, L )
+                  CASE( 7001 )
+                     VARI(V) = 0d0
+                     ! Radius (cm):
+                     IF ( XRH .gt. CRITRH ) THEN
+                        VARI(V) = State_Chm%AeroRadi(I,J,L,8)
+                     ENDIF
+
+                  CASE( 7002 )
+                     VARI(V) = 0d0
+                     ! Surface area (cm2/cm3):
+                     IF ( XRH .gt. CRITRH ) THEN
+                        VARI(V) = State_Chm%AeroArea(I,J,L,8)
+                     ENDIF
+                        
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! This code needs to be updated to work with FlexChem (mps, 6/13/17)
+!                  !--------------------------
+!                  ! Production rates (eam, 08/2015)
+!                  !--------------------------
+!                  CASE( 8001:8999 )
+!
+!                     ! Increment reaction count:
+!                     PR = PR + 1
+!
+!                        ! Production rate in molec/cm3/s:
+!                        ! Only archive where SMVGEAR chem is done 
+!                        IF ( JLOOP /= 0 ) THEN
+!                             VARI(V) = 
+!     &                          CSPEC( JLOOP, IPROD(PR) )/CHEMINTV
+!
+!                           ! Make small values as zero:
+!                           IF ( VARI(V) < TINY ) VARI(V) = 0d0
+!
+!                           IF ( I .ge. 34 .and. I .le. 37 .and. 
+!     &                          J .ge. 60 .and. J .le. 64 .and.
+!     &                          L .eq. 1 ) THEN
+!                              PRINT*, 'VARI = ', VARI(V)
+!                              PRINT*, 'CHEMINTV = ', CHEMINTV
+!                              PRINT*, 'CSPEC = ', CSPEC(JLOOP,IPROD(PR))
+!                              PRINT*, 'JLOOP,IPROD(PR),PR = ',
+!     &                             JLOOP,IPROD(PR),PR
+!                           ENDIF
+!                        ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! Prior to 5/12/16:
 ! This diagnostic does not work with the FlexChem implementation. We need to
@@ -1832,23 +2258,17 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
                   !--------------------------
-                  ! GEOS-CHEM species [v/v]
+                  ! GEOS-CHEM advected species [v/v]
                   !--------------------------
                   CASE( 100000:199999 )
 
                      ! Remove offset from PVAR
                      N = PVAR(V) - 100000
-
-                     Spc => State_Chm%Species
                      
-                     ! Convert from [kg/kg] --> [v/v] (ewl, 8/11/15)
-                     VARI(V) = Spc(I,J,L,N) * ( AIRMW / 
-     &                         State_Chm%SpcData(N)%Info%emMW_g )
+                     ! Species concentration [v/v]
+                     VARI(V) = Spc(I,J,L,N)
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
-
-                     ! Free pointer
-                     NULLIFY( Spc )
 
 #if   defined( TOMAS )
                   !-------------------------------
@@ -1880,8 +2300,15 @@
                END SELECT
             ENDDO
 
+           ! Convert species units back to original unit 
+           CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                            State_Chm, OrigUnit,  RC )
+
+            ! Free pointer
+            NULLIFY( Spc )
+
             ! Write data for the Mth plane point out to disk
-            CALL WRITE_VARS_TO_FILE( M, VARI )
+            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )
 
             ! Increment the record pointer
             PPOINT = PPOINT + 1
@@ -1953,8 +2380,8 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
-      INTEGER :: I0, J0   ! (lds, 8/25/11)
-
+      INTEGER :: I0, J0 
+      
       !=================================================================
       ! TEST_VALID begins here!
       !=================================================================
@@ -2007,16 +2434,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_VARS_TO_FILE( IND, VARI )
+      SUBROUTINE WRITE_VARS_TO_FILE( State_Met, IND, VARI )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IOERROR
+      USE CMN_SIZE_MOD
+      USE FILE_MOD,      ONLY : IOERROR
+      USE GC_GRID_MOD,   ONLY : GET_IJ
+      USE State_Met_Mod, ONLY : MetState
+      USE TIME_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: IND           ! # of the flight track point
-      REAL(fp),  INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
+      INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
+      REAL(fp),       INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -2034,26 +2466,56 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, IOS
+      INTEGER       :: IIJJ(2), II, JJ, L, LL
+      REAL*4        :: LON_TMP, LAT_TMP
 
       !=================================================================
       ! WRITE_VARS_TO_FILE begins here!
       !=================================================================
 
+      LON_TMP = REAL(PLON(IND),4)
+      LAT_TMP = REAL(PLAT(IND),4)
+
+      ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR. 
+     &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
+         PRINT*, ' Outside nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+      ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
+      IIJJ = GET_IJ( LON_TMP, LAT_TMP )
+      II = IIJJ(1)      
+      JJ = IIJJ(2)    
+      LL = 0
+      IF ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,1) ) LL = 1
+      DO L = 1, LLPAR
+         IF ( ( PPRESS(IND) .LT. State_Met%PEDGE(II,JJ,L)   ) .AND.
+     &        ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,L+1) ) ) LL = L
+      ENDDO
+      IF (LL .EQ. 0) LL = LLPAR
+
+
       ! Write data to file
       WRITE( IU_PLANE, 110, IOSTAT=IOS ) 
      &     IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ),
-     &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
+     &     PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),
+     &     INT( GET_ELAPSED_SEC() / GET_TS_DYN() ),
+     &     LL, II, JJ,
+     &     ( VARI(I), I=1,NPVAR )
       
       ! Format string
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
 #if   defined( TOMAS )
- 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
-     &       250(es11.3e3,x))
+ 110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
+     $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else
- 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
-     &       200(es11.3e3,x))
+ 110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
+     $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,200(es11.3e3,x))
 #endif
 
       ! Error check
@@ -2082,7 +2544,8 @@
 !!\\
 !! !INTERFACE:
 !!
-!      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5 )
+!      SUBROUTINE ARCHIVE_RXNS_FOR_PF( JO1D, N2O5, EPOX, IMAE, ISOPN,
+!     &                                DHDN, GLYX )
 !!
 !! !USES:
 !!
@@ -2097,8 +2560,13 @@
 !!
 !! !INPUT PARAMETERS: 
 !!
-!      REAL(fp), INTENT(IN)  :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
-!      REAL(fp), INTENT(IN)  :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
+!      REAL(fp), INTENT(INOUT) :: JO1D(KBLOOP)  ! JO1D photolysis rate [1/s]
+!      REAL(fp), INTENT(INOUT) :: N2O5(KBLOOP)  ! N2O5 hydrolysis rate [molec/cm3/s]
+!      REAL(fp), INTENT(INOUT)  :: EPOX(KBLOOP)  ! EPOX uptake coefficient [unitless]
+!      REAL(fp), INTENT(INOUT)  :: IMAE(KBLOOP)  ! IMAE uptake coefficient [unitless]
+!      REAL(fp), INTENT(INOUT)  :: ISOPN(KBLOOP) ! ISOPN uptake coefficient [unitless]
+!      REAL(fp), INTENT(INOUT)  :: DHDN(KBLOOP)  ! DHDN uptake coefficient [unitless]
+!      REAL(fp), INTENT(INOUT)  :: GLYX(KBLOOP)  ! GLYX uptake coefficient [unitless]
 !! 
 !! !REVISION HISTORY: 
 !!  08 Jul 2002 - M. Evans    - Initial version
@@ -2139,7 +2607,8 @@
 !            SELECT CASE ( PREAC(R) ) 
 !
 !               !-----------------------
-!               ! All except JO1D, N2O5
+!               ! All except JO1D, N2O5, and
+!               ! uptake coefficients of EPOX, IMAE, ORGN
 !               !-----------------------
 !               CASE( 10000:19999 )
 !                         
@@ -2181,6 +2650,91 @@
 !                  DO KLOOP = 1, KTLOOP
 !                     JLOOP = JLOOPLO + KLOOP
 !                     RATE  = N2O5(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! EPOX reactive uptake
+!               !-----------------------
+!               CASE ( 22001 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = EPOX(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! IMAE reactive uptake
+!               !-----------------------
+!               CASE ( 22002 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = IMAE(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! Isoprene nitrate gamma
+!               !-----------------------
+!               CASE ( 22003 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = ISOPN(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! DHDN gamma
+!               !-----------------------
+!               CASE ( 22004 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = DHDN(KLOOP)
+!
+!                     ! Avoid overflow/underflow
+!                     IF ( RATE < SMALLEST ) RATE = 0e0
+!                     IF ( RATE > LARGEST  ) RATE = LARGEST 
+!
+!                     PRRATE(JLOOP,R) = RATE
+!                  ENDDO
+!
+!               !-----------------------
+!               ! Glyoxal gamma
+!               !-----------------------
+!               CASE ( 22005 ) 
+!
+!                  ! Store rate in PRATE
+!                  DO KLOOP = 1, KTLOOP
+!                     JLOOP = JLOOPLO + KLOOP
+!                     RATE  = GLYX(KLOOP)
 !
 !                     ! Avoid overflow/underflow
 !                     IF ( RATE < SMALLEST ) RATE = 0e0
@@ -2342,6 +2896,9 @@
       ! Initialize chemistry reaction counter
       NPREAC = 0
 
+      ! Initialize prod rate counter:
+      NPROD  = 0
+
       ! Skip past the species declarations
       DO N = 1, NPVAR
          READ( IU_FILE, '(a)', IOSTAT=IOS ) LINE
@@ -2349,6 +2906,10 @@
 
          ! Increment number of chemistry reactions found
          IF ( INDEX( LINE, 'REA_' ) > 0 ) NPREAC = NPREAC + 1
+         ! Now also add up the number of GAMMA values
+         IF ( INDEX( LINE, 'GAMM' ) > 0 ) NPREAC = NPREAC + 1
+         ! Count # of production rate outputs:
+         IF ( INDEX( LINE, 'PROD' ) > 0 ) NPROD  = NPROD  + 1
       ENDDO
 
       ! Read 4 header lines
@@ -2416,6 +2977,12 @@
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
+         ! ---------------------
+         ! Arrays of size NPROD
+         ! ---------------------
+         ALLOCATE( IPROD( MAX( NPROD, 1 ) ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'IPROD' )
+
          !--------------------------
          ! Arrays of size MAXVARS
          !--------------------------
@@ -2449,6 +3016,9 @@
          ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
 
+         ALLOCATE( POBS( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'POBS' )
+
          ! Reset IS_INIT flag
          IS_INIT = .TRUE.
       ENDIF
@@ -2457,6 +3027,8 @@
       ! Initialize arrays 
       !=================================================================
       PREAC  = 0
+      NPROD  = 0
+      IPROD  = 0
       PRRATE = 0e0
       PVAR   = 0
       PNAME  = ''
@@ -2467,6 +3039,7 @@
       PLAT   = 0e0
       PLON   = 0e0
       PPRESS = 0e0
+      POBS   = 0e0
 
       END SUBROUTINE INIT_PLANEFLIGHT
 !EOC
@@ -2494,6 +3067,7 @@
 !BOC
       IF ( ALLOCATED( PVAR   ) ) DEALLOCATE( PVAR   )
       IF ( ALLOCATED( PREAC  ) ) DEALLOCATE( PREAC  )
+      IF ( ALLOCATED( IPROD  ) ) DEALLOCATE( IPROD  )
       IF ( ALLOCATED( PNAME  ) ) DEALLOCATE( PNAME  )
       IF ( ALLOCATED( PRRATE ) ) DEALLOCATE( PRRATE )
       IF ( ALLOCATED( PTYPE  ) ) DEALLOCATE( PTYPE  ) 
@@ -2503,6 +3077,7 @@
       IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
       IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
       IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
+      IF ( ALLOCATED( POBS   ) ) DEALLOCATE( POBS   )
 
       END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC

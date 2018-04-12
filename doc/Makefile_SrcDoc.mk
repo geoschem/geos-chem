@@ -151,14 +151,6 @@ $(CORE)/isoropiaII_mod.F              \
 $(CORE)/dao_mod.F                     \
 $(CORE)/merra2_read_mod.F90           \
 $(CORE)/geosfp_read_mod.F90           \
-$(CORE)/merra_a1_mod.F                \
-$(CORE)/merra_a3_mod.F                \
-$(CORE)/merra_cn_mod.F                \
-$(CORE)/merra_i6_mod.F                \
-$(CORE)/a3_read_mod.F                 \
-$(CORE)/a6_read_mod.F                 \
-$(CORE)/i6_read_mod.F                 \
-$(CORE)/gcap_read_mod.F               \
 ./gc_specialty.P                      \
 $(CORE)/c2h6_mod.F                    \
 $(CORE)/co2_mod.F                     \
@@ -175,9 +167,9 @@ $(CORE)/tagged_o3_mod.F               \
 
 
 # Output file names
-TEX2 := GC_v11-01_Core_Modules.tex
-DVI2 := GC_v11-01_Core_Modules.dvi
-PDF2 := GC_v11-01_Core_Modules.pdf
+TEX2 := GC_v11-02_Core_Modules.tex
+DVI2 := GC_v11-02_Core_Modules.dvi
+PDF2 := GC_v11-02_Core_Modules.pdf
 
 # Make commands
 srcdoc: 

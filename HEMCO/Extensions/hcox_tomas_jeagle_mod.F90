@@ -132,7 +132,7 @@ CONTAINS
     ! For debugging
     !INTEGER            :: ii=50, jj=10
 
-    ! Error handling	
+    ! Error handling    
     LOGICAL                :: ERR
 
     !=================================================================
@@ -184,10 +184,10 @@ CONTAINS
           W10M = SQRT( ExtState%U10M%Arr%Val(I,J)**2  &
                +       ExtState%V10M%Arr%Val(I,J)**2 )
 
-	  ! Sea surface temperature in Celcius 
-	  SST = ExtState%TSKIN%Arr%Val(I,J) - 273.15d0
+      ! Sea surface temperature in Celcius 
+      SST = ExtState%TSKIN%Arr%Val(I,J) - 273.15d0
 
-	  ! Limit SST to 0-30C range
+      ! Limit SST to 0-30C range
           SST = MAX( SST , 0d0 )  ! limit to  0C
           SST = MIN( SST , 30d0 ) ! limit to 30C
 
@@ -200,7 +200,7 @@ CONTAINS
           !---------------------------------------------------------------
           DO K = 1, HcoState%MicroPhys%nBins
              rwet=TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
-	     ! jkodros - testing out BETHA 7/29/15
+         ! jkodros - testing out BETHA 7/29/15
              if (rwet > 0.d0) then
                   A=4.7*(1.+30.*rwet)**(-0.017*rwet**(-1.44))
                   B=(0.433-log10(rwet))/0.433
@@ -210,11 +210,11 @@ CONTAINS
 
              else
 
-		dfo=0.d0
-	     endif
+        dfo=0.d0
+         endif
 
              dfo=dfo*DRFAC(k)*BETHA  !hemco units???? jkodros
-	     dfo=dfo*focean*SCALE
+         dfo=dfo*focean*SCALE
 
              ! Loop thru the boundary layer
              DO L = 1, HcoState%Nz
@@ -241,8 +241,8 @@ CONTAINS
              ENDDO
           ENDDO
        ELSE
-	TC1(I,J,:,:) = 0d0
-	TC2(I,J,:,:) = 0d0
+    TC1(I,J,:,:) = 0d0
+    TC2(I,J,:,:) = 0d0
        ENDIF
     ENDDO
     ENDDO
@@ -262,47 +262,12 @@ CONTAINS
        ENDIF
 
        ! Get the proper species name
-       !%%% This is a kludge, do better later %%%
-       IF ( K==1  ) SpcName = 'NK1'
-       IF ( K==2  ) SpcName = 'NK2'
-       IF ( K==3  ) SpcName = 'NK3'
-       IF ( K==4  ) SpcName = 'NK4'
-       IF ( K==5  ) SpcName = 'NK5'
-       IF ( K==6  ) SpcName = 'NK6'
-       IF ( K==7  ) SpcName = 'NK7'
-       IF ( K==8  ) SpcName = 'NK8'
-       IF ( K==9  ) SpcName = 'NK9'
-       IF ( K==10 ) SpcName = 'NK10'
-       IF ( K==11 ) SpcName = 'NK11'
-       IF ( K==12 ) SpcName = 'NK12'
-       IF ( K==13 ) SpcName = 'NK13'
-       IF ( K==14 ) SpcName = 'NK14'
-       IF ( K==15 ) SpcName = 'NK15'
-       IF ( K==16 ) SpcName = 'NK16'
-       IF ( K==17 ) SpcName = 'NK17'
-       IF ( K==18 ) SpcName = 'NK18'
-       IF ( K==19 ) SpcName = 'NK19'
-       IF ( K==20 ) SpcName = 'NK20'
-       IF ( K==21 ) SpcName = 'NK21'
-       IF ( K==22 ) SpcName = 'NK22'
-       IF ( K==23 ) SpcName = 'NK23'
-       IF ( K==24 ) SpcName = 'NK24'
-       IF ( K==25 ) SpcName = 'NK25'
-       IF ( K==26 ) SpcName = 'NK26'
-       IF ( K==27 ) SpcName = 'NK27'
-       IF ( K==28 ) SpcName = 'NK28'
-       IF ( K==29 ) SpcName = 'NK29'
-       IF ( K==30 ) SpcName = 'NK30'
-       IF ( K==31 ) SpcName = 'NK31'
-       IF ( K==32 ) SpcName = 'NK32'
-       IF ( K==33 ) SpcName = 'NK33'
-       IF ( K==34 ) SpcName = 'NK34'
-       IF ( K==35 ) SpcName = 'NK35'
-       IF ( K==36 ) SpcName = 'NK36'
-       IF ( K==37 ) SpcName = 'NK37'
-       IF ( K==38 ) SpcName = 'NK38'
-       IF ( K==39 ) SpcName = 'NK39'
-       IF ( K==40 ) SpcName = 'NK40'
+        
+       IF ( K<10  ) THEN
+         WRITE(SpcName,'(A2,I1)') 'NK', K
+       ELSE
+         WRITE(SpcName,'(A2,I2)') 'NK', K
+       ENDIF
 
        ! HEMCO species ID
        HcoID = HCO_GetHcoID( TRIM(SpcName), HcoState ) 
@@ -360,6 +325,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  15 Dec 2013 - C. Keller   - Initial version
 !  10 Jul 2015 - R. Yantosca - Fixed minor issues in ProTeX header
+!  24 Aug 2017 - M. Sulprizio- Remove support for GRID1x1
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -426,7 +392,7 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
- TC1 = 0d0
+    TC1 = 0d0
     ENDIF
 
    ! JKODROS - ALLOCATE TC1 and TC2
@@ -437,7 +403,7 @@ CONTAINS
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ELSE
- TC2 = 0d0
+    TC2 = 0d0
     ENDIF
 
 ! ----- IMPORTANT BINS ONLY CORRECTLY SET UP FOR TOMAS 15 PLEASE ADJUST OTHERS -jkodros (7/21/15)
@@ -455,7 +421,7 @@ CONTAINS
           3.90620d-07,   6.20070d-07,    9.84300d-07,    3.12500d-06  /)
 
     DRFAC     = (/                                                      &
-       	  2.84132d-03,   4.51031d-03,    7.15968d-03,    1.13653d-02,   &
+          2.84132d-03,   4.51031d-03,    7.15968d-03,    1.13653d-02,   &
           1.80413d-02,   2.86387d-02,    4.54612d-02,    7.21651d-02,   &
           1.14555d-01,   1.81845d-01,    1.06874d+00,    3.39304d+00 /)
 #elif defined( TOMAS15 )
@@ -464,15 +430,15 @@ CONTAINS
     ! TOMAS simulation w/ 15 size-resolved bins
     !-----------------------------------------------------------------------
 
-    TOMAS_DBIN = (/              0d0,            0d0,            0d0,   &
-          1.22069d-08,   1.93772d-08,    3.07594d-08,    4.88274d-08,   &
-          7.75087d-08,   1.23037d-07,    1.95310d-07,    3.10035d-07,   &
-          4.92150d-07,   7.81239d-07,    1.74054d-06,    5.52588d-06 /)
+    TOMAS_DBIN = (/              0d0,            0d0,             0d0,   &
+          1.22069d-08,   1.93772d-08,    3.07594d-08,     4.88274d-08,   &
+          7.75087d-08,   1.23037d-07,    1.95310d-07,     3.10035d-07,   &
+          4.92150d-07,   7.81239d-07,    1.74054d-06,     5.52588d-06 /)
 
-    DRFAC      = (/              0d0,            0d0,            0d0,   & 
-          2.84132d-03,   4.51031d-03,    7.15968d-03,	 1.13653d-02,   &
-	  1.80413d-02,   2.86387d-02,    4.54612d-02,    7.21651d-02,   &
-	  1.14555d-01,   1.81845d-01,    1.06874d+00,    3.39304d+00 /)
+    DRFAC      = (/              0d0,            0d0,             0d0,   & 
+          2.84132d-03,   4.51031d-03,    7.15968d-03,     1.13653d-02,   &
+          1.80413d-02,   2.86387d-02,    4.54612d-02,     7.21651d-02,   &
+          1.14555d-01,   1.81845d-01,    1.06874d+00,     3.39304d+00 /)
 
 #elif defined( TOMAS40 )
 
@@ -514,10 +480,10 @@ CONTAINS
        3.12496d-06, 3.93720d-06, 4.96056d-06, 6.24991d-06, 7.87440d-06 /)
 
     DRFAC     = (/                                                       &
-       1.24737d-03, 1.57158d-03, 1.98007d-03, 2.49473d-03, 3.14317d-03,	 &
+       1.24737d-03, 1.57158d-03, 1.98007d-03, 2.49473d-03, 3.14317d-03,  &
        3.96014d-03, 4.98947d-03, 6.28633d-03, 7.92028d-03, 9.97893d-03,  &
        1.25727d-02, 1.58406d-02, 1.99579d-02, 2.51453d-02, 3.16811d-02,  &
-       3.99157d-02, 5.02906d-02, 6.33623d-02, 7.98314d-02, 1.00581d-01,	 &
+       3.99157d-02, 5.02906d-02, 6.33623d-02, 7.98314d-02, 1.00581d-01,  &
        1.26725d-01, 1.59663d-01, 2.01163d-01, 2.53449d-01, 3.19326d-01,  &
        4.02325d-01, 5.06898d-01, 6.38652d-01, 8.04651d-01, 1.01380d+00 /)
 #endif
@@ -538,19 +504,6 @@ CONTAINS
     ! TOMAS simulations at 2 x 2.5 global resolution
     !-----------------------------------------------------------------------
     TOMAS_COEF = 1.d0
-
-#elif defined( GRID1x1  ) && defined( NESTED_CH )
-
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 1 x 1 nested-grid resolution
-    !
-    ! NOTE: Monthly emission over the China nested-grid domain is about
-    !       1.3 times higher compared to the same domain in 4x5 resolution
-    !       Thus applying 1/1.30 = 0.77 factor to correct the emission.
-    !
-    ! NOTE: May need to update this for other nested-grids
-    !-----------------------------------------------------------------------
-    TOMAS_COEF = 0.77d0
 
 #else
     MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'

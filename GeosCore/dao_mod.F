@@ -36,6 +36,9 @@
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+      PUBLIC  :: GIGC_Cap_Tropopause_Prs
+#endif
 !
 ! !REVISION HISTORY:
 !  26 Jun 2010 - R. Yantosca - Initial version
@@ -135,6 +138,8 @@
 !  16 Apr 2015 - R. Yantosca - Also remove INIT_DAO and CLEANUP_DAO, since
 !                              these allocated/deallocated the FULLGRID arrays
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -196,7 +201,7 @@
       ! AVGPOLE begins here!                                                  
       !=================================================================
 
-#if defined( GRID1x1   ) || defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
 #if defined( NESTED_CH ) || defined( NESTED_NA   ) || defined( NESTED_EU   ) || defined( NESTED_AS )
       ! NOTE: Only do this for 1x1 nested grids (bmy, 12/1/04)
       ! 1x1 window grid does not extend to poles
@@ -256,38 +261,36 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met, State_Chm, 
-     &                   RC, update_mixing_ratio )
+      SUBROUTINE AIRQNT( am_I_Root, Input_Opt, State_Met,
+     &                   State_Chm, RC,        Update_Mixing_Ratio )
 !
 ! !USES:
 !
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE GC_GRID_MOD,          ONLY : GET_AREA_M2
-      USE Input_Opt_Mod,        ONLY : OptInput
-      USE State_Met_Mod,        ONLY : MetState
-      USE State_Chm_Mod,        ONLY : ChmState
-      USE PRESSURE_MOD    
-
-      ! Temporary fix for calculating air density (mps, 12/23/15)
-      USE PhysConstants,        ONLY : AIRMW, AVO
+      USE ErrCode_Mod    
+      USE GC_GRID_MOD,   ONLY : Get_Area_M2
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod, ONLY : ChmState
+      USE PhysConstants, ONLY : AIRMW, AVO
+      USE Pressure_Mod
+      USE Time_Mod,      ONLY : Get_LocalTime
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)           :: am_I_Root  ! On the root CPU?
-      TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input options
+      LOGICAL,        INTENT(IN)           :: am_I_Root ! On the root CPU?
+      TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input Options obj
       LOGICAL,        INTENT(IN), OPTIONAL :: update_mixing_ratio 
-                                                         ! Update mixing ratio?
-                                                         ! Default is yes
+                                                        ! Update mixing ratio?
+                                                        ! Default is yes
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for met fields
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(INOUT)        :: State_Met ! Met State obj
+      TYPE(ChmState), INTENT(INOUT)        :: State_Chm ! Chemistry State obj
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)          :: RC        ! Success or failure?
 !
 ! !REMARKS:
 !  DAO met fields updated by AIRQNT:
@@ -311,7 +314,7 @@
 !  (12) BXHEIGHT  (REAL(fp)) : Vertical height of grid box                [m]   
 !  (13) AIRVOL    (REAL(fp)) : Volume of grid box                         [m^3]
 !  (14) MOISTMW   (REAL(fp)) : Molecular weight of moist air in box     [g/mol]
-!  (15) DELP_PREV (REAL(fp)) : Prev delta-P for trcr mixing ratio update  [hPa]
+!
 ! !REVISION HISTORY: 
 !  30 Jan 1998 - R. Yantosca - Initial version
 !  (1 ) AIRQNT is written in Fixed-Form Fortran 90.  Use F90 syntax
@@ -374,26 +377,40 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  15 Aug 2016 - E. Lundgren - Update conc w/ RH for all species
+!  08 Jan 2018 - R. Yantosca - Now define query fields from State_Met here
+!  17 Jan 2018 - R. Yantosca - Now compute tropopause quantities here, which
+!                              allows us to retire GeosCore/chemgrid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER   :: I,  J,  L,  N    
-      REAL(fp)  :: PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean
-      REAL(fp)  :: PMEAN, PMEAN_DRY  
-      REAL(fp)  :: EsatA, EsatB, EsatC, EsatD
-      REAL(fp)  :: AREA_M2, SPHU_kgkg, SPHU_kgkg_prev, AVGW_moist
+      ! Scalars
+      INTEGER             :: I,         J,          L
+      INTEGER             :: L_CG,      L_TP,       N
+      REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
+      REAL(fp)            :: Ev_mean,   PMEAN,      PMEAN_DRY, EsatA
+      REAL(fp)            :: EsatB,     EsatC,      EsatD,     AREA_M2
+      REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
+      REAL(fp)            :: Pb,        Pt
+      LOGICAL             :: UpdtMR
 
-      ! Error handling
-      CHARACTER(LEN=255) :: MSG, LOC
+      ! Arrays
+      LOGICAL             :: IsLocNoon(IIPAR)
+      REAL(f8)            :: LocTime  (IIPAR)
+      REAL(f8)            :: Nearest  (IIPAR)
 
+      ! Strings
+      CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+!
+! DEFINED PARAMETERS:
+!
       ! Conversion factors
-      REAL(fp), PARAMETER   :: TOFFSET = -2.7315e+2_fp   ! K -> deg C
-      REAL(fp), PARAMETER   :: PCONV   = 1.00e+2_fp      ! hPa -> Pa 
-      REAL(fp), PARAMETER   :: RHCONV  = 1.00e-2_fp      ! % -> fraction
-      REAL(fp), PARAMETER   :: MCONV   = 1.00e-3_fp      ! g -> kg
+      REAL(fp), PARAMETER :: TOFFSET = -2.7315e+2_fp   ! K   -> deg C
+      REAL(fp), PARAMETER :: PCONV   = 1.00e+2_fp      ! hPa -> Pa
+      REAL(fp), PARAMETER :: RHCONV  = 1.00e-2_fp      ! %   -> fraction
+      REAL(fp), PARAMETER :: MCONV   = 1.00e-3_fp      ! g   -> kg
 
       ! Empirical parameters for water vapor saturation pressure
       ! (Source: Nordquist, 1973. "Numerical Approximiations of
@@ -401,39 +418,53 @@
       !  Text quality clarifications from Stipanuk, 1973. "Algorithms
       !  for Generating a Skew-T, Log P Diagram and Computing Selected
       !  Meteorological Quantities") 
-      REAL(fp), PARAMETER   :: ESATP1  = 2.3832241e+1_fp   
-      REAL(fp), PARAMETER   :: ESATP2  = -5.02808e+0_fp       
-      REAL(fp), PARAMETER   :: ESATP3  = 8.1328e-3_fp    
-      REAL(fp), PARAMETER   :: ESATP4  = 3.49149e+0_fp     
-      REAL(fp), PARAMETER   :: ESATP5  = -1.3028844e+3_fp
-      REAL(fp), PARAMETER   :: ESATP6  = -1.3816e-7_fp
-      REAL(fp), PARAMETER   :: ESATP7  = 1.1344e+1_fp
-      REAL(fp), PARAMETER   :: ESATP8  = -3.03998e-2_fp
-      REAL(fp), PARAMETER   :: ESATP9  = -2.949076e+3_fp
+      REAL(fp), PARAMETER :: ESATP1  =  2.3832241e+1_fp
+      REAL(fp), PARAMETER :: ESATP2  = -5.02808e+0_fp
+      REAL(fp), PARAMETER :: ESATP3  =  8.1328e-3_fp
+      REAL(fp), PARAMETER :: ESATP4  =  3.49149e+0_fp
+      REAL(fp), PARAMETER :: ESATP5  = -1.3028844e+3_fp
+      REAL(fp), PARAMETER :: ESATP6  = -1.3816e-7_fp
+      REAL(fp), PARAMETER :: ESATP7  =  1.1344e+1_fp
+      REAL(fp), PARAMETER :: ESATP8  = -3.03998e-2_fp
+      REAL(fp), PARAMETER :: ESATP9  = -2.949076e+3_fp
 
       !=================================================================
       ! AIRQNT begins here! 
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
+
+      ! Shadow variable for mixing ratio update
+      UpdtMR = .TRUE.
+      IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
+
+      ! Pre-compute local solar time = UTC + Lon/15
+      ! NOTE: Local time only depends on longitude
+      DO I = 1, IIPAR
+         LocTime(I) = GET_LOCALTIME( I, 1, 1 )
+         Nearest(I) = ABS( LocTime(I) - 12.0_fp )
+      ENDDO
+
+      ! Find the box that is nearest to local noon
+      IsLocNoon                      = .FALSE.
+      IsLocNoon( MINLOC( Nearest ) ) = .TRUE.
 
       !=============================================================
       ! Update air quantities
       !=============================================================  
 
 !$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-!$OMP+PRIVATE( PEdge_Top, Esat, Ev_mid, Ev_edge, Ev_mean )
-!$OMP+PRIVATE( PMEAN, PMEAN_DRY )
-!$OMP+PRIVATE( EsatA, EsatB, EsatC, EsatD )
-!$OMP+PRIVATE( AREA_M2, SPHU_kgkg, AVGW_moist )
-
+!$OMP+DEFAULT( SHARED                                 )
+!$OMP+PRIVATE( I,       J,         L,       Pedge_Top )
+!$OMP+PRIVATE( EsatA,   EsatB,     EsatC,   EsatD     )
+!$OMP+PRIVATE( Esat,    SPHU_kgkg, Ev_mid,  Ev_edge   )
+!$OMP+PRIVATE( Area_M2, PMean,     Ev_mean, PMean_Dry )
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
-
                                                                           
          !=============================================================   
          ! Set wet air pressures [hPa]                                    
@@ -441,42 +472,40 @@
          !=============================================================   
                                                                           
          ! Pressure at bottom edge of grid box [hPa]                      
-         State_Met%PEDGE( I,J,L )  = GET_PEDGE( I,J,L )                   
-                                                                          
+         State_Met%PEDGE(I,J,L)      = GET_PEDGE( I, J, L   )
+
          ! Pressure at top edge of grid box [hPa]                         
-         PEdge_Top                 = GET_PEDGE( I,J,L+1 )                 
+         PEdge_Top                   = GET_PEDGE( I, J, L+1 )                 
                                                                           
          ! Pressure at bottom edge of grid box [hPa] (level LLPAR+1 only) 
-         IF (L == LLPAR) THEN                                             
-            State_Met%PEDGE( I,J,L+1 ) = PEdge_Top                        
-         ENDIF                                                            
-                                                                          
-         ! Set previous pressure difference to current pressure difference
-         State_Met%DELP_PREV( I,J,L ) = State_Met%DELP( I,J,L )           
-                                                                          
+         IF ( L == LLPAR ) THEN
+            State_Met%PEDGE(I,J,L+1) = PEdge_Top
+         ENDIF
+
          ! Pressure difference between top & bottom edges [hPa]           
-         State_Met%DELP( I,J,L )   = State_Met%PEDGE( I,J,L )             
-     &                                - PEdge_Top                         
-                                                                          
+         State_Met%DELP(I,J,L)       = State_Met%PEDGE(I,J,L)
+     &                               - PEdge_Top
+
          ! Arithmetic average pressure in grid box [hPa] defined as       
          ! ( PEDGE(L) + PEDGE(L+1) ) / 2. This represents the grid box    
          ! mass centroid pressure. Use in the ideal gas law yields        
          ! a local air density at the centroid.                           
-         State_Met%PMID( I,J,L )   = GET_PCENTER( I,J,L )                 
+         State_Met%PMID(I,J,L)       = GET_PCENTER( I, J, L )
                                                                           
          !=============================================================   
          ! Calculate water vapor saturation pressure [hPa]                
          ! from temperature                                               
          !=============================================================   
-                                                                          
+
+         ! Prepare the intermediate terms
          EsatA = ESATP1 + ESATP2 * log10( State_Met%T(I,J,L) )            
          EsatB = ESATP3 * 10**( ESATP4 + ESATP5 / State_Met%T(I,J,L) )    
          EsatC = ESATP6 * 10**( ESATP7 + ESATP8 * State_Met%T(I,J,L) )    
          EsatD = ESATP9 / State_Met%T(I,J,L)                              
-                                                                          
-         ! Saturation water vapor pressure [mb]                           
-         Esat = 10**( EsatA + EsatB + EsatC + EsatD )                     
-                                                                          
+
+         ! Saturation water vapor pressure [hPa]
+         Esat  = 10**( EsatA + EsatB + EsatC + EsatD )
+
          !=============================================================   
          ! Set AVGW, the water vapor volume mixing ratio from             
          ! specific humidity [mol H2O / mol dry air]                      
@@ -493,67 +522,24 @@
          !                                                                
                                                                           
          ! Convert specific humidity from [g/kg] to [kg/kg]               
-         SPHU_kgkg = State_Met%SPHU(I,J,L) * MCONV                        
-                                                                          
+         SPHU_kgkg             = State_Met%SPHU(I,J,L) * MCONV
+
          ! Water vapor volume mixing ratio [v/v dry air]                  
          State_Met%AVGW(I,J,L) = AIRMW * SPHU_kgkg                        
-     &                           / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )   
-                                                                          
-#if   !defined( GEOS_5 ) && !defined( MERRA ) && !defined( GEOS_FP ) && !defined( MERRA2 )
-                                                                          
-         !=============================================================   
-         ! Calculate water vapor partial pressure from specific humidity  
-         ! if using GEOS-4 or GCAP                                        
-         !=============================================================   
-                                                                          
-         ! Mol water vapor per mol moist air from specific humidity       
-         ! (this formulation is derived from the ideal gas law            
-         !  and the definition of specific humidity)                      
-         AVGW_moist = AIRMW * SPHU_kgkg / ( AIRMW * SPHU_kgkg             
-     &                      + H2OMW * ( 1.0e+0_fp - SPHU_kgkg ) )         
-                                                                          
-         ! Water vapor partial pressure at grid box centroid [hPa]
-         Ev_mid = State_Met%PMID(I,J,L) * AVGW_moist
-
-         !=============================================================   
-         ! Set grid box relative humidity [%] if using GEOS-4 or GCAP     
-         !=============================================================   
-         !                                                                
-         ! RH is the ratio of water vapor partial pressure to the         
-         ! saturation pressure of water, expressed as a percentage.       
-         !                                                                
-         ! If RH is not externally input, first calculate the             
-         ! water vapor partial pressure from specific humidity.           
-         ! Then use it with the saturation pressure of water              
-         ! calculated above to set RH.                                    
-         !                                                                
-         !          Grid box           mol H2O                            
-         !  Ev   =  moist air * ----------------------                    
-         ! [hPa]    pressure     mol H2O + mol dry air                    
-         !          [hPa]                                                 
-         !                                                                
-         !          H2O vapor partial pressure                            
-         !  RH   =  -------------------------- * 100                      
-         !           H2O saturation pressure                              
-         !                                                                
-                                                                          
-         ! Relative humidity [%]                                          
-         State_Met%RH(I,J,L) = ( Ev_mid / Esat ) * 100e+0_fp              
-                                                                          
-#elif defined( GEOS_5 ) || defined ( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
+     &                         / ( H2OMW * (1.0e+0_fp - SPHU_kgkg ) )
                                                                           
          !=============================================================   
          ! Calculate water vapor partial pressures [hPa] from relative    
-         ! humidity if using GEOS-5, MERRA, or GEOS-FP.                   
+         ! humidity
          !=============================================================   
-                                                                          
-         Ev_mid = State_Met%RH( I,J,L ) * RHCONV * Esat                   
-                                                                          
-#endif                                                                    
-                                                                          
-         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid                        
-     &             / State_Met%PMID(I,J,L)                                
-                                                                          
+
+         ! At vertical midpoint of grid box
+         Ev_mid  = State_Met%RH(I,J,L) * RHCONV * Esat
+
+         ! At bottom edge of grid box
+         Ev_edge = State_Met%PEDGE(I,J,L) * Ev_mid
+     &           / State_Met%PMID(I,J,L)
+
          !=============================================================   
          ! Set grid box height [m]                                        
          !=============================================================   
@@ -580,34 +566,43 @@
          ! Source: Wallace and Hobbes "Atmospheric Science: An            
          !         Introductory Survey"                                   
          !                                                                
-         ! Assume constant temperature and moisture acros grid box.       
+         ! Assume constant temperature and moisture across grid box. 
          !                                                                
-                                                                          
+
+         ! Grid box potential temperature [K]
+         ! NOTE: Due to the parallelization, we cannot assume that
+         ! State_Met%PEDGE(I,J,1) has been defined.  So always call
+         ! GET_PEDGE(I,J,1) to return the proper surface pressure
+         ! (bmy, 2/23/18)
+         State_Met%THETA(I,J,L)    = State_Met%T(I,J,L)
+     &                             * ( GET_PEDGE( I, J, 1 )
+     &                             /   State_Met%PMID(I,J,L) )**0.286
+
          ! Grid box virtual temperature [K]                               
-         State_Met%TV( I,J,L ) = State_Met%T(I,J,L) / (1 -                
-     &                           Ev_edge / State_Met%PEDGE(I,J,L)         
-     &                           * ( 1 - H2OMW / AIRMW ) )                
-                                                                          
+         State_Met%TV(I,J,L)       = State_Met%T(I,J,L) / (1 -
+     &                               Ev_edge / State_Met%PEDGE(I,J,L)
+     &                             * ( 1 - H2OMW / AIRMW ) )
+
          ! Grid box box height [m]                                        
-         State_Met%BXHEIGHT( I,J,L ) = Rdg0 * State_Met%TV(I,J,L)         
-     &                                 * LOG( State_Met%PEDGE(I,J,L)      
-     &                                 / PEdge_Top )                      
+         State_Met%BXHEIGHT(I,J,L) = Rdg0 * State_Met%TV(I,J,L)
+     &                             * LOG( State_Met%PEDGE(I,J,L)
+     &                             /      PEdge_Top )
                                                                           
-         !=============================================================   
+         !==============================================================  
          ! Set grid box surface area [m2]                                 
          ! NOTE: We intend to gradually remove area use by                
          ! changing tracer units to mixing ratio                          
-         !=============================================================   
+         !==============================================================  
                                                                           
 #if defined( ESMF_ )                                                      
-            AREA_M2                   = State_Met%AREA_M2(I,J,1)          
-#else                                                                     
-            AREA_M2                   = GET_AREA_M2( I,J,L )              
+            AREA_M2                = State_Met%AREA_M2(I,J,1)
+#else
+            AREA_M2                = GET_AREA_M2( I,J,L )
 #endif                                                                    
                                                                           
-         !=============================================================   
+         !==============================================================  
          ! Set grid box volume [m3]                                       
-         !=============================================================   
+         !==============================================================  
          !                                                                
          ! AIRVOL is the volume of grid box (I,J,L) in meters^3           
          !                                                                
@@ -625,25 +620,24 @@
          ! approx. the same as AREA_M2.  Thus we are justified            
          ! in using AREA_M2 for grid boxes (I, J, L > 1)                  
          !                                                                
-         State_Met%AIRVOL( I,J,L ) = State_Met%BXHEIGHT(I,J,L) * AREA_M2  
+         State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * AREA_M2
                                                                           
-
-         !=============================================================
+         !==============================================================
          ! Set grid box dry air partial pressures at grid box edges
          ! and at grid box centroid (arithmetic mean pressure level)
          ! [hPa]. Assume constant humidity across grid box.
-         !=============================================================  
+         !============================================================== 
 
          ! Partial pressure of dry air at lower edge of grid box [hPa]
-         State_Met%PEDGE_DRY( I,J,L ) = State_Met%PEDGE(I,J,L) - Ev_edge
+         State_Met%PEDGE_DRY(I,J,L) = State_Met%PEDGE(I,J,L) - Ev_edge
 
          ! Set dry air partial pressure for level LLPAR+1 lower edge
-         IF ( L == LLPAR ) THEN     
-            State_Met%PEDGE_DRY( I,J,L+1 ) = Pedge_Top - Ev_edge
+         IF ( L == LLPAR ) THEN
+            State_Met%PEDGE_DRY(I,J,L+1) = Pedge_Top - Ev_edge
          ENDIF
 
          ! Partial pressure of dry air at box centroid [hPa]
-         State_Met%PMID_DRY( I,J,L ) = State_Met%PMID(I,J,L) - Ev_mid
+         State_Met%PMID_DRY(I,J,L) = State_Met%PMID(I,J,L) - Ev_mid
 
          ! Set previous dry P difference to current dry P difference
          ! prior to updating with new met values
@@ -653,7 +647,7 @@
          ! dry surface pressure
          State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
 
-         !===============================================================
+         !==============================================================
          ! Set mass of dry air in grid box [kg]
          !==============================================================
          
@@ -675,23 +669,24 @@
          ! (see SET_DRY_SURFACE_PRESSURE). It is not derived from the
          ! wet edge pressures. This distinction is important for
          ! mass conservation.
-         State_Met%AD(I,J,L) = (State_Met%DELP_DRY(I,J,L) * G0_100)
-     &                         * AREA_M2
+         State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
+     &                       * AREA_M2
 
-         !=============================================================
+         !==============================================================
          ! Set grid box dry air partial pressures at grid box 
          ! altitude-weighted mean pressure [hPa]
          ! Assume constant humidity across grid box.
-         !=============================================================  
+         !==============================================================
 
          ! Mean altitude-weighted pressures in grid box [hPa] defined as   
          ! average P(z) over z. Use in the ideal gas law yields a         
          ! mean density equivalent to total mass per volume in grid box.  
-         PMEAN = State_Met%DELP(I,J,L) /               
-     &                              log( State_Met%PEDGE(I,J,L) /         
-     &                                   PEdge_Top )     
-         Ev_mean = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
+         PMEAN     = State_Met%DELP(I,J,L) /
+     &                              log( State_Met%PEDGE(I,J,L) /
+     &                                   PEdge_Top )
+         Ev_mean   = PMEAN * Ev_mid / State_Met%PMID(I,J,L)
          PMEAN_DRY = PMEAN - Ev_mean
+
          ! NOTE: Try the below definition in the future to change the
          ! AIRDEN equation to use the ideal gas law, thereby removing 
          ! area-independence of AIRDEN
@@ -699,9 +694,9 @@
          !&                              log( State_Met%PEDGE(I,J,L) /         
          !&                                   PEdge_Top )     
 
-         !===========================================================
+         !==============================================================
          ! Set grid box densities
-         !=============================================================  
+         !============================================================== 
          
          ! Set grid box dry air density [kg/m3]
          !
@@ -716,12 +711,12 @@
          ! the ideal gas law, will replicate the air density defined as
          ! mass/volume. Moving to use of the ideal gas law is necessary 
          ! for grid-independence (ewl, 9/16/16)
-         State_Met%AIRDEN(I,J,L) = State_Met%AD(I,J,L)  
-     &                             / State_Met%AIRVOL(I,J,L)
+         State_Met%AIRDEN(I,J,L)    = State_Met%AD(I,J,L)
+     &                              / State_Met%AIRVOL(I,J,L)
 
          ! Set grid box dry air number density [molec/cm3]
          State_Met%AIRNUMDEN(I,J,L) = State_Met%AIRDEN(I,J,L)
-     &                                * 1e-3_fp *  AVO / AIRMW
+     &                              * 1e-3_fp *  AVO / AIRMW
 
          ! Set grid box moist air density [kg/m3] using the ideal gas law
          ! and pressures derived from GMAO pressure
@@ -743,15 +738,141 @@
      &                              * PCONV * MCONV
      &                              / RSTARG / State_Met%T(I,J,L)
 
+
+         !==============================================================
+         ! Define the various query fields of State_Met
+         !
+         ! NOTE: For convenience, we set State_Met%InPbl in routine 
+         ! COMPUTE_PBL_HEIGHT (in module GeosCore/pbl_mix_mod.F).
+         !
+         ! NOTE: For certain queries we test against level numbers,
+         ! (e.g. LLSTRAT, LLCHEM), but should really test level 
+         ! pressure edges, so that this algorithm will be robust if 
+         ! we switch to different met fields or interface with 
+         ! different ESMs.  Add this at a later time. (bmy, 1/8/18)
+         !============================================================== 
+ 
+         ! Is this grid box within the troposphere?
+         State_Met%InTroposphere(I,J,L) = 
+     &      ( State_Met%PEDGE(I,J,L) > State_Met%TROPP(I,J) )
+
+         ! Is this grid box within the stratosphere or mesosphere?
+         State_Met%InStratMeso(I,J,L) = 
+     &      ( .not. State_Met%InTroposphere(I,J,L) )
+
+         ! Is this grid box within the stratosphere (but not mesosphere)?
+         State_Met%InStratosphere(I,J,L) =
+     &      ( L <= LLSTRAT .and. State_Met%InStratMeso(I,J,L) )
+
+         ! Is grid box (I,J,L) within the chemistry grid?
+         IF ( L > LLCHEM ) THEN
+
+            ! Chemistry is not done higher than the mesopause
+            State_Met%InChemGrid(I,J,L) = .FALSE.
+
+         ELSE
+
+            IF ( Input_Opt%LUCX ) THEN
+
+               ! UCX mechanisms: Chemistry grid goes up to stratopause
+               State_Met%InChemGrid(I,J,L) = ( L <= LLSTRAT )
+
+            ELSE
+
+               ! "tropchem" mechanisms: Chemistry grid goes up to tropopause
+               State_Met%InChemGrid(I,J,L) =
+     &              State_Met%InTroposphere(I,J,L)
+
+            ENDIF
+
+         ENDIF
+
       ENDDO
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
 
-      !=============================================================
+      !=================================================================
+      ! Compute more tropopause and chemistry grid quantities.  This
+      ! has to be done after the State_Met%InChemGrid etc. fields have 
+      ! been totally initialized.
+      !
+      ! Also compute if it is near local noon in a grid box.
+      ! This will be used for the J-value diagnostics.
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED                            )
+!$OMP+PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+         !--------------------------------------------------------------
+         ! Local solar time and box that is nearest to local noon
+         !--------------------------------------------------------------
+         State_Met%LocalSolarTime(I,J) = LocTime(I)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
+
+         !--------------------------------------------------------------
+         ! Compute highest level of chemistry grid and the troposphere
+         !
+         ! NOTE: The COUNT intrinsic function returns the number of 
+         ! locations where the column State_Met%InChemGrid(I,J,:) is 
+         ! TRUE.  This is also equivalent to the maximum level of the 
+         ! chemistry grid.  Ditto for State_Met%InTroposphere.
+         !--------------------------------------------------------------
+
+         ! Highest level in the column at (I,J)
+         ! that is fully within the chemistry grid
+         L_CG  = COUNT( State_Met%InChemGrid(I,J,:) )
+
+         ! Highest level in the column at (I,J)
+         ! that is fully within the tropopause
+         L_TP  = COUNT( State_Met%InTroposphere(I,J,:) )
+
+         !--------------------------------------------------------------
+         ! Compute tropopause height
+         !--------------------------------------------------------------
+
+         ! Get height (from surface to top edge) of all boxes that lie
+         ! totally w/in the troposphere.  NOTE: Grid box (I,J,L_TP-1)
+         ! is the highest purely tropospheric grid box in the column.
+         !
+         ! BMY COMMENT: L_TP may be the highest purely tropospheric
+         ! grid box in the column, not L_TP-1. That might have been
+         ! due to historical baggage.  In any case, this is only used
+         ! to compute State_Met%TropHt which is a purely diagnostic
+         ! output, so it won't make a big difference even if it is
+         ! incorrect.  Check into this later on. (bmy, 1/17/18)
+         H     = SUM( State_Met%BXHEIGHT(I,J,1:L_TP-1) )
+
+         ! Get the pressures [hPa] at the bottom and top edges
+         ! of the grid box in which the tropopause occurs
+         Pb    = State_Met%PEDGE(I,J,L_TP  )  
+         Pt    = State_Met%PEDGE(I,J,L_TP+1)
+
+         ! FRAC is the fraction of the grid box (I,J,L_TP) 
+         ! that lies totally within the troposphere
+         FRAC  = ( Pb - State_Met%TROPP(I,J) ) / ( Pb - Pt ) 
+
+         ! Add to H the height [m] of the purely tropospheric 
+         ! fraction of grid box (I,J,L_TP)
+         H     = H + ( FRAC * State_Met%BXHEIGHT(I,J,L_TP) )
+
+         !--------------------------------------------------------------
+         ! Save in the relevant fields of State_Met
+         !--------------------------------------------------------------
+         State_Met%ChemGridLev(I,J) = L_CG           ! Max chemgrid level
+         State_Met%TropLev    (I,J) = L_TP           ! Max tropopause level
+         State_Met%TropHt     (I,J) = H / 1000.0_fp  ! Troposphere ht [km]
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      !=================================================================
       ! Update species concentrations with updated air quantities
       ! if update mixing ratio flag indicates to do so
-      !=============================================================  
+      !=================================================================
 
       ! Update the mixing ratio with new air quantities such that species
       ! mass is conserved if (1) update_mixing_ratio flag is not passed, 
@@ -759,8 +880,9 @@
       ! NOTE: The only places where mixing ratio is not currently updated
       ! following air quantity change is during GEOS-Chem initialization and  
       ! in transport after the pressure fixer is applied 
-      IF ( .not. PRESENT( update_mixing_ratio )  
-     &               .or. update_mixing_ratio ) THEN
+      IF ( UpdtMR ) THEN
+!      IF ( .not. PRESENT( update_mixing_ratio )  
+!     &               .or. update_mixing_ratio ) THEN
 
          ! The concentration update formula works only for dry mixing ratios
          ! (kg/kg or v/v) so check if units are correct
@@ -769,7 +891,7 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, N, SPHU_kgkg, SPHU_kgkg_prev )
+!$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
             DO L = 1, LLPAR
             DO J = 1, JJPAR
@@ -784,10 +906,10 @@
 !$OMP END PARALLEL DO
 
          ELSE
-            MSG = 'Incorrect tracer units: ' 
-     &              // TRIM(State_Chm%Spc_Units)
-            LOC = 'DAO_MOD: AIRQNT'
-            CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
+            ErrMsg = 'Incorrect species units: ' // 
+     &                TRIM( State_Chm%Spc_Units )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 
@@ -886,6 +1008,7 @@
 !  28 Oct 2015 - E. Lundgren - Set previous SPHU to current SPHU before update
 !  04 May 2016 - E. Lundgren - Now also interpolate dry pressure calculated
 !                              in SET_DRY_SURFACE_PRESSURE using GMAO wet P
+!  07 Nov 2017 - R. Yantosca - Dynamic tropopause is now always assumed
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -906,11 +1029,7 @@
       D_NTIME1 = DBLE( NTIME1 )
       D_NTDT   = DBLE( NTDT   )
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
       D_NDT    = 10800e+0_fp              ! For 3-hr instantaneous fields
-#else
-      D_NDT    = 21600e+0_fp              ! For 6-hr instantaneous fields
-#endif      
 
       ! Fraction of timestep elapsed at mid point of this dyn timestep
       TM  = ( D_NTIME1 + D_NTDT/2e+0_fp - D_NTIME0 ) / D_NDT
@@ -918,165 +1037,11 @@
       ! Fraction of timestep elapsed at the end of this dyn timestep
       TC2 = ( D_NTIME1 + D_NTDT     - D_NTIME0 ) / D_NDT 
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
       ! For I3 fields, need to reset fraction after 3 hours (ewl, 5/12/2015)
       IF ( TM > 1.0e+0_fp ) THEN
          TM  = TM  - 1.0e+0_fp
          TC2 = TC2 - 1.0e+0_fp
       ENDIF
-#endif
-
-#if   defined( GEOS_4 ) || defined( GCAP )
-
-      !=================================================================
-      ! GEOS-4 or GCAP met fields: PSC2_WET, PSC2_DRY, TROPP
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-         State_Met%PSC2_WET(I,J) = State_Met%PS1_WET(I,J) +
-     &                           ( State_Met%PS2_WET(I,J) - 
-     &                             State_Met%PS1_WET(I,J) ) * TC2 
-
-         ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J) +
-     &                           ( State_Met%PS2_DRY(I,J) - 
-     &                             State_Met%PS1_DRY(I,J) ) * TC2 
-
-         ! Test if we are using the variable tropopause
-         IF ( Input_Opt%LVARTROP ) THEN
- 
-            ! Interpolate TROPP [hPa] to the midpt of the dynamic timestep
-            State_Met%TROPP(I,J) = State_Met%TROPP1(I,J) +
-     &                           ( State_Met%TROPP2(I,J) - 
-     &                             State_Met%TROPP1(I,J) ) * TM
-
-            ! However, we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
-     &                                     200e+0_fp )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_5 )
-
-      !=================================================================
-      ! GEOS-5 met fields: PSC2_WET, PSC2_DRY, TO3, TROPP
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, YSOUTH, YNORTH )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! North & south edges of box
-         YSOUTH = GET_YEDGE( I, J,   1 )
-         YNORTH = GET_YEDGE( I, J+1, 1 )
-
-         ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-         State_Met%PSC2_WET(I,J) = State_Met%PS1_WET(I,J)  +
-     &                           ( State_Met%PS2_WET(I,J)  -
-     &                             State_Met%PS1_WET(I,J)  ) * TC2 
-
-         ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-         State_Met%PSC2_DRY(I,J) = State_Met%PS1_DRY(I,J)  +
-     &                           ( State_Met%PS2_DRY(I,J)  -
-     &                             State_Met%PS1_DRY(I,J)  ) * TC2 
-
-         ! Interpolate the GEOS-5 total O3 column [DU] to current time
-         State_Met%TO3(I,J)  = State_Met%TO31(I,J) +
-     &                       ( State_Met%TO32(I,J) -
-     &                         State_Met%TO31(I,J) ) * TM
-
-         ! Even though TROPP is a 3-hour average field, we 
-         ! we still need to make sure to cap TROPP in the
-         ! polar regions (if the entire box is outside 60S-60N)
-         ! so that we don't do chemistry at an abnormally high
-         ! altitude.  Set TROPP in the polar regions to 200 hPa.
-         ! (jal, phs, bmy, 9/18/07)
-         IF ( Input_Opt%LVARTROP ) THEN
-            IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 
-     &                                     200e+0_fp )
-            ENDIF
-         ENDIF
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( MERRA )
-
-      !=================================================================
-      ! MERRA met fields: PSC2_WET, PSC2_DRY, TROPP, RH 
-      !=================================================================
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, YSOUTH, YNORTH )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         !----------------------------------------------------
-         ! Interpolate 2D variables
-         !----------------------------------------------------
-         IF ( L == 1 ) THEN
-
-            ! North & south edges of box
-            YSOUTH     = GET_YEDGE( I, J,   L )
-            YNORTH     = GET_YEDGE( I, J+1, L )
-            
-            ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
-            State_Met%PSC2_WET(I,J)  = State_Met%PS1_WET(I,J) +
-     &                               ( State_Met%PS2_WET(I,J) - 
-     &                                 State_Met%PS1_WET(I,J) ) * TC2 
-
-            ! Do the same for dry pressure [hPa] (ewl, 5/4/16)
-            State_Met%PSC2_DRY(I,J)  = State_Met%PS1_DRY(I,J) +
-     &                               ( State_Met%PS2_DRY(I,J) - 
-     &                                 State_Met%PS1_DRY(I,J) ) * TC2 
-
-            ! Even though TROPP is a 3-hour average field, we 
-            ! we still need to make sure to cap TROPP in the
-            ! polar regions (if the entire box is outside 60S-60N)
-            ! so that we don't do chemistry at an abnormally high
-            ! altitude.  Set TROPP in the polar regions to 200 hPa.
-            ! (jal, phs, bmy, 9/18/07)
-            IF ( Input_Opt%LVARTROP ) THEN
-               IF ( YSOUTH >= 60e+0_fp .or. YNORTH <= -60e+0_fp ) THEN
-                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200e+0_fp )
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !----------------------------------------------------
-         ! Interpolate 3D variables
-         !----------------------------------------------------
-         State_Met%RH(I,J,L) = State_Met%RH1(I,J,L)   +
-     &                       ( State_Met%RH2(I,J,L)   -
-     &                         State_Met%RH1(I,J,L) ) * TM
-
-      ENDDO
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
 
       !=================================================================
       ! GEOS-FP or MERRA2 met fields: PSC2_WET, PSC2_DRY, TROPP, T, SPHU 
@@ -1113,12 +1078,9 @@
             ! so that we don't do chemistry at an abnormally high
             ! altitude.  Set TROPP in the polar regions to 200 hPa.
             ! (jal, phs, bmy, 9/18/07)
-            IF ( Input_Opt%LVARTROP ) THEN
-
-               IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
-                  State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
-     &                                        200e+0_fp )
-               ENDIF
+            IF ( YSOUTH >= 60.0_fp .OR. YNORTH <= -60.0_fp ) THEN
+               State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J),
+     &                                     200e+0_fp )
             ENDIF
          ENDIF
 
@@ -1131,10 +1093,6 @@
      &                         ( State_Met%TMPU2(I,J,L)   -
      &                           State_Met%TMPU1(I,J,L) ) * TM
 
-         ! Set previous SPHU to current SPHU prior to interpolateion
-         ! update (ewl, 10/28/15)
-         State_Met%SPHU_prev(I,J,L) = State_Met%SPHU(I,J,L)
-
          ! Interpolate specific humidity
          State_Met%SPHU(I,J,L) = State_Met%SPHU1(I,J,L)   +
      &                         ( State_Met%SPHU2(I,J,L)   -
@@ -1144,10 +1102,105 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-#endif
 
       END SUBROUTINE INTERP
 !EOC
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID )
+!------------------------------------------------------------------------------
+!          Harvard University Atmospheric Chemistry Modeling Group            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: gigc_cap_tropopause_prs
+!
+! !DESCRIPTION: Subroutine GIGC\_CAP\_TROPOPAUSE\_PRS caps the tropopause
+!  pressure in polar latitudes to 200 hPa, so that we don't end up doing
+!  troposheric chemistry too high over the poles.  This is done in the
+!  standalone GEOS-Chem, and we also need to apply this when running
+!  GEOS-Chem within the GEOS-5 GCM.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root, IM,        JM, 
+     &                                    Input_Opt, State_Met, RC  )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Met_Mod, ONLY : MetState
+      USE GC_Grid_Mod,   ONLY : Get_XEdge
+      USE GC_Grid_Mod,   ONLY : Get_YEdge
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
+      INTEGER,        INTENT(IN)    :: IM            ! # of lons on this CPU
+      INTEGER,        INTENT(IN)    :: JM            ! # of lats on this CPU
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met     ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC            ! Success or failure
+!
+! !REMARKS:
+!  Jennifer Logan (see correspondence below) suggested that we should cap the 
+!  variable tropopause at 200hPa in near-polar regions (90-60S and 60-90N), 
+!  to avoid the problem with anomalously high tropopause heights at high 
+!  latitudes. This fix was standardized in GEOS-Chem v7-04-13.
+!                                                                             .
+!  Jennifer Logan wrote:
+!     I think we should restrict the tropopause at latitudes > 60 deg. to 
+!     pressures greater than 200 mb (about 11 km). From Fig. 3 in Seidel and 
+!     Randel, there are tropopause (TP) heights as high as 13.5 km in the 
+!     Antarctic (median height is ~9.8 km, 250 mb), but I don't think we want 
+!     to be doing trop. chem there. The median TP pressure at ~80 N is ~300 mb, 
+!     compared to ~250 mb at 70-85 S. The extratropical TP heights are higher
+!     (lower pressure) in the SH than in the NH according to Fig. 3. 
+!     This approach is also very easy to explain in a paper. 
+! 
+! !REVISION HISTORY: 
+!  14 Mar 2013 - R. Yantosca - Initial version
+!  08 Mar 2018 - E. Lundgren - Move this rtn from obsolete GCHP/gchp_utils.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I,       J
+      REAL*8  :: YSOUTH,  YNORTH
+      
+      ! Assume success
+      RC = GC_SUCCESS
+      
+      ! Return if option not set
+      IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
+      
+      ! Loop over grid boxes on this PET
+      DO J = 1, JM
+      DO I = 1, IM
+      
+         ! North & south edges of box
+         YSOUTH = GET_YEDGE( I, J,   1 )
+         YNORTH = GET_YEDGE( I, J+1, 1 )
+      
+         ! Cap tropopause height at 200 hPa polewards of 60N and 60S
+         IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
+            State_Met%TROPP(I,J) = MAX( State_Met%TROPP(I,J), 200d0 )
+         ENDIF
+      
+      ENDDO
+      ENDDO
+
+      END SUBROUTINE GIGC_Cap_Tropopause_Prs
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1181,6 +1234,7 @@
 !
 ! !REVISION HISTORY:
 !  03 May 2002 - E. Lundgren - Initial version (M. Lee, JPL) 
+!  18 Feb 2017 - S. D. Eastham - Updated to include TOA pressure
 ! 
 ! !REMARKS:
 !  This subroutine is an adaptation of the GEOS-Chem moisture fix 
@@ -1212,15 +1266,11 @@
       !=================================================================
 
       ! Set pointer to the appropriate humidity
-#if defined( GEOS_FP ) || defined( MERRA2 )
       IF ( PS_ID == 1 ) THEN
          SPHU   => State_Met%SPHU1
       ELSE IF ( PS_ID == 2 ) THEN
          SPHU   => State_Met%SPHU2
       ENDIF
-#else
-         SPHU   => State_Met%SPHU
-#endif
 
       ! Set pointers to State_Met pressure fields.
       IF ( PS_ID == 1 ) THEN
@@ -1233,8 +1283,8 @@
          ! Throw an error (to be added)
       ENDIF
 
-      ! Reset dry surface pressure to zero
-      PS_DRY = 0.0e+0_fp
+      ! Reset dry surface pressure to TOA value
+      PS_DRY = GET_AP(LLPAR+1)
 
       ! Calculate dry surface pressure from GMAO wet pressure as the 
       ! column sum of wet delta pressures with humidity removed
@@ -1334,28 +1384,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a land box if 50% or more of the box is covered by 
-      ! land and less than 50% of the box is covered by ice
-      LAND = ( State_Met%LWI_GISS(I,J) >= 0.5e+0_fp .and. 
-     &         State_Met%SNICE(I,J)    <  0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
       LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and.
      &               State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_LAND
 !EOC
@@ -1420,28 +1451,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's a water box if less than 50% of the box is
-      ! covered by land and less than 50% is covered by ice
-      WATER = ( State_Met%LWI_GISS(I,J) < 0.5e+0_fp .and. 
-     &          State_Met%SNICE(I,J)    < 0.5e+0_fp )
-
-#else
-
-      !---------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !---------------------------
-
       ! LWI=0 and ALBEDO less than 69.5% is a water box 
       WATER = ( NINT( State_Met%LWI(I,J) ) == 0       .and.
      &                State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_WATER
 !EOC
@@ -1487,26 +1499,9 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if   defined( GCAP )
-
-      !--------------------------
-      ! GCAP
-      !--------------------------
-
-      ! It's an ice box if 50% or more of the box is covered by ice
-      ICE = ( State_Met%SNICE(I,J) >= 0.5e+0_fp )
-
-#else
-
-      !--------------------------
-      ! GEOS-4 / GEOS-5 / MERRA
-      !--------------------------
-
       ! LWI=2 or ALBEDO > 69.5% is ice
       ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or.
      &              State_Met%ALBD(I,J)  >= 0.695e+0_fp )
-
-#endif
 
       END FUNCTION IS_ICE
 !EOC
@@ -1600,33 +1595,7 @@
             ! If it's an ice box, skip to next neighbor
             IF ( IS_ICE( LONGI, LATJ, State_Met ) ) CYCLE
 
-#if   defined( GCAP ) 
-
             !---------------------------------------------------
-            ! GCAP met fields
-            !
-            ! LWI_GISS = 0.0 means that the box is all water
-            ! LWI_GISS = 1.0 means that the box is all land
-            !
-            ! with fractional values at land-water boundaries
-            !
-            ! It's near-land if THRESH <= LWI_GISS <= 1.0 
-            !---------------------------------------------------
-            IF ( State_Met%LWI_GISS(LONGI,LATJ) >  THRESH .and.
-     &           State_Met%LWI_GISS(LONGI,LATJ) <= 1.0e+0_fp ) THEN
-
-               ! We are in a near-land box
-               NEAR = .TRUE.
-
-               ! Break out of loop
-               GOTO 999
-            ENDIF
-
-#elif defined( GEOS_4 ) || defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-
-            !---------------------------------------------------
-            ! GEOS-4 / GEOS-5 / MERRA met fields
-            !
             ! LWI = 0.0 is ocean
             ! LWI = 1.0 is land
             ! LWI = 2.0 is ice 
@@ -1645,8 +1614,6 @@
                ! Break out of loop
                GOTO 999
             ENDIF
-
-#endif
 
          ENDDO
       ENDDO
@@ -1696,18 +1663,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
-#if   defined( GCAP )
-
-      !=================================================================
-      ! For GCAP met fields (based on GISS model)
-      !=================================================================
-
-      ! Monin-Obhukov length is a GCAP met field
-      OBK = State_Met%MOLENGTH(I,J)
-
-#else
-
+!
       !=================================================================
       ! For all GEOS met fields:
       !
@@ -1746,8 +1702,6 @@
          OBK = 1.0e+5_fp
       ENDIF
 
-#endif
-
       END FUNCTION GET_OBK
 !EOC
 !------------------------------------------------------------------------------
@@ -1779,6 +1733,7 @@
       USE TIME_MOD,           ONLY : GET_GMT
       USE TIME_MOD,           ONLY : GET_HOUR 
       USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_SECOND
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
 !
@@ -1810,6 +1765,7 @@
 !
       ! Scalars
       INTEGER :: DOY,  DOY5, YEAR, MONTH,  DAY, HOUR, HOUR5, MINUTE
+      INTEGER :: SECOND
       REAL*8  :: DDAY, JD,   JD5,  JDJan0, GMT, GMT5
 
       !=================================================================
@@ -1827,8 +1783,11 @@
       DAY    = GET_DAY()                               ! Current day of month
       HOUR   = GET_HOUR()                              ! Current GMT hour
       MINUTE = GET_MINUTE()                            ! Current GMT minutes
+      SECOND = GET_SECOND()                            ! Current GMT seconds
       GMT    = GET_GMT()                               ! Current GMT
-      DDAY   = DAY + ( HOUR/24d0 ) + ( MINUTE/1440d0 ) ! Current decimal day
+      DDAY   = DAY + ( HOUR/24d0     ) + ( MINUTE/1440d0 ) 
+     &             + ( SECOND/3600d0 )                 ! Current decimal day 
+! Current decimal day
       JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
       ! Compute cosine(SZA) quantities for the current time
@@ -1875,7 +1834,7 @@
 !
       USE GC_GRID_MOD,        ONLY : GET_YMID_R
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_MINUTE
+      USE TIME_MOD,           ONLY : GET_MINUTE, GET_SECOND
       USE TIME_MOD,           ONLY : GET_LOCALTIME
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1939,6 +1898,7 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R(I,J,L) from grid_mod.F90
 !  01 Mar 2012 - R. Yantosca - Now use GET_LOCALTIME(I,J,L) from time_mod.F90
 !  27 Nov 2012 - R. Yantosca - Update SUNCOS fields of the State_Met object
+!  10 Mar 2017 - E. Lundgren - Bug fix: include partial hour in current time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1946,7 +1906,7 @@
 ! !LOCAL VARIABLES:
 !      
       INTEGER              :: I,        J
-      INTEGER              :: MINUTE,   TS_SUN,   FACTOR
+      INTEGER              :: SECOND,   MINUTE,   TS_SUN,   FACTOR
       REAL(fp)             :: TIMLOC,   DEC,      C_DEC
       REAL(fp)             :: S_DEC,    R,        YMID_R
       REAL(fp)             :: C_YMID_R, S_YMID_R
@@ -1970,16 +1930,18 @@
 
       ! Quantities for central chemistry timestep
       TS_SUN   = GET_TS_CHEM()                         ! Chemistry interval
+      SECOND   = GET_SECOND()                          ! Current seconds
       MINUTE   = GET_MINUTE()                          ! Current minutes
-      FACTOR   = MINUTE / TS_SUN                       ! Multiplying factor
+      FACTOR   = ( MINUTE * 60 + SECOND ) / TS_SUN     ! Multiplying factor
 
       ! GMT at the current time
-      GMT_CUR  = DBLE( GMT_HOUR )
+      GMT_CUR  = DBLE( GMT_HOUR          )
+     &         + ( DBLE( TS_SUN * FACTOR ) / 3600e+0_fp ) 
 
       ! GMT at the midpoint of the chemistry time interval
       GMT_MID  = ( DBLE( GMT_HOUR        )        )  
-     &         + ( DBLE( TS_SUN * FACTOR ) / 60e+0_fp ) 
-     &         + ( DBLE( TS_SUN / 2      ) / 60e+0_fp ) 
+     &         + ( DBLE( TS_SUN * FACTOR ) / 3600e+0_fp ) 
+     &         + ( DBLE( TS_SUN / 2      ) / 3600e+0_fp ) 
 
       ! Path length of earth's orbit traversed since Jan 1 [radians]
       R        = ( 2e+0_fp * PI / 365e+0_fp ) * DBLE( DOY - 1 ) 
@@ -2118,52 +2080,10 @@
       ! COPY_I3_I6_FIELDS begins here!
       !=================================================================
 
-#if   defined( GCAP )
-
-      !------------------
-      ! GCAP met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_4 )
-
-      !------------------
-      ! GEOS-4 met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%TROPP1  = State_Met%TROPP2  ! I6 tropopause pressure [hPa]
-
-#elif defined( GEOS_5 )
-
-      !------------------
-      ! GEOS-5 met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa] 
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-
-#elif defined( GEOS_FP ) || defined( MERRA2 )
-
-      !------------------
-      ! GEOS-FP met
-      !------------------
       State_Met%PS1_WET = State_Met%PS2_WET ! I3 surface pressure    [hPa]
       State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa] 
       State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
       State_Met%TMPU1   = State_Met%TMPU2   ! I3 temperature         [K]
-
-#elif defined( MERRA )
-
-      !------------------
-      ! MERRA met
-      !------------------
-      State_Met%PS1_WET = State_Met%PS2_WET ! I6 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I6 surface pressure    [hPa] 
-      State_Met%RH1     = State_Met%RH2     ! I6 relative humidity   [%]
-
-#endif
 
       END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC

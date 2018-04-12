@@ -129,6 +129,8 @@ MODULE HCO_TYPES_MOD
      LOGICAL  :: VertWeight     ! if spreading 2D fields across multiple vert.
                                 ! levels, weight vertical dilution factors based
                                 ! upon level depths?
+     LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
+                                ! in HEMCO configuration file? Defaults to yes.
   END TYPE HcoOpt
 
   !=========================================================================
@@ -306,6 +308,8 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: ScalID         ! Scale factor ID
      INTEGER                     :: Oper           ! Operator
+     INTEGER                     :: levScalID1     ! ID of vertical level field
+     INTEGER                     :: levScalID2     ! ID of vertical level field
      INTEGER                     :: nScalID        ! # of scale factor IDs 
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
@@ -324,7 +328,7 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   TYPE :: FileData
      CHARACTER(LEN=255)          :: ncFile    ! file path+name
-     CHARACTER(LEN= 31)          :: ncPara    ! file parameter
+     CHARACTER(LEN= 50)          :: ncPara    ! file parameter
      INTEGER                     :: ncYrs(2)  ! year range
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range
@@ -510,7 +514,8 @@ MODULE HCO_TYPES_MOD
   END TYPE DiagnBundle
 !                                                                             
 ! !REVISION HISTORY:
-!  15 Feb 2016 - C. Keller   - Initial version (collected from various modules)
+!  15 Feb 2016 - C. Keller - Initial version (collected from various modules)
+!  12 May 2017 - C. Keller - Added option ScaleEmis 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
