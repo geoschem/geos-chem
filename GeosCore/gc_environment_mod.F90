@@ -1101,8 +1101,18 @@ CONTAINS
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
 
+#if !defined( ESMF_ )
+    !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
+    !
+    ! NOTE: Do not do this for GCHP, because this will cause a file to
+    ! be written out to disk for each core.  
+    !
+    ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
+    ! but we have to keep it for the time being (bmy, 4/11/18)
+    !--------------------------------------------------------------------
     CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+#endif
 
     IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 

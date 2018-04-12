@@ -35,7 +35,7 @@
       !######################################################
       !##### NOTE: These variables can be blocked out!  #####
       !######################################################
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER, PARAMETER :: PD05=20
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
@@ -103,7 +103,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! Diagnostic counters & time variables
       !=================================================================
@@ -146,7 +146,7 @@
       INTEGER :: TCOUNT(MAX_DIAG) 				  
       INTEGER :: TMAX(MAX_DIAG)					
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! OH, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
       ! Move this here for now (bmy, 7/20/04)
@@ -256,7 +256,7 @@
       ! Assume success
       RC   = GC_SUCCESS
       
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 
       PD64 = W_
