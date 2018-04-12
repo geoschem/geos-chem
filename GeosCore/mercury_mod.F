@@ -4742,25 +4742,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 
-      FUNCTION GET_NO2(I,J,L,State_Met,NO_MO,NO2_MO,O3_MO)
+      FUNCTION GET_NO2( I, J, L, State_Met, NO_MO, NO2_MO, O3_MO )
      &     RESULT( NO2_INST )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP
+      USE ERROR_MOD,     ONLY : ERROR_STOP, SAFE_DIV
       USE State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN) :: I,J,L
+      INTEGER,        INTENT(IN) :: I,J,L
       TYPE(MetState), INTENT(IN) :: State_Met
-      REAL(4), INTENT(IN) :: NO_MO
-      REAL(4), INTENT(IN) :: NO2_MO
-      REAL(fp), INTENT(IN) :: O3_MO
+      REAL(4),        INTENT(IN) :: NO_MO
+      REAL(4),        INTENT(IN) :: NO2_MO
+      REAL(fp),       INTENT(IN) :: O3_MO
 !
 ! !REVISION HISTORY:
-!  ca. 2014 - H. Horowitz - Initial version
+!  ca. 2014    - H. Horowitz - Initial version
 !  30 Sep 2017 - C. Thackray (cpt) - Merged into v11
 !EOP
 !------------------------------------------------------------------------------
@@ -4775,6 +4775,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp) :: EdivR
       REAL(fp) :: NOx_MO
       REAL(fp) :: NO2_INST
+      REAL(fp) :: k3_O3_MO_prod, J_NO2_k3_O3_MO_sum
 !  =======================================================================     
 !  NOTES:                                                                      
 !                                                                              
@@ -4812,9 +4813,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       NOx_MO = NO_MO + NO2_MO
 
       J_NO2 = GET_JNO2(I,J,L,State_Met)
-
-      !Calculate fraction of NOx as NO2   
-      F_NO2 = (k3*O3_MO) / (J_NO2 + k3*O3_MO)
+      k3_O3_MO_prod = k3*O3_MO
+      J_NO2_k3_O3_MO_sum = J_NO2 + k3_O3_MO_prod
+      F_NO2 = SAFE_DIV( k3_O3_MO_prod, J_NO2_k3_O3_MO_sum, 0E0_FP )
 
       IF (O3_MO .LT. SMALLNUM) THEN
          F_NO2 = SMALLNUM
