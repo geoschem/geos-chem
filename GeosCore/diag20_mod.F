@@ -100,8 +100,9 @@
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_CHEMGRID
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -189,18 +190,19 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE     :: FIRST = .TRUE.
-      INTEGER, SAVE     :: id_O3
+      LOGICAL,  SAVE      :: FIRST = .TRUE.
+      INTEGER,  SAVE      :: id_O3
+      REAL(fp), SAVE      :: O3_MW_g
 
       ! Scalars
-      LOGICAL           :: DO_WRITE
-      INTEGER           :: I, J, L, N
-      REAL(fp)          :: P_Ox, L_Ox
-      REAL(fp)          :: LT, O3_MW_G
-      REAL(fp)          :: BOXVL
+      LOGICAL             :: DO_WRITE
+      INTEGER             :: I, J, L, N
+      REAL(fp)            :: P_Ox, L_Ox
+      REAL(fp)            :: LT
+      REAL(fp)            :: BOXVL
 
       ! Strings
-      CHARACTER(LEN=16) :: STAMP 
+      CHARACTER(LEN=16)   :: STAMP 
 !
 ! !DEFINED PARAMETERS:
 !
@@ -215,6 +217,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! First-time initialization
       IF ( FIRST ) THEN
 
@@ -227,6 +231,9 @@
      &                       'DIAG20 ("diag20_mod.f")' )
          ENDIF
 
+         ! Get ozone molecular weight from species database
+         O3_MW_g  = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
+
          ! Starting time of run
          TAUb     = GET_TAUb()
 
@@ -237,9 +244,6 @@
          FIRST    = .FALSE.
 
       ENDIF
-
-      ! Get ozone molecular weight from species database
-      O3_MW_G = State_Chm%SpcData(id_O3)%Info%emMW_g ! g/mol
 
       !=================================================================
       ! Archive P(Ox) and L(Ox) over the course of an entire day
@@ -263,7 +267,7 @@
          L_Ox  = 0e+0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
-         IF ( ITS_IN_THE_CHEMGRID( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             !%%% NOTE: If you want to restrict output to a given local
@@ -287,7 +291,7 @@
 
             ! Convert P(Ox) from [molec/cm3/s] to [kg/cm3/s]
             P_Ox           = POx(I,J,L) / AVO * 1.e-3_fp *
-     &                       O3_MW_G
+     &                       O3_MW_g
 
             ! Convert to [kg/m3/s], for HEMCO (bmy, 7/7/15)
             P_Ox           = P_Ox * 1e+6_fp
@@ -307,7 +311,11 @@
 
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! in order to get L(Ox) in [1/cm3/s]
-            L_Ox           = LOx(I,J,L) / L_Ox
+            IF ( L_Ox > 0.0_fp ) THEN
+               L_Ox        = LOx(I,J,L) / L_Ox
+            ELSE
+               L_Ox        = 0.0_fp
+            ENDIF
 
             ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
             L_Ox           = L_Ox * 1.e+6_fp
@@ -368,6 +376,7 @@
          TAU0  = TAU1
 
       ENDIF
+#endif
 
       END SUBROUTINE DIAG20
 !EOC
@@ -388,10 +397,12 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD      ! LD65
       USE BPCH2_MOD,   ONLY : BPCH2,         GET_HALFPOLAR
       USE BPCH2_MOD,   ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+#endif
       USE CMN_SIZE_MOD      ! Size parameters
-      USE CMN_DIAG_MOD      ! LD65
       USE GC_GRID_MOD, ONLY : GET_XOFFSET,   GET_YOFFSET
       USE inquireMod,  ONLY : findFreeLUN
 ! 
@@ -438,6 +449,8 @@
       !=================================================================
       ! WRITE20 begins here!
       !=================================================================
+
+#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_ND20   = findFreeLUN()
@@ -499,6 +512,7 @@
 
       ! Close BPCH file
       CLOSE( IU_ND20 )
+#endif
 
       END SUBROUTINE WRITE20
 !EOC
@@ -520,7 +534,7 @@
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_TAU
+      USE TIME_MOD, ONLY : GET_HOUR, GET_MINUTE, GET_SECOND,  GET_TAU
       USE TIME_MOD, ONLY : GET_TAUb, GET_TAUe,   GET_TS_CHEM, GET_TS_DYN
 !
 ! !INPUT PARAMETERS: 
@@ -554,9 +568,10 @@
 
       ! Current TAU, Hour, and Dynamic Timestep [hrs]
       TAU      = GET_TAU()
-      HOUR     = ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
-      CHEM     = ( GET_TS_CHEM() / 60e+0_fp )
-      DYN      = ( GET_TS_DYN()  / 60e+0_fp )
+      HOUR     = ( GET_SECOND()  / 3600e+0_fp ) + 
+     &           ( GET_MINUTE()  / 60e+0_fp ) + GET_HOUR()
+      CHEM     = ( GET_TS_CHEM() / 3600e+0_fp )
+      DYN      = ( GET_TS_DYN()  / 3600e+0_fp )
 
       ! If first timestep, return FALSE
       IF ( TAU == GET_TAUb() ) RETURN
@@ -597,7 +612,9 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -623,6 +640,7 @@
       ! INIT_DIAG20 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG )
       ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
       COUNT = 0
@@ -638,6 +656,7 @@
       ALLOCATE( LOx( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'LOx' )
       LOx = 0e+0_fp
+#endif
 
       END SUBROUTINE INIT_DIAG20
 !EOC
@@ -663,10 +682,12 @@
       !=================================================================
       ! CLEANUP_DIAG20 begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
       IF ( ALLOCATED( COUNT     ) ) DEALLOCATE( COUNT     )
       IF ( ALLOCATED( PL24H     ) ) DEALLOCATE( PL24H     )
       IF ( ALLOCATED( POx       ) ) DEALLOCATE( POx       )
       IF ( ALLOCATED( LOx       ) ) DEALLOCATE( LOx       )
+#endif
 
       END SUBROUTINE CLEANUP_DIAG20
 !EOC

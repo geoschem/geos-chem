@@ -112,8 +112,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -126,6 +126,7 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -137,6 +138,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -151,6 +153,7 @@
 !  10 Sep 2014 - M. Sulprizio- Now get global concentrations of OH, O3, OC, and
 !                              BC from HEMCO
 !  03 Mar 2015 - C. Keller   - Now do dry-deposition always outside of chempops
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -369,12 +372,12 @@
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG53_MOD
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
@@ -615,7 +618,7 @@
       Spc => State_Chm%Species
 
       ! Chemistry timestep [s]
-      DTCHEM = GET_TS_CHEM() * 60e+0_fp
+      DTCHEM = GET_TS_CHEM()
 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -889,7 +892,7 @@
          ! ND53 diagnostic: Differences in distribution of gas and
          ! particle phases between time steps [kg]
          !==============================================================
-
+#if defined( BPCH_DIAG )
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             IF (DIFF_OC .lt. 0) THEN
@@ -909,6 +912,7 @@
             ENDIF
 
          ENDIF
+#endif
 
          !==============================================================
          ! HYDROPHOBIC PARTICULATE POPS DECAY TO HYDROPHILIC (clf, 2/12/2012)
@@ -1325,12 +1329,10 @@
      &                                DEP_DRY_FLXP_BCPI
 
          ENDIF
-#endif
 
          !==============================================================
          ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg]
          !==============================================================
-
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             ! OH:
@@ -1357,6 +1359,7 @@
      &                                  GROSS_OX_NO3_BCPI
 
          ENDIF
+#endif
 
       ENDDO
       ENDDO
@@ -1634,7 +1637,7 @@
          ! Impose a diurnal variation on OH during the day
          OH_MOLEC_CM3 = OH(I,J,L)                      *           
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) ) *
-     &                  ( 1440e+0_fp        / GET_TS_CHEM() )
+     &                  ( 86400e+0_fp           / GET_TS_CHEM() )
 
          ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/23/14)
          OH_MOLEC_CM3 = OH_MOLEC_CM3 * XNUMOL_OH / CM3PERM3
@@ -1720,7 +1723,7 @@
          COSZM(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
-         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 60 / GET_TS_CHEM()      
+         NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()      
 
          ! NT is the elapsed time [s] since the beginning of the run
          NT = GET_ELAPSED_SEC()
@@ -1781,14 +1784,15 @@
 
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
-                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() )
+                  TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
+     &                         * 60e+0_fp
                ENDIF
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
             ! Increment elapsed time [sec]
-            NT = NT + ( GET_TS_CHEM() * 60 )             
+            NT = NT + GET_TS_CHEM()
          ENDDO
 
          ! Reset first-time flag

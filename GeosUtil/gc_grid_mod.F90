@@ -17,9 +17,10 @@ MODULE GC_Grid_Mod
 ! 
 ! !USES:
 !
-  USE Error_Mod        ! Error-handling routines
-  USE Precision_Mod    ! For GEOS-Chem Precision (fp)
-  USE PhysConstants    ! Physical constants
+  USE Error_Mod                        ! Error-handling routines
+  USE Precision_Mod                    ! For GEOS-Chem Precision (fp)
+  USE PhysConstants                    ! Physical constants
+  USE Registry_Mod, ONLY : MetaRegItem
 
   IMPLICIT NONE
   PRIVATE
@@ -47,15 +48,10 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
-  PUBLIC  :: RoundOff
+  PUBLIC  :: GET_IJ
 
 ! Make some arrays public
   PUBLIC  :: XMID, YMID, XEDGE, YEDGE, YSIN, AREA_M2
-
-  INTERFACE RoundOff 
-     MODULE PROCEDURE RoundOff_F4
-     MODULE PROCEDURE RoundOff_F8 
-  END INTERFACE
 !
 ! !REVISION HISTORY:
 !  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
@@ -70,6 +66,10 @@ MODULE GC_Grid_Mod
 !  26 Mar 2015 - R. Yantosca - Removed obsolete, commented-out code
 !  29 Nov 2016 - R. Yantosca - Renamed to gc_grid_mod.F90 to avoid namespace
 !                              conflicts when interfacing GCHP to the BCC model
+!  09 Aug 2017 - R. Yantosca - Now register lon (slice of XMID), lat (slice of
+!                              YMID) and AREA_M2.  Added registry routines etc.
+!  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
+!  23 Aug 2017 - R. Yantosca - Registry is now moved to grid_registry_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -92,7 +92,7 @@ MODULE GC_Grid_Mod
   REAL(fp), ALLOCATABLE, TARGET :: YMID_R_W (:,:,:) ! Lat ctrs  nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: YEDGE_R_W(:,:,:) ! Lat edges nest grid [rad]
   REAL(fp), ALLOCATABLE, TARGET :: AREA_M2  (:,:,:) ! Grid box areas [m2]
-
+  
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -345,21 +345,6 @@ CONTAINS
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
 #else
-
-# if defined( GCAP )
-
-          !----------------------------------------------------------------
-          !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-          !
-          ! For the GCAP model, there are no half-size polar boxes.
-          ! Compute the latitude centers accordingly.  (bmy, 7/2/13)
-          !----------------------------------------------------------------
-
-          ! Lat centers (degrees)
-          YMD(I,J,L)     = ( DLAT(I,J,L) * IND_Y(J) ) - 88e+0_fp
-
-#else
-
           !----------------------------------------------------------------
           !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
           !
@@ -378,9 +363,8 @@ CONTAINS
           ELSE IF ( JG == JNP ) THEN
              YMD(I,J,L)  = +90e+0_fp - ( 0.5e+0_fp * DLAT(I,J,L) )   ! N pole
           ENDIF
-
-# endif
 #endif
+
           ! Lat centers (radians)
           YMDR(I,J,L)   = ( PI_180 * YMD(I,J,L)  )
 
@@ -704,6 +688,7 @@ CONTAINS
 ! USES
 !
     USE ErrCode_Mod
+    USE Roundoff_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1465,6 +1450,77 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Get_IJ
+!
+! !DESCRIPTION: Function GET\_IJ returns I and J index for a LON, LAT
+!  coordinate (dkh, 11/16/06). Updated to support nested domains and made much
+!  simpler (zhe, 1/19/11).
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GET_IJ( LON, LAT ) RESULT ( IIJJ )
+!
+! !USES:
+!
+    USE CMN_SIZE_MOD
+    USE ERROR_MOD,    ONLY : ERROR_STOP
+!
+! !INPUT PARAMETERS:
+!
+    REAL*4, INTENT(IN)  :: LAT, LON
+!
+! !RETURN VALUE:
+!
+    INTEGER               :: IIJJ(2)
+!
+! !REVISION HISTORY:
+!  16 Jun 2017 - M. Sulprizio- Initial version based on routine from adjoint
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp) :: TLON, TLAT
+      REAL(fp) :: I0,   J0
+
+      !=================================================================
+      ! GET_IJ begins here!
+      !=================================================================
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      TLON = INT( ( LON + 180e+0_fp ) / DISIZE + 1.5e+0_fp )
+      TLAT = INT( ( LAT +  90e+0_fp ) / DJSIZE + 1.5e+0_fp )
+
+#if defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_CA )
+      TLON = TLON - I0
+      TLAT = TLAT - J0
+      IF ( TLAT < 1 .or. TLAT > JJPAR ) THEN
+         CALL ERROR_STOP('Beyond the nested window', 'GET_IJ')
+      ENDIF
+#else
+      IF ( TLON > IIPAR ) TLON = TLON - IIPAR
+
+      ! Check for impossible values
+      IF ( TLON > IIPAR .or. TLAT > JJPAR .or. &
+           TLON < 1     .or. TLAT < 1          ) THEN
+         CALL ERROR_STOP('Error finding grid box', 'GET_IJ')
+      ENDIF
+
+#endif
+
+      IIJJ(1) = TLON
+      IIJJ(2) = TLAT
+
+    END FUNCTION GET_IJ
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: Init_Grid
 !
 ! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
@@ -1478,7 +1534,8 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Registry_Mod,  ONLY : Registry_AddField   
 !
 ! !INPUT PARAMETERS:
 !
@@ -1505,7 +1562,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 ! 
-    INTEGER :: L, AS
+    ! Scalars
+    INTEGER            :: L,        AS
+
+    REAL(fp), SAVE     :: TIME_IND(1)
+
+    ! Strings
+    CHARACTER(LEN=255) :: Variable, Desc, Units
 
     !======================================================================
     ! Initialize module variables
@@ -1570,134 +1633,59 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_GC_Grid
+! !IROUTINE: Cleanup_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\_GC\_GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\__GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_Grid
+  SUBROUTINE Cleanup_Grid( am_I_Root, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Registry_Mod, ONLY : Registry_Destroy
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL, INTENT(IN)  :: am_I_Root
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC
 !
 ! !REVISION HISTORY:
 !  24 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    IF ( ALLOCATED( XMID     ) ) DEALLOCATE( XMID     )
-    IF ( ALLOCATED( XEDGE    ) ) DEALLOCATE( XEDGE    )
-    IF ( ALLOCATED( YMID     ) ) DEALLOCATE( YMID     )
-    IF ( ALLOCATED( YEDGE    ) ) DEALLOCATE( YEDGE    )
-    IF ( ALLOCATED( YSIN     ) ) DEALLOCATE( YSIN     )
-    IF ( ALLOCATED( YMID_R   ) ) DEALLOCATE( YMID_R   )
-    IF ( ALLOCATED( YMID_R_W ) ) DEALLOCATE( YMID_R_W )  
-    IF ( ALLOCATED( YEDGE_R  ) ) DEALLOCATE( YEDGE_R  )
-    IF ( ALLOCATED( AREA_M2  ) ) DEALLOCATE( AREA_M2  )
-    
+!
+! ! LOCAL VARIABLES
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Cleanup_Grid (in GeosUtil/gc_grid_mod.F90)'
+
+    !=======================================================================
+    ! Deallocate module variables
+    !=======================================================================
+    IF ( ALLOCATED( XMID      ) ) DEALLOCATE( XMID      )
+    IF ( ALLOCATED( XEDGE     ) ) DEALLOCATE( XEDGE     )
+    IF ( ALLOCATED( YMID      ) ) DEALLOCATE( YMID      )
+    IF ( ALLOCATED( YEDGE     ) ) DEALLOCATE( YEDGE     )
+    IF ( ALLOCATED( YSIN      ) ) DEALLOCATE( YSIN      ) 
+    IF ( ALLOCATED( YMID_R    ) ) DEALLOCATE( YMID_R    )
+    IF ( ALLOCATED( YMID_R_W  ) ) DEALLOCATE( YMID_R_W  )  
+    IF ( ALLOCATED( YEDGE_R   ) ) DEALLOCATE( YEDGE_R   )
+    IF ( ALLOCATED( AREA_M2   ) ) DEALLOCATE( AREA_M2   )
+
   END SUBROUTINE Cleanup_Grid
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f4
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f4( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f4), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f4)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f4**(N+1)) + SIGN( 5.0_f4, X ) ) / 10.0_f4 ) / (10.0_f4**N)
-
-  END FUNCTION RoundOff_f4
-!EOC
-!------------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 910.1 and      !
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: RoundOff_f8
-!
-! !DESCRIPTION: Rounds a number X to N decimal places of precision.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION RoundOff_f8( X, N ) RESULT( Y )
-!
-! !INPUT PARAMETERS:
-! 
-    REAL(f8), INTENT(IN) :: X   ! Number to be rounded
-    INTEGER,  INTENT(IN) :: N   ! Number of decimal places to keep
-!
-! !RETURN VALUE:
-!
-    REAL(f8)             :: Y   ! Number rounded to N decimal places
-!
-! !REMARKS:
-!  The algorithm to round X to N decimal places is as follows:
-!  (1) Multiply X by 10**(N+1)
-!  (2) If X < 0, then add -5 to X; otherwise add 5 to X
-!  (3) Round X to nearest integer
-!  (4) Divide X by 10**(N+1)
-!  (5) Truncate X to N decimal places: INT( X * 10**N ) / 10**N
-!                                                                             .
-!  Rounding algorithm from: Hultquist, P.F, "Numerical Methods for Engineers 
-!   and Computer Scientists", Benjamin/Cummings, Menlo Park CA, 1988, p. 20.
-!                                                                             .
-!  Truncation algorithm from: http://en.wikipedia.org/wiki/Truncation
-!                                                                             .
-!  The two algorithms have been merged together for efficiency.
-!
-! !REVISION HISTORY:
-!  14 Jul 2010 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-    ! Round and truncate X to N decimal places
-    Y = INT( NINT( X*(10.0_f8**(N+1)) + SIGN( 5.0_f8, X ) ) / 10.0_f8 ) / (10.0_f8**N)
-
-  END FUNCTION RoundOff_f8
 !EOC
 END MODULE GC_Grid_Mod

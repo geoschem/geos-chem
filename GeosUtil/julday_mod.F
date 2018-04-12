@@ -228,6 +228,9 @@
 !  (2 ) Renamed NYMD to YYYYMMDD and NHMS to HHMMSS for documentation
 !        purposes (bmy, 6/26/02)
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
+!  04 Aug 2017 - R. Yantosca - Add kludge to prevent roundoff error for certain
+!                              minute values that are irrational in hours
+!                              (e.g 40 min = 0.6666666... hrs)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -289,7 +292,16 @@
       ! NOTE: HH, MM, SS are REAL*4 to avoid numerical roundoff errors
       HH     = FDAY * 24d0 
       MM     = ( HH - INT( HH ) ) * 60d0
-      SS     = ( MM - INT( MM ) ) * 60d0   
+      SS     = ( MM - INT( MM ) ) * 60d0 
+      !------------------------------------------------------------------
+      ! NOTE: Some times (like 40min = 0.6666 hrs) will cause a roundoff
+      ! error that will make the minutes eg. 39.9999 instead of 40.
+      ! For now put in a kludge to rectify this situation.
+      IF ( INT(SS) == 59 ) THEN
+         SS = 0.0e0
+         MM = NINT( MM )
+      ENDIF
+      !---------------------------------------------------------------
       HHMMSS = ( INT( HH ) * 10000 ) + ( INT( MM ) * 100 ) + INT( SS )
       
       END SUBROUTINE CALDATE

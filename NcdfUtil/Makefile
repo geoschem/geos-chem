@@ -122,7 +122,7 @@ LIBRARY  :=libNcUtils.a
 ###                                                                         ###
 ###############################################################################
 
-charpak_mod.o            : charpak_mod.F
+charpak_mod.o            : charpak_mod.F90
 
 julday_mod.o             : julday_mod.F
 
@@ -158,7 +158,7 @@ m_netcdf_io_write.o      : m_netcdf_io_write.F90        \
                            m_do_err_out.o
 
 ncdf_mod.o               : ncdf_mod.F90                 \
-                           charpak_mod.F                \
+                           charpak_mod.F90              \
                            julday_mod.F                 \
                            m_netcdf_io_checks.o         \
                            m_netcdf_io_close.o          \

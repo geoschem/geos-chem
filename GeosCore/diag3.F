@@ -36,6 +36,7 @@
       USE TIME_MOD
 
       ! Modules from GeosCore directory
+#if defined( BPCH_DIAG )
       USE BPCH2_MOD                          ! For binary punch I/O routines
       USE DIAG_MOD                           ! For diagnostic arrays
       USE DIAG03_MOD                         ! For Hg diagnostic
@@ -44,6 +45,7 @@
       USE DIAG42_MOD                         ! For SOA diag
       USE DIAG53_MOD                         ! For POPs diag
       USE DIAG56_MOD                         ! For time in tropopause diag
+#endif
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
@@ -293,8 +295,8 @@
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
       REAL(fp)           :: SCALE_TMP(IIPAR,JJPAR)
-      REAL(fp)           :: SCALE_I6,   SCALE_A6,   SCALE_A3  
-      REAL(fp)           :: SCALE_A1,   SCALED,     SCALEDYN
+      REAL(fp)           :: SCALE_A1,   SCALE_A3  
+      REAL(fp)           :: SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
       REAL(fp)           :: SCALEDIAG,  SCALE_ND66, SCALE_ND67 
       REAL(fp)           :: SCALERAD
@@ -389,6 +391,8 @@
       ! Assume success
       RC         = GC_SUCCESS
 
+#if defined( BPCH_DIAG )
+
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
 
@@ -411,9 +415,7 @@
       SCALERAD   = DBLE( GET_CT_RAD()  ) + 1e-32_fp
       SCALE_A1   = DBLE( GET_CT_A1()   ) + 1e-32_fp
       SCALE_A3   = DBLE( GET_CT_A3()   ) + 1e-32_fp
-      SCALE_A6   = DBLE( GET_CT_A6()   ) + 1e-32_fp
       SCALE_I3   = DBLE( GET_CT_I3()   ) + 1e-32_fp
-      SCALE_I6   = DBLE( GET_CT_I6()   ) + 1e-32_fp
       SCALEDIAG  = DBLE( GET_CT_DIAG() ) + 1e-32_fp
 
 !
@@ -527,7 +529,6 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
@@ -630,7 +631,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND03: Diagnostics from Hg0/Hg2/HgP offline simulation (eck, bmy, 1/20/05)
@@ -650,18 +650,19 @@
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
 !        offline sulfate chemistry runs (NSRCX==10).      
 !
-!   # : Field  : Description                   : Units        : Scale factor
-!  ----------------------------------------------------------------------------
-!  (1 ) SO2dms : P(SO2) from DMS + OH          : kg S         : SCALEX
-!  (2 ) SO2no3 : P(SO2) from DMS + NO3         : kg S         : SCALEX
-!  (3 ) SO2    : Total P(SO2)                  : kg S         : SCALEX
-!  (4 ) MSAdms : P(MSA) from DMS               : kg S         : SCALEX
-!  (5 ) SO4gas : P(SO4) gas phase              : kg S         : SCALEX
-!  (6 ) SO4aq  : P(SO4) aqueous phase          : kg S         : SCALEX
-!  (7 ) PSO4   : Total P(SO4)                  : kg S         : SCALEX
-!  (8 ) PSO4s  : Total P(SO4 from seasalt)     : kg S         : SCALEX
-!  (9 ) LOH    : L(OH) by DMS                  : kg OH        : SCALEX
-!  (10) LNO3   : L(NO3) by DMS                 : kg NO3       : SCALEX
+!   # : Field  : Description                     : Units        : Scale factor
+!  ------------------------------------------------------------------------------
+!  (1 ) SO2dms : P(SO2) from DMS + OH            : kg S         : SCALEX
+!  (2 ) SO2no3 : P(SO2) from DMS + NO3           : kg S         : SCALEX
+!  (3 ) SO2    : Total P(SO2)                    : kg S         : SCALEX
+!  (4 ) MSAdms : P(MSA) from DMS                 : kg S         : SCALEX
+!  (5 ) SO4gas : P(SO4) gas phase                : kg S         : SCALEX
+!  (6 ) SO4H2O2: P(SO4) aqueous phase H2O2       : kg S         : SCALEX
+!  (7 ) PSO4O3 : P(SO4) aqueous phase O3         : kg S         : SCALEX
+!  (8 ) PSO4O2 : P(SO4) aqueous phase O2 (metal) : kg S         : SCALEX
+!  (9 ) PSO4ss : Total P(SO4 from seasalt)       : kg S         : SCALEX
+!  (10) LOH    : L(OH) by DMS                    : kg OH        : SCALEX
+!  (11) LNO3   : L(NO3) by DMS                   : kg NO3       : SCALEX
 !******************************************************************************
 !
       IF ( ND05 > 0 ) THEN
@@ -672,7 +673,7 @@
 
             ! Tracers 9, 10 are OH, NO3
             ! and are in [kg] instead of [kg S]
-            IF ( N < 9 ) THEN 
+            IF ( N < 10 ) THEN
                UNIT = 'kg S'
             ELSE
                UNIT = 'kg'
@@ -692,7 +693,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD05) )
          ENDDO
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND06: Dust aerosol emissions
@@ -710,8 +710,8 @@
          CATEGORY = 'DUSTSRCE'
          FACTOR   = 1.0e+0_fp
 
-         ! Loop over # of dust bins
-         DO N = 1, Input_Opt%N_DUST_BINS
+         ! Loop over # of dust bins (obtained from CMN_SIZE_mod)
+         DO N = 1, NDSTBIN
 
 #if defined( TOMAS )
 
@@ -760,7 +760,7 @@
 
          ! Include Dust alkalinity sources   tdf 6/18/2K8
          IF ( Input_Opt%LDSTUP ) THEN
-            DO N = 5, Input_Opt%N_DUST_BINS*2
+            DO N = 5, NDSTBIN*2
 
                SELECT CASE ( N )
                   CASE ( 5 )
@@ -785,7 +785,6 @@
          ENDIF
 
       ENDIF     
-#endif
 !
 !******************************************************************************
 !  ND07: Emissions of BC and OC aerosols
@@ -814,7 +813,6 @@
          ! defined in hcoi_gc_diagn_mod.F
          !--------------------------------------------------------------
 
-#if defined( BPCH_DIAG )
          ! Do for BC and OC
          DO J = 1, 2
 
@@ -947,7 +945,6 @@
                DiagnCnt => NULL()
             ENDDO !I
          ENDDO !J
-#endif
 
          !--------------------------------------------------------------
          ! Other BC diagnostics
@@ -977,7 +974,6 @@
             UNIT      = 'kgC'
             N         = id_OCPI
 
-#if defined( BPCH_DIAG )
             !%%%%% Biogenic OC (kg/m2/s --> kg) %%%%%
             CATEGORY  = 'OC-BIOG'
             DiagnName = 'BIOGENIC_OCPI'
@@ -986,7 +982,6 @@
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                 UNIT, N, 1, -1, .TRUE., FACTOR, RC, AreaScal=1 )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
-#endif
          
             !%%%%% Hydrophilic OC from hydrophobic OC %%%%%
             CATEGORY     = 'PL-OC=$'
@@ -1368,7 +1363,6 @@
 
          ENDIF
       ENDIF   
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND08: Sea salt aerosol emissions
@@ -1425,7 +1419,6 @@
          ENDIF
 
       ENDIF   
-#endif
 !
 !******************************************************************************
 !  ND09: HCN/CH3CN sources/sinks (Categories: "HCN-PL-$", "HCN-SRCE")
@@ -1497,7 +1490,6 @@
             ENDIF
          ENDDO
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND11: Acetone source & sink diagnostic (Category: "ACETSRCE")
@@ -1547,8 +1539,6 @@
 
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND12: distribution of surface emissions in the boundry layer: [fraction]
@@ -1572,8 +1562,6 @@
      &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND13: Sulfur emissions (for DMS/SO2/SO4/MSA/NH3/NH4/NIT chemistry)
@@ -1732,8 +1720,6 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
       ENDIF    
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND14: Upward mass flux from wet convection (NFCLDMX)
@@ -1810,22 +1796,19 @@
          CATEGORY = 'WD-FRC-$'
          UNIT     = 'unitless'
 
-         DO M = 1, TMAX(16)
-            N  = TINDEX(16,M)
-            IF ( N > PD16 ) CYCLE
-            NN = N 
-              
-            DO L = 1, LD16
-               SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,N) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD16(:,:,L,N) / SCALE_TMP(:,:)
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD16,     IFIRST,     
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD16) )
+         ! GEOS-FP/MERRA-2 only has LS wetdep, so only need to save N=1
+         ! (bmy, 11/16/17)
+         DO L = 1, LD16
+            SCALE_TMP(:,:) = FLOAT( CT16(:,:,L,1) ) + 1e-20_fp
+            ARRAY(:,:,L)   = AD16(:,:,L,1) / SCALE_TMP(:,:)
          ENDDO
+
+         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &               HALFPOLAR, CENTER180, CATEGORY, 1,    
+     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &               IIPAR,     JJPAR,     LD16,     IFIRST,     
+     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD16) )
+
       ENDIF
 !
 !******************************************************************************
@@ -1834,7 +1817,6 @@
 !   #  Field    : Description                  : Units     : Scale factor
 !  --------------------------------------------------------------------------
 !  (1) WD-LSR-$ : Rainout fraction/LS Precip   : unitless  : CT17(:,:,:,1)
-!  (2) WD-CVR-$ : Rainout fraction/conv precip : unitless  : CT17(:,:,:,2)
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
@@ -1874,21 +1856,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD17,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
-
-
-            ! Convective rainout/washout fractions
-            CATEGORY = 'WD-CVR-$'
-
-            DO L = 1, LD17
-               SCALE_TMP(:,:) = FLOAT( CT17(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD17(:,:,L,NW,2) / SCALE_TMP(:,:) 
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, N,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD17,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
          ENDDO
       ENDIF
 !
@@ -1898,7 +1865,6 @@
 !   #  Field    : Description                  : Units     : Scale factor
 !  --------------------------------------------------------------------------
 !  (1) WD-LSW-$ : Washout fraction/LS precip   : unitless  : CT18(:,:,:,1)
-!  (2) WD-CVW-$ : Washout fraction/conv precip : unitless  : CT18(:,:,:,2)
 !
 !  NOTES:
 !  (1) Now loop over all soluble tracers (bmy, 3/19/04)
@@ -1938,21 +1904,6 @@
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
      &                  IIPAR,     JJPAR,     LD18,     IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
-
-
-            ! Convective washout fractions
-            CATEGORY = 'WD-CVW-$'
-
-            DO L = 1, LD18
-               SCALE_TMP(:,:) = FLOAT( CT18(:,:,L,2) ) + 1e-20_fp
-               ARRAY(:,:,L)   = AD18(:,:,L,NW,2) / SCALE_TMP(:,:) 
-            ENDDO
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, N,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD18,     IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
          ENDDO
       ENDIF
 !
@@ -1961,27 +1912,30 @@
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) CH4-LOSS : CH4 removing by OH              : kg CH4   : 1
+!  (1 ) CH4-LOSS : CH4 loss by reaction with OH    : kg CH4   : 1
+!  (2 ) CH4-LOSS : CH4 loss in the stratosphere    : kg CH4   : 1
+!  (3 ) CH4-LOSS : CH4 loss by reaction with Cl    : kg CH4   : 1
 !******************************************************************************
 !
       IF ( ND19 > 0 ) THEN
+         UNIT     = 'kg'
+         CATEGORY = 'CH4-LOSS'
 
-         UNIT = 'kg'
+         DO M = 1, TMAX(19)
+            N  = TINDEX(19,M)
+            IF ( N > PD19 ) CYCLE
+            NN = N
 
-         !==============================================================
-         ! CH4 Loss
-         !==============================================================
-         CATEGORY     = 'CH4-LOSS'
-         N            = 1
-	
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD19,    IFIRST,     
-     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+            ARRAY(:,:,1:LD19) = AD19(:,:,1:LD19,N)
 
-	ENDIF
-#endif
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD19,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD19) )
+
+         ENDDO
+      ENDIF
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -2091,13 +2045,13 @@
 
            ! Is this something that we want to output?
            ! Only output extra wavelengths if they are requested
-           IF (NWVSELECT.eq.3) THEN
+           IF (Input_Opt%NWVSELECT.eq.3) THEN
                IS_AD21 = .TRUE.
-           ELSEIF (NWVSELECT.eq.2) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.2) THEN
                ! Exclude wavelength 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
-           ELSEIF (NWVSELECT.eq.1) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.1) THEN
                ! Exclude wavelengths 2 and 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
@@ -2147,43 +2101,6 @@
            ENDIF
          ENDDO    
 
-         !==============================================================
-         ! If we are using the crystalline sulfate tracers (LCRYST=T),
-         ! then also save out the extra ND21 diagnostics:
-         !
-         ! #28: Opt depth for HYSTERESIS CASE            [unitless]
-         ! #29: Opt depth for SOLID CASE                 [unitless]
-         ! #30: Opt depth for LIQUID CASE                [unitless]
-         ! #31: Opt depth HYSTERESIS - Opt depth SOLID   [unitless] 
-         ! #32: Opt depth HYSTERESIS - Opt depth LIQUID  [unitless]
-         ! #33: Radiative forcing                        [W/m2    ]    
-         !==============================================================
-         IF ( Input_Opt%LCRYST ) THEN
-            
-            ! Category
-            CATEGORY = 'OD-MAP-$'
-
-            ! Loop over extra 
-            DO N = 1, 6               
-
-               ! Define unit string
-               IF ( N == 6 ) THEN
-                  UNIT = 'W/m2'
-               ELSE
-                  UNIT = 'unitless'
-               ENDIF
-
-               ! Scale by chemistry timestep
-               ARRAY(:,:,1) = AD21_cr(:,:,N) / SCALECHEM
-
-               ! Save to BPCH file
-               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                     HALFPOLAR, CENTER180, CATEGORY, N+PD21,
-     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
-     &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
-            ENDDO
-         ENDIF
       ENDIF
 !
 !******************************************************************************
@@ -2265,9 +2182,9 @@
      &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
 
-         ENDDO    
+         ENDDO 
+
       ENDIF     
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND24: Eastward mass flux from transport (TPCORE, XTP)
@@ -2367,8 +2284,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND28: Biomass burning diagnostic 
@@ -2834,8 +2749,6 @@
          SpcInfo => NULL()
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND29: CO source diagnostics
@@ -2966,8 +2879,6 @@
          ! Free pointer
          SpcInfo => NULL()
       ENDIF
-#endif
-#if defined( BPCH)
 !
 !******************************************************************************
 !  ND30: Land map diagnostic
@@ -2993,8 +2904,6 @@
      &               IIPAR,     JJPAR,     1,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND31: Surface pressure diagnostic
@@ -3026,8 +2935,6 @@
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
 
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND32: NOx source diagnostic
@@ -3181,8 +3088,6 @@
          SpcInfo => NULL()
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND33: Atmospheric column sum of Tracer
@@ -3216,8 +3121,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND34: Biofuel burning diagnostic 
@@ -3463,7 +3366,6 @@
          ! Free pointer
          SpcInfo => NULL()
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND35: Tracer concentration at 500 mb 
@@ -3495,7 +3397,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND36: Anthropogenic source diagnostic
@@ -3767,7 +3668,6 @@
 
          ENDDO ! I
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND37: Fraction of tracer scavenged in convective cloud updrafts
@@ -3810,9 +3710,6 @@
          ENDDO
       ENDIF
 !
-
-#if defined( BPCH_DIAG )
-
 !******************************************************************************
 !  ND38: Rainout loss of tracer in convective updrafts
 !
@@ -3902,8 +3799,6 @@
          ENDDO
 
       ENDIF
-
-#endif
 !
 !******************************************************************************
 !  ND41: Afternoon boundary layer heights
@@ -3928,12 +3823,6 @@
 !  (3)  HO2    : HO2    Chemical Diagnostic : v/v       : CTHO2
 !  (4)  O1D    : O2D    Chemical Diagnostic : molec/cm3 : CTO1D
 !  (5)  O3P    : O3P    Chemical Diagnostic : molec/cm3 : CTO3P
-!  (6)  LBRO2H : LBRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (7)  LBRO2N : LBRO2N Chemical Diagnostic : molec/cm3 : CTO3P
-!  (8)  LTRO2H : LTRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (9)  LTRO2N : LTRO2N Chemical Diagnostic : molec/cm3 : CTO3P
-!  (10) LXRO2H : LxRO2H Chemical Diagnostic : molec/cm3 : CTO3P
-!  (11) LxRO2N : LXRO2N Chemical Diagnostic : molec/cm3 : CTO3P
 !
 !
 !  NOTES:
@@ -3948,18 +3837,19 @@
 !  (7) Check that CTxx are not zero, instead of adding 1e-20 (phs, 11/13/07)
 !  (8) Removed NO, NO2, and NO3. These are now tracers (mpayer, 3/29/13)
 !  24 Feb 2014 - M. Sulprizio- Added O1D and O3P for UCX strat chem
+!  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !******************************************************************************
 !
-      IF ( ND43 > 0 .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+      IF ( ND43 > 0 .and. ( Input_Opt%ITS_A_FULLCHEM_SIM .or. 
+     &                      Input_Opt%ITS_A_CH4_SIM           ) ) THEN
 
          CATEGORY = 'CHEM-L=$' 
 
-         DO M = 1, TMAX(43)
-            N  = TINDEX(43,M)
-            NN = N 
+         ! Default units
+         UNIT     = 'molec/cm3'
 
-            ! Default units
-            UNIT = 'molec/cm3'
+         DO M = 1, 2
+            N  = TINDEX(43,M)
 
             SELECT CASE ( N )
 
@@ -3973,9 +3863,10 @@
                   ENDWHERE
 
                   UNIT = 'molec/cm3'
+                  NN   = 1             ! backwards compat. w/ prior code
 
                ! HO2 (rvm, bmy, 2/27/02)
-               CASE ( 3 )
+               CASE ( 2 )
                   WHERE( CTHO2 /= 0 )
                      ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
      &                    FLOAT( CTHO2 )
@@ -3984,96 +3875,12 @@
                   ENDWHERE
 
                   UNIT = 'v/v'
-
-#if defined( UCX )
-               ! O1D
-               CASE ( 4 )
-                  WHERE( CTO1D /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTO1D )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               ! O3P
-               CASE ( 5 )
-                  WHERE( CTO3P /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTO3P )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-#endif
-
-               CASE ( 6 )
-                  WHERE( CTLBRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLBRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 7 )
-                  WHERE( CTLBRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLBRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 8 )
-                  WHERE( CTLTRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLTRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 9 )
-                  WHERE( CTLTRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLTRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 10 )
-                  WHERE( CTLXRO2H /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLXRO2H )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
-
-               CASE ( 11 )
-                  WHERE( CTLXRO2N /= 0 )
-                     ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
-     &                    FLOAT( CTLXRO2N )
-                  ELSEWHERE
-                     ARRAY(:,:,1:LD43) = 0.
-                  ENDWHERE
-
-                  UNIT = 'molec/cm3'
+                  NN   = 3             ! backwards compat. w/ prior code
 
                CASE DEFAULT
-                  CYCLE
+                  ! Nothing
 
             END SELECT
-
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
@@ -4081,8 +3888,59 @@
      &                  IIPAR,     JJPAR,     LD43,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
+
+
+         IF ( Input_Opt%LUCX ) THEN
+
+            !--------------------------------------------------------
+            !           %%%%%%% UCX-based mechanisms %%%%%%%
+            !--------------------------------------------------------
+
+            DO M = 3,4
+               N  = TINDEX(43,M)
+
+               SELECT CASE ( N )
+
+                  ! O1D
+                  CASE ( 3 )
+                     WHERE( CTO1D /= 0 )
+                        ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                       FLOAT( CTO1D )
+                     ELSEWHERE
+                        ARRAY(:,:,1:LD43) = 0.
+                     ENDWHERE
+
+                     UNIT = 'molec/cm3'
+                     NN   = 4   ! backwards compat. w/ prior code
+
+                  ! O3P
+                  CASE ( 4 )
+                     NN = 5
+                     WHERE( CTO3P /= 0 )
+                        ARRAY(:,:,1:LD43) = AD43(:,:,1:LD43,N) /
+     &                       FLOAT( CTO3P )
+                     ELSEWHERE
+                        ARRAY(:,:,1:LD43) = 0.
+                     ENDWHERE
+
+                     UNIT = 'molec/cm3'
+                     NN   = 5   ! backwards compat. w/ prior code
+
+                  CASE DEFAULT
+                     ! Nothing
+
+               END SELECT
+
+               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
+     &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                     IIPAR,     JJPAR,     LD43,     IFIRST,     
+     &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
+            ENDDO
+
+         ENDIF ! LUCX
+
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND44: Drydep flux (molec/cm2/s) and velocity (cm/s) diagnostics
@@ -4296,9 +4154,6 @@
          ENDDO
 
       ENDIF
-
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND46: Biogenic source diagnostic
@@ -4899,7 +4754,6 @@
          ENDIF
 
       ENDIF
-#endif
 !
 !******************************************************************************
 !  ND47: Tracer Mixing Ratio (v/v) for Levels L = 1, LD47
@@ -5321,7 +5175,6 @@
      &               IIPAR,     JJPAR,     LD54,     IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND55: Tropopause diagnostics
@@ -5360,8 +5213,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND56: Lightning flash rate diagnostics (ltm, bmy, 5/5/06))
@@ -5378,16 +5229,6 @@
 
           ! --> If diagnostics OutOper is set to 'Mean':
           FACTOR = 1.0e+0_fp
-
-          ! --> If diagnostics OutOper is set to 'Cumsum' (same as original ND56):
-!#if   defined( MERRA )
-!          FACTOR = DBLE( GET_CT_A3() ) + 1d-32
-!#elif defined( GEOS_FP )
-!          FACTOR = DBLE( GET_CT_I3() ) + 1d-32
-!#else
-!          FACTOR = DBLE( GET_CT_A6() ) + 1d-32
-!#endif     
-!          FACTOR = 1.0 / FACTOR
 
           ! Loop over ND56 diagnostic tracers
           DO M = 1, 3
@@ -5420,8 +5261,6 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)   
 
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND57: THETA
@@ -5444,8 +5283,6 @@
      &               IIPAR,     JJPAR,     LD57,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
-
-#endif
 !
 !******************************************************************************
 !  ND58: CH4 Emission Diagnostics
@@ -5453,17 +5290,20 @@
 !   #  : Field   : Description                 : Units     : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
-!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
-!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
-!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
+!  (2 ) CH4-OIL  : CH4 Emissions oil           : kg        : 1
+!  (3 ) CH4-GAS  : CH4 Emissions gas           : kg        : 1
+!  (4 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
+!  (5 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
+!  (6 ) CH4-LDF  : CH4 Emissions landfills     : kg        : 1
+!  (7 ) CH4-WST  : CH4 Emissions wastewater    : kg        : 1
+!  (8 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
+!  (9 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
+!  (10) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
+!  (11) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
+!  (12) CH4-SEE  : CH4 Emissions seeps         : kg        : 1
+!  (13) CH4-LAK  : CH4 Emissions lakes         : kg        : 1
+!  (14) CH4-TER  : CH4 Emissions termites      : kg        : 1
+!  (15) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
 !******************************************************************************
 
       IF ( ND58 > 0 ) THEN
@@ -5857,7 +5697,6 @@
          ENDDO
 
       ENDIF
-
 !
 !*****************************************************************************
 !  ND61: TOMAS microphysics process rate saved in 3-D (kg/s)
@@ -6012,7 +5851,7 @@
 !******************************************************************************
 !
       IF ( ND64 > 0 ) THEN
-         CATEGORY = 'FJX-FLUX-$'
+         CATEGORY = 'FJX-FLX$'
          UNIT     = 'cm-2s-1'
 
          !DO M = 1, TMAX(64)
@@ -6095,21 +5934,19 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
-
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND66: GMAO 3-D fields 
 !
 !   # : Field  : Description                       : Units   : Scale factor
 !  --------------------------------------------------------------------------
-!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_I6 or _A6
-!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_I6 or _A6
-!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I6 or _A6
-!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I6 or _A6
-!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A6 or _A6
-!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A6
-!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A6
+!  (1)  UWND   : GMAO Zonal Winds                  : m/s     : SCALE_A3
+!  (2)  VWND   : GMAO Meridional Winds             : m/s     : SCALE_A3
+!  (3)  TMPU   : GMAO Temperatures                 : K       : SCALE_I3
+!  (4)  SPHU   : GMAO Specific Humidity            : g/kg    : SCALE_I3
+!  (5)  CLDMAS : GMAO Cloud Mass Flux              : kg/m2/s : SCALE_A3
+!  (6)  DTRAIN : GMAO Detrainment flux             : kg/m2/s : SCALE_A3
+!  (7)  OMEGA  : GMAO Vertical velocity            : Pa/s    : SCALE_A3
 !
 !  NOTES:
 !  (1) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6121,18 +5958,13 @@
 !  20 Aug 2010 - R. Yantosca - Modified for MERRA
 !  08 Feb 2012 - R. Yantosca - Modified for GEOS-FP
 !  03 Feb 2017 - M. Sulprizio- Add OMEGA (Q. Chen)
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !******************************************************************************
 !
       IF ( ND66 > 0 ) THEN
          CATEGORY = 'DAO-3D-$'
 
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-         SCALE_ND66 = SCALE_A3   ! For GEOS-FP,  ND66 is 3-hr time-avg data
-#elif defined( MERRA )
-         SCALE_ND66 = SCALE_A3   ! For MERRA,    ND66 is 3-hr time-avg data
-#else
-         SCALE_ND66 = SCALE_A6   ! Otherwise,    ND66 is 6-hr time-avg data
-#endif
+         SCALE_ND66 = SCALE_A3   ! ND66 is 3-hr time-avg data
 
          DO M = 1, TMAX(66)
             N  = TINDEX(66,M)
@@ -6147,20 +5979,12 @@
 
                ! TMPU
                CASE ( 3 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! T is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! T is an I3 field
                   UNIT   = 'K'
 
                ! SPHU
                CASE ( 4 )
-#if   defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_I3      ! SPHU is an I3 field in GEOS-5.7.x
-#else
-                  SCALEX = SCALE_ND66
-#endif
+                  SCALEX = SCALE_I3      ! SPHU is an I3 field
                   UNIT   = 'g/kg'
 
                ! CLDMAS, DTRAIN
@@ -6186,36 +6010,33 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND67: GMAO surface fields
 !
 !   # : Field  : Description                      : Units    : Scale factor
 !  -----------------------------------------------------------------------
-!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_ND67
-!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_ND67
-!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_ND67
-!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_ND67
-!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_ND67
-!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_ND67
-!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_ND67
-!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_ND67
-!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_ND67
-!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_ND67
-!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_ND67
-!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_ND67
+!  (1 ) HFLUX  : GMAO Sensible Heat Flux          : W/m2     : SCALE_A1
+!  (2 ) RADSWG : GMAO Insolation @ Surface        : W/m2     : SCALE_A1
+!  (3 ) PREACC : GMAO Accum Precip @ Surface      : mm/day   : SCALE_A1
+!  (4 ) PRECON : GMAO Conv Precip @ Surface       : mm/day   : SCALE_A1
+!  (5 ) TS     : GMAO Surface Air Temperature     : K        : SCALE_A1
+!  (6 ) RADSWT : GMAO Insolation @ Top of Atm     : W/m2     : SCALE_A1
+!  (7 ) USTAR  : GMAO Friction Velocity           : m/s      : SCALE_A1
+!  (8 ) Z0     : GMAO Roughness Height            : m        : SCALE_A1
+!  (9 ) PBL    : GMAO PBL depth                   : m        : SCALE_A1
+!  (10) CLDFRC : GMAO Cloud Fraction              : unitless : SCALE_A1
+!  (11) U10M   : GMAO U-wind @ 10 m               : m/s      : SCALE_A1
+!  (12) V10M   : GMAO V-wind @ 10 m               : m/s      : SCALE_A1
 !  (13) PS-PBL : GMAO Boundary Layer Top Pressure : hPa      : SCALEDYN
-!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_ND67
+!  (14) ALBD   : GMAO Surface Albedo              : unitless : SCALE_A1
 !  (15) PHIS   : GMAO Geopotential Heights        : m        : SCALED 
-!  (16) CLTOP  : GMAO Cloud Top Height            : levels   : SCALE_A6
-!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_ND67
-!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_ND67
-!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_ND67
-!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_ND67
-!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_ND67
-!  (22) GWET   : Top soil wetness                 : unitless : SCALE_ND67
+!  (17) TROPP  : GMAO Tropopause pressure         : mb       : SCALE_A1
+!  (18) SLP    : GMAO Sea Level pressure          : mb       : SCALE_A1
+!  (19) TSKIN  : Ground/sea surface temp.         : hPa      : SCALE_A1
+!  (20) PARDF  : Photosyn active diffuse rad.     : W/m2     : SCALE_A1
+!  (21) PARDR  : Photosyn active direct  rad.     : W/m2     : SCALE_A1
+!  (22) GWET   : Top soil wetness                 : unitless : SCALE_A1
 !
 !  NOTES:
 !  (1 ) We don't need to add TRCOFFSET to N.  These are not CTM tracers.
@@ -6233,18 +6054,14 @@
 !  03 Dec 2013 - R. Yantosca - Change unit of PBL height to meters, this used
 !                              to be hPa in GEOS-1, GEOS-STRAT, GEOS-3, which
 !                              are no longer supported.           
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!                              and remove CLDTOP (only available in MERRA)
 !******************************************************************************
 !
       IF ( ND67 > 0 ) THEN
          CATEGORY = 'DAO-FLDS'
 
-#if   defined( MERRA )
-         SCALE_ND67 = SCALE_A1    ! For MERRA,      ND67 fields are hourly
-#elif defined( GEOS_FP ) || defined( MERRA2 ) 
-         SCALE_ND67 = SCALE_A1    ! For GEOS-FP,    ND67 fields are hourly
-#else
-         SCALE_ND67 = SCALE_A3    ! Otherwise, most ND67 fields are 3-hourly
-#endif
+         SCALE_ND67 = SCALE_A1    ! ND67 fields are hourly
 
          ! Binary punch file
          DO M = 1, TMAX(67)
@@ -6273,13 +6090,6 @@
                CASE ( 10 )
                   SCALEX = SCALE_ND67
                   UNIT   = 'unitless'
-
-#if   defined( GCAP )
-                  ! CLDFRC is a 6-hr field in GCAP, GEOS-STRAT 
-                  ! (swu, bmy, 6/9/05)
-                  SCALEX = SCALE_A6
-#endif
-
                CASE ( 13 )
                   SCALEX = SCALEDYN
                   UNIT   = 'hPa'
@@ -6293,21 +6103,13 @@
                   SCALEX = SCALED
                   UNIT   = 'm'
                CASE ( 16 )
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                  SCALEX = SCALE_A3     ! MERRA/GEOS-FP CLDTOPS 3-hr avg'd
-#else 
-                  SCALEX = SCALE_A6     ! Otherwise CLDTOPS is 6-hr time avg'd
-#endif
+                  SCALEX = SCALE_A3     ! CLDTOPS are 3-hr avg'd
                   UNIT   = 'levels'
                CASE ( 17 ) 
                   SCALEX = SCALE_ND67
                   UNIT   = 'hPa'
                CASE ( 18 ) 
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-                 SCALEX = SCALE_A1      ! MERRA/GEOS-FP SLP is hourly
-#else
-                 SCALEX = SCALE_I6      ! Otherwise SLP is 6-h inst.
-#endif
+                 SCALEX  = SCALE_A1     ! SLP is hourly
                   UNIT   = 'hPa'
                CASE ( 19 )
                   SCALEX = SCALE_ND67
@@ -6338,8 +6140,7 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
+!
 !******************************************************************************
 !  ND68: Grid box diagnostics
 !
@@ -6380,8 +6181,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND69: Grid Box Surface Areas
@@ -6434,8 +6233,6 @@
 !%%%         CALL UPDATE_DEP( N )
 !%%%      ENDIF
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#endif
-#if defined( BPCH_DIAG )
 !
 !******************************************************************************
 !  ND71: Tracer Mixing Ratio (v/v) at surface, maximum value
@@ -6467,8 +6264,6 @@
          ENDDO
       ENDIF
 
-#endif
-
       ! Echo output
       WRITE( 6, '(a)' ) '     - DIAG3: Diagnostics written to bpch!'
 !
@@ -6493,10 +6288,18 @@
       IF ( Input_Opt%LRAD ) THEN
       IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
-         write(6,*) 'NWVSELECT',NWVSELECT
+         write(6,*) 'Input_Opt%NWVSELECT',Input_Opt%NWVSELECT
+
          ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
-         NSPECOUT=NSPECRADMENU+1 !number of output species plus baseline
+
+         ! Number of output species plus baseline
+         IF ( Input_Opt%LUCX ) THEN
+            NSPECOUT=NSPECRADMENU+1
+         ELSE
+            NSPECOUT=NSPECRADMENU
+         ENDIF
+
          DO M = 1, TMAX(72)
             N  = TINDEX(72,M)
             
@@ -6508,9 +6311,11 @@
              IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQV..TRUE.)).OR.
      &           ((N.GT.4).AND.(N.LE.8).AND.
      &                         (Input_Opt%LSKYRAD(1).EQV..TRUE.)).OR.
-     &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
-     &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
-     &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
+     &           ((N.GT.8).AND.(N.LE.11)).OR.                !1st set of optics
+     &           ((N.GT.11).AND.(N.LE.14).AND.
+     &                          (Input_Opt%NWVSELECT.GT.1)).OR.   !2nd set
+     &           ((N.GT.14).AND.(N.LE.17).AND.
+     &                          (Input_Opt%NWVSELECT.GT.2))) THEN !3rd set
 
              ! Select proper unit string (cf list above)
              IF (N.LE.8) THEN
@@ -6621,6 +6426,8 @@
       DiagnCnt => NULL()
       SpcInfo => NULL()
 
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -6708,6 +6515,7 @@
       !=================================================================
       ! DIAG2BPCH begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! Initialize
       ARRAY    = 0e0
@@ -6776,6 +6584,8 @@
 
       ! Nullify pointer
       DgnCont => NULL()
+
+#endif
 
       END SUBROUTINE DIAG2BPCH
 !EOC

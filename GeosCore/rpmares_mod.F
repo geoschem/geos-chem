@@ -1,4 +1,4 @@
-! $Id: rpmares_mod.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
+!     $Id: rpmares_mod.f,v 1.1 2009/09/16 14:06:12 bmy Exp $
       MODULE RPMARES_MOD
 !
 !******************************************************************************
@@ -129,7 +129,6 @@
 !
 ! !USES:
 !      
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -139,7 +138,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_ 
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+      USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
 ! !LOCAL VARIABLES:
@@ -255,7 +254,7 @@
       DO I = 1, IIPAR
          
          ! Skip if we are outside the troposphere (bmy, 4/3/08)
-         IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) CYCLE
+         IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
          ! Temperature [K], RH [unitless], and volume [m3]
          ATEMP = State_Met%T(I,J,L)
@@ -342,12 +341,14 @@
 !        get the elapsed minutes since the start of run. (bmy, 3/24/03)
 !  23 Sep 2014 - M. Sulprizio- Now get HNO3 for offline aerosol sims from HEMCO
 !  06 Jan 2016 - E. Lundgren - Use global physical parameters
+!  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
+!                              match new timestep unit of seconds
 !******************************************************************************
 !
 ! References to F90 modules
       USE PhysConstants,      ONLY : AIRMW
       USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
 
       ! Arguments
       INTEGER,        INTENT(IN)  :: I, J, L
@@ -362,7 +363,7 @@
 
       ! Relax to monthly mean HNO3 concentrations every 3 hours
       ! Otherwise just return the concentration in HNO3_sav
-      IF ( MOD( GET_ELAPSED_MIN(), 180 ) == 0 ) THEN
+      IF ( MOD( GET_ELAPSED_SEC(), 10800 ) == 0 ) THEN
          ! HNO3 is in v/v (from HEMCO), convert to ug/m3
          ! First convert HNO3 from [v/v] to [kg]
          HNO3_UGM3 = HNO3( I, J, L ) * State_Met%AD(I,J,L) /

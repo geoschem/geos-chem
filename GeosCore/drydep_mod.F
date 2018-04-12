@@ -16,15 +16,18 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD                          ! Size parameters
-      USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DAO_MOD                               ! Met field subroutines
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
+!------------------------------------------------------------------------------
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
-      USE TIME_MOD,       ONLY : GET_TS_CHEM    ! Chemistry timestep
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
 #endif
@@ -194,6 +197,7 @@
 !                              done for ACET. Drydep over the oceans is handled
 !                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -288,6 +292,9 @@
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
+      ! Are certain History diagnostics turned on?
+      LOGICAL                        :: Archive_DryDepVel
+
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -308,8 +315,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt, 
-     &                      State_Met, State_Chm, RC )
+      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                      State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -320,6 +327,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
@@ -332,6 +340,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -415,6 +424,7 @@
 !                              eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now update State_Diag%DryDepVel diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -438,29 +448,13 @@
       REAL(f8)      :: DVEL  (IIPAR,JJPAR,NUMDEP) ! Drydep velocities [m/s]
       REAL(f8)      :: PRESSU(IIPAR,JJPAR       ) ! Local surface pressure [Pa]
       REAL(f8)      :: W10   (IIPAR,JJPAR       ) ! 10m windspeed [m/s]
-
-      ! Now make SUNCOS_MID a local array (bmy, 11/28/12)
+      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
-
-      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-      REAL(f8)      :: AZO   (NTYPE      )        ! Z0, per Olson land type
-#else
-      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
-#endif
 
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
-
-#if defined( NC_DIAG )
-      ! Variables for netCDF diagnostics routines
-      INTEGER           :: HCRC
-      CHARACTER(LEN=30) :: DryDepName, DiagnName
-      REAL(fp), TARGET  :: SAVE_DEPVEL(IIPAR,JJPAR,State_Chm%nDryDep)
-      REAL(hp), POINTER :: Ptr2D(:,:)
-#endif
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -475,12 +469,6 @@
       ! Initialize
       SpcInfo => NULL()
       
-#if defined( NC_DIAG )
-      ! Initialize
-      SAVE_DEPVEL = 0.0_fp
-      Ptr2D       => NULL()
-#endif
-      
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
       LPRT       = Input_Opt%LPRT
@@ -493,12 +481,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,    TC0,       SUNCOS_MID,           
-     &             F0,        HSTAR,     XMW,        AIROSOL,           
-     &             USTAR,     CZ1,       OBK,        CFRAC,               
-     &             ZH,        LSNOW,     DVEL,       AZO,              
-     &             RHB,       PRESSU,    W10,        RC            )
+      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
+     &             RADIAT,     TC0,       SUNCOS_MID,
+     &             F0,         HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,      CZ1,       OBK,        CFRAC,     
+     &             ZH,         LSNOW,     DVEL,       AZO,              
+     &             RHB,        PRESSU,    W10,        RC            )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -628,21 +616,24 @@
             ! Dry deposition frequency [1/s]
             DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
-#if defined( NC_DIAG )
-            ! Need to save dep velocity into 2-D array for netCDF diags
-            ! Now save out frequency instead of velocity. We can change
-            ! that if needed (ckeller, 3/11/15).
-            ! NOTE: for comparison with bpch, no longer save as frequency,
-            ! save instead as cm/s which is the bpch unit for this diag
-            ! (ewl, 1/22/16)
-            !SAVE_DEPVEL(I,J,D) = DEPSAV(I,J,D)
-            SAVE_DEPVEL(I,J,D) = DVZ
+#if defined( BPCH_DIAG )
+            ! ND44 diagnostic
+            IF ( ND44 > 0 ) THEN 
+               ! Drydep velocity [cm/s]
+               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
+
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!               ! Instantaneous drydep velocity for ND49 [cm/s]
+!               AD44b(I,J,D)  = DVZ
+!------------------------------------------------------------------------------
+            ENDIF
 #endif
 
-#if defined( BPCH_DIAG )
-            ! ND44 diagnostic: drydep velocity [cm/s]
-            IF ( ND44 > 0 ) THEN 
-               AD44(I,J,D,2) = AD44(I,J,D,2) + DVZ
+#if defined( NC_DIAG )
+            ! Archive dry dep velocity [cm/s]
+            IF ( Archive_DryDepVel ) THEN
+               State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
 #endif
 
@@ -652,56 +643,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !=================================================================
-      ! Update drydep velocity into netCDF diagnostics structure
-      !=================================================================
-      IF ( Input_Opt%ND44 > 0 ) THEN
-
-         ! Assume success
-         HCRC = HCO_SUCCESS
-
-         ! Loop over all depositing species
-         DO D = 1, State_Chm%nDryDep
-
-            ! Get the corresponding GEOS-Chem species number
-            N =  State_Chm%Map_DryDep(D)
-
-            ! If this tracer number NN is scheduled for output in input.geos, 
-            ! then archive the latest depvel data into the diagnostic structure
-            IF ( ANY( Input_Opt%TINDEX(44,:) == N ) ) THEN
-
-               ! Get information for this species from the species database
-               SpcInfo => State_Chm%SpcData(N)%Info
-
-               ! Construct diagnostic name
-               DiagnName  = 'DRYDEP_VEL_' // TRIM( SpcInfo%Name )
-
-               ! Point to the proper slice of the DEPSAV array
-               Ptr2D => SAVE_DEPVEL(:,:,D)
-
-               ! Update the deposition velocity diagostics 
-               CALL Diagn_Update( am_I_Root, HcoState,
-     &                            cName   = TRIM( DiagnName ),
-     &                            Array2D = Ptr2D,
-     &                            COL     = Input_Opt%DIAG_COLLECTION,
-     &                            RC      = HCRC )
-
-               ! Free the pointers
-               Ptr2D   => NULL()
-               SpcInfo => NULL()
-
-               ! Stop with error if the diagnostics were unsuccessful
-               IF ( HCRC /= HCO_SUCCESS ) THEN
-                  CALL ERROR_STOP( 'Cannot update drydep velocity' //
-     &                             ' diagnostic: ' // TRIM( DiagnName), 
-     &                             'DO_DRYDEP (drydep_mod.F)')
-               ENDIF
-            ENDIF
-         ENDDO
-      ENDIF
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
@@ -755,13 +696,7 @@
       REAL(f8), INTENT(OUT) :: W10   (IIPAR,JJPAR)  ! 10 meter windspeed [m/s]
       REAL(f8), INTENT(OUT) :: SUNCOS_MID(IIPAR,JJPAR) ! COS(SZA) @ midpt of
                                                        !  current chem timestep
-
-      ! Dimension AZO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-      REAL(f8), INTENT(OUT) :: AZO(NTYPE)       ! Roughness heights, by landtype
-#else
       REAL(f8), INTENT(OUT) :: AZO(IIPAR,JJPAR) ! Roughness heights, by grid box
-#endif
 !
 ! !REMARKS:
 !                                                                             .
@@ -820,13 +755,6 @@
       ! METERO begins here!
       !=================================================================
 
-#if   defined( GCAP )
-      ! For GCAP: AZO (roughness ht) is a function of Olson land type 
-      ! instead of lat/lon location.  Zero AZO here; AZO will be 
-      ! computed internally w/in routine DEPVEL (swu, bmy, 5/25/05)
-      AZO(:) = 0e+0_f8
-#endif
-
       ! Loop over surface grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -851,10 +779,8 @@
          ! Return meterological quantities as 1-D arrays for DEPVEL
          !==============================================================
 
-#if   !defined( GCAP )
-         ! For GEOS: Roughness height [m] is a function of lat/lon
+         ! Roughness height [m]
          AZO(I,J)    = State_Met%Z0(I,J)
-#endif
 
          ! Column cloud fraction [unitless]
          CFRAC(I,J)  = State_Met%CLDFRC(I,J)
@@ -866,18 +792,7 @@
          OBK(I,J)    = GET_OBK( I, J, State_Met )
 
          ! Solar insolation @ ground [W/m2]
-         ! NOTE: State_Met%RADSWG is net radiation at ground for all
-         ! MET fields except GEOS-FP and MERRA2. For those data sets,
-         ! net radiation was not processed and therefore we use
-         ! incident radiation at ground. We split them up below for
-         ! clarity, using the new SWGDN field for incident radiation.
-         ! SWGDN is also available for MERRA but we do not use it
-         ! here to preserve the legacy method (ewl, 9/23/15)
-#if defined ( GEOS_FP ) || defined ( MERRA2 )
          RADIAT(I,J) = State_Met%SWGDN(I,J)
-#else
-         RADIAT(I,J) = State_Met%RADSWG(I,J) 
-#endif
 
          ! Surface temperature [K]
          TC0(I,J)    = State_Met%TS(I,J)
@@ -923,12 +838,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,    TEMP,      SUNCOS,            
-     &                   F0,        HSTAR,     XMW,       AIROSOL,     
-     &                   USTAR,     CZ1,       OBK,       CFRAC,           
-     &                   ZH,        LSNOW,     DVEL,      ZO,            
-     &                   RHB,       PRESSU,    W10,       RC          )
+      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
+     &                   RADIAT,     TEMP,      SUNCOS,
+     &                   F0,         HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,      CZ1,       OBK,       CFRAC,
+     &                   ZH,         LSNOW,     DVEL,      ZO,
+     &                   RHB,        PRESSU,    W10,       RC          )
 !
 ! !USES:
 !
@@ -948,7 +863,7 @@
 
       REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cosine of solar zenith angle
+      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
@@ -1121,7 +1036,6 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
-!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1156,18 +1070,8 @@
      1        RGSO(NTYPE),RCLS(NTYPE),RCLO(NTYPE),
      2        RSURFC(NUMDEP,NTYPE)       
                                    
-!      REAL(f8)  C1X(MAXDEP),VD(MAXDEP),VK(MAXDEP)              
       REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
-
-#if   defined( GCAP )
-      ! For the GISS/GCAP model, ZO is a function of land type 
-      ! and is of dimension NTYPE (swu, bmy, 5/25/05)
-      REAL(f8)  ZO(NTYPE)           
-#else
-      ! For GEOS-CTM, ZO is now of size IIPAR,JJPAR and is passed via 
-      ! the argument list, since it is a DAO met field. (bmy, 11/10/99)
       REAL(f8)  ZO(IIPAR,JJPAR)           
-#endif
 
 !      LOGICAL LDEP(MAXDEP)
       LOGICAL LDEP(NUMDEP)
@@ -1179,6 +1083,7 @@
       REAL(f8)  CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
       REAL(f8)  RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
       REAL(f8)  XMWH2O,DAIR,TEMPK,TEMPC
+      REAL(f8)  RAKT,DUMMY2KT, DUMMY4KT, Z0OBKKT ! for corrected O3, krt,11/2017
       INTEGER IOLSON,II,IW
       INTEGER K,LDT
       REAL(f8)  RCLX,RIXX    !,BIOFIT
@@ -1220,6 +1125,7 @@
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
+
 
       ! Small number
       REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
@@ -1312,16 +1218,14 @@
 !$OMP+PRIVATE( RDC,    XMWH2O, RIXX,   RLUXX,  RGSX,   RCLX   )
 !$OMP+PRIVATE( DTMP1,  DTMP2,  DTMP3,  DTMP4,  VDS,    CZH    )
 !$OMP+PRIVATE( CKUSTR, REYNO,  CORR1,  CORR2,  Z0OBK,  RA     )
+!$OMP+PRIVATE( Z0OBKKT,RAKT,   DUMMY2KT,       DUMMY4KT       )
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-!$OMP+PRIVATe( SpcId,  SpcInfo                                )
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
-#if defined( GCAP )
-!$OMP+PRIVATE( ZO                                             )
-#endif
+!$OMP+PRIVATE( SpcId,  SpcInfo                                )
 
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1688,22 +1592,6 @@
             IF ( IUSE(I,J,LDT) == 0 ) GOTO 500
             IOLSON = ILAND(I,J,LDT) + 1
 
-#if   defined( GCAP )
-! NOTE: This section only applies to the GCAP/GISS model (swu, bmy, 5/25/05)
-!** Get roughness heights; they are specified constants for each surface
-!** type except over water where zo = f(u*).  The latter dependence
-!** is from equation (6) of Hicks and Liss [1976]. 
-            DO 200 IW=1,NWATER
-               IF (IOLSON .NE. IWATER(IW)) GOTO 200
-               ZO(LDT) = 1.4e-02_f8*USTAR(I,J)*USTAR(I,J)/
-     &                   g0 + 1.1e-01_f8*XNU/USTAR(I,J)   
-
-               GOTO 210
- 200        CONTINUE
-            ZO(LDT) = DBLE(IZO(IOLSON))*1.e-4_f8
- 210        CONTINUE
-#endif
-
 !***** Get aerodynamic resistances Ra and Rb. ***********************
 !   The aerodynamic resistance Ra is integrated from altitude z0+d up to the
 !   altitude z1 at which the dry deposition velocity is to be referenced.
@@ -1787,12 +1675,7 @@
 
             CKUSTR = VON_KARMAN * USTAR(I,J)
 
-            ! Define REYNO for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-            REYNO = USTAR(I,J)*ZO(LDT)/XNU 
-#else
             REYNO = USTAR(I,J)*ZO(I,J)/XNU  
-#endif
 
             IF ( OBK(I,J) .EQ. 0.0e+0_f8 )
      c           WRITE(6,211) OBK(I,J),I,J,LDT                
@@ -1800,12 +1683,13 @@
      c           'LDT=',I3/) 
             CORR1 = CZ/OBK(I,J)
 
-            ! Define Z0OBK for GCAP or GEOS met fields (swu, bmy, 5/25/05)
-#if   defined( GCAP )
-            Z0OBK = ZO(LDT)/OBK(I,J)
-#else
+            ! Define Z0OBK
             Z0OBK = ZO(I,J)/OBK(I,J) 
-#endif
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            ! Set CASTNET height at 10m (krt, 11/2017)
+!            Z0OBKKT = 10e+0_fp/OBK(I,J)
+!==============================================================================
 
             LRGERA(I,J) = .FALSE.
             ! Add option for non-local PBL (Lin, 03/31/09) 
@@ -1898,37 +1782,66 @@
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 1.e+0_f8 * (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!!*... correct ozone to 10m for diagnostic (krt, 11/2017)
+!                  DUMMY2KT = (1.D0 - 15.e+0_f8*Z0OBKKT)**0.5e+0_f8
+!                  DUMMY4KT = ABS((DUMMY2KT - 1.e+0_f8)/
+!     &                 (DUMMY2KT + 1.e+0_f8))
+!                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
+!     &                 LOG(DUMMY3/DUMMY4KT)
+!==============================================================================
+
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
                   !coef_a=1.e+0_f8
                   !coef_b=5.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(CORR1/Z0OBK) + 5.e+0_f8*(CORR1-Z0OBK))
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!                  RAKT = (1D0/CKUSTR) *
+!     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
                   RA = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(CORR1/Z0OBK) + 1.e+0_f8*(CORR1-Z0OBK))
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!                  RAKT = (1D0/CKUSTR) *
+!     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
+!==============================================================================
                ENDIF
 
             ENDIF
 
-            RA = MIN(RA,1.e+4_f8)
+            RA   = MIN(RA,1.e+4_f8)
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            RAKT = MIN(RAKT,1.e+4_f8)
+!==============================================================================
 
-#if   defined( GCAP )
-            ! Debug output for GISS/GCAP model (swu, bmy, 5/25/05)
-            IF (RA .LT. 0.) THEN
-               WRITE (6,1001) I,J,RA,CZ,ZO(LDT),OBK(I,J)
-               RA = 0.0e+0_f8
-            ENDIF
-#else
-            ! For GEOS-CTM, We use ZO(IIPAR,JJPAR)
-            ! Also, if RA is < 0, set RA = 0 (bmy, 11/12/99)
+            ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
-#endif
+!==============================================================================
+!#if defined ( BPCH_DIAG )
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!            IF (RAKT .LT. 0.e+0_f8) THEN
+!               WRITE (6,1001) I,J,RAKT,CZ,ZO(I,J),OBK(I,J)  
+!               RAKT = 0.0e+0_f8
+!            ENDIF
+!            ! Store Ra for diagnostic
+!            AD_RA(I,J) = RAKT
+!            ! Store z/L to determine if M/O theory applies
+!            AD_ZL(I,J) = CZ1(I,J)/OBK(I,J)
+!#endif
+!==============================================================================
+            
  1001       FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',
      &             2I4,4(1X,E12.5))
 !* Get total resistance for deposition - loop over species.
@@ -1968,6 +1881,7 @@
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
+
  500     CONTINUE
 
 !** Load array DVEL
@@ -1993,9 +1907,7 @@
                PRINT*, 'CFRAC    = ', CFRAC(I,J)
                PRINT*, 'ZH       = ', ZH(I,J)
                PRINT*, 'LRGERA   = ', LRGERA(I,J)
-#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(I,J)
-#endif
                PRINT*, 'STOP in depvel.f!'
                CALL CLEANUP
                STOP
@@ -2020,9 +1932,7 @@
                PRINT*, 'CFRAC    = ', CFRAC(I,J)
                PRINT*, 'ZH       = ', ZH(I,J)
                PRINT*, 'LRGERA   = ', LRGERA(I,J)
-#if !defined( GCAP )
                PRINT*, 'ZO       = ', ZO(I,J)
-#endif
                CALL CLEANUP
                STOP
 !$OMP END CRITICAL
@@ -2219,6 +2129,8 @@
 !  18 Dec 2014 - R. Yantosca - Now read DRYCOEFF at REAL*8 precision and
 !                              then cast to flexible precision
 !  13 Mar 2015 - R. Yantosca - Replace DATA_DIR_1x1 w/ CHEM_INPUTS_DIR
+!  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
+!                              now the default.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2248,12 +2160,8 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
-      ! Pick the proper input file for Olson 1992 or Olson 2001
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         nc_file = 'Olson_2001_Drydep_Inputs.nc'
-      ELSE
-         nc_file = 'Olson_1992_Drydep_Inputs.nc'
-      ENDIF
+      ! Input file for Olson 2001
+      nc_file = 'Olson_2001_Drydep_Inputs.nc'
 
       ! Open file for reading (construct full data path)
       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 
@@ -2422,11 +2330,9 @@
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
 
-      ! If using Olson 2001 land map, change IRI for coniferous forests
+      ! For Olson 2001 land map, change IRI for coniferous forests
       ! to match IRI for deciduous forests (skim, mps, 2/3/14)
-      IF ( Input_Opt%USE_OLSON_2001 ) THEN
-         IRI(3) = 200
-      ENDIF
+      IRI(3) = 200
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -3935,15 +3841,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, 
+     &                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE Species_Mod,        ONLY : Species
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3952,7 +3860,8 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry_State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4029,6 +3938,8 @@
 !                              Family tracers have been eliminated.
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
+!  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Nov 2017 - R. Yantosca - Now return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4037,10 +3948,10 @@
 !
       LOGICAL                :: LDRYD
       LOGICAL                :: IS_Hg
-      INTEGER                :: AS, N
+      INTEGER                :: N
 
       ! Strings
-      CHARACTER(LEN=255)     :: MSG
+      CHARACTER(LEN=255)     :: Msg, ErrMsg, ThisLoc
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo 
@@ -4049,26 +3960,18 @@
       ! INIT_DRYDEP begins here!
       !=================================================================
       
-      ! Assume success
-      RC      = GC_SUCCESS
-     
-      ! Is this a mercury simulation?
-      IS_Hg   = Input_Opt%ITS_A_MERCURY_SIM
-
-      ! ARe we using drydep?
-      LDRYD   = Input_Opt%LDRYD
-
-      ! Count of drydep species
-      NUMDEP  = 0
-
-      ! Flag to identify species
+      ! Initialize
+      RC        = GC_SUCCESS
+      IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
+      LDRYD     = Input_Opt%LDRYD
+      NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
-
-      ! Define species IDs
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
+      ErrMsg    = ''
+      ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4077,58 +3980,69 @@
       IF ( State_Chm%nDryDep > 0 ) THEN
 
          ! Aerosol density [kg/m3]
-         ALLOCATE( A_DEN( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_DEN' )
+         ALLOCATE( A_DEN( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:A_DEN', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          A_DEN(:)   = 0e+0_f8
 
          ! Aerosol radius [um]
-         ALLOCATE( A_RADI( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'A_RADI' )
+         ALLOCATE( A_RADI( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:A_RADI', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          A_RADI = 0e+0_f8
 
          ! Is the species an aerosol? (T/F)
-         ALLOCATE( AIROSOL( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIROSOL' )
+         ALLOCATE( AIROSOL( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:AIROSOL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AIROSOL = .FALSE.
 
          ! Drydep species name
-         ALLOCATE( DEPNAME( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPNAME' )
+         ALLOCATE( DEPNAME( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:DEPNAME', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          DEPNAME = ''
 
          ! Reactivity factor
-         ALLOCATE( F0( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'F0' )
+         ALLOCATE( F0( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:F0', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          F0 = 0e+0_f8
 
          ! Henry's law K0
-         ALLOCATE( HSTAR( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'HSTAR' )
+         ALLOCATE( HSTAR( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:HSTAR', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          HSTAR = 0e+0_f8
 
          ! POPs KOA
-         ALLOCATE( KOA( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'KOA' )
+         ALLOCATE( KOA( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:KOA', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          KOA  = 0e+0_f8
 
          ! Drydep species indicies
-         ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDVZIND' )
+         ALLOCATE( NDVZIND( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:NDVZIND', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          NDVZIND = 0
 
          ! Drydep scaling flag
-         ALLOCATE( FLAG( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'FLAG' )
+         ALLOCATE( FLAG( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:FLAG', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          FLAG = 0
 
          ! Species indices
-         ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAIND' )
+         ALLOCATE( NTRAIND( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:NTRAIND', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          NTRAIND = 0
 
          ! Molecular weight [kg/mol]
-         ALLOCATE( XMW( State_Chm%nDryDep ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'XMW' )
+         ALLOCATE( XMW( State_Chm%nDryDep ), STAT=RC )
+         CALL GC_CheckVar( 'drydep_mod:XMW', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          XMW = 0e+0_f8
 
       ENDIF
@@ -4273,16 +4187,19 @@
       ! Allocate arrays
       ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
-      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DEPSAV' )
+      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:DEPSAV', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DEPSAV = 0e+0_fp
 
-      ALLOCATE( SALT_V( NR_MAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SALT_V' )
+      ALLOCATE( SALT_V( NR_MAX ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:SALT_V', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SALT_V = 0e+0_f8
 
-      ALLOCATE( DMID( NR_MAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'DMID' )
+      ALLOCATE( DMID( NR_MAX ), STAT=RC )
+      CALL GC_CheckVar( 'drydep_mod:DMID', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       DMID = 0e+0_f8
 
       ! SDE 2016-03-27: This is now called after Input_Opt has already
@@ -4347,11 +4264,22 @@
      &                         IRCLS,     IRCLO,    IVSMAX, 
      &                         RC )
 
+       ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Read_Drydep_Inputs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Calls INIT_WEIGHTSS to calculate the volume distribution of 
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
     
+      !===================================================================
+      ! Set logical flags to determine if diagnostics are turned on
+      !===================================================================
+      Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
+
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

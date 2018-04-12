@@ -23,17 +23,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: CHEMRnPbBe
-! 
-! !PRIVATE MEMBER FUNCTIONS:
-!
-#if defined( NC_DIAG )
-      PRIVATE :: Diagn_RnPbBe_Update
-#endif
-
-      ! NOTE: WE NEED TO KEEP THIS HERE FOR NOW SINCE IT IS USED
-      ! BY CODE IN mercury_mod.F.  REMOVE IT LATER. (bmy, 7/7/14)
-      ! Removed. (mdy, 12/4/14)
-!      PUBLIC  :: SLQ
 !
 ! !REMARKS:
 !  References:
@@ -93,7 +82,14 @@
 !------------------------------------------------------------------------------
 !BOC
       ! Species ID flags
-      INTEGER :: id_Rn, id_Pb, id_Be7
+      INTEGER  :: id_Rn,  id_Pb,  id_Be7
+
+      ! Exponential terms
+      REAL(fp) :: EXP_Rn, EXP_Pb, EXP_Be
+
+      ! Diagnostic flags
+      LOGICAL  :: Archive_PbFromRnDecay
+      LOGICAL  :: Archive_RadDecay
 
       CONTAINS
 !EOC   
@@ -110,24 +106,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMRnPbBe( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+      SUBROUTINE CHEMRnPbBe( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRATMESO
-      USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : AD01
-      USE DIAG_MOD,           ONLY : AD02
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD01
+      USE DIAG_MOD,       ONLY : AD02
 #endif
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
@@ -138,6 +134,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -177,6 +174,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -184,58 +182,56 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER                  :: I,        J,         L
-      INTEGER                  :: N !,        NA,        nAdvect
-      REAL(fp)                 :: ADD_Pb,   Be_LOST,   DTCHEM   
-      REAL(fp)                 :: Pb_LOST,  Decay
+      INTEGER             :: I,      J,       L,     N
+      REAL(fp)            :: ADD_Pb, Be_LOST, Decay, DTCHEM, Pb_LOST
 
       ! SAVEd scalars
-      LOGICAL,       SAVE      :: FIRSTCHEM = .TRUE.
-      REAL(fp),      SAVE      :: EXP_Rn,   EXP_Pb,    EXP_Be
+      LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
+
+      ! Strings
+      CHARACTER(LEN=255)  :: ErrMsg
+      CHARACTER(LEN=255)  :: ThisLoc
 
       ! Arrays
-      REAL(fp)                 :: Rn_LOST(IIPAR,JJPAR,LLPAR)
-
-      ! To calculate decay rate
-
-      ! For netCDF diagnostics via HEMCO
-      CHARACTER(LEN=255)       :: MSG
-      CHARACTER(LEN=255)       :: LOC = 'CHEMRNPBBE (RnPbBe_mod.F)'
-      CHARACTER(LEN=31)        :: Spc_Name
-      REAL(fp),      TARGET    :: PB_EMISS(IIPAR, JJPAR, LLPAR)
-      REAL(fp),      TARGET    :: RN_DECAY(IIPAR, JJPAR, LLPAR)
-      REAL(fp),      TARGET    :: PB_DECAY(IIPAR, JJPAR, LLPAR) 
-      REAL(fp),      TARGET    :: BE_DECAY(IIPAR, JJPAR, LLPAR)  
+      REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
 
       ! Pointers
-      REAL(fp),      POINTER   :: Spc(:,:,:,:)
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
 !
 ! !DEFINED PARAMETERS
 !
       ! Ratio of molecular weights of 210Pb/222Rn
-      REAL(fp),      PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
+      REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
 
       ! Ln 2
-      REAL(fp),      PARAMETER :: ln2   = 0.693147181E+00_fp
+      REAL(fp), PARAMETER :: ln2         = 0.693147181E+00_fp
 
       ! Lifetime of Radon-222 in days
-      REAL(fp),      PARAMETER :: RnTau = 3.83E+00_fp
+      REAL(fp), PARAMETER :: RnTau       = 3.83E+00_fp
 
       !=================================================================
       ! CHEMRnPbBe begins here!
       !=================================================================
 
-      ! Assume success
-      RC     =  GC_SUCCESS
+      ! Initialize
+      RC      =  GC_SUCCESS
+      ErrMsg  =  ''
+      ThisLoc =  ' -> at ChemRnPbBe (in module GeosCore/RnPbBe_mod.F)'
 
       ! Chemistry timestep [s]
-      DTCHEM =  GET_TS_CHEM() * 60e+0_fp
+      DTCHEM  =  GET_TS_CHEM()
 
       ! Point to the species array
-      Spc    => State_Chm%Species
+      Spc     => State_Chm%Species
 
-      ! Pre-compute exponential terms only on first timestep
+      !-----------------------------------------------------------------
+      ! Pre-compute exponential terms and do other first-time setup
+      !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN 
+
+         ! Determine if netCDF diagnostics have been requested
+         Archive_PbFromRnDecay = ASSOCIATED( State_Diag%PbFromRnDecay )
+         Archive_RadDecay      = ASSOCIATED( State_Diag%RadDecay      )
 
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
          Decay     = ln2 / ( RnTau * 24.E+00_fp * 3600.E+00_fp ) 
@@ -252,7 +248,7 @@
          FIRSTCHEM = .FALSE.
 
          ! testing only 
-         IF(am_I_Root) THEN
+         IF ( am_I_Root ) THEN
             write(*,*) ''
             write(*,*) '### GEOS-Chem Radon simulation ###'
             write(*,*) '    Timestep (secs)   : ', DTCHEM
@@ -279,42 +275,41 @@
          DO I = 1, IIPAR
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
-            Rn_LOST(I,J,L)     = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
+            Rn_LOST(I,J,L) = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
 
-            ! ND02 diag: 222Rn lost to decay [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND02 (bpch) diagnostic:
+            !
+            ! Rn222 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s]
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
                AD02(I,J,L,1)   = AD02(I,J,L,1) 
      &                         + ( Rn_LOST(I,J,L) / DTCHEM )
-#endif
-#if defined( NC_DIAG )
-               RN_DECAY(I,J,L) = RN_LOST(I,J,L) / DTCHEM
-#endif
             ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Rn222 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
+            IF ( Archive_RadDecay ) THEN
+               State_Diag%RadDecay(I,J,L,1) = Rn_LOST(I,J,L) / DTCHEM
+            ENDIF
+#endif
 
             ! Subtract Rn_LOST from STT [kg]
-            Spc(I,J,L,N)       = Spc(I,J,L,N) - Rn_LOST(I,J,L)
+            Spc(I,J,L,N) = Spc(I,J,L,N) - Rn_LOST(I,J,L)
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Rn lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                RN_DECAY, 
-     &                                INput_Opt%DIAG_COLLECTION )
-         ENDIF
-#endif
-         
       ENDIF
 
       !=================================================================
@@ -334,81 +329,73 @@
          DO I = 1, IIPAR
            
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
-            ADD_Pb                     = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
+            ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
 
-#if defined( GCAP )
-            !%%%%% FOR GCAP SIMULATION: Divide the 210Pb source by 3.5
-            !%%%%% to correct for the strat-trop exchange.  A similar
-            !%%%%% line of code is done in the HEMCO extension where
-            !%%%%% the Be7 source is computed.  This replicates the
-            !%%%%% pre-HEMCO code. (bmy, 9/4/14)
-            IF ( ITS_IN_THE_STRATMESO( I, J, L, State_Met ) ) THEN
-               ADD_Pb          = ADD_Pb / 3.5e+0_fp
-            ENDIF
-#endif
-
-            ! ND01 diag: 210Pb emission from 222Rn decay [kg/s]
-            IF ( ND01 > 0 .and. L <= LD01 ) THEN
 #if defined( BPCH_DIAG )
-               AD01(I,J,L)     = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
-#endif
-#if defined ( NC_DIAG )
-               PB_EMISS(I,J,L) = ADD_Pb / DTCHEM
-#endif
+            !-----------------------------------------------------------
+            ! ND01 (bpch) diagnostic
+            !
+            ! Pb210 emission from Rn222 decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s]
+            IF ( ND01 > 0 .and. L <= LD01 ) THEN
+               AD01(I,J,L) = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
             ENDIF
+#endif
+
+#if defined( NC_DIAG ) 
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Pb210 emission from Rn222 decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
+            IF ( Archive_PbFromRnDecay ) THEN
+               State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb / DTCHEM ) 
+            ENDIF
+#endif
 
             ! Add 210Pb gained by decay from 222Rn into STT [kg]
-            Spc(I,J,L,N)       = Spc(I,J,L,N) + ADD_Pb          
+            Spc(I,J,L,N) = Spc(I,J,L,N) + ADD_Pb          
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST            = Spc(I,J,L,N) * ( 1.0_fp - EXP_Pb )
+            Pb_LOST      = Spc(I,J,L,N) * ( 1.0_fp - EXP_Pb )
 
-            ! ND02 diag: 210Pb lost to decay [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,2)   = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
-#endif
-#if defined( NC_DIAG )
-               PB_DECAY(I,J,L) = Pb_LOST / DTCHEM
-#endif
+            !-----------------------------------------------------------
+            ! ND02 (bpch) diagnostic:
+            !
+            ! Pb210 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s]
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
+               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
             ENDIF
+#endif
+
+#if defined( NC_DIAG ) 
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Pb210 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
+            IF ( Archive_RadDecay ) THEN
+               State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
+            ENDIF
+#endif
 
             ! Subtract 210Pb lost to decay from STT [kg]
-            Spc(I,J,L,N)       = Spc(I,J,L,N) - Pb_LOST
+            Spc(I,J,L,N) = Spc(I,J,L,N) - Pb_LOST
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Pb lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                PB_DECAY, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-
-         ! Make sure ND01 is turned on
-         IF ( Input_Opt%ND01 > 0 ) THEN
-
-            ! Update ND01 diagnostic: Pb emission [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND01', 
-     &                                Spc_Name, 
-     &                                PB_EMISS, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-
-#endif
-
       ENDIF
 
       !=================================================================
@@ -428,41 +415,40 @@
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
-            Be_LOST            = Spc(I,J,L,N) * ( 1d0 - EXP_Be )
+            Be_LOST = Spc(I,J,L,N) * ( 1d0 - EXP_Be )
 
-            ! ND02 diag: 7Be lost to decay [kg/s]
-            IF ( ND02 > 0 .and. L <= LD02 ) THEN
 #if defined( BPCH_DIAG )
-               AD02(I,J,L,3)   = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
-#endif
-#if defined( NC_DIAG )
-               BE_DECAY(I,J,L) = Be_LOST / DTCHEM
-#endif
+            !-----------------------------------------------------------
+            ! ND02 (bpch) diagnostic:
+            !
+            ! Be7 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s]
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
+               AD02(I,J,L,3) = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
             ENDIF
+#endif
+
+#if defined( NC_DIAG ) 
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Be7 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
+            IF ( Archive_RadDecay ) THEN
+               State_Diag%RadDecay(I,J,L,3) = ( Be_LOST / DTCHEM )
+            ENDIF
+#endif
 
             ! Subtract amount of 7Be lost to decay from STT [kg]
-            Spc(I,J,L,N)       = Spc(I,J,L,N) - Be_LOST
+            Spc(I,J,L,N) = Spc(I,J,L,N) - Be_LOST
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-         ! Get species name
-         Spc_Name = State_Chm%SpcData(N)%Info%Name
-
-         ! Make sure ND02 is turned on
-         IF ( Input_Opt%ND02 > 0 ) THEN
-
-            ! Update ND02 diagnostic: Be lost to decay [kg/s]
-            CALL Diagn_RnPbBe_Update( am_I_Root,
-     &                                'ND02', 
-     &                                Spc_Name, 
-     &                                BE_DECAY, 
-     &                                Input_Opt%DIAG_COLLECTION )
-         ENDIF
-#endif
-
       ENDIF
 
       ! Free pointer
@@ -470,96 +456,6 @@
 
       END SUBROUTINE CHEMRnPbBe
 !EOC
-
-#if defined( NC_DIAG )
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !ROUTINE: diagn_rnpbbe_update
-!
-! !DESCRIPTION: Subroutine DIAGN\_RNPBBE\_UPDATE updates the Rn/Pb/Be7
-!  diagnostics ND01 (emissions) and ND02 (loss due to decay) that are 
-!  written to netCDF. ND01 Rn and Be7 emissions diagnostics are included
-!  in HEMCO emissions and are therefore not updated in this subroutine.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Diagn_RnPbBe_Update( am_I_Root, NDxx, SpeciesName, 
-     &                                DiagArray, ColNo )
-!
-! !USES:
-!
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
-      USE HCO_Error_Mod
-      USE Error_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,            INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      CHARACTER(LEN=4),   INTENT(IN)  :: NDxx         ! Diagnostic id
-      CHARACTER(LEN=*),   INTENT(IN)  :: SpeciesName  ! Species name
-      REAL(fp), TARGET,   INTENT(IN)  :: DiagArray(:,:,:)
-      INTEGER,            INTENT(IN)  :: ColNo        ! Diag collection #
-!
-! !REVISION HISTORY:
-!  30 Jan 2015 - E. Lundgren   - Initial version
-! 
-! !REMARKS:
-!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      CHARACTER(LEN=255)  :: DiagnName
-      CHARACTER(LEN=255)  :: MSG
-      CHARACTER(LEN=255)  :: LOC = 'DIAGN_RNPBBE_UPDATE (RnPbBe_mod.F)'
-      INTEGER             :: HCRC
-      REAL(fp), POINTER   :: Ptr3D(:,:,:) => NULL()
-
-      !=================================================================
-      ! DIAGN_RNPBBE_UPDATE begins here!
-      !=================================================================
-      
-      ! Define the diagnostic name
-      SELECT CASE ( NDxx )
-         CASE ( 'ND01' )
-            DiagnName = 'EMISS_' // TRIM( SpeciesName )
-         CASE ( 'ND02' )
-            DiagnName = 'DECAY_' // TRIM( SpeciesName )
-         CASE DEFAULT
-            MSG = 'Undefined Rn/Pb/Be7 diagnostic: ' // NDxx
-            CALL ERROR_STOP( TRIM( MSG ), LOC )
-      END SELECT
-
-      ! Point to the array
-      Ptr3D => DiagArray
-
-      ! Update container for diagnostic
-      CALL Diagn_Update( am_I_Root, HcoState,
-     &                   cName   = TRIM( DiagnName ),
-     &                   Array3D = Ptr3D,
-     &                   COL     = ColNo,
-     &                   RC      = HCRC )
- 
-      ! Free the pointer before error handling
-      Ptr3D => NULL()
- 
-      ! Stop with error if the diagnostic update was unsuccessful
-      IF ( HCRC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot update ' // NDxx // ' diagnostic: ' 
-     &         // TRIM( DiagnName )
-         CALL ERROR_STOP( MSG, LOC)
-      ENDIF
-
-      END SUBROUTINE Diagn_RnPbBe_Update 
-!EOC
-#endif
       END MODULE RnPbBe_MOD
 
 

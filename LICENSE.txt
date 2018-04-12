@@ -1,0 +1,84 @@
+GEOS-Chem License Agreement
+(The MIT "Expat" License, http://opensource.org/licenses/MIT)
+==============================================================================
+
+Copyright (c) 2017 GEOS-Chem developers
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------------------------------
+NOTE: Please see the AUTHORS.txt file (in this folder) for the list of
+GEOS-Chem developers.  This list will be updated with each public release.
+------------------------------------------------------------------------------
+
+
+License agreements for 3rd-party code packages used by GEOS-Chem:
+==============================================================================
+
+FAST-J, FAST-JX, and developments:
+
+   Fast-J code, including developments such as Cloud-J, is distributed under 
+   GNU General Public License version 3.0 (GPLv3). (A copy of the GNU public 
+   license is here: https://www.gnu.org/licenses/gpl-3.0.en.html)
+   https://www.ess.uci.edu/researchgrp/prather/scholar_software
+
+
+ISORROPIA:
+
+   COPYRIGHT 1996-2006, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY,
+   GEORGIA INSTITUTE OF TECHNOLOGY
+   WRITTEN BY ATHANASIOS NENES
+   UPDATED BY CHRISTOS FOUNTOUKIS 
+
+
+KPP chemical solver (Kinetic Pre-Processor):
+
+   KPP - symbolic chemistry Kinetics PreProcessor, Version 2.1
+         (http://www.cs.vt.edu/~asandu/Software/KPP)
+   KPP is distributed under GPL, the general public licence
+         (http://www.gnu.org/copyleft/gpl.html)
+     (C) 1995-1997, V. Damian & A. Sandu, CGRER, Univ. Iowa
+     (C) 1997-2005, A. Sandu, Michigan Tech, Virginia Tech
+         with contributions from:
+         R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
+
+
+Linked list code (used in v11-02 and later versions):
+
+   Copyright © 2005 Arjen Markus <arjenmarkus@sourceforge.net>
+   http://flibs.sourceforge.net/linked_list.html
+
+
+RRTM/RRTMG Copyright and Disclaimer:
+
+   Copyright © 2002-2010, Atmospheric and Environmental Research, Inc. 
+   (AER, Inc.). This software may be used, copied, or redistributed as long 
+   as it is not sold and this copyright notice is reproduced on each copy made. 
+   This model is provided as is without any express or implied warranties.
+   http://rtweb.aer.com/rrtm_frame.html
+
+
+SMVGEAR chemical solver (used in GEOS-Chem v10-01 and prior versions):
+ 
+   *********************************************************************
+   ************        WRITTEN BY MARK JACOBSON (1993)      ************
+   ***             (C) COPYRIGHT, 1993 BY MARK Z. JACOBSON           ***
+   ***       U.S. COPYRIGHT OFFICE REGISTRATION NO. TXu 670-279      ***
+   ***                         (650) 723-6836                        ***
+   *********************************************************************

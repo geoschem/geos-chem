@@ -251,7 +251,12 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
+! Prior to 1/22/18:
+! Don't exit here, go down to the IF statement below to get an error message.
+! (bmy, 1/22/18)
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
 
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
@@ -2553,7 +2558,6 @@ CONTAINS
 !
     USE HCO_TIDX_MOD,         ONLY : HCO_GetPrefTimeAttr
     USE HCO_TIDX_MOD,         ONLY : tIDx_IsInRange 
-    USE HCO_CHARTOOLS_MOD,    ONLY : HCO_CharParse
     USE HCO_CLOCK_MOD,        ONLY : HcoClock_Get
     USE HCO_CLOCK_MOD,        ONLY : Get_LastDayOfMonth
 !
@@ -4168,7 +4172,7 @@ CONTAINS
 ! supported: YYYY (year), MM (month), DD (day), HH (hour), LH (local hour), 
 ! NN (minute), SS (second), WD (weekday), LWD (local weekday), DOY (day of year). 
 ! In addition, the following variables can be used: PI (3.141...), DOM
-! (# of days of current month).
+! (\# of days of current month).
 ! For example, the following expression would yield a continuous sine
 ! curve as function of hour of day: 'MATH:sin(HH/24*PI*2)'.
 !\\
@@ -4203,7 +4207,10 @@ CONTAINS
     INTEGER,          INTENT(  OUT)   :: N
 !
 ! !REVISION HISTORY:
-!  11 May 2017 - C. Keller: Initial version
+!  11 May 2017 - C. Keller - Initial version
+!  07 Jul 2017 - C. Keller - Parse function before evaluation to allow
+!                            the usage of user-defined tokens within the
+!                            function.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4256,6 +4263,12 @@ CONTAINS
     ! GetPrefTimeAttr can return -999 for hour. In this case set to current
     ! simulation hour
     IF ( prefHr < 0 ) prefHr = cHr
+
+    ! Parse function. This will replace any tokens in the function with the
+    ! actual token values. (ckeller, 7/7/17)
+    CALL HCO_CharParse ( HcoState%Config, func, &
+                         prefYr, prefMt, prefDy, prefHr, prefMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
  
     ! Check which variables are in string. 
     ! Possible variables are YYYY, MM, DD, WD, HH, NN, SS, DOY 
@@ -4344,7 +4357,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! N is the number of expressions. This is 1 or 24
+    ! N is the number of expressions.
     Vals(:) = -999.0_hp
     IF ( LHIDX > 0 ) THEN
        N = 24

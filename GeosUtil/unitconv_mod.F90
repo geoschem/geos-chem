@@ -20,68 +20,21 @@ MODULE UnitConv_Mod
 !
 ! !USES:
 !
-  ! GEOS-Chem Modules
-  USE CMN_SIZE_MOD          ! Size parameters
+  USE CMN_SIZE_Mod 
   USE ErrCode_Mod
-  USE ERROR_MOD
-  USE PHYSCONSTANTS
-  USE PRECISION_MOD         ! GEOS-Chem Flexible Precision (fp)
+  USE Error_Mod
+  USE PhysConstants
+  USE Precision_Mod
+  USE Input_Opt_Mod,  ONLY : OptInput
+  USE State_Met_Mod,  ONLY : MetState
+  USE State_Chm_Mod,  ONLY : ChmState
                     
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! Wrapper routine 
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  PUBLIC :: Convert_Units
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> V/V DRY
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! kg/kg dry air <-> v/v dry air
-  ! Used in DO_TEND in mixing
-  PUBLIC  :: ConvertSpc_KgKgDry_to_VVDry
-  PUBLIC  :: ConvertSpc_VVDry_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> KG/M2
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! kg/kg dry air <-> kg/m2
-  ! Used for wet deposition, DO_TEND in mixing,
-  ! and around AIRQNT and SET_H2O_TRAC in main
-  PUBLIC  :: ConvertSpc_KgKgDry_to_Kgm2
-  PUBLIC  :: ConvertSpc_kgm2_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! KG/KG DRY <-> MOLEC/CM3
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  PUBLIC  :: ConvertSpc_KgKgDry_to_MND
-  PUBLIC  :: ConvertSpc_MND_to_KgKgDry
-
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  ! AREA-DEPENDENT (temporary routines)
-  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  ! v/v dry air <-> kg/grid box
-  ! Temporarily replaces legacy CONVERT_UNITS
-  ! Used in strat_chem_mod and sulfate_mod
-  PUBLIC  :: ConvertSpc_VVDry_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_VVDry
-
-  ! kg/kg dry air <-> kg/grid box
-  ! Used in aerosol_mod, tomas_mod, emissions_mod,
-  ! strat_chem_mod, exchange_mod, rrtmg_rad_transfer_mod,
-  ! chemistry_mod, sulfate_mod, and carbon_mod
-  ! This is since RRTMG, TOMAS, exchange_mod, chemistry,
-  ! and EMISSMERCURY are still in [kg]
-  PUBLIC  :: ConvertSpc_KgKgDry_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_KgKgDry
-
-  ! molec/cm3 dry air <-> kg/gridbox
-  PUBLIC  :: ConvertSpc_MND_to_Kg
-  PUBLIC  :: ConvertSpc_Kg_to_MND
+  PUBLIC :: Convert_Spc_Units
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -92,6 +45,54 @@ MODULE UnitConv_Mod
   ! Used for TOMAS compatibility in WASHOUT within wetscav_mod
   PUBLIC  :: ConvertBox_Kgm2_to_Kg
   PUBLIC  :: ConvertBox_Kg_to_Kgm2
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> V/V DRY
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> v/v dry air
+  ! Used in DO_TEND in mixing
+  PRIVATE  :: ConvertSpc_KgKgDry_to_VVDry
+  PRIVATE  :: ConvertSpc_VVDry_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> KG/M2
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> kg/m2
+  ! Used for wet deposition, DO_TEND in mixing,
+  ! and around AIRQNT and SET_H2O_TRAC in main
+  PRIVATE  :: ConvertSpc_KgKgDry_to_Kgm2
+  PRIVATE  :: ConvertSpc_kgm2_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> MOLEC/CM3
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  PRIVATE  :: ConvertSpc_KgKgDry_to_MND
+  PRIVATE  :: ConvertSpc_MND_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! AREA-DEPENDENT (temporary routines)
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  ! v/v dry air <-> kg/grid box
+  ! Temporarily replaces legacy CONVERT_UNITS
+  ! Used in strat_chem_mod and sulfate_mod
+  PRIVATE  :: ConvertSpc_VVDry_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_VVDry
+
+  ! kg/kg dry air <-> kg/grid box
+  ! Used in aerosol_mod, tomas_mod, emissions_mod,
+  ! strat_chem_mod, exchange_mod, rrtmg_rad_transfer_mod,
+  ! chemistry_mod, sulfate_mod, and carbon_mod
+  ! This is since RRTMG, TOMAS, exchange_mod, chemistry,
+  ! and EMISSMERCURY are still in [kg]
+  PRIVATE  :: ConvertSpc_KgKgDry_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_KgKgDry
+
+  ! molec/cm3 dry air <-> kg/gridbox
+  PRIVATE  :: ConvertSpc_MND_to_Kg
+  PRIVATE  :: ConvertSpc_Kg_to_MND
 !
 ! !REMARKS:
 !  The routines in this module are used to convert the units of
@@ -107,150 +108,205 @@ MODULE UnitConv_Mod
 !                              TOMAS-specific unit conversions
 !  23 Aug 2016 - M. Sulprizio- Remove tracer unit conversion routines, only
 !                              species unit conversion routines remain
+!  27 Sep 2017 - E. Lundgren - Expand and rename wrapper routine
+!  28 Sep 2018 - E. Lundgren - Make ConvertSpc routines all PRIVATE
+!  01 Feb 2018 - E. Lundgren - Move set_speciesconc_diagnostics to 
+!                              diagnostics_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-
 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Convert_Units
+! !IROUTINE: Convert_Spc_Units
 !
-! !DESCRIPTION: Subroutine Convert\_Units is a wrapper function to convert
-!  the tracer input array to a desired unit. This routine is currently only
-!  used by tendences\_mod.F90 and incomplete. 
+! !DESCRIPTION: Subroutine Convert\_Spc\_Units is a wrapper function to convert
+!  the species input array to a desired unit. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Units ( am_I_Root, Input_Opt, State_Met, &
-                             State_Chm, OutUnit,   RC, InUnit ) 
+  SUBROUTINE Convert_Spc_Units ( am_I_Root, Input_Opt, State_Met, &
+                                 State_Chm, OutUnit,   RC, OrigUnit ) 
 !
 ! !USES:
 !
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Met_Mod, ONLY : MetState
-    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,          INTENT(IN)            :: am_I_Root   ! Are we on the root CPU?
-    TYPE(OptInput),   INTENT(IN)            :: Input_Opt   ! Input Options object
-    TYPE(MetState),   INTENT(IN)            :: State_Met   ! Meteorology state object
-    CHARACTER(LEN=*), INTENT(IN)            :: OutUnit     ! Desired output unit
+    LOGICAL,          INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(MetState),   INTENT(IN)  :: State_Met   ! Meteorology state object
+    CHARACTER(LEN=*), INTENT(IN)  :: OutUnit     ! Desired output unit
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT)         :: State_Chm   ! Chemistry state object
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)           :: RC          ! Success or failure?
-    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: InUnit      ! Units of input data 
+    INTEGER,          INTENT(OUT)           :: RC      ! Success or failure?
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL :: OrigUnit  ! Units of input data 
 !
 ! !REMARKS:
+!  The purpose of optional output argument OrigUnit is to enable conversion 
+!  back to the original units in a second call to Convert_Spc_Units. 
+!  For example:
+!
+!      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                              State_Chm, 'kg/kg dry', RC, OrigUnit=OrigUnit )
+!      ...computation...
+!      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                        State_Chm, OrigUnit, RC )
 !
 ! !REVISION HISTORY: 
-!  14 Apr 2016 - C. Keller   - Initial version
-!  10 Oct 2016 - C. Keller   - Update to v11-01h 
+!  14 Apr 2016 - C. Keller    - Initial version
+!  10 Oct 2016 - C. Keller    - Update to v11-01h 
+!  27 Sep 2017 - E. Lundgren  - Rename, restructure, include all conversions
+!  05 Oct 2017 - R. Yantosca  - Fixed typo: "kg/kg dry" instead of "Kg/kg dry"
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255) :: MSG, LOC
-    LOGICAL            :: DONE
+    CHARACTER(LEN=255) :: ErrMsg_noIn, ErrMsg_noOut, ErrMsg_RC, LOC, InUnit
 
     !====================================================================
-    ! Convert_Units begins here!
+    ! Convert_Spc_Units begins here!
     !====================================================================
 
     ! Assume success
     RC =  GC_SUCCESS
 
-    ! Archive units of input data
-    IF ( PRESENT(InUnit) ) InUnit = State_Chm%Spc_Units 
+    ! Define error handling messages
+    LOC = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
+    ErrMsg_NoOut = 'Conversion to '//TRIM(OutUnit)//' not defined'
+    ErrMsg_NoIn = 'Conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)//&
+                  ' not defined'
+    ErrMsg_RC = 'Error in conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)
 
-    ! Initialize flag to indicate if we are done or not
-    DONE = .FALSE.
+    ! Store units of input data locally
+    InUnit = State_Chm%Spc_Units
 
-    ! Leave here if data is already on desired units
-    IF ( TRIM(OutUnit) == TRIM(State_Chm%Spc_Units) ) DONE = .TRUE. 
+    ! Archive units of input data for output if passed as argument
+    IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units 
 
-    !====================================================================
-    ! Convert to kg/kg dry
-    !====================================================================
-    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg/kg dry' ) THEN 
-
-       IF ( TRIM(State_Chm%Spc_Units) == 'v/v dry' ) THEN
-          CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-
-       ELSEIF ( TRIM(State_Chm%Spc_Units) == 'kg' ) THEN
-          CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-
-       ELSEIF ( TRIM(State_Chm%Spc_Units) == 'kg/m2' ) THEN
-          CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-       ENDIF
+    ! Debugging print
+    IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
+       WRITE(6,'(a)') '     ### Species Unit Conversion: ' // &
+                      TRIM(InUnit) // ' -> ' // TRIM(OutUnit) // ' ###'
     ENDIF
 
-    !====================================================================
-    ! Convert to v/v dry
-    !====================================================================
-    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'v/v dry' ) THEN 
+    ! Exit if in and out units are the same
+    IF ( TRIM(OutUnit) == TRIM(InUnit) ) RETURN
 
-       IF ( TRIM(State_Chm%Spc_Units) == 'kg/kg dry' ) THEN
-          CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-       ENDIF
+    ! Convert based on input and output units
+    SELECT CASE ( TRIM(InUnit) )
+
+       !================================================================
+       ! Convert from kg/kg dry
+       !================================================================
+       CASE ( 'kg/kg dry' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'v/v dry' )
+                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC ) 
+             CASE ( 'kg' )
+                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
+                                               State_Chm, RC ) 
+             CASE ( 'kg/m2' )
+                CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, &
+                                                 State_Chm, RC ) 
+             CASE ( 'molec/cm3' )
+                CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
+                                                 State_Chm, RC ) 
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !====================================================================
+       ! Convert from v/v dry
+       !====================================================================
+       CASE ( 'v/v dry' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'kg/kg dry' )
+                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC ) 
+             CASE ( 'kg' )
+                CALL ConvertSpc_VVDry_to_Kg( am_I_Root, State_Met, &
+                                             State_Chm, RC) 
+             CASE ( 'kg/m2' )
+                CALL ConvertSpc_VVDry_to_KgKgDry( am_I_Root, State_Chm, RC )
+                CALL ConvertSpc_KgKgDry_to_Kgm2 ( am_I_Root, State_Met, &
+                                                  State_Chm, RC )
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !====================================================================
+       ! Convert from kg
+       !====================================================================
+       CASE ( 'kg' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'kg/kg dry' )
+                CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, &
+                                               State_Chm, RC ) 
+             CASE ( 'v/v dry' )
+                CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
+                                             State_Chm, RC ) 
+             CASE ( 'molec/cm3' )
+                CALL ConvertSpc_Kg_to_MND( am_I_Root, State_Met, &
+                                           State_Chm, RC ) 
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !====================================================================
+       ! Convert from kg/m2
+       !====================================================================
+       CASE ( 'kg/m2' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE( 'kg/kg dry' )
+                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
+                                                 State_Chm, RC ) 
+             CASE ( 'v/v dry' )
+                CALL ConvertSpc_Kgm2_to_KgKgDry( am_I_Root, State_Met, &
+                                                  State_Chm, RC )
+                CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC )
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !====================================================================
+       ! Convert from molecular number density (MND)
+       !====================================================================
+       CASE ( 'molec/cm3' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'kg' )
+                CALL ConvertSpc_MND_to_Kg( am_I_Root, State_Met, &
+                                           State_Chm, RC ) 
+             CASE ( 'kg/kg dry' )
+                CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met, &
+                                                State_Chm, RC ) 
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       ! Error if input units not found
+       CASE DEFAULT
+          CALL GC_Error( ErrMsg_noIn, RC, LOC )
+
+    END SELECT
+
+    ! Error if problem within called conversion routine
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( ErrMsg_RC, RC, LOC )
     ENDIF
 
-    !====================================================================
-    ! Convert to kg
-    !====================================================================
-    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg' ) THEN 
-
-       IF ( TRIM(State_Chm%Spc_Units) == 'kg/kg dry' ) THEN
-          CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-       ENDIF
-    ENDIF
-
-    !====================================================================
-    ! Convert to kg/m2
-    !====================================================================
-    IF ( .NOT. DONE .AND. TRIM(OutUnit) == 'kg/m2' ) THEN 
-
-       IF ( TRIM(State_Chm%Spc_Units) == 'kg/kg dry' ) THEN
-          CALL ConvertSpc_KgKgDry_to_Kgm2( am_I_Root, State_Met, State_Chm, RC ) 
-          IF ( RC /= GC_SUCCESS ) RETURN
-          DONE = .TRUE.
-       ENDIF
-    ENDIF
-
-    !====================================================================
-    ! Error check
-    !====================================================================
-    IF ( .NOT. DONE ) THEN 
-       MSG = 'Cannot convert from '//TRIM(InUnit)//' to '//TRIM(OutUnit)
-       LOC = 'Routine Convert_Units in unitconv_mod.F90'
-       CALL GC_Error( MSG, RC, LOC )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Convert_Units
+  END SUBROUTINE Convert_Spc_Units
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -270,7 +326,6 @@ CONTAINS
 !
 ! USES: 
 !
-    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -294,10 +349,13 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                :: I, J, L, N
-    REAL(fp)               :: MW_g
+    ! Scalars
+    INTEGER                :: I,    J,      L,   N
+    REAL(fp)               :: MW_g, MwRatio
+
+    ! Strings
     CHARACTER(LEN=255)     :: MSG, LOC
-    
+
     !====================================================================
     ! ConvertSpc_KgKgDry_to_VVDry begins here!
     !====================================================================
@@ -339,11 +397,11 @@ CONTAINS
     !    = Species(I,J,L,N) [kg/kg] * ( AIRMW / MW_G(N) )
     !                   
     !====================================================================
-    
+
     ! Loop over all species
-    !$OMP PARALLEL DO                 &
-    !$OMP DEFAULT( SHARED           ) &
-    !$OMP PRIVATE( I, J, L, N, MW_g ) 
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J, L, N, MW_g, MwRatio )
     DO N = 1, State_Chm%nSpecies
 
        ! (Emitted) molecular weight for the species [g]
@@ -353,12 +411,16 @@ CONTAINS
        ! conversion will flip the sign back to positive (ewl, bmy, 8/4/16)
        MW_g = State_Chm%SpcData(N)%Info%emMW_g
     
+       ! Compute the ratio (MW air / MW species) outside of the IJL loop
+       MwRatio = ( AIRMW / MW_g )
+
        ! Loop over grid boxes and do unit conversion
        DO L = 1, LLPAR
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
-                                     * ( AIRMW / MW_G )
+!          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
+!                                     * ( AIRMW / MW_G )
+          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N) * MwRatio
        ENDDO
        ENDDO
        ENDDO
@@ -388,7 +450,6 @@ CONTAINS
 !
 ! USES: 
 !
-    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -508,8 +569,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -614,8 +673,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -721,8 +778,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState    
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -853,8 +908,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -988,8 +1041,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1115,8 +1166,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1241,8 +1290,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1351,8 +1398,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1459,8 +1504,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1595,8 +1638,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1729,8 +1770,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1806,8 +1845,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1880,8 +1917,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1954,8 +1989,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !

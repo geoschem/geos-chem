@@ -203,6 +203,12 @@ MODULE Tpcore_FvDas_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+
+  ! Diagnostic flags
+  LOGICAL :: Archive_AdvFluxZonal
+  LOGICAL :: Archive_AdvFluxMerid
+  LOGICAL :: Archive_AdvFluxVert
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -218,27 +224,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Tpcore( IM, JM, KM, JFIRST, JLAST, NG, MG, dt, ae, clat )
+  SUBROUTINE Init_Tpcore( IM,     JM,   KM,         JFIRST,                  &
+                          JLAST,  NG,   MG,         dt,                      &
+                          ae,     clat, State_Diag, RC                      )
 !
 ! !USES:
 !
     USE PhysConstants
+    USE ErrCode_Mod
+    USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS: 
 !
-    INTEGER,   INTENT(IN)  :: IM        ! Global E-W dimension
-    INTEGER,   INTENT(IN)  :: JM        ! Global N-S dimension
-    INTEGER,   INTENT(IN)  :: KM        ! Vertical dimension
-    INTEGER,   INTENT(IN)  :: NG        ! large ghost width
-    INTEGER,   INTENT(IN)  :: MG        ! small ghost width
-    REAL(fp),  INTENT(IN)  :: dt        ! Time step in seconds
-    REAL(fp),  INTENT(IN)  :: ae        ! Earth's radius (m)
-    REAL(fp),  INTENT(IN)  :: clat(JM)  ! latitude in radian
+    INTEGER,        INTENT(IN)  :: IM         ! Global E-W dimension
+    INTEGER,        INTENT(IN)  :: JM         ! Global N-S dimension
+    INTEGER,        INTENT(IN)  :: KM         ! Vertical dimension
+    INTEGER,        INTENT(IN)  :: NG         ! large ghost width
+    INTEGER,        INTENT(IN)  :: MG         ! small ghost width
+    REAL(fp),       INTENT(IN)  :: dt         ! Time step in seconds
+    REAL(fp),       INTENT(IN)  :: ae         ! Earth's radius (m)
+    REAL(fp),       INTENT(IN)  :: clat(JM)   ! latitude in radian
+    TYPE(DgnState), INTENT(IN)  :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER, INTENT(OUT) :: JFIRST    ! Local first index for N-S direction
-    INTEGER, INTENT(OUT) :: JLAST     ! Local last  index for N-S direction
+    INTEGER,        INTENT(OUT) :: JFIRST     ! Local first index for N-S axis
+    INTEGER,        INTENT(OUT) :: JLAST      ! Local last  index for N-S axis
+    INTEGER,        INTENT(OUT) :: RC         ! Success or failure
 !
 ! !REVISION HISTORY: 
 !   05 Dec 2008 - C. Carouge  - Replaced TPCORE routines by S-J Lin and Kevin
@@ -249,17 +261,31 @@ CONTAINS
 !                               Declare all REAL variables as REAL(fp).  Also 
 !                               make sure all numerical constants are declared
 !                               with the "D" double-precision exponent.
+!  09 Nov 2017 - R. Yantosca  - Now add State_Diag, RC as arguments
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)  :: elat(jm+1)      ! cell edge latitude in radian
-    REAL(fp)  :: sine(jm+1)  
-    REAL(fp)  :: SINE_25(JM+1)   ! 
-    REAL(fp)  :: dlon
-    INTEGER :: I, J
+    ! Scalars
+    REAL(fp)           :: elat(jm+1)      ! cell edge latitude in radian
+    REAL(fp)           :: sine(jm+1)  
+    REAL(fp)           :: SINE_25(JM+1)   ! 
+    REAL(fp)           :: dlon
+    INTEGER            :: I, J
+
+     ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Init_Tpcore begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Init_Tpcore (in module GeosCore/tpcore_fvas_mod.F90)'
 
     ! NOTE: since we are not using MPI parallelization, we can set JFIRST 
     ! and JLAST to the global grid limits in latitude. (bmy, 12/3/08)
@@ -269,18 +295,44 @@ CONTAINS
     if ( jlast - jfirst < 2 ) then
        write(*,*) 'Minimum size of subdomain is 3'
     endif
+
+    ! Test if netCDF diagnostic arrays are activated
+    Archive_AdvFluxZonal = ASSOCIATED( State_Diag%AdvFluxZonal )
+    Archive_AdvFluxMerid = ASSOCIATED( State_Diag%AdvFluxMerid )
+    Archive_AdvFluxVert  = ASSOCIATED( State_Diag%AdvFluxVert  )
     
-    !----------------
+    !-----------------------------------------------------------------------
     ! Allocate arrays
-    !----------------
+    !-----------------------------------------------------------------------
     
-    ALLOCATE( cosp  ( JM ) ) 
-    ALLOCATE( cose  ( JM ) ) 
-    ALLOCATE( gw    ( JM ) ) 
-    ALLOCATE( dtdx5 ( JM ) ) 
-    ALLOCATE( dtdy5 ( JM ) ) 
-    ALLOCATE( DLAT  ( JM ) )    ! For PJC pressure-fixer 
+    ALLOCATE( cosp( JM ), STAT=RC )
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:cosp',  0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ALLOCATE( cose( JM ), STAT=RC ) 
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:cose',  0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ALLOCATE( gw( JM ), STAT=RC ) 
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:gw',    0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ALLOCATE( dtdx5( JM ), STAT=RC ) 
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:dtdx5', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ALLOCATE( dtdy5( JM ), STAT=RC ) 
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:dtdy5', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ALLOCATE( DLAT( JM ), STAT=RC )                 ! For PJC pressure-fixer 
+    CALL GC_CheckVar( 'tpcore_fvdas_mod.F90:dlat',  0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
     
+    !-----------------------------------------------------------------------
+    ! Define quantities
+    !-----------------------------------------------------------------------
+
     dlon = 2.e+0_fp * PI / DBLE( IM )
     
     ! S. Pole
@@ -392,12 +444,14 @@ CONTAINS
  !%%% They are instantaneous when using NETCDF
                            MASSFLEW, MASSFLNS, MASSFLUP,                    &
 #endif
-                           AREA_M2, ND24, ND25, ND26 )
+                           AREA_M2, ND24, ND25, ND26, State_Diag )
 !
 ! !USES:
 !
     ! Include files w/ physical constants and met values
     USE PhysConstants
+    USE ErrCode_Mod
+    USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -474,13 +528,15 @@ CONTAINS
     ! Tracer "mixing ratios" [kg tracer/moist air kg]
     REAL(fp),  INTENT(INOUT), TARGET :: q(:,:,:,:)
 
+    ! Diagnostics state object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag
+
 #if defined( BPCH_DIAG ) || defined( NC_DIAG )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLUP(:,:,:,:)  ! for ND26 diagnostic 
 #endif
-
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -518,6 +574,7 @@ CONTAINS
 !                              (previously v/v)
 !  01 Jul 2015 - E. Lundgren - Set tracer conc to small positive number if
 !                              negative at end of advection (occurs at poles)
+!  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,7 +590,7 @@ CONTAINS
     INTEGER            :: j1p, j2p
     INTEGER            :: jn (km)
     INTEGER            :: js (km)
-    INTEGER            :: il, ij, ik, iq, k, j, i
+    INTEGER            :: il, ij, ik, iq, k, j, i, Kflip
     INTEGER            :: num, k2m1
                        
     REAL(fp)           :: dap   (km)
@@ -585,12 +642,24 @@ CONTAINS
     INTEGER            :: js2g0, jn2g0
     
     ! Add pointer to avoid array temporary in call to FZPPM (bmy, 6/5/13)
-    REAL(fp),  POINTER   :: ptr_Q(:,:,:)
+    REAL(fp),  POINTER :: ptr_Q(:,:,:)
+
+    LOGICAL            :: Do_ND24, Do_ND25, Do_ND26
 
     !     ----------------
     !     Begin execution.
     !     ----------------
-    
+ 
+    ! Determine if we need to save any of the bpch diagnostics 
+    Do_ND24 = ( ND24 > 0 )
+    Do_ND25 = ( ND25 > 0 )
+    Do_ND26 = ( ND26 > 0 )
+
+    ! Zero netCDF diagnostic arrays
+    IF ( Archive_AdvFluxZonal ) State_Diag%AdvFluxZonal = 0.0_f4
+    IF ( Archive_AdvFluxMerid ) State_Diag%AdvFluxMerid = 0.0_f4
+    IF ( Archive_AdvFluxVert  ) State_Diag%AdvFluxVert  = 0.0_f4
+
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
     j2p = jm - j1p + 1
@@ -648,11 +717,10 @@ CONTAINS
        dap(ik) = ak(ik+1) - ak(ik)
        dbk(ik) = bk(ik+1) - bk(ik)
     enddo
-      
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED   )&
-!$OMP PRIVATE( IK, IQ )
+!$OMP PRIVATE( IK, IQ, I, J )
     do ik=1,km
 
   ! ====================
@@ -774,7 +842,6 @@ CONTAINS
 
     ! Calculate surf. pressure at t+dt. (ccc, 11/20/08)
     ps = ak(1)+sum(delp2,dim=3)
-         
 
 !--------------------------------------------------------
 ! For time optimization : we parallelize over tracers and
@@ -791,8 +858,6 @@ CONTAINS
        !.sds.. convert to "mass"
        dq1(:,:,ik) = q(:,:,ik,iq) * delp1(:,:,ik)
        
-
-          
      ! ===========================
        call Calc_Advec_Cross_Terms  &
      ! ===========================
@@ -974,27 +1039,27 @@ CONTAINS
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
        !  
-       ! Implement ND24 diag: E/W flux of tracer [kg/s]  (ccarouge 12/2/08)  
+       ! DIAGNOSTICS: E/W flux of advected species [kg/s]  (ccarouge 12/2/08)  
        !
-       !  The unit conversion is:
+       ! The unit conversion is:
        !
-       !  Mass    P diff     100      1       area of     kg tracer      1
-       ! ------ = in grid *  ---  *  ---   *  grid box * ------------ * ---
-       !  time    box         1       g       AREA_M2    kg moist air    s
+       ! Mass    P diff     100      1       area of     kg tracer      1
+       ! ----- = in grid *  ---  *  ---   *  grid box * ------------ * ---
+       ! time    box         1       g       AREA_M2    kg moist air    s
        !
-       !   kg      hPa     Pa     s^2    m^2        1 
-       !  ----  = ----- * ----- * ---- * ---- * --------
-       !   s        1      hPa     m      1       DeltaT
+       !  kg      hPa     Pa     s^2    m^2        1 
+       ! ----  = ----- * ----- * ---- * ---- * --------
+       !  s        1      hPa     m      1       DeltaT
        !
        !======================================================================
-       IF ( ND24 > 0 ) THEN
+       IF ( Do_ND24 .or. Archive_AdvFluxZonal ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
 
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED  ) &
-          !$OMP PRIVATE( I, J, K ) 
+          !$OMP PARALLEL DO               &
+          !$OMP DEFAULT( SHARED         ) &
+          !$OMP PRIVATE( I, J, K, Kflip ) 
           DO K = 1,     KM
           DO J = JS2G0, JN2G0
           DO I = 1,     IM
@@ -1003,12 +1068,35 @@ CONTAINS
              DTC(I,J,K) = FX(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
 #if defined( BPCH_DIAG )
-             ! Save into MASSFLEW diagnostic array
-             MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
+             !----------------------------------------------------------------
+             ! ND24 (bpch) diagnostic:
+             !
+             ! E/W flux of advected species
+             !----------------------------------------------------------------
+
+             ! Units: [kg/s]
+             IF ( Do_ND24 ) THEN
+                MASSFLEW(I,J,K,IQ) = MASSFLEW(I,J,K,IQ) + DTC(I,J,K)
+             ENDIF
 #endif 
+
+
 #if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLEW(I,J,K,IQ) = DTC(I,J,K)
+             !----------------------------------------------------------------
+             ! HISTORY (aka netCDF diagnostics)
+             !
+             ! E/W flux of advected species
+             !
+             ! NOTE: when bpch is removed, consider rewriting loop for
+             ! efficiency (e.g. move IF statemetn outside loop)
+             !----------------------------------------------------------------
+
+             ! Units: [kg/s]
+             ! But consider changing to area-independent units [kg/m2/s]
+             IF ( Archive_AdvFluxZonal ) THEN
+                Kflip                                 = KM - K + 1 ! flip vert
+                State_Diag%AdvFluxZonal(I,J,Kflip,IQ) = DTC(I,J,K)
+             ENDIF
 #endif
 
           ENDDO
@@ -1021,21 +1109,21 @@ CONTAINS
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
        !  
-       ! Implement ND25 diag: N/S flux of tracer [kg/s] 
+       ! DIAGNOSTICS: N/S flux of tracer [kg/s] 
        ! (bdf, bmy, 9/28/04, ccarouge 12/12/08)
        !
        ! NOTE, the unit conversion is the same as desciribed above for the
        ! ND24 E-W diagnostics.  The geometrical factor was already applied to
        ! fy in Ytp. (ccc, 4/1/09)
        !======================================================================
-       IF ( ND25 > 0 ) THEN
+       IF ( Do_ND25 .or. Archive_AdvFluxMerid ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
 
-          !$OMP PARALLEL DO        &
-          !$OMP DEFAULT( SHARED  ) &
-          !$OMP PRIVATE( I, J, K ) 
+          !$OMP PARALLEL DO               &
+          !$OMP DEFAULT( SHARED         ) &
+          !$OMP PRIVATE( I, J, K, Kflip ) 
           DO K = 1, KM
           DO J = 1, JM 
           DO I = 1, IM 
@@ -1044,12 +1132,34 @@ CONTAINS
              DTC(I,J,K) = FY(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT 
 
 #if defined( BPCH_DIAG )
-             ! Save into MASSFLNS diagnostic array
-             MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K) 
+             !----------------------------------------------------------------
+             ! ND25 (bpch) diagnostic:
+             !
+             ! N/S flux of advected species
+             !----------------------------------------------------------------
+
+             ! Units: [kg/s]
+             IF ( Do_ND25 ) THEN
+                MASSFLNS(I,J,K,IQ) = MASSFLNS(I,J,K,IQ) + DTC(I,J,K)
+             ENDIF
 #endif
+
 #if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLNS(I,J,K,IQ) = DTC(I,J,K)
+             !----------------------------------------------------------------
+             ! HISTORY (aka netCDF diagnostics)
+             !
+             ! N/S flux of advected species
+             !
+             ! NOTE: when bpch is removed, consider rewriting loop for
+             ! efficiency (e.g. move IF statemetn outside loop)
+             !----------------------------------------------------------------
+
+             ! Units: [kg/s]
+             ! But consider changing to area-independent units [kg/m2/s]
+             IF ( Archive_AdvFluxMerid ) THEN
+                Kflip                                 = KM - K + 1  ! flip vert
+                State_Diag%AdvFluxMerid(I,J,Kflip,IQ) = DTC(I,J,K) 
+             ENDIF
 #endif
 
           ENDDO
@@ -1062,7 +1172,7 @@ CONTAINS
        !======================================================================
        ! MODIFICATION by Harvard Atmospheric Chemistry Modeling Group
        !  
-       ! Implement ND26 diag: Up/down flux of tracer [kg/s] 
+       ! DIAGNOSTICS: Up/down flux of tracer [kg/s] 
        ! (bmy, bdf, 9/28/04, ccarouge 12/2/08)
        !
        ! The vertical transport done in qmap.  We need to find the difference 
@@ -1076,87 +1186,14 @@ CONTAINS
        ! flux at the bottom of KM (the surface box) is not zero by design. 
        ! (phs, 3/4/08)
        !======================================================================
-       IF ( ND26 > 0 ) THEN
+       IF ( Do_ND26 .or. Archive_AdvFluxVert ) THEN
           
           ! Zero temp array
           DTC = 0e+0_fp
 
-!------------------------------------------------------------------------------
-! Prior to 3/28/17:
-! Using FZ produces better mass conservation (bmy, 3/28/17)
-!          !-----------------
-!          ! start with top
-!          !-----------------
-!          K = 1
-!          
-!          !$OMP PARALLEL DO       &
-!          !$OMP DEFAULT( SHARED ) &
-!          !$OMP PRIVATE( I, J )  
-!          DO J  = 1, JM
-!          DO I  = 1, IM
-!
-!             ! Compute mass flux [kg/s]
-!             DTC(I,J,K) = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                            - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                            * g0_100 * AREA_M2(J) / DT
-!
-!             ! top layer should have no residual.  the small residual is 
-!             ! from a non-pressure fixed flux diag.  The z direction may 
-!             ! be off by a few percent.
-!             !
-!             ! Uncomment now, since this is upflow into the box from its
-!             ! bottom (phs, 3/4/08)
-!
-!#if defined( BPCH_DIAG )
-!             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
-!#endif 
-!#if defined( NC_DIAG )
-!             ! Save into diagnostic array for writing to netcdf
-!             MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-!#endif
-!
-!          ENDDO
-!          ENDDO
-!          !$OMP END PARALLEL DO
-!          
-!          !----------------------------------------------------
-!          ! Get the other fluxes using a mass balance equation
-!          !----------------------------------------------------
-!          DO K  = 2, KM
-!
-!             !$OMP PARALLEL DO                 &
-!             !$OMP DEFAULT( SHARED )           &
-!             !$OMP PRIVATE( I, J, TRACE_DIFF )
-!             DO J  = 1, JM
-!             DO I  = 1, IM
-!
-!                ! Compute tracer difference [kg/s]
-!                TRACE_DIFF = ( Q(I,J,K,IQ) * DELP1(I,J,K)             &
-!                               - QTEMP(I,J,K,IQ) * DELP2(I,J,K) )     &
-!                               * AREA_M2(J) * g0_100 / DT
-!                
-!                ! Compute mass flux [kg/s]
-!                DTC(I,J,K)         = DTC(I,J,K-1) + TRACE_DIFF
-!
-!#if defined( BPCH_DIAG )
-!                ! Save to the MASSFLUP diagnostic array 
-!                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
-!#endif 
-!#if defined( NC_DIAG )
-!                ! Save into diagnostic array for writing to netcdf 
-!                MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-!#endif
-!
-!             ENDDO
-!             ENDDO
-!             !$OMP END PARALLEL DO
-!
-!          ENDDO
-!------------------------------------------------------------------------------
-
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, K )
+          !$OMP PARALLEL DO              &
+          !$OMP DEFAULT( SHARED )        &
+          !$OMP PRIVATE( I, J, K, Kflip )
           DO K = 1, KM
           DO J = 1, JM
           DO I = 1, IM
@@ -1180,13 +1217,33 @@ CONTAINS
              DTC(I,J,K) = FZ(I,J,K,IQ) * AREA_M2(J) * g0_100 / DT
 
 #if defined( BPCH_DIAG )
-             MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
+             !----------------------------------------------------------------
+             ! ND26 (bpch) diagnostic:
+             !
+             ! Vertical flux of advected species
+             !----------------------------------------------------------------
+             IF ( Do_ND26 ) THEN
+                MASSFLUP(I,J,K,IQ) = MASSFLUP(I,J,K,IQ) + DTC(I,J,K)
+             ENDIF
 #endif 
-#if defined( NC_DIAG )
-             ! Save into diagnostic array for writing to netcdf
-             MASSFLUP(I,J,K,IQ) = DTC(I,J,K)
-#endif
 
+#if defined( NC_DIAG )
+             !----------------------------------------------------------------
+             ! HISTORY (aka netCDF diagnostics)
+             !
+             ! N/S flux of advected species
+             !
+             ! NOTE: when bpch is removed, consider rewriting loop for
+             ! efficiency (e.g. move IF statemetn outside loop)
+             !----------------------------------------------------------------
+
+             ! Units: [kg/s]
+             ! But consider changing to area-independent units [kg/m2/s]
+             IF ( Archive_AdvFluxVert ) THEN
+                Kflip                                = KM - K + 1  !flip vert
+                State_Diag%AdvFluxVert(I,J,Kflip,IQ) = DTC(I,J,K) 
+             ENDIF
+#endif
           ENDDO
           ENDDO
           ENDDO

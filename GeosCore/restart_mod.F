@@ -20,10 +20,10 @@
       USE ErrCode_Mod
       USE ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE inquireMod,    ONLY : findFreeLUN
+      USE inquireMod,         ONLY : findFreeLUN
       USE PhysConstants
       USE Precision_Mod
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
       PRIVATE
@@ -80,6 +80,7 @@
 !                              replace all tracer language to species; rename 
 !                              OUTPUT_RESTART_FILE to OUTPUT_GC_RST_PREFIX
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -168,7 +169,7 @@
 
       ! Define collection variables
       GridAreas_ptr => AREA_M2(:,:,1)
-      TS            =  GET_TS_CHEM() * 60.0_sp
+      TS            =  GET_TS_CHEM()
 
       ! Create restart collection for GEOS-Chem.  This will keep the
       ! GEOS-Chem restart separate from other output.
@@ -416,7 +417,6 @@
       USE m_netcdf_io_get_dimlen                   ! netCDF get dimensions
       USE m_netcdf_io_close                        ! netCDF file close
       USE PHYSCONSTANTS,      ONLY : BOLTZ
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_TROP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -466,6 +466,8 @@
 !                              rather than module-level variable
 !  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
 !  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
+!  28 Nov 2017 - R. Yantosca - Now only replace tokens in filename but not
+!                              in the rest of the path
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -480,11 +482,13 @@
       CHARACTER(LEN=255)   :: MyName             ! local name 
       REAL(fp)             :: MW_g               ! species molecular weight
       REAL(fp)             :: SMALL_NUM          ! small number threshold
+      CHARACTER(LEN=63)    :: OrigUnit
 
       ! NetCDF file info
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
-      CHARACTER(LEN=255)   :: nc_file            ! filename
+      CHARACTER(LEN=255)   :: nc_path            ! filename
+      CHARACTER(LEN=255)   :: nc_file            ! Only the file name
 
       ! NetCDF variable info
       CHARACTER(LEN=255)   :: v_name             ! variable name 
@@ -527,17 +531,26 @@
       Hg_Cat_Name => NULL()
 
       ! Name of this routine
-      LOC = 'READ_GC_RESTART (restart_mod.F)'
+      LOC = ' -> at READ_GC_RESTART (in GeosCore/restart_mod.F)'
 
       ! Set minimum value threshold for [mol/mol]
       SMALL_NUM = 1.0e-30_fp
+      
+      ! Copy input filename to a local variable; this is the full path
+      nc_path = TRIM( Input_Opt%IN_RST_FILE )
 
-      ! Copy input filename to a local variable
-      nc_file = TRIM( Input_Opt%IN_RST_FILE )
+      ! Get only the filename part of the path
+      N       = INDEX( nc_path, '/', BACK=.TRUE. )
+      nc_file = nc_path(N+1:)
 
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
+      ! Replace YYYY, MM, DD, HH tokens in filename w/ actual values
+      ! NOTE: Only do this in the file name to avoid trying to replace
+      ! "mm" or "ss" in the directory name with date values (bmy, 11/28/17)
       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
 
+      ! Recombine the file name with expanded tokens to the path
+      nc_path = nc_path(1:N) // TRIM( nc_file )
+      
       !=================================================================
       ! If running Hg simulation, set Hg-specific local variables
       !=================================================================
@@ -560,7 +573,7 @@
       !=================================================================
 
       ! Open file for read
-      CALL Ncop_Rd( fID, TRIM( nc_file ) )
+      CALL Ncop_Rd( fID, TRIM( nc_path ) )
 
       ! Read the dimensions from the netCDF file
       CALL NcGet_DimLen( fID, 'lon',   NX )
@@ -721,7 +734,7 @@
                      ENDIF
                   ELSE
                      ! Test for troposphere
-                     IF ( ITS_IN_THE_TROP(I,J,L,State_Met) ) THEN
+                     IF ( State_Met%InTroposphere(I,J,L) ) THEN
                         ! Free troposphere: 0.6 ppbv MOH
                         State_Chm%Species(I,J,L,N) = 0.600e-9_fp 
      &                                               * MW_g / AIRMW
@@ -764,6 +777,7 @@
      &                    ': Use background = ', es15.9)
                   ENDIF
 
+
                ENDIF
 
             ENDDO
@@ -783,10 +797,22 @@
 
       ! If in debug mode, print out species min and max in [molec/cm3]
       IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
+
+         ! Convert units
          PRINT *, " "
          PRINT *, "Species min and max in molec/cm3"
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC, 
+     &                           OrigUnit=OrigUnit )
+
+         ! Trap error
+         IF ( RC /= GC_SUCCESS ) THEN
+            Msg = 'Error returned from Convert_Spc_Units, call #1!'
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+
+         ! Print values
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
             WRITE(6,150) N, TRIM( SpcInfo%Name ), 
@@ -796,8 +822,18 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             SpcInfo => NULL()
          ENDDO
-         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+
+         ! Convert units back
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
+
+         ! Trap error
+         IF ( RC /= GC_SUCCESS ) THEN
+            Msg = 'Error returned from Convert_Spc_Units, call #2!'
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+
       ENDIF
 
       !=================================================================
@@ -1127,9 +1163,10 @@
       INTEGER              :: GC_RST_Collection
       REAL(fp)             :: MW_g
       REAL(fp)             :: SMALL_NUM
-      CHARACTER(LEN=60)    :: ContainerName, Prefix
-      CHARACTER(LEN=255)   :: MSG, FILENAME, LOC = 
+      CHARACTER(LEN=60)    :: ContainerName, Prefix, OrigUnit
+      CHARACTER(LEN=255)   :: MSG, LOC = 
      &                       'WRITE_GC_RESTART (restart_mod.F90)'
+      CHARACTER(LEN=255)   :: Nc_Path, Nc_File
 
       ! Temporary arrays and pointers
       REAL*4,            TARGET :: Temp3D( IIPAR, JJPAR, LLPAR )
@@ -1186,17 +1223,26 @@
       ! Construct output restart filename
       !=================================================================
 
-      ! Define output restart filename with date tokens
-      FILENAME = TRIM( Output_GC_RST_Prefix ) // '.YYYYMMDDhhmm'
+      ! Define output restart file path with date tokens
+      Nc_Path = TRIM( Output_GC_RST_Prefix ) // '.YYYYMMDDhhmm'
 
-      ! Replace YYYY, MM, DD, HH tokens in FILENAME w/ actual values
-      CALL EXPAND_DATE( FILENAME, YYYYMMDD, HHMMSS )
+      ! Get only the filename part of the path
+      N       = INDEX( Nc_Path, '/', BACK=.TRUE. )
+      Nc_File = Nc_Path(N+1:)
+      
+      ! Replace YYYY, MM, DD, HH tokens in filename w/ actual values
+      ! NOTE: Only do this in the file name to avoid trying to replace
+      ! "mm" or "ss" in the directory name with date values (bmy, 11/28/17)
+      CALL EXPAND_DATE( Nc_File, YYYYMMDD, HHMMSS )
+
+      ! Recombine the file name with expanded tokens to the path
+      Nc_Path = Nc_path(1:N) // TRIM( Nc_File )
 
       ! Write to log
       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
       WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   O U T P U T ' 
      &                   // '( NetCDF )'
-      WRITE( 6, 200 ) TRIM( FILENAME )
+      WRITE( 6, 200 ) TRIM( Nc_Path )
  200  FORMAT( 'WRITE_GC_RESTART: Writing ', a )
       
       !=================================================================
@@ -1208,8 +1254,9 @@
          WRITE( 6, 210 )
  210     FORMAT( /, 'Min and Max of each species before unit ',
      &              'conversion [molec/cm3]:' )
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC, 
+     &                           OrigUnit=OrigUnit )
          DO N = 1, State_Chm%nSpecies
             SpcInfo => State_Chm%SpcData(N)%Info
             WRITE(6,220) N, TRIM( SpcInfo%Name ), 
@@ -1219,8 +1266,8 @@
      &              ': Min = ', es15.9, ', Max = ', es15.9 )
             SpcInfo => NULL()
          ENDDO
-         CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
 
          ! Write header for printing [mol/mol] concentrations later on
          IF ( Input_Opt%LPRT ) THEN
@@ -1644,7 +1691,7 @@
 !
       INTEGER              :: I, J, L, N      ! lon, lat, lev, species
       REAL(fp)             :: MW_g            ! species molecular weight
-      LOGICAL              :: INITIAL_SPC_MND
+      CHARACTER(LEN=63)    :: OrigUnit
 
       ! Objects
       TYPE(Species),    POINTER :: SpcInfo
@@ -1669,13 +1716,10 @@
  910     FORMAT( /,'Min and Max of advected [kg/kg dry]:' )
          WRITE( 6, 960 ) ADJUSTL( LOC )
          
-         ! If species is in molec/cm3, convert to [kg/kg dry]
-         INITIAL_SPC_MND = .FALSE.
-         IF ( State_Chm%Spc_Units == 'molec/cm3' ) THEN
-            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                      State_Chm, RC )
-            INITIAL_SPC_MND = .TRUE.
-         ENDIF
+         ! Convert species units to [kg/kg dry]
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'kg/kg dry', RC, 
+     &                           OrigUnit=OrigUnit )
          
          ! Loop over advected species
          DO N = 1, State_Chm%nAdvect
@@ -1692,9 +1736,9 @@
          
          ENDDO
          
-         ! Convert species from kg/kg dry to molec/cm3 for next prints
-         CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met,
-     &                                   State_Chm, RC )
+         ! Convert species to molec/cm3 for next prints
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, 'molec/cm3', RC )
          
          ! Print header for min/max of all species in  [molec/cm3]
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )      
@@ -1718,11 +1762,9 @@
          ENDDO
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
 
-         ! If species were not initially molec/cm3, convert to kg/kg dry
-         IF ( .NOT. INITIAL_SPC_MND ) THEN
-            CALL ConvertSpc_MND_to_KgKgDry( am_I_Root, State_Met,
-     &                                      State_Chm, RC )
-         ENDIF
+         ! Convert species units back to original unit 
+         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                           State_Chm, OrigUnit,  RC )
 
  960     FORMAT( /, 'Location: ', a60 )
 

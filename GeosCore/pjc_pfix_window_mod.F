@@ -91,6 +91,7 @@
 !                              pjc_pfix_window_mod.F for use with all nested
 !                              grids
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GRID05x0666
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -1268,9 +1269,6 @@ c     --------------------------------------
 #elif defined( GRID05x0625 )
         dl    = 2.0e+0_fp * PI / 576.0_fp
         dp    = PI /360e+0_fp
-#elif defined( GRID05x0666 )
-        dl    = 2.0e+0_fp * PI / 540.0_fp
-        dp    = PI /360e+0_fp
 #endif
 
         dtdy  = tdt / (Re * dp)
@@ -1429,9 +1427,6 @@ c     --------------------------------------
         dp    = PI /720.0_fp
 #elif defined( GRID05x0625 )
         dl    = 2.0e+0_fp * PI / 576.0_fp
-        dp    = PI /360.0_fp
-#elif defined( GRID05x0666 )
-        dl    = 2.0e+0_fp * PI / 540.0_fp
         dp    = PI /360.0_fp
 #endif
 
@@ -1909,8 +1904,6 @@ c     --------------------------------------
       DLON_FV    = 2.0_fp * PI / 1152.0_fp
 #elif defined( GRID05x0625 )
       DLON_FV    = 2.0_fp * PI / 576.0_fp
-#elif defined( GRID05x0666 )
-      DLON_FV    = 2.0_fp * PI / 540.0_fp
 #endif
        
       ! Latitude edge at south pole [radians]
@@ -1919,8 +1912,6 @@ c     --------------------------------------
 #if defined( GRID025x03125 )
       ELAT_FV(1) = CLAT_FV(1) - 0.125_fp * PI / 180.0_fp
 #elif defined( GRID05x0625 )
-      ELAT_FV(1) = CLAT_FV(1) - 0.25_fp  * PI / 180.0_fp
-#elif defined( GRID05x0666 )
       ELAT_FV(1) = CLAT_FV(1) - 0.25_fp  * PI / 180.0_fp
 #endif
 
@@ -1944,8 +1935,6 @@ c     --------------------------------------
 #if   defined( GRID025x03125 )
       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125_fp * PI / 180.0_fp
 #elif defined( GRID05x0625 )
-      ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25_fp  * PI / 180.0_fp
-#elif defined( GRID05x0666 )
       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25_fp  * PI / 180.0_fp
 #endif
 

@@ -22,10 +22,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      LOGICAL, PUBLIC :: DO_SAVE_DIAG49
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
       PUBLIC  :: DIAG49
@@ -76,38 +72,39 @@
 !  ND49 tracer numbers:
 !  ============================================================================
 !  1 - nAdvect   : GEOS-CHEM advected species               [v/v        ]
-!  151           : OH concentration                         [molec/cm3  ]
-!  152           : NOy concentration                        [v/v        ]
-!  153           : Relative Humidity                        [%          ]
-!  154           : 3-D Cloud fractions                      [unitless   ]
-!  155           : Column optical depths                    [unitless   ]
-!  156           : Cloud top heights                        [hPa        ]
-!  157           : Air density                              [molec/cm3  ]
-!  158           : Total seasalt tracer concentration       [unitless   ]
-!  159           : PBL heights                              [m          ]
-!  160           : PBL heights                              [levels     ]
-!  161           : Grid box heights                         [m          ]
-!  162           : PEDGE-$ (Pressure @ level edges          [hPa        ]
-!  163           : Sea level pressure                       [hPa        ]
-!  164           : Zonal wind (a.k.a. U-wind)               [m/s        ]
-!  165           : Meridional wind (a.k.a. V-wind)          [m/s        ]
-!  166           : Temperature                              [K          ]
-!  167           : Sulfate aerosol optical depth            [unitless   ]
-!  168           : Black carbon aerosol optical depth       [unitless   ]
-!  169           : Organic carbon aerosol optical depth     [unitless   ]
-!  170           : Accumulation mode seasalt optical depth  [unitless   ]
-!  171           : Coarse mode seasalt optical depth        [unitless   ]
-!  172           : Total dust optical depth                 [unitless   ]
-!  173-179       : Size resolved dust optical depth         [unitless   ]
-!  180           : PAR direct                               [hPa        ]
-!  181           : PAR diffuse                              [hPa        ]
-!  182           : Daily LAI                                [hPa        ]
-!  183           : Temperature at 2m                        [K          ]
-!  184           : Accumulated precip.                      [mm/day     ]
-!  185           : Cosine of Solar zenith angle             [unitless   ]
-!  186           : Total organic aerosol                    [ug/m3      ]
-!  187           : ISORROPIA aerosol pH                     [unitless   ]
-!  188           : ISORROPIA aerosol water                  [ug/m3 air  ]
+!  501           : OH concentration                         [molec/cm3  ]
+!  502           : NOy concentration                        [v/v        ]
+!  503           : Relative Humidity                        [%          ]
+!  504           : 3-D Cloud fractions                      [unitless   ]
+!  505           : Column optical depths                    [unitless   ]
+!  506           : Cloud top heights                        [hPa        ]
+!  507           : Air density                              [molec/cm3  ]
+!  508           : Total seasalt tracer concentration       [unitless   ]
+!  509           : PBL heights                              [m          ]
+!  510           : PBL heights                              [levels     ]
+!  511           : Grid box heights                         [m          ]
+!  512           : PEDGE-$ (Pressure @ level edges          [hPa        ]
+!  513           : Sea level pressure                       [hPa        ]
+!  514           : Zonal wind (a.k.a. U-wind)               [m/s        ]
+!  515           : Meridional wind (a.k.a. V-wind)          [m/s        ]
+!  516           : Temperature                              [K          ]
+!  517           : Sulfate aerosol optical depth            [unitless   ]
+!  518           : Black carbon aerosol optical depth       [unitless   ]
+!  519           : Organic carbon aerosol optical depth     [unitless   ]
+!  520           : Accumulation mode seasalt optical depth  [unitless   ]
+!  521           : Coarse mode seasalt optical depth        [unitless   ]
+!  522           : Total dust optical depth                 [unitless   ]
+!  523-529       : Size resolved dust optical depth         [unitless   ]
+!  530           : PAR direct                               [hPa        ]
+!  531           : PAR diffuse                              [hPa        ]
+!  532           : Daily LAI                                [hPa        ]
+!  533           : Temperature at 2m                        [K          ]
+!  534           : Accumulated precip.                      [mm/day     ]
+!  535           : Cosine of Solar zenith angle             [unitless   ]
+!  536           : Total organic aerosol                    [ug/m3      ]
+!  537           : ISORROPIA aerosol pH                     [unitless   ]
+!  538           : ISORROPIA aerosol water                  [ug/m3 air  ]
+!  539           : Ozone at 10m                             [ppb        ]
 !
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -152,18 +149,9 @@
       ! IOFF             : Longitude offset
       ! JOFF             : Latitude offset
       ! LOFF             : Altitude offset
-      ! ND49_IMIN        : Minimum latitude  index for DIAG51 region
-      ! ND49_IMAX        : Maximum latitude  index for DIAG51 region
-      ! ND49_JMIN        : Minimum longitude index for DIAG51 region
-      ! ND49_JMAX        : Maximum longitude index for DIAG51 region
-      ! ND49_LMIN        : Minimum altitude  index for DIAG51 region
-      ! ND49_LMAX        : Minimum latitude  index for DIAG51 region
       ! ND49_NI          : Number of longitudes in DIAG51 region 
       ! ND49_NJ          : Number of latitudes  in DIAG51 region
       ! ND49_NL          : Number of levels     in DIAG51 region
-      ! ND49_N_TRACERS   : Number of tracers for DIAG51
-      ! ND49_OUTPUT_FILE : Name of bpch file w  timeseries data
-      ! ND49_TRACERS     : Array of DIAG51 tracer numbers
       ! HALFPOLAR        : Used for bpch file output
       ! CENTER180        : Used for bpch file output
       ! LONRES           : Used for bpch file output
@@ -172,21 +160,15 @@
       ! RESERVED         : Used for bpch file output
       !=================================================================
 
-      INTEGER            :: IOFF,           JOFF,   LOFF
+      INTEGER            :: IOFF,           JOFF,    LOFF
       INTEGER            :: I0,             J0
-      INTEGER            :: ND49_N_TRACERS, ND49_TRACERS(188)
-      INTEGER            :: ND49_IMIN,      ND49_IMAX
-      INTEGER            :: ND49_JMIN,      ND49_JMAX
-      INTEGER            :: ND49_LMIN,      ND49_LMAX
-      INTEGER            :: ND49_FREQ,      ND49_NI
-      INTEGER            :: ND49_NJ,        ND49_NL
+      INTEGER            :: ND49_NI,        ND49_NJ, ND49_NL
       INTEGER            :: HALFPOLAR
       INTEGER, PARAMETER :: CENTER180=1 
       REAL*4             :: LONRES,         LATRES
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: RESERVED = ''
       CHARACTER(LEN=80)  :: TITLE
-      CHARACTER(LEN=255) :: ND49_OUTPUT_FILE
 
       ! Logical file unit for ND49 diagnostic
       INTEGER            :: IU_ND49
@@ -195,7 +177,7 @@
       INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
       INTEGER            :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
-      INTEGER            :: id_PASV, id_IPMN
+      INTEGER            :: id_PASV, id_IPMN, id_OH
 
       CONTAINS
 !EOC
@@ -213,15 +195,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG49( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC )
+      SUBROUTINE DIAG49( am_I_Root, Input_Opt,  State_Met,
+     &                   State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
-      USE CMN_O3_MOD	           ! SAVEOH, SAVEOA
+      USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
+!------------------------------------------------------------------------------
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!#if defined ( BPCH_DIAG )
+!      USE DIAG_MOD,           ONLY : AD44b, AD_RA, AD_ZL
+!#endif
+!------------------------------------------------------------------------------
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
@@ -231,6 +219,7 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
@@ -248,6 +237,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -312,6 +302,8 @@
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  06 Feb 2018 - E. Lundgren - Change ND49 frequency unit from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -334,6 +326,7 @@
       REAL(f8)                 :: TAU
       REAL(fp)                 :: TMP, SCALEAODnm
       REAL(fp)                 :: Q( ND49_NI, ND49_NJ, ND49_NL )
+      REAL(fp)                 :: TMPO3, CONV
       CHARACTER(LEN=16)        :: STAMP
       CHARACTER(LEN=40)        :: CATEGORY
       CHARACTER(LEN=40)        :: UNIT
@@ -399,7 +392,8 @@
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
-         id_PASV = Ind_('PASV') 
+         id_PASV = Ind_('PASV')
+         id_OH   = Ind_('OH'  )
 
          ! Set logical flags on the first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
@@ -439,10 +433,11 @@
 !--- Previous to (ccc, 8/12/09)
 !      IF ( ITS_A_NEW_DAY() ) THEN
       NHMS    = GET_NHMS()
-      TS_DIAG = ND49_FREQ
+      TS_DIAG = Input_Opt%ND49_FREQ
 
       ! To change TS_DIAG to NHMS format
-      TS_DIAG = TS_DIAG/60 * 10000 + (TS_DIAG - (TS_DIAG/60)*60) * 100  
+      TS_DIAG = TS_DIAG/3600 * 10000 + (TS_DIAG - (TS_DIAG/3600)*3600)
+     &          * 100 + (TS_DIAG - (TS_DIAG/60)*60)
 
       IF ( NHMS == TS_DIAG ) THEN     ! It's a new day for diagnostics.
 
@@ -450,7 +445,7 @@
          IU_ND49 = findFreeLUN()
 
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND49_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND49_FILE )
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
 
          ! Echo info
@@ -489,10 +484,10 @@
       ENDIF
 
       ! Loop over tracers
-      DO W = 1, ND49_N_TRACERS
+      DO W = 1, Input_Opt%N_ND49
 
          ! ND49 tracer number
-         N = ND49_TRACERS(W)
+         N = Input_Opt%ND49_TRACERS(W)
 
          ! Zero summing array
          Q = 0e+0_fp
@@ -586,32 +581,58 @@
 
             ENDIF
 
-         ELSE IF ( N == 151 .and. IS_FULLCHEM ) THEN
+! NOTE: We can restore this once we figure out what the proper unit
+! conversion is (bmy, 11/20/17)
+!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+!
+!            !--------------------------------------
+!            ! OH CONCENTRATION [molec/cm3]
+!            !--------------------------------------
+!            CATEGORY = 'TIME-SER'
+!            UNIT     = 'molec/cm3'
+!            GMNL     = ND49_NL
+!            GMTRC    = 1
+!
+!            ! NOTE: OH is a non-advected species, so it will have a 
+!            ! molecular weight of -1.  Need to multiply the concentration
+!            ! by this to turn it into a positive. (bmy, 11/20/17)
+!            TMP      = State_Chm%SpcData(id_OH)%Info%EmMw_g
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, L, X, Y, K )
+!            DO K = 1, ND49_NL
+!               L = LOFF + K
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               !Q(X,Y,K) = SAVEOH(I,J,L)
+!
+!               ! We are in units of [kg/kg dry] here.  Follow the same
+!               ! unit conversion as in routine ConvertSpc_KgKgDry_to_MND
+!               ! in GeosUtil/unitconv_mod.F90 to get [molec/cm3].
+!               Q(X,Y,K) = ( TMP * Spc(I,J,L,id_OH)  )
+!     &                  * ( State_Met%AIRDEN(I,J,L) )
+!     &                  * ( AVO / 17e-3_fp          )
+!     &                  / ( 1e+6_fp                 )
+!
+!            ENDDO 
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!            print*, '@@@@> State_Chm%Spc_Units: ', 
+!     &           State_Chm%Spc_units
+!            print*, '@@@@> SPECIES(OH)     ; ', 
+!     &           State_Chm%Species(23,34,1,id_OH)           
+!            print*, '@@@@> Dev OH in DIAG49 (23,34,1): ', 
+!     &           Q(23,34,1)
+!            print*, '@@@@> Dev AIRDEN in DIAG49 (23,34,1): ', 
+!     &           State_Met%AirDen(23,34,1)
+!            print*, '@@@@> tmp:                : ', 
+!     &           tmp
 
-            !--------------------------------------
-            ! OH CONCENTRATION [molec/cm3]
-            !--------------------------------------
-            CATEGORY = 'TIME-SER'
-            UNIT     = 'molec/cm3'
-            GMNL     = ND49_NL
-            GMTRC    = 1
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, X, Y, K )
-            DO K = 1, ND49_NL
-               L = LOFF + K
-            DO Y = 1, ND49_NJ
-               J = JOFF + Y
-            DO X = 1, ND49_NI
-               I = GET_I( X )
-               Q(X,Y,K) = SAVEOH(I,J,L)
-            ENDDO
-            ENDDO
-            ENDDO
-!$OMP END PARALLEL DO
-
-         ELSE IF ( N == 152 .and. IS_NOy ) THEN
+         ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
             !--------------------------------------
             ! NOy CONCENTRATION [v/v]
@@ -692,7 +713,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 153 ) THEN
+         ELSE IF ( N == 503 ) THEN
 
             !--------------------------------------
             ! RELATIVE HUMIDITY [%]
@@ -717,7 +738,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 154 ) THEN 
+         ELSE IF ( N == 504 ) THEN 
 
             !--------------------------------------
             ! 3-D CLOUD FRACTIONS [unitless]
@@ -742,7 +763,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 155 .and. IS_OPTD ) THEN 
+         ELSE IF ( N == 505 .and. IS_OPTD ) THEN 
 
             !--------------------------------------
             ! COLUMN OPTICAL DEPTHS [unitless]
@@ -764,7 +785,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 156 .and. IS_CLDTOPS ) THEN 
+         ELSE IF ( N == 506 .and. IS_CLDTOPS ) THEN 
 
             !--------------------------------------
             ! CLOUD TOP HEIGHTS [hPa]
@@ -789,7 +810,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 157 ) THEN
+         ELSE IF ( N == 507 ) THEN
 
             !--------------------------------------
             ! AIR DENSITY [molec/cm3]
@@ -814,7 +835,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 158 .and. IS_SEASALT ) THEN
+         ELSE IF ( N == 508 .and. IS_SEASALT ) THEN
             
             !--------------------------------------
             ! TOTAL SEASALT TRACER [v/v]
@@ -841,7 +862,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 159 ) THEN
+         ELSE IF ( N == 509 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [m] 
@@ -863,7 +884,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 160 ) THEN
+         ELSE IF ( N == 510 ) THEN
 
             !--------------------------------------
             ! PBL HEIGHTS [levels] 
@@ -885,7 +906,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 161 ) THEN
+         ELSE IF ( N == 511 ) THEN
 
             !--------------------------------------
             ! GRID BOX HEIGHT [m]
@@ -910,7 +931,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 162) THEN 
+         ELSE IF ( N == 512) THEN 
 
             !--------------------------------------
             ! PEDGE-$ (Prs @ level edges) [hPa]
@@ -935,7 +956,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 163 .and. IS_SLP ) THEN
+         ELSE IF ( N == 513 .and. IS_SLP ) THEN
 
             !--------------------------------------
             ! SEA LEVEL PRESSURE [hPa]
@@ -957,7 +978,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 164 ) THEN
+         ELSE IF ( N == 514 ) THEN
 
             !--------------------------------------
             ! ZONAL (U) WIND [m/s]
@@ -982,7 +1003,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 165 ) THEN 
+         ELSE IF ( N == 515 ) THEN 
 
             !--------------------------------------
             ! MERIDIONAL (V) WIND [m/s]
@@ -1007,7 +1028,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-        ELSE IF ( N == 166 ) THEN
+        ELSE IF ( N == 516 ) THEN
 
             !--------------------------------------
             ! TEMPERATURE [K]
@@ -1032,7 +1053,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 167 ) THEN
+         ELSE IF ( N == 517 ) THEN
 
             !--------------------------------------
             ! SULFATE AOD [unitless]
@@ -1087,7 +1108,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 168 ) THEN
+         ELSE IF ( N == 518 ) THEN
 
             !--------------------------------------
             ! BLACK CARBON AOD [unitless]
@@ -1142,7 +1163,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 169 ) THEN
+         ELSE IF ( N == 519 ) THEN
 
             !--------------------------------------
             ! ORGANIC CARBON AOD [unitless]
@@ -1197,7 +1218,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 170 ) THEN
+         ELSE IF ( N == 520 ) THEN
             
             !--------------------------------------
             ! ACCUM SEASALT AOD [unitless]
@@ -1252,7 +1273,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 171 ) THEN
+         ELSE IF ( N == 521 ) THEN
 
             !--------------------------------------
             ! COARSE SEASALT AOD [unitless]
@@ -1307,7 +1328,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 172 ) THEN
+         ELSE IF ( N == 522 ) THEN
 
             !--------------------------------------
             ! TOTAL DUST OPT DEPTH [unitless]
@@ -1364,7 +1385,7 @@
                ENDIF
             ENDDO
 
-         ELSE IF ( ( N >= 173 ) .and. ( N <= 179) ) THEN
+         ELSE IF ( ( N >= 523 ) .and. ( N <= 529) ) THEN
 
             !--------------------------------------
             ! DUST OPTD BINS1-7 [unitless]
@@ -1375,9 +1396,9 @@
             CATEGORY  = 'OD-MAP-$'
             UNIT      = 'unitless'
             GMNL      = ND49_NL
-            GMTRC     = 21+(N-173)
+            GMTRC     = 21+(N-523)
 
-            ISPC = N - 172
+            ISPC = N - 522
             IF ( .not. LINTERP ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1421,7 +1442,7 @@
 !$OMP END PARALLEL DO
             ENDIF
 
-         ELSE IF ( N == 180 ) THEN
+         ELSE IF ( N == 530 ) THEN
 
             !--------------------------------------
             ! PAR Diffuse [hPa]
@@ -1443,7 +1464,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 181 ) THEN
+         ELSE IF ( N == 531 ) THEN
 
             !--------------------------------------
             ! PAR Direct [hPa]
@@ -1465,7 +1486,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 182 ) THEN
+         ELSE IF ( N == 532 ) THEN
 
             !--------------------------------------
             ! Daily LAI [m2/m2]
@@ -1487,7 +1508,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 183 ) THEN
+         ELSE IF ( N == 533 ) THEN
             
             !--------------------------------------
             ! T @ 2m (mpb,2008)
@@ -1517,7 +1538,7 @@
 !###  OUTPUTS TO A netCDF FILE. (bmy, mps, 5/26/15)                         ###
 !##############################################################################
 
-        ELSE IF ( N == 184 ) THEN
+        ELSE IF ( N == 534 ) THEN
 
             !--------------------------------------
             ! Accumulated Precip [mm/day]
@@ -1538,7 +1559,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 185 ) THEN
+         ELSE IF ( N == 535 ) THEN
             
             !-----------------------------------
             ! Cosine of SZA  (eam, 2014)
@@ -1560,7 +1581,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 186 .and. LSOA ) THEN
+         ELSE IF ( N == 536 .and. LSOA ) THEN
             
             !-------------------------------------
             ! Total organic aerosol [ug/m3] (eam, 2014)
@@ -1585,7 +1606,7 @@
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 187 ) THEN
+         ELSE IF ( N == 537 ) THEN
             
             !-------------------------------------
             ! ISORROPIA aerosol pH (unitless) 
@@ -1605,13 +1626,13 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%PH_SAV(I,J,L)
+               Q(X,Y,K) = State_Chm%phSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
 
-         ELSE IF ( N == 188 ) THEN
+         ELSE IF ( N == 538 ) THEN
             
             !-------------------------------------
             ! ISORROPIA aerosol water (ug/m3 air) 
@@ -1631,11 +1652,53 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%WATER_SAV(I,J,L)
+               Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
             ENDDO
             ENDDO
             ENDDO
 !$OMP END PARALLEL DO
+
+!==============================================================================
+! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
+!         ELSE IF ( N == 539 ) THEN
+!            
+!            !-----------------------------------------
+!            ! Adjust ozone from lowest model level to 10m
+!            ! (krt, 11/2017) 
+!            !-----------------------------------------
+!            CATEGORY = 'O3@10m-$'
+!            UNIT     = 'ppbv'
+!            GMNL     = 1
+!            GMTRC    = 2
+!
+!!$OMP PARALLEL DO
+!!$OMP+DEFAULT( SHARED )
+!!$OMP+PRIVATE( I, J, X, Y, TMPO3, CONV )
+!            DO Y = 1, ND49_NJ
+!               J = JOFF + Y
+!            DO X = 1, ND49_NI
+!               I = GET_I( X )
+!               TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
+!     &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
+!               
+!               CONV = (1-(AD_RA(I,J)/100.)* AD44b(I,J,id_O3) )
+!               IF (CONV .lt. 0) CONV = 1.0
+!
+!               ! Case where Monin-Obhukov similarity does not apply
+!               ! and the correction is not valid
+!               ! Drydep code says that similarity applies over the
+!               ! range -2.5 <= z/L <= 1.5
+!               IF ( AD_ZL(I,J) .lt. -2.5   .or.
+!     &              AD_ZL(I,J) .gt.  1.5 ) THEN
+!                  Q(X,Y,1) = -999e+0_fp
+!               ELSE
+!                  Q(X,Y,1)= CONV *TMPO3*1e+9_fp
+!               ENDIF
+!               
+!            ENDDO
+!            ENDDO
+!!$OMP END PARALLEL DO
+!==============================================================================
 
          ELSE
 
@@ -1654,7 +1717,9 @@
      &           CATEGORY,     GMTRC,        UNIT,      
      &           TAU,          TAU,          RESERVED,  
      &           ND49_NI,      ND49_NJ,      GMNL,  
-     &           ND49_IMIN+I0, ND49_JMIN+J0, ND49_LMIN, 
+     &           Input_Opt%ND49_IMIN+I0,
+     &           Input_Opt%ND49_JMIN+J0,
+     &           Input_Opt%ND49_LMIN, 
      &           REAL( Q(1:ND49_NI, 1:ND49_NJ, 1:GMNL),4 ) )
 
          ENDIF
@@ -1664,10 +1729,11 @@
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
-      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
+      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
+         
          ! Expand date tokens in the file name
-         FILENAME = TRIM( ND49_OUTPUT_FILE )
+         FILENAME = TRIM( Input_Opt%ND49_FILE )
 !--- Previous to (ccc, 8/12/09)
 !         CALL EXPAND_DATE( FILENAME, GET_NYMD(), GET_NHMS() )
          CALL EXPAND_DATE( FILENAME, GET_NYMD_DIAG(), GET_NHMS() )
@@ -1704,6 +1770,7 @@
 !
       USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_MINUTE
+      USE TIME_MOD, ONLY : GET_SECOND
 !
 ! !RETURN VALUE:
 !
@@ -1728,7 +1795,8 @@
       !=================================================================
 
       ! Current hour
-      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp )
+      HR1      = GET_HOUR() + ( GET_MINUTE() / 60e+0_fp ) 
+     &           + ( GET_SECOND() / 3600e+0_fp )
 
       ! Allow for temporal resolution finer than 60 min
       HR1      = HR1 * 1e+2_fp
@@ -1750,13 +1818,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION ITS_TIME_FOR_DIAG49() RESULT( ITS_TIME )
+      FUNCTION ITS_TIME_FOR_DIAG49( Input_Opt ) RESULT( ITS_TIME )
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE TIME_MOD,  ONLY : GET_ELAPSED_MIN
-      USE TIME_MOD,  ONLY : GET_TS_DIAG
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE TIME_MOD,      ONLY : GET_ELAPSED_SEC
+      USE TIME_MOD,      ONLY : GET_TS_DIAG
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
 !
 ! !RETURN VALUE:
 !
@@ -1767,26 +1840,27 @@
 !  (1 ) Add a check on the output frequency for validity compared to time 
 !        steps used. (ccc, 5/21/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Change ND49 frequency from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: XMIN, TS_DIAG
+      INTEGER       :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
       !=================================================================
       ! ITS_TIME_FOR_DIAG49 begins here!
       !=================================================================
 
-      IF ( DO_SAVE_DIAG49 ) THEN
+      IF ( Input_Opt%DO_ND49 ) THEN
          IF ( FIRST ) THEN
             TS_DIAG = GET_TS_DIAG()
             
             ! Check if ND49_FREQ is a multiple of TS_DIAG
-            IF ( MOD( ND49_FREQ, TS_DIAG ) /= 0 ) THEN
-               WRITE( 6, 100 ) 'ND49', ND49_FREQ, TS_DIAG
+            IF ( MOD( Input_Opt%ND49_FREQ, TS_DIAG ) /= 0 ) THEN
+               WRITE( 6, 100 ) 'ND49', Input_Opt%ND49_FREQ, TS_DIAG
  100           FORMAT( 'The ',a,' output frequency must be a multiple '
      &              'of the largest time step:', i5, i5 )
                CALL GEOS_CHEM_STOP
@@ -1795,12 +1869,13 @@
          ENDIF
          
          ! Time already elapsed in this run
-         XMIN     = GET_ELAPSED_MIN()
+         XSEC     = GET_ELAPSED_SEC()
          
          ! Is the elapsed time a multiple of ND49_FREQ?
-         ITS_TIME = ( DO_SAVE_DIAG49 .and. MOD( XMIN, ND49_FREQ ) == 0 )
+         ITS_TIME = ( Input_Opt%DO_ND49 .and.
+     &                MOD( XSEC, Input_Opt%ND49_FREQ ) == 0 )
       ELSE
-         ITS_TIME = DO_SAVE_DIAG49
+         ITS_TIME = Input_Opt%DO_ND49
       ENDIF
             
       END FUNCTION ITS_TIME_FOR_DIAG49
@@ -1863,40 +1938,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG49( DO_ND49, N_ND49, TRACERS, IMIN,    
-     &                        IMAX,    JMIN,   JMAX,    LMIN,    
-     &                        LMAX,    FREQ,   FILE )
+      SUBROUTINE INIT_DIAG49( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : GET_MODELNAME
-      USE BPCH2_MOD,    ONLY : GET_HALFPOLAR
-      USE CMN_SIZE_MOD       ! Size parameters
-      USE ERROR_MOD,    ONLY : ERROR_STOP
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,  ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,  ONLY : ITS_A_NESTED_GRID
+      USE BPCH2_MOD,     ONLY : GET_MODELNAME
+      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD        ! Size parameters
+      USE ERROR_MOD,     ONLY : ERROR_STOP
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
+      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
+      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS: 
 !
-      ! DO_ND49 : Switch to turn on ND49 timeseries diagnostic
-      ! N_ND50  : Number of ND49 read by "input_mod.f"
-      ! TRACERS : Array w/ ND49 tracer #'s read by "input_mod.f"
-      ! IMIN    : Min longitude index read by "input_mod.f"
-      ! IMAX    : Max longitude index read by "input_mod.f" 
-      ! JMIN    : Min latitude index read by "input_mod.f" 
-      ! JMAX    : Min latitude index read by "input_mod.f" 
-      ! LMIN    : Min level index read by "input_mod.f" 
-      ! LMAX    : Min level index read by "input_mod.f" 
-      ! FREQ    : Frequency for saving to disk [min]
-      ! FILE    : ND49 output file name read by "input_mod.f"
-      LOGICAL,            INTENT(IN) :: DO_ND49
-      INTEGER,            INTENT(IN) :: N_ND49, TRACERS(100)
-      INTEGER,            INTENT(IN) :: IMIN,   IMAX 
-      INTEGER,            INTENT(IN) :: JMIN,   JMAX      
-      INTEGER,            INTENT(IN) :: LMIN,   LMAX 
-      INTEGER,            INTENT(IN) :: FREQ
-      CHARACTER(LEN=255), INTENT(IN) :: FILE
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1922,23 +1984,9 @@
 
       ! Initialize
       LOCATION               = 'INIT_DIAG49 ("diag49_mod.f")'
-      ND49_TRACERS(:)        = 0
-
-      ! Get values from "input_mod.f"
-      DO_SAVE_DIAG49         = DO_ND49 
-      ND49_N_TRACERS         = N_ND49
-      ND49_TRACERS(1:N_ND49) = TRACERS(1:N_ND49)
-      ND49_IMIN              = IMIN
-      ND49_IMAX              = IMAX
-      ND49_JMIN              = JMIN
-      ND49_JMAX              = JMAX
-      ND49_LMIN              = LMIN
-      ND49_LMAX              = LMAX
-      ND49_FREQ              = FREQ
-      ND49_OUTPUT_FILE       = FILE
      
       ! Return if we are not saving ND49 diagnostics
-      IF ( .not. DO_SAVE_DIAG49 ) RETURN
+      IF ( .not. Input_Opt%DO_ND49 ) RETURN
 
       !=================================================================
       ! Compute lon, lat, alt extents and check for errors
@@ -1958,21 +2006,24 @@
       !-----------
 
       ! Error check ND49_IMIN
-      IF ( ND49_IMIN+I0 < 1 .or. ND49_IMIN+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND49_IMIN+I0 < 1       .or.
+     &     Input_Opt%ND49_IMIN+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND49_IMAX
-      IF ( ND49_IMAX+I0 < 1 .or. ND49_IMAX+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND49_IMAX+I0 < 1       .or.
+     &     Input_Opt%ND49_IMAX+I0 > IIPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMAX value!', LOCATION )
       ENDIF
 
       ! Compute longitude limits to write to disk 
       ! Also handle wrapping around the date line
-      IF ( ND49_IMAX >= ND49_IMIN ) THEN
-         ND49_NI = ( ND49_IMAX - ND49_IMIN ) + 1
+      IF ( Input_Opt%ND49_IMAX >= Input_Opt%ND49_IMIN ) THEN
+         ND49_NI = ( Input_Opt%ND49_IMAX - Input_Opt%ND49_IMIN ) + 1
       ELSE 
-         ND49_NI = ( IIPAR - ND49_IMIN ) + 1 + ND49_IMAX
+         ND49_NI = ( IIPAR - Input_Opt%ND49_IMIN ) + 1 +
+     &             Input_Opt%ND49_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
@@ -1986,18 +2037,20 @@
       !-----------
       
       ! Error check JMIN_AREA
-      IF ( ND49_JMIN+J0 < 1 .or. ND49_JMIN+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND49_JMIN+J0 < 1       .or.
+     &     Input_Opt%ND49_JMIN+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMIN value!', LOCATION)
       ENDIF
      
       ! Error check JMAX_AREA
-      IF ( ND49_JMAX+J0 < 1 .or.ND49_JMAX+J0 > JJPAR ) THEN
+      IF ( Input_Opt%ND49_JMAX+J0 < 1       .or.
+     &     Input_Opt%ND49_JMAX+J0 > JJPAR ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMAX value!', LOCATION)
       ENDIF
 
       ! Compute latitude limits to write to disk (bey, bmy, 3/16/99)
-      IF ( ND49_JMAX >= ND49_JMIN ) THEN      
-         ND49_NJ = ( ND49_JMAX - ND49_JMIN ) + 1
+      IF ( Input_Opt%ND49_JMAX >= Input_Opt%ND49_JMIN ) THEN      
+         ND49_NJ = ( Input_Opt%ND49_JMAX - Input_Opt%ND49_JMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND49_JMAX < ND49_JMIN!', LOCATION )
       ENDIF     
@@ -2007,13 +2060,14 @@
       !-----------
 
       ! Error check ND49_LMIN, ND49_LMAX
-      IF ( ND49_LMIN < 1 .or. ND49_LMAX > LLPAR ) THEN 
+      IF ( Input_Opt%ND49_LMIN < 1       .or.
+     &     Input_Opt%ND49_LMAX > LLPAR ) THEN 
          CALL ERROR_STOP( 'Bad ND49 altitude values!', LOCATION )
       ENDIF
 
       ! # of levels to save in ND49 timeseries
-      IF ( ND49_LMAX >= ND49_LMIN ) THEN  
-         ND49_NL = ( ND49_LMAX - ND49_LMIN ) + 1
+      IF ( Input_Opt%ND49_LMAX >= Input_Opt%ND49_LMIN ) THEN  
+         ND49_NL = ( Input_Opt%ND49_LMAX - Input_Opt%ND49_LMIN ) + 1
       ELSE
          CALL ERROR_STOP( 'ND49_LMAX < ND49_LMIN!', LOCATION )
       ENDIF
@@ -2021,9 +2075,9 @@
       !-----------
       ! Offsets
       !-----------
-      IOFF      = ND49_IMIN - 1
-      JOFF      = ND49_JMIN - 1
-      LOFF      = ND49_LMIN - 1
+      IOFF      = Input_Opt%ND49_IMIN - 1
+      JOFF      = Input_Opt%ND49_JMIN - 1
+      LOFF      = Input_Opt%ND49_LMIN - 1
 
       !-----------
       ! For bpch

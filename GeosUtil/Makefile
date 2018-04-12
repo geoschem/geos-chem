@@ -71,6 +71,7 @@
 #  07 Dec 2015 - R. Yantosca - Restore fast "clean" command; add "slowclean"
 #  22 Jan 2016 - R. Yantosca - Remove linux_err.o
 #  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90, etc.
+#  23 Aug 2017 - R. Yantosca - Added dependencies for grid_registry_mod.F90
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -162,56 +163,57 @@ debug:
 ###                                                                         ###
 ###############################################################################
 
-bpch2_mod.o       : bpch2_mod.F           \
-                    error_mod.o           \
-                    file_mod.o            \
-                    julday_mod.o          \
-                    inquireMod.o
+bpch2_mod.o         : bpch2_mod.F           \
+                      error_mod.o           \
+                      file_mod.o            \
+                      julday_mod.o          
 
-charpak_mod.o     : charpak_mod.F
+error_mod.o         : error_mod.F           \
+                      geos_timers_mod.o
 
-error_mod.o       : error_mod.F           \
-                    geos_timers_mod.o
+file_mod.o          : file_mod.F            \
+                      error_mod.o
 
-file_mod.o        : file_mod.F            \
-                    error_mod.o
+gc_grid_mod.o       : gc_grid_mod.F90       \
+                      error_mod.o           \
+                      roundoff_mod.o
 
-gc_grid_mod.o     : gc_grid_mod.F90       \
-                    error_mod.o
+grid_registry_mod.o : grid_registry_mod.F90 \
+                      gc_grid_mod.o         \
+                      pressure_mod.o
 
-henry_mod.o       : henry_mod.F
+henry_mod.o         : henry_mod.F
 
-ifort_errmsg.o    : ifort_errmsg.F
+ifort_errmsg.o      : ifort_errmsg.F
 
-inquireMod.o      : inquireMod.F90
+julday_mod.o        : julday_mod.F
 
-julday_mod.o      : julday_mod.F
+pressure_mod.o      : pressure_mod.F        \
+                      error_mod.o
 
-pressure_mod.o    : pressure_mod.F        \
-                    error_mod.o
+regrid_a2a_mod.o    : regrid_a2a_mod.F90
 
-regrid_a2a_mod.o  : regrid_a2a_mod.F90
+roundoff_mod.o      : roundoff_mod.F90
 
-time_mod.o        : time_mod.F            \
-                    charpak_mod.o         \
-                    error_mod.o           \
-                    gc_grid_mod.o         \
-                    julday_mod.o 
+time_mod.o          : time_mod.F            \
+                      error_mod.o           \
+                      gc_grid_mod.o         \
+                      julday_mod.o 
 
-transfer_mod.o    : transfer_mod.F        \
-                    error_mod.o
+transfer_mod.o      : transfer_mod.F        \
+                      error_mod.o
 
-unitconv_mod.o	  : unitconv_mod.F90      \
-                    error_mod.o
+unitconv_mod.o	    : unitconv_mod.F90      \
+                      error_mod.o
 
-geos_timers_mod.o : geos_timers_mod.F
+geos_timers_mod.o   : geos_timers_mod.F90
 
 #%%% NOTE: THIS IS NOW OBSOLETE, WE SHOULD REMOVE IT %%% 
 # NOTE: if HDF5=yes then we need to also look for the hdf5.mod 
 # in the HDF5 include path (bmy, 12/21/09)
-hdf_mod.o         : hdf_mod.F             \
-                    error_mod.o           \
-                    gc_grid_mod.o
+hdf_mod.o           : hdf_mod.F             \
+                      error_mod.o           \
+                      gc_grid_mod.o
 
 ifeq ($(HDF5),yes)
 	$(F90) -DUSE_HDF5 -I$(HDF_INC) -c $<

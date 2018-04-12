@@ -128,6 +128,8 @@
 !  02 Aug 2016 - M. Sulprizio- Move public array H2SO4RATE array here from
 !                              diag_pl_mod.F and rename to H2SO4_RATE to avoid
 !                              confusion with local variables
+!  24 Aug 2017 - M. Sulprizio- Remove SGCTSCALE definitions for obsolete grids
+
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -290,17 +292,10 @@
 #endif
 
       ! Define subgrid coagulation timescale (win, 10/28/08)
-
 #if   defined( GRID4x5   ) 
       REAL*4 :: SGCTSCALE = 10.*3600.        ! 10 hours
 #elif defined( GRID2x25  )
       REAL*4 :: SGCTSCALE = 5.*3600.    
-#elif defined( GRID1x125 )
-      REAL*4 :: SGCTSCALE = 2.*3600.    
-#elif defined( GRID1x1   ) 
-      REAL*4 :: SGCTSCALE = 2.*3600.    
-#elif defined( GRID05x0666 ) 
-      REAL*4 :: SGCTSCALE = 1.*3600.
 #elif defined( GRID05x0625 )
       ! Copy the 05x0666 timescale for now
       REAL*4 :: SGCTSCALE = 1.*3600.
@@ -336,37 +331,58 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
 !
-!******************************************************************************
-!  Subroutine DO_TOMAS is the driver subroutine that calls the appropriate
-!  aerosol microphysics and dry deposition subroutines. (win, 7/23/07)
+! !IROUTINE: do_tomas
 !
-!  NOTES: 
+! !DESCRIPTION: Subroutine DO\_TOMAS is the driver subroutine that calls the
+!  appropriate aerosol microphysics and dry deposition subroutines. (win,
+!  7/23/07)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE ERROR_MOD
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
 !  26 Apr 2013 - R. Yantosca - Remove LTOMAS flag, that is now obsolete.
 !  31 May 2013 - R. Yantosca - Now pass State_Chm object via the arg list
 !  31 May 2013 - R. Yantosca - Remove LDRYD; replace w/ Input_Opt%LDRYD
 !  31 May 2013 - R. Yantosca - Pass State_Chm to AEROPHYS, AERO_DRYDEP
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!******************************************************************************
-!
-      ! References to F90 modules
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-
-      ! Arguments
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-
+!  04 Jan 2018 - M. Sulprizio- Now accept State_Diag as an argument; Add ProTeX
+!                              headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
 !
 ! !LOCAL VARIABLES:
 !
@@ -403,8 +419,8 @@
 
       ! Do dry deposition
       IF ( Input_Opt%LDRYD ) THEN
-         CALL AERO_DRYDEP
-     &        ( am_I_Root, Input_Opt, State_Met, State_Chm,RC )
+         CALL AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
+     &                     State_Chm, State_Diag, RC )
       ENDIF
 
 ! not in kg
@@ -417,7 +433,7 @@
      &              'Before exiting DO_TOMAS', RC )
 
       END SUBROUTINE DO_TOMAS
-
+!EOC
 !------------------------------------------------------------------------------
 
       SUBROUTINE AEROPHYS( am_I_Root, Input_Opt, 
@@ -453,10 +469,11 @@
 !******************************************************************************
 !
       ! References to F90 modules
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
-      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! ND60, ND61,  LD61
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -652,7 +669,7 @@
          AD61_INST(I,J,L,:) = 0e0
 
          ! Skip non-chemgrid boxes
-         IF ( ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) CYCLE
+         IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
 !vbn         write(890,89)I,J,L,Spc(i,j,l,id_H2SO4)
 
@@ -791,9 +808,11 @@
          ENDIF
 
          MPNUM = 5    
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
 !         IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
 !            CALL DEBUGPRINT( Nk, Mk, I, J, L,
@@ -892,14 +911,18 @@
             ENDDO
 
             MPNUM = 3
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             MPNUM = 7
+#if defined( BPCH_DIAG )
             IF ( ND61 > 0 )  THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             IF ( printdebug.and.i==iob .and. j==job .and. l==lob )  THEN
                CALL DEBUGPRINT( Nk, Mk, I, J, L,'After nucleation' )
@@ -916,9 +939,11 @@
             Gc(srtso4)=Gcout(srtso4)
 
             MPNUM = 1
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
             IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
                CALL DEBUGPRINT( Nk, Mk, I, J, L,'After condensation' )
@@ -928,6 +953,7 @@
             nucrate1(j,l)=nucrate1(j,l)+fn1
             
             ! Write nucleation rate to diagnostric ND61 (win, 10/6/08)
+#if defined( BPCH_DIAG )
             IF ( ND61 > 0 ) THEN
                IF ( L <= LD61 ) 
      &              AD61(I,J,L,2) = AD61(I,J,L,2) + fn
@@ -936,6 +962,7 @@
                AD61_INST(I,J,L,2) = fn
                
             ENDIF
+#endif
                
 
             DO N = 1, IBINS
@@ -977,9 +1004,11 @@
          ENDIF
 
          MPNUM = 5    
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
          !-----------------------------
          ! Coagulation 
@@ -1001,9 +1030,11 @@
 !     &       CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
             MPNUM = 2
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN 
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
 
          !Fix any inconsistency after coagulation (win, 4/18/06)
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
@@ -1026,9 +1057,11 @@
             ENDIF
 
             MPNUM = 5
+#if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
                CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
             ENDIF
+#endif
          ENDIF  ! Coagulation
 
 
@@ -1066,9 +1099,11 @@
 
          ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
          MPNUM = 5
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
          ENDIF
+#endif
 
          ! Swap Nk, Mk, and Gc arrays back to Spc
          DO N = 1, IBINS
@@ -3536,9 +3571,10 @@
 !*****************************************************************************
 !
       ! References to F90 modules
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE CMN_SIZE_MOD             ! Size parameters
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_NOCHEMGRID
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput          
@@ -3658,8 +3694,10 @@
      &                   'Beginning AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
 !debug      IF ( I == 46 .AND. J == 59 .AND. L == 9) 
@@ -3702,7 +3740,7 @@
 !     &              MK(K,SRTSO4),MK(K,SRTH2O)
 !            ENDDO
             IF ( MOXID > 5e+0_fp .and.
-     &           ITS_IN_THE_NOCHEMGRID( I, J, L, State_Met ) ) THEN
+     &           ( .not. State_Met%InChemGrid(I,J,L) ) ) THEN
                CALL ERROR_STOP( 'Too few number for condensing mass',
      &                          'AQOXID:1'                           )
             ELSE
@@ -3789,8 +3827,10 @@
 
       ! Save changes to diagnostic
       MPNUM = 4
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
       ! Fix any inconsistencies in M/N distribution 
       CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
@@ -3804,8 +3844,10 @@
      &                   'End of AQOXID after MNFIX' )
       ENDIF
       MPNUM = 5
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
       ! Swap Nk and Mk arrays back to Spc 
       DO K = 1, IBINS
@@ -3866,7 +3908,9 @@
 !******************************************************************************
 !
       ! Reference to F90 modules
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
+#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -4090,8 +4134,10 @@
 
       ! Save changes to diagnostic
       MPNUM = 6
+#if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+#endif
 
 
       ! Fix any inconsistencies in M/N distribution
@@ -5985,11 +6031,13 @@
 !*****************************************************************************
 !
       ! References to F90 modules
-      USE CMN_DIAG_MOD      ! ND60
       USE CMN_SIZE_MOD      ! Size parameters
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD      ! ND60
       USE DIAG_MOD,    ONLY :  AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,    ONLY :  AD60_AQOX, AD60_ERROR, AD60_SOA
       USE DIAG_MOD,    ONLY :  AD61,      AD61_INST  
+#endif
       USE ERROR_MOD,   ONLY :  IT_IS_NAN
       USE TIME_MOD,    ONLY : GET_TS_CHEM
 
@@ -6013,6 +6061,7 @@
       !=================================================================
       ! AERODIAG begins here!
       !=================================================================
+#if defined( BPCH_DIAG )
 
       ! PTYPE = 7 is for ND61  --- NOW use for Nucleation at species NK1 
       !  Note: This is created to look at 3-D rate for a selected process
@@ -6021,7 +6070,7 @@
       !        in all (I,J,L), thus this is created. (win, 5/21/08)
       IF ( PTYPE == 7 ) THEN 
          IF ( L <= LD61 ) THEN
-            DTCHEM = GET_TS_CHEM() * 60e+0_fp   ! chemistry time step in sec
+            DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
             AD61(I,J,L,1) = AD61(I,J,L,1)  + 
      &           ( NK(1) - NKD(1) )/ DTCHEM / BOXVOL  ! no./cm3/sec
             AD61_INST(I,J,L,1) =  ( NK(1) - NKD(1) ) /DTCHEM / BOXVOL ! no./cm3/sec
@@ -6162,6 +6211,8 @@
       ENDIF
 
       ENDIF ! If (PTYPE == 7)
+
+#endif
 
       ! Return to calling subroutine
       END SUBROUTINE AERODIAG
@@ -7013,6 +7064,7 @@
 !                              (IIPAR,JJPAR,IBINS)
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !******************************************************************************
 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -7021,7 +7073,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
       IMPLICIT NONE
 
@@ -7040,8 +7092,8 @@
       INTEGER             :: N, NA, nAdvect
       REAL(fp)            :: MSO4, MNACL, MH2O
       REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
-      LOGICAL             :: UNITCONV = .FALSE.
       CHARACTER(LEN=255)  :: MSG, LOC
+      CHARACTER(LEN=63)   :: OrigUnit
 
       ! Arrays
       REAL(fp)            :: AMASS(ICOMP)
@@ -7056,28 +7108,16 @@
       ! Assume success
       RC                =  GC_SUCCESS
 
-      ! If species units are [kg/kg dry], convert to [kg] for this routine.
-      ! Otherwise, if species units are not [kg] then throw an error to the 
-      ! calling routine (ewl, 8/12/15)
+      ! Convert species units to [kg] for this routine.
       ! NOTE: For complete area-independence, species units will need to be 
       !       mixing ratio or mass per unit area in TOMAS
-      IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/kg dry' ) THEN
-         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, 
-     &                                  State_Chm, RC ) 
-         UNITCONV = .TRUE.
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-         CALL GC_Error('Incorrect species units for TOMAS: ' // 
-     &                 TRIM( State_Chm%Spc_Units ), RC, 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
      &                 'Routine AERO_DIADEN in tomas_mod.F')
          RETURN
-      ELSE
-         UNITCONV = .FALSE.
-      ENDIF
+      ENDIF 
 
       ! Check that species units are in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -7157,17 +7197,14 @@
          CALL GC_Error( MSG, RC, LOC )
       ENDIF
 
-      ! If units were originally [kg/kg dry], convert [kg] back to mixing 
-      ! ratio (ewl, 8/12/15)
-      IF ( UNITCONV ) THEN
-         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, 
-     &                                  State_Chm, RC )  
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error('Unit conversion error', RC, 
-     &                    'Routine AERO_DIADEN in tomas_mod.F')
-            RETURN
-         ENDIF 
-      ENDIF
+      ! Convert species units back to original unit 
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
+     &                        State_Chm, OrigUnit,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error('Unit conversion error', RC, 
+     &                 'Routine AERO_DIADEN in tomas_mod.F')
+         RETURN
+      ENDIF 
       
       ! Free pointer
       Spc => NULL()
@@ -7201,7 +7238,9 @@
 !
       ! References to F90 modules
       USE CMN_SIZE_MOD             ! Size parameters
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -7342,9 +7381,10 @@
          
          ! Save the error fixing to diagnostic AERO-FIX
          MPNUM = 5
+#if defined( BPCH_DIAG )
          IF ( ND60 > 0 )
      &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
-         
+#endif       
 
          ! Swap Nk and Mk arrays back to Spc 
          DO K = 1, IBINS
@@ -8746,7 +8786,9 @@
 !                              derived type object
 !*****************************************************************************
 
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD             ! ND60
+#endif
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE ERROR_MOD

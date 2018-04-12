@@ -69,7 +69,7 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=128) :: err_msg
+    character (len=512) :: err_msg
     integer             :: ierr
 !
     ierr = Nf_Close (ncid)

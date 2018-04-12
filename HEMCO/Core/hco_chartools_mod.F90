@@ -447,6 +447,7 @@ CONTAINS
 !  01 Oct 2014 - C. Keller - Initial version
 !  20 Sep 2015 - C. Keller - Tokens can now be any option setting set in the
 !                            HEMCO configuration file.
+!  07 Jul 2017 - C. Keller - Extended list of token delimiters.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -613,9 +614,17 @@ CONTAINS
                str(I:I) == '$'  .OR. &
                str(I:I) == '%'  .OR. &
                str(I:I) == '+'  .OR. &
+               str(I:I) == '*'  .OR. &
+               str(I:I) == '/'  .OR. &
+               str(I:I) == '^'  .OR. &
                str(I:I) == '_'  .OR. &
+               str(I:I) == '*'  .OR. &
+               str(I:I) == '/'  .OR. &
+               str(I:I) == '^'  .OR. &
                str(I:I) == '-'  .OR. &
                str(I:I) == 'x'  .OR. &
+               str(I:I) == '('  .OR. &
+               str(I:I) == ')'  .OR. &
                str(I:I) == '0'  .OR. &
                str(I:I) == '1'  .OR. &
                str(I:I) == '2'  .OR. &

@@ -40,17 +40,17 @@
 # one string.  The following example is used to ensure that the met field name
 # selected by the user is case-insensitive:
 # 
-#   # %%%%% GEOS-5 %%%%%
-#   REGEXP    :=((^[Gg][Ee][Oo][Ss])?5|.5)
-#   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-#   USER_DEFS += -DGEOS_5
-#   endif
+#  # %%%%% GEOS-FP %%%%%
+#  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
+#  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
+#    USER_DEFS        += -DGEOS_FP
+#  endif
 #                                                                             .
 # The [[ ]] in bash is an evaluation.  The above ifeq statement uses regular
 # expressions to test if the MET variable matches the string "GEOS" (case-
-# insensitive) and either "5" or "any character and then a 5".  This will
-# return true (via the "echo true" statement) for combinations like "GEOS-5", 
-# "geos5", "Geos-5", "GeOs.5", etc.  This is a robust way of evaluating
+# insensitive) and either "FP" or "any character and then a FP".  This will
+# return true (via the "echo true" statement) for combinations like "GEOS-FP", 
+# "geosfp", "Geos-FP", "GeOs.FP", etc.  This is a robust way of evaluating
 # the user's input, and will make errors less likely.
 #
 # !REVISION HISTORY: 
@@ -198,6 +198,9 @@
 #                              COMPILER_FAMILY; also works if FC=mpif90
 #  08 May 2017 - R. Yantosca - Add minor fixes to avoid Perl bareword errors
 #  23 May 2017 - R. Yantosca - use -dumpversion to get the Gfortran version #
+#  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+#  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
+#                              throughout GEOS-Chem.
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -218,10 +221,10 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=gcap, MET=geos4, MET=geos5, MET=merra, MET=geos-fp, MET=merra2)"
+ERR_MET              :="Select a met field: MET=geosfp, MET=merra2)"
 
 # Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0666, GRID=05x0625, GRID=025x03125"
+ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
 
 # Error message for bad NEST input
 ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
@@ -425,52 +428,38 @@ endif
 ifdef DEVEL
   NC_DIAG            :=yes
   BPCH_DIAG          :=no
+  BPCH_TBPC          :=no
 endif
 
-# %%%%% Test for diagnostic output type, set to bpch if not specified %%%%%
-ifndef BPCH_DIAG
-  ifndef NC_DIAG
-    BPCH_DIAG        :=yes
-  endif
+# %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
+ifdef NEST}
+  BPCH_TPBC          :=yes
 endif
 
-# %%%%% BPCH (for using old BPCH diagnostic output) %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DBPCH_DIAG
-  IS_BPCH_DIAG       :=1
-endif
-
-# %%%%% NETCDF (for using new netCDF diagnostic output) %%%%%
+# %%%%% Determine options for netCDF or BPCH diagnostics %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+
+  # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
-  IS_NC_DIAG         :=1
-endif
 
-# %%%%% Test if bpch diagnostics are activated %%%%%
-REGEXP               :=-DBPCH_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_BPCH_DIAG       :=1
-else
-  IS_BPCH_DIAG       :=0
-endif
-
-# %%%%% Test if netCDF diagnostics are activated %%%%%
-REGEXP               :=-DNC_DIAG
-ifeq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-  IS_NC_DIAG         :=1
-else
-  IS_NC_DIAG         :=0
-endif
-
-# %%%%% ERROR CHECK!  Make sure only one diagnostic output type is %%%%%
-# %%%%% selected.  Now use a numeric test which is more robust.    %%%%%
-ifeq ($(IS_BPCH_DIAG),1)
-  ifeq ($(IS_NC_DIAG),1)
-    $(error $(ERR_DIAG))
+  # AND turn off bpch diagnostics UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_DIAG
   endif
-endif 
+
+  # AND turn off bpch code for nested BC's code UNLESS specified otherwise
+  ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
+    USER_DEFS        += -DBPCH_TPBC
+  endif
+
+else
+
+  # If netCDF diagnostics have not been explicitly specified,
+  # then only turn on bpch diagnostics AND bpch code for nested BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TPBC
+
+endif
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -480,20 +469,12 @@ endif
 # Test if the CHEM value is set
 IS_CHEM_SET          :=0
 
-# %%%%%  CHEM=Standard (aka benchmark, will turn on UCX) %%%%%
+# %%%%%  CHEM=Standard (aka benchmark) %%%%%
 REGEXP               :=(^[Ss][Tt][Aa][Nn][Dd][Aa][Rr][Dd])
 ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=y
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-endif
-
-# %%%%% Test if CHEM=UCX (same as Standard as of v11-02a) %%%%%
-REGEXP               :=(^[Uu][Cc][Xx])
-ifeq ($(shell [[ "$(CHEM)" =~ $(REGEXP) ]] && echo true),true)
-  UCX                :=y
-  KPP_CHEM           :=Standard
-  IS_CHEM_SET        :=1
+  NO_REDUCED         :=yes
 endif
 
 # %%%%% Test if CHEM=SOA (same as Tropchem as of v11-02a) %%%%%
@@ -539,20 +520,8 @@ endif
 # code to be compiled. (mps, 4/22/16)
 # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ifeq ($(IS_CHEM_SET),0)
-  UCX                :=y
   KPP_CHEM           :=Standard
   IS_CHEM_SET        :=1
-endif
-
-#------------------------------------------------------------------------------
-# UCX stratospheric-tropospheric chemistry settings
-#------------------------------------------------------------------------------
-
-# %%%%% UCX %%%%%
-REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
-ifeq ($(shell [[ "$(UCX)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DUCX
-  NO_REDUCED         :=yes
 endif
 
 #------------------------------------------------------------------------------
@@ -586,35 +555,10 @@ endif
 # We can skip the following checks for targets that don't require MET
 ifndef NO_MET_NEEDED 
 
-  # %%%%% GCAP %%%%%
-  REGEXP             :=(^[Gg][Cc][Aa][Pp])
+  # %%%%% MERRA-2 %%%%%
+  REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
   ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGCAP
-  endif
-
-  # %%%%% GEOS-4 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?4|.4)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_4
-  endif
-
-  # %%%%% GEOS-5 %%%%%
-  REGEXP             :=((^[Gg][Ee][Oo][Ss])?5|.5)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_5
-  endif
-
-  # %%%%% MERRA or MERRA2 %%%%%
-  # We have to employ a double regexp test in order to prevent
-  # inadvertently setting MERRA if we want MERRA2. (bmy, 8/11/15)
-  REGEXP             :=(^[Mm][Ee][Rr][Rr][Aa])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
-    ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      USER_DEFS      += -DMERRA2
-    else
-      USER_DEFS      += -DMERRA
-    endif
+    USER_DEFS      += -DMERRA2
   endif
 
   # %%%%% GEOS-FP %%%%%
@@ -633,7 +577,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGCAP|\-DGEOS_4|\-DGEOS_5|\-DMERRA|\-DGEOS_FP|\-DMERRA2)
+  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -675,31 +619,6 @@ ifndef NO_GRID_NEEDED
     USER_DEFS        += -DGRID2x25
   endif
 
-  # %%%%% 1 x 1.25 %%%%%
-  REGEXP             :=(^1.125|^1.1\.25|^1\.0.1\.25)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID1x125
-  endif
-
-  # %%%%% 0.5 x 0.666 %%%%%
-  REGEXP             :=(^05.066.|^0\.5.0\.066.)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=geos5
-    REGEXP           := ((^[Gg][Ee][Oo][Ss])?5|.5)
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0666, you can only use MET=geos5)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0666
-    endif
-  endif
-
   # %%%%% 0.5 x 0.625 %%%%%
   REGEXP             :=(^05.0625|^0\.5.0\.625)
   ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
@@ -711,11 +630,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID05x0625
+      USER_DEFS      += -DBPCH_TPBC -DGRID05x0625 
     endif
   endif
 
@@ -730,11 +651,13 @@ ifndef NO_GRID_NEEDED
     endif
 
     # Ensure that a nested-grid option is selected
+    # NOTE: For safety's sake: if a nested-grid option is selected then 
+    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
     ifndef NEST
       $(error $(ERR_NEST))
     else
       NEST_NEEDED    :=1
-      USER_DEFS      += -DGRID025x03125
+      USER_DEFS      += -DBPCH_TPBC -DGRID025x03125
     endif
   endif
 
@@ -1041,8 +964,9 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHCOI -lHCOX -lHCO -lGeosUtil -lKpp
-LINK                 :=$(LINK) -lHeaders -lNcUtils $(NC_LINK_CMD)
+LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
+LINK                 :=$(LINK) $(NC_LINK_CMD)
 
 #----------------------------
 # For the HEMCO standalone
@@ -1593,7 +1517,5 @@ export TIMERS
 #	@@echo "NC_INC_CMD      : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD     : $(NC_LINK_CMD)"
 #	@@echo "NC_DIAG         : $(NC_DIAG)"
-#	@@echo "IS_NC_DIAG      : $(IS_NC_DIAG)"	
 #	@@echo "BPCH_DIAG       : $(BPCH_DIAG)"
-#	@@echo "IS_BPCH_DIAG    : $(IS_BPCH_DIAG)"
 #	@@echo "NO_REDUCED      : $(NO_REDUCED)"

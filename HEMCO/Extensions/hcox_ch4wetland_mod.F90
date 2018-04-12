@@ -78,6 +78,7 @@ MODULE HCOX_CH4WETLAND_Mod
 !  11 Jun 2015 - C. Keller   - Update to support multiple species with individual
 !                              scale factors and mask regions.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, MERRA
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -464,21 +465,6 @@ CONTAINS
        IF ( ExtState%TSKIN%Arr%Val(I,J) > 273d0      ) THEN
           IF ( ExtState%SNODP%Arr%Val(I,J) < MAX_SNOWDP ) THEN !SNOW DEPTH
 
-             ! GEOS4 calculation of inundated fraction
-#if   defined( GEOS_4 )
-             ! We want emissions from land boxes only
-             IF ( ExtState%WLI%Arr%Val(I,J) == 1 ) THEN
-
-                ! If wetness>0.1, the wetland fraction is equal
-                ! to the maximal potential wetland fraction
-                IF (ExtState%GWETTOP%Arr%Val(I,J) > 0.1d0) THEN
-                   REALWET = Inst%WETFRAC(I,J) / 100.0_hp
-                ELSE
-                   REALWET = 0.d0
-                ENDIF
-             ENDIF
-
-#elif defined( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
              ! We want emissions from any box that contains some land
              ! FRLAND is fraction of grid box that is land
              IF ( ExtState%FRLAND%Arr%Val(I,J) > 0) THEN 
@@ -505,7 +491,6 @@ CONTAINS
                    REALWET = 0.0_dp
                 ENDIF
              ENDIF
-#endif
 
           ENDIF
        ENDIF

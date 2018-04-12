@@ -92,6 +92,9 @@ CONTAINS
 !  03 Apr 2015 - C. Keller   - Initial version 
 !  01 Nov 2016 - C. Keller   - Also write out default diagnostics collection if
 !                              RESTART=.TRUE. 
+!  17 Oct 2017 - C. Keller   - Don't pass restart diagnostics to EXPORT state in
+!                              ESMF mode. They are already in the internal
+!                              state!
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,13 +154,18 @@ CONTAINS
              CASE ( 3 ) 
                 COL = HcoState%Diagn%HcoDiagnIDManual
           END SELECT
-  
+
+#if       !defined ( ESMF_ ) 
           ! If not ESMF environment, never write the manual diagnostics
           ! to disk. Instead, the content of the manual diagnostics needs
           ! to be fetched explicitly.
-#if       !defined ( ESMF_ ) 
           IF ( I == 3 ) CYCLE
-#endif
+#else
+          ! Don't write restart variables to EXPORT in an ESMF environment.
+          ! They are already passed to the INTERNAL state when calling
+          ! HCO_RestartWrite. (ckeller, 10/9/17)
+          IF ( I == 2 ) CYCLE
+#endif 
  
           ! Restart file 
           CALL HCOIO_DIAGN_WRITEOUT ( am_I_Root,                       &

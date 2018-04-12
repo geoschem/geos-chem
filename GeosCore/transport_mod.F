@@ -6,8 +6,8 @@
 ! !MODULE: transport_mod.F
 !
 ! !DESCRIPTION: Module TRANSPORT\_MOD is used to call the proper version of 
-!  the TPCORE advection scheme for GCAP, GEOS-4, GEOS-5, or GEOS-5.7
-!  nested-grid or global simulations.
+!  the TPCORE advection scheme for different met field datasets and their
+!  nested or global grids.
 !\\
 !\\
 ! !INTERFACE: 
@@ -28,12 +28,10 @@
       PUBLIC  :: DO_TRANSPORT
       PUBLIC  :: INIT_TRANSPORT
       PUBLIC  :: INIT_WINDOW_TRANSPORT
-      PUBLIC  :: SET_TRANSPORT
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: GEOS4_GEOS5_GLOBAL_ADV      
-      PRIVATE :: GCAP_GLOBAL_ADV             
+      PRIVATE :: DO_GLOBAL_ADV      
       PRIVATE :: DO_WINDOW_TRANSPORT
 !
 ! !REVISION HISTORY:
@@ -85,6 +83,9 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!                              and rename routine GEOS4_GEOS5_GLOBAL_ADV to
+!                              DO_GLOBAL_ADV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -94,15 +95,12 @@
       ! (1 ) Ap     (REAL(fp) ) : Vertical coordinate array for TPCORE
       ! (2 ) A_M2   (REAL(fp) ) : Grid box surface areas [m2]
       ! (3 ) Bp     (REAL(fp) ) : Vertical coordinate array for TPCORE
-      ! (4 ) IORD   (REAL(fp) ) : TPCORE E/W option flag
-      ! (5 ) JORD   (REAL(fp) ) : TPCORE N/S option flag
-      ! (6 ) KORD   (REAL(fp) ) : TPCORE vertical option flag
       ! (7 ) JLAST  (INTEGER)   : For fvDAS TPCORE
       ! (8 ) MG     (INTEGER)   : For fvDAS TPCORE
       ! (9 ) NG     (INTEGER)   : For fvDAS TPCORE
       ! (10) N_ADJ  (INTEGER)   : For fvDAS TPCORE
       !=================================================================
-      INTEGER                       :: IORD,  JORD, KORD, JFIRST 
+      INTEGER                       :: JFIRST 
       INTEGER                       :: JLAST, NG,   MG,   N_ADJ
       REAL(fp), ALLOCATABLE         :: Ap(:)
       REAL(fp), ALLOCATABLE         :: Bp(:)
@@ -123,19 +121,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TRANSPORT( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE DO_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : ITS_A_NESTED_GRID
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TPCORE_BC_MOD,      ONLY : INIT_TPCORE_BC
-      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TPCORE_BC_MOD,  ONLY : INIT_TPCORE_BC
+      USE TIME_MOD,       ONLY : GET_TS_DYN
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
@@ -148,6 +147,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -170,34 +170,59 @@
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
 !  31 Mar 2015 - E. Lundgren - Make State_Met INTENT(INOUT) for AIRQNT calls
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)          :: DT
-      LOGICAL, SAVE     :: FIRST = .TRUE.
+      ! Scalars
+      LOGICAL, SAVE      :: FIRST = .TRUE.
+      REAL(fp)           :: DT
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
 
       !=================================================================
       ! DO_TRANSPORT begins here!
       !=================================================================
 
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
+
       ! First-time initialization
       IF ( FIRST ) THEN 
 
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
-      ! All nested grid simulations
-      CALL INIT_WINDOW_TRANSPORT
-     &     ( am_I_Root, Input_Opt, RC ) 
+         ! All nested grid simulations
+         CALL INIT_WINDOW_TRANSPORT( am_I_Root,  Input_Opt, 
+     &                               State_Diag, RC         )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Window_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
 #else
 
-      ! All global simulations
-      CALL INIT_TRANSPORT                   
-     &     ( am_I_Root, Input_Opt, RC )    
+         ! All global simulations
+         CALL INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 #endif
 
          FIRST = .FALSE.
@@ -209,7 +234,14 @@
       ! Archive tracer concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
       CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'ADV', RC )
+     &                  State_Chm, 'ADV',     RC         )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage1"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       !=================================================================
@@ -218,11 +250,18 @@
       !=================================================================
       IF ( ITS_A_NESTED_GRID() ) THEN
 
-#if defined( GRID05x0666 ) || defined( GRID05x0625 ) || defined( GRID025x03125 )
+#if defined( GRID05x0625 ) || defined( GRID025x03125 )
 
-         ! Nested-grid simulation with GEOS-5/GEOS-FP/MERRA2 met
-         CALL DO_WINDOW_TRANSPORT
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ! Nested-grid simulation with GEOS-FP/MERRA2 met
+         CALL DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                             State_Chm, State_Diag, RC         )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Do_Window_Transport"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
 #endif
 
@@ -231,20 +270,17 @@
       !=================================================================
       ELSE
 
-#if defined( GCAP )
+         ! Call TPCORE w/ proper settings for the GEOS-FP/MERRA2 met fields
+         CALL DO_GLOBAL_ADV( am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC         )
 
-         ! Call TPCORE w/ proper settings for GCAP met
-         CALL GCAP_GLOBAL_ADV
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Do_Global_Adv"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
-#else
-
-         ! Call TPCORE w/ proper settings for the  
-         ! GEOS-4/GEOS-5/MERRA/MERRA2/GEOS-FP met fields
-         CALL GEOS4_GEOS5_GLOBAL_ADV
-     &      ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-#endif
       ENDIF
 
 #if defined( USE_TEND )
@@ -252,9 +288,16 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      DT = GET_TS_DYN() * 60.0_fp
+      DT = GET_TS_DYN()
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
      &                  State_Chm, 'ADV', DT, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Tend_Stage2"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
       ! Return to calling program
@@ -265,32 +308,31 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: geos4_geos5_global_adv
+! !IROUTINE: do_global_adv
 !
-! !DESCRIPTION: Subroutine GEOS4\_GEOS5\_GLOBAL\_ADV is the driver routine 
-!  for TPCORE with the GMAO GEOS-4, GEOS-5, GEOS-FP, MERRA, or MERRA-2
-!  met fields.
+! !DESCRIPTION: Subroutine DO\_GLOBAL\_ADV is the driver routine 
+!  for TPCORE with the GMAO GEOS-FP or MERRA-2 met fields.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV( am_I_Root, Input_Opt,
-     &                                   State_Met, State_Chm, RC )
+      SUBROUTINE DO_GLOBAL_ADV( am_I_Root, Input_Opt,  State_Met,
+     &                          State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD             ! NDxx flags
       USE CMN_SIZE_MOD             ! Size parameters        
       USE DAO_MOD,            ONLY : AIRQNT
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD             ! NDxx flags
       USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#elif defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
+
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
       USE PhysConstants            ! Physical constants
@@ -306,8 +348,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -352,6 +395,7 @@
 !  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -362,7 +406,9 @@
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
+      INTEGER            :: IORD, JORD, KORD
       INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
+      INTEGER            :: ND24x, ND25x, ND26x
       REAL(fp)           :: D_DYN
 
       ! Arrays
@@ -371,14 +417,6 @@
       REAL(fp)           :: P_TEMP     (IIPAR,JJPAR      )
       REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR) 
       REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR) 
-#if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect) 
-#endif
 
       ! Pointers
       REAL(fp),  POINTER :: p_UWND (:,:,:  )
@@ -391,7 +429,7 @@
       REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
 
       !=================================================================
-      ! GEOS4_GEOS5_GLOBAL_ADV begins here!
+      ! DO_GLOBAL_ADV begins here!
       !=================================================================
 
       ! Assume success
@@ -401,26 +439,33 @@
       LFILL       =  Input_Opt%LFILL
       LPRT        =  Input_Opt%LPRT
       LWINDO      =  Input_Opt%LWINDO
+      IORD        =  Input_Opt%TPCORE_IORD
+      JORD        =  Input_Opt%TPCORE_JORD
+      KORD        =  Input_Opt%TPCORE_KORD
       nAdvect     =  State_Chm%nAdvect
       p_MFLEW     => NULL()
       p_MFLNS     => NULL()
       p_MFLUP     => NULL()
 
-#if defined( NC_DIAG )
-      ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC =  0.0e+0_fp
-      MASSFLNS_NC =  0.0e+0_fp
-      MASSFLUP_NC =  0.0e+0_fp
-#endif
-
       ! Dynamic timestep [s]
-      N_DYN       =  GET_TS_DYN() * 60
+      N_DYN       =  GET_TS_DYN()
       D_DYN       =  DBLE( N_DYN )
+
+      ! Define shadow variables for ND24, ND25, ND26
+#if defined( BPCH_DIAG )
+      ND24x       = ND24
+      ND25x       = ND25
+      ND26x       = ND26
+#else
+      ND24x       = 0
+      ND25x       = 0
+      ND26x       = 0
+#endif
 
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
       !
-      ! For GEOS-4 and GEOS-5 (hybrid grids), the pressure at the 
+      ! For hybrid grids, the pressure at the 
       ! bottom edge of grid box (I,J,L) is given by:
       !
       !    P(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
@@ -487,30 +532,18 @@
       p_MFLEW   => MASSFLEW
       p_MFLNS   => MASSFLNS
       p_MFLUP   => MASSFLUP
-#elif defined( NC_DIAG )
-      ! Point to local arrays for netcdf
-      p_MFLEW   => MASSFLEW_NC
-      p_MFLNS   => MASSFLNS_NC
-      p_MFLUP   => MASSFLUP_NC
 #endif
 
       ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,    Re,       IIPAR,    JJPAR,
-     &                   LLPAR,    JFIRST,   JLAST,    NG,
-     &                   MG,       nAdvect,  Ap,       Bp,
-     &                   p_UWND,   p_VWND,   P_TP1,    P_TP2,
-     &                   P_TEMP,   p_Spc,    IORD,     JORD,      
-     &                   KORD,     N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,    p_MFLEW,  p_MFLNS,  p_MFLUP,
-     &                   A_M2,     ND24,     ND25,     ND26 )
-
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
-     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
-     &                                    Input_Opt, State_Chm, RC )
-      ENDIF
-#endif
+      CALL TPCORE_FVDAS( D_DYN,     Re,       IIPAR,    JJPAR,
+     &                   LLPAR,     JFIRST,   JLAST,    NG,
+     &                   MG,        nAdvect,  Ap,       Bp,
+     &                   p_UWND,    p_VWND,   P_TP1,    P_TP2,
+     &                   P_TEMP,    p_Spc,    IORD,     JORD,      
+     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS, 
+     &                   LFILL,     p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   A_M2,      ND24x,    ND25x,    ND26x,
+     &                   State_Diag                            )
 
       ! Free pointer memory
       p_UWND  => NULL()
@@ -544,296 +577,7 @@
          CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
       ENDIF
 
-      END SUBROUTINE GEOS4_GEOS5_GLOBAL_ADV
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: gcap_global_adv
-!
-! !DESCRIPTION: Subroutine GCAP\_GLOBAL\_ADV is the driver routine for TPCORE 
-!  with the GCAP/GISS met fields.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE GCAP_GLOBAL_ADV( am_I_Root, Input_Opt,
-     &                            State_Met, State_Chm, RC )
-!
-! !USES:
-!
-      USE CMN_DIAG_MOD             ! NDxx flags
-      USE CMN_SIZE_MOD             ! Size parameters
-      USE DAO_MOD,            ONLY : AIRQNT
-#if defined( BPCH_DIAG )
-      USE DIAG_MOD,           ONLY : MASSFLEW,  MASSFLNS,  MASSFLUP
-#elif defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD,    ONLY : DIAGNUPDATE_TRANSPORT_FLUX
-#endif
-      USE ErrCode_Mod
-      USE ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
-      USE PhysConstants            ! Physical constants
-      USE PJC_PFIX_MOD,       ONLY : DO_PJC_PFIX
-      USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,   ONLY : TPCORE_FVDAS
-      USE UnitConv_Mod
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  As of July 2016, we assume that all of the advected species are listed
-!  first in the species database.  This is the easiest way to pass a slab
-!  to the TPCORE routine.  This may change in the future. (bmy, 7/13/16)
-!
-!  Note: the mass flux diagnostic arrays (MASSFLEW, MASSFLNS and MASSFLUP)
-!  are incremented upside-down (level 1 = top of the atmosphere).
-!  The levels order is reversed only when written out to diagnostic output.
-!
-! !REVISION HISTORY: 
-!  30 Oct 2007 - R. Yantosca - Initial version
-!  (1 ) Split off the GCAP relevant parts from the previous routine
-!        DO_GLOBAL_TRANSPORT (bmy, 10/30/07)
-!  (2 ) Bug fix in mass balance: only account for cells of STT with non-zero
-!        concentrations when doing the computation (ccc, bmy, 2/17/09)
-!  26 Feb 2010 - R. Yantosca - Removed references to obsolete LEMBED switch
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!  16 Feb 2011 - R. Yantosca - Add modifications for APM microphysics (G. Luo)
-!  21 Jun 2012 - R. Yantosca - Now use pointers to flip arrays in the vertical
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, State_Chm, RC
-!  04 Jun 2013 - R. Yantosca - Replace pointer STT with State_Chm%Tracers
-!  04 Sep 2014 - R. Yantosca - Avoid div-by-zero errors in division w/ SUMADA
-!  26 Feb 2015 - E. Lundgren - Replace GET_PEDGE with State_Met%PEDGE.
-!  31 Mar 2015 - E. Lundgren - Move AIRQNT call from main to within transport
-!  09 Jun 2015 - E. Lundgren - Remove dependency on tpcore_bc_mod since not used
-!  15 Jun 2015 - E. Lundgren - Tracer units in advection are now kg/kg total air
-!                              (previously v/v)
-!  15 Jun 2015 - E. Lundgren - Remove mass residual adjustment to tracer
-!                              concentration following advection
-!  13 Aug 2015 - E. lundgren - Remove v/v <-> kg/kg conversion
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  20 Jul 2016 - R. Yantosca - Add minor bug fixes for netCDF diagnostics
-!  20 Jul 2016 - R. Yantosca - Now replace NNPAR with State_Chm%nAdvect
-!  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
-!  03 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      LOGICAL            :: LFILL
-      LOGICAL            :: LPRT
-      LOGICAL            :: LWINDO
-      INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
-      REAL(fp)           :: D_DYN
-
-      ! Arrays
-      REAL(fp)           :: P_TP1      (IIPAR,JJPAR      )
-      REAL(fp)           :: P_TP2      (IIPAR,JJPAR      )
-      REAL(fp)           :: P_TEMP     (IIPAR,JJPAR      )
-      REAL(fp)           :: VTMP       (IIPAR,JJPAR,LLPAR)
-      REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR)       
-      REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR) 
-#if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect) 
-#endif
-
-      ! Pointers
-      REAL(fp),  POINTER :: p_UWND (:,:,:  )
-      REAL(fp),  POINTER :: p_VWND (:,:,:  )
-      REAL(fp),  POINTER :: p_XMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_YMASS(:,:,:  )
-      REAL(fp),  POINTER :: p_MFLEW(:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLNS(:,:,:,:)
-      REAL(fp),  POINTER :: p_MFLUP(:,:,:,:)
-      REAL(fp),  POINTER :: p_Spc  (:,:,:,:)
-
-      !=================================================================
-      ! GCAP_GLOBAL_ADV begins here!
-      !=================================================================
-
-      ! Assume success
-      RC          =  GC_SUCCESS
-
-      ! Initialize
-      LFILL       =  Input_Opt%LFILL
-      LPRT        =  Input_Opt%LPRT
-      LWINDO      =  Input_Opt%LWINDO
-      nAdvect     =  State_Chm%nAdvect
-      p_MFLEW     => NULL()
-      p_MFLNS     => NULL()
-      p_MFLUP     => NULL()
-
-#if defined( NC_DIAG )
-      ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC = 0.0e+0_fp
-      MASSFLNS_NC = 0.0e+0_fp
-      MASSFLUP_NC = 0.0e+0_fp
-#endif
-
-      ! Dynamic timestep [s]
-      N_DYN       = GET_TS_DYN() * 60
-      D_DYN       = DBLE( N_DYN )
-
-      !=================================================================
-      ! Prepare variables for calls to PJC presure-fixer and TPCORE
-      !
-      ! For GCAP (hybrid grid, but expressed as a pure-sigma grid), the 
-      ! pressure at the bottom edge grid box (I,J,L) is given by:
-      !
-      !    P(I,J,L) = Ap(L) + [ Bp(L) * ( Psurface(I,J) - PTOP ) ]
-      !
-      ! where Psurface is the true surface pressure (i.e. not PS-PTOP).
-      ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
-      !
-      ! Therefore, we construct the 3-D pressure edge arrays PLE_TP1
-      ! and PLE_TP2 according to the above equation.  Note that PLE_TP1 
-      ! and PLE_TP2 are inverted (i.e. L=1 is atm top) for compatibility 
-      ! with TPCORE_FVDAS.
-      !=================================================================
-
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                "pre-advection")
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-
-         ! Set true dry sfc pressure at midpoint of dynamic timestep [hPa]
-         ! NOTE: Still subtract PTOP? Come back to this.
-         P_TP1(I,J) = GET_PEDGE_DRY(I,J,1) - PTOP
-
-         ! Set true dry sfc pressure at end of dynamic timestep [hPa]
-         ! NOTE: Still subtract PTOP? Come back to this.
-         P_TP2(I,J) = State_Met%PSC2_DRY(I,J) - PTOP   
-
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
-      
-      !=================================================================
-      ! Call the PJC/LLNL pressure fixer to get the adjusted air 
-      ! masses XMASS and YMASS.  XMASS and YMASS need to be passed to 
-      ! TPCORE_FVDAS in order to ensure mass conservation.
-      !=================================================================
-
-      ! NOTE: P_TP1+PTOP & P_TP2+PTOP are the true surface pressures!
-      CALL DO_PJC_PFIX( D_DYN,
-     &                  P_TP1+PTOP,   P_TP2+PTOP, 
-     &                  State_Met%U,  State_Met%V,
-     &                  XMASS,        YMASS )
-
-      !=================================================================
-      ! Call TPCORE_FVDAS to perform the advection
-      !=================================================================
-
-      ! Flip array indices in the vertical using pointer storage
-      p_UWND    => State_Met%U      ( :, :, LLPAR:1:-1            )
-      p_VWND    => State_Met%V      ( :, :, LLPAR:1:-1            )
-      p_XMASS   => XMASS            ( :, :, LLPAR:1:-1            )
-      p_YMASS   => YMASS            ( :, :, LLPAR:1:-1            )
-
-      ! NOTE: For now, so as to avoid having to rewrite the internals
-      ! of the TPCORE routines, just point to 1:nAdvect entries of
-      ! State_Chm%Species.  This is OK for now, as of July 2016, all of
-      ! the advected species are listed first.  This may change in the
-      ! future, but we'll worry about that later.  The units of p_SPC
-      ! will be converted to [kg/kg moist air] below. (bmy, 7/13/16)
-      p_Spc     => State_Chm%Species( :, :, LLPAR:1:-1, 1:nAdvect )
-
-#if defined( BPCH_DIAG )
-      p_MFLEW   => MASSFLEW
-      p_MFLNS   => MASSFLNS
-      p_MFLUP   => MASSFLUP
-#elif defined( NC_DIAG )
-      p_MFLEW   => MASSFLEW_NC
-      p_MFLNS   => MASSFLNS_NC
-      p_MFLUP   => MASSFLUP_NC
-#endif
-
-      ! Do the advection
-      CALL TPCORE_FVDAS( D_DYN,   Re,      IIPAR,   JJPAR,
-     &                   LLPAR,   JFIRST,  JLAST,   NG,
-     &                   MG,      nAdvect, Ap,      Bp,
-     &                   p_UWND,  p_VWND,  P_TP1,   P_TP2,
-     &                   P_TEMP,  p_Spc,   IORD,    JORD,      
-     &                   KORD,    N_ADJ,   p_XMASS, p_YMASS, 
-     &                   LFILL,   p_MFLEW, p_MFLNS, p_MFLUP,
-     &                   A_M2,    ND24,    ND25,    ND26 )
-
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
-     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
-     &                                    Input_Opt, State_Chm, RC )
-      ENDIF
-#endif
-
-      ! Free pointer memory
-      p_UWND  => NULL()
-      p_VWND  => NULL()
-      p_Spc   => NULL()
-      p_XMASS => NULL()
-      p_YMASS => NULL()
-      p_MFLEW => NULL()
-      p_MFLNS => NULL() 
-      p_MFLUP => NULL()
-
-      !=================================================================
-      ! Reset surface pressure and ensure mass conservation
-      !=================================================================
-
-      ! Update dry and wet floating pressures to the most recently 
-      ! interpolated values (State_Met%PSC2_DRY and State_Met%PSC2).
-      ! NOTE: Currently does not add PTOP!!! Come back to this.
-      ! (ewl, 7/6/16)
-      CALL SET_FLOATING_PRESSURES(  am_I_Root, State_Met, RC )
-
-      ! Update State_Met air quantities with new pressures.
-      ! Do not update tracer mixing ratio because after advection
-      ! the mixing ratio values reflect the new air pressure (ewl, 3/31/15)
-      CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
-     &             update_mixing_ratio=.FALSE. )
-
-      !### Debug
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met,
-     &                                "post-airqnt")
-         CALL DEBUG_MSG( '### GCAP_GLOB_ADV: a TPCORE' ) 
-      ENDIF
-      
-      END SUBROUTINE GCAP_GLOBAL_ADV
+      END SUBROUTINE DO_GLOBAL_ADV
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -843,24 +587,22 @@
 ! !IROUTINE: do_window_transport
 !
 ! !DESCRIPTION: Subroutine DO\_WINDOW\_TRANSPORT is the driver program 
-!  for the proper TPCORE program for the GEOS-5/GEOS-FP/MERRA2 nested-grid
+!  for the proper TPCORE program for the GEOS-FP/MERRA2 nested-grid
 !  simulations. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,
-     &                                State_Met, State_Chm, RC )
+      SUBROUTINE DO_WINDOW_TRANSPORT( am_I_Root, Input_Opt,  State_Met,
+     &                                State_Chm, State_Diag, RC        )
 !
 ! !USES:
 !
-      USE CMN_DIAG_MOD               ! NDxx flags
       USE CMN_SIZE_MOD               ! Size parameters
       USE DAO_MOD,              ONLY : AIRQNT
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD               ! NDxx flags
       USE DIAG_MOD,             ONLY : MASSFLEW, MASSFLNS, MASSFLUP
-#elif defined( NC_DIAG )
-      USE DIAGNOSTICS_MOD,      ONLY : DIAGNUPDATE_TRANSPORT_FLUX
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -868,6 +610,7 @@
       USE Input_Opt_Mod,        ONLY : OptInput
       USE State_Chm_Mod,        ONLY : ChmState
       USE State_Met_Mod,        ONLY : MetState
+      USE State_Diag_Mod,       ONLY : DgnState
       USE PhysConstants              ! Physical constants
       USE PJC_PFIX_WINDOW_MOD,  ONLY : DO_PJC_PFIX_WINDOW
       USE TIME_MOD,             ONLY : GET_TS_DYN
@@ -884,8 +627,9 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -926,6 +670,7 @@
 !  20 Jul 2016 - R. Yantosca - Now pass State_Chm to DiagnUpdate_Transport_Flux
 !  03 Aug 2016 - R. Yantosca - Removed temporary tracer-removal code
 !  11 Jul 2017 - R. Yantosca - Prevent segfault if ND24, ND25, or ND26 are off
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -936,9 +681,11 @@
       LOGICAL            :: LFILL
       LOGICAL            :: LPRT
       LOGICAL            :: LWINDO
+      INTEGER            :: IORD,  JORD,  KORD
       INTEGER            :: I0,    J0,    NA,    nAdvect, N_DYN 
       INTEGER            :: IM_W1, JM_W1, I0_W1, J0_W1,   BUFF_SIZE
       INTEGER            :: I,     J,     L,     L2,      N
+      INTEGER            :: ND24x, ND25x, ND26x
       REAL(fp)           :: D_DYN
 
       ! Arrays
@@ -947,14 +694,6 @@
       REAL(fp),  TARGET  :: P_TEMP     (IIPAR,JJPAR      )
       REAL(fp),  TARGET  :: XMASS      (IIPAR,JJPAR,LLPAR)
       REAL(fp),  TARGET  :: YMASS      (IIPAR,JJPAR,LLPAR)
-#if defined( NC_DIAG )
-      REAL(fp),  TARGET  :: MASSFLEW_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)        
-      REAL(fp),  TARGET  :: MASSFLNS_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect)
-      REAL(fp),  TARGET  :: MASSFLUP_NC(IIPAR,JJPAR,LLPAR,
-     &                                  State_Chm%nAdvect) 
-#endif
 
       ! Pointers
       REAL(fp),  POINTER :: p_A_M2  (  :    )
@@ -981,6 +720,9 @@
       LFILL       =  Input_Opt%LFILL
       LPRT        =  Input_Opt%LPRT
       LWINDO      =  Input_Opt%LWINDO
+      IORD        =  Input_Opt%TPCORE_IORD
+      JORD        =  Input_Opt%TPCORE_JORD
+      KORD        =  Input_Opt%TPCORE_KORD
       nAdvect     =  State_Chm%nAdvect
 
       ! Initialize pointers
@@ -997,19 +739,12 @@
       p_MFLUP     => NULL()
       p_Spc       => NULL()
 
-#if defined( NC_DIAG )
-      ! Initialize netcdf diagnostic arrays
-      MASSFLEW_NC =  0.0e+0_fp
-      MASSFLNS_NC =  0.0e+0_fp
-      MASSFLUP_NC =  0.0e+0_fp
-#endif
-
       ! Get nested-grid lon/lat offsets [# boxes]
       I0          =  GET_XOFFSET( GLOBAL=.TRUE. )
       J0          =  GET_YOFFSET( GLOBAL=.TRUE. )
 
       ! Dynamic timestep [s]
-      N_DYN       =  GET_TS_DYN() * 60
+      N_DYN       =  GET_TS_DYN()
       D_DYN       =  DBLE( N_DYN )
 
       ! (lzh, 09/01/2014)
@@ -1019,10 +754,21 @@
       I0_W1       =  I0_W     - BUFF_SIZE
       J0_W1       =  J0_W     - BUFF_SIZE
 
+      ! Define shadow variables for ND24, ND25, ND26
+#if defined( BPCH_DIAG )
+      ND24x       = ND24
+      ND25x       = ND25
+      ND26x       = ND26
+#else
+      ND24x       = 0
+      ND25x       = 0
+      ND26x       = 0
+#endif
+
       !=================================================================
       ! Prepare variables for calls to PJC pressure-fixer and TPCORE
       !
-      ! For GEOS-4 and GEOS-5 (hybrid grids), the pressure at the
+      ! For hybrid grids, the pressure at the
       ! bottom edge of grid box (I,J,L) is given by:
       !
       !    P(I,J,L) = Ap(L) + [ Bp(L) * Psurface(I,J) ]
@@ -1145,25 +891,6 @@
       ELSE
          p_MFLUP => MASSFLUP
       ENDIF
-
-#elif defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN
-         p_MFLEW => MASSFLEW_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
-
-      IF ( Input_Opt%ND25 > 0 ) THEN
-         p_MFLNS => MASSFLNS_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
-
-      IF ( Input_Opt%ND26 > 0 ) THEN
-         p_MFLUP => MASSFLUP_NC(    I0_W1+1 : I0_W1+IM_W1,
-     &                              J0_W1+1 : J0_W1+JM_W1,  
-     &                              :,                         : )
-      ENDIF
 #endif
 
 
@@ -1175,17 +902,11 @@
      &      JFIRST,  JLAST,    NG,      MG,      nAdvect, 
      &      Ap,      Bp,       p_UWND,  p_VWND,  p_P_TP1, 
      &      p_P_TP2, p_P_TEMP, p_Spc,   IORD,    JORD, 
-     &      KORD,    N_ADJ,    p_XMASS, p_YMASS, p_MFLEW, 
-     &      p_MFLNS, p_MFLUP,  p_A_M2,  ND24,    ND25,    
-     &      ND26                                          ) 
-
-#if defined( NC_DIAG )
-      IF ( Input_Opt%ND24 > 0 ) THEN 
-         CALL DiagnUpdate_Transport_Flux( am_I_Root, 
-     &                                    p_MFLEW,   p_MFLNS,   p_MFLUP, 
-     &                                    Input_Opt, State_Chm, RC )
-      ENDIF
+     &      KORD,    N_ADJ,    p_XMASS, p_YMASS,
+#if defined( BPCH_DIAG )
+     &      p_MFLEW, p_MFLNS,  p_MFLUP,
 #endif
+     &      p_A_M2,  ND24x,    ND25x,   ND26x                    ) 
 
       ! Free pointer memory
       p_UWND   => NULL()  
@@ -1230,39 +951,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_transport
-!
-! !DESCRIPTION: Subroutine SET\_TRANSPORT passes IORD, JORD, KORD values 
-!  from "input\_mod.f".
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_TRANSPORT( I_ORD, J_ORD, K_ORD )
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER, INTENT(IN) :: I_ORD  ! IORD option for E/W advection
-      INTEGER, INTENT(IN) :: J_ORD  ! JORD option for N/S advection
-      INTEGER, INTENT(IN) :: K_ORD  ! KORD option for vertical diffusion
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  26 Feb 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      IORD = I_ORD
-      JORD = J_ORD
-      KORD = K_ORD 
-
-      END SUBROUTINE SET_TRANSPORT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_transport
 !
 ! !DESCRIPTION: Subroutine INIT\_TRANSPORT initializes all module variables 
@@ -1271,23 +959,25 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TRANSPORT( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TRANSPORT( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD             ! Size parameters
+      USE CMN_SIZE_MOD           ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_YMID_R
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PhysConstants            ! Re
-      USE TIME_MOD,           ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
+      USE ERROR_MOD,        ONLY : ALLOC_ERR
+      USE GC_GRID_MOD,      ONLY : GET_AREA_M2, GET_YMID_R
+      USE Input_Opt_Mod,    ONLY : OptInput
+      USE State_Diag_Mod,   ONLY : DgnState
+      USE PhysConstants          ! Re
+      USE TIME_MOD,         ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD, ONLY : INIT_TPCORE
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1312,37 +1002,35 @@
 !  01 Mar 2012 - R. Yantosca - Now use GET_YMID_R_W(I,J,L) from grid_mod.F90
 !  25 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  05 Dec 2014 - M. Yannetti - Added REAL_N_DYN
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER  :: J, K, L, N_DYN
-      REAL(fp) :: YMID_R(JJPAR)
-      REAL(fp) :: REAL_N_DYN
+      ! Scalars
+      LOGICAL            :: LTRAN
+      INTEGER            :: J, K, L, N_DYN
+      REAL(fp)           :: YMID_R(JJPAR)
+      REAL(fp)           :: REAL_N_DYN
 
-      ! For fields from Input_Opt
-      LOGICAL  :: LTRAN
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! Initialize
       !=================================================================
-
-      ! Assume success
-      RC        =  GC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LTRAN     = Input_Opt%LTRAN
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Init_Transport  (in module GeosCore/transport_mod.F)'
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates 
       !
-      ! For TPCORE v7.1.m (for GEOS-3 met fields):
-      ! 
-      !    P(I,J,L) = ( Ap(L) * PTOP ) + ( Bp(L) * ( Psurf(I,J)-PTOP ) )
-      !
-      ! For fvDAS TPCORE with for GEOS-4 or GEOS-5 met fields:
+      ! For fvDAS TPCORE with for GEOS-FP or MERRA-2 met fields:
       !
       !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
       !
@@ -1350,10 +1038,12 @@
       ! index levels from the atm. top downwards (bdf, bmy, 10/30/07)
       !=================================================================
       ALLOCATE( Ap( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Ap' )
+      CALL GC_CheckVar( 'transport_mod.F:Ap', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
  
       ALLOCATE( Bp( LLPAR+1 ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'Bp' )
+      CALL GC_CheckVar( 'transport_mod.F:Bp', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Flip Ap and Bp for TPCORE
       DO L = 1, LLPAR+1 
@@ -1370,7 +1060,8 @@
       ! Allocate arrays for surface area and layer thickness
       !=================================================================
       ALLOCATE( A_M2( JJPAR ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'A_M2' )
+      CALL GC_CheckVar( 'transport_mod.F:A_m2', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Surface area [m2]
       DO J = 1, JJPAR
@@ -1378,11 +1069,11 @@
       ENDDO
 
       !=================================================================
-      ! Additional setup for the GEOS-4/fvDAS version of TPCORE
+      ! Additional setup for the fvDAS version of TPCORE
       !=================================================================
 
       ! Initialize
-      N_DYN = GET_TS_DYN() * 60
+      N_DYN = GET_TS_DYN()
       N_ADJ = 0
       NG    = 0
       MG    = 0
@@ -1395,8 +1086,16 @@
       REAL_N_DYN = N_DYN
 
       ! Call INIT routine from "tpcore_fvdas_mod.f" 
-      CALL INIT_TPCORE( IIPAR,  JJPAR, LLPAR,  JFIRST, JLAST, 
-     &                  NG, MG, REAL_N_DYN, Re,     YMID_R )
+      CALL INIT_TPCORE( IIPAR, JJPAR,  LLPAR,      JFIRST, 
+     &                  JLAST, NG,     MG,         REAL_N_DYN, 
+     &                  Re,    YMID_R, State_Diag, RC          )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Tpcore"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       END SUBROUTINE INIT_TRANSPORT
 !EOC
@@ -1408,34 +1107,37 @@
 ! !IROUTINE: init_window_transport
 !
 ! !DESCRIPTION: Subroutine INIT\_WINDOW\_TRANSPORT initializes all 
-!  module variables and arrays for the GEOS-5/GEOS-FP/MERRA2 nested grid
+!  module variables and arrays for the GEOS-FP/MERRA2 nested grid
 !  simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WINDOW_TRANSPORT( am_I_Root,Input_Opt,RC )
+      SUBROUTINE INIT_WINDOW_TRANSPORT( am_I_Root,  Input_Opt,
+     &                                  State_Diag, RC         )
 !
 ! !USES:    
 !
-      USE CMN_SIZE_MOD                  ! Size parameters
+      USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,               ONLY : ALLOC_ERR
-      USE GC_GRID_MOD,             ONLY : GET_AREA_M2
-      USE GC_GRID_MOD,             ONLY : GET_YMID_R_W
-      USE Input_Opt_Mod,           ONLY : OptInput
-      USE PhysConstants                 ! Re
-      USE TIME_MOD,                ONLY : GET_TS_DYN
-      USE TPCORE_FVDAS_MOD,        ONLY : INIT_TPCORE
-      USE TPCORE_BC_MOD,           ONLY : I0_W, J0_W, I1_W, J1_W
-      USE TPCORE_BC_MOD,           ONLY : I2_W, J2_W, IM_W, JM_W
-      USE TPCORE_BC_MOD,           ONLY : IGZD, INIT_TPCORE_BC
-      USE TPCORE_WINDOW_MOD,       ONLY : INIT_WINDOW
+      USE ERROR_MOD,          ONLY : ALLOC_ERR
+      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+      USE GC_GRID_MOD,        ONLY : GET_YMID_R_W
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants            ! Re
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+      USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
+      USE TPCORE_BC_MOD,      ONLY : I0_W, J0_W, I1_W, J1_W
+      USE TPCORE_BC_MOD,      ONLY : I2_W, J2_W, IM_W, JM_W
+      USE TPCORE_BC_MOD,      ONLY : IGZD, INIT_TPCORE_BC
+      USE TPCORE_WINDOW_MOD,  ONLY : INIT_WINDOW
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1454,6 +1156,7 @@
 !                              INIT_WINDOW_TRANSPORT for use with all nested
 !                              grids
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1489,9 +1192,9 @@
 
       !=================================================================
       ! Allocate arrays for TPCORE vertical coordinates
-      ! GEOS-5/GEOS-FP/MERRA2 nested grid simulation only!!!
+      ! GEOS-FP/MERRA2 nested grid simulation only!!!
       !
-      ! For fvDAS TPCORE with for GEOS-5/GEOS-FP/MERRA2 met fields:
+      ! For fvDAS TPCORE with for GEOS-FP/MERRA2 met fields:
       !
       !    P(I,J,L) = Ap(L) + ( Bp(L) * Psurf(I,J) )
       !
@@ -1527,11 +1230,11 @@
       ENDDO
 
       !=================================================================
-      ! Additional setup for the GEOS-4/fvDAS version of TPCORE
+      ! Additional setup for the fvDAS version of TPCORE
       !=================================================================
 
       ! Initialize
-      N_DYN = GET_TS_DYN() * 60
+      N_DYN = GET_TS_DYN()
       N_ADJ = 0
       NG    = 0
       MG    = 0
@@ -1550,8 +1253,7 @@
 
       REAL_N_DYN = N_DYN
 
-      ! Call INIT routine from "tpcore_geosfp_fvdas_window_mod.f"
-      ! subroutine "init_geosfp_windows" is in "tpcore_geosfp_window_mod.F90"
+      ! Call INIT routine from "tpcore_window_mod.F90"
       CALL INIT_WINDOW( IM_W1, 
      &                  JM_W1,    
      &                  LLPAR, 

@@ -70,48 +70,66 @@ CONTAINS
 ! !AUTHOR: 
 !  John Tannahill (LLNL) and Jules Kouatchou
 !
+! !REMARKS:
+!  NOTE: SHOULD PROPAGATE ERROR CODE TO MAIN PROGRAM LEVEL!
+!
 ! !REVISION HISTORY:
 !  Initial code.
 !  07 Mar 2017 - R. Yantosca - Now exit with error code 999, to avoid an
 !                              inadvertent error code of 0 being returned
+!  08 Nov 2017 - R. Yantosca - Now flush the buffer after writing,
+!                              to be visilble after stop (esp. w/ gfortran)
 !EOP
 !-------------------------------------------------------------------------
 !BOC
-    Write (6,*)
-    Write (6,*) &
-         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+
+    ! Write separator
+    WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
     
-!    Write (6,*) '!! ' // Trim (err_msg)
-    Write (6,'(a)') '!! ' // Trim (err_msg)
+    ! Write error message
+    WRITE( 6,'(a)' ) TRIM( err_msg )
 
-    if (err_num_ints == 1) then
-       Write (6,*) '!! ', err_int1
-    else if (err_num_ints == 2) then
-       Write (6,*) '!! ', err_int1, err_int2
-    end if
+    ! Write error codes
+    IF ( err_num_ints == 1 ) THEN
+       WRITE( 6,'(i10)'   ) err_int1
+    ELSE IF ( err_num_ints == 2 ) then
+       WRITE( 6, '(2i10)' ) err_int1, err_int2
+    ENDIF
 
-    if (err_num_reals == 1) then
-       Write (6,*) '!! ', err_real1
-    else if (err_num_reals == 2) then
-       Write (6,*) '!! ', err_real1, err_real2
-    end if
+    IF ( err_num_reals == 1 ) THEN
+       WRITE( 6, '(f13.6  )' ) err_real1
+    ELSE IF ( err_num_reals == 2 ) THEN
+       WRITE( 6, '(2f13.6 )' ) err_real1, err_real2
+    ENDIF
 
-    Write (6,*) &
-         '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-    Write (6,*)
+    ! Write separator
+    WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
 
-    if (err_do_stop) then
-!-------------------------------------------------------------------
-! Prior to 3/7/17:
-! Call the EXIT function with a non-zero error code (bmy, 3/7/17) 
-!       stop "Code stopped from Do_Err_Out."
-!-------------------------------------------------------------------
-       WRITE( 6, 100 )
- 100   FORMAT( 'Code stopped from DO_ERR_OUT (in module m_do_err_out.F90' )
-       CALL EXIT( 999 )
-    end if
+    ! Flush the buffer
+    CALL Flush( 6 )
 
-    return
+    ! Stop with error (if requested)
+    ! NOTE: We should pass back the error code to the main routine
+    IF ( err_do_stop ) THEN 
+        WRITE( 6, '(a,/)' ) 'Code stopped from DO_ERR_OUT '               // &
+                            '(in module NcdfUtil/m_do_err_out.F90) '
+        WRITE( 6, '(a)'   ) 'This is an error that was encountered '      // &
+                            'in one of the netCDF I/O modules,'
+        WRITE( 6, '(a)'   ) 'which indicates an error in writing to '     // &
+                            'or reading from a netCDF file!'
+
+        ! Write separator
+        WRITE( 6, '(/,a,/)' ) REPEAT( '!', 79 )
+
+        ! Flush stdout buffer
+        CALL Flush( 6 )
+
+        ! NOTE: Should not exit but pass error code up
+        ! work on this for a future version
+        CALL Exit( 999 )
+    ENDIF
+
+    RETURN
 
   end subroutine Do_Err_Out
 !EOC

@@ -536,10 +536,12 @@ CONTAINS
     INTEGER                   :: nCat
     INTEGER                   :: Cats(CatMax)
     INTEGER                   :: STRLEN
+    INTEGER                   :: levScal1
+    INTEGER                   :: levScal2
     LOGICAL                   :: SKIP
     CHARACTER(LEN= 63)        :: cName
     CHARACTER(LEN=255)        :: srcFile
-    CHARACTER(LEN= 31)        :: srcVar
+    CHARACTER(LEN= 50)        :: srcVar
     CHARACTER(LEN= 31)        :: srcTime
     CHARACTER(LEN=  2)        :: TmCycle 
     CHARACTER(LEN=  1)        :: WildCard
@@ -882,8 +884,16 @@ CONTAINS
           ! direction' (up or down). These information is also extracted
           ! from srcDim and will be stored in variable Dta%Levels.
           ! (ckeller, 5/20/15)
-          CALL ExtractSrcDim( am_I_Root, HcoConfig, srcDim, Dta, RC ) 
+          ! ExtractSrcDim now also returns possible scale factors for the
+          ! injection level, which will be stored in container variable
+          ! levScalID1 (bottom level) and levScalID2 (top level).
+          CALL ExtractSrcDim( am_I_Root, HcoConfig, srcDim, Dta, &
+                              levScal1,  levScal2,  RC ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
+
+          ! Set level scale factor index
+          IF ( levScal1 > 0 ) Lct%Dct%levScalID1 = levScal1
+          IF ( levScal2 > 0 ) Lct%Dct%levScalID2 = levScal2
 
           ! For scale factors: check if a mask is assigned to this scale
           ! factor. In this case, pass mask ID to first slot of Scal_cID
@@ -2238,7 +2248,6 @@ CONTAINS
        ! structure of the linked list with new containers simply being
        ! added to the end of the list.
        IF ( Lct%Dct%nScalID > 0 ) THEN
-
           CALL ScalID_Register ( Lct%Dct, HcoState%Config, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
@@ -3260,6 +3269,22 @@ CONTAINS
 
     ENDDO
 
+    ! Also check for level scale factor IDs
+    IF ( Dct%levScalID1 > 0 ) THEN
+       CALL ScalID2List( HcoConfig%ScalIDList, Dct%levScalID1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL Get_cID ( Dct%levScalID1, HcoConfig, cID, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Dct%levScalID1 = cID
+    ENDIF
+    IF ( Dct%levScalID2 > 0 ) THEN
+       CALL ScalID2List( HcoConfig%ScalIDList, Dct%levScalID2, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL Get_cID ( Dct%levScalID2, HcoConfig, cID, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       Dct%levScalID2 = cID
+    ENDIF
+
     ! Vector Scal_cID of this container now points to cIDs
     Dct%Scal_cID_Set = .TRUE.
 
@@ -3312,7 +3337,7 @@ CONTAINS
     LOGICAL                    :: IsInList
       
     !======================================================================
-    ! ScalID_Register begins here
+    ! ScalID2List begins here
     !======================================================================
 
     ! Initialize
@@ -3823,7 +3848,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtractSrcDim( am_I_Root, HcoConfig, SrcDim, Dta, RC ) 
+  SUBROUTINE ExtractSrcDim( am_I_Root, HcoConfig, SrcDim, Dta, Lscal1, Lscal2, RC ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -3831,6 +3856,11 @@ CONTAINS
     TYPE(ConfigObj),  POINTER         :: HcoConfig 
     CHARACTER(LEN=*), INTENT(IN   )   :: SrcDim
     TYPE(FileData),   POINTER         :: Dta
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)   :: Lscal1
+    INTEGER,          INTENT(  OUT)   :: Lscal2
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3840,14 +3870,17 @@ CONTAINS
 !  20 May 2015 - C. Keller   - Initial version
 !  22 Jan 2016 - R. Yantosca - Bug fix, removed & in the middle of the line
 !                              since the PGI compiler chokes on it.
+!  26 Jan 2018 - C. Keller   - Add L1 & L2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: i, idx
+    INTEGER            :: i, idx, idx2
     INTEGER            :: strLen
+    INTEGER            :: EmisUnit
+    REAL(hp)           :: EmisL
     CHARACTER(LEN=255) :: str1, str2, tmpstr
     CHARACTER(LEN=255) :: MSG    
     CHARACTER(LEN=255) :: LOC = 'ExtractSrcDim (hco_config_mod.F90)' 
@@ -3859,6 +3892,10 @@ CONTAINS
     MSG = 'Illegal source dimension ' // TRIM(srcDim) // &
           ' for file ' // TRIM(Dta%ncFile) // &
           '. Valid entries are e.g. xy or xyz.'
+
+    ! Init output
+    Lscal1 = -1
+    Lscal2 = -1
 
     ! See if there is an arbitrary additional dimension. This must be added
     ! at the end of the string and be separated by a '+' sign
@@ -3915,13 +3952,23 @@ CONTAINS
           IF ( idx > 0 ) THEN
 
              ! Check for PBL flag. It is possible to emit stuff 
-             ! from the PBL up to e.g. level 30 (xyL=PBL:30) 
-             CALL ParseEmisL( tmpstr(1:(idx-1)), Dta%EmisL1, Dta%EmisL1Unit )
-             CALL ParseEmisL( tmpstr((idx+1):LEN(tmpstr)), Dta%EmisL2, Dta%EmisL2Unit )
+             ! from the PBL up to e.g. level 30 (xyL=PBL:30)
+             ! The call to ParseEmisL now returns three arguments: the emission
+             ! level, the emission unit, and the emission scale factor. Ignore
+             ! emission level and unit if scale factor is given. 
+             CALL ParseEmisL( tmpstr(1:(idx-1)), EmisL, EmisUnit, Lscal1 )
+             Dta%EmisL1     = EmisL
+             Dta%EmisL1Unit = EmisUnit
+             CALL ParseEmisL( tmpstr((idx+1):LEN(tmpstr)), EmisL, EmisUnit, Lscal2 )
+             Dta%EmisL2     = EmisL
+             Dta%EmisL2Unit = EmisUnit
 
           ! if only one level is provided (e.g. xyL=5) 
           ELSE
-             CALL ParseEmisL( tmpstr, Dta%EmisL1, Dta%EmisL1Unit )
+             CALL ParseEmisL( tmpstr, EmisL, EmisUnit, Lscal1 )
+             Dta%EmisL1     = EmisL
+             Dta%EmisL1Unit = EmisUnit
+             Lscal2         = Lscal1
              Dta%EmisL2     = Dta%EmisL1
              Dta%EmisL2Unit = Dta%EmisL1Unit
           ENDIF
@@ -4034,7 +4081,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ParseEmisL ( str, EmisL, EmisUnit ) 
+  SUBROUTINE ParseEmisL ( str, EmisL, EmisUnit, ScalID ) 
 !
 ! !INPUT PARAMETERS:
 !
@@ -4044,6 +4091,7 @@ CONTAINS
 !
     REAL(hp),          INTENT(OUT) :: EmisL 
     INTEGER,           INTENT(OUT) :: EmisUnit
+    INTEGER,           INTENT(OUT) :: ScalID   
 !
 ! !REVISION HISTORY:
 !  09 May 2016 - C. Keller: Intial version. 
@@ -4053,7 +4101,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER  :: idx
+    INTEGER  :: nchar, idx
 
     !======================================================================
     ! ParseEmisL begins here! 
@@ -4061,18 +4109,31 @@ CONTAINS
 
     ! Init
     EmisUnit = HCO_EMISL_LEV
+    ScalID   = -1
 
     IF ( TRIM(str) == 'PBL' ) THEN
       EmisL    = 0.0_hp
       EmisUnit = HCO_EMISL_PBL
     ELSE
+       ! extract scale factor if string starts with 'SCAL' or 'scal'
+       nchar = LEN(str)
+       IF ( nchar > 4 ) THEN
+          IF ( str(1:4)=='SCAL' .OR. str(1:4)=='scal' ) THEN
+             READ(str(5:nchar),*) ScalID
+             EmisUnit = -1 
+             EmisL    = -1.0
+          ENDIF
+       ENDIF
+
        ! check for elevation unit flag (e.g. 1000m)
-       idx = INDEX(TRIM(str),'m')
-       IF ( idx > 0 ) THEN
-          READ(str(1:(idx-1)),*) EmisL
-          EmisUnit = HCO_EMISL_M
-       ELSE
-          READ(str,*) EmisL
+       IF ( ScalID < 0 ) THEN
+          idx = INDEX(TRIM(str),'m')
+          IF ( idx > 0 ) THEN
+             READ(str(1:(idx-1)),*) EmisL
+             EmisUnit = HCO_EMISL_M
+          ELSE
+             READ(str,*) EmisL
+          ENDIF
        ENDIF
     ENDIF
 

@@ -141,6 +141,10 @@
       REAL(f4), POINTER     :: OH         (:,:,:) => NULL() ! Global OH
       REAL(f4), POINTER     :: GMI_PROD_CO(:,:,:) => NULL() ! Global P(CO)
       REAL(f4), POINTER     :: GMI_LOSS_CO(:,:,:) => NULL() ! Global L(CO)
+      REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc CH4
+
+      ! Diagnostic flags
+      LOGICAL               :: Archive_Loss
 
       CONTAINS
 !EOC
@@ -157,15 +161,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
-      USE CHEMGRID_MOD,       ONLY : ITS_IN_THE_STRAT
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD65
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -176,6 +181,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -190,6 +196,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -276,6 +283,9 @@
 !  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
+!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  18 Jan 2018 - M. Sulprizio- Remove call to GET_GLOBAL_CH4 and obtain monthly
+!                              CH4 concentrations from HEMCO instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -283,7 +293,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL                  :: FOUND,         LSPLIT
+      LOGICAL                  :: LSPLIT
       INTEGER                  :: nAdvect,       HcoID,       NA
       INTEGER                  :: I,             J,           L
       INTEGER                  :: N,             MONTH,       YEAR
@@ -315,11 +325,9 @@
       REAL(fp),        POINTER :: AIRVOL(:,:,:  )
       REAL(fp),        POINTER :: Spc   (:,:,:,:)
       REAL(fp),        POINTER :: T     (:,:,:  )
-      REAL(f4),        POINTER :: Ptr2D (:,:    )
 
       ! SAVED scalars
       LOGICAL,   SAVE          :: FIRST = .TRUE.
-      REAL(fp),  SAVE          :: A3090S, A0030S, A0030N, A3090N
 !
 ! !DEFINED PARAMETERS:
 !
@@ -349,14 +357,13 @@
       LSPLIT    = Input_Opt%LSPLIT
 
       ! DTCHEM is the number of seconds per chemistry timestep
-      DTCHEM    = GET_TS_CHEM() * 60.0_fp
+      DTCHEM    = GET_TS_CHEM()
 
       ! Initialize pointers
       AD        => State_Met%AD
       AIRVOL    => State_Met%AIRVOL
       Spc       => State_Chm%Species
       T         => State_Met%T
-      Ptr2D     => NULL()  
 
       ! Get the molecular weight of CO [kg/mol] from the species database
       ! (All tagged species are CO, so we can use the value for species #1)
@@ -373,6 +380,10 @@
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
          CALL ERROR_STOP( 'HcoState not associated!', LOC )
       ENDIF 
+
+      ! Zero diagnostic archival arrays to make sure that we don't have any
+      ! leftover values from the last timestep near the top of the chemgrid
+      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -405,7 +416,14 @@
          IF ( RC /= GC_SUCCESS ) THEN
             CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
          ENDIF
-            
+
+         ! Get pointer to surface CH4 data
+         CALL HCO_GetPtr( am_I_Root, HcoState,
+     &                    'NOAA_GMD_CH4', SFC_CH4, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL ERROR_STOP ( 'Cannot get pointer to NOAA_GMD_CH4', LOC)
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
@@ -449,35 +467,32 @@
             CALL ERROR_STOP( 'ISOP not turned on in MEGAN !', LOC )
          ENDIF
 
-         ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
-         HcoId = GetHcoId( 'MONX' )
+         ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
+         HcoId = GetHcoId( 'MTPA' )
          IF ( HcoId > 0 ) THEN
-            SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )    ! kgC/m2/s
-            SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
-            SUMMONOCO = SUMMONOCO * kgs_to_atomsC                 ! atoms C
+            ! kgC/m2/s
+            SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
          ELSE
-            CALL ERROR_STOP( 'MONX not turned on in Megan_MONO !', LOC )
+            CALL ERROR_STOP( 'MTPA not turned on in Megan_Mono !', LOC )
          ENDIF
+         HcoId = GetHcoId( 'LIMO' )
+         IF ( HcoId > 0 ) THEN
+            ! kgC/m2/s
+            SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+         ELSE
+            CALL ERROR_STOP( 'LIMO not turned on in Megan_Mono !', LOC )
+         ENDIF
+         HcoId = GetHcoId( 'MTPO' )
+         IF ( HcoId > 0 ) THEN
+            ! kgC/m2/s
+            SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
+         ELSE
+            CALL ERROR_STOP( 'MTPO not turned on in Megan_Mono !', LOC )
+         ENDIF
+         ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
+         SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
+         SUMMONOCO = SUMMONOCO * kgs_to_atomsC ! atoms C
 
-      ENDIF
-
-      !=================================================================
-      ! Get the yearly and latitudinal gradients for CH4
-      ! This only needs to be called once per year
-      !
-      ! NOTE: If you are going to run w/ future emissions you must 
-      !       pass the future emissions year to GET_GLOBAL_CH4.  
-      !       See the modification that was made in "chemdr.f" 
-      !       (bmy, 1/24/08)
-      !=================================================================
-      IF ( ITS_A_NEW_YEAR() ) THEN 
-
-         ! Get current year
-         YEAR = GET_YEAR()
-
-         ! Get the semi-hemispheric CH4 gradients
-         CALL GET_GLOBAL_CH4( YEAR,  .TRUE.,  A3090S,    A0030S, 
-     &                        A0030N, A3090N, am_I_Root, Input_Opt )
       ENDIF
 
       !=================================================================
@@ -526,7 +541,7 @@
          ! Scaling factor for diurnal cycles - zero at night
          IF ( SUNCOS > 0.0_fp .and. TCOSZ(I,J) > 0.0_fp ) THEN
             FAC_DIURNAL = ( SUNCOS    / TCOSZ(I,J)    ) *
-     &                    ( 1440.0_fp / GET_TS_CHEM() )
+     &                    ( 86400.0_fp / GET_TS_CHEM() )
          ELSE
             FAC_DIURNAL = 0.0_fp
          ENDIF
@@ -550,7 +565,7 @@
          CO_CH4 = 0e+0_fp
 
          ! Test level for stratosphere or troposphere
-         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InStratosphere(I,J,L) ) THEN
 
             !===========================================================
             ! (1a-1) Production of CO from CH4 in the stratosphere 
@@ -568,12 +583,8 @@
             ! (1a-2) Production of CO from CH4 in the troposphere 
             !===========================================================
 
-            ! CH4 concentration [ppbv] for the given latitude band 
-            ! (bmy, 1/2/01)
-            CH4 = A3090S
-            IF ( YMID >= -30.0 .and. YMID < 0.0  ) CH4 = A0030S
-            IF ( YMID >=   0.0 .and. YMID < 30.0 ) CH4 = A0030N
-            IF ( YMID >=  30.0                   ) CH4 = A3090N
+            ! CH4 concentration from HEMCO [ppbv]
+            CH4 = SFC_CH4(I,J)
             
             ! Convert CH4 from [ppbv] to [molec CH4/cm3]
             CH4 = CH4 * 1e-9_fp * DENS
@@ -786,7 +797,7 @@
          !==============================================================
 
          ! Select out tropospheric or stratospheric boxes
-         IF ( ITS_IN_THE_STRAT( I, J, L, State_Met ) ) THEN
+         IF ( State_Met%InStratosphere(I,J,L) ) THEN
 
             !===========================================================
             ! (2a-1) Stratospheric loss of CO due to chemical rxn w/ OH
@@ -813,6 +824,7 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  !------------------------------------------------------
                   ! NOTE: The proper order should be:
                   !   (1) Calculate CO loss rate
                   !   (2) Update AD65 array
@@ -824,11 +836,34 @@
                   !
                   !    -- Jenny Fisher (27 Mar 2017)
                   !
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  !------------------------------------------------------
+
+#if defined( BPCH_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
      &                               ( CORATE * Spc(I,J,L,N) * STTCO)
                   ENDIF
+#endif
+
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+                  IF ( Archive_Loss ) THEN
+                     State_Diag%Loss(I,J,L,N) = ( CORATE 
+     &                                        *   Spc(I,J,L,N) 
+     &                                        *   STTCO        )
+                  ENDIF
+#endif
 
                   ! Loss
                   Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
@@ -929,6 +964,7 @@
                   ! Advected species ID
                   N            = State_Chm%Map_Advect(NA)
 
+                  !-----------------------------------------------------
                   ! NOTE: The proper order should be:
                   !   (1) Calculate CO loss rate
                   !   (2) Update AD65 array
@@ -939,13 +975,37 @@
                   ! tagged CO concentrations stored in the SPC array.
                   !
                   !    -- Jenny Fisher (27 Mar 2017)
+                  !-----------------------------------------------------
+
+#if defined( BPCH_DIAG )
+                  !-----------------------------------------------------
+                  ! ND65 (bpch) diagnostic
                   !
-                  ! ND65 diagnostic -- loss of CO by OH for "tagged" species
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
                   ENDIF
+#endif
 
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! HISTORY (aka netCDF diagnostics)
+                  !
+                  ! Loss of CO by OH for "tagged" species
+                  !-----------------------------------------------------
+
+                  ! Units: [kg/s]
+                  IF ( Archive_Loss ) THEN
+                     State_Diag%Loss(I,J,L,N) = ( KRATE       
+     &                                        *   OH_MOLEC_CM3 
+     &                                        *   Spc(I,J,L,N) 
+     &                                        *   STTCO        )
+                  ENDIF
+#endif
 
                   ! Use tropospheric rate constant 
                   Spc(I,J,L,N) = Spc(I,J,L,N) *
@@ -976,8 +1036,9 @@
          ! State_Chm%Species
          Spc(I,J,L,1) = GCO / STTCO
 
+#if defined( BPCH_DIAG )
          !==============================================================
-         ! Archive ND65 diagnostics -- Production & Loss of CO
+         ! ND65 (bpch) diagnostics -- Production & Loss of CO
          ! Also save P(CO) from CH3OH and MONOTERPENES (bmy, 1/2/01)
          !==============================================================
          IF ( ND65 > 0 .and. L <= LD65 ) THEN
@@ -1006,6 +1067,22 @@
             N             = nAdvect + 5 
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_ACET / DTCHEM )
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Loss of total CO species 
+         !==============================================================
+
+         ! Units: [kg/s]
+         IF ( Archive_Loss ) THEN
+            State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
+         ENDIF   
+#endif
+
+
       ENDDO
       ENDDO
       ENDDO
@@ -1016,7 +1093,6 @@
       AIRVOL   => NULL()
       Spc      => NULL()
       T        => NULL()
-      Ptr2D    => NULL()
 
       END SUBROUTINE CHEM_TAGGED_CO
 !EOC
@@ -1040,12 +1116,14 @@
 !
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD, ONLY : GET_YMID_R
-      USE TIME_MOD, ONLY : ITS_A_NEW_DAY, GET_MINUTE,      GET_HOUR
+      USE TIME_MOD, ONLY : ITS_A_NEW_DAY
+      USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
 !                              COSSZA in dao_mod
+!  12 Feb 2018 - E. Lundgren - Updates for new timestep units (sec not min)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1054,7 +1132,7 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       INTEGER             :: I, J, N, NDYSTEP
-      INTEGER             :: MINUTE,  TS_SUN
+      INTEGER             :: SECOND,  MINUTE, TS_SUN
       REAL*8              :: GMT_MID, TIMLOC, FACTOR
       REAL*8              :: R,       AHR,    DEC
       REAL*8              :: YMID_R,  SUNTMP_MID
@@ -1082,14 +1160,15 @@
 
          ! Get time for central chemistry timestep
          TS_SUN = GET_TS_CHEM()                     ! Chemistry interval
+         SECOND = GET_SECOND()                      ! Current seconds
          MINUTE = GET_MINUTE()                      ! Current minutes
-         FACTOR = MINUTE / TS_SUN                   ! Multiplying factor
+         FACTOR = ( MINUTE * 60 + SECOND ) / TS_SUN ! Multiplying factor
 
          ! GMT at the midpoint of the chemistry time interval for first
          ! timestep of the day
          GMT_MID  = ( DBLE( GET_HOUR()        )      )
-     &            + ( DBLE( TS_SUN * FACTOR ) / 60d0 )
-     &            + ( DBLE( TS_SUN / 2      ) / 60d0 )
+     &            + ( DBLE( TS_SUN * FACTOR ) / 3600d0 )
+     &            + ( DBLE( TS_SUN / 2      ) / 3600d0 )
 
          ! Solar declination angle (low precision formula):
          ! Path length of earth's orbit traversed since Jan 1 [radians]
@@ -1099,13 +1178,13 @@
      &            - A3*COS(3d0*R) + B3*SIN(3d0*R)
 
          ! NDYSTEP is # of chemistry time steps
-         NDYSTEP = INT( 24d0 * 60d0 / GET_TS_CHEM() )
+         NDYSTEP = INT( 24d0 * 3600d0 / GET_TS_CHEM() )
 
          ! Loop forward through NDYSTEP "fake" timesteps for this day
          DO N = 1, NDYSTEP
             
             ! Increment GMT (hours) to midpoint of next timestep
-            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 60d0
+            IF ( N > 1 ) GMT_MID = GMT_MID + TS_SUN / 3600d0
 
             ! Loop over surface grid boxes
 !$OMP PARALLEL DO
@@ -1251,19 +1330,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : Alloc_Err
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostic state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1288,45 +1368,58 @@
 !  10 Apr 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS arrays
 !  28 Jun 2016 - R. Yantosca - Remove EMACET array
+!  05 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, I, J
-      
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
       !=================================================================
       ! INIT_TAGGED_CO begins here!
       !=================================================================
 
-      ! Assume success until otherwise known
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &     ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F)'
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMISOPCO' )         
+      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp 
 
-      ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMMONOCO' )         
+      ! Allocate SUMMONOCO -- array for CO from monoterpenes
+      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp 
 
-      ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMCH3OHCO' )         
+      ! Allocate SUMCH3OH -- array for CO from CH3OH
+      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'SUMACETCO' )         
+      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )         
-      TCOSZ = 0d0 
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TCOSZ = 0.0_fp
+
+      ! Test if netCDF diagnostics have been activated
+      Archive_Loss = ASSOCIATED( State_Diag%Loss )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC
@@ -1371,6 +1464,7 @@
       GMI_PROD_CO => NULL()
       GMI_LOSS_CO => NULL()
       OH          => NULL()
+      SFC_CH4     => NULL()
 
       END SUBROUTINE CLEANUP_TAGGED_CO
 !EOC

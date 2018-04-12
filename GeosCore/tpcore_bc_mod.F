@@ -158,6 +158,7 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-5 nested grids
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -185,7 +186,7 @@
       ! BC_AS    : Array containing AS tracers on coarse grid
       ! MAP1x1   : Mapping array from 1x1 -> 4x5 grid
       !=================================================================
-
+#if defined( BPCH_TPBC )
       ! Scalars
       LOGICAL              :: CLEAN_BC
       INTEGER              :: I0_BC,    J0_BC,    I1_BC,    J1_BC
@@ -216,6 +217,7 @@
       REAL*4,  ALLOCATABLE :: BC_EU (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_CH (:,:,:,:)
       REAL*4,  ALLOCATABLE :: BC_AS (:,:,:,:)
+#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -248,10 +250,12 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_TPBC )
       !=================================================================
       ! SET_CLEAN_BC begins here!
       !=================================================================
       CLEAN_BC = THIS_CLEAN_BC
+#endif
 
       END SUBROUTINE SET_CLEAN_BC
 !EOC
@@ -274,8 +278,10 @@
 !
 ! !USES:
 !
+#if defined( BPCH_TPBC )
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_WRITE
       USE BPCH2_MOD,     ONLY : OPEN_BPCH2_FOR_READ
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE inquireMod,    ONLY : findFreeLUN
@@ -322,8 +328,10 @@
 !
 ! !LOCAL VARIABLES:
 ! 
+#if defined( BPCH_TPBC )
       LOGICAL            :: IS_OPEN    ! Is the file already open?
       CHARACTER(LEN=255) :: FILENAME   ! Name of file to read
+#endif
 
       !=================================================================
       ! OPEN_BC_FILE begins here!
@@ -332,34 +340,39 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_TPBC )
       ! Only open file if it's a new day
       IF ( ITS_A_NEW_DAY(.TRUE.) ) THEN
 
-         ! File name for BC's
-         IF ( WINDOW .eq. 6 ) THEN
-#if   defined( NESTED_NA )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Input file, NA
-#elif defined( NESTED_EU )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Input file, EU
-#elif defined( NESTED_CH )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Input file, CH
-#elif defined( NESTED_AS )
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Input file, AS
-#endif
-         ELSEIF ( WINDOW .eq. 1 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR )    // 'BC.YYYYMMDD' ! Output file, CU
-         ELSEIF ( WINDOW .eq. 2 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // 'BC.YYYYMMDD' ! Output file, NA
-         ELSEIF ( WINDOW .eq. 3 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // 'BC.YYYYMMDD' ! Output file, EU
-         ELSEIF ( WINDOW .eq. 4 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // 'BC.YYYYMMDD' ! Output file, CH
-         ELSEIF ( WINDOW .eq. 5 ) THEN
-            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // 'BC.YYYYMMDD' ! Output file, AS
-         ENDIF
-         
+         ! Boundary condition filename
+         FILENAME = 'BC.YYYYMMDD'
+
          ! Replace YYYYMMDD with the actual date
          CALL EXPAND_DATE( FILENAME, GET_NYMD(), 000000 )
+
+         ! File name for BC's
+         ! Prefix the directory path to the file name
+         IF ( WINDOW .eq. 6 ) THEN
+#if   defined( NESTED_NA )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // TRIM( FILENAME )
+#elif defined( NESTED_EU )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // TRIM( FILENAME )
+#elif defined( NESTED_CH )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // TRIM( FILENAME )
+#elif defined( NESTED_AS )
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // TRIM( FILENAME )
+#endif
+         ELSEIF ( WINDOW .eq. 1 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR )    // TRIM( FILENAME )
+         ELSEIF ( WINDOW .eq. 2 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_NA ) // TRIM( FILENAME )
+         ELSEIF ( WINDOW .eq. 3 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_EU ) // TRIM( FILENAME ) 
+         ELSEIF ( WINDOW .eq. 4 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_CH ) // TRIM( FILENAME ) 
+         ELSEIF ( WINDOW .eq. 5 ) THEN
+            FILENAME = TRIM( Input_Opt%TPBC_DIR_AS ) // TRIM( FILENAME ) 
+         ENDIF
 
          ! FORMAT string for use below
  100     FORMAT( '     - OPEN_BC_FILE: Opening ', a, ' on unit ', i4 )
@@ -482,6 +495,7 @@
          ENDIF
 
       ENDIF
+#endif
 
       END SUBROUTINE OPEN_BC_FILE
 !EOC
@@ -504,7 +518,9 @@
 !
 ! !USES:
 !
+#if defined( BPCH_TPBC )
       USE BPCH2_MOD
+#endif
       USE CMN_SIZE_MOD 
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -550,6 +566,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_TPBC )
 !
 ! !DEFINED PARAMETERS:
 !
@@ -583,6 +600,7 @@
 
       ! Pointers
       REAL(fp), POINTER    :: Spc(:,:,:,:)
+#endif
 
       !=================================================================
       ! SAVE_GLOBAL_TPCORE_BC begins here!
@@ -591,6 +609,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_TPBC )
       ! Copy values from Input_Opt
       LWINDO_CU = Input_Opt%LWINDO_CU
       LWINDO_NA = Input_Opt%LWINDO_NA
@@ -832,6 +851,7 @@
  112  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote EU BC''s at ', a )
  113  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote CH BC''s at ', a )
  114  FORMAT( '     - SAVE_GLOBAL_TPCORE_BC: Wrote AS BC''s at ', a )
+#endif
 
       END SUBROUTINE SAVE_GLOBAL_TPCORE_BC
 !EOC
@@ -886,6 +906,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       ! SAVEd scalars
       LOGICAL, SAVE     :: FIRST = .TRUE.
 
@@ -895,6 +916,7 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
+#endif
 
       !=================================================================
       ! DO_WINDOW_TPCORE_BC begins here!
@@ -903,6 +925,7 @@
       ! Assume success
       RC         =  GC_SUCCESS
 
+#if defined( BPCH_TPBC )
       ! Copy values from Input_Opt
       LWINDO2x25 = Input_Opt%LWINDO2x25
       
@@ -1032,6 +1055,7 @@
 
       ! Free pointer
       Spc => NULL()
+#endif
 
       END SUBROUTINE DO_WINDOW_TPCORE_BC
 !EOC
@@ -1081,6 +1105,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       ! Scalars
       LOGICAL :: LWINDO_NA
       LOGICAL :: LWINDO_EU
@@ -1125,6 +1150,7 @@
       IF ( LWINDO_AS ) THEN
          BC_AS = 0e+0_fp
       ENDIF
+#endif
 
       END SUBROUTINE CLEAN_WINDOW_TPCORE_BC
 !EOC
@@ -1183,6 +1209,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       ! Scalars
       INTEGER           :: I,      IOS,     J,         L      
       INTEGER           :: NI,     NJ,      NL,        NT
@@ -1203,7 +1230,7 @@
 
       ! Arrays
       REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-
+#endif
 
       !=================================================================
       ! READ_WINDOW_TPCORE_BC begins here!
@@ -1212,6 +1239,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_TPBC )
       IF ( ITS_TIME_FOR_BC() ) THEN
 
          ! Open boundary conditions file (if necessary) 
@@ -1284,6 +1312,7 @@
             ENDIF
          ENDDO
       ENDIF
+#endif
 
       END SUBROUTINE READ_WINDOW_TPCORE_BC
 !EOC
@@ -1299,7 +1328,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_4x5_BC_INIT
+      SUBROUTINE GET_4x5_BC_INIT()
 !
 ! !USES:
 !
@@ -1308,8 +1337,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a  4x5 window which overlays the corresponding 1x1 WINDOW REGION.  
@@ -1330,6 +1359,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       !clb
       INTEGER       :: I, II, J, JJ
       REAL(fp)        :: X, Y
@@ -1431,6 +1461,7 @@
          ENDDO
       ENDDO
       ENDDO
+#endif
 
       END SUBROUTINE GET_4x5_BC_INIT
 !EOC
@@ -1462,8 +1493,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a  4x5 window which overlays the corresponding 1x1 WINDOW REGION.  
@@ -1484,6 +1515,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       !clb
       INTEGER       :: II, II1, JJ, JJ1
 
@@ -1516,6 +1548,7 @@
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
+#endif
 
       END FUNCTION GET_4x5_BC
 !EOC
@@ -1532,7 +1565,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_2x25_BC_INIT
+      SUBROUTINE GET_2x25_BC_INIT()
 !
 ! !USES:
 !
@@ -1544,8 +1577,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a 2 x 2.5 window which overlays the corresponding NESTED WINDOW REGION.  
@@ -1565,6 +1598,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       INTEGER       :: I, II, J, JJ
       REAL(fp)        :: X, Y
       REAL(fp)        :: XE2x25(145), YE2x25(92)
@@ -1663,6 +1697,7 @@
          ENDDO
       ENDDO
       ENDDO
+#endif
 
       END SUBROUTINE GET_2x25_BC_INIT
 !EOC
@@ -1697,8 +1732,8 @@
 !
 ! !REMARKS:
 !  NOTE: This routine was originally written for the 1 x 1 nested grid,
-!  but this now works for the GEOS-5 0.5 x 0.666 nested grid data.  Keep
-!  variable names I_1x1, J_1x1, etc. unchanged for the present.
+!  but this now works for other nested grid data.  Keep variable names
+!  I_1x1, J_1x1, etc. unchanged for the present.
 !                                                                             .
 !  For now we will assume that we have saved tracer concentrations from 
 !  a 2 x 2.5 window which overlays the corresponding NESTED WINDOW REGION.  
@@ -1718,6 +1753,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       INTEGER       :: II, II1, JJ, JJ1
 
       !=================================================================
@@ -1749,6 +1785,7 @@
       ELSE
          VALUE = BC(II,JJ,L_1x1,N_1x1)
       ENDIF
+#endif
 
       END FUNCTION GET_2x25_BC
 !EOC
@@ -1769,7 +1806,7 @@
 !
 ! !USES:
 !
-      USE TIME_MOD, ONLY : GET_ELAPSED_MIN
+      USE TIME_MOD, ONLY : GET_ELAPSED_SEC
 !
 ! !RETURN VALUE:
 !
@@ -1778,13 +1815,17 @@
 ! !REVISION HISTORY: 
 !  05 Mar 2003 - R. Yantosca - Initial version
 !  15 May 2012 - R. Yantosca - Added ProTeX headers
+!  06 Feb 2018 - E. Lundgren - Replace GET_ELAPSED_MIN with GET_ELAPSED_SEC to
+!                              match new timestep units of seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_TPBC )
       !=================================================================
       ! ITS_TIME_FOR_BC begins here!
       !=================================================================
-      FLAG = ( MOD( GET_ELAPSED_MIN(), TS_BC ) == 0 ) 
+      FLAG = ( MOD( GET_ELAPSED_SEC(), TS_BC ) == 0 ) 
+#endif
      
       END FUNCTION ITS_TIME_FOR_BC
 !EOC
@@ -1840,12 +1881,14 @@
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  01 Apr 2015 - L. Zhang    - IM_W, JM_W are no longer symmetric, but are
 !                              computed from I0_E and J0_E
+!  06 Feb 2018 - E. Lundgren - Change timestep units from min to sec
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_TPBC )
       INTEGER :: AS, I, J
 
       ! For values from Input_Opt
@@ -1870,7 +1913,7 @@
       ! Number of advected species
       nAdvect    = State_Chm%nAdvect
 
-      ! Timestep for BC's [min]
+      ! Timestep for BC's [sec]
       TS_BC      = Input_Opt%NESTED_TS
 
       !-----------------------------------------------------------------
@@ -1937,12 +1980,6 @@
          I2_BC_NA = 29                       ! 4x5  lon index, UR corner
          J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 
-#else
-         !%%%%% 4x5 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
-         I1_BC_NA = 9                        ! 4x5  lon index, LL corner
-         J1_BC_NA = 26                       ! 4x5  lat index, LL corner
-         I2_BC_NA = 29                       ! 4x5  lon index, UR corner
-         J2_BC_NA = 41                       ! 4x5  lat index, UR corner
 #endif
 
 #endif
@@ -1965,12 +2002,6 @@
          I2_BC_NA = 57                       ! 2x25 lon index, UR corner
          J2_BC_NA = 81                       ! 2x25 lat index, UR corner
 
-#else
-         !%%%%% 2x25 BC REGION FOR NORTH AMERICA NESTED GRID %%%%%
-         I1_BC_NA = 17                       ! 2x25 lon index, LL corner
-         J1_BC_NA = 51                       ! 2x25 lat index, LL corner
-         I2_BC_NA = 57                       ! 2x25 lon index, UR corner
-         J2_BC_NA = 81                       ! 2x25 lat index, UR corner
 #endif
 
 #endif
@@ -2032,13 +2063,6 @@
          J1_BC_CH = 27                       ! 4x5 lat index, LL corner
          I2_BC_CH = 65                       ! 4x5 lon index, UR corner
          J2_BC_CH = 37                       ! 4x5 lat index, UR corner
-#else
-         !%%%%% 4x5 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only) %%%%%
-         I1_BC_CH = 51                       ! 4x5 lon index, LL corner
-         J1_BC_CH = 21                       ! 4x5 lat index, LL corner
-         I2_BC_CH = 67                       ! 4x5 lon index, UR corner
-         J2_BC_CH = 37                       ! 4x5 lat index, UR corner
 #endif
 
 #endif
@@ -2053,13 +2077,6 @@
          I1_BC_CH = 101                      ! 2x25 lon index, LL corner
          J1_BC_CH = 53                       ! 2x25 lat index, LL corner
          I2_BC_CH = 129                      ! 2x25 lon index, UR corner
-         J2_BC_CH = 74                       ! 2x25 lat index, UR corner
-#else
-         !%%%%% 2x25 BC REGION FOR "GEOS-Chem CLASSIC"  %%%%%
-         !%%%%% GEOS-5 CHINA NESTED GRID (GEOS-5 only)  %%%%%
-         I1_BC_CH = 101                      ! 2x25 lon index, LL corner
-         J1_BC_CH = 40                       ! 2x25 lat index, LL corner
-         I2_BC_CH = 133                      ! 2x25 lon index, UR corner
          J2_BC_CH = 74                       ! 2x25 lat index, UR corner
 #endif
 
@@ -2225,6 +2242,8 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MAP1x1' )
       MAP1x1 = 0
 
+#endif
+
       ! Return 
       RC = GC_SUCCESS
 
@@ -2242,7 +2261,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TPCORE_BC
+      SUBROUTINE CLEANUP_TPCORE_BC()
 ! 
 ! !REVISION HISTORY: 
 !  04 Mar 2003 - R. Yantosca - Initial version
@@ -2253,6 +2272,7 @@
       !=================================================================
       ! CLEANUP_TPCORE_BC begins here!
       !=================================================================
+#if defined( BPCH_TPBC )
       IF ( ALLOCATED( BC     ) ) DEALLOCATE( BC     )
       IF ( ALLOCATED( BC_CU  ) ) DEALLOCATE( BC_CU  )
       IF ( ALLOCATED( BC_NA  ) ) DEALLOCATE( BC_NA  )
@@ -2260,6 +2280,7 @@
       IF ( ALLOCATED( BC_CH  ) ) DEALLOCATE( BC_CH  )
       IF ( ALLOCATED( BC_AS  ) ) DEALLOCATE( BC_AS  )
       IF ( ALLOCATED( MAP1x1 ) ) DEALLOCATE( MAP1x1 )
+#endif
 
       END SUBROUTINE CLEANUP_TPCORE_BC
 !EOC
