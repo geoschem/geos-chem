@@ -463,6 +463,7 @@
             IF ( RC /= GC_SUCCESS ) THEN
               CALL ERROR_STOP ( 'Cannot get pointer to PCO_NMVOC', LOC )
             ENDIF
+         ENDIF
 
          ! Get pointer to surface CH4 data
          CALL HCO_GetPtr( am_I_Root, HcoState,

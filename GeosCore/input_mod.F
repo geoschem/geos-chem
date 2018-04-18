@@ -398,6 +398,11 @@
 
          ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN
             CALL READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Read_CO_Sim_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
                                     
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
@@ -2186,8 +2191,6 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      LOGICAL            :: LPCO_CH4
-      LOGICAL            :: LPCO_NMVOC
       INTEGER            :: N
       CHARACTER(LEN=255) :: MSG, LOC
 
@@ -2197,6 +2200,9 @@
       !=================================================================
       ! READ_CO_SIM_MENU begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Location for error messages
       LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
@@ -2209,21 +2215,12 @@
       ENDIF
 
       ! Use P(CO) from CH4 from full chemistry simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:1' )
-      READ( SUBSTRS(1:N), * ) LPCO_CH4
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPCO_CH4', RC )
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPCO_CH4
 
       ! Use P(CO) from CH4 from full chemistry simulation?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_CO_sim_menu:2' )
-      READ( SUBSTRS(1:N), * ) LPCO_NMVOC
-
-      !=================================================================
-      ! Set fields of Input Options object
-      !=================================================================
-      Input_Opt%LPCO_CH4   = LPCO_CH4
-      Input_Opt%LPCO_NMVOC = LPCO_NMVOC
-
-      ! Return success
-      RC = GC_SUCCESS
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPCO_NMVOC', RC )
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPCO_NMVOC
 
       !=================================================================
       ! Print to screen
@@ -2232,8 +2229,10 @@
          WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO)'
          WRITE(6,'(  a)') '-------------------------------------'
-         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:', LPCO_CH4
-         WRITE(6,100    ) '                   from NMVOC?:', LPCO_NMVOC
+         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:', 
+     &                    Input_Opt%LPCO_CH4
+         WRITE(6,100    ) '                   from NMVOC?:', 
+     &                    Input_Opt%LPCO_NMVOC
          WRITE(6,'(  a)') '-------------------------------------'
       ENDIF      
 
@@ -6549,8 +6548,12 @@
       READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_O3
 
       ! Save P(CO) from CH4 & NMVOC for tagged CO run?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'read_prod_loss_menu:4' )
-      READ( SUBSTRS(1:N), * ) DO_SAVE_PCO
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'DO_SAVE_PCO', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_PCO
 
       !=================================================================
       ! Error check families for certain types of simulations

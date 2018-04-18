@@ -285,8 +285,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NA, nAdvect, nDryDep, NW
-      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs, LMAX
+      INTEGER            :: NA, nAdvect, nDryDep, NW, NFAM
+      INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
       INTEGER            :: NSPECOUT
