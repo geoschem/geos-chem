@@ -236,6 +236,9 @@ CONTAINS
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
+    ! For tagged CO saving
+    REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
+
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
@@ -600,9 +603,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT                   )&
-    !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
-    !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
+    !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
+    !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
+    !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
+    !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -628,6 +632,12 @@ CONTAINS
        RSTATE    = 0.0_dp            ! Rosenbrock output
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
        P         = 0                 ! GEOS-Chem photolyis species ID
+
+       ! For tagged CO
+       LCH4     = 0.0_fp    ! Methane loss rate
+       PCO_TOT  = 0.0_fp    ! Total CO production
+       PCO_CH4  = 0.0_fp    ! CO production from CH4
+       PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC
 
        ! Grid-box latitude [degrees]
        YLAT      = GET_YMID( I, J, L )
@@ -1007,7 +1017,37 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             !--------------------------------------------------------
+             ! Save out P(CO) and L(CH4) from the fullchem simulation
+             ! for use in tagged CO
+             !--------------------------------------------------------
+             IF ( Input_Opt%DO_SAVE_PCO ) THEN
+                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) THEN
+                   PCO_TOT = VAR(KppID) / DT
+                ENDIF
+                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) THEN
+                   LCH4    = VAR(KppID) / DT
+                ENDIF
+             ENDIF
+
           ENDDO
+
+          ! For tagged CO, use LCH4 to get P(CO) contributions from
+          ! CH4 and NMVOC
+          IF ( Input_Opt%DO_SAVE_PCO ) THEN
+             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+             ! than total P(CO) to prevent negative P(CO)_NMVOC
+             PCO_CH4 = MIN( LCH4, PCO_TOT )
+   
+             ! P(CO) from NMVOC is the remaining P(CO)
+             PCO_NMVOC = PCO_TOT - PCO_CH4
+   
+             ! Add to AD65 array [molec/cm3/s]
+             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
+             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
+
+          ENDIF
+
        ENDIF
 
 #if defined( TOMAS )
@@ -1040,6 +1080,7 @@ CONTAINS
             ENDIF
           ENDIF
        ENDDO
+
 #endif
 #endif
 

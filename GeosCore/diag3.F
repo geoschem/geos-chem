@@ -285,7 +285,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NA, nAdvect, nDryDep, NW
+      INTEGER            :: NA, nAdvect, nDryDep, NW, NFAM
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
@@ -5899,8 +5899,14 @@
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
 
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+            NFAM = Input_Opt%NFAM + 2
+         ELSE 
+            NFAM = Input_Opt%NFAM
+         ENDIF
+
          ! Loop over ND65 families
-         DO N = 1, Input_Opt%NFAM
+         DO N = 1, NFAM
 
             ! Select proper unit string
             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN

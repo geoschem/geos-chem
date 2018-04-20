@@ -396,6 +396,14 @@
                RETURN
             ENDIF
 
+         ELSE IF ( INDEX( LINE, 'CO SIM MENU'     ) > 0 ) THEN
+            CALL READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Read_CO_Sim_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+                                    
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2138,6 +2146,102 @@
  130  FORMAT( A, A   )
 
       END SUBROUTINE READ_EMISSIONS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_co_sim_menu
+!
+! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU 
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_CO_SIM_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE CMN_O3_MOD
+      USE CMN_SIZE_MOD
+      USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  24 Mar 2017 - J. Fisher   - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N
+      CHARACTER(LEN=255) :: MSG, LOC
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_CO_SIM_MENU begins here!
+      !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+      ! Location for error messages
+      LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN 
+         MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &         'must be read in first!'
+         CALL ERROR_STOP( MSG, LOC )
+      ENDIF
+
+      ! Use P(CO) from CH4 from full chemistry simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPCO_CH4', RC )
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPCO_CH4
+
+      ! Use P(CO) from CH4 from full chemistry simulation?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LPCO_NMVOC', RC )
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPCO_NMVOC
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( Input_Opt%ITS_A_TAGCO_SIM .and. am_I_Root ) THEN
+         WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
+     &        '(overwrites any other settings related to CO)'
+         WRITE(6,'(  a)') '-------------------------------------'
+         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:', 
+     &                    Input_Opt%LPCO_CH4
+         WRITE(6,100    ) '                   from NMVOC?:', 
+     &                    Input_Opt%LPCO_NMVOC
+         WRITE(6,'(  a)') '-------------------------------------'
+      ENDIF      
+
+      ! FORMAT statements
+  90  FORMAT( A )
+ 100  FORMAT( A, L5 )
+ 110  FORMAT( A, L5, A )
+
+      END SUBROUTINE READ_CO_SIM_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6443,6 +6547,14 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_O3
 
+      ! Save P(CO) from CH4 & NMVOC for tagged CO run?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1,  'DO_SAVE_PCO', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_PCO
+
       !=================================================================
       ! Error check families for certain types of simulations
       !=================================================================
@@ -6452,6 +6564,7 @@
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
          Input_Opt%DO_SAVE_PL    = .FALSE.
          Input_Opt%DO_SAVE_O3    = .FALSE.
+         Input_Opt%DO_SAVE_PCO   = .FALSE.
          Input_Opt%ND65          = 0
       ENDIF
 
@@ -6471,7 +6584,11 @@
             Input_Opt%NFAM = 2*N_ADVECT
          ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
             ! Tagged CO
-            Input_Opt%NFAM = N_ADVECT+5
+            IF ( Input_Opt%LPCO_NMVOC ) THEN
+               Input_Opt%NFAM = N_ADVECT+2
+            ELSE
+               Input_Opt%NFAM = N_ADVECT+6
+            ENDIF
          ENDIF
       ENDIF
 
@@ -6480,6 +6597,7 @@
       IF ( .not. ( Input_Opt%DO_SAVE_PL .and. Input_Opt%NFAM > 0 )) THEN
          Input_Opt%DO_SAVE_PL         = .FALSE.
          Input_Opt%DO_SAVE_O3         = .FALSE.
+         Input_Opt%DO_SAVE_PCO        = .FALSE.
          Input_Opt%ND65               = 0
       ENDIF
 
@@ -6508,15 +6626,17 @@
             IF ( F <= N_ADVECT ) THEN
                Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
             ELSEIF ( F == N_ADVECT+1 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PISOP'
+               Input_Opt%FAM_NAME(F) = 'PCO_CH4'
             ELSEIF ( F == N_ADVECT+2 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PCH4'
+               Input_Opt%FAM_NAME(F) = 'PCO_NMVOC'
             ELSEIF ( F == N_ADVECT+3 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PCH3OH'
+               Input_Opt%FAM_NAME(F) = 'PCO_ISOP'
             ELSEIF ( F == N_ADVECT+4 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PMONO'
+               Input_Opt%FAM_NAME(F) = 'PCO_CH3OH'
             ELSEIF ( F == N_ADVECT+5 ) THEN
-               Input_Opt%FAM_NAME(F) = 'PACET'
+               Input_Opt%FAM_NAME(F) = 'PCO_MONO'
+            ELSEIF ( F == N_ADVECT+6 ) THEN
+               Input_Opt%FAM_NAME(F) = 'PCO_ACET'
             ENDIF
 
          ENDIF
@@ -6543,6 +6663,8 @@
      &                    Input_Opt%ND65
          WRITE( 6, 100 ) 'Save P(O3), L(O3) for TagO3?: ',
      &                    Input_Opt%DO_SAVE_O3
+         WRITE( 6, 100 ) 'Save CO Production?: ',
+     &                    Input_Opt%DO_SAVE_PCO
       
          ! Loop over families
          DO F = 1, Input_Opt%NFAM
