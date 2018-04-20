@@ -107,7 +107,7 @@ MODULE HcoX_FINN_Mod
   ! MW_NMOC : Molecular weight of NMOC (g/mol). Assumed MW for NMOC
   !           is 68 g/mol.
   !=================================================================
-  INTEGER,           PARAMETER   :: N_EMFAC = 6
+  INTEGER,           PARAMETER   :: N_EMFAC = 7
   INTEGER,           PARAMETER   :: N_SPEC  = 58
   REAL(dp),          PARAMETER   :: MW_CO2  = 44.01_dp
   REAL(dp),          PARAMETER   :: MW_NMOC = 68.00_dp
@@ -172,6 +172,7 @@ MODULE HcoX_FINN_Mod
   REAL(hp),          POINTER     :: VEGTYP3(:,:) => NULL()
   REAL(hp),          POINTER     :: VEGTYP4(:,:) => NULL()
   REAL(hp),          POINTER     :: VEGTYP5(:,:) => NULL()
+  REAL(hp),          POINTER     :: VEGTYP6(:,:) => NULL()
   REAL(hp),          POINTER     :: VEGTYP9(:,:) => NULL()
 
 CONTAINS
@@ -306,6 +307,10 @@ CONTAINS
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
+       FLDNME = TRIM(PREFIX) // 'VEGTYP6'
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP6, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+   
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
        CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -380,6 +385,8 @@ CONTAINS
           ELSEIF ( NF == 5 ) THEN
              THISTYP => VEGTYP5
           ELSEIF ( NF == 6 ) THEN
+             THISTYP => VEGTYP6
+          ELSEIF ( NF == 7 ) THEN
              THISTYP => VEGTYP9
           ELSE
              CALL HCO_ERROR ( HcoState%Config%Err, 'Undefined emission factor', RC )
@@ -714,6 +721,7 @@ CONTAINS
                VEGTYP3(HcoState%NX,HcoState%NY), &
                VEGTYP4(HcoState%NX,HcoState%NY), &
                VEGTYP5(HcoState%NX,HcoState%NY), &
+               VEGTYP6(HcoState%NX,HcoState%NY), &
                VEGTYP9(HcoState%NX,HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate VEGTYP', RC )
@@ -724,6 +732,7 @@ CONTAINS
     VEGTYP3 = 0.0_hp
     VEGTYP4 = 0.0_hp
     VEGTYP5 = 0.0_hp
+    VEGTYP6 = 0.0_hp
     VEGTYP9 = 0.0_hp
 
     !----------------------------------------------------------------------- 
@@ -1149,14 +1158,13 @@ CONTAINS
 !
     !=================================================================
     ! HCOX_FINN_FINAL begins here!
-    !=================================================================
-
-    ! Free pointers
+    !=================================================================]    ! Free pointers
     IF ( ASSOCIATED ( VEGTYP1 ) ) DEALLOCATE ( VEGTYP1 ) 
     IF ( ASSOCIATED ( VEGTYP2 ) ) DEALLOCATE ( VEGTYP2 ) 
     IF ( ASSOCIATED ( VEGTYP3 ) ) DEALLOCATE ( VEGTYP3 ) 
     IF ( ASSOCIATED ( VEGTYP4 ) ) DEALLOCATE ( VEGTYP4 ) 
     IF ( ASSOCIATED ( VEGTYP5 ) ) DEALLOCATE ( VEGTYP5 ) 
+    IF ( ASSOCIATED ( VEGTYP6 ) ) DEALLOCATE ( VEGTYP6 ) 
     IF ( ASSOCIATED ( VEGTYP9 ) ) DEALLOCATE ( VEGTYP9 ) 
 
     ! Cleanup module arrays
