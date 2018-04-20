@@ -1993,6 +1993,13 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
     IF ( ASSOCIATED( State_Met%CNV_FRC    )) DEALLOCATE( State_Met%CNV_FRC    )
 
+    !========================================================================
+    ! Land type and leaf area index (LAI) fields for dry deposition
+    !========================================================================
+    IF ( ASSOCIATED( State_Met%IREG       )) DEALLOCATE( State_Met%IREG       )
+    IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
+    IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
+
     ! 3-D fields
     IF ( ASSOCIATED( State_Met%PFICU      )) DEALLOCATE( State_Met%PFICU      )
     IF ( ASSOCIATED( State_Met%PFILSAN    )) DEALLOCATE( State_Met%PFILSAN    )
@@ -2010,7 +2017,10 @@ CONTAINS
     !=========================================================================
     ! SDE 2016-03-28: GCHP requires that these are nullified rather than being
     ! deallocated. Not yet sure why, but deallocating causes it to hang during
-    ! cleanup
+    ! cleanup.
+    ! EWL 2018-04-20: This problem occurs when using gfortran 6 and above.
+    ! Always add new 3D State_Met fields to this section to ensure 
+    ! compatibility between GCHP and recent versions of gfortran.
     !=========================================================================
 
     ! 3-D fields
@@ -2026,6 +2036,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQRCU      )) NULLIFY( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) NULLIFY( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
+    IF ( ASSOCIATED( State_Met%ILAND      )) NULLIFY( State_Met%ILAND      )
+    IF ( ASSOCIATED( State_Met%IUSE       )) NULLIFY( State_Met%IUSE       )
+    IF ( ASSOCIATED( State_Met%LANDTYPEFRAC)) NULLIFY( State_Met%LANDTYPEFRAC)
     IF ( ASSOCIATED( State_Met%OMEGA      )) NULLIFY( State_Met%OMEGA      )
     IF ( ASSOCIATED( State_Met%OPTD       )) NULLIFY( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%PEDGE      )) NULLIFY( State_Met%PEDGE      )
@@ -2045,6 +2058,10 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%U          )) NULLIFY( State_Met%U          )
     IF ( ASSOCIATED( State_Met%UPDVVEL    )) NULLIFY( State_Met%UPDVVEL    )
     IF ( ASSOCIATED( State_Met%V          )) NULLIFY( State_Met%V          )
+    IF ( ASSOCIATED( State_Met%XCHLR      )) NULLIFY( State_Met%XCHLR      )
+    IF ( ASSOCIATED( State_Met%XCHLR_NATIVE)) NULLIFY( State_Met%XCHLR_NATIVE)
+    IF ( ASSOCIATED( State_Met%XLAI       )) NULLIFY( State_Met%XLAI       )
+    IF ( ASSOCIATED( State_Met%XLAI_NATIVE)) NULLIFY( State_Met%XLAI_NATIVE )
 
 #else
 
@@ -2071,6 +2088,9 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
+    IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
+    IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
+    IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
     IF ( ASSOCIATED( State_Met%OMEGA      )) DEALLOCATE( State_Met%OMEGA      )
     IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
     IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
@@ -2089,23 +2109,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )
     IF ( ASSOCIATED( State_Met%UPDVVEL    )) DEALLOCATE( State_Met%UPDVVEL    )
     IF ( ASSOCIATED( State_Met%V          )) DEALLOCATE( State_Met%V          )
-
-#endif
-
-    !========================================================================
-    ! Land type and leaf area index (LAI) fields for dry deposition
-    !========================================================================
-    IF ( ASSOCIATED( State_Met%IREG       )) DEALLOCATE( State_Met%IREG       )
-    IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
-    IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
     IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
-    IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
     IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
-    IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
-    IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
     IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
     IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
 
+#endif
 
     !=======================================================================
     ! Fields for querying which vertical regime a grid box is in

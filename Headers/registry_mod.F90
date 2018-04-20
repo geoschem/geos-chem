@@ -1599,7 +1599,11 @@ CONTAINS
        Current%Item%Ptr3d_I => NULL()
        
        ! Destroy the REGISTRY ITEM itself
+#if defined( ESMF_ )
+       IF ( ASSOCIATED( Current%Item ) ) NULLIFY( Current%Item )
+#else
        IF ( ASSOCIATED( Current%Item ) ) DEALLOCATE( Current%Item )
+#endif
 
        ! Point to the next METAREGISTRY ITEM for the next iteration
        Node => Current%Next
