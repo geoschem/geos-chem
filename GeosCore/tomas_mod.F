@@ -129,7 +129,9 @@
 !                              diag_pl_mod.F and rename to H2SO4_RATE to avoid
 !                              confusion with local variables
 !  24 Aug 2017 - M. Sulprizio- Remove SGCTSCALE definitions for obsolete grids
-
+!  07 Feb 2018 - P.F. Liu    - Modified INODENS subroutione to improve
+!                              numerical stability
+!  19 Apr 2018 - P.F. Liu    - Bug fixes to avoid negative H2SO4RATE
 !******************************************************************************
 !
       USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
@@ -201,7 +203,9 @@
                 
       INTEGER :: xSOA = 1  !Switch for xSOA. If set to one, emit 100 
                              ! Tg/yr SOA correlated with anrtho CO 
-                             ! (JKodros 6/3/15)               
+                             ! (JKodros 6/3/15)
+                             ! switch to 0 for anthro-free
+                             ! runs (Pengfei Liu 4/18/2018)              
       INTEGER :: lowRH = 1 !This is to match AW more with AERONET (JKODROS 6/15)
 
       REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
@@ -758,12 +762,16 @@
          !GC(SRTSO4) = Spc(I,J,L,id_H2SO4)
 
          H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
-
-!         if (printdebug) then
-!          IF ( I == iob .and. J == job .and. L == lob ) THEN
-!             Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
-!          ENDIF
-!         ENDIF
+         ! Pengfei Liu add 2018/04/18, debug
+         IF ( H2SO4rate_o .lt. 0.e0 ) THEN
+            Print*, 'Debug TOMAS: H2SO4RATE = ', H2SO4rate_o, 'I = ', I,
+     &    'J = ', J, 'L = ', L
+            H2SO4rate_o = 0.e+0_fp
+         ENDIF
+         ! 
+         IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
+            Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+         ENDIF
 
                                 ! nitrogen and sulfur mass checks
                                 ! get the total mass of N
@@ -2887,9 +2895,9 @@
       fn1 = 0.e+0_fp
       rnuc = 0.e+0_fp
       gtime = 0.e+0_fp
-
-!     if requirements for nucleation are met, call nucleation subroutines
-!     and get the nucleation rate and critical cluster size
+      nuc_bin = 1 ! added by Pengfei Liu,initialize  nuc_bin value
+C     if requirements for nucleation are met, call nucleation subroutines
+C     and get the nucleation rate and critical cluster size
       if (h2so4.gt.1.e+4_fp) then
          if (nh3ppt.gt.0.1.and.tern_nuc.eq.1) then
             call napa_nucl(TEMPTMS,RHTOMAS,h2so4,nh3ppt,fn,rnuc) !ternary nuc
@@ -8522,15 +8530,25 @@
 !      nh4temp=mnh4
 !      h2otemp=mh2o
 !      nacltemp=mnacl
+
+! [Pengfei Liu, avoid equality test with floating-point real numbers
       
       !<step4.7> if the aerosol mass is zero - then just return the 
       !typical density = 1500 kg/m3 (win, 1/4/06)
-      if (mso4 .eq. 0.e+0_fp .and. mno3 .eq.0.e+0_fp 
-     &     .and. mnh4.eq.0.e+0_fp 
-     &     .and. mnacl .eq. 0.e+0_fp ) then
-         VALUE = 1500.e+0_fp !kg/m3
-         goto 10
+!      if (mso4 .eq. 0.e+0_fp .and. mno3 .eq.0.e+0_fp 
+!     &     .and. mnh4.eq.0.e+0_fp 
+!     &     .and. mnacl .eq. 0.e+0_fp ) then
+!         VALUE = 1500.e+0_fp !kg/m3
+!         goto 10
+!      endif
+
+      if ((mso4+mno3+mnh4+mnacl) .gt. 0.e+0_fp) then
+        CONTINUE
+      else
+        VALUE = 1500.e+0_fp !kg/m3
+        RETURN
       endif
+! Pengfei Liu, 2018/02/07]
 
 ! Calculate mole fractions
       mtot = mso4+mno3+mnh4+mnacl+mh2o
@@ -8607,16 +8625,41 @@
       xnacl=nnacl*mwnacl/mtot*100.e+0_fp
       xtot=xan+xs0+xs1+xs2+xnacl
 
+! [Pengfei Liu, fix the polynomial issue
+
       !Calculate binary mixture densities (Tang, eqn 9)
-      dan=0.9971e+0_fp +4.05e-3_fp*xtot +9.0e-6_fp*xtot**2.e+0_fp
-      ds0=0.9971e+0_fp +7.367e-3_fp*xtot -4.934d-5*xtot**2.e+0_fp 
-     &     +1.754e-6_fp*xtot**3.e+0_fp - 1.104d-8*xtot**4.e+0_fp
-      ds1=0.9971e+0_fp +5.87e-3_fp*xtot -1.89e-6_fp*xtot**2.e+0_fp 
-     &     +1.763e-7_fp*xtot**3.e+0_fp
-      ds2=0.9971e+0_fp +5.92e-3_fp*xtot -5.036e-6_fp*xtot**2.e+0_fp 
-     &     +1.024d-8*xtot**3.e+0_fp
-      dss=0.9971e+0_fp +7.41e-3_fp*xtot -3.741d-5*xtot**2.e+0_fp 
-     &     +2.252e-6_fp*xtot**3.e+0_fp   -2.06d-8*xtot**4.e+0_fp
+!      dan=0.9971e+0_fp +4.05e-3_fp*xtot +9.0e-6_fp*xtot**2.e+0_fp
+!      ds0=0.9971e+0_fp +7.367e-3_fp*xtot -4.934d-5*xtot**2.e+0_fp 
+!     &     +1.754e-6_fp*xtot**3.e+0_fp - 1.104d-8*xtot**4.e+0_fp
+!      ds1=0.9971e+0_fp +5.87e-3_fp*xtot -1.89e-6_fp*xtot**2.e+0_fp 
+!     &     +1.763e-7_fp*xtot**3.e+0_fp
+!      ds2=0.9971e+0_fp +5.92e-3_fp*xtot -5.036e-6_fp*xtot**2.e+0_fp 
+!     &     +1.024d-8*xtot**3.e+0_fp
+!      dss=0.9971e+0_fp +7.41e-3_fp*xtot -3.741d-5*xtot**2.e+0_fp 
+!     &     +2.252e-6_fp*xtot**3.e+0_fp   -2.06d-8*xtot**4.e+0_fp
+
+      dan=0.9971e+0_fp + xtot * (4.05e-3_fp + 9.0e-6_fp * xtot)
+      ds0=0.9971e+0_fp 
+     &   +xtot*(7.367e-3_fp
+     &   +xtot*(-4.934d-5
+     &   +xtot*(1.754e-6_fp
+     &   +xtot*(-1.104d-8  ))))
+      ds1=0.9971e+0_fp 
+     &   +xtot*(5.87e-3_fp 
+     &   +xtot*(-1.89e-6_fp
+     &   +xtot*(1.763e-7_fp )))
+      ds2=0.9971e+0_fp 
+     &   +xtot*(5.92e-3_fp
+     &   +xtot*(-5.036e-6_fp
+     &   +xtot*(1.024d-8    )))
+
+      dss=0.9971e+0_fp 
+     &   +xtot*(7.41e-3_fp
+     &   +xtot*(-3.741d-5
+     &   +xtot*(2.252e-6_fp
+     &   +xtot*(-2.06d-8     ))))
+
+! Pengfei Liu, 2018/02/07]
 
       !Convert x's (weight percent of solutes) to fraction of dry solute (scale to 1)
       xtot=xan+xs0+xs1+xs2+xnacl
@@ -8627,7 +8670,7 @@
       xnacl=xnacl/xtot
 
       !Calculate mixture density
-      d=1./(xan/dan+xs0/ds0+xs1/ds1+xs2/ds2+xnacl/dss)  !Tang, eq. 10
+      d=1.e+0_fp/(xan/dan+xs0/ds0+xs1/ds1+xs2/ds2+xnacl/dss)  !Tang, eq. 10
 
       if ((d .gt. 2.e+0_fp) .or. (d .lt. 0.997e+0_fp)) then
          write(*,*) 'ERROR in aerodens'
