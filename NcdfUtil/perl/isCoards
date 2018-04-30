@@ -21,6 +21,9 @@
 #
 # !PUBLIC DATA MEMBERS:
 #
+ # Scalars
+ our $zFound        = 0;
+
  # Strings
  our $conventions   = "";
  our $format        = "";
@@ -28,6 +31,7 @@
  our $inputFile     = "";
  our $latitudes     = "";
  our $levels        = "";
+ our $iLevels       = "";
  our $longitudes    = "";
  our $references    = "";
  our $sep           = '->';
@@ -78,6 +82,8 @@
 #  23 Dec 2015 - R. Yantosca - Initial version
 #  06 Jan 2016 - R. Yantosca - Add more error checks to avoid warnings
 #                              if null values are encountered
+#  30 Apr 2018 - R. Yantosca - Update the algorithm to be consistent with
+#                              the latest GC netCDF diagnostic output files
 #EOC
 #------------------------------------------------------------------------------
 #                  GEOS-Chem Global Chemical Transport Model                  !
@@ -283,6 +289,124 @@ sub analyzeTime($) {
 #\\
 # !INTERFACE:
 #
+sub analyzeILev($) {
+#
+# !INPUT PARAMETERS:
+#
+  # Variable name (from ncdump output)
+  my ( $var ) = @_;
+#
+# !REVISION HISTORY:
+#  23 Apr 2018 - R. Yantosca - Initial version
+#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $msg   = "";
+  my $value = "";
+
+  # %%%%% Ensure variable is declared with the dimension of the same name
+  if ( $varDims{$var} = "$var" ) {
+    $msg  = qq/$sep $var($varDims{$var})\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep $var needs to be declared with dimension "lev"\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check if levels are monotonic
+  $value = &isMonotonic( $levels );
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+    $msg  = qq/$sep $var $value\n/;
+    @BAD  = ( @BAD,  $msg );
+  } else {
+    $msg  = qq/$sep $var $value\n/;
+    @GOOD = ( @GOOD,  $msg );
+  }
+
+  # %%%%% Check the axis attribute (optional)
+  $value = $axis{$var};
+  if ( defined( $value ) && $value =~ m/[Zz]/ ) {
+    $msg    = qq/$sep $var:axis =$value\n/;
+    $zFound = 1;
+    @GOOD   = ( @GOOD, $msg );
+  } else {
+    if ( $zFound == 0 ) {
+      $msg  = qq/$sep Consider adding $var:axis = "Z"\n/;
+      @OPT  = ( @OPT,  $msg );
+    }
+  }
+
+  # %%%%% Check the positive attribute (optional)
+  $value = $positive{$var};
+  if ( defined( $value ) && ( $value =~ m/[Uu][Pp]/         ||
+                              $value =~ m/[Dd][Oo][Ww][Nn]/    ) ) {
+    $msg  = qq/$sep $var:positive =$value\n/;
+    @GOOD = ( @GOOD, $msg );
+  } else {
+    $msg  = qq/$sep Consider adding $var:positive = "up" (or "down", as the case may be)\n/;
+    @OPT  = ( @OPT,  $msg );
+  }
+
+  # %%%%% Check the long_name attribute
+  $value = $longName{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/hybrid level at interfaces/ ||
+         $value =~ m/GEOS-Chem levels/           ||
+         $value =~ m/lev/                        ||
+         $value =~ m/sigma/                      ||
+         $value =~ m/eta/                        ||
+         $value =~ m/level/                      ||
+	 $value =~ m/layer/                         ) {
+
+      $msg  = qq/$sep $var:long_name =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:long_name should be "ilev" or "hybrid level at interfaces", etc.\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+    $msg  = qq/$sep $var:long_name (or $var:standard_name) is missing\n/;
+    @BAD  = ( @BAD,  $msg );
+  }
+
+  # %%%%% Check the units attribute
+  $value = $units{$var};
+  if ( defined( $value ) ) {
+    if ( $value =~ m/sigmal/  || $value =~ m/eta/   ||
+         $value =~ m/level/   || $value =~ m/layer/ ||
+         $value =~ m/1/                                ) {
+      $msg  = qq/$sep $var:units =$value\n/;
+      @GOOD = ( @GOOD, $msg );
+    } else {
+      $msg  = qq/$sep $var:units should be dimensionless (e.g. "sigma_level", "1")\n/;
+      @BAD  = ( @BAD,  $msg );
+    }
+  } else {
+      $msg  = qq/$sep $var:units is missing\n/;
+      @BAD  = ( @BAD,  $msg );
+  }
+
+  # Return w/ error code
+  return( $? );
+}
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: analyzeLev
+#
+# !DESCRIPTION: Checks the attributes of the lev variable to see if
+#  they adhere to the COARDS standard.
+#\\
+#\\
+# !INTERFACE:
+#
 sub analyzeLev($) {
 #
 # !INPUT PARAMETERS: 
@@ -296,6 +420,7 @@ sub analyzeLev($) {
 #  06 Jan 2016 - R. Yantosca - Bug fix: also flag non-monotonic values
 #  08 Jan 2016 - R. Yantosca - Add "vertical level as an accepted long_name
 #  08 Jan 2016 - R. Yantosca - Add "layer", "level" as accepted units
+#  30 Apr 2018 - R. Yantosca - Add a extra check on the "axis" attribute
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -327,11 +452,14 @@ sub analyzeLev($) {
   # %%%%% Check the axis attribute (optional)
   $value = $axis{$var};
   if ( defined( $value ) && $value =~ m/[Zz]/ ) {
-    $msg  = qq/$sep $var:axis =$value\n/;
-    @GOOD = ( @GOOD, $msg );
+    $msg    = qq/$sep $var:axis =$value\n/;
+    $zFound = 1;
+    @GOOD   = ( @GOOD, $msg );
   } else {
-    $msg  = qq/$sep Consider adding $var:axis = "Z"\n/;
-    @OPT  = ( @OPT,  $msg );
+    if ( $zFound == 0 ) {
+      $msg    = qq/$sep Consider adding $var:axis = "Z"\n/;
+      @OPT    = ( @OPT,  $msg );
+    }
   }
 
   # %%%%% Check the positive attribute (optional)
@@ -348,14 +476,18 @@ sub analyzeLev($) {
   # %%%%% Check the long_name attribute
   $value = $longName{$var};
   if ( defined( $value ) ) {
-    if ( $value =~ m/GEOS-Chem levels/ || $value =~ m/lev/   ||
-         $value =~ m/sigma/            || $value =~ m/eta/   ||
-         $value =~ m/level/            || $value =~ m/layer/   ) {
+    if ( $value =~ m/hybrid level at midpoints/ ||
+         $value =~ m/GEOS-Chem levels/          ||
+         $value =~ m/lev/                       ||
+         $value =~ m/sigma/                     ||
+         $value =~ m/eta/                       ||
+         $value =~ m/level/                     ||
+	 $value =~ m/layer/                        ) {
 
       $msg  = qq/$sep $var:long_name =$value\n/;
       @GOOD = ( @GOOD, $msg );
     } else {
-      $msg  = qq/$sep $var:long_name should be "lev" or "GEOS-Chem levels" etc.\n/;
+      $msg  = qq/$sep $var:long_name should be "lev" or "hybrid level at midpoints", etc.\n/;
       @BAD  = ( @BAD,  $msg );
     }
   } else {
@@ -616,7 +748,15 @@ sub analyzeVar($) {
 
   # %%%%% Check to see if each dimension is valid
   foreach $dim ( @dims ) { 
-    if ( $dimsInVar =~ m/$dim/ ) { $foundDims++; }
+
+    # Special handling for hyai and hybi, which have "ilev" as a dimension
+    # which can easily be confused with "lev".  Use a strict equality
+    # for these variables instead of a pattern match. (bmy, 4/30/18)
+    if ( $var eq "hyai" || $var eq "hybi" ) {
+      if ( $dimsInVar eq $dim    ) { $foundDims++; }
+    } else {
+      if ( $dimsInVar =~ m/$dim/ ) { $foundDims++; }
+    }
   }
 
   # %%%%% Check if $var has the right # of dimensions
@@ -653,6 +793,12 @@ sub analyzeVar($) {
     $msg  = qq/$sep $var:units is missing\n/;
     @BAD  = ( @BAD,  $msg );
   }
+
+  # Skip checking certain attributes for index variables that are
+  # automatically added to the netCDF file
+  if ( $var eq "hyai" || $var eq "hybi" ||
+       $var eq "hyam" || $var eq "hybm" ||
+       $var eq "AREA"                      ) { return( $? ); }
 
   # %%%%% Check the _FillValue attribute (optional)
   $value = $FillValue{$var};
@@ -731,50 +877,50 @@ sub analyzeGlobAtts() {
 
   # %%%%% Check Conventions
   if ( $conventions ne "" ) {
-    $msg  = qq/$sep Conventions:$conventions\n/; 
+    $msg  = qq/$sep conventions:$conventions\n/;
     @GOOD = ( @GOOD, $msg );
   } else { 
-    $msg  = qq/$sep The "Conventions" global attribute is missing\n/;
+    $msg  = qq/$sep The "conventions" global attribute is missing\n/;
     @BAD  = ( @BAD,  $msg );
   }
 
   # %%%%% Check History
   if ( $history ne "" ) {
-    $msg  = qq/$sep History:$history\n/; 
+    $msg  = qq/$sep history:$history\n/;
     @GOOD = ( @GOOD, $msg );
   } else { 
-    $msg  = qq/$sep The "History" global attribute is missing\n/;
+    $msg  = qq/$sep The "history" global attribute is missing\n/;
     @BAD  = ( @BAD,  $msg );
   }
 
   # %%%%% Check Title
   if ( $title ne ""  ) {
-    $msg  = qq/$sep Title:$title\n/; 
+    $msg  = qq/$sep title:$title\n/;
     @GOOD = ( @GOOD, $msg );
   } else { 
-    $msg  = qq/$sep The "Title" global attribute is missing\n/;
+    $msg  = qq/$sep The "title" global attribute is missing\n/;
     @BAD  = ( @BAD,  $msg );
   }
 
   #-------------------------------------------------------------------------
-  # Required global attributes: Format, References
+  # Required global attributes: Format, Reference or References
   #-------------------------------------------------------------------------
 
   # %%%%% Check Format
   if ( $format ne "" ) {
-    $msg  = qq/$sep Format:$format\n/; 
+    $msg  = qq/$sep format:$format\n/;
     @GOOD = ( @GOOD, $msg );
   } else { 
-    $msg  = qq/$sep Consider adding the "Format" global attribute\n/;
+    $msg  = qq/$sep Consider adding the "format" global attribute\n/;
     @OPT  = ( @OPT,  $msg );
   }
 
   # %%%%% Check References
   if ( $references ne "" ) {
-    $msg  = qq/$sep References:$references\n/; 
+    $msg  = qq/$sep references:$references\n/;
     @GOOD = ( @GOOD, $msg );
   } else {
-    $msg  = qq/$sep Consider adding the "References" global attribute\n/;
+    $msg  = qq/$sep Consider adding the "references" global attribute\n/;
     @OPT  = ( @OPT,  $msg );
   }
 
@@ -818,6 +964,7 @@ sub analyzeResults() {
   # Check variables
   foreach $var ( @vars ) {
     if    ( $var =~ m/[Tt][Ii][Mm][Ee]/ ) { &analyzeTime( $var ); }
+    elsif ( $var =~ m/[Ii][Ll][Ee][Vv]/ ) { &analyzeILev( $var ); }
     elsif ( $var =~ m/[Ll][Ee][Vv]/     ) { &analyzeLev ( $var ); }
     elsif ( $var =~ m/[Ll][Aa][Tt]/     ) { &analyzeLat ( $var ); }
     elsif ( $var =~ m/[Ll][Oo][Nn]/     ) { &analyzeLon ( $var ); }
@@ -906,6 +1053,7 @@ sub parseFile($) {
   my $inLon   = 0;
   my $inLat   = 0;
   my $inLev   = 0;
+  my $inILev  = 0;
   my $inTime  = 0;
 
   # Arrays
@@ -959,7 +1107,9 @@ sub parseFile($) {
       #--------------------------------------------------------------------
 
       # Variables are 
-      if ( $line =~ m/\(/ && $line =~ m/\)/ ) {
+      if ( $line =~ m/\(/ &&
+	   $line =~ m/\)/ &&
+	   !( $line =~ m/long_name/ || $line =~ m/standard_name/ ) ) {
 
 	# Get the variable name (first split on the "(", then on the space)
 	# and append to the list of variables
@@ -1085,7 +1235,7 @@ sub parseFile($) {
       }
 
       # References
-      if ( $line =~ m/:[Rr][Ee][Ff][Ee][Rr][Ee][Nn][Cc][Ee][Ss]/ ) { 
+      if ( $line =~ m/:[Rr][Ee][Ff][Ee][Rr][Ee][Nn][Cc][Ee]/ ) {
 	@result = split( /=/, $line );
 	$result[1] =~ s/\;//g;
 	$references = $result[1];
@@ -1097,25 +1247,34 @@ sub parseFile($) {
     #======================================================================
     if ( $inData ) {
 
-      # Save time values into a string
-      if ( $line =~ m/[Tt][Ii][Mm][Ee]/ ) { $inTime      =  1       }
-      if ( $inTime                      ) { $times      .= "$line"; } 
-      if ( $inTime && $line =~ m/;/     ) { $inTime      =  0;      }
+      # Take extra care to distinguish "ilev" from "lev"
+      if ( $line =~ m/[Ll][Ee][Vv]/ ) {
+	if ( $line =~ m/[Ii][Ll][Ee][Vv]/ ) { $inILev      = 1; $inLev  = 0; }
+	else                                { $inLev       = 1; $inILev = 0; }
+      }
 
-      # Save level values into a string
-      if ( $line =~ m/[Ll][Ee][Vv]/     ) { $inLev       =  1       }
-      if ( $inLev                       ) { $levels     .= "$line"; } 
-      if ( $inLev  && $line =~ m/;/     ) { $inLev       =  0;      }
+      # Save level interface values into a string
+      if ( $inILev                        ) { $iLevels    .= "$line";        }
+      if ( $inILev && $line =~ m/;/       ) { $inILev      =  0;             }
+
+      # Save level midpoint values into a string
+      if ( $inLev                         ) { $levels     .= "$line";        }
+      if ( $inLev  && $line =~ m/;/       ) { $inLev       =  0;             }
+
+      # Save time values into a string
+      if ( $line =~ m/[Tt][Ii][Mm][Ee]/   ) { $inTime      =  1              }
+      if ( $inTime                        ) { $times      .= "$line";        }
+      if ( $inTime && $line =~ m/;/       ) { $inTime      =  0;             }
 
       # Save latitude values into a string
-      if ( $line =~ m/[Ll][Aa][Tt]/     ) { $inLat       =  1       }
-      if ( $inLat                       ) { $latitudes  .= "$line"; } 
-      if ( $inLat  && $line =~ m/;/     ) { $inLat       =  0;      }
+      if ( $line =~ m/[Ll][Aa][Tt]/       ) { $inLat       =  1              }
+      if ( $inLat                         ) { $latitudes  .= "$line";        }
+      if ( $inLat  && $line =~ m/;/       ) { $inLat       =  0;             }
 
       # Save longitude values into a string
-      if ( $line =~ m/[Ll][Oo][Nn]/     ) { $inLon       =  1       }
-      if ( $inLon                       ) { $longitudes .= "$line"; } 
-      if ( $inLon  && $line =~ m/;/     ) { $inLon       =  0;      }
+      if ( $line =~ m/[Ll][Oo][Nn]/       ) { $inLon       =  1              }
+      if ( $inLon                         ) { $longitudes .= "$line";        }
+      if ( $inLon  && $line =~ m/;/       ) { $inLon       =  0;             }
     }
   }
 
@@ -1129,6 +1288,14 @@ sub parseFile($) {
     $times      =  $result[1];
     $times      =~ s/ //g;
     $times      =~ s/;//g;
+  }
+
+  # Remove extra characters from the iLevels string
+  if ( $iLevels ne "" ) {
+    @result     =  split( /=/, $iLevels );
+    $iLevels    =  $result[1];
+    $iLevels    =~ s/ //g;
+    $iLevels    =~ s/;//g;
   }
   
   # Remove extra characters from the levels string
