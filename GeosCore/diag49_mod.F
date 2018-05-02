@@ -361,10 +361,9 @@
       ! DIAG49 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Assume success
       RC            =  GC_SUCCESS
-
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Number of advected species
       nAdvect       = State_Chm%nAdvect
@@ -1932,12 +1931,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC

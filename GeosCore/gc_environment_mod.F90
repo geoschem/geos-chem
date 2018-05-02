@@ -195,8 +195,7 @@ CONTAINS
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
                         value_LLTROP   = 40,              &
-                        value_LLSTRAT  = LLSTRAT,         &
-                        RC             = RC              )
+                        value_LLSTRAT  = LLSTRAT )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

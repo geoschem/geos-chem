@@ -521,12 +521,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC

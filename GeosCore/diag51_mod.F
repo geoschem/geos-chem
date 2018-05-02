@@ -1414,8 +1414,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       LOGICAL  :: ITS_TIME
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       REAL(fp) :: TAU, HOUR, DYN, TS_DIAG
 
       !=================================================================
@@ -2161,12 +2161,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC
