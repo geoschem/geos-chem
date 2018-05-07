@@ -304,9 +304,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
+    CHARACTER(LEN=5  )     :: TmpWL
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
-    INTEGER                :: N, IM, JM, LM
+
+    ! Scalars
+    INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
     INTEGER                :: nHygGrth
@@ -321,6 +324,7 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
+    TmpWL     = ''
 
     ! Save shadow variables from Input_Opt
     Is_UCX    = Input_Opt%LUCX
@@ -1660,7 +1664,8 @@ CONTAINS
        ! Dust Optical Depth per bin at 1st wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL1'
-       diagID  = 'AODDust' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1678,7 +1683,8 @@ CONTAINS
        ! Dust Optical Depth per bin at 2nd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL2'
-       diagID  = 'AODDust' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1696,7 +1702,8 @@ CONTAINS
        ! Dust Optical Depth per bin at 3rd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL3' 
-       diagID  = 'AODDust' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1714,7 +1721,8 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL1'
-       diagID  = 'AODHyg' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL1', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1731,7 +1739,8 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL2'
-       diagID  =  'AODHyg' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2) 
+       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL2', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1748,7 +1757,8 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL3'
-       diagID  =  'AODHyg' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3) 
+       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL3', Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -1765,7 +1775,8 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL1'
-       diagID  = 'AODSOAfromAqIsoprene' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List,  &
                             'AODSOAfromAqIsopreneWL1', Found, RC )
        IF ( Found ) THEN
@@ -1784,7 +1795,8 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL2'
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM(RadWL(2)) // 'nm'
+       TmpWl   = RadWL(2)
+       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODSOAfromAqIsopreneWL2', Found, RC )
        IF ( Found ) THEN
@@ -1803,7 +1815,8 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL3'
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM(RadWL(3)) // 'nm'
+       TmpWl   = RadWL(3)
+       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODSOAfromAqIsopreneWL3', Found, RC )
        IF ( Found ) THEN
@@ -1822,7 +1835,8 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL1', Found, RC )
        IF ( Found ) THEN
@@ -1840,7 +1854,8 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL2', Found, RC )
        IF ( Found ) THEN
@@ -1858,7 +1873,8 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL3', Found, RC )
        IF ( Found ) THEN
@@ -1876,7 +1892,8 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL1'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL1', Found, RC )
        IF ( Found ) THEN
@@ -1893,7 +1910,8 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL2'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL2', Found, RC )
        IF ( Found ) THEN
@@ -1911,7 +1929,8 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL3'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL3', Found, RC )
        IF ( Found ) THEN
@@ -2398,11 +2417,14 @@ CONTAINS
              CASE( 3  ) 
                 diagID = 'AODDust'
              CASE( 4  ) 
-                diagID = 'AODDust' // TRIM( RadWL(1) ) // 'nm'
+                TmpWL  = RadWL(1)
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 5  ) 
-                diagID = 'AODDust' // TRIM( RadWL(2) ) // 'nm'
+                TmpWL  = RadWL(2) 
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 6  )                
-                diagID = 'AODDust' // TRIM( RadWL(3) ) // 'nm'
+                TmpWL  = RadWL(3)
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 7  )                
                 diagID = 'ProdSO4fromH2O2inCloud'
              CASE( 8  )                
@@ -3576,6 +3598,7 @@ CONTAINS
     LOGICAL            :: isVLoc,  isTagged, isType
 
     ! Strings
+    CHARACTER(LEN=5  ) :: TmpWL
     CHARACTER(LEN=255) :: ThisLoc, Name_AllCaps
     CHARACTER(LEN=512) :: ErrMsg
 
