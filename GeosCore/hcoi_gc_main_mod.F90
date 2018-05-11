@@ -134,7 +134,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
 ! types and arrays. The HEMCO configuration is read from the HEMCO 
-! configuration file (as listed in Input_Opt%HcoConfigFile) and stored in 
+! configuration file (as listed in Input\_Opt%HcoConfigFile) and stored in 
 ! the HEMCO configuration object. The entire HEMCO setup is based upon the
 ! entries in the HEMCO configuration object. It is possible to explicitly 
 ! provide a (previously read) HEMCO configuration object via input argument 
@@ -1291,7 +1291,7 @@ CONTAINS
 !\\
 !\\
 ! Fields from the HEMCO data list are given priority over the target fields from
-! Met\_State, Chm\_State, etc. For example, if the HEMCO data list contains 
+! State\_Met, State\_Chm, etc. For example, if the HEMCO data list contains 
 ! a field named 'U10M', this field will be used in ExtState%U10M in lieu of
 ! State\_Met%U10M. 
 !\\  

@@ -1785,6 +1785,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETGLYX
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMGLY
@@ -1868,6 +1870,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMGLY
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1968,6 +1972,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETIEPOX
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2080,6 +2086,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETIMAE
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetLVOC
@@ -2154,6 +2162,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETLVOC
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetISN1OG
@@ -2227,6 +2237,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETISN1OG
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2305,6 +2317,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETISOPND
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetISOPNB
@@ -2381,6 +2395,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETISOPNB
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2459,6 +2475,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETMACRN
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMVKN
@@ -2535,6 +2553,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMVKN
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2613,6 +2633,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETR4N2
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetDHDN
@@ -2690,6 +2712,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETDHDN
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMONITS
@@ -2763,6 +2787,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMONITS
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2838,6 +2864,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETMONITU
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetHONIT
@@ -2911,6 +2939,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETHONIT
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2987,6 +3017,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETIONITA
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -4390,10 +4422,7 @@ MODULE GCKPP_HETRATES
 !
       FUNCTION GAMMA_HOBr_X( Radius, n_air, X, T, C_Y, C_Hp ) RESULT( GAM )  
 !
-! !USES:
-!
-!
-! !OUTPUT PARAMETER:
+! !OUTPUT PARAMETERS:
       ! Reactive uptake coefficient (unitless)
       REAL(fp)                       :: GAM
 !
@@ -4473,13 +4502,17 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gamma_HOBr_cld
+!
+! !DESCRIPTION: Returns GAMMA for HOBr in clouds (need better description)
+!\\
+!\\
+! !INTERFACE:
+!
     SUBROUTINE GAMMA_HOBr_CLD( Radius, n_air, X, T, C_Y1, C_Y2, &
                                C_Y3, C_Y4, C_Hp, GAM_HOBr, r_gp )
 !
-! !USES:
-!
-!
-! !OUTPUT PARAMETER:
+! !OUTPUT PARAMETERS:
       ! Reactive uptake coefficient (unitless)
       REAL(fp), INTENT(OUT)          :: GAM_HOBr, r_gp
 !
@@ -4604,6 +4637,13 @@ MODULE GCKPP_HETRATES
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
+!
+! !IROUTINE: gamma_HOBr_aer
+!
+! !DESCRIPTION: Returns GAMMA for HOBr in aerosol? (need better description)
+!\\
+!\\!
+! !INTERFACE:
 !
     SUBROUTINE GAMMA_HOBr_AER( Radius, n_air, X, T, C_Y1, C_Y2, &
                                C_Hp, GAM_HOBr, r_gp )
@@ -4762,8 +4802,7 @@ MODULE GCKPP_HETRATES
 ! !IROUTINE: COTH
 !
 ! !DESCRIPTION: COTH (Hyperbolic cotangent)
-! !             coth(x) = cosh(x)/sinh(x) = (1 + exp(-2x))/(1 - exp(-2x))
-!
+!               coth(x) = cosh(x)/sinh(x) = (1 + exp(-2x))/(1 - exp(-2x))
 !\\
 !\\
 ! !INTERFACE:
@@ -4799,12 +4838,11 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: REACTODIFF_CORR
 !
-! !DESCRIPTION: REACTODIFF_CORR 
-! !    Correction =  COTH( x ) - ( 1/x )
-! !             x = radius / l
-! !    Correction approaches 1 as x becomes large, corr(x>1000)~1
-! !    Correction approaches x/3 as x goes towards 0
-!
+! !DESCRIPTION: REACTODIFF\_CORR 
+!     Correction =  COTH( x ) - ( 1/x )
+!              x = radius / l
+!     Correction approaches 1 as x becomes large, corr(x>1000)~1
+!     Correction approaches x/3 as x goes towards 0
 !\\
 !\\
 ! !INTERFACE:
@@ -5860,8 +5898,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Cld_Params
 !
-! !DESCRIPTION: Subroutine CLD_PARAMS returns ice and liquid cloud 
-!  parameters based on State_Met.off of cloud particles.
+! !DESCRIPTION: Subroutine CLD\_PARAMS returns ice and liquid cloud 
+!  parameters based on State\_Met off of cloud particles.
 !\\
 !\\
 ! !INTERFACE:
@@ -6076,8 +6114,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Get_Halide_CldConc
 !
-! !DESCRIPTION: Subroutine GET_HALIDE_CLDCONC returns the in-cloud concentration
-!  of bromide and chloride (Br- and Cl-).
+! !DESCRIPTION: Subroutine GET\_HALIDE\_CLDCONC returns the in-cloud 
+!  concentration of bromide and chloride (Br- and Cl-).
 !\\
 !\\
 ! !INTERFACE:
@@ -6210,8 +6248,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Compute_L2G_Local
 !
-! !DESCRIPTION: Subroutine COMPUTE_L2G_LOCAL is a local copy of the liquid-gas
-!  partitioning routine in GEOS-Chem's wetscav_mod.F file.
+! !DESCRIPTION: Subroutine COMPUTE\_L2G\_LOCAL is a local copy of the 
+!  liquid-gas partitioning routine in GEOS-Chem's wetscav\_mod.F file.
 !\\
 !\\
 ! !INTERFACE:

@@ -1971,7 +1971,7 @@
 !                                                                              
 ! !DESCRIPTION: Function GET\_HGCL\_RATE computes the effective 1st order      
 !  conversion rate of Hg(0) to Hg(II) initiated by Cl and 2nd step with Cl,    
-!  OH, NO2, HO2, ClO, & BrO. hmh 11/21/14 copied from get_hgbry_rate.          
+!  OH, NO2, HO2, ClO, and BrO. hmh 11/21/14 copied from get\_hgbry\_rate.
 !\\                                                                            
 !\\                                                                            
 ! !INTERFACE:                                                                  
@@ -2182,8 +2182,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !                                                                              
 ! !DESCRIPTION: Function GET\_HGBRY\_RATE computes the effective 1st order     
 !  conversion rate of Hg(0) to Hg(II) via two-step recombination with Br       
-!  OH, NO2, HO2, ClO, & BrO.  hmh 6/4/14 based on eds 5/2/13, modified         
-! for consistency with GET_HGBR_RATE.                                          
+!  OH, NO2, HO2, ClO, and BrO.  hmh 6/4/14 based on eds 5/2/13, modified
+! for consistency with GET\_HGBR\_RATE.
 !\\                                                                            
 !\\                                                                            
 ! !INTERFACE:        

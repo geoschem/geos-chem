@@ -3548,7 +3548,7 @@ CONTAINS
 ! !IROUTINE: Get_Metadata_State_Diag
 !
 ! !DESCRIPTION: Subroutine GET\_METADATA\_STATE\_DIAG retrieves basic 
-!  information about each State_Diag field.
+!  information about each State\_Diag field.
 !\\
 !\\
 ! !INTERFACE:
@@ -4631,7 +4631,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_2D
 !
-! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -4800,7 +4800,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_3D
 !
-! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -4976,7 +4976,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_4D
 !
-! !DESCRIPTION: Registers a 4-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 4-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5125,7 +5125,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_Rfp_3D
 !
-! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5299,7 +5299,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R8_4D
 !
-! !DESCRIPTION: Registers a 4-dimensional, 8-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 4-dimensional, 8-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.  
 !\\
 !\\

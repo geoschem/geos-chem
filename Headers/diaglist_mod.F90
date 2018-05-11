@@ -9,13 +9,13 @@
 !  and subroutines used for reading and storing user-configured diagnostic
 !  information from the history configuration file, specifically names
 !  and information derived from the names. The diagnostics list is
-!  used to allocate diagnostics stored in container State_Diag and to 
+!  used to allocate diagnostics stored in container State\_Diag and to 
 !  declare exports in GCHP. It does not store collection information. A
 !  module-level collection list containing names all collections that
 !  are declared in HISTORY.rc with names not commented out is also in
 !  this module. This is used to prevent adding diagnostics to the 
 !  diagnostic list that are in collections not turned on in HISTORY.rc,
-!  thereby preventing their analogous State_Diag array initialization 
+!  thereby preventing their analogous State\_Diag array initialization 
 !  in GEOS-Chem.
 ! 
 ! !INTERFACE:
@@ -127,9 +127,9 @@ CONTAINS
 !\\
 !\\
 !  NOTE: This routine has to be called before any of the GEOS-Chem objects
-!  Input_Opt, State_Chm, State_Met, and State_Diag are created.  When using
+!  Input\_Opt, State\_Chm, State\_Met, and State\_Diag are created. When using
 !  GCHP, we must create the ESMF/MAPL export objects for the diagnostics
-!  in the Set_Services routine.  Set_Services is called before GEOS-Chem
+!  in the Set\_Services routine.  Set\_Services is called before GEOS-Chem
 !  is initialized.
 !\\
 !\\
@@ -1257,7 +1257,7 @@ CONTAINS
 !
 ! !IROUTINE: Print_DiagList 
 !
-! !DESCRIPTION: Subroutine Print_DiagList prints information for all
+! !DESCRIPTION: Subroutine Print\_DiagList prints information for all
 !  DiagItem members in a DiagList linked list.
 !\\
 !\\
@@ -1333,7 +1333,7 @@ CONTAINS
 !
 ! !IROUTINE: Print_ColList 
 !
-! !DESCRIPTION: Subroutine Print_ColList prints information for all
+! !DESCRIPTION: Subroutine Print\_ColList prints information for all
 !  ColItem members in a ColList linked list.
 !\\
 !\\
@@ -1397,7 +1397,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_DiagList 
 !
-! !DESCRIPTION: Subroutine Cleanup_DiagList deallocates a DiagList
+! !DESCRIPTION: Subroutine Cleanup\_DiagList deallocates a DiagList
 !  object and all of its member objects including the linked list of
 !  DiagItem objects.
 !\\
@@ -1462,7 +1462,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_ColList 
 !
-! !DESCRIPTION: Subroutine Cleanup_ColList deallocates a ColList
+! !DESCRIPTION: Subroutine Cleanup\_ColList deallocates a ColList
 !  object and all of its member objects including the linked list of
 !  ColItem objects.
 !\\

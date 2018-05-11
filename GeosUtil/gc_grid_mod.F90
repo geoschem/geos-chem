@@ -1635,7 +1635,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_Grid
 !
-! !DESCRIPTION: Subroutine CLEANUP\__GRID deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_GRID deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:

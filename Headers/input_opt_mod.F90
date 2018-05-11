@@ -1294,7 +1294,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_ADVECT intializes all GEOS-Chem
 !  options carried in Input Options derived type object that depend on
-!  the number of advected species (Input_Opt%N_ADVECT).
+!  the number of advected species (Input\_Opt%N_ADVECT).
 !\\
 !\\
 ! !INTERFACE:
@@ -1392,7 +1392,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_PASSIVE intializes all GEOS-Chem
 !  options carried in Input Options derived type object that depend on
-!  the number of passive species (Input_Opt%N_PASSIVE).
+!  the number of passive species (Input\_Opt%N_PASSIVE).
 !\\
 !\\
 ! !INTERFACE:

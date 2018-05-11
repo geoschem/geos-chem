@@ -10,7 +10,6 @@
 ! The emission is parameterised herein using online feilds for O3, 10 metre
 ! wind speed, and ocean surface iodide concentration (parameterised from
 ! STT following Chance et al (2014)).
-!
 !\\
 !\\
 ! This is a HEMCO extension module that uses many of the HEMCO core
@@ -65,8 +64,6 @@ MODULE HCOX_Iodine_Mod
    REAL*8,  PARAMETER   :: MWT_HOI = 1.44d-1
 
 CONTAINS
-
-
 !EOC
 !-------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !

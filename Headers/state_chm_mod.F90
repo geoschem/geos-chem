@@ -1530,7 +1530,7 @@ CONTAINS
 ! !IROUTINE: Get_Metadata_State_Chm
 !
 ! !DESCRIPTION: Subroutine GET\_METADATA\_STATE\_CHM retrieves basic 
-!  information about each State_Chm field.
+!  information about each State\_Chm field.
 !\\
 !\\
 ! !INTERFACE:
@@ -2051,7 +2051,7 @@ CONTAINS
 ! !IROUTINE: Register_ChmField_R4_3D
 !
 ! !DESCRIPTION: Registers a 3-dimensional, 4-byte floating point array field
-!  of the State_Chm object.  This allows the diagnostic modules get a pointer
+!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
 !  to the field by searching on the field name.
 !\\
 !\\
@@ -2175,7 +2175,7 @@ CONTAINS
 ! !IROUTINE: Register_ChmField_Rfp_3D
 !
 ! !DESCRIPTION: Registers a 3-dimensional, flexible-precision array field
-!  of the State_Chm object.  This allows the diagnostic modules get a pointer
+!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
 !  to the field by searching on the field name.
 !\\
 !\\
@@ -2297,7 +2297,7 @@ CONTAINS
 ! !IROUTINE: Register_ChmField_Rfp_4D
 !
 ! !DESCRIPTION: Registers a 4-dimensional, flexible-precision array field
-!  of the State_Chm object.  This allows the diagnostic modules get a pointer
+!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
 !  to the field by searching on the field name.
 !\\
 !\\
@@ -2607,8 +2607,8 @@ CONTAINS
 ! !IROUTINE: GetNumProdLossSpecies
 !
 ! !DESCRIPTION: Saves the number of production and loss diagnostic species
-!  in the State_Chm\%nProdLoss variable.  This will be used to set up the
-!  State_Chm\%Map_ProdLoss species index vector.
+!  in the State\_Chm\%nProdLoss variable.  This will be used to set up the
+!  State\_Chm\%Map\_ProdLoss species index vector.
 !\\
 !\\
 ! !INTERFACE:
@@ -2718,7 +2718,7 @@ CONTAINS
 ! !IROUTINE: MapProdLossSpecies
 !
 ! !DESCRIPTION: Stores the ModelId (from the GEOS-Chem Species Database) of
-!  each prod/loss diagnostic species in the State_Chm\%Map_ProdLoss vector.
+!  each prod/loss diagnostic species in the State\_Chm\%Map\_ProdLoss vector.
 !\\
 !\\
 ! !INTERFACE:

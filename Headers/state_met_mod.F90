@@ -2182,7 +2182,7 @@ CONTAINS
 ! !IROUTINE: Get_Metadata_State_Met
 !
 ! !DESCRIPTION: Subroutine GET\_METDATA\_STATE\_MET retrieves basic 
-!  information about each State_Met field.
+!  information about each State\_Met field.
 !\\
 !\\
 ! !INTERFACE:
