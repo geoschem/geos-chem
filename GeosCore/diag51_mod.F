@@ -1320,7 +1320,12 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-            ELSE IF ( N == 538 ) THEN
+!-----------------------------------------------------------------------------
+! Prior to 5/11/18:
+! Only archive ISOPRENE AOD for Complex SOA (bmy, 5/11/18)
+!            ELSE IF ( N == 538 ) THEN
+!-----------------------------------------------------------------------------
+            ELSE IF ( N == 538 .and. Input_Opt%LSOA ) THEN
 
                !--------------------------------------
                ! ISOPRENE AOD @ jv_spec_aod.dat wavelength [unitless]
