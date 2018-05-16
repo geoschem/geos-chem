@@ -432,7 +432,7 @@ ifdef DEVEL
 endif
 
 # %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
-ifdef NEST}
+ifdef NEST
   BPCH_TPBC          :=yes
 endif
 
@@ -843,12 +843,6 @@ ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNO_ISORROPIA
 endif
 
-# Specify year of tagged O3 prod/loss data
-# NOTE: THIS IS OBSOLETE W/ HEMCO! (bmy, 11/21/14)
-ifdef TAGO3YR
-  USER_DEFS          += -DUSE_THIS_O3_YEAR=$(TAGO3YR)
-endif
-
 #------------------------------------------------------------------------------
 # Performance profiling
 #------------------------------------------------------------------------------
@@ -1177,12 +1171,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
     FFLAGS           += -pg
   endif
 
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
-  endif
-
   # Add flexible precision declaration
   ifeq ($(PRECISION),8)
     USER_DEFS        += -DUSE_REAL8
@@ -1304,12 +1292,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
     FFLAGS           += -p
   endif
 
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
-  endif
-
   # Add flexible precision declaration
   ifeq ($(PRECISION),8)
     USER_DEFS        += -DUSE_REAL8
@@ -1405,12 +1387,6 @@ ifeq ($(COMPILER_FAMILY),PGI)
   # Compile for use with the GNU profiler (gprof), if necessary
   ifeq ($(IS_GPROF),1) 
     FFLAGS           += -pg
-  endif
-
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
   endif
 
   # Turn on checking for floating-point exceptions
