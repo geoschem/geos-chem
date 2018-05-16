@@ -618,14 +618,14 @@
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 #if     defined( GEOS_FP ) || defined( MERRA2 )
 #if     defined( GRID4x5 )
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
 #elif   defined( GRID2x25 ) 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
 #endif
 #else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 7.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
 #endif
 
       ! Set of Hg/Br rate constants to use
@@ -4405,7 +4405,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Impose a diurnal variation on HO2 during the day                    
          HO2_VV = HEM_HO2                               *          
      &                  ( State_Met%SUNCOS(I,J) / TCOSZ(I,J)    ) *
-     &                  ( 1440e0_fp             / GET_TS_CHEM() )
+     &                  ( 86400e0_fp             / GET_TS_CHEM() )
 
        ! Make sure HO2 is not negative                                        
          HO2_VV = MAX( HO2_VV, 0e0_fp )
@@ -5304,7 +5304,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! TTDAY is the total daylight time at location (I,J)
                IF ( SUNTMP(I,J) > 0e+0_fp ) THEN
                   TTDAY(I,J) = TTDAY(I,J) + DBLE( GET_TS_CHEM() ) 
-     &                         * 60e+0_fp
+     &                         / 60e+0_fp
                ENDIF
             ENDDO
             ENDDO
@@ -5959,7 +5959,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ENDDO
 
             ! Emission timestep [s]
-      DTSRCE = GET_TS_EMIS() * 60e0_fp
+      DTSRCE = GET_TS_EMIS()
 
       STT => State_Chm%Species
          
@@ -6677,7 +6677,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LPOLARBR=.FALSE.
 
       ! Switch for only doing reduction in cloud water
-      LRED_CLOUDONLY = .FALSE.
+      LRED_CLOUDONLY = .TRUE.
 
       ! Switches for new reduction parameterization
       LRED_JNO2=.TRUE. ! Make propto JNO2 otherwise [OH]
