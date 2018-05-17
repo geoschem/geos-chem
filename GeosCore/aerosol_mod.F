@@ -946,7 +946,7 @@
          IF ( Is_SimpleSOA ) THEN
             OCPISOA(I,J,L) = 
      &        ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) +
-     &          Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
+     &          Spc(I,J,L,id_SOAS)                  ) / AIRVOL(I,J,L)
 
          ELSEIF ( Is_ComplexSOA ) THEN
 
@@ -979,8 +979,11 @@
          ENDIF
 
          ! Add mechanistic isoprene OA (eam, 08/2015)
-         OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
-                  
+         ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
+         IF ( Is_ComplexSOA ) THEN
+            OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
+         ENDIF
+
          ! Now avoid division by zero (bmy, 4/20/04)
          OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
 
