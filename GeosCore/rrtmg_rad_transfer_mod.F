@@ -73,6 +73,7 @@
 !                              allow for change from IIPAR*JJPAR to IIPAR,JJPAR
 !  27 Jun 2016 - R. Yantosca - Now save species ID's in module variables
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  18 May 2018 - C. Holmes   - Unit fix for gas concentrations
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -502,9 +503,11 @@
       ! Assume success
       RC = GC_SUCCESS
 
-      ! Convert species units to [kg] for RRTMG (ewl, 8/12/15)
+      ! Convert species units to kg/kg dry for RRTMG 
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+     &                        State_Chm, 'kg/kg dry', RC, 
+     &                        OrigUnit=OrigUnit )
+
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC,     
      &                 'DO_RRTMG_RAD_TRANSFER')
@@ -750,40 +753,35 @@
             !--------------------------------------------------------
 
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)*AIRMW /
-     &                       ( State_Chm%SpcData(id_O3)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
+     &                       State_Chm%SpcData(id_O3)%Info%emMW_g
+
             ENDIF
 
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
              CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
-     &                       ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+     &                       State_Chm%SpcData(id_CH4)%Info%emMW_g
+
             ENDIF
 
             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
-     &                       ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+     &                      State_Chm%SpcData(id_N2O)%Info%emMW_g
 
             CFC11VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC11) *
      &                        AIRMW / 
-     &                       ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+     &                        State_Chm%SpcData(id_CFC11)%Info%emMW_g
 
             CFC12VMR(I,J,L) = State_Chm%Species(I,J,L,id_CFC12) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+     &                        State_Chm%SpcData(id_CFC12)%Info%emMW_g
 
             CCL4VMR(I,J,L)  = State_Chm%Species(I,J,L,id_CCL4) *
      &                        AIRMW / 
-     &                       ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
-     &                         State_Met%AD(I,J,L) )
+     &                        State_Chm%SpcData(id_CCL4)%Info%emMW_g
 
             CFC22VMR(I,J,L) = State_Chm%Species(I,J,L,id_HCFC22) *
      &                        AIRMW /
-     &                       ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g*
-     &                         State_Met%AD(I,J,L) )
+     &                        State_Chm%SpcData(id_HCFC22)%Info%emMW_g
 
          ELSE
 
@@ -792,12 +790,12 @@
             !--------------------------------------------------------
 
             IF (SPECMASK(NASPECRAD+1).EQ.1) THEN
-             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3)/
-     &                          State_Met%AIRNUMDEN(I,J,L)
+             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) *
+     &                  AIRMW / State_Chm%SpcData(id_O3)%Info%emMW_g
             ENDIF
             IF (SPECMASK(NASPECRAD+2).EQ.1) THEN
-             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4)/
-     &                          State_Met%AIRNUMDEN(I,J,L)
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) *
+     &                  AIRMW / State_Chm%SpcData(id_CH4)%Info%emMW_g
             ENDIF
             N2OVMR(I,J,L) = N2OCLIM(I,J,L)/1E9
 
@@ -822,32 +820,25 @@
             !N.B. STRAT CH4 NOT CURRENTLY INCLUDED IN THE DRE OF CH4
             !N.B. STRAT O3  NOT CURRENTLY INCLUDED IN THE DRE OF O3
             O3VMR(I,J,L)  = State_Chm%Species(I,J,L,id_O3) * AIRMW /
-     &                      ( State_Chm%SpcData(id_O3)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )  
- 
-            CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
-     &                      ( State_Chm%SpcData(id_CH4)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                       State_Chm%SpcData(id_O3)%Info%emMW_g
+
+             CH4VMR(I,J,L) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                       State_Chm%SpcData(id_CH4)%Info%emMW_g
 
             N2OVMR(I,J,L) = State_Chm%Species(I,J,L,id_N2O) * AIRMW /
-     &                      ( State_Chm%SpcData(id_N2O)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                      State_Chm%SpcData(id_N2O)%Info%emMW_g
 
             CFC11VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC11) * AIRMW /
-     &                      ( State_Chm%SpcData(id_CFC11)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                       State_Chm%SpcData(id_CFC11)%Info%emMW_g
 
             CFC12VMR(I,J,L) =State_Chm%Species(I,J,L,id_CFC12) * AIRMW /
-     &                      ( State_Chm%SpcData(id_CFC12)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                       State_Chm%SpcData(id_CFC12)%Info%emMW_g
 
             CCL4VMR(I,J,L)  =State_Chm%Species(I,J,L,id_CCL4) * AIRMW /
-     &                      ( State_Chm%SpcData(id_CCL4)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                       State_Chm%SpcData(id_CCL4)%Info%emMW_g
 
             CFC22VMR(I,J,L) =State_Chm%Species(I,J,L,id_HCFC22) * AIRMW/
-     &                      ( State_Chm%SpcData(id_HCFC22)%Info%emMW_g *
-     &                        State_Met%AD(I,J,L) )   
+     &                       State_Chm%SpcData(id_HCFC22)%Info%emMW_g
 
 
 ! TEST IMPACT OF STRAT CHEM
@@ -883,9 +874,9 @@
             !GET SCALINGS IF THIS IS THE FIRST LEVEL IN THE STRAT
             IF (FLG_FIRST_STRAT(I,J).EQ.0) THEN
                 FLG_FIRST_STRAT(I,J) = 1
-                CH4SCL(I,J) = (State_Chm%Species(I,J,L,id_CH4)/
-     &                            State_Met%AIRNUMDEN(I,J,L))/
-     &                           (CH4CLIM(I,J,L)/1E9)
+                CH4SCL(I,J) = State_Chm%Species(I,J,L,id_CH4) * AIRMW /
+     &                        State_Chm%SpcData(id_CH4)%Info%emMW_g /
+     &                        (CH4CLIM(I,J,L)/1E9)
             ENDIF
             
             !TES PROFILES INTERPOLATED TO GC GRID WHEN SAVED
