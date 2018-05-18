@@ -2938,6 +2938,7 @@ CONTAINS
 !  15 Jun 2012 - C. Keller   - Initial version
 !  10 May 2017 - R. Yantosca - Don't manually increment vId, it's returned
 !                              as an output from NCDEF_VARIABLE
+!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3025,7 +3026,7 @@ CONTAINS
 
     ! Define time dimension
     v_name = "time"
-    CALL NcDef_Dimension( fId, TRIM(v_name), ntime, id_time )
+    CALL NcDef_Dimension( fId, TRIM(v_name), ntime, id_time, unlimited=.true. )
 
     !--------------------------------
     ! VARIABLE: lon
@@ -3415,6 +3416,7 @@ CONTAINS
 !                               create the iLev dimension (level interfaces)
 !  24 Jan 2018 - R. Yantosca - Add update frequency as an optional global attr
 !  31 Jan 2018 - R. Yantosca - Add StartTimeStamp, EndTimeStamp arguments
+!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3560,7 +3562,7 @@ CONTAINS
     !=======================================================================
 
     ! Time
-    CALL NcDef_Dimension( fId, 'time', nTime, TimeId ) 
+    CALL NcDef_Dimension( fId, 'time', nTime, TimeId, unlimited=.true. ) 
 
     ! Level midpoints
     IF ( nLev > 0 ) THEN
