@@ -2035,13 +2035,12 @@ CONTAINS
     ! Note: the OTD-LIS scale factor will be determined during run time
     ! as it requires the current time information.
 
-    ! Check for usage of convective fractions. This is 'on' by default
-    ! but becomes only active if both the convective fraction and the
-    ! buoyancy field are available.
+    ! Check for usage of convective fractions. This becomes only active 
+    ! if both the convective fraction and the buoyancy field are available.
     CALL GetExtOpt( HcoState%Config, ExtNr, 'Use CNV_FRC', &
                      OptValBool=Inst%LCNVFRC, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND ) Inst%LCNVFRC = .TRUE. 
+    IF ( .NOT. FOUND ) Inst%LCNVFRC = .FALSE. 
 
     ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
     ! flash rates (where available) are used instead of the computed flash
@@ -2181,10 +2180,12 @@ CONTAINS
     ExtState%TROPP%DoUse   = .TRUE.
     ExtState%CNV_MFC%DoUse = .TRUE.
     ExtState%CNV_FRC%DoUse = .TRUE.
-    ExtState%BYNCY%DoUse   = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
-    ExtState%LFR%DoUse     = .TRUE.
+
+    ! Only activate BYNCY and LFR if they are needed
+    IF ( Inst%LCNVFRC .OR. Inst%LLFR ) ExtState%BYNCY%DoUse = .TRUE.
+    IF ( Inst%LLFR ) ExtState%LFR%DoUse = .TRUE.
 
     ! Cleanup
     Inst => NULL()
