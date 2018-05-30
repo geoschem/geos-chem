@@ -1528,7 +1528,7 @@
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_TPBC )
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
             IF ( LWINDO ) THEN
