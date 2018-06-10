@@ -31,10 +31,22 @@
 !    --> Scaling\_CH4\_NA   :       1.10
 !    --> ScaleField\_CH4\_NA:       NAFIELD
 !    --> ScaleField\_CH4\_EU:       EUFIELD 
+!    --> Cat\_Wetlands      :       1
+!    --> Cat\_Rice          :       2
 !
 ! The fields NAFIELD and EUFIELD must be defined in the base emission section of 
 ! the HEMCO configuration file. You can apply any scale factors/masks to that
 ! field.
+!\\
+!\\
+! Wetland and rice emissions are now emitted as separate emission categories.
+! Default category is 1 for wetland emissions and 2 for rice emissions. These
+! categories can be changed in the CH4\_WETLANDS definitions of the HEMCO
+! configuration file (see above). In combination with the ExtNr (121), these
+! categories can then be used in the HEMCO diagnostics file to output wetland
+! and rice emissions separately, e.g.:
+! CH4_WETL 121 1 -1 2 kg/m2/s 
+! CH4_RICE 121 2 -1 2 kg/m2/s 
 !\\
 !\\
 ! References:
@@ -79,6 +91,7 @@ MODULE HCOX_CH4WETLAND_Mod
 !                              scale factors and mask regions.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, MERRA
+!  30 Apr 2018 - C. Keller   - Add categories for wetlands and rice
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -88,6 +101,8 @@ MODULE HCOX_CH4WETLAND_Mod
   TYPE :: MyInst
    INTEGER                        :: Instance
    INTEGER                        :: ExtNr
+   INTEGER                        :: CatWetland
+   INTEGER                        :: CatRice 
    LOGICAL                        :: DoWetland 
    LOGICAL                        :: DoRice
    LOGICAL                        :: DoDiagn
@@ -148,8 +163,9 @@ CONTAINS
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  11 Sep 2014 - C. Keller - Initial version
+!  11 Sep 2014 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Apr 2018 - C. Keller   - Rice and wetland emissions now have separate categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -274,11 +290,13 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Total CH4 emissions [kg/m2/s]
-    CH4wtl = CH4wtl + CH4rce 
+!    ! Total CH4 emissions [kg/m2/s]
+!    CH4wtl = CH4wtl + CH4rce 
 
     ! Add flux to all species, eventually apply scaling & masking
     DO N = 1, Inst%nSpc
+
+       ! --- Wetland emissions
 
        ! Apply scale factor
        CH4tmp = CH4wtl * Inst%SpcScal(N)
@@ -289,8 +307,21 @@ CONTAINS
 
        ! Add emissions 
        CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
-                          ExtNr=Inst%ExtNr )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+                          ExtNr=Inst%ExtNr, Cat=Inst%CatWetland )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! --- Rice emissions
+       ! Apply scale factor
+       CH4tmp = CH4rce * Inst%SpcScal(N)
+
+       ! Check for masking
+       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Add emissions 
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
+                          ExtNr=Inst%ExtNr, Cat=Inst%CatRice )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO 
 
     ! Leave w/ success
@@ -690,6 +721,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Apr 2018 - C. Keller   - Rice and wetland emissions now have separate categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -697,7 +729,8 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: ExtNr, N, AS
+    INTEGER                        :: ExtNr, N, AS, DUM
+    LOGICAL                        :: FOUND
     CHARACTER(LEN=255)             :: MSG
     TYPE(MyInst), POINTER          :: Inst
 
@@ -775,14 +808,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! See if wetland and rice categories are given
+    Inst%CatWetland = 1
+    Inst%CatRice    = 2
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetlands', & 
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) Inst%CatWetland = Dum
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Rice', &
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) Inst%CatRice = Dum
+
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use wetland flux emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
        WRITE(MSG,*) 'Use wetlands         : ', Inst%DoWetland
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       IF ( Inst%DoWetland ) THEN
+          WRITE(MSG,*) 'Wetland emission category: ', Inst%CatWetland 
+          CALL HCO_MSG(HcoState%Config%Err,MSG )
+       ENDIF
        WRITE(MSG,*) 'Use rice             : ', Inst%DoRice
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       IF ( Inst%DoRice ) THEN
+          WRITE(MSG,*) 'Rice emission category: ', Inst%CatRice
+          CALL HCO_MSG(HcoState%Config%Err,MSG )
+       ENDIF
        WRITE(MSG,*) 'Use the following species: '
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        DO N = 1, Inst%nSpc
@@ -975,9 +1028,11 @@ CONTAINS
 !    Inst%SOIL_C       => NULL()
 !    Inst%MEAN_T       => NULL()
 
-    Inst%DoWetland = .FALSE. 
-    Inst%DoRice    = .FALSE. 
-    Inst%DoDiagn   = .FALSE. 
+    Inst%DoWetland  = .FALSE. 
+    Inst%DoRice     = .FALSE. 
+    Inst%DoDiagn    = .FALSE. 
+    Inst%CatWetland = 1
+    Inst%CatRice    = 2
 
     ! Return w/ success
     RC = HCO_SUCCESS
