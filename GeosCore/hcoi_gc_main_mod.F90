@@ -2448,7 +2448,8 @@ CONTAINS
          Input_Opt%ITS_A_POPS_SIM       .or. &
          Input_Opt%ITS_A_RnPbBe_SIM     .or. &
          Input_Opt%ITS_A_TAGO3_SIM      .or. &
-         Input_Opt%ITS_A_TAGCO_SIM    ) THEN
+         Input_Opt%ITS_A_TAGCO_SIM      .or. &
+         Input_Opt%ITS_A_CO2_SIM              ) THEN
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -2590,98 +2591,99 @@ CONTAINS
           IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
        ENDIF ! Phase = 2   
 
-    !-----------------------------------------------------------------
-    ! CO2 specialty simulation 
-    ! For the CO2 specialty simulation, define here all tagged 
-    ! species. This will let HEMCO calculate emissions for each
-    ! tagged species individually. The emissions will be passed
-    ! to the CO2 arrays in co2_mod.F 
-    !-----------------------------------------------------------------
-    ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-
-       ! There are up to 11 species
-       nSpc = 11 
-   
-       ! Set species
-       IF ( PHASE == 2 ) THEN
-
-          ! Sanity check: number of input species should agree with nSpc
-          IF ( nSpec /= nSpc ) THEN
-             WRITE(ErrMsg,*) 'Input species /= expected species: ', nSpec, nSpc 
-             CALL HCO_ERROR( HcoState%Config%Err, ErrMSG, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-          ! Get info about the total CO2 species (i.e. N=1) from the 
-          ! species database object.  All tagged CO2 species will
-          ! have the same properties as the total CO2 species.
-          SpcInfo => State_Chm%SpcData(1)%Info
- 
-          ! Assign variables
-          DO N = 1, nSpec 
-      
-             ! Define species names. These are the names that must also be 
-             ! used in the HEMCO configuration file!
-             SELECT CASE ( N )
-   
-                CASE ( 1  )
-                   ThisName = 'CO2'
-                CASE ( 2  ) 
-                   ThisName = 'CO2ff'
-                CASE ( 3  ) 
-                   ThisName = 'CO2oc'
-                CASE ( 4  ) 
-                   ThisName = 'CO2bal'
-                CASE ( 5  ) 
-                   ThisName = 'CO2bb'
-                CASE ( 6  ) 
-                   ThisName = 'CO2bf'
-                CASE ( 7  ) 
-                   ThisName = 'CO2nte'
-                CASE ( 8  ) 
-                   ThisName = 'CO2se'
-                CASE ( 9  ) 
-                   ThisName = 'CO2av'
-                CASE ( 10 ) 
-                   ThisName = 'CO2ch'
-                CASE ( 11 ) 
-                   ThisName = 'CO2corr'
-   
-                CASE DEFAULT
-                   ErrMsg = 'Only 11 species defined for CO2 simulation!'
-                   CALL HCO_ERROR ( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
-                   RETURN
-   
-             END SELECT
-
-             ! Model ID and species name 
-             HcoState%Spc(N)%ModID      = N
-             HcoState%Spc(N)%SpcName    = TRIM( ThisName )
-   
-             ! Molecular weights of species & emitted species.
-             ! NOTE: Use the species database emMW_g to replicate the 
-             ! prior behavior.  The MW's of the tagged species in 
-             ! the prior code all have MW_g = 0 and EmMW_g = 0.
-             ! Ask Christoph about this. (bmy, 9/1/15)
-             HcoState%Spc(N)%MW_g       = SpcInfo%emMW_g           ! [g/mol]
-             HcoState%Spc(N)%EmMW_g     = SpcInfo%emMW_g           ! [g/mol]
-             HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio       ! [1    ]
- 
-             ! Set Henry coefficients
-             HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0         ! [M/atm]
-             HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR         ! [K    ]
-             HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_PKA        ! [1    ]
-
-             ! Write to logfile
-             IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
-
-          ENDDO
-          IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
-
-          ! Free pointer
-          SpcInfo => NULL()
-
-       ENDIF ! Phase = 2
+!    ckeller, 5/21/18: CO2 is now fully handled by HEMCO
+!    !-----------------------------------------------------------------
+!    ! CO2 specialty simulation 
+!    ! For the CO2 specialty simulation, define here all tagged 
+!    ! species. This will let HEMCO calculate emissions for each
+!    ! tagged species individually. The emissions will be passed
+!    ! to the CO2 arrays in co2_mod.F 
+!    !-----------------------------------------------------------------
+!    ELSEIF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+!
+!       ! There are up to 11 species
+!       nSpc = 11 
+!   
+!       ! Set species
+!       IF ( PHASE == 2 ) THEN
+!
+!          ! Sanity check: number of input species should agree with nSpc
+!          IF ( nSpec /= nSpc ) THEN
+!             WRITE(ErrMsg,*) 'Input species /= expected species: ', nSpec, nSpc 
+!             CALL HCO_ERROR( HcoState%Config%Err, ErrMSG, RC, ThisLoc )
+!             RETURN
+!          ENDIF
+!
+!          ! Get info about the total CO2 species (i.e. N=1) from the 
+!          ! species database object.  All tagged CO2 species will
+!          ! have the same properties as the total CO2 species.
+!          SpcInfo => State_Chm%SpcData(1)%Info
+! 
+!          ! Assign variables
+!          DO N = 1, nSpec 
+!      
+!             ! Define species names. These are the names that must also be 
+!             ! used in the HEMCO configuration file!
+!             SELECT CASE ( N )
+!   
+!                CASE ( 1  )
+!                   ThisName = 'CO2'
+!                CASE ( 2  ) 
+!                   ThisName = 'CO2ff'
+!                CASE ( 3  ) 
+!                   ThisName = 'CO2oc'
+!                CASE ( 4  ) 
+!                   ThisName = 'CO2bal'
+!                CASE ( 5  ) 
+!                   ThisName = 'CO2bb'
+!                CASE ( 6  ) 
+!                   ThisName = 'CO2bf'
+!                CASE ( 7  ) 
+!                   ThisName = 'CO2nte'
+!                CASE ( 8  ) 
+!                   ThisName = 'CO2se'
+!                CASE ( 9  ) 
+!                   ThisName = 'CO2av'
+!                CASE ( 10 ) 
+!                   ThisName = 'CO2ch'
+!                CASE ( 11 ) 
+!                   ThisName = 'CO2corr'
+!   
+!                CASE DEFAULT
+!                   ErrMsg = 'Only 11 species defined for CO2 simulation!'
+!                   CALL HCO_ERROR ( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+!                   RETURN
+!   
+!             END SELECT
+!
+!             ! Model ID and species name 
+!             HcoState%Spc(N)%ModID      = N
+!             HcoState%Spc(N)%SpcName    = TRIM( ThisName )
+!   
+!             ! Molecular weights of species & emitted species.
+!             ! NOTE: Use the species database emMW_g to replicate the 
+!             ! prior behavior.  The MW's of the tagged species in 
+!             ! the prior code all have MW_g = 0 and EmMW_g = 0.
+!             ! Ask Christoph about this. (bmy, 9/1/15)
+!             HcoState%Spc(N)%MW_g       = SpcInfo%emMW_g           ! [g/mol]
+!             HcoState%Spc(N)%EmMW_g     = SpcInfo%emMW_g           ! [g/mol]
+!             HcoState%Spc(N)%MolecRatio = SpcInfo%MolecRatio       ! [1    ]
+! 
+!             ! Set Henry coefficients
+!             HcoState%Spc(N)%HenryK0    = SpcInfo%Henry_K0         ! [M/atm]
+!             HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR         ! [K    ]
+!             HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_PKA        ! [1    ]
+!
+!             ! Write to logfile
+!             IF ( am_I_Root ) CALL HCO_SPEC2LOG( am_I_Root, HcoState, N )
+!
+!          ENDDO
+!          IF ( am_I_Root ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+!
+!          ! Free pointer
+!          SpcInfo => NULL()
+!
+!       ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
     ! DEFAULT (RETURN W/ ERROR) 
