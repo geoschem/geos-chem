@@ -953,13 +953,39 @@ sub analyzeResults() {
 #
 # !LOCAL VARIABLES:
 #
+  # Scalars
+  my $badDimFound = 0;
+
   # Strings
   my $line = "";
+  my $dim  = "";
+  my $msg  = "";
   my $var  = "";
 
   #=========================================================================
   # Loop over the output of ncdump, line by line
   #=========================================================================
+
+  # Check dimensions: Only lon, lat, lev, ilev, and time are acceptable;
+  # Otherwise GCHP simulations will die when reading the file (bmy, 6/14/18)
+  foreach $dim ( @dims ) {
+    if ( ( $dim =~ m/[Tt][Ii][Mm][Ee]/ )  || 
+         ( $dim =~ m/[Ii][Ll][Ee][Vv]/ )  ||
+	 ( $dim =~ m/[Ll][Ee][Vv]/     )  ||
+	 ( $dim =~ m/[Ll][Aa][Tt]/     )  ||
+	 ( $dim =~ m/[Ll][Oo][Nn]/     ) )   {
+        $msg = qq/$sep Dimension "$dim" adheres to standard usage\n/;
+	@GOOD = ( @GOOD, $msg );
+    } else { 
+     $msg  = qq/$sep Dimension "$dim" is non-standard usage,\n   which will cause GCHP to fail during file read.\n   PLEASE REMOVE THIS DIMENSION AND ALL VARIABLES THAT USE IT!!!\n/;
+     @BAD         = ( @BAD,  $msg );
+     $badDimFound = 1;
+    }
+  }
+
+  # Don't even bother analyzing the rest of the file if one of the dimensions 
+  # is non-standard.  Skip to printing the results (bmy, 6/14/18)
+  if ( $badDimFound == 1 ) { goto printResults; }
 
   # Check variables
   foreach $var ( @vars ) {
@@ -974,6 +1000,7 @@ sub analyzeResults() {
   # Check global attributes
   &analyzeGlobAtts();
 
+printResults:
   #=========================================================================
   # Report things that are in COARDS compliance
   #=========================================================================
