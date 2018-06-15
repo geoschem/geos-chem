@@ -45,7 +45,11 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#if defined( DISCOVER )
+SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
+#else
 SUBROUTINE Fun ( V, F, RCT, Vdot )
+#endif
 
 ! V - Concentrations of variable species (local)
   REAL(kind=dp) :: V(NVAR)
@@ -55,7 +59,10 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   REAL(kind=dp) :: RCT(NREACT)
 ! Vdot - Time derivative of variable species concentrations
   REAL(kind=dp) :: Vdot(NVAR)
-
+ 
+#if defined( DISCOVER )
+  REAL(dp), optional :: Aout(NREACT)
+#endif
 
 ! Computation of equation rates
   A(1) = RCT(1)*V(224)*V(226)
@@ -782,6 +789,11 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(722) = RCT(722)*V(148)
   A(723) = RCT(723)*V(160)
   A(724) = RCT(724)*V(118)
+
+#if defined( DISCOVER )
+! Aout
+  if(present(Aout)) Aout(:) = A(:)
+#endif
 
 ! Aggregate function
   Vdot(1) = -A(700)
