@@ -685,6 +685,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#if !defined(ESMF_) && defined( DISCOVER )
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
 
@@ -709,6 +710,7 @@ CONTAINS
        MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
        CALL ERROR_STOP( MSG, LOC ) 
     ENDIF
+#endif
 
     ! Initialize
     ThisTend => NULL()
@@ -967,6 +969,7 @@ CONTAINS
        ENDIF
 
        ! Update diagnostics array
+#if !defined(ESMF_) && defined( DISCOVER )
        CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
                Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
@@ -976,10 +979,16 @@ CONTAINS
           RC = GC_FAILURE
           RETURN
        ENDIF
+#endif
 
        ! Reset values 
-       Ptr3D = 0.0_fp
+#if defined( DISCOVER )
+       !Ptr3D = 0.0_fp
+       Ptr3D = Tend 
        Ptr3D => NULL()
+#else
+       Ptr3D = 0.0_fp
+#endif
 
     ENDDO !I
 

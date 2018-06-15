@@ -4878,6 +4878,9 @@
       Input_Opt%LPRT = ( ND70x > 0 )
 
 #endif
+#if defined( DISCOVER )
+      Input_Opt%ND21 = ND21x
+#endif
 
       ! Return success
       RC = GC_SUCCESS

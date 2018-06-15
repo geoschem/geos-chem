@@ -908,7 +908,7 @@
       IF ( SpcInfo%WD_Is_SO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
@@ -992,7 +992,7 @@
 
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = GET_F( State_Met, I, J, L, Ki )
+            F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Ki )
 
          ENDDO
          ENDDO
@@ -1008,7 +1008,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Adjust F for size-resolved aerosol (multiply by XFRAC)
          DO L = 2, LLPAR
@@ -1033,7 +1033,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Adjust F for size-resolved aerosol number
          ! (multiply by XFRAC * SOLFRAC)
@@ -1059,7 +1059,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Multiply by the aerosol scavenging efficiency
          ! For most species this is 1.0
@@ -1200,12 +1200,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, F )
+      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE State_Met_Mod,      ONLY: MetState
+      USE Input_Opt_Mod,      ONLY: OptInput
+!
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1216,6 +1218,7 @@
                                                           !  for 3 temperature
                                                           !  regimes
       TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt            ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1280,7 +1283,7 @@
 
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
          ! Kc now has been scaled for impaction scavenging (bmy, 9/24/15)
-         F(I,J,L) = GET_F( State_Met, I, J, L, Scaled_KC )
+         F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Scaled_KC )
             
       ENDDO
       ENDDO
@@ -5072,16 +5075,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_VUD( State_Met, I, J, L ) RESULT( VUD )
+      FUNCTION GET_VUD( State_Met, Input_Opt, I, J, L ) RESULT( VUD )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
       USE State_Met_Mod,      ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput 
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN) :: I, J, L     ! Location 
 !
 ! !RETURN VALUE:
@@ -5095,6 +5100,7 @@
 !  13 Mar 2017 - C. Keller   - Bug fix: make sure VUD_DEFINED is updated after
 !                              defining VUD.
 !  01 Jun 2017 - C. Keller   - Set VUD_DEFINED only if UPDVVEL has valid values. 
+!  05 Jun 2018 - C. Keller   - Add flag for online VUD calculation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5114,6 +5120,23 @@
       ! Use vertical updraft velocity from State_Met
       ! Convert hPa/s to m/s here
       !=================================================================
+#if defined( DISCOVER )
+      IF ( Input_Opt%UseOnlineVUD ) THEN
+         IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+            IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
+     &           State_Met%UPDVVEL(I,J,L) > 0.0_fp       ) THEN
+    
+               ! Compute VUD 
+               VUD = State_Met%UPDVVEL (I,J,L) 
+     &             * State_Met%BXHEIGHT(I,J,L) 
+     &             / State_Met%DELP    (I,J,L) 
+   
+               ! VUD is now defined
+               VUD_DEFINED = .TRUE.
+            ENDIF
+         ENDIF
+      ENDIF
+#else
       IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
          IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
      &        State_Met%UPDVVEL(I,J,L) > 0.0_fp       ) THEN
@@ -5125,8 +5148,9 @@
 
             ! VUD is now defined
             VUD_DEFINED = .TRUE.
-         ENDIF
-      ENDIF
+          ENDIF
+       ENDIF
+#endif
 
       !=================================================================
       ! Traditional GEOS-Chem:
@@ -5156,16 +5180,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_F( State_Met, I, J, L, K ) RESULT( F )
+      FUNCTION GET_F( State_Met, Input_Opt, I, J, L, K ) RESULT( F )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
       USE State_Met_Mod,      ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput 
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
       REAL(fp),       INTENT(IN) :: K          ! Rate constant
 !
@@ -5196,7 +5222,7 @@
      &                 State_Met%BXHEIGHT(I,J,L) )
                
       ! Vertical updraft velocity [m/s]
-      Vud = GET_VUD( State_Met, I, J, L )
+      Vud = GET_VUD( State_Met, Input_Opt, I, J, L )
 
       ! Compute F (avoid div-by-zero errors)
       IF ( Vud > TINY_FP ) THEN

@@ -307,7 +307,10 @@ CONTAINS
     LOGICAL            :: LPRT
     LOGICAL            :: LUCX
     LOGICAL            :: LCYCLE
-    LOGICAL            :: ISBR2 
+    LOGICAL            :: ISBR2
+#if defined( DISCOVER ) 
+    LOGICAL            :: SKIP  
+#endif
 
     ! Strings
     CHARACTER(LEN=16)  :: STAMP
@@ -344,6 +347,18 @@ CONTAINS
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()
+
+#if defined( DISCOVER )
+    ! Skip strat chem if chemistry is over entire vertical domain
+    SKIP = .FALSE.
+    IF ( LLCHEM == LLPAR ) THEN
+       SKIP = .TRUE.
+       IF ( FIRST .AND. am_I_Root ) THEN
+          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
+       ENDIF 
+    ENDIF
+    IF ( .NOT. SKIP ) THEN
+#endif
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -821,6 +836,11 @@ CONTAINS
        RETURN
 
     ENDIF
+   
+#if defined( DISCOVER )
+    ! End of SKIP loop
+    ENDIF ! SKIP 
+#endif
 
     ! Set first-time flag to false
     FIRST = .FALSE.    
@@ -1045,7 +1065,11 @@ CONTAINS
        ! ---------------------------------------------------------------
 
        ! Production rates [v/v/s]
+#if defined( DISCOVER )
+       FIELDNAME = 'GMI_PROD_'//TRIM(ThisName)
+#else
        FIELDNAME = 'UCX_PROD_'//TRIM(ThisName)
+#endif
 
        ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
@@ -1071,8 +1095,12 @@ CONTAINS
        ENDIF
 
        ! Loss frequency [s-1]
+#if defined( DISCOVER )
+       FIELDNAME = 'GMI_LOSS_'//TRIM(ThisName)
+#else
        FIELDNAME = 'UCX_LOSS_'//TRIM(ThisName)
-       
+#endif
+
        ! Get pointer from HEMCO
        CALL HCO_GetPtr( am_I_Root,     HcoState, FIELDNAME, &
                         PLVEC(N)%LOSS, RC,       FOUND=FND )
@@ -1097,6 +1125,9 @@ CONTAINS
        ENDIF
 
        ! UCX rates are in molec/cm3/s; need to convert to expected units
+#if defined( DISCOVER )
+       IF ( .FALSE. ) THEN
+#endif 
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, BOXVL, AIRDENS, SpcConc )
@@ -1127,6 +1158,9 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
 
+#if defined( DISCOVER )
+       ENDIF
+#endif
 
     ENDDO !N
 

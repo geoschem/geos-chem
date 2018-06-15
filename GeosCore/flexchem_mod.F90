@@ -24,6 +24,9 @@ MODULE FlexChem_Mod
   PUBLIC  :: Do_FlexChem
   PUBLIC  :: Init_FlexChem
   PUBLIC  :: Cleanup_FlexChem
+#if defined( DISCOVER )
+  PUBLIC  :: HSAVE_KPP
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -50,12 +53,25 @@ MODULE FlexChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
+#if defined( DISCOVER )
+  INTEGER               :: id_O3
+  INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2, id_DHPCARP
+  INTEGER               :: id_DIBOO,id_ETO2, id_HC5OO, id_IEPOXOO
+  INTEGER               :: id_INPN, id_ISNOOA, id_ISNOOB, id_ISNOHOO, id_LIMO2
+  INTEGER               :: id_MAOPO2, id_MO2, id_MRO2, id_PIO2, id_PO2
+  INTEGER               :: id_PRNI, id_R4NI, id_R4O2, id_RIO2, id_TRO2
+  INTEGER               :: id_VRO2, id_XRO2
+#endif
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
   LOGICAL               :: Do_ND43
   LOGICAL               :: Archive_OHconcAfterchem
+#if defined( DISCOVER )
+  LOGICAL               :: Archive_O3concAfterchem
+  LOGICAL               :: Archive_RO2concAfterchem
+#endif
   LOGICAL               :: Archive_HO2concAfterchem
   LOGICAL               :: Archive_O1DconcAfterchem
   LOGICAL               :: Archive_O3PconcAfterchem
@@ -232,7 +248,12 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
+#if defined( DISCOVER )
+    REAL(f4)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+    REAL(f4)               :: GLOB_JVAL  (IIPAR,JJPAR,LLPAR,JVN_             )
+#else
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+#endif
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
     ! Objects
@@ -240,6 +261,11 @@ CONTAINS
 
     ! For testing only, may be removed later (mps, 4/26/16)
     LOGICAL                :: DO_HETCHEM
+
+#if defined( DISCOVER )
+    ! testing only
+    REAL(dp) :: Vloc(NVAR), Aout(NREACT)
+#endif
 
     !=======================================================================
     ! Do_FlexChem begins here!
@@ -281,7 +307,15 @@ CONTAINS
     IF ( Archive_Prod  ) State_Diag%Prod  = 0.0_f4
     IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
     IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
-    
+
+#if defined( DISCOVER )
+    GLOB_RCONST = 0.0_f4
+    GLOB_JVAL   = 0.0_f4
+   
+    ! testing only
+    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRates(:,:,:,:) = 0.0 
+#endif 
+
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
     ! for FAST-JX and optical depth diagnostics
@@ -602,6 +636,9 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT                   )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
     !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
+#if defined( DISCOVER )
+    !$OMP PRIVATE  ( Vloc,     Aout                                         )&
+#endif
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -682,7 +719,12 @@ CONTAINS
 
              ! Copy photolysis rate from FAST_JX into KPP's PHOTOL array
              PHOTOL(N) = ZPJ(L,N,I,J)
-                
+             
+#if defined( DISCOVER )
+             ! Archive in local array
+             GLOB_JVAL(I,J,L,N) = PHOTOL(N)
+#endif
+
 #if defined( NC_DIAG )
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -837,8 +879,14 @@ CONTAINS
 
        ENDIF
 
+#if defined( DISCOVER )
+       !C(ind_ACTA)  = 0.0_dp
+       !C(ind_HCOOH) = 0.0_dp
+#else
        C(ind_ACTA)  = 0.0_dp
        C(ind_HCOOH) = 0.0_dp
+#endif
+
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
           ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
@@ -860,6 +908,16 @@ CONTAINS
 
        ! Update the array of rate constants
        CALL Update_RCONST( )
+
+#if defined( DISCOVER )
+       ! Archive 
+       CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
+       IF ( Input_Opt%NN_RxnRates > 0 ) THEN
+          DO N = 1, Input_Opt%NN_RxnRates
+             State_Diag%RxnRates(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
+          ENDDO
+       ENDIF
+#endif
 
 !#if defined( DEVEL )
 !       ! Get time when rate computation finished
@@ -919,9 +977,15 @@ CONTAINS
 !#endif
 
        ! Zero certain species
+#if defined( DISCOVER )
+       !C(ind_ACTA)  = 0.e0_dp
+       !C(ind_EOH)   = 0.e0_dp
+       !C(ind_HCOOH) = 0.e0_dp
+#else
        C(ind_ACTA)  = 0.e0_dp
        C(ind_EOH)   = 0.e0_dp
        C(ind_HCOOH) = 0.e0_dp
+#endif
 
        ! Try another time if it failed
        IF ( IERR < 0 ) THEN
@@ -1070,7 +1134,6 @@ CONTAINS
        ENDIF
 #endif
 
-
     ENDDO
     ENDDO
     ENDDO
@@ -1195,6 +1258,20 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
+#if defined( DISCOVER )
+    ! Archive all needed reaction rates in state_diag
+    IF ( Input_Opt%NN_RxnRconst > 0 ) THEN
+       DO N = 1, Input_Opt%NN_RxnRconst
+          State_Diag%RxnRconst(:,:,:,N) = GLOB_RCONST(:,:,:,Input_Opt%RxnRconst_IDs(N))
+       ENDDO
+    ENDIF
+    IF ( Input_Opt%NN_Jvals > 0 ) THEN
+       DO N = 1, Input_Opt%NN_Jvals
+          State_Diag%JValIndiv(:,:,:,N) = GLOB_JVAL(:,:,:,Input_Opt%Jval_IDs(N))
+       ENDDO
+    ENDIF
+#endif
+
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
 
@@ -1284,6 +1361,10 @@ CONTAINS
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
     IF ( Archive_OHconcAfterChem  ) State_Diag%OHconcAfterChem  = 0.0_f4
+#if defined( DISCOVER )
+    IF ( Archive_O3concAfterChem  ) State_Diag%O3concAfterChem  = 0.0_f4
+    IF ( Archive_RO2concAfterChem ) State_Diag%RO2concAfterChem = 0.0_f4
+#endif
     IF ( Archive_HO2concAfterChem ) State_Diag%HO2concAfterChem = 0.0_f4
     IF ( Archive_O1DconcAfterChem ) State_Diag%O1DconcAfterChem = 0.0_f4
     IF ( Archive_O3PconcAfterChem ) State_Diag%O3PconcAfterChem = 0.0_f4
@@ -1320,6 +1401,67 @@ CONTAINS
             IF ( Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
+#if defined( DISCOVER )
+            IF ( Archive_O3concAfterChem ) THEN
+               State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
+            ENDIF
+            IF ( Archive_RO2concAfterChem ) THEN
+               IF ( id_A3O2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_A3O2)
+               IF ( id_ATO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
+               IF ( id_B3O2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
+               IF ( id_BRO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
+               IF ( id_DHPCARP > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DHPCARP)
+               IF ( id_DIBOO   > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DIBOO)
+               IF ( id_ETO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
+               IF ( id_HC5OO   > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HC5OO)
+               IF ( id_HO2     > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
+               IF ( id_IEPOXOO > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXOO)
+               IF ( id_INPN    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INPN)
+               IF ( id_ISNOOA  > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOA)
+               IF ( id_ISNOOB  > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOB)
+               IF ( id_ISNOHOO > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOHOO)
+               IF ( id_LIMO2   > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
+               IF ( id_MAOPO2  > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MAOPO2)
+               IF ( id_MO2     > 0  ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
+               IF ( id_MRO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MRO2)
+               IF ( id_PIO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
+               IF ( id_PO2     > 0  ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
+               IF ( id_PRNI    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRNI)
+               IF ( id_R4NI    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4NI)
+               IF ( id_R4O2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
+               IF ( id_RIO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_RIO2)
+               IF ( id_TRO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
+               IF ( id_VRO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_VRO2)
+               IF ( id_XRO2    > 0 ) State_Diag%RO2concAfterChem(I,J,L) = &
+                                  State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
+            ENDIF
+#endif
 #endif
 
 
@@ -1518,6 +1660,36 @@ CONTAINS
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           ) 
 
+#if defined( DISCOVER )
+    ! ckeller
+    id_O3                    = Ind_( 'O3'           ) 
+    id_A3O2                  = Ind_( 'A3O2'         ) 
+    id_ATO2                  = Ind_( 'ATO2'         ) 
+    id_BRO2                  = Ind_( 'BRO2'         ) 
+    id_DHPCARP               = Ind_( 'DHPCARP'      ) 
+    id_DIBOO                 = Ind_( 'DIBOO'        ) 
+    id_ETO2                  = Ind_( 'ETO2'         ) 
+    id_HC5OO                 = Ind_( 'HC5OO'        ) 
+    id_IEPOXOO               = Ind_( 'IEPOXOO'      ) 
+    id_INPN                  = Ind_( 'INPN'         ) 
+    id_ISNOOA                = Ind_( 'ISNOOA'       ) 
+    id_ISNOOB                = Ind_( 'ISNOOB'       ) 
+    id_ISNOHOO               = Ind_( 'ISNOHOO'      ) 
+    id_LIMO2                 = Ind_( 'LIMO2'        ) 
+    id_MAOPO2                = Ind_( 'MAOPO2'       ) 
+    id_MO2                   = Ind_( 'MO2'          ) 
+    id_MRO2                  = Ind_( 'MRO2'         ) 
+    id_PIO2                  = Ind_( 'PIO2'         ) 
+    id_PO2                   = Ind_( 'PO2'          ) 
+    id_PRNI                  = Ind_( 'PRNI'         ) 
+    id_R4NI                  = Ind_( 'R4NI'         ) 
+    id_R4O2                  = Ind_( 'R4O2'         ) 
+    id_RIO2                  = Ind_( 'RIO2'         ) 
+    id_TRO2                  = Ind_( 'TRO2'         ) 
+    id_VRO2                  = Ind_( 'VRO2'         ) 
+    id_XRO2                  = Ind_( 'XRO2'         ) 
+#endif
+
     ! Set flags to denote if each species is defined
     ok_HO2                   = ( id_HO2 > 0         )
     ok_O1D                   = ( id_O1D > 0         )
@@ -1530,6 +1702,10 @@ CONTAINS
     ! Are the relevant netCDF diagnostics turned on?
     Archive_OHconcAfterChem  = ASSOCIATED( State_Diag%OHconcAfterChem  )
     Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
+#if defined( DISCOVER )
+    Archive_RO2concAfterChem = ASSOCIATED( State_Diag%RO2concAfterChem )
+    Archive_O3concAfterChem  = ASSOCIATED( State_Diag%O3concAfterChem  )
+#endif
     Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
     Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
     Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
@@ -1564,6 +1740,10 @@ CONTAINS
     Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                  .or.            &  
                                     Archive_OHconcAfterChem  .or.            &
                                     Archive_HO2concAfterChem .or.            &
+#if defined( DISCOVER )
+                                    Archive_O3concAfterChem  .or.            &
+                                    Archive_RO2concAfterChem .or.            &
+#endif
                                     Archive_O1DconcAfterChem .or.            &
                                     Archive_O3PconcAfterChem                )
 

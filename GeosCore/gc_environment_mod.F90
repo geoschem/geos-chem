@@ -152,6 +152,11 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
+#if defined( DISCOVER )
+    ! Integers
+    INTEGER            :: LLSTRAT, LLTROP
+#endif
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     
@@ -176,6 +181,16 @@ CONTAINS
     ! (bmy, 12/3/12)
     !-----------------------------------------------------------------------
 
+#if defined( DISCOVER )
+    ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
+    LLSTRAT = Input_Opt%LLSTRAT
+    IF ( LLSTRAT <= 0 ) LLSTRAT = 59
+
+    ! 132 layers
+    LLTROP = 40
+    IF ( value_LM==132) LLTROP = 80
+#endif
+
     ! Set dimensions in CMN_SIZE
     CALL Init_CMN_SIZE( am_I_Root      = am_I_Root,       &
                         Input_Opt      = Input_Opt,       &
@@ -190,8 +205,13 @@ CONTAINS
                         value_IM_WORLD = value_IM_WORLD,  &
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
+#if defined( DISCOVER )
+                        value_LLTROP   = LLTROP,          &
+                        value_LLSTRAT  = LLSTRAT          )
+#else
                         value_LLTROP   = 40,              &
                         value_LLSTRAT  = 59               )
+#endif
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
