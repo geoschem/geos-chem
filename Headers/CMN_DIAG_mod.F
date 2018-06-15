@@ -46,8 +46,12 @@
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
+#endif
+#if defined( BPCH_DIAG )  || defined( DISCOVER )
       INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
+#endif
+#if defined( BPCH_DIAG )
       INTEGER, PARAMETER :: PD22=76
       INTEGER, PARAMETER :: PD43=4
       INTEGER, PARAMETER :: PD52=6
