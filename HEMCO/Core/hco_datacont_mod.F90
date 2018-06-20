@@ -119,7 +119,7 @@ MODULE HCO_DataCont_Mod
   ! emission category. A dummy scale factor of zero is applied to 
   ! this shadow container, making sure that no additional emissions
   ! are created by the shadow container. 
-  INTEGER, PARAMETER,     PUBLIC :: CatMax = 3
+  INTEGER, PARAMETER,     PUBLIC :: CatMax = 4
 
   ! Fixed scale factor ID for 'dummy' scale factor of zero. 
   ! Internally used to let an emission field cover multiple

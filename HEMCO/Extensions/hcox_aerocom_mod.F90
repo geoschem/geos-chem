@@ -451,11 +451,14 @@ CONTAINS
        CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+       ! Error trap: skip leap days
+       IF ( MM == 2 .AND. DD > 28 ) DD = 28
+ 
        ! Get file name
        ThisFile = Inst%FileName
        CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
        ! Verbose
        IF ( am_I_Root ) THEN
           MSG = 'AeroCom: reading ' // TRIM(ThisFile)

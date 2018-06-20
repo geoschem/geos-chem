@@ -691,6 +691,7 @@ CONTAINS
 !
     INTEGER             :: I,      AS
     CHARACTER(LEN=255)  :: MSG,    LOC
+    CHARACTER(LEN=255)  :: MyName
     CHARACTER(LEN=2047) :: SpcStr, SUBSTR(255)
 
     !======================================================================
@@ -712,8 +713,10 @@ CONTAINS
 
     ! Allocate arrays 
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
-    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
+    SpcNames(:) = ''
+    HcoIDs(:)   = -1
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR(HcoState%Config%Err,'HcoIDs allocation error', RC, THISLOC=LOC)
        RETURN
@@ -721,8 +724,9 @@ CONTAINS
 
     ! Extract species information
     DO I = 1, nSpc
-       SpcNames(I) = SUBSTR(I)
-       HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
+       MyName      = TRIM(SUBSTR(I))
+       SpcNames(I) = MyName
+       HcoIDs(I)   = HCO_GetHcoID( MyName, HcoState )
     ENDDO
 
     ! Return w/ success

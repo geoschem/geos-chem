@@ -385,10 +385,18 @@ CONTAINS
 
     ! For error handling
     CALL HCO_ENTER(HcoState%Config%Err,'HCOX_RUN (hcox_driver_mod.F90)', RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error A'
+
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Is it time for emissions?
     CALL HcoClock_Get ( amIRoot, HcoState%Clock, IsEmisTime=IsEmisTime, RC=RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error B'
+
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Can leave here if it's not time for emissions
@@ -410,6 +418,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%SeaFlux) THEN
        CALL HCOX_SeaFlux_Run( amIRoot, ExtState, HcoState, RC)
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error C'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -426,6 +438,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%LightNOx > 0 ) THEN
        CALL HCOX_LightNox_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error D'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -434,6 +450,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%SoilNOx > 0 ) THEN
        CALL HCOX_SoilNox_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error E'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -442,6 +462,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%DustDead > 0 ) THEN
        CALL HCOX_DustDead_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error F'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -466,6 +490,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%SeaSalt ) THEN
        CALL HCOX_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error G'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -474,6 +502,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%Megan > 0 ) THEN
        CALL HCOX_Megan_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error H'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -532,6 +564,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%AeroCom > 0 ) THEN
        CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error I'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -540,6 +576,10 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( ExtState%Inorg_Iodine ) THEN
        CALL HCOX_Iodine_Run( amIRoot, ExtState, HcoState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error J'
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -554,6 +594,10 @@ CONTAINS
     ! This subroutine is called in higher-level routines. 
     !=======================================================================
     CALL HCOX_DiagnFill( amIRoot, HcoState, ExtState, RC )
+
+    ! testing only
+    if(rc/=hco_success) write(*,*) 'HCOX error K'
+
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !=======================================================================

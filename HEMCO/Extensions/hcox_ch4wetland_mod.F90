@@ -88,6 +88,8 @@ MODULE HCOX_CH4WETLAND_Mod
   TYPE :: MyInst
    INTEGER                        :: Instance
    INTEGER                        :: ExtNr
+   INTEGER                        :: CatWetland
+   INTEGER                        :: CatRice 
    LOGICAL                        :: DoWetland 
    LOGICAL                        :: DoRice
    LOGICAL                        :: DoDiagn
@@ -274,11 +276,13 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Total CH4 emissions [kg/m2/s]
-    CH4wtl = CH4wtl + CH4rce 
+!    ! Total CH4 emissions [kg/m2/s]
+!    CH4wtl = CH4wtl + CH4rce 
 
     ! Add flux to all species, eventually apply scaling & masking
     DO N = 1, Inst%nSpc
+
+       ! --- Wetland emissions
 
        ! Apply scale factor
        CH4tmp = CH4wtl * Inst%SpcScal(N)
@@ -289,8 +293,21 @@ CONTAINS
 
        ! Add emissions 
        CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
-                          ExtNr=Inst%ExtNr )
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+                          ExtNr=Inst%ExtNr, Cat=Inst%CatWetland )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! --- Rice emissions
+       ! Apply scale factor
+       CH4tmp = CH4rce * Inst%SpcScal(N)
+
+       ! Check for masking
+       CALL HCOX_SCALE ( am_I_Root, HcoState, CH4tmp, Inst%SpcScalFldNme(N), RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Add emissions 
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, CH4tmp, Inst%SpcIDs(N), RC, &
+                          ExtNr=Inst%ExtNr, Cat=Inst%CatRice )
+       IF ( RC /= HCO_SUCCESS ) RETURN
     ENDDO 
 
     ! Leave w/ success
@@ -697,7 +714,8 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: ExtNr, N, AS
+    INTEGER                        :: ExtNr, N, AS, DUM
+    LOGICAL                        :: FOUND
     CHARACTER(LEN=255)             :: MSG
     TYPE(MyInst), POINTER          :: Inst
 
@@ -775,14 +793,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! See if wetland and rice categories are given
+    Inst%CatWetland = 1
+    Inst%CatRice    = 2
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetland', & 
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) Inst%CatWetland = Dum
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Rice', &
+                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) Inst%CatRice = Dum
+
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use wetland flux emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP1='-' )
        WRITE(MSG,*) 'Use wetlands         : ', Inst%DoWetland
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       IF ( Inst%DoWetland ) THEN
+          WRITE(MSG,*) 'Wetland emission category: ', Inst%CatWetland 
+          CALL HCO_MSG(HcoState%Config%Err,MSG )
+       ENDIF
        WRITE(MSG,*) 'Use rice             : ', Inst%DoRice
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       IF ( Inst%DoRice ) THEN
+          WRITE(MSG,*) 'Rice emission category: ', Inst%CatRice
+          CALL HCO_MSG(HcoState%Config%Err,MSG )
+       ENDIF
        WRITE(MSG,*) 'Use the following species: '
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        DO N = 1, Inst%nSpc
@@ -975,9 +1013,11 @@ CONTAINS
 !    Inst%SOIL_C       => NULL()
 !    Inst%MEAN_T       => NULL()
 
-    Inst%DoWetland = .FALSE. 
-    Inst%DoRice    = .FALSE. 
-    Inst%DoDiagn   = .FALSE. 
+    Inst%DoWetland  = .FALSE. 
+    Inst%DoRice     = .FALSE. 
+    Inst%DoDiagn    = .FALSE. 
+    Inst%CatWetland = 1
+    Inst%CatRice    = 2
 
     ! Return w/ success
     RC = HCO_SUCCESS

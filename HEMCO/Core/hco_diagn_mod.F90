@@ -341,6 +341,7 @@ CONTAINS
 !  06 Nov 2015 - C. Keller   - Added OutTimeStamp.
 !  01 Nov 2017 - E. Lundgren - Change default OutTimeStamp from end to start
 !                              for diagnostics collection
+!  29 Dec 2017 - C. Keller   - Added datetime tokens to file prefixes. 
 !EOP
 !-----------------------------------------------------------------------
 !BOC
@@ -375,7 +376,7 @@ CONTAINS
                      OptValChar=DiagnPrefix, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       DiagnPrefix = 'HEMCO_Diagnostics'
+       DiagnPrefix = 'HEMCO_Diagnostics.$YYYY$MM$DD$HH$MN.nc'
     ENDIF
 
     ! Output time stamp location
@@ -431,6 +432,7 @@ CONTAINS
     deltaYMD = 99999999
     deltaHMS = 999999
 #endif
+    DiagnPrefix = 'HEMCO_restart.$YYYY$MM$DD$HH$MN.nc'
     CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,                &
                                  NX           = HcoState%NX,               &
                                  NY           = HcoState%NY,               &
@@ -438,7 +440,7 @@ CONTAINS
                                  TS           = HcoState%TS_EMIS,          &
                                  AM2          = HcoState%Grid%AREA_M2%Val, &
                                  COL          = CollectionID,              & 
-                                 PREFIX       = 'HEMCO_restart',           &
+                                 PREFIX       = TRIM(DiagnPrefix),         &
                                  deltaYMD     = deltaYMD,                  & 
                                  deltaHMS     = deltaHMS,                  & 
                                  OutTimeStamp = HcoDiagnEnd,               & 
@@ -459,6 +461,7 @@ CONTAINS
     deltaYMD = -1
     deltaHMS = -1
 #endif
+    DiagnPrefix = 'HEMCO_manual.$YYYY$MM$DD$HH$MN.nc'
     CALL DiagnCollection_Create( am_I_Root, HcoState%Diagn,             &
                                  NX        = HcoState%NX,               &
                                  NY        = HcoState%NY,               &
@@ -466,7 +469,7 @@ CONTAINS
                                  TS        = HcoState%TS_EMIS,          &
                                  AM2       = HcoState%Grid%AREA_M2%Val, &
                                  COL       = CollectionID,              & 
-                                 PREFIX    = 'HEMCO_manual',            &
+                                 PREFIX    = TRIM(DiagnPrefix),         &
                                  deltaYMD  = deltaYMD,                  & 
                                  deltaHMS  = deltaHMS,                  & 
                                  RC        = RC                          )
