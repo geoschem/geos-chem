@@ -511,7 +511,23 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
+#if defined( DISCOVER )
+     LOGICAL                     :: haveImpRst   = .FALSE.
+     LOGICAL                     :: AlwaysSetH2O = .TRUE.
+     LOGICAL                     :: UseOnlineVUD = .FALSE.
+     INTEGER                     :: LLSTRAT      = 59
+     INTEGER                     :: LLFASTJX     = 601
+     INTEGER                     :: NN_RxnRates             ! # of diagnosed reaction rates
+     INTEGER, POINTER            :: RxnRates_IDs(:)         ! Reaction rate numbers to be diagnosed
+     INTEGER                     :: NN_RxnRconst            ! # of diagnosed reaction rates
+     INTEGER, POINTER            :: RxnRconst_IDs(:)        ! Reaction rate numbers to be diagnosed
+     INTEGER                     :: NN_Jvals                ! # of diagnosed Jvalues 
+     INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
+     INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
+     LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE. 
+#else
      LOGICAL                     :: haveImpRst
+#endif
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -1269,7 +1285,20 @@ CONTAINS
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
+#if defined( DISCOVER )
+!    Input_Opt%haveImpRst             = .FALSE.
+!    Input_Opt%AlwaysSetH2O           = .FALSE.
+!    Input_Opt%LLSTRAT                = -999
+!    Input_Opt%LLFASTJX               = -999
+    Input_Opt%NN_RxnRates            = -999
+    Input_Opt%RxnRates_IDs          => NULL()
+    Input_Opt%NN_RxnRconst           = -999
+    Input_Opt%RxnRconst_IDs         => NULL()
+    Input_Opt%NN_Jvals               = -999
+    Input_Opt%Jval_IDs              => NULL()
+#else
     Input_Opt%haveImpRst             = .FALSE.
+#endif
 
     !----------------------------------------
     ! Fields for LINOZ strat chem
@@ -1527,6 +1556,16 @@ CONTAINS
     IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
        DEALLOCATE( Input_Opt%LINOZ_TPARM )
     ENDIF
+
+#if defined( DISCOVER )
+    IF ( ASSOCIATED( Input_Opt%RxnRconst_IDs ) ) THEN
+       DEALLOCATE( Input_Opt%RxnRconst_IDs )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%RxnRates_IDs ) ) THEN
+       DEALLOCATE( Input_Opt%RxnRates_IDs )
+    ENDIF
+#endif
 
   END SUBROUTINE Cleanup_Input_Opt
 !EOC

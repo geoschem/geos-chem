@@ -347,7 +347,11 @@ CONTAINS
        !==================================================================== 
    
        ! Skip line if GIGCchem not present
+#if defined( DISCOVER )
+       IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
+#else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
+#endif
 
        ! Get diagnostic name
        CALL CStrip( Line, KeepSpaces=.TRUE. )
