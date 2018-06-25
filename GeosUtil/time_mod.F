@@ -3018,13 +3018,15 @@
 !  04 Oct 2012 - D. Ridley   - Initial Version
 !  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
 !                              timestep units of seconds
+!  18 May 2018 - C. Holmes   - Call radiation the first time after half-interval,
+!                              without requiring an exact time match.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: M
+      INTEGER :: M, TMOD, TS
 
       !=================================================================
       ! ITS_TIME_FOR_RT begins here!
@@ -3032,9 +3034,15 @@
       ! Get half a time step value
       M = TS_RAD/2
 
-      ! Is it time for radiation calcs?
-      ! RT time step is in the center of time step
-      FLAG = ( MOD( ELAPSED_SEC, TS_RAD ) == M )
+      ! Elapsed time in this radiation step
+      TMOD =  MOD( ELAPSED_SEC, TS_RAD )
+
+      ! Smallest time step
+      TS = TS_DYN
+
+      ! It's time for radiation, when the current time is greater than
+      ! half step and the previous time was less.
+      FLAG = ( TMOD >= M ) .and. ( TMOD-TS < M )
 
       END FUNCTION ITS_TIME_FOR_RT
 !EOC
