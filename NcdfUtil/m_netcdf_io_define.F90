@@ -90,7 +90,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_dimension(ncid,name,len,idi,unlimited)
+  SUBROUTINE NcDef_dimension(ncid,name,len,id,unlimited)
 !
 ! !USES:
 !
@@ -104,9 +104,9 @@ CONTAINS
 !!  ncid  : netCDF file id
 !!  name  : dimension name
 !!  len   : dimension number
-    CHARACTER (LEN=*), INTENT(IN) :: name
-    INTEGER,           INTENT(IN) :: ncid, len
-    LOGICAL, OPTIONAL, INTENT(IN) :: unlimited
+    CHARACTER (LEN=*), INTENT(IN)  :: name
+    INTEGER,           INTENT(IN)  :: ncid, len
+    LOGICAL, OPTIONAL, INTENT(IN)  :: unlimited
 !
 ! !OUTPUT PARAMETERS:
 !!  id    : dimension id
@@ -123,7 +123,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  Initial code.
 !  18 May 2018 - C. Holmes - Add support for unlimited dimensions
-!
+!  25 Jun 2018 - R. Yantosca - Fixed typo
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -131,9 +131,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
     CHARACTER (len=512) :: err_msg
     INTEGER :: ierr
-!
-    ! If unlimited variable is present and true, then make this dimension
-    ! unlimited
+
+    ! If unlimited variable is present and true, 
+    ! then make this dimension unlimited
     len0 = len
     if (present(unlimited)) then
        if (unlimited) then
