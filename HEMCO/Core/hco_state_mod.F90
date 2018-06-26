@@ -692,6 +692,7 @@ CONTAINS
     INTEGER             :: I,      AS
     CHARACTER(LEN=255)  :: MSG,    LOC
     CHARACTER(LEN=2047) :: SpcStr, SUBSTR(255)
+    CHARACTER(LEN=2047) :: TmpStr
 
     !======================================================================
     ! HCO_GetExtHcoID begins here
@@ -721,8 +722,23 @@ CONTAINS
 
     ! Extract species information
     DO I = 1, nSpc
-       SpcNames(I) = SUBSTR(I)
-       HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
+       !---------------------------------------------------------------------
+       ! Prior to 6/26/18:
+       ! This code can cause issues with certain compiler versions,
+       ! so let's rewrite it slightly (bmy, 6/26/18)
+       !SpcNames(I) = SUBSTR(I)
+       !HcoIDs(I)   = HCO_GetHcoID( TRIM(SpcNames(I)), HcoState )
+       !---------------------------------------------------------------------
+
+       ! Rewrite this code to be a little more friendly to compilers with 
+       ! strict string-parsing syntax, such as ifort 17. ALSO NOTE: We don't 
+       ! necessarily have to do the TRIM in the call to HCO_GetHcoID, because
+       ! the species name will be TRIMmed internally.  We have noticed that 
+       ! some compilers don't like taking the TRIM of an array element as
+       ! an argument to a function call. (bmy, 6/26/18)
+       TmpStr      = SubStr(I)
+       SpcNames(I) = TRIM( TmpStr )
+       HcoIDs(I)   = HCO_GetHcoID( TmpStr, HcoState )
     ENDDO
 
     ! Return w/ success
