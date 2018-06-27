@@ -848,8 +848,6 @@ CONTAINS
 
        ENDIF
 
-       C(ind_ACTA)  = 0.0_dp
-       C(ind_HCOOH) = 0.0_dp
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
           ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
@@ -928,11 +926,6 @@ CONTAINS
 !       totrejec = totrejec + ISTATUS(5)
 !       totnumLU = totnumLU + ISTATUS(6)
 !#endif
-
-       ! Zero certain species
-       C(ind_ACTA)  = 0.e0_dp
-       C(ind_EOH)   = 0.e0_dp
-       C(ind_HCOOH) = 0.e0_dp
 
        ! Try another time if it failed
        IF ( IERR < 0 ) THEN
