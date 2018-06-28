@@ -194,8 +194,8 @@
 ! comment out this code so that it can be quickly restored at a later date.
 !     -- Bob Yantosca (11 Apr 2018)
 !-
-!      ! Anthropogenic PM2.5 dust emission
-!      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
+      ! Anthropogenic PM2.5 dust emission
+      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
 !------------------------------------------------------------------------------
 
       CONTAINS
@@ -387,25 +387,25 @@
 ! comment out this code so that it can be quickly restored at a later date.
 !     -- Bob Yantosca (11 Apr 2018)
 !-
-!         ! For AFCID (S. Philip)
-!         HcoState%Options%SpcMin = Inst%HcoIDs(1)
-!         HcoState%Options%SpcMax = Inst%HcoIDs(1)
-!         HcoState%Options%CatMin =  1
-!         HcoState%Options%CatMax = -1
-!         HcoState%Options%ExtNr  = Inst%ExtNr
-!
-!         HcoState%Options%AutoFillDiagn = .FALSE.
-!         HcoState%Options%FillBuffer = .TRUE.
-!         HcoState%Buffer3D%Val => MyDST1e
-!    
-!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
-!         IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!         ! Reset settings to standard
-!         HcoState%Buffer3D%Val          => NULL()
-!         HcoState%Options%FillBuffer    = .FALSE.
-!         HcoState%Options%ExtNr         = 0
-!         HcoState%Options%AutoFillDiagn = .TRUE.
+         ! For AFCID (S. Philip)
+         HcoState%Options%SpcMin = Inst%HcoIDs(1)
+         HcoState%Options%SpcMax = Inst%HcoIDs(1)
+         HcoState%Options%CatMin =  1
+         HcoState%Options%CatMax = -1
+         HcoState%Options%ExtNr  = Inst%ExtNr
+
+         HcoState%Options%AutoFillDiagn = .FALSE.
+         HcoState%Options%FillBuffer = .TRUE.
+         HcoState%Buffer3D%Val => MyDST1e
+    
+         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         ! Reset settings to standard
+         HcoState%Buffer3D%Val          => NULL()
+         HcoState%Options%FillBuffer    = .FALSE.
+         HcoState%Options%ExtNr         = 0
+         HcoState%Options%AutoFillDiagn = .TRUE.
 !------------------------------------------------------------------------------
 
 !         FIRST = .FALSE.
@@ -542,10 +542,10 @@
 ! comment out this code so that it can be quickly restored at a later date.
 !     -- Bob Yantosca (11 Apr 2018)
 !-
-!                 ! Add AFCID to bin 1 (S. Philip)
-!                  IF ( N == 1 ) THEN   ! kg/m2/s
-!                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
-!                  ENDIF
+                 ! Add AFCID to bin 1 (S. Philip)
+                  IF ( N == 1 ) THEN   ! kg/m2/s
+                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
+                  ENDIF
 !------------------------------------------------------------------------------
 
                ENDIF
@@ -604,6 +604,9 @@
          ENDIF
 
       ENDDO !N
+
+      ! Zero for next timestep
+      MyDST1e = 0.0_hp
 
       ! Return w/ success
       Inst => NULL()
@@ -954,13 +957,13 @@
 ! comment out this code so that it can be quickly restored at a later date.
 !     -- Bob Yantosca (11 Apr 2018)
 !-
-!      ! AFCID emissions (S. Philip)
-!      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
-!      IF ( AS /= 0 ) THEN
-!         CALL HCO_ERROR ( 'MyDST1e', RC )
-!         RETURN
-!      ENDIF
-!      MyDST1e = 0.0_hp
+      ! AFCID emissions (S. Philip)
+      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
+      IF ( AS /= 0 ) THEN
+         CALL HCO_ERROR ( 'MyDST1e', RC )
+         RETURN
+      ENDIF
+      MyDST1e = 0.0_hp
 !------------------------------------------------------------------------------
 
       !=================================================================
@@ -5926,7 +5929,8 @@ c Fix up for negative argument, erf, etc.
 ! comment out this code so that it can be quickly restored at a later date.
 !     -- Bob Yantosca (11 Apr 2018)
 !-
-!      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
+      ! AFCID emissions (S. Philip, 2017)
+      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
 !------------------------------------------------------------------------------
 !      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
