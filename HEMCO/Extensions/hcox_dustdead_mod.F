@@ -187,17 +187,6 @@
       INTEGER, PARAMETER   :: DST_SRC_NBR      = 3
       INTEGER, PARAMETER   :: MVT              = 14
 
-!------------------------------------------------------------------------------
-! NOTE: Adding the fine dust emissions causes the dust emissions total to
-! change by orders of magnitude, and we do not yet understand why.  It could
-! be that something in a recent HEMCO update changed.  For the time being, 
-! comment out this code so that it can be quickly restored at a later date.
-!     -- Bob Yantosca (11 Apr 2018)
-!-
-      ! Anthropogenic PM2.5 dust emission
-      REAL(hp), ALLOCATABLE, TARGET :: MyDST1e(:,:,:)
-!------------------------------------------------------------------------------
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -262,6 +251,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL                :: aIR,    ERR
       INTEGER                :: I,      J,      L,       N
       INTEGER                :: M,      IOS,    INC,     LAT_IDX
@@ -287,9 +277,32 @@
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
       REAL*8                 :: DUST_EMI_TOTAL(HcoState%NX) ! total dust emiss
-      REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
-      REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS) ! Flux array for dust alkalinity [kg/m2/s]   
+
+      ! Flux array [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX(HcoState%NX,
+     &                               HcoState%NY,
+     &                               NBINS) 
+
+      ! Flux array for dust alkalinity [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,
+     &                                   HcoState%NY,
+     &                                   NBINS) 
+
+!------------------------------------------------------------------------------
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!
+!      ! AFCID (fine PM2.5) emissions (S. Philip)
+!      ! Array to get emissions flux from HEMCO
+!      REAL(hp), TARGET       :: AFCID_PM25(HcoState%NX,
+!     &                                     HcoState%NY,
+!     &                                     HcoState%NZ)
+!------------------------------------------------------------------------------
+
+      ! Pointers
       TYPE(MyInst), POINTER  :: Inst
+
+      ! Strings
+      CHARACTER(LEN=255)     :: MSG
 !
 ! !DEFINED PARAMETERS:
 !
@@ -301,7 +314,6 @@
       REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
-      CHARACTER(LEN=255)     :: MSG
 
       !=================================================================
       ! HCOX_DUSTDEAD_RUN begins here!
@@ -381,31 +393,33 @@
          IF ( RC /= HCO_SUCCESS ) RETURN
 
 !------------------------------------------------------------------------------
-! NOTE: Adding the fine dust emissions causes the dust emissions total to
-! change by orders of magnitude, and we do not yet understand why.  It could
-! be that something in a recent HEMCO update changed.  For the time being, 
-! comment out this code so that it can be quickly restored at a later date.
-!     -- Bob Yantosca (11 Apr 2018)
-!-
-         ! For AFCID (S. Philip)
-         HcoState%Options%SpcMin = Inst%HcoIDs(1)
-         HcoState%Options%SpcMax = Inst%HcoIDs(1)
-         HcoState%Options%CatMin =  1
-         HcoState%Options%CatMax = -1
-         HcoState%Options%ExtNr  = Inst%ExtNr
-
-         HcoState%Options%AutoFillDiagn = .FALSE.
-         HcoState%Options%FillBuffer = .TRUE.
-         HcoState%Buffer3D%Val => MyDST1e
-    
-         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-
-         ! Reset settings to standard
-         HcoState%Buffer3D%Val          => NULL()
-         HcoState%Options%FillBuffer    = .FALSE.
-         HcoState%Options%ExtNr         = 0
-         HcoState%Options%AutoFillDiagn = .TRUE.
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!         !--------------------------------------------------------------
+!         ! Get AFCID emissions fluxes from HEMCO (S. Philip)
+!         !--------------------------------------------------------------
+!
+!         ! Initialize
+!         AFCID_PM25                     = 0.0_hp
+!
+!         ! Update settings in HcoState
+!         HcoState%Options%SpcMin        = Inst%HcoIDs(1)
+!         HcoState%Options%SpcMax        = Inst%HcoIDs(1)
+!         HcoState%Options%CatMin        =  1
+!         HcoState%Options%CatMax        = -1
+!         HcoState%Options%ExtNr         = Inst%ExtNr
+!         HcoState%Options%AutoFillDiagn = .FALSE.
+!         HcoState%Options%FillBuffer    = .TRUE.
+!         HcoState%Buffer3D%Val          => AFCID_PM25
+!    
+!         ! Compute emissions
+!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!         ! Reset HcoState settings to standard
+!         HcoState%Buffer3D%Val          => NULL()
+!         HcoState%Options%FillBuffer    = .FALSE.
+!         HcoState%Options%ExtNr         = 0
+!         HcoState%Options%AutoFillDiagn = .TRUE.
 !------------------------------------------------------------------------------
 
 !         FIRST = .FALSE.
@@ -536,16 +550,17 @@
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
 
 !------------------------------------------------------------------------------
-! NOTE: Adding the fine dust emissions causes the dust emissions total to
-! change by orders of magnitude, and we do not yet understand why.  It could
-! be that something in a recent HEMCO update changed.  For the time being, 
-! comment out this code so that it can be quickly restored at a later date.
-!     -- Bob Yantosca (11 Apr 2018)
-!-
-                 ! Add AFCID to bin 1 (S. Philip)
-                  IF ( N == 1 ) THEN   ! kg/m2/s
-                     FLUX(I,J,N) = FLUX(I,J,N) + MyDST1e(I,J,1) 
-                  ENDIF
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!                  !-----------------------------------------------------
+!                  ! Add AFCID fine PM2.5 dust emissons [kg/m2/s]
+!                  ! to the DST1 species (dust bin #1)
+!                  !
+!                  ! NOTE: AFCID_PM25 is a 3-D array (to get data from
+!                  ! HcoState), but all emissions are in the 1st layer
+!                  !-----------------------------------------------------
+!                  IF ( N == 1 ) THEN
+!                     FLUX(I,J,N) = FLUX(I,J,N) + AFCID_PM25(I,J,1) 
+!                  ENDIF
 !------------------------------------------------------------------------------
 
                ENDIF
@@ -604,9 +619,6 @@
          ENDIF
 
       ENDDO !N
-
-      ! Zero for next timestep
-      MyDST1e = 0.0_hp
 
       ! Return w/ success
       Inst => NULL()
@@ -949,22 +961,6 @@
       Inst%MSS_FRC_SRC(1) = 0.036d0
       Inst%MSS_FRC_SRC(2) = 0.957d0
       Inst%MSS_FRC_SRC(3) = 0.007d0
-
-!------------------------------------------------------------------------------
-! NOTE: Adding the fine dust emissions causes the dust emissions total to
-! change by orders of magnitude, and we do not yet understand why.  It could
-! be that something in a recent HEMCO update changed.  For the time being, 
-! comment out this code so that it can be quickly restored at a later date.
-!     -- Bob Yantosca (11 Apr 2018)
-!-
-      ! AFCID emissions (S. Philip)
-      ALLOCATE(MyDST1e(HcoState%NX,HcoState%NY,HcoState%NZ),STAT=AS)
-      IF ( AS /= 0 ) THEN
-         CALL HCO_ERROR ( 'MyDST1e', RC )
-         RETURN
-      ENDIF
-      MyDST1e = 0.0_hp
-!------------------------------------------------------------------------------
 
       !=================================================================
       ! Compute mass overlaps, Mij, between "source" PDFs
@@ -5922,16 +5918,6 @@ c Fix up for negative argument, erf, etc.
       ! Cleanup module arrays 
       !-----------------------------------------------------------------
 
-!------------------------------------------------------------------------------
-! NOTE: Adding the fine dust emissions causes the dust emissions total to
-! change by orders of magnitude, and we do not yet understand why.  It could
-! be that something in a recent HEMCO update changed.  For the time being, 
-! comment out this code so that it can be quickly restored at a later date.
-!     -- Bob Yantosca (11 Apr 2018)
-!-
-      ! AFCID emissions (S. Philip, 2017)
-      IF ( ALLOCATED( MyDST1e ) ) DEALLOCATE( MyDST1e )
-!------------------------------------------------------------------------------
 !      IF ( ALLOCATED( Inst%FLX_LW_DWN_SFC  ) ) 
 !     &    DEALLOCATE( Inst%FLX_LW_DWN_SFC  )
 !      IF ( ALLOCATED( Inst%FLX_SW_ABS_SFC  ) ) 
