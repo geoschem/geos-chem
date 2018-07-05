@@ -4052,7 +4052,7 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
        IF ( isUnits   ) Units = 'm'
        IF ( isRank    ) Rank  = 2
-#if defined( DISCOVER )
+#endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
        IF ( isDesc    ) Desc  = 'Photolysis rate for species' 
