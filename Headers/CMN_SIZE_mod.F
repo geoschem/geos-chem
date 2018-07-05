@@ -587,6 +587,7 @@
 !  03 Dec 2012 - R. Yantosca - Now allocate DLON, DLAT arrays here.
 !  04 Aug 2015 - C. Keller   - Added value_LLTROP and value_LLSTRAT. 
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  05 Jul 2018 - H. Lin      - Initialize DLAT to 0 (previously missing)
 !EOP
 !------------------------------------------------------------------------------
 !BOC      
@@ -754,7 +755,7 @@
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
-      DLON = 0e+0_fpp
+      DLAT = 0e+0_fpp
 
       ! Return w/ success
       RC = GC_SUCCESS
