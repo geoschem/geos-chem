@@ -865,8 +865,6 @@
       ENDIF
 #endif
 
-      ENDIF 
-
 #endif
       
 #if !defined( ESMF_ ) || defined( DISCOVER )
