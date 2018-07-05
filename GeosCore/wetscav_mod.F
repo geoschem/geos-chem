@@ -5567,6 +5567,7 @@
       ! Initialize
       PL => NULL()
       TK => NULL()
+      RC = GC_SUCCESS
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN

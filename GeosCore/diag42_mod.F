@@ -644,6 +644,10 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
+
+      ! Initialize
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
      
       ! This is no longer necessary (bmy, 12/13/17)

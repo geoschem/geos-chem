@@ -1944,6 +1944,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
       USE GC_GRID_MOD,   ONLY : GET_YOFFSET
@@ -1980,6 +1981,9 @@
       !=================================================================
       ! INIT_DIAG49 begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Initialize
       LOCATION               = 'INIT_DIAG49 ("diag49_mod.f")'

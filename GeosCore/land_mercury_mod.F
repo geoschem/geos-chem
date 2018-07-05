@@ -1071,6 +1071,9 @@
       ! INIT_MERCURY begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       ! Save State_Chm%N_Hg_CATS in a shadow variable
       N_Hg_CATS = State_Chm%N_Hg_CATS
 

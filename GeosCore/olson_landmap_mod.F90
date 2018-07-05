@@ -424,6 +424,9 @@ CONTAINS
     ! Initialize variables
     !======================================================================
 
+    ! Assume success 
+    RC = GC_SUCCESS
+
     I_OLSON = 1440                                     ! # lons (0.25x0.25)
     J_OLSON = 720                                      ! # lats (0.25x0.25)
     D_LON   = 0.25e+0_fp                               ! Delta lon [degrees]

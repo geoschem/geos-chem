@@ -2295,6 +2295,9 @@
       ! Open and read data from the netCDF file
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       ! Input file for Olson 2001
       nc_file = 'Olson_2001_Drydep_Inputs.nc'
 

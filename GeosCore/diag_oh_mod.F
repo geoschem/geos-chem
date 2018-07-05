@@ -424,6 +424,7 @@
 
       ! Initialize
       DO_SAVE_OH = .FALSE.
+      RC = GC_SUCCESS
          
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN

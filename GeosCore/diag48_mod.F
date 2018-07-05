@@ -1024,6 +1024,7 @@
       ! References to F90 modules
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,         ONLY : OptInput
       USE State_Chm_Mod,         ONLY : Ind_
@@ -1044,6 +1045,9 @@
       !=================================================================
       ! INIT_DIAG48 begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'

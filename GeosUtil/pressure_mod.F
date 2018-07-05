@@ -318,6 +318,9 @@
       ! SET_FLOATING_PRESSURES begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       !! DEBUGGING (ewl)
       !PRINT *, " "
       !PRINT *, "In SET_FLOATING_PRESSURES"

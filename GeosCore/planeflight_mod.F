@@ -919,6 +919,9 @@
       ! READ_POINTS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       ! Read 4 header lines
       DO N = 1, 4
          READ( IU_FILE, '(a)', IOSTAT=IOS )
@@ -1112,6 +1115,7 @@
       ! Initialize 
       NPRO2   =  0
       SpcInfo => NULL()
+      RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1226,6 +1230,7 @@
       ! Initialize 
       NPNOY   =  0
       SpcInfo => NULL()
+      RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1339,6 +1344,7 @@
       ! Initialize 
       NPAN    =  0
       SpcInfo => NULL()
+      RC = GC_SUCCESS
 
       ! We only need to proceed for full-chemistry simulations
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN

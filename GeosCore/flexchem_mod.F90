@@ -653,7 +653,7 @@ CONTAINS
     DO I = 1, IIPAR
 
        !====================================================================
-       ! For safety's sake, initialize certain variables for each grid
+       ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
        HET       = 0.0_dp            ! Het chem array
@@ -717,7 +717,7 @@ CONTAINS
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
 
-             ! Copy photolysis rate from FAST_JX into KPP's PHOTOL array
+             ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
              PHOTOL(N) = ZPJ(L,N,I,J)
              
 #if defined( DISCOVER )
@@ -894,7 +894,7 @@ CONTAINS
        ENDIF
 
        !==================================================================
-       ! Update KPP's rates
+       ! Update KPP rates
        !==================================================================
 
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
@@ -1295,6 +1295,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_Mod
+    USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
@@ -1352,6 +1353,9 @@ CONTAINS
     !=======================================================================
     ! Diag_OH_HO2_O1D_O3P begins here!
     !=======================================================================
+
+    ! Assume success
+    RC = GC_SUCCESS
 
     ! Point to the array of species concentrations
     AirNumDen => State_Met%AirNumDen
@@ -1630,7 +1634,7 @@ CONTAINS
     ! Assume success
     RC       = GC_SUCCESS
 
-    ! Do the following only if it's a full-chemistry simulation
+    ! Do the following only if it is a full-chemistry simulation
     ! NOTE: If future specialty simulations use the KPP solver, 
     ! modify the IF statement accordingly to allow initialization
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1764,7 +1768,7 @@ CONTAINS
     !--------------------------------------------------------------------
     IF ( nFam > 0 ) THEN
              
-       ! Allocate mapping array for KPP Id's for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
        ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN

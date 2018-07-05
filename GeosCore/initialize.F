@@ -155,6 +155,10 @@
       !=================================================================
       ! INITIALIZE begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
 
       ! Error condition if IFLAG does not equal 2, or 3!

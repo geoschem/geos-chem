@@ -292,6 +292,10 @@
       !=================================================================
       ! DIAG51b begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
       
       ! Construct array of where local times are between HR1, HR2
@@ -1936,6 +1940,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
@@ -1978,6 +1983,9 @@
       !=================================================================
       ! INIT_DIAG51b begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG )
 

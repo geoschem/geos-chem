@@ -155,6 +155,10 @@
       !=================================================================
       ! STDRUN begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
 
       ! Number of advected species
