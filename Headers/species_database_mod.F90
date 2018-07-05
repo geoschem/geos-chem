@@ -26,6 +26,19 @@ MODULE Species_Database_Mod
 !
   PUBLIC  :: Init_Species_Database
   PUBLIC  :: Cleanup_Species_Database
+
+#if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  !-----------------------------------------------------------------
+  !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+  !
+  ! Cleanup routines for restoring the internal state of this
+  ! module are exposed, so the DB can be reset from an external
+  ! interface to perform multiple initializations of
+  ! chemistry states. (hplin, 6/4/18)
+  !-----------------------------------------------------------------
+  PUBLIC  :: Cleanup_Work_Arrays
+#endif
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -7114,10 +7127,10 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_Work_Arrays
 !
-! !DESCRIPTION: Stores the list of unique species names (i.e. removing
-!  duplicates from the list of advected species and the the list of KPP
-!  species) for later use.  Also computes the indices for KPP variable
-!  and fixed indices.
+! !DESCRIPTION: Cleans working (temporary) arrays used by this module, 
+!  restoring them to an unused state. It is called at the end of 
+!  Init_Species_Database or by an external module when needed to 
+!  reinitialize the species DB.
 !\\
 !\\
 ! !INTERFACE:
@@ -7125,11 +7138,13 @@ CONTAINS
   SUBROUTINE Cleanup_Work_Arrays()
 !
 ! !REMARKS:
-!  This may not be the fastest search algorithm, but it is only executed
-!  once, at startup.
+!  This routine allows Species_Database_Mod to be initialized more than once
+!  in the same CPU, if called externally before re-initializing a State_Chm
+!  derived type object.
 !
 ! !REVISION HISTORY:
 !  06 May 2016 - R. Yantosca - Initial version
+!  05 Jul 2018 - H.P. Lin    - Add missing KppSpcId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7140,7 +7155,8 @@ CONTAINS
     IF ( ALLOCATED( Species_Names ) ) DEALLOCATE( Species_Names )
     IF ( ALLOCATED( KppFixId      ) ) DEALLOCATE( KppFixId      )
     IF ( ALLOCATED( KppVarId      ) ) DEALLOCATE( KppVarId      )
+    IF ( ALLOCATED( KppSpcId      ) ) DEALLOCATE( KppSpcId      )
 
-  END SUBROUTINE Cleanup_Work_ArrayS
+  END SUBROUTINE Cleanup_Work_Arrays
 !EOC
 END MODULE Species_Database_Mod
