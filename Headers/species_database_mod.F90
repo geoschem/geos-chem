@@ -3453,12 +3453,12 @@ CONTAINS
                    Name     = 'O3AfBL'
                 CASE( 'O3ASBL' )
                    FullName = 'Ozone produced in the Asian boundary layer'
-                   Name     = ''
+                   Name     = 'O3AsBl'
                 CASE( 'O3INIT' )
                    FullName = 'Ozone from the initial condition'
                    Name     = 'O3Init'
                 CASE( 'O3USA' )
-                   FullName = 'Ozone produced over the United States'
+                   FullName = 'Ozone produced over the United States in PBL'
                    Name     = 'O3USA'
              END SELECT
 
