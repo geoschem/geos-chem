@@ -4303,6 +4303,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  22 Sep 2015 - R. Yantosca - Now deallocate arrays that were formerly
 !                              sized to MAXDEP.
+!  05 Jul 2018 - H. Lin      - Bug fix: deallocate FLAG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4316,6 +4317,7 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
       IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
+      IF ( ALLOCATED( FLAG     ) ) DEALLOCATE( FLAG     )
       IF ( ALLOCATED( HSTAR    ) ) DEALLOCATE( HSTAR    )
       IF ( ALLOCATED( KOA      ) ) DEALLOCATE( KOA      )
       IF ( ALLOCATED( NDVZIND  ) ) DEALLOCATE( NDVZIND  )
