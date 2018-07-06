@@ -808,6 +808,8 @@
 #endif
 
       ! Strings
+      CHARACTER(LEN=6)   :: TimeStr
+      CHARACTER(LEN=8)   :: DateStr
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays
@@ -830,6 +832,26 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%NYMDb, Input_Opt%NHMSb
 
+      ! Make sure the starting date NYMDb is valid
+      IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
+         WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
+         ErrMsg = 'Input%Opt%NYMDb = ' // DateStr        // 
+     &            ' is not a valid calendar date!'       //
+     &            ' Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Make sure the starting time NYMDb is valid
+      IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
+         WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+         ErrMsg = 'Input%Opt%NHMSb = ' // TimeStr        // 
+     &            ' is not a valid clock time!'          //
+     &            ' Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       ! End YYYYMMDD, HHMMSS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'NYMDe, NHMSe', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -837,6 +859,26 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%NYMDe, Input_Opt%NHMSe
+
+      ! Make sure the starting date NYMDb is valid
+      IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
+         WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
+         ErrMsg = 'Input%Opt%NYMDe = ' // DateStr        // 
+     &            ' is not a valid calendar date!'       //
+     &            ' Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Make sure the ending time NYMDe is valid
+      IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
+         WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
+         ErrMsg = 'Input%Opt%NHMSe = ' // TimeStr        // 
+     &            ' is not a valid clock time!'          //
+     &            ' Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Run directory
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'RUN_DIR', RC )
