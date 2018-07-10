@@ -45,8 +45,8 @@
 ! configuration file (see above). In combination with the ExtNr (121), these
 ! categories can then be used in the HEMCO diagnostics file to output wetland
 ! and rice emissions separately, e.g.:
-! CH4_WETL 121 1 -1 2 kg/m2/s 
-! CH4_RICE 121 2 -1 2 kg/m2/s 
+! CH4\_WETL 121 1 -1 2 kg/m2/s 
+! CH4\_RICE 121 2 -1 2 kg/m2/s 
 !\\
 !\\
 ! References:

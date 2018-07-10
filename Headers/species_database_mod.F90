@@ -7129,7 +7129,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Cleans working (temporary) arrays used by this module, 
 !  restoring them to an unused state. It is called at the end of 
-!  Init_Species_Database or by an external module when needed to 
+!  Init\_Species\_Database or by an external module when needed to 
 !  reinitialize the species DB.
 !\\
 !\\
