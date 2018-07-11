@@ -263,9 +263,9 @@ MAN2       = IGNORE; {HOCH2C(ONO2)(CH3)CHO; RO2 from MACR+NO3}
 MAOP       = IGNORE; {CH2=C(CH3)C(O)OOH; Peroxide from NMAO3}
 MAOPO2     = IGNORE; {CH2OH-CHOO*CH3C(O)OOH; Peroxy radical from MAOP}
 MAP        = IGNORE; {CH3C(O)OOH; Peroxyacetic acid}
-MBO        = IGNORE; {Criegee intermediate}
+MBO        = IGNORE; {CH2=CHC(CH3)2OH; 2-methyl-3-buten-2-ol}
 MBOOO      = IGNORE; {Criegee intermediate}
-MCO3       = IGNORE; {CH3C(O)O; Peroxyacetyl radical}
+MCO3       = IGNORE; {CH3C(O)OO; Peroxyacetyl radical}
 MEK        = IGNORE; {RC(O)R; Methyl ethyl ketone}
 MGLOO      = IGNORE; {Criegee intermediate}
 MGLY       = IGNORE; {CH3COCHO; Methylglyoxal}
@@ -913,6 +913,7 @@ MOBAOO + HO2 = 0.500OH + 0.500HO2 +
 MOBA + O3 = OH + HO2 + CO2 + MEK :           GCARR(2.00E-17, 0.0E+00, 0.0);       {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 ETHLN + OH = CH2O + CO2 + NO2 :              GCARR(2.40E-12, 0.0E+00, 0.0);       {2017/06/15, Marais2016, EAM}
 PROPNN + OH = NO2 + MGLY :                   GCARR(6.70E-13, 0.0E+00, 0.0);       {2017/07/14; MCMv3.3; KRT,JAF,CCM,EAM,KHB,RHS}
+CH2OO + CO = CH2O :                          GCARR(1.20E-15, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
 CH2OO + NO = CH2O + NO2 :                    GCARR(1.00E-14, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
 CH2OO + NO2 = CH2O + NO3 :                   GCARR(1.00E-15, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
 CH2OO + SO2 = CH2O + SO4 :                   GCARR(7.00E-14, 0.0E+00, 0.0);       {2015/09/25; Millet2015; DBM,EAM}
