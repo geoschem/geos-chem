@@ -71,11 +71,14 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      REAL(f8)                    :: EpochJd             ! Astronomical Julian
                                                         !  date @ start of sim
-                                                        !  1=accum from source
+     REAL(f8)                    :: EpochJsec           ! Astronomical Julian
+                                                        !  secs @ start of sim
      INTEGER                     :: CurrentYmd          ! Current YMD date
      INTEGER                     :: CurrentHms          ! Current hms time
      REAL(f8)                    :: CurrentJd           ! Astronomical Julian
                                                         !  date @ current time
+     REAL(f8)                    :: CurrentJsec         ! Astronomical Julian
+                                                        !  secs @ current time
      REAL(f8)                    :: ElapsedSec          ! Elapsed seconds
                                                         !  since start of sim
      REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed sec)
@@ -90,7 +93,9 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
      INTEGER                     :: ReferenceHms        !  for the "time" dim
-     REAL(f8)                    :: ReferenceJD         ! Julian Date at the
+     REAL(f8)                    :: ReferenceJd         ! Julian Date at the
+                                                        !  reference YMD & hms
+     REAL(f8)                    :: ReferenceJsec       ! Julian Seconds @ the
                                                         !  reference YMD & hms
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
@@ -106,10 +111,9 @@ MODULE HistContainer_Mod
      REAL(f8)                    :: UpdateIvalSec       ! Update interval [sec]
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
+                                                        !  1=accum from source
      REAL(f8)                    :: HeartBeatDtSec      ! The "heartbeat"
                                                         !  timestep [sec]
-     REAL(f8)                    :: HeartBeatDtDays     ! The "heartbeat"
-                                                        !  timestep [days]
 
      !----------------------------------------------------------------------
      ! Quantities for file creation, writing, and I/O status
@@ -709,11 +713,13 @@ CONTAINS
     Container%Spc_Units       = ''
 
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
+    Container%EpochJsec       = Container%EpochJd * SECONDS_PER_DAY
+    Container%CurrentJsec     = Container%EpochJSec
     Container%CurrentJd       = Container%EpochJd
+    Container%ReferenceJsec   = Container%EpochJsec
     Container%ReferenceJd     = Container%EpochJd
     Container%ReferenceYmd    = Container%CurrentYmd
     Container%ReferenceHms    = Container%CurrentHms
-    Container%HeartBeatDtDays = Container%HeartBeatDtSec / SECONDS_PER_DAY
 
     ! These other time fields will be defined later
     Container%ElapsedSec      = 0.0_f8
@@ -889,7 +895,9 @@ CONTAINS
        WRITE( 6, 130 ) 'nX               : ', Container%nX
        WRITE( 6, 130 ) 'nY               : ', Container%nY
        WRITE( 6, 130 ) 'nZ               : ', Container%nZ
+       WRITE( 6, 160 ) 'EpochJsec        : ', Container%EpochJsec
        WRITE( 6, 160 ) 'EpochJd          : ', Container%EpochJd
+       WRITE( 6, 160 ) 'CurrentJSec      : ', Container%CurrentJSec
        WRITE( 6, 160 ) 'CurrentJd        : ', Container%CurrentJd
        WRITE( 6, 135 ) 'CurrentYmd       : ', Container%CurrentYmd
        WRITE( 6, 145 ) 'CurrentHms       : ', Container%CurrentHms
@@ -901,9 +909,9 @@ CONTAINS
        WRITE( 6, 160 ) 'UpdateAlarm      : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation        : ', OpCode( Container%Operation )
        WRITE( 6, 160 ) 'HeartBeatDtSec   : ', Container%HeartBeatDtSec
-       WRITE( 6, 160 ) 'HeartBeatDtDays  : ', Container%HeartBeatDtDays
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
+       WRITE( 6, 160 ) 'ReferenceJsec    : ', Container%ReferenceJd
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
@@ -1425,6 +1433,8 @@ CONTAINS
 !  21 Aug 2017 - R. Yantosca - Initial version
 !  29 Aug 2017 - R. Yantosca - Now make HeartBeatDt an optional field; if not
 !                              specified, use Container%HeartBeatDtDays
+!  11 Jul 2018 - R. Yantosca - Now increment time in seconds instead of days
+!                              to avoid roundoff error in computation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1443,17 +1453,24 @@ CONTAINS
          ' -> at HistContainer_SetTime (in History/history_mod.F90)' 
 
     !========================================================================
-    ! Update the current Julian date by the heartbeat time (in days)
+    ! Update the current time by the heartbeat time (in seconds)
     !========================================================================
-
-    ! Update the Julian date by the heart beat interval in decimal days
+ 
+    ! Update the Astronomical Julian seconds value by the heartbeat interval.
+    ! Increment in seconds instead of days to avoid roundoff errors.
     IF ( PRESENT( HeartBeatDt ) ) THEN
-       Container%CurrentJd = Container%CurrentJd + HeartBeatDt
+       Container%CurrentJsec = Container%CurrentJsec +                       &
+                               HeartBeatDt
     ELSE
-       Container%CurrentJd = Container%CurrentJd + Container%HeartBeatDtDays
+       Container%CurrentJsec = Container%CurrentJsec +                       &
+                               Container%HeartBeatDtSec
     ENDIF
-       
-    ! Convert the Julian Day to year/month/day and hour/minutes/seconds
+
+    ! Convert Astronomical Julian Seconds to Astronomical Julian Date,
+    ! for the conversion to calendar date and time. (bmy, 7/11/18)
+    Container%CurrentJd = Container%CurrentJsec / SECONDS_PER_DAY
+
+    ! Convert the Astronomical Julian Date to calendar date and time
     CALL CalDate( JulianDay = Container%CurrentJd,                           &
                   yyyymmdd  = Container%CurrentYmd,                          &
                   hhmmss    = Container%CurrentHms                          )
@@ -1462,10 +1479,12 @@ CONTAINS
     ! Compute elapsed time quantities
     !========================================================================
 
-    ! Compute the elapsed time in minutes since the start of the run
-    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-                               TimeBaseJd = Container%EpochJd,               &
-                               ElapsedSec = Container%ElapsedSec            )
+   ! Compute the elapsed time in seconds since the start of the run
+   CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,          &
+                              TimeBaseJsec = Container%EpochJsec,            &
+                              ElapsedSec   = Container%ElapsedSec           )
+
+
 
   END SUBROUTINE HistContainer_SetTime
 !EOC

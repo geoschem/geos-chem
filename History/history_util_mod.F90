@@ -152,16 +152,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Elapsed_Time( CurrentJd, TimeBaseJd, ElapsedSec )
-!
-! !USES:
-!
-    USE Roundoff_Mod
+  SUBROUTINE Compute_Elapsed_Time( CurrentJsec, TimeBaseJsec, ElapsedSec )
 !
 ! !INPUT PARAMETERS: 
 !
-    REAL(f8), INTENT(IN)  :: CurrentJd    ! Current astronomical Julian date
-    REAL(f8), INTENT(IN)  :: TimeBaseJd   ! Reference astronomical Julian date
+    REAL(f8), INTENT(IN)  :: CurrentJsec  ! Current astronomical Julian date
+    REAL(f8), INTENT(IN)  :: TimeBaseJsec ! Reference astronomical Julian date
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -177,6 +173,7 @@ CONTAINS
 !  13 Sep 2017 - R. Yantosca - Avoid roundoff error; return integral minutes
 !  18 Sep 2017 - R. Yantosca - Now return elapsed seconds to avoid roundoff
 !  29 Sep 2017 - R. Yantosca - Use NINT instead of INT to avoid roundoff
+!  11 Jul 2018 - R. Yantosca - Now accept input arguments in seconds
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,7 +183,7 @@ CONTAINS
     !=======================================================================
 
     ! Compute elapsed minutes since start of simulation
-    ElapsedSec = ( CurrentJd - TimeBaseJd ) * SECONDS_PER_DAY
+    ElapsedSec = ( CurrentJsec - TimeBaseJsec )
 
     ! Just keep the integer part, since we are dealing in integral seconds
     ! NINT ensures that we round up in case there is underflow
