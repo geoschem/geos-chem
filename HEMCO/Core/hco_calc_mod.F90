@@ -2557,7 +2557,7 @@ END FUNCTION GetEmisLUnit
 ! !LOCAL VARIABLES:
 !
     INTEGER    :: L1
-    REAL(hp)   :: h1, h2, dh
+    REAL(hp)   :: h1, h2, lh, dh
 
     !=================================================================
     ! GetDilFact begins here
@@ -2577,48 +2577,36 @@ END FUNCTION GetEmisLUnit
        ! Height of grid box of interest (in m)
        dh = HcoState%Grid%BXHEIGHT_M%Val(I,J,L)
 
-       ! Get bottom height
-       h1 = 0.0_hp
-       IF ( EmisL1Unit == HCO_EMISL_M .OR. &
-            EmisL1Unit == HCO_EMISL_PBL     ) THEN
+       ! Get height of bottom level LowLL (in m)
+       IF ( EmisL1Unit == HCO_EMISL_M ) THEN 
           h1 = EmisL1
+       ELSEIF ( EmisL1Unit == HCO_EMISL_PBL ) THEN
+          h1 = HcoState%Grid%PBLHEIGHT%Val(I,J)
        ELSE
           IF ( LowLL > 1 ) THEN
-             DO L1=1,LowLL-1
-                h1 = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-             ENDDO 
+             h1 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(LowLL-1)))
+          ELSE
+             h1 = 0.0_hp 
           ENDIF
        ENDIF
 
-       ! Only use fraction of lowest level
-       IF ( L == LowLL ) THEN
-          IF ( EmisL1Unit == HCO_EMISL_M   .OR. & 
-               EmisL1Unit == HCO_EMISL_PBL       ) THEN
-             dh = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L) - EmisL1
-          ENDIF 
-       ENDIF
-
-       ! Get top height 
-       h2 = 0.0_hp
-       IF ( EmisL2Unit == HCO_EMISL_M .OR. &
-            EmisL2Unit == HCO_EMISL_PBL     ) THEN
+       ! Get height of top level UppLL (in m)
+       IF ( EmisL2Unit == HCO_EMISL_M ) THEN 
           h2 = EmisL2
+       ELSEIF ( EmisL2Unit == HCO_EMISL_PBL ) THEN 
+          h2 = HcoState%Grid%PBLHEIGHT%Val(I,J)
        ELSE
-          DO L1=1,UppLL
-             h2 = h2 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-          ENDDO
+          h2 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:UppLL))
        ENDIF
 
-       ! Only use fraction of top level
+       ! Adjust dh if we are in lowest level 
+       IF ( L == LowLL ) THEN
+          dh = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LowLL)) - h1
+       ENDIF
+
+       ! Adjust dh if we are in top level
        IF ( L == UppLL ) THEN
-          IF ( EmisL2Unit == HCO_EMISL_M   .OR. & 
-               EmisL2Unit == HCO_EMISL_PBL       ) THEN
-             IF ( L > 1 ) THEN
-                dh = EmisL2 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(L-1)))
-             ELSE
-                dh = EmisL2
-             ENDIF
-          ENDIF 
+          dh = h2 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(UppLL-1)))
        ENDIF
 
        ! compute dilution factor: the new flux should emit the same mass per
