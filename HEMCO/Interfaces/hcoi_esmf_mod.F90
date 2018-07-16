@@ -122,6 +122,7 @@ CONTAINS
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  16 Mar 2018 - E. Lundgren - Expand log write to specify reading HEMCO
 !                              diagnostic config file and adding HEMCO exports
+!  16 Jul 2018 - E. Lundgren - Move verbose to within DoUse blocks
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -541,12 +542,13 @@ CONTAINS
             END WHERE
          ENDIF
          Ptr2D => NULL()
-      ENDIF ! DoUse
 
-      ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-      ENDIF
+         ! Verbose
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+         ENDIF
+
+      ENDIF ! DoUse
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -624,12 +626,13 @@ CONTAINS
             END WHERE
          ENDDO
          Ptr3D => NULL()
-      ENDIF ! DoUse
 
-      ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-      ENDIF
+         ! Verbose
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+         ENDIF
+
+      ENDIF ! DoUse
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -701,12 +704,13 @@ CONTAINS
             END WHERE
          ENDIF
          Ptr2D => NULL()
-      ENDIF ! DoUse
 
-      ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-      ENDIF
+         ! Verbose
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+         ENDIF
+
+      ENDIF ! DoUse
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -784,12 +788,13 @@ CONTAINS
             END WHERE
          ENDDO
          Ptr3D => NULL()
-      ENDIF ! DoUse
 
-      ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-      ENDIF
+         ! Verbose
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+         ENDIF
+
+      ENDIF ! DoUse
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
@@ -861,12 +866,13 @@ CONTAINS
             END WHERE
          ENDIF
          Ptr2D => NULL()
-      ENDIF ! DoUse
 
-      ! Verbose
-      IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-         CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
-      ENDIF
+         ! Verbose
+         IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
+            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+         ENDIF
+
+      ENDIF ! DoUse
 
       ! Return success
       RETURN_(ESMF_SUCCESS)      
