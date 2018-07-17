@@ -187,7 +187,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: TS_CHEM
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LUCX
-     LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
@@ -857,7 +856,6 @@ CONTAINS
     Input_Opt%TS_CHEM                = 0
     Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
-    Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
     Input_Opt%USE_ONLINE_O3          = .FALSE.
