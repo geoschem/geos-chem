@@ -500,6 +500,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
     INTEGER                :: a_type             ! netCDF attribute type
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
+    INTEGER                :: I
 
     !=================================================================
     ! NC_READ_VAR_CORE begins here
@@ -548,6 +549,18 @@ CONTAINS
     ELSE 
        CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
                                   TRIM(a_name), varUnit     )
+
+       ! Check if the last character of VarUnit is the ASCII null character
+       ! ("\0", ASCII value = 0), which is used to denote the end of a string.
+       ! The ASCII null character may be introduced if the netCDF file was
+       ! written using a language other than Fortran.  The compiler might
+       ! interpret the null character as part of the string instead of as
+       ! an empty space.  If the null space is there, then replace it with
+       ! a Fortran empty string value (''). (bmy, 7/17/18)
+       I = LEN_TRIM( VarUnit )
+       IF ( ICHAR( VarUnit(I:I) ) == 0 ) THEN
+          VarUnit(I:I) = ''
+       ENDIF
     ENDIF
 
   END SUBROUTINE NC_READ_VAR_CORE
