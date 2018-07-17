@@ -1162,6 +1162,18 @@ CONTAINS
        a_name = "units"
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),a_val)
        VarUnit = TRIM(a_val)
+
+       ! Check if the last character of VarUnit is the ASCII null character
+       ! ("\0", ASCII value = 0), which is used to denote the end of a string.
+       ! The ASCII null character may be introduced if the netCDF file was
+       ! written using a language other than Fortran.  The compiler might
+       ! interpret the null character as part of the string instead of as
+       ! an empty space.  If the null space is there, then replace it with
+       ! a Fortran empty string value (''). (bmy, 7/17/18)
+       I = LEN_TRIM( VarUnit )
+       IF ( ICHAR( VarUnit(I:I) ) == 0 ) THEN
+          VarUnit(I:I) = ''
+       ENDIF
     ENDIF
 
     !=================================================================
