@@ -2627,14 +2627,6 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LUCX
 
-      ! Turn on online methane chemistry?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCH4CHEM', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LCH4CHEM
-
       ! Turn on online stratospheric H2O?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LACTIVEH2O', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2766,8 +2758,6 @@
      &                        Input_Opt%LLINOZ
          WRITE( 6, 100     ) 'Enable UCX?                 : ',
      &                        Input_Opt%LUCX
-         WRITE( 6, 100     ) 'Online CH4 chemistry?       : ',
-     &                        Input_Opt%LCH4CHEM
          WRITE( 6, 100     ) 'Online strat. H2O?          : ',
      &                        Input_Opt%LACTIVEH2O
          WRITE( 6, 100     ) 'Online ozone for FAST-JX?   : ',
