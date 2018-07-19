@@ -3511,7 +3511,13 @@ MODULE GCKPP_HETRATES
          XStkCf = 0.0e+0_fp
          r_gp   = 1.0e+0_fp
       ELSE
-         CALL Gamma_HOBr_AER(rAer, denAir, 2, TK, clConc, brConc, &
+!-----------------------------------------------------------------------------
+! Prior to 7/17/18:
+! Xuan Wang says to replace 2 with X in the call to GAMMA_HOBR_AER
+! (bmy, 7/17/18)
+!         CALL Gamma_HOBr_AER(rAer, denAir, 2, TK, clConc, brConc, &
+!-----------------------------------------------------------------------------
+         CALL Gamma_HOBr_AER(rAer, denAir, X, TK, clConc, brConc, &
                              hConc, GAM_HOBr, r_gp)
          XStkCf = GAM_HOBr
       ENDIF
