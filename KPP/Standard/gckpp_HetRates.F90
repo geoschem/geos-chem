@@ -307,7 +307,7 @@ MODULE GCKPP_HETRATES
       Real(fp)         :: kITemp, kIITemp
 
       ! Cloud parameters
-      Real(fp)         :: rLiq, ALiq, VLiq
+      Real(fp)         :: rLiq, ALiq, VLiq, CLDFr
       Real(fp)         :: rIce, AIce, VIce
 
       ! Volume of air (cm3)
@@ -614,7 +614,7 @@ MODULE GCKPP_HETRATES
 
       ! Get cloud physical parameters
       CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, State_Met, &
-                       rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce )
+                       rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce, CLDFr )
 
       ! Retrieve cloud pH and alkalinity
       pHCloud    = State_Chm%pHCloud(I,J,L)
@@ -637,8 +637,8 @@ MODULE GCKPP_HETRATES
 
       ! Get the concentration of Br/Cl in clouds
       CALL Get_Halide_CldConc(spcVec(Ind_('HBr')),spcVec(Ind_('HCl')),&
-                              VLiq, VIce, VAir, TempK, xArea(8), xRadi(8),&
-                              brConc_Cld, clConc_Cld)
+                              VLiq, VIce, VAir, CLDFr, TempK, xArea(8),&
+                              xRadi(8), brConc_Cld, clConc_Cld)
 
       ! Get the concentration of Br in sea-salt (in excess of any assumed
       ! baseline)
@@ -5913,7 +5913,7 @@ MODULE GCKPP_HETRATES
     SUBROUTINE CLD_PARAMS( I,      J,      L,    DENAIR,            &
                            VAir,   T,      QL,   QI,     State_Met, &
                            rLiq,   ALiq,   VLiq, &
-                           rIce,   AIce,   VIce )
+                           rIce,   AIce,   VIce, CLDFr )
 
 !
 ! !USES:
@@ -5939,6 +5939,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2/cm3)
       REAL(fp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud (cm3/cm3)
       REAL(fp),       INTENT(OUT) :: VIce     ! Volume of ice cloud (cm3/cm3)
+      REAL(fp),       INTENT(OUT) :: CLDFr     ! cloud fraction
 !
 ! !REMARKS:
 !
@@ -5996,7 +5997,10 @@ MODULE GCKPP_HETRATES
 
       ! Fixed for now
       rIce = xCldrIce
- 
+
+      CLDFr = CLDF(I,J,L)
+      IF ( CLDFR.le.0.0e+0_fp ) CLDFr = 1.0e-32_fp
+
       ! Quick test - is there any cloud?
       IF (((QL.le.0.0e+0_fp).and.(QL.le.0.0e+0_fp)).or.(CLDF(I,J,L).le.0.0e+0_fp)) THEN
          rLiq = xCldR_Cont
@@ -6126,7 +6130,8 @@ MODULE GCKPP_HETRATES
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, TK, SA_SULF, R_SULF, br_conc, cl_conc )
+      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, CLDFr, &
+                 TK, SA_SULF, R_SULF, br_conc, cl_conc )
 
 !
 ! !USES:
@@ -6138,6 +6143,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),  INTENT(IN) :: VAir    ! Volume of air [cm3]
       REAL(fp),  INTENT(IN) :: SA_SULF, R_SULF! Sulfate aerosol surface area (cm2/cm3) and radius (cm)
       REAL(fp),  INTENT(IN) :: VLiq, VIce ! Volume of the cloud (liq and ice) [cm3]
+      REAL(fp),  INTENT(IN) :: CLDFr ! cloud fraction 
       REAL(fp),  INTENT(IN) :: TK      ! Air temperature [K]
 
 !
@@ -6173,7 +6179,7 @@ MODULE GCKPP_HETRATES
       T2L = 1.0e0_fp / ( 1.0e0_fp - (1.0e0_fp - DR_RATIO)**3.0e0_fp )
       !---------------------------------------------------------------
 
-      V_tot = (VLiq/VAir) + ((VIce/VAir) / T2L) + &
+      V_tot = (VLiq/CLDFr/VAir) + ((VIce/CLDFr/VAir) / T2L) + &
                SA_SULF * R_SULF / 3.0e0_fp  ! (cm3(liq)/cm3(air)
 
       IF (V_tot.lt.1.0e-20) THEN
