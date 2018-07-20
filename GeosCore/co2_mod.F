@@ -205,9 +205,12 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
-!  21 May 2018 - C. Keller   - CO2 emissions are now handled as all
+!  21 May 2018 - C. Keller   - CO2 emissions are now handled like all
 !                              other emissions, i.e. passed to species
 !                              array via mixing_mod.F90. 
+!  20 Jul 2018 - C. Keller   - Make sure CO2 source from CO oxidation is
+!                              added to species array. All other source
+!                              are handled by the emission routines.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,40 +268,40 @@
       ! Return success
       RC          = GC_SUCCESS
 
-!      ! Copy values from Input_Opt
-!      LFOSSIL     = Input_Opt%LFOSSIL
-!      LCHEMCO2    = Input_Opt%LCHEMCO2
-!      LBIODIURNAL = Input_Opt%LBIODIURNAL
-!      LBIONETCLIM = Input_Opt%LBIONETCLIM
-!      LOCEAN      = Input_Opt%LOCEAN
-!      LSHIP       = Input_Opt%LSHIP
-!      LPLANE      = Input_Opt%LPLANE
-!      LFFBKGRD    = Input_Opt%LFFBKGRD
-!      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
-!      LFOSSILTAG  = Input_Opt%LFOSSILTAG
-!      LSHIPTAG    = Input_Opt%LSHIPTAG
-!      LPLANETAG   = Input_Opt%LPLANETAG
-!  
-!      ! Initialize pointers
-!      CO2_COPROD  => NULL()
-!      Spc         => NULL()
-!
-!      ! Import emissions from HEMCO (through HEMCO state)
-!      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-!         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
-!      ENDIF
-!
-!      ! Emission timestep
-!      DTSRCE = HcoState%TS_EMIS
-!
-!      ! Number of advected species
-!      nAdvect = State_Chm%nAdvect
-!
-!      !=================================================================
-!      ! Species ID setup and error checks (first-time only)
-!      !=================================================================
-!      IF ( FIRST ) THEN 
-!
+      ! Copy values from Input_Opt
+      LFOSSIL     = Input_Opt%LFOSSIL
+      LCHEMCO2    = Input_Opt%LCHEMCO2
+      LBIODIURNAL = Input_Opt%LBIODIURNAL
+      LBIONETCLIM = Input_Opt%LBIONETCLIM
+      LOCEAN      = Input_Opt%LOCEAN
+      LSHIP       = Input_Opt%LSHIP
+      LPLANE      = Input_Opt%LPLANE
+      LFFBKGRD    = Input_Opt%LFFBKGRD
+      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
+      LFOSSILTAG  = Input_Opt%LFOSSILTAG
+      LSHIPTAG    = Input_Opt%LSHIPTAG
+      LPLANETAG   = Input_Opt%LPLANETAG
+  
+      ! Initialize pointers
+      CO2_COPROD  => NULL()
+      Spc         => NULL()
+
+      ! Import emissions from HEMCO (through HEMCO state)
+      IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
+      ENDIF
+
+      ! Emission timestep
+      DTSRCE = HcoState%TS_EMIS
+
+      ! Number of advected species
+      nAdvect = State_Chm%nAdvect
+
+      !=================================================================
+      ! Species ID setup and error checks (first-time only)
+      !=================================================================
+      IF ( FIRST ) THEN 
+
 !         !--------------------------------------------------------------
 !         ! Query HEMCO for all of the species IDs
 !         !--------------------------------------------------------------
@@ -393,48 +396,48 @@
 !         BIOFUEL_ON = ASSOCIATED( HcoState%Spc(IDbf)%Emis%Val )
 !         BIOMASS_ON = ASSOCIATED( HcoState%Spc(IDbb)%Emis%Val )
 !
-!         !--------------------------------------------------------------
-!         ! Error check: For now, the emission grid must be
-!         ! on the simulation grid.
-!         !--------------------------------------------------------------
-!         IF ( HcoState%NX /= IIPAR .OR. 
-!     &        Hcostate%NY /= JJPAR .OR.
-!     &        Hcostate%NZ /= LLPAR     ) THEN
-!            CALL ERROR_STOP( 'HEMCO grid not same as sim. grid!', LOC )
-!         ENDIF 
-!
-!         ! Set first-time flag to false
-!         FIRST = .FALSE.
-!      ENDIF
-!
-!      !=================================================================
-!      ! Read in monthly, daily or variable emissions fields
-!      !=================================================================      
-!
-!      ! Point to the chemical species ([kg/kg] dry air)
-!      Spc  => State_Chm%Species
-!
-!      ! Get a pointer to the CO2 production from CO oxidation
-!      ! This is now listed in the NON-EMISSIONS DATA section of
-!      ! the HEMCO configuration file. (bmy, 4/17/15)
-!      CALL HCO_GetPtr( am_I_Root,   HcoState, 
-!     &                'CO2_COPROD', CO2_COPROD, RC )
-!      IF ( RC /= GC_SUCCESS ) THEN
-!         CALL ERROR_STOP ( 'CO2 production not defined', LOC )
-!      ENDIF
-!
-!      !=================================================================
-!      ! Process emissions and save diagnostics
-!      !=================================================================
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( J, I, A_CM2, E_CO2, N )
-!      DO J = 1, JJPAR
-!      DO I = 1, IIPAR
-!
-!!         ! Grid box surface area [cm2]
-!!         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
-!
+         !--------------------------------------------------------------
+         ! Error check: For now, the emission grid must be
+         ! on the simulation grid.
+         !--------------------------------------------------------------
+         IF ( HcoState%NX /= IIPAR .OR. 
+     &        Hcostate%NY /= JJPAR .OR.
+     &        Hcostate%NZ /= LLPAR     ) THEN
+            CALL ERROR_STOP( 'HEMCO grid not same as sim. grid!', LOC )
+         ENDIF 
+
+         ! Set first-time flag to false
+         FIRST = .FALSE.
+      ENDIF
+
+      !=================================================================
+      ! Read in monthly, daily or variable emissions fields
+      !=================================================================      
+
+      ! Point to the chemical species ([kg/kg] dry air)
+      Spc  => State_Chm%Species
+
+      ! Get a pointer to the CO2 production from CO oxidation
+      ! This is now listed in the NON-EMISSIONS DATA section of
+      ! the HEMCO configuration file. (bmy, 4/17/15)
+      CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                'CO2_COPROD', CO2_COPROD, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL ERROR_STOP ( 'CO2 production not defined', LOC )
+      ENDIF
+
+      !=================================================================
+      ! Process emissions and save diagnostics
+      !=================================================================
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( J, I, A_CM2, E_CO2, N )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+!         ! Grid box surface area [cm2]
+!         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
+
 !         !-------------------------------------------
 !         ! #1: Total CO2
 !         ! #2: CO2 from fossil fuel emissions 
@@ -816,51 +819,51 @@
 !
 !            ENDDO
 !         ENDIF
-! 
-!         !-------------------------------------------
-!         ! #10 CO2 production from CO oxidation
-!         !-------------------------------------------
-!         IF ( LCHEMCO2 ) THEN
-!
-!            DO L = 1, LLPAR
-!         
-!               ! Production is in [kg/m3], convert to [molec/cm2/s]
-!               E_CO2 = CO2_COPROD(I,J,L)
-!     &               / CM3PERM3
-!     &               * XNUMOL_CO2
-!     &               / DTSRCE
-!     &               * 100 !per area (cm2) instead of per volume (cm3)
-!
-!	       ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] 
-!               !Unit change in v10 
-!               IF ( ND04 > 0 ) THEN
-!                  AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
-!               ENDIF
-!
-!! old
-!!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
-!!               ! Unit change in v10
-!!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-!! new
-!               ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
-!               ! (ewl, 9/11/15)
-!               E_CO2  =  E_CO2 * DTSRCE * CM2PERM2 /
-!     &                   ( XNUMOL_CO2 * State_Met%DELP(I,J,L) 
-!     &                   * G0_100 * ( 1.0e+0_fp
-!     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
-!! end new (ewl)
-!
-!               ! Add to Species #1: Total CO2 [kg/kg]
-!               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
-!
-!               ! Add to Species #10: Chemical Source of CO2 [kg/kg]
-!               IF (nAdvect > 9) THEN
-!                  Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
-!               ENDIF
-!		
-!            ENDDO
-!         ENDIF
-!
+  
+         !-------------------------------------------
+         ! #10 CO2 production from CO oxidation
+         !-------------------------------------------
+         IF ( LCHEMCO2 ) THEN
+
+            DO L = 1, LLPAR
+         
+               ! Production is in [kg/m3], convert to [molec/cm2/s]
+               E_CO2 = CO2_COPROD(I,J,L)
+     &               / CM3PERM3
+     &               * XNUMOL_CO2
+     &               / DTSRCE
+     &               * 100 !per area (cm2) instead of per volume (cm3)
+
+	       ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] 
+               !Unit change in v10 
+               IF ( ND04 > 0 ) THEN
+                  AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
+               ENDIF
+
+! old
+!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
+!               ! Unit change in v10
+!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
+! new
+               ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
+               ! (ewl, 9/11/15)
+               E_CO2  =  E_CO2 * DTSRCE * CM2PERM2 /
+     &                   ( XNUMOL_CO2 * State_Met%DELP(I,J,L) 
+     &                   * G0_100 * ( 1.0e+0_fp
+     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
+! end new (ewl)
+
+               ! Add to Species #1: Total CO2 [kg/kg]
+               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
+
+               ! Add to Species #10: Chemical Source of CO2 [kg/kg]
+               IF (nAdvect > 9) THEN
+                  Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
+               ENDIF
+		
+            ENDDO
+         ENDIF
+ 
 !         !-------------------------------------------
 !         ! #11 CO2 surface correction for CO oxidation
 !         !-------------------------------------------
@@ -909,13 +912,13 @@
 !         ! species if LFFBKGRD == FALSE, it is simply the advected intial CO2.
 !	 ! To include fossil fuels in the background, see the first loop.
 !
-!      ENDDO
-!      ENDDO
-!!$OMP END PARALLEL DO
-!
-!      ! Free pointers
-!      Spc        => NULL()
-!      CO2_COPROD => NULL()
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointers
+      Spc        => NULL()
+      CO2_COPROD => NULL()
 
       END SUBROUTINE EMISSCO2 
 !EOC
