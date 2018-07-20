@@ -76,6 +76,7 @@ MODULE HCO_Config_Mod
   PRIVATE :: AddShadowFields
   PRIVATE :: ConfigInit 
   PRIVATE :: ParseEmisL 
+  PRIVATE :: CheckForDuplicateName 
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - C. Keller   -  Initialization
@@ -519,6 +520,7 @@ CONTAINS
 !  06 Oct 2015 - C. Keller - Added cycle flags 'EF' and 'RF' (fields must be 
 !                            found).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  20 Jul 2018 - C. Keller   - Return error if duplicate container name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,6 +711,10 @@ CONTAINS
        ! -------------------------------------------------------------
        ! Fill data container. 
        ! -------------------------------------------------------------
+
+       ! Check if name exists already
+       CALL CheckForDuplicateName( HcoConfig, cName, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Attributes used by all data types: data type number and 
        ! container name.
@@ -4138,5 +4144,81 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE ParseEmisL
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CheckForDuplicateName
+!
+! !DESCRIPTION: Subroutine CheckForDuplicateName checks if there is a
+! container in the container linked list that has the same name as the
+! name given as input argument. 
+!\\
+!\\
+! !INTERFACE:
+!
+  Subroutine CheckForDuplicateName( HcoConfig, cName, RC )
+!
+! !INPUT ARGUMENT:
+!
+    TYPE(ConfigObj) , POINTER    :: HcoConfig  ! HEMCO config obj
+    CHARACTER(LEN=*), INTENT(IN) :: cName
+!
+! !OUTPUT ARGUMENT: 
+!
+    INTEGER, INTENT(INOUT)  :: RC
+!
+! !REVISION HISTORY:
+!  20 Jul 2018 - C. Keller: Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    TYPE(ListCont), POINTER :: ThisLct => NULL()
+    LOGICAL                 :: Duplicate
+    CHARACTER(LEN=255)      :: tmpName, MSG
+
+    !======================================================================
+    ! CheckForDuplicateName begins here! 
+    !======================================================================
+
+    ! Init 
+    RC = HCO_SUCCESS
+    Duplicate = .FALSE.
+
+    ! Pass name to clear spaces
+    tmpName = ADJUSTL(cName)
+
+    ! Walk through list and check for duplicate. Exit if found 
+    ThisLct => HcoConfig%ConfigList
+    DO WHILE ( ASSOCIATED ( ThisLct ) )
+
+       ! Skip if data container not defined
+       IF ( .NOT. ASSOCIATED(ThisLct%Dct) ) THEN
+          ThisLct => ThisLct%NextCont
+          CYCLE
+       ENDIF
+
+       ! Check if this container has desired scalID
+       IF ( TRIM(ThisLct%Dct%cName) == TRIM(tmpName) ) THEN
+          Duplicate = .TRUE.
+          EXIT
+       ENDIF
+
+       ! Move to next container 
+       ThisLct => ThisLct%NextCont
+    ENDDO
+
+    IF ( Duplicate ) THEN
+       MSG = 'Error: HEMCO field already exists:'//TRIM(cName)
+       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE CheckForDuplicateName
 !EOC
 END MODULE HCO_Config_Mod
