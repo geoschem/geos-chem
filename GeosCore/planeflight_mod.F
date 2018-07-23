@@ -1595,6 +1595,7 @@
       REAL*8              :: FLTGMT   ! eam (06/2015)
       REAL*8              :: XRH      ! MET field RH (eam, 08/2015)
       CHARACTER(LEN=63)   :: OrigUnit
+      CHARACTER(LEN=7)    :: NAME
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1723,56 +1724,27 @@
             ! Return grid box indices for the chemistry region
             CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
 
-            !kjw. if not INTEX-A observation, set L=1
-            ! Add calnx (mpayer, 1/8/13)
-            ! Add HIPPO (ajt, 5/23/13)
-            ! Add CCGG (ajt, 7/5/13)
-            ! Add NOAA towers (ajt, 4/2/15)
-            IF ( TRIM(ADJUSTL(PTYPE(M))) .NE. 'DC-8'  .AND.
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'ER2'   .AND.
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'calnx' .AND. ! Calnex
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'calne' .AND. ! Calnex
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aacg'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Abne'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acar'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acrv'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Acma'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Adnd'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aesp'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Aetl'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Ahil'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Ahip'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Alef'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Anha'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Apfa'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Arta'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Asca'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Asgp'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Atgc'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Athd'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Awbi'  .AND. ! NOAA Aircraft
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tamt'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tbao'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tcrv'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tlef'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tlew'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmbo'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmvy'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tmwo'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tnwr'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tsct'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tsgp'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Tstr'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twbi'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twgc'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'Twkt'  .AND. ! NOAA TOWER
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp1' .AND. ! HIPPO
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp2' .AND. ! HIPPO
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp3' .AND. ! HIPPO
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp4' .AND. ! HIPPO
-     &           TRIM(ADJUSTL(PTYPE(M))) .NE. 'hipp5' ) THEN
-               print*,'WARNING: GMD Observation. forcing L=1'
+            ! If this is a surface observation, set L=1
+            !
+            ! NOAA Surface observations start with 'S' in Planeflight.dat
+            ! Other surface observation strings can be added here
+            NAME = ADJUSTL(PTYPE(M))
+            IF ( NAME(1:1)  .EQ. 'S' ) THEN
+
+               ! Make sure it is the users intention to set L=1
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, '(a)') 'WARNING: NOAA Surface Observation. '
+                  WRITE( 6, '(a)') 'Forcing L=1. If this is intended, '
+                  WRITE( 6, '(a)') 'you may comment out the call to '
+                  WRITE( 6, '(a)') 'GEOS_CHEM_STOP in routine '
+                  WRITE( 6, '(a)') 'PLANEFLIGHT (planeflight_mod.f)'
+                  WRITE( 6, '(a)') REPEAT( '=', 79 )
+               ENDIF
+               CALL GEOS_CHEM_STOP
+
+               ! Force L=1
                L = 1
+
             ENDIF
 
             ! Initialize reaction counter
