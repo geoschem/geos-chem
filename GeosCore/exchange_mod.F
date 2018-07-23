@@ -18,6 +18,7 @@
 !
 ! !USES:
 !
+      USE PRECISION_MOD
       IMPLICIT NONE
       PRIVATE
 !
@@ -89,10 +90,12 @@
       ! Tmp arrays for exchange. Maybe we only need one array, but the
       ! code would be more difficult to understand.
       ! TMP_WINDOW is for unit convert, etc.
-      REAL*8, ALLOCATABLE        :: TMP_WINDOW(:,:,:)
-      REAL*8, ALLOCATABLE        :: TMP_WINDOW_CH(:,:,:)
-      REAL*8, ALLOCATABLE        :: TMP_WINDOW_NA(:,:,:)
-      REAL*8, ALLOCATABLE        :: TMP_WINDOW_EU(:,:,:)
+      REAL(fp), ALLOCATABLE        :: TMP_WINDOW(:,:,:)
+      !REAL(fp), ALLOCATABLE        :: TMP_WINDOW_CH(:,:,:)
+      REAL(fp)        :: TMP_WINDOW_CH(37,35,47)
+      !REAL(fp), ALLOCATABLE        :: TMP_WINDOW_NA(:,:,:)
+      REAL(fp)        :: TMP_WINDOW_NA(41,31,47)
+      REAL(fp), ALLOCATABLE        :: TMP_WINDOW_EU(:,:,:)
 
       ! Exchange grid size and offset in global domain.
       ! I{LAT/LONG}_EX is the size of the window region.
@@ -112,9 +115,9 @@
       ! R{LAT/LONG}_OFF_EX is nested's end point offset in the window
       !     region. Counted in reversed direction.
       ! RATIO_{LAT/LONG}_EX is the grid size ratio of global/nested
-      REAL*8                     :: RATIO_LONG_EX, RATIO_LAT_EX
+      REAL(fp)                     :: RATIO_LONG_EX, RATIO_LAT_EX
       ! the parameters of boundary when regrid up global domain
-      REAL*8                     :: OFFSET_LONG, OFFSET_LAT
+      REAL(fp)                     :: OFFSET_LONG, OFFSET_LAT
       LOGICAL                    :: IS_GLOBAL_DOMAIN
       LOGICAL                    :: IS_EXCHANGE
       CHARACTER*80               :: MY_NAME
@@ -135,8 +138,8 @@
 
       ! For Regrid
       ! NEW_GRID = REGRID_MAT_L * OLD_GRID * REGRID_MAT_R
-      REAL*8, ALLOCATABLE        :: REGRID_MAT_L(:,:)
-      REAL*8, ALLOCATABLE        :: REGRID_MAT_R(:,:)
+      REAL(fp), ALLOCATABLE        :: REGRID_MAT_L(:,:)
+      REAL(fp), ALLOCATABLE        :: REGRID_MAT_R(:,:)
 
       ! For lock utility in the run dir
       CHARACTER*256, PARAMETER   :: LOCK_DIR = './lock'
@@ -223,11 +226,12 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE DAO_MOD
       USE ErrCode_Mod
+      USE ERROR_MOD,          ONLY : GC_Error
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TPCORE_BC_MOD
-      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -249,25 +253,21 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  13 Aut 2015 - E. Lundgren - Now input tracer conc in kg/kg not v/v.
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !     
-      CHARACTER(LEN=63)  :: OrigUnit
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_GLOBAL_POST"
       CALL DONE_LOCK_ME_UP()
       CALL WAIT_FOR_UNLOCK()
 
       IF ( IS_EXCHANGE ) THEN
 
-         ! Convert species units to [kg] (ewl, 8/13/15)
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'kg', RC, OrigUnit=OrigUnit)
+         ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+         CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
+     &                                  State_Chm, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -293,9 +293,9 @@
      &  ( am_I_Root, Input_Opt,State_Met, State_Chm, RC, 3 )
 # endif
 
-         ! Convert species units back to original units (ewl, 8/13/15)
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, OrigUnit,  RC )
+         ! Convert species units back to kg/kg (ewl, 8/13/15)
+         CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
+     &                                  State_Chm, RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'EXCHANGE_GLOBAL_POST in exchange_mod.F')
@@ -363,7 +363,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
-      USE UnitConv_Mod        ONLY : Convert_Spc_Units
+      USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS: 
 !
@@ -387,20 +387,18 @@
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !  13 Aug 2015 - E. Lundgren - Input tracer conc in kg/kg not v/v
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      CHARACTER(LEN=63)  :: OrigUnit
-
       WRITE (*,*) "@@@@@@@@@@@@@@ EXCHANGE_NESTED_POST"
 
-      ! Convert species units to [kg] (ewl, 8/13/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      ! Convert species units from [kg/kg dry] to [kg] (ewl, 8/13/15)
+      CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met,
+     &                               State_Chm, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -414,9 +412,9 @@
       CALL EX_DUMP_FOR_GLOBAL
      &        (am_I_Root, Input_Opt,State_Met, State_Chm,RC)
 
-      ! Convert species units back to original units (ewl, 8/13/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      ! Convert species units back to kg/kg (ewl, 8/13/15)
+      CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met,
+     &                               State_Chm, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'EXCHANGE_NESTED_POST in exchange_mod.F')
@@ -482,6 +480,7 @@
 !
       USE CMN_SIZE_MOD          ! Size parameters
       USE ERROR_MOD
+      USE PRECISION_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -498,7 +497,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                   :: ALLOCATE_RES
-      REAL*8, ALLOCATABLE       :: REGRID_MAT_L_TRANS(:,:)
+      REAL(fp), ALLOCATABLE       :: REGRID_MAT_L_TRANS(:,:)
 
       IF ( am_I_Root ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@ INIT_EXCHANGE"
@@ -697,20 +696,20 @@
 
 #if   defined ( GRID4x5 ) || defined ( GRID2x25 )
 
-#if   defined ( EXCHANGE_4x5_CH ) || defined ( EXCHANGE_2x25_CH )
-      ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, LLPAR),
-     &          STAT=ALLOCATE_RES )
-      IF ( ALLOCATE_RES /= 0 ) THEN
-         CALL GEOS_CHEM_STOP
-      ENDIF
+#if   defined ( EXCHANGE_4x5_CH ) || defined ( EXACHNGE_2x25_CH )
+      !ALLOCATE( TMP_WINDOW_CH(IM_BC_CH, JM_BC_CH, LLPAR),
+      ! &          STAT=ALLOCATE_RES )
+      !IF ( ALLOCATE_RES /= 0 ) THEN
+      !   CALL GEOS_CHEM_STOP
+      !ENDIF
 #endif
 
 #if   defined ( EXCHANGE_4x5_NA ) || defined ( EXCHANGE_2x25_NA )
-      ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, LLPAR),
-     &          STAT=ALLOCATE_RES )
-      IF ( ALLOCATE_RES /= 0 ) THEN
-         CALL GEOS_CHEM_STOP
-      ENDIF
+      !ALLOCATE( TMP_WINDOW_NA(IM_BC_NA, JM_BC_NA, LLPAR),
+      !! &          STAT=ALLOCATE_RES )
+      !IF ( ALLOCATE_RES /= 0 ) THEN
+      !   CALL GEOS_CHEM_STOP
+      !ENDIF
 #endif
 
 #if   defined ( EXCHANGE_4x5_EU ) || defined ( EXCHANGE_2x25_EU )
@@ -759,8 +758,8 @@
       IF( ALLOCATED( TMP_WINDOW     ) ) DEALLOCATE( TMP_WINDOW    )
       IF( ALLOCATED( REGRID_MAT_L   ) ) DEALLOCATE( REGRID_MAT_L  )
       IF( ALLOCATED( REGRID_MAT_R   ) ) DEALLOCATE( REGRID_MAT_R  )
-      IF( ALLOCATED( TMP_WINDOW_CH  ) ) DEALLOCATE( TMP_WINDOW_CH )
-      IF( ALLOCATED( TMP_WINDOW_NA  ) ) DEALLOCATE( TMP_WINDOW_NA )
+      !IF( ALLOCATED( TMP_WINDOW_CH  ) ) DEALLOCATE( TMP_WINDOW_CH )
+      !IF( ALLOCATED( TMP_WINDOW_NA  ) ) DEALLOCATE( TMP_WINDOW_NA )
       IF( ALLOCATED( TMP_WINDOW_EU  ) ) DEALLOCATE( TMP_WINDOW_EU )
 
       CALL NO_MORE_LOCK()
@@ -789,6 +788,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE PRECISION_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -814,8 +814,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8, POINTER :: SPC
-      INTEGER         :: L, I
+!v11 bug revision (2018/02/09)
+      REAL(fp), POINTER :: SPC(:,:,:,:)
+      INTEGER         :: L, I,IU_RST
       LOGICAL         :: LPRT
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -825,6 +826,7 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SPC      => State_Chm%Species
       LPRT     =  ( am_I_Root .and. Input_Opt%LPRT )
+      IU_RST=2
       IF ( am_I_Root ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_DUMP_FOR_GLOBAL"
       ENDIF
@@ -844,8 +846,7 @@
          CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
-
-
+      CLOSE( 2 )
 
       CALL OPEN_BIN_FILE_FOR_WRITE( TRIM(DUMP_TRACER_FNAME) )
       IF ( am_I_Root ) THEN
@@ -859,8 +860,9 @@
          CALL WRITE_3D_REAL8_ARRAY( IM_BC, JM_BC, LLPAR,
      &                              TMP_WINDOW )
       ENDDO
+      CLOSE( IU_RST )
 
-
+      SPC => NULL()
       IF ( LPRT ) CALL DEBUG_MSG( '### WRITE_EXCHANGE: wrote file' )
       ! Return to calling program
       END SUBROUTINE EX_DUMP_FOR_GLOBAL
@@ -887,6 +889,9 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE PRECISION_MOD
+      USE FILE_MOD
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_yan
 !
 ! !INPUT PARAMETERS: 
 !
@@ -916,8 +921,14 @@
 !BOC
 !
 ! !LOCAL VARIABLES:
-      REAL*8, POINTER :: SPC(:,:,:,:)
-      INTEGER         :: L
+      REAL(fp), POINTER :: SPC(:,:,:,:)
+      REAL(fp), POINTER :: CSPEC_FULL(:,:,:,:)
+      REAL(fp)    :: TMP_WINDOW_CHT(IM_BC_CH,JM_BC_CH,LLPAR)
+      REAL(fp)    :: TMP_WINDOW_NAT(IM_BC_NA,JM_BC_NA,LLPAR)
+      REAL(fp)    :: TMP_WINDOW_EUT(IM_BC_EU,JM_BC_EU,LLPAR)
+      REAL*4                  :: ARRAYTEMPR(576,361,73)
+      INTEGER         :: L,IU_RST,IOS
+      INTEGER         :: NI,NJ,NK,I,J,K
       LOGICAL         :: LPRT
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -927,6 +938,11 @@
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SPC => State_Chm%Species
       LPRT       =  ( am_I_Root .and. Input_Opt%LPRT ) 
+      IU_RST=2
+      IOS=1
+      NI=IM_BC_CH
+      NJ=JM_BC_CH
+      NK=LLPAR
 
       IF ( LPRT ) THEN
          WRITE (*,*) "@@@@@@@@@@@@@@@@@@ EX_READ_AND_APPLY_FEEDBACK"
@@ -935,75 +951,128 @@
 
       !For Asia nested domain
       IF ( DOMAIN == 1 ) THEN
-          WRITE( 6, 100 ) TRIM(LOAD_CH_CSPEC_FNAME)
+          WRITE( 6, 100 ) TRIM(LOAD_CH_TRACER_FNAME)
  100      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_TRACER_FNAME) )
          DO L = 1,State_Chm%nAdvect
-              CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
-     &                             TMP_WINDOW_CH )
-              SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_CHT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF       
+         TMP_WINDOW_CH=TMP_WINDOW_CHT 
+          
+                SPC( I0_BC_CH + 2 : I0_BC_CH + IM_BC_CH-1,
      &             J0_BC_CH + 2 : J0_BC_CH + JM_BC_CH-1,
      &             LLPAR,L) =
-     &        TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
+     &    TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
          ENDDO
+         CLOSE( IU_RST )
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_CH_CSPEC_FNAME) )
           DO L = 1,State_Chm%nSpecies
-             CALL READ_3D_REAL8_ARRAY( IM_BC_CH, JM_BC_CH, LLPAR,
-     &                             TMP_WINDOW_CH )
-             CSPEC_FULL(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_CHT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF
+         TMP_WINDOW_CH=TMP_WINDOW_CHT 
+             SPC(I0_BC_CH + 2:I0_BC_CH + IM_BC_CH-1,
      &                  J0_BC_CH + 2:J0_BC_CH + JM_BC_CH-1,
      &                  LLPAR,L) =
-     &       TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
+     &     TMP_WINDOW_CH(2:IM_BC_CH-1,2:JM_BC_CH-1,LLPAR)
           ENDDO
+         CLOSE( IU_RST )
 
       !For North America domain
       ELSE IF ( DOMAIN == 2 ) THEN
+          NI=IM_BC_NA
+          NJ=JM_BC_NA
           WRITE( 6, 101 ) TRIM(LOAD_NA_CSPEC_FNAME)
  101      FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_TRACER_FNAME) )
          DO L = 1,State_Chm%nAdvect
-              CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
-     &                             TMP_WINDOW_NA )
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_NAT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF
+         TMP_WINDOW_NA=TMP_WINDOW_NAT
               SPC( I0_BC_NA + 3 : I0_BC_NA + IM_BC_NA-2,
      &             J0_BC_NA + 3 : J0_BC_NA + JM_BC_NA-2,
      &             LLPAR,L) =
-     &        TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
+     &      TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
          ENDDO
+      CLOSE( IU_RST )
 
           CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_NA_CSPEC_FNAME) )
           DO L = 1,State_Chm%nSpecies
-             CALL READ_3D_REAL8_ARRAY( IM_BC_NA, JM_BC_NA, LLPAR,
-     &                             TMP_WINDOW_NA )
-             CSPEC_FULL(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_NAT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF 
+         TMP_WINDOW_NA=TMP_WINDOW_NAT
+             SPC(I0_BC_NA + 3:I0_BC_NA + IM_BC_NA-2,
      &                  J0_BC_NA + 3:J0_BC_NA + JM_BC_NA-2,
      &                  LLPAR,L) =
      &       TMP_WINDOW_NA(3:IM_BC_NA-2,3:JM_BC_NA-2,LLPAR)
           ENDDO
+      CLOSE( IU_RST )
 
       !For Europe domain
       ELSE IF ( DOMAIN == 3 ) THEN
+          NI=IM_BC_EU
+          NJ=JM_BC_EU    
           WRITE( 6, 102 ) TRIM(LOAD_EU_CSPEC_FNAME)
   102     FORMAT( '     - EXCHANGE: reading ', A )
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_TRACER_FNAME) )
          DO L = 1,State_Chm%nAdvect
-              CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
-     &                             TMP_WINDOW_EU )
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_EUT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF
+         TMP_WINDOW_EU=TMP_WINDOW_EUT
               SPC( I0_BC_EU + 2 : I0_BC_EU + IM_BC_EU-1,
      &             J0_BC_EU + 2 : J0_BC_EU + JM_BC_EU-1,
      &             LLPAR,L) =
-     &        TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR)
+     &     REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR),8)
          ENDDO
+      !CLOSE( 2 )
 
          CALL OPEN_BIN_FILE_FOR_READ( TRIM(LOAD_EU_CSPEC_FNAME) )
          DO L = 1,State_Chm%nSpecies
-             CALL READ_3D_REAL8_ARRAY( IM_BC_EU, JM_BC_EU, LLPAR,
-     &                             TMP_WINDOW_EU )
-             CSPEC_FULL(I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1,
+           READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,K), I=1,NI ), J=1,NJ ), K=1,NK )
+         CALL TRANSFER_3D_yan
+     $      (NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK),TMP_WINDOW_EUT)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF
+         TMP_WINDOW_EU=TMP_WINDOW_EUT
+             SPC(I0_BC_EU + 2:I0_BC_EU + IM_BC_EU-1,
      &                  J0_BC_EU + 2:J0_BC_EU + JM_BC_EU-1,
      &                  LLPAR,L) =
-     &       TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR)
+     &    REAL(TMP_WINDOW_EU(2:IM_BC_EU-1,2:JM_BC_EU-1,LLPAR),8)
          ENDDO
+      !CLOSE( 2 )
       ENDIF
 
       IF ( LPRT ) CALL DEBUG_MSG( '### read and apply fb: done' )
@@ -1034,9 +1103,10 @@
 !
 ! !LOCAL VARIABLES:
 !
+      USE PRECISION_MOD
       INTEGER, INTENT(IN)     :: NX_ORIG, NY_ORIG, NX_NEW, NY_NEW, NZ
-      REAL*8,  INTENT(IN)     :: ORIG_ARRAY(NX_ORIG, NY_ORIG, NZ)
-      REAL*8,  INTENT(OUT)    :: NEW_ARRAY(NX_NEW, NY_NEW, NZ)
+      REAL(fp),  INTENT(IN)     :: ORIG_ARRAY(NX_ORIG, NY_ORIG, NZ)
+      REAL(fp),  INTENT(OUT)    :: NEW_ARRAY(NX_NEW, NY_NEW, NZ)
       ! Local vars
       INTEGER                 :: K
 
@@ -1073,6 +1143,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE PRECISION_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1102,25 +1173,25 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL*8, POINTER :: CSPEC_FULL(:,:,:,:)
+      REAL(fp), POINTER :: SPC(:,:,:,:)
       INTEGER, INTENT(IN)           :: NX, NY, NZ, FLAG
-      REAL*8                        :: SRC(NX, NY, NZ)
+      REAL(fp)                        :: SRC(NX, NY, NZ)
       integer                       :: L
 
-      CSPEC_FULL => State_Chm%Species
+      SPC => State_Chm%Species
 
       IF ( FLAG == 1 ) THEN
          DO L = 1, State_Chm%nSpecies
-            SRC( :, :, : ) = CSPEC_FULL( :, :, :, L) * State_Met%AIRVOL
-            CSPEC_FULL( :, :, :, L) = SRC(:, :, : )
+            SRC( :, :, : ) = SPC( :, :, :, L) !* State_Met%AIRVOL
+            SPC( :, :, :, L) = SRC(:, :, : )
          ENDDO
       ELSE IF (FLAG == 2 ) THEN
          DO L = 1, State_Chm%nSpecies
-            SRC( :, :, : ) = CSPEC_FULL( :, :, :, L) / State_Met%AIRVOL
-            CSPEC_FULL( :, :, :, L) = SRC(:, :, : )
+            SRC( :, :, : ) = SPC( :, :, :, L) !/ State_Met%AIRVOL
+            SPC( :, :, :, L) = SRC(:, :, : )
          ENDDO
       END IF
-      NULLIFY(CSPEC_FULL)
+      NULLIFY(SPC)
 
       END SUBROUTINE EX_CONVERT_UNITS_CSPEC
 !EOC
@@ -1439,6 +1510,7 @@
 !
       SUBROUTINE CLOSE_BIN_FILE()
 !
+      USE FILE_MOD
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !EOP
@@ -1466,10 +1538,13 @@
 !
       SUBROUTINE WRITE_3D_REAL8_ARRAY( NI, NJ, NK, ARRAY )
 !
+      USE FILE_MOD
+      USE PRECISION_MOD
 ! !INPUT PARAMETERS: 
 !
       INTEGER,          INTENT(IN)     :: NI, NJ, NK
-      REAL*8,           INTENT(IN)     :: ARRAY(NI,NJ,NK)
+      REAL(fp),           INTENT(IN)     :: ARRAY(NI,NJ,NK)
+      REAL(f4)               :: ARRAYTEMPW(NI,NJ,NK)
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
@@ -1481,9 +1556,12 @@
 !
 
       INTEGER         :: IU_RST
+      INTEGER                       :: I, J, L
       IU_RST   = 2
-
-      WRITE ( IU_RST ) ARRAY
+       
+      ARRAYTEMPW=REAL(ARRAY,4)
+      WRITE ( IU_RST ) !ARRAY
+     &  ( ( ( ARRAYTEMPW(I,J,L), I=1,NI ), J=1,NJ ), L=1,NK )
 
       END SUBROUTINE WRITE_3D_REAL8_ARRAY
 !EOC
@@ -1499,29 +1577,38 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_3D_REAL8_ARRAY( NI, NJ, NK, ARRAY )
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,          INTENT(IN)     :: NI, NJ, NK
-!
-! !OUTPUT PARAMETERS: 
-!
-      REAL*8,           INTENT(OUT)    :: ARRAY(NI,NJ,NK)
-!
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Added ProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
-! !LOCAL VARIABLES:
 
-      INTEGER         :: IU_RST
-      IU_RST   = 2
+      SUBROUTINE READ_3D_REAL8_ARRAY( NI, NJ, NK, ARRAY )
 
-      READ ( IU_RST ) ARRAY
+      USE FILE_MOD
+      USE PRECISION_MOD
+      USE TRANSFER_MOD,       ONLY : TRANSFER_3D_yan
 
+      INTEGER, INTENT(IN)     :: NI, NJ, NK
+      REAL*4                  :: ARRAYTEMPR(576,361,73)
+      REAL(fp),  INTENT(OUT)    :: ARRAY(NI,NJ,NK)
+      REAL(fp),ALLOCATABLE     :: ARRAYT(:,:,:)
+      INTEGER                 :: IU_RST, IOS
+      INTEGER                 :: I, J, L
+       
+      IU_RST = 2
+      IOS = 1
+      ARRAYTEMPR(:,:,:) = 0e0
+         READ( IU_RST, IOSTAT=IOS )
+     &        ( ( ( ARRAYTEMPR(I,J,L), I=1,NI ), J=1,NJ ), L=1,NK )
+      CALL TRANSFER_3D_yan(NI,NJ,NK,ARRAYTEMPR(1:NI,1:NJ,1:NK), ARRAYT )
+      ARRAY(1:NI,1:NJ,1:NK)=ARRAYT(1:NI,1:NJ,1:NK)
+         IF ( IOS /= 0 ) THEN
+            WRITE(6,*) 'EXCHANGE: READ ERROR' !, TRIM(FNAME)
+             CALL IOERROR( IOS, IU_RST, 'EXCHANGE_MOD:READ')
+         ENDIF
+      
       END SUBROUTINE READ_3D_REAL8_ARRAY
 !EOC
 !------------------------------------------------------------------------------
@@ -1540,12 +1627,13 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      USE PRECISION_MOD
       INTEGER,          INTENT(IN)     :: N1, N2
-      REAL*8,           INTENT(IN)     :: RATIO, OFFSET
+      REAL(fp),           INTENT(IN)     :: RATIO, OFFSET
 !
 ! !OUTPUT PARAMETERS: 
 !
-      REAL*8,           INTENT(OUT)    :: RES(N1, N2)
+      REAL(fp),           INTENT(OUT)    :: RES(N1, N2)
 !
 ! !REMARKS:
 !
@@ -1559,7 +1647,7 @@
 !
       ! Default for Right Array.
       ! LOCAL vars
-      REAL*8                           :: BEG_POS, END_POS
+      REAL(fp)                           :: BEG_POS, END_POS
       INTEGER                          :: M, N
 
       RES = 0d0
