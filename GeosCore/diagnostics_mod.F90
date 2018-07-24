@@ -944,7 +944,7 @@ CONTAINS
        !--------------------------------------
        ! PM25 [ug/m3]
        !--------------------------------------
-       IF ( Archive_BetaNO ) THEN
+       IF ( Archive_PM25 ) THEN
           State_Diag%PM25(I,J,L)            = PM25(I,J,L)                    &
                                             * kgm3_to_ugm3
        ENDIF
