@@ -2608,6 +2608,7 @@
 !  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
 !  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
 !  16 Mar 2017 - M. Sulprizio- Print model version to log file
+!  26 Jul 2018 - R. Yantosca - Now get version # from gc_classic_version.H
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2616,14 +2617,13 @@
 !
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
-      CHARACTER(LEN=16) :: VERSION
 
-      ! Set GEOS-Chem version
-      VERSION = 'v11-02'
+#include "gc_classic_version.H"
 
       !-----------------------------------------------------------------
       ! Print resolution info
       !-----------------------------------------------------------------
+
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
      &    REPEAT( '*', 13 )                                          //
@@ -2659,7 +2659,7 @@
       !-----------------------------------------------------------------
       ! Print model version
       !-----------------------------------------------------------------
-      WRITE( 6, 110 ) TRIM( VERSION )
+      WRITE( 6, 110 ) TRIM( GC_CLASSIC_VERSION )
 
       !-----------------------------------------------------------------
       ! Print compiler

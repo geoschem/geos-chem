@@ -705,7 +705,8 @@ main.o                      : main.F                                         \
                               mixing_mod.o            merra2_read_mod.o      \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
-                              gosat_ch4_mod.o         tccon_ch4_mod.o
+                              gosat_ch4_mod.o         tccon_ch4_mod.o        \
+                              gc_classic_version.H
 
 mapping_mod.o               : mapping_mod.F90                              
 
