@@ -23,7 +23,8 @@ MODULE Input_Opt_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Set_Input_Opt
-  PUBLIC :: Set_Input_Opt_Extra
+  PUBLIC :: Set_Input_Opt_Advect
+  PUBLIC :: Set_Input_Opt_Passive
   PUBLIC :: Cleanup_Input_Opt
 !
 ! !PUBLIC DATA MEMBERS:
@@ -47,7 +48,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      INTEGER                     :: MAX_DIAG
      INTEGER                     :: MAX_FAM
-     INTEGER                     :: MAX_PASV
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -156,6 +156,12 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LFUTURECFC
 
      !----------------------------------------
+     ! CO MENU fields
+     !----------------------------------------
+     LOGICAL                     :: LPCO_CH4
+     LOGICAL                     :: LPCO_NMVOC
+
+     !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
      LOGICAL                     :: LFOSSIL
@@ -181,22 +187,25 @@ MODULE Input_Opt_Mod
      INTEGER                     :: TS_CHEM
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LUCX
-     LOGICAL                     :: LCH4CHEM
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
      INTEGER, POINTER            :: NTLOOPNCS(:)
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
+     INTEGER                     :: LLSTRAT
 
      !----------------------------------------
      ! RADIATION MENU fields
      !----------------------------------------
-     LOGICAL                     :: LRAD
-     LOGICAL                     :: LLWRAD
-     LOGICAL                     :: LSWRAD
-     LOGICAL, POINTER            :: LSKYRAD(:)
-     INTEGER                     :: TS_RAD
+     LOGICAL                       :: LRAD
+     LOGICAL                       :: LLWRAD
+     LOGICAL                       :: LSWRAD
+     LOGICAL, POINTER              :: LSKYRAD(:)
+     INTEGER                       :: TS_RAD
+     INTEGER                       :: NWVSELECT
+     REAL(8), ALLOCATABLE          :: WVSELECT(:)
+     CHARACTER(LEN=5), ALLOCATABLE :: STRWVSELECT(:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -427,6 +436,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: DO_SAVE_PL
      INTEGER                     :: ND65, LD65
      LOGICAL                     :: DO_SAVE_O3
+     LOGICAL                     :: DO_SAVE_PCO
      INTEGER                     :: NFAM
      CHARACTER(LEN=255), POINTER :: FAM_NAME(:)
      CHARACTER(LEN=255), POINTER :: FAM_TYPE(:)
@@ -480,18 +490,8 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CH4 MENU fields
      !----------------------------------------  
-     LOGICAL                     :: LCH4BUD
-     LOGICAL                     :: LGAO
-     LOGICAL                     :: LCOL
-     LOGICAL                     :: LLIV
-     LOGICAL                     :: LWAST
-     LOGICAL                     :: LBFCH4
-     LOGICAL                     :: LRICE
-     LOGICAL                     :: LOTANT
-     LOGICAL                     :: LBMCH4
-     LOGICAL                     :: LWETL
-     LOGICAL                     :: LSOABS
-     LOGICAL                     :: LOTNAT
+     LOGICAL                     :: GOSAT_CH4_OBS
+     LOGICAL                     :: TCCON_CH4_OBS
 
      !----------------------------------------
      ! POPS MENU fields
@@ -515,7 +515,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: haveImpRst   = .FALSE.
      LOGICAL                     :: AlwaysSetH2O = .TRUE.
      LOGICAL                     :: UseOnlineVUD = .FALSE.
-     INTEGER                     :: LLSTRAT      = 59
      INTEGER                     :: LLFASTJX     = 601
      INTEGER                     :: NN_RxnRates             ! # of diagnosed reaction rates
      INTEGER, POINTER            :: RxnRates_IDs(:)         ! Reaction rate numbers to be diagnosed
@@ -527,6 +526,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE. 
 #else
      LOGICAL                     :: haveImpRst
+     LOGICAL                     :: AlwaysSetH2O
 #endif
 
      !----------------------------------------
@@ -602,6 +602,8 @@ MODULE Input_Opt_Mod
 !  20 Sep 2016 - R. Yantosca - LND51_HDF and LND51b_HDF are now declared
 !                              as LOGICAL, not INTEGER.  This chokes Gfortran.
 !  03 Oct 2016 - R. Yantosca - LWINDO_CU has to be LOGICAL, not INTEGER
+!  16 Jun 2017 - M. Sulprizio- Remove switches for CH4 emissions since these
+!                              are now handled by HEMCO
 !  12 Jul 2017 - R. Yantosca - Add Input_Opt%HistoryInputFile field
 !  13 Jul 2017 - E. Lundgren - Add passive species variables
 !  24 Aug 2017 - M. Sulprizio- Remove obsolete options: GCAP_DIR, GEOS_4_DIR,
@@ -612,6 +614,9 @@ MODULE Input_Opt_Mod
 !                              overhead O3 in chemistry menu
 !  02 Nov 2017 - R. Yantosca - Bug fix: LBIOFUEL should be LOGICAL
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
+!  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
+!  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
+!  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -702,13 +707,14 @@ CONTAINS
 !  12 Jul 2017 - R. Yantosca - Initialize Input_Opt%HistoryInputFile field
 !  02 Nov 2017 - R. Yantosca - LWINDO_CU should be .FALSE., not 0
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
+!  08 Mar 2018 - R. Yantosca - Bug fix, remove reference to TINDEX here
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_FAM, MAX_PASV
+    INTEGER :: MAX_DIAG, MAX_FAM
 
     ! Assume success
     RC                               = GC_SUCCESS
@@ -726,7 +732,6 @@ CONTAINS
     !----------------------------------------
     MAX_DIAG                         = Input_Opt%MAX_DIAG
     MAX_FAM                          = Input_Opt%MAX_FAM
-    MAX_PASV                         = Input_Opt%MAX_PASV
   
     !----------------------------------------
     ! SIMULATION MENU fields 
@@ -752,21 +757,8 @@ CONTAINS
     !----------------------------------------
     ! PASSIVE SPECIES MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%PASSIVE_NAME    ( MAX_PASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_ID      ( MAX_PASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_MW      ( MAX_PASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_TAU     ( MAX_PASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_INITCONC( MAX_PASV ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( MAX_PASV ), STAT=RC )
-
     Input_Opt%NPASSIVE               = 0 
     Input_Opt%NPASSIVE_DECAY         = 0 
-    Input_Opt%PASSIVE_NAME           = ''
-    Input_Opt%PASSIVE_ID             = -999
-    Input_Opt%PASSIVE_MW             = 0.0_fp
-    Input_Opt%PASSIVE_TAU            = 0.0_fp
-    Input_Opt%PASSIVE_INITCONC       = 0.0_fp
-    Input_Opt%PASSIVE_DECAYID        = 0
                                   
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
@@ -847,6 +839,12 @@ CONTAINS
     Input_Opt%LFUTURECFC             = .FALSE.
 
     !----------------------------------------
+    ! CO MENU fields
+    !----------------------------------------
+    Input_Opt%LPCO_CH4               = .FALSE.
+    Input_Opt%LPCO_NMVOC             = .FALSE.
+
+    !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
     Input_Opt%LFOSSIL                = .FALSE.
@@ -873,23 +871,28 @@ CONTAINS
     Input_Opt%TS_CHEM                = 0
     Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
-    Input_Opt%LCH4CHEM               = .FALSE.
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
     Input_Opt%USE_ONLINE_O3          = .FALSE.
     Input_Opt%USE_O3_FROM_MET        = .FALSE.
     Input_Opt%USE_TOMS_O3            = .FALSE.
+    Input_Opt%LLSTRAT                = -999
 
     !----------------------------------------
     ! RADIATION MENU fields
     !----------------------------------------
-    ALLOCATE( Input_Opt%LSKYRAD( 2 ), STAT=RC )
+    ALLOCATE( Input_Opt%LSKYRAD( 2 ),     STAT=RC )
+    ALLOCATE( Input_Opt%WVSELECT( 3 ),    STAT=RC )
+    ALLOCATE( Input_Opt%STRWVSELECT( 3 ), STAT=RC )
 
     Input_Opt%LRAD                   = .FALSE.
     Input_Opt%LLWRAD                 = .FALSE.
     Input_Opt%LSWRAD                 = .FALSE.
     Input_Opt%LSKYRAD                = .FALSE.
     Input_Opt%TS_RAD                 = 0
+    Input_Opt%NWVSELECT              = 0
+    Input_Opt%WVSELECT               = 0e+0_fp
+    Input_Opt%STRWVSELECT            = ''
 
     !----------------------------------------
     ! TRANSPORT MENU fields
@@ -936,8 +939,8 @@ CONTAINS
     Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG          ), STAT=RC )
-    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG          ), STAT=RC )
+    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG  ), STAT=RC )
+    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG  ), STAT=RC )
 
     Input_Opt%ND01                   = 0
     Input_Opt%ND02                   = 0
@@ -1086,7 +1089,6 @@ CONTAINS
     Input_Opt%LD72                   = 0
     Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
-    Input_Opt%TINDEX(:,:)            = 0
     Input_Opt%TCOUNT(:)              = 0	  
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
@@ -1203,6 +1205,7 @@ CONTAINS
     Input_Opt%DO_SAVE_PL             = .FALSE.
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.
+    Input_Opt%DO_SAVE_PCO            = .FALSE.
     Input_Opt%NFAM                   = 0
     Input_Opt%FAM_NAME               = ''
     Input_Opt%FAM_TYPE               = ''
@@ -1254,18 +1257,8 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------  
-    Input_Opt%LCH4BUD                = .FALSE.
-    Input_Opt%LGAO                   = .FALSE.
-    Input_Opt%LCOL                   = .FALSE.
-    Input_Opt%LLIV                   = .FALSE.
-    Input_Opt%LWAST                  = .FALSE.
-    Input_Opt%LBFCH4                 = .FALSE.
-    Input_Opt%LRICE                  = .FALSE.
-    Input_Opt%LOTANT                 = .FALSE.
-    Input_Opt%LBMCH4                 = .FALSE.
-    Input_Opt%LWETL                  = .FALSE.
-    Input_Opt%LSOABS                 = .FALSE.
-    Input_Opt%LOTNAT                 = .FALSE.
+    Input_Opt%GOSAT_CH4_OBS          = .FALSE.
+    Input_Opt%TCCON_CH4_OBS          = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields
@@ -1298,6 +1291,7 @@ CONTAINS
     Input_Opt%Jval_IDs              => NULL()
 #else
     Input_Opt%haveImpRst             = .FALSE.
+    Input_Opt%AlwaysSetH2O           = .FALSE.
 #endif
 
     !----------------------------------------
@@ -1322,16 +1316,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_Input_Opt_Extra
+! !IROUTINE: Set_Input_Opt_Advect
 !
-! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_EXTRA intializes all GEOS-Chem
+! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_ADVECT intializes all GEOS-Chem
 !  options carried in Input Options derived type object that depend on
-!  the number of advected species (Input_Opt%N_ADVECT).
+!  the number of advected species (Input\_Opt%N_ADVECT).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Input_Opt_Extra( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Set_Input_Opt_Advect( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
 !
@@ -1355,6 +1349,8 @@ CONTAINS
 
 ! !REVISION HISTORY: 
 !  26 Jan 2018 - M. Sulprizio- Initial version
+!  04 Apr 2018 - E. Lundgren - Renamed from Set_Input_Opt_Extra to 
+!                              Set_Input_Opt_Advect
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1370,7 +1366,7 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-       ' -> at Set_Input_Opt_Extra (in module Headers/input_opt_mod.F90)'
+       ' -> at Set_Input_Opt_Advect (in module Headers/input_opt_mod.F90)'
 
     !=======================================================================
     ! Allocate arrays
@@ -1411,7 +1407,97 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%ND63_TRACERS = 0
 
-  END SUBROUTINE Set_Input_Opt_Extra
+  END SUBROUTINE Set_Input_Opt_Advect
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_Input_Opt_Passive
+!
+! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_PASSIVE intializes all GEOS-Chem
+!  options carried in Input Options derived type object that depend on
+!  the number of passive species (Input\_Opt%N_PASSIVE).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
+!  be removed from GEOS-Chem.
+
+! !REVISION HISTORY: 
+!  04 Apr 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
+    ! Initialize
+    !=======================================================================
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = &
+       ' -> at Set_Input_Opt_Passive (in module Headers/input_opt_mod.F90)'
+
+    !=======================================================================
+    ! Allocate arrays
+    !=======================================================================
+    ALLOCATE( Input_Opt%PASSIVE_NAME( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_NAME', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_NAME = ''
+
+    ALLOCATE( Input_Opt%PASSIVE_ID( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_ID', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_ID = -999
+
+    ALLOCATE( Input_Opt%PASSIVE_MW( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_MW', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_MW = 0.0_fp
+
+    ALLOCATE( Input_Opt%PASSIVE_TAU( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_TAU', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_TAU = 0.0_fp
+
+    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_INITCONC', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_INITCONC = 0.0_fp
+
+    ALLOCATE( Input_Opt%PASSIVE_DECAYID( Input_Opt%NPASSIVE ), STAT=RC )
+    CALL GC_CheckVar( 'Input_Opt%PASSIVE_DECAYID', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    Input_Opt%PASSIVE_DECAYID = 0
+                                  
+  END SUBROUTINE Set_Input_Opt_Passive
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

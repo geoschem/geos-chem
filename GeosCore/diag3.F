@@ -285,7 +285,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER            :: NA, nAdvect, nDryDep, NW
+      INTEGER            :: NA, nAdvect, nDryDep, NW, NFAM
       INTEGER            :: I, IREF, J, JREF, L, M, MM, MMB, Levs
       INTEGER            :: N, NN, NMAX, NTEST, N_TOT_TRC, T
       INTEGER            :: IE, IN, IS, IW, ITEMP(3)
@@ -1912,26 +1912,30 @@
 !
 !   # : Field    : Description                     : Units    : Scale factor
 !  --------------------------------------------------------------------------
-!  (1 ) CH4-LOSS : CH4 removing by OH              : kg CH4   : 1
+!  (1 ) CH4-LOSS : CH4 loss by reaction with OH    : kg CH4   : 1
+!  (2 ) CH4-LOSS : CH4 loss in the stratosphere    : kg CH4   : 1
+!  (3 ) CH4-LOSS : CH4 loss by reaction with Cl    : kg CH4   : 1
 !******************************************************************************
 !
       IF ( ND19 > 0 ) THEN
+         UNIT     = 'kg'
+         CATEGORY = 'CH4-LOSS'
 
-         UNIT = 'kg'
+         DO M = 1, TMAX(19)
+            N  = TINDEX(19,M)
+            IF ( N > PD19 ) CYCLE
+            NN = N
 
-         !==============================================================
-         ! CH4 Loss
-         !==============================================================
-         CATEGORY     = 'CH4-LOSS'
-         N            = 1
-	
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD19,    IFIRST,     
-     &               JFIRST,    LFIRST,    AD19(:,:,:) )
+            ARRAY(:,:,1:LD19) = AD19(:,:,1:LD19,N)
 
-	ENDIF
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, N,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD19,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD19) )
+
+         ENDDO
+      ENDIF
 !
 !******************************************************************************
 !  ND21: Optical depth diagnostics
@@ -2041,13 +2045,13 @@
 
            ! Is this something that we want to output?
            ! Only output extra wavelengths if they are requested
-           IF (NWVSELECT.eq.3) THEN
+           IF (Input_Opt%NWVSELECT.eq.3) THEN
                IS_AD21 = .TRUE.
-           ELSEIF (NWVSELECT.eq.2) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.2) THEN
                ! Exclude wavelength 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 2*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
-           ELSEIF (NWVSELECT.eq.1) THEN
+           ELSEIF (Input_Opt%NWVSELECT.eq.1) THEN
                ! Exclude wavelengths 2 and 3
                IS_AD21 = ((N.le.(5 + 2*NRHAER + 1*(NRHAER+NDUST))).or.
      &                    (N.gt.(5 + 2*NRHAER + 3*(NRHAER+NDUST))))
@@ -5286,17 +5290,20 @@
 !   #  : Field   : Description                 : Units     : Scale Factor
 !  ---------------------------------------------------------------------------
 !  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-GAO  : CH4 Emissions gas & oil     : kg        : 1
-!  (3 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (4 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (5 ) CH4-WST  : CH4 Emissions waste         : kg        : 1
-!  (6 ) CH4-BFL  : CH4 Emissions biofuel       : kg        : 1
-!  (7 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (8 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (9 ) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (10) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (11) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!  (12) CH4-OTN  : CH4 Emissions other natural : kg        : 1
+!  (2 ) CH4-OIL  : CH4 Emissions oil           : kg        : 1
+!  (3 ) CH4-GAS  : CH4 Emissions gas           : kg        : 1
+!  (4 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
+!  (5 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
+!  (6 ) CH4-LDF  : CH4 Emissions landfills     : kg        : 1
+!  (7 ) CH4-WST  : CH4 Emissions wastewater    : kg        : 1
+!  (8 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
+!  (9 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
+!  (10) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
+!  (11) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
+!  (12) CH4-SEE  : CH4 Emissions seeps         : kg        : 1
+!  (13) CH4-LAK  : CH4 Emissions lakes         : kg        : 1
+!  (14) CH4-TER  : CH4 Emissions termites      : kg        : 1
+!  (15) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
 !******************************************************************************
 
       IF ( ND58 > 0 ) THEN
@@ -5892,8 +5899,14 @@
       IF ( ND65 > 0 ) THEN     
          CATEGORY = 'PORL-L=$'
 
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+            NFAM = Input_Opt%NFAM + 2
+         ELSE 
+            NFAM = Input_Opt%NFAM
+         ENDIF
+
          ! Loop over ND65 families
-         DO N = 1, Input_Opt%NFAM
+         DO N = 1, NFAM
 
             ! Select proper unit string
             IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
@@ -6281,7 +6294,7 @@
       IF ( Input_Opt%LRAD ) THEN
       IF ( ND72 > 0 ) THEN
          CATEGORY = 'RADMAP-$'
-         write(6,*) 'NWVSELECT',NWVSELECT
+         write(6,*) 'Input_Opt%NWVSELECT',Input_Opt%NWVSELECT
 
          ! ND72 is updated every rad timestep
          SCALEX = SCALERAD
@@ -6304,9 +6317,11 @@
              IF (((N.LE.4).AND.(Input_Opt%LSKYRAD(2).EQV..TRUE.)).OR.
      &           ((N.GT.4).AND.(N.LE.8).AND.
      &                         (Input_Opt%LSKYRAD(1).EQV..TRUE.)).OR.
-     &           ((N.GT.8).AND.(N.LE.11)).OR.                         !1st set of optics
-     &           ((N.GT.11).AND.(N.LE.14).AND.(NWVSELECT.GT.1)).OR.   !2nd set of optics
-     &           ((N.GT.14).AND.(N.LE.17).AND.(NWVSELECT.GT.2))) THEN !3rd set of optics
+     &           ((N.GT.8).AND.(N.LE.11)).OR.                !1st set of optics
+     &           ((N.GT.11).AND.(N.LE.14).AND.
+     &                          (Input_Opt%NWVSELECT.GT.1)).OR.   !2nd set
+     &           ((N.GT.14).AND.(N.LE.17).AND.
+     &                          (Input_Opt%NWVSELECT.GT.2))) THEN !3rd set
 
              ! Select proper unit string (cf list above)
              IF (N.LE.8) THEN

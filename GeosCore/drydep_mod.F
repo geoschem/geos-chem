@@ -481,12 +481,21 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
+#if defined ( DISCOVER )
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
      &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            )
+#else
+      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
+     &             RADIAT,     TC0,       SUNCOS_MID,
+     &             F0,         HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,      CZ1,       OBK,        CFRAC,     
+     &             ZH,         LSNOW,     DVEL,       AZO,              
+     &             RHB,        PRESSU,    W10,        RC            )
+#endif
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -838,12 +847,21 @@
 !\\
 ! !INTERFACE:
 !
+#if defined ( DISCOVER )
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          )
+#else
+      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
+     &                   RADIAT,     TEMP,      SUNCOS,
+     &                   F0,         HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,      CZ1,       OBK,       CFRAC,
+     &                   ZH,         LSNOW,     DVEL,      ZO,
+     &                   RHB,        PRESSU,    W10,       RC          )
+#endif
 !
 ! !USES:
 !
@@ -865,7 +883,7 @@
 
       REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cosine of solar zenith angle
+      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
@@ -1038,7 +1056,6 @@
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of arrays
 !                              from (MAXIJ) to (IIPAR,JJPAR); Also remove NPTS
 !                              input argument
-!
 !***********************************************************************
 !   Changes from Version 3.2 to Version 3.3:                         ***
 !   * We now suppress dry deposition over aerodynamically smooth     ***
@@ -1136,6 +1153,7 @@
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
+
 
       ! Small number
       REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
@@ -4441,6 +4459,7 @@
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  22 Sep 2015 - R. Yantosca - Now deallocate arrays that were formerly
 !                              sized to MAXDEP.
+!  05 Jul 2018 - H. Lin      - Bug fix: deallocate FLAG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4454,6 +4473,7 @@
       IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
       IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
+      IF ( ALLOCATED( FLAG     ) ) DEALLOCATE( FLAG     )
       IF ( ALLOCATED( HSTAR    ) ) DEALLOCATE( HSTAR    )
       IF ( ALLOCATED( KOA      ) ) DEALLOCATE( KOA      )
       IF ( ALLOCATED( NDVZIND  ) ) DEALLOCATE( NDVZIND  )

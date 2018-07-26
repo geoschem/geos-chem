@@ -1,4 +1,4 @@
-List of GEOS-Chem developers (23 Oct 2017)
+List of GEOS-Chem developers (14 May 2018)
 ===============================================================================
 
 Peter Adams
@@ -12,6 +12,7 @@ Sabour Baray
 Michael Barkley
 Steven Barret
 Brice Barret
+Kelvin Bates
 Isabelle Bey
 Folkert Boersma
 Sreekanth Bojjagani
@@ -32,16 +33,17 @@ Liangzhong Cao
 Guofeng Cao
 Shannon Capps
 Claire Carouge
+Therese Carter
 Maria Cazorla
 Sreelekha Chaliyakunnel
 Christopher Chan
+Han Chen
+Jing Chen
+Long Chen
+Qi Chen
 Qianjie Chen
 Xin Chen
 Yang Chen
-Qi Chen
-Han Chen
-Long Chen
-Jing Chen
 Yunsoo Choi
 Kenneth Christian
 Matt Cooper
@@ -77,6 +79,7 @@ Carey Friedman
 Tzung-May Fu
 Joshua Fu
 Brett Gantt
+Cui Ge
 Jeffrey Geddes
 Amanda Giang
 Christos Giannakopoulos
@@ -169,6 +172,7 @@ Jonathan Moch
 Neil Moore
 Jessica Morena
 Gabriel Morin
+Eleanor Morris
 Mingquan Mu
 Killian Murphy
 Lee Murray
@@ -217,7 +221,7 @@ Tomas Sherwen
 Sam Silva
 Nicole Smith-Downey
 Eric Sofen
-Shaojie Solng
+Shaojie Song
 Yu Song
 Dominick Spracklen
 Ilya Stanevich
@@ -242,7 +246,7 @@ Katie Travis
 Win Trivitayanurak
 Paolo Tuccella
 Solene Turquety
-Zitely Tzompa-Susa
+Zitely Tzompa-Sosa
 Nadine Unger
 Maria Val-Martin
 Aaron van
@@ -266,7 +270,7 @@ Debra Weisenstein
 Kelley Wells
 Dan Westervelt
 Cynthia Whaley
-Christine Wiedenmyer
+Christine Wiedinmyer
 Oliver Wild
 Ingo Wohltmann
 Shiliang Wu
@@ -275,7 +279,7 @@ Yaping Xiao
 Matt Yannetti
 Bob Yantosca
 Jack Yatteau
-Keiya Ymmimoto
+Keiya Yumimoto
 Karen Yu
 Fangqun Yu
 Xu Yue

@@ -871,18 +871,18 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(fp),           INTENT(IN) :: N           ! Numerator
-      REAL(fp),           INTENT(IN) :: D           ! Denominator
-      REAL(fp),           INTENT(IN) :: ALT_NAN     ! Alternate value to be 
+      REAL(fp),           INTENT(IN) :: N         ! Numerator
+      REAL(fp),           INTENT(IN) :: D         ! Denominator
+      REAL(fp),           INTENT(IN) :: ALT_NAN   ! Alternate value to be 
                                                   !  returned if the division 
                                                   !  is either NAN (0/0) or 
                                                   !  leads to overflow (i.e., 
                                                   !  a too large number)
-      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER    ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_OVER  ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to overflow (default
                                                   !  is ALT_NAN)
-      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER   ! Alternate value to be 
+      REAL(fp), OPTIONAL, INTENT(IN) :: ALT_UNDER ! Alternate value to be 
                                                   !  returned if the division
                                                   !  leads to underflow 
                                                   !  (default is 0, but you 
@@ -891,7 +891,7 @@
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                       :: Q           ! Output from the division
+      REAL(fp)                       :: Q         ! Output from the division
 
 !
 ! !REMARKS:

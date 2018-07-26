@@ -500,6 +500,7 @@ CONTAINS
     CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
     INTEGER                :: a_type             ! netCDF attribute type
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays    
+    INTEGER                :: I
 
     !=================================================================
     ! NC_READ_VAR_CORE begins here
@@ -548,6 +549,18 @@ CONTAINS
     ELSE 
        CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
                                   TRIM(a_name), varUnit     )
+
+       ! Check if the last character of VarUnit is the ASCII null character
+       ! ("\0", ASCII value = 0), which is used to denote the end of a string.
+       ! The ASCII null character may be introduced if the netCDF file was
+       ! written using a language other than Fortran.  The compiler might
+       ! interpret the null character as part of the string instead of as
+       ! an empty space.  If the null space is there, then replace it with
+       ! a Fortran empty string value (''). (bmy, 7/17/18)
+       I = LEN_TRIM( VarUnit )
+       IF ( ICHAR( VarUnit(I:I) ) == 0 ) THEN
+          VarUnit(I:I) = ''
+       ENDIF
     ENDIF
 
   END SUBROUTINE NC_READ_VAR_CORE
@@ -1162,6 +1175,18 @@ CONTAINS
        a_name = "units"
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),a_val)
        VarUnit = TRIM(a_val)
+
+       ! Check if the last character of VarUnit is the ASCII null character
+       ! ("\0", ASCII value = 0), which is used to denote the end of a string.
+       ! The ASCII null character may be introduced if the netCDF file was
+       ! written using a language other than Fortran.  The compiler might
+       ! interpret the null character as part of the string instead of as
+       ! an empty space.  If the null space is there, then replace it with
+       ! a Fortran empty string value (''). (bmy, 7/17/18)
+       I = LEN_TRIM( VarUnit )
+       IF ( ICHAR( VarUnit(I:I) ) == 0 ) THEN
+          VarUnit(I:I) = ''
+       ENDIF
     ENDIF
 
     !=================================================================
@@ -2938,6 +2963,7 @@ CONTAINS
 !  15 Jun 2012 - C. Keller   - Initial version
 !  10 May 2017 - R. Yantosca - Don't manually increment vId, it's returned
 !                              as an output from NCDEF_VARIABLE
+!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3025,7 +3051,7 @@ CONTAINS
 
     ! Define time dimension
     v_name = "time"
-    CALL NcDef_Dimension( fId, TRIM(v_name), ntime, id_time )
+    CALL NcDef_Dimension( fId, TRIM(v_name), ntime, id_time, unlimited=.true. )
 
     !--------------------------------
     ! VARIABLE: lon
@@ -3415,6 +3441,7 @@ CONTAINS
 !                               create the iLev dimension (level interfaces)
 !  24 Jan 2018 - R. Yantosca - Add update frequency as an optional global attr
 !  31 Jan 2018 - R. Yantosca - Add StartTimeStamp, EndTimeStamp arguments
+!  18 May 2018 - C. Holmes   - Define time as an unlimited dimension
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3560,7 +3587,7 @@ CONTAINS
     !=======================================================================
 
     ! Time
-    CALL NcDef_Dimension( fId, 'time', nTime, TimeId ) 
+    CALL NcDef_Dimension( fId, 'time', nTime, TimeId, unlimited=.true. ) 
 
     ! Level midpoints
     IF ( nLev > 0 ) THEN
@@ -3818,7 +3845,7 @@ CONTAINS
     ! Standard name (optional) -- skip if null string
     IF ( PRESENT( StandardName ) ) THEN
        IF ( LEN_TRIM( StandardName ) > 0 ) THEN
-          Att = 'standard_Name'
+          Att = 'standard_name'
           CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(StandardName))
        ENDIF
     ENDIF

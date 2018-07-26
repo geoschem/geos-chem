@@ -118,7 +118,7 @@ docclean:
 	@$(MAKE) -C $(GEOSDIR) docclean
 
 tauclean:
-	find . -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' | xargs rm -f
+	find . -name '*.pdb' -o -name '*.inst.*' -o -name '*.pp.*' -o -name '*.continue.*' -o -name '*.tau.inc~' | xargs rm -f
 
 debug:
 	@$(MAKE) -C $(GEOSDIR) debug

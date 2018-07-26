@@ -30,11 +30,12 @@
       !######################################################
       INTEGER, PARAMETER :: PD40=4
       INTEGER            :: ND40
+      INTEGER            :: ND48, ND49, ND50, ND51, ND63 ! timeseries
 
       !######################################################
       !##### NOTE: These variables can be blocked out!  #####
       !######################################################
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER, PARAMETER :: PD05=20
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
@@ -46,6 +47,7 @@
       INTEGER, PARAMETER :: PD16=2  
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
+      INTEGER, PARAMETER :: PD19=3
 #endif
 #if defined( BPCH_DIAG )  || defined( DISCOVER )
       INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
@@ -58,7 +60,7 @@
       INTEGER, PARAMETER :: PD55=3
       ! Potential temperature diagnostic (hotp 7/31/09)
       INTEGER, PARAMETER :: PD57=1           
-      INTEGER, PARAMETER :: PD58=12
+      INTEGER, PARAMETER :: PD58=15
 #if   defined( TOMAS )
       ! Special settings for TOMAS aerosol microphysics (win, bmy, 1/22/10)
       INTEGER, PARAMETER :: PD59=TOMASBIN*TOMASSPEC   
@@ -89,6 +91,7 @@
 
       ! (eam, 2015): ISORROPIA pH, H+, & aerosol water
       INTEGER, PARAMETER :: PD73=3 
+#endif
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
@@ -104,7 +107,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! Diagnostic counters & time variables
       !=================================================================
@@ -134,10 +137,11 @@
       INTEGER :: ND12, ND13, ND14, ND15, ND16, ND17, ND18, ND19, ND20
       INTEGER :: ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29
       INTEGER :: ND30, ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38
-      INTEGER :: ND39, ND43, ND44, ND45, ND46, ND47, ND48, ND49
-      INTEGER :: ND50, ND51, ND52, ND54, ND55, ND57, ND58, ND59
-      INTEGER :: ND60, ND61, ND62, ND63, ND64, ND65, ND66, ND67, ND68
+      INTEGER :: ND39, ND43, ND44, ND45, ND46, ND47
+      INTEGER :: ND52, ND54, ND55, ND57, ND58, ND59
+      INTEGER :: ND60, ND61, ND62, ND64, ND65, ND66, ND67, ND68
       INTEGER :: ND69, ND70, ND71, ND72, ND73, ND74, ND75
+#endif
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output
@@ -146,6 +150,7 @@
       INTEGER :: TCOUNT(MAX_DIAG) 				  
       INTEGER :: TMAX(MAX_DIAG)					
 
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! OH, J-Value, and 2-PM diagnostic arrays (bmy, 9/25/98)
       ! Move this here for now (bmy, 7/20/04)
@@ -255,7 +260,7 @@
       ! Assume success
       RC   = GC_SUCCESS
       
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Set PD65 (for backwards compatibility, for now)
       PD65 = LLPAR*MAXFAM 
       PD64 = W_

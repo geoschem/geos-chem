@@ -43,7 +43,6 @@ $(UTIL)/regrid_a2a_mod.F90  \
 $(UTIL)/bpch2_mod.F         \
 $(UTIL)/transfer_mod.F      \
 $(UTIL)/file_mod.F          \
-$(UTIL)/inquireMod.F90      \
 ./util_file.P               \
 $(wildcard $(NC)/*.F*)      \
 $(SRCNC)                    \
@@ -56,8 +55,7 @@ $(UTIL)/unitconv_mod.F90    \
 $(UTIL)/error_mod.F         \
 $(UTIL)/ifort_errmsg.F      \
 ./util_misc.P               \
-$(UTIL)/charpak_mod.F       \
-$(UTIL)/geos_timers_mod.F
+$(UTIL)/geos_timers_mod.F90
 
 # Output file names
 TEX1 := GC_v11-02_Utility_Modules.tex

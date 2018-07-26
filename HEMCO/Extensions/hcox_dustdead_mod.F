@@ -80,6 +80,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, and MERRA
 !  17 Oct 2017 - C. Keller   - Now estimate default scale factor from
 !                              model resolution.
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -205,7 +206,7 @@
 !
 ! !USES:
 !
-      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld
+      USE HCO_CALC_MOD,      ONLY : HCO_EvalFld, HCO_CalcEmis
       USE HCO_FLUXARR_MOD,   ONLY : HCO_EmisAdd 
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_Get
       USE HCO_CLOCK_MOD,     ONLY : HcoClock_First
@@ -243,12 +244,14 @@
 !  26 Jun 2015 - E. Lundgren - Add L. Zhang new dust size distribution scheme
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  03 Apr 2018 - S. Philip   - Add anthropogenic PM2.5 dust emission (AFCID)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       LOGICAL                :: aIR,    ERR
       INTEGER                :: I,      J,      L,       N
       INTEGER                :: M,      IOS,    INC,     LAT_IDX
@@ -274,9 +277,32 @@
       REAL*8                 :: SNW_HGT_LQD(HcoState%NX)   ! equivalent snow ht.
       REAL*8                 :: DSRC(HcoState%NX,NBINS)    ! dust mixing ratio incr.
       REAL*8                 :: DUST_EMI_TOTAL(HcoState%NX) ! total dust emiss
-      REAL(hp), TARGET       :: FLUX(HcoState%NX,HcoState%NY,NBINS) ! Flux array [kg/m2/s]   
-      REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS) ! Flux array for dust alkalinity [kg/m2/s]   
+
+      ! Flux array [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX(HcoState%NX,
+     &                               HcoState%NY,
+     &                               NBINS) 
+
+      ! Flux array for dust alkalinity [kg/m2/s]   
+      REAL(hp), TARGET       :: FLUX_ALK(HcoState%NX,
+     &                                   HcoState%NY,
+     &                                   NBINS) 
+
+!------------------------------------------------------------------------------
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!
+!      ! AFCID (fine PM2.5) emissions (S. Philip)
+!      ! Array to get emissions flux from HEMCO
+!      REAL(hp), TARGET       :: AFCID_PM25(HcoState%NX,
+!     &                                     HcoState%NY,
+!     &                                     HcoState%NZ)
+!------------------------------------------------------------------------------
+
+      ! Pointers
       TYPE(MyInst), POINTER  :: Inst
+
+      ! Strings
+      CHARACTER(LEN=255)     :: MSG
 !
 ! !DEFINED PARAMETERS:
 !
@@ -288,7 +314,6 @@
       REAL*8, PARAMETER      :: RGAS    = 8314.3d0 / 28.97d0
       REAL*8, PARAMETER      :: AKAP    = RGAS     / CP
       REAL*8, PARAMETER      :: P1000   = 1000d0
-      CHARACTER(LEN=255)     :: MSG
 
       !=================================================================
       ! HCOX_DUSTDEAD_RUN begins here!
@@ -367,6 +392,36 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
+!------------------------------------------------------------------------------
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!         !--------------------------------------------------------------
+!         ! Get AFCID emissions fluxes from HEMCO (S. Philip)
+!         !--------------------------------------------------------------
+!
+!         ! Initialize
+!         AFCID_PM25                     = 0.0_hp
+!
+!         ! Update settings in HcoState
+!         HcoState%Options%SpcMin        = Inst%HcoIDs(1)
+!         HcoState%Options%SpcMax        = Inst%HcoIDs(1)
+!         HcoState%Options%CatMin        =  1
+!         HcoState%Options%CatMax        = -1
+!         HcoState%Options%ExtNr         = Inst%ExtNr
+!         HcoState%Options%AutoFillDiagn = .FALSE.
+!         HcoState%Options%FillBuffer    = .TRUE.
+!         HcoState%Buffer3D%Val          => AFCID_PM25
+!    
+!         ! Compute emissions
+!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+!         IF ( RC /= HCO_SUCCESS ) RETURN
+!
+!         ! Reset HcoState settings to standard
+!         HcoState%Buffer3D%Val          => NULL()
+!         HcoState%Options%FillBuffer    = .FALSE.
+!         HcoState%Options%ExtNr         = 0
+!         HcoState%Options%AutoFillDiagn = .TRUE.
+!------------------------------------------------------------------------------
+
 !         FIRST = .FALSE.
       !ENDIF
 
@@ -392,6 +447,11 @@
 
       ! Error check
       ERR = .FALSE.
+
+      ! Debug AFCID emissions added (S. Philip)
+      !print*, 'test = ', SUM(MyDST1e(:,:,:))
+      !print*, 'test = ', MyDST1e(50,40,1)
+      !print*, 'test = ', FLUX(50,40,1)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -488,6 +548,21 @@
 
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
+
+!------------------------------------------------------------------------------
+! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
+!                  !-----------------------------------------------------
+!                  ! Add AFCID fine PM2.5 dust emissons [kg/m2/s]
+!                  ! to the DST1 species (dust bin #1)
+!                  !
+!                  ! NOTE: AFCID_PM25 is a 3-D array (to get data from
+!                  ! HcoState), but all emissions are in the 1st layer
+!                  !-----------------------------------------------------
+!                  IF ( N == 1 ) THEN
+!                     FLUX(I,J,N) = FLUX(I,J,N) + AFCID_PM25(I,J,1) 
+!                  ENDIF
+!------------------------------------------------------------------------------
+
                ENDIF
 
                ! Include DUST Alkalinity SOURCE, assuming an alkalinity
@@ -5617,22 +5692,22 @@ c Fix up for negative argument, erf, etc.
       IF ( FLX_MSS_FDG_FCT == -999.0d0 ) THEN
          ! average latitude spacing
          DY = ABS(MAXVAL(HcoState%Grid%YMID%Val)
-     &          - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY )
+     &          - MINVAL(HcoState%Grid%YMID%Val)) / ( HcoState%NY - 1 )
 
          ! 0.125 degrees / C720
-         IF ( DY < 0.200d0 ) THEN
+         IF ( DY < 0.175d0 ) THEN
             FLX_MSS_FDG_FCT = 2.3d-4
          ! 0.25 degrees / C360
-         ELSEIF ( DY < 0.400d0 ) THEN
+         ELSEIF ( DY < 0.375d0 ) THEN
             FLX_MSS_FDG_FCT = 2.35d-4
          ! 0.5 degrees / C180
-         ELSEIF ( DY < 0.90d0 ) THEN
+         ELSEIF ( DY < 0.75d0 ) THEN
             FLX_MSS_FDG_FCT = 3.23d-4
          ! 1.0 degrees / C90
-         ELSEIF ( DY < 1.8d0 ) THEN
+         ELSEIF ( DY < 1.5d0 ) THEN
             FLX_MSS_FDG_FCT = 4.5d-4
          ! 2.0 degrees / C48
-         ELSE
+         ELSEIF ( DY < 3.0d0 ) THEN
             FLX_MSS_FDG_FCT = 5.0416d-4
          ENDIF
       ENDIF

@@ -287,7 +287,7 @@
       IF ( ND04 == 0 ) RETURN
 
       ! Get number of levels for 3-D arrays
-	LD04 = MIN( ND04, LLPAR )
+      LD04 = MIN( ND04, LLPAR )
 	
       ! 2-D array ("CO2-SRCE")
       ALLOCATE( AD04( IIPAR, JJPAR, PD04 ), STAT=AS )

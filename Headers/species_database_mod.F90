@@ -26,6 +26,19 @@ MODULE Species_Database_Mod
 !
   PUBLIC  :: Init_Species_Database
   PUBLIC  :: Cleanup_Species_Database
+
+#if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+  !-----------------------------------------------------------------
+  !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+  !
+  ! Cleanup routines for restoring the internal state of this
+  ! module are exposed, so the DB can be reset from an external
+  ! interface to perform multiple initializations of
+  ! chemistry states. (hplin, 6/4/18)
+  !-----------------------------------------------------------------
+  PUBLIC  :: Cleanup_Work_Arrays
+#endif
+
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -915,7 +928,67 @@ CONTAINS
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
-          CASE( 'CH4' )
+          ! Now include both total and tagged CH4 species (mps, 6/21/17)
+          ! All of these have identical properties except for the names
+          CASE( 'CH4',     'CH4_OIL', 'CH4_GAS', 'CH4_COL', 'CH4_LIV', &
+                'CH4_LDF', 'CH4_WST', 'CH4_RIC', 'CH4_OTA', 'CH4_BBN', &
+                'CH4_WTL', 'CH4_SEE', 'CH4_LAK', 'CH4_TER', 'CH4_SAB' )
+
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CH4_OIL' )
+                   Name     = 'CH4_oil'
+                   FullName = 'CH4 from oil emissions'
+                CASE( 'CH4_GAS' )
+                   Name     = 'CH4_oil'
+                   FullName = 'CH4 from gas emissions'
+                CASE( 'CH4_COL' )
+                   Name     = 'CH4_col'
+                   FullName = 'CH4 from coal mining emissions'
+                CASE( 'CH4_LIV' )
+                   Name     = 'CH4_liv'
+                   FullName = 'CH4 from livestock emissions'
+                CASE( 'CH4_LDF' )
+                   Name     = 'CH4_ldf'
+                   FullName = 'CH4 from landfill emissions'
+                CASE( 'CH4_WST' )
+                   Name     = 'CH4_wst'
+                   FullName = 'CH4 from waste emissions'
+                CASE( 'CH4_RIC' )
+                   Name     = 'CH4_ric'
+                   FullName = 'CH4 from rice emissions'
+                CASE( 'CH4_OTA' )
+                   Name     = 'CH4_ota'
+                   FullName = 'CH4 from other anthropogenic emissions'
+                CASE( 'CH4_BBN' )
+                   Name     = 'CH4_bbn'
+                   FullName = 'CH4 from biomass burning emissions'
+                CASE( 'CH4_WTL' )
+                   Name     = 'CH4_wtl'
+                   FullName = 'CH4 from wetland emissions'
+                CASE( 'CH4_SEE' )
+                   Name     = 'CH4_see'
+                   FullName = 'CH4 from geological seep emissions'
+                CASE( 'CH4_LAK' )
+                   Name     = 'CH4_lak'
+                   FullName = 'CH4 from lake emissions'
+                CASE( 'CH4_TER' )
+                   Name     = 'CH4_ter'
+                   FullName = 'CH4 from termite emissions'
+                CASE( 'CH4_SAB' )
+                   Name     = 'CH4_sab'
+                   FullName = 'CH4 from soil absorption emissions'
+                CASE DEFAULT
+                   Name     = 'CH4'
+                   FullName = 'Methane'
+             END SELECT
+
+             SELECT CASE( TRIM( NameAllCaps ) )
+                CASE( 'CH4' )
+                   BackgroundVV = 1.7e-06_fp
+                CASE DEFAULT
+                   BackgroundVV = MISSING_VV
+             END SELECT
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -923,10 +996,10 @@ CONTAINS
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
-                              FullName      = 'Methane',                    &
+                              FullName      = FullName,                     &
                               Formula       = 'CH4',                        &
                               MW_g          = 16.0_fp,                      &
-                              BackgroundVV  = 1.7e-06_fp,                   &
+                              BackgroundVV  = BackgroundVV,                 &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1081,7 +1154,7 @@ CONTAINS
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',           &
                 'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU',          &
                 'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP',          &
-                'COMONO', 'COMEOH',  'COACET'                       )
+                'COMONO', 'COMEOH',  'COACET', 'CONMVOC'            )
 
              ! Set Name and LongName for the various CO species
              SELECT CASE( TRIM( NameAllCaps ) )
@@ -1124,6 +1197,9 @@ CONTAINS
                 CASE( 'COBIOF' )
                    Name     = 'CObiof'
                    FullName = 'CO produced from biofuels (whole world)'
+                CASE( 'CONMVOC' )
+                   Name     = 'COnmvoc'
+                   FullName = 'CO produced from NMVOC oxidation'
                 CASE( 'COISOP' )
                    Name     = 'COisop'
                    FullName = 'CO produced from isoprene oxidation'
@@ -1812,8 +1888,8 @@ CONTAINS
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 2.05e+6_fp,                   &
-                              Henry_K0      = 7.10e+15_f8,                  &
+                              DD_Hstar_old  = 2.05e+13_fp,                  &
+                              Henry_K0      = 7.00e+10_f8,                  &
                               Henry_CR      = 11000.0_f8,                   &
                               WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
@@ -3377,12 +3453,12 @@ CONTAINS
                    Name     = 'O3AfBL'
                 CASE( 'O3ASBL' )
                    FullName = 'Ozone produced in the Asian boundary layer'
-                   Name     = ''
+                   Name     = 'O3AsBl'
                 CASE( 'O3INIT' )
                    FullName = 'Ozone from the initial condition'
                    Name     = 'O3Init'
                 CASE( 'O3USA' )
-                   FullName = 'Ozone produced over the United States'
+                   FullName = 'Ozone produced over the United States in PBL'
                    Name     = 'O3USA'
              END SELECT
 
@@ -3626,7 +3702,6 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              !Name          = NameAllCaps,                  &
                               Name          = 'pFe',                        &
                               FullName      = 'Anthropogenic iron',         &
                               Formula       = 'Fe',                         &
@@ -4570,7 +4645,6 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              !Name          = NameAllCaps,                  &
                               Name          = 'IBr',                        &
                               FullName      = 'Iodine monobromide',         &
                               Formula       = 'IBr',                        &
@@ -4599,7 +4673,6 @@ CONTAINS
                               KppSpcId      = KppSpcId(N),                  &
                               KppVarId      = KppVarId(N),                  &
                               KppFixId      = KppFixId(N),                  &
-                              !Name          = NameAllCaps,                  &
                               Name          = 'ICl',                        &
                               FullName      = 'Iodine monochloride',        &
                               Formula       = 'ICl',                        &
@@ -7054,10 +7127,10 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_Work_Arrays
 !
-! !DESCRIPTION: Stores the list of unique species names (i.e. removing
-!  duplicates from the list of advected species and the the list of KPP
-!  species) for later use.  Also computes the indices for KPP variable
-!  and fixed indices.
+! !DESCRIPTION: Cleans working (temporary) arrays used by this module, 
+!  restoring them to an unused state. It is called at the end of 
+!  Init\_Species\_Database or by an external module when needed to 
+!  reinitialize the species DB.
 !\\
 !\\
 ! !INTERFACE:
@@ -7065,11 +7138,13 @@ CONTAINS
   SUBROUTINE Cleanup_Work_Arrays()
 !
 ! !REMARKS:
-!  This may not be the fastest search algorithm, but it is only executed
-!  once, at startup.
+!  This routine allows Species_Database_Mod to be initialized more than once
+!  in the same CPU, if called externally before re-initializing a State_Chm
+!  derived type object.
 !
 ! !REVISION HISTORY:
 !  06 May 2016 - R. Yantosca - Initial version
+!  05 Jul 2018 - H.P. Lin    - Add missing KppSpcId
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7080,7 +7155,8 @@ CONTAINS
     IF ( ALLOCATED( Species_Names ) ) DEALLOCATE( Species_Names )
     IF ( ALLOCATED( KppFixId      ) ) DEALLOCATE( KppFixId      )
     IF ( ALLOCATED( KppVarId      ) ) DEALLOCATE( KppVarId      )
+    IF ( ALLOCATED( KppSpcId      ) ) DEALLOCATE( KppSpcId      )
 
-  END SUBROUTINE Cleanup_Work_ArrayS
+  END SUBROUTINE Cleanup_Work_Arrays
 !EOC
 END MODULE Species_Database_Mod

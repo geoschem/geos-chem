@@ -1886,6 +1886,16 @@
       ! Convert Q_DIR and Q_DIFF from (W/m2) to (micromol/m2/s)
       Q_DIR_2  = ExtState%PARDR%Arr%Val(I,J) * WM2_TO_UMOLM2S
       Q_DIFF_2 = ExtState%PARDF%Arr%Val(I,J) * WM2_TO_UMOLM2S
+  
+      ! Eventually normalize LAI by PFT (if setting is set
+      ! accordingly). ckeller, 7/17/17.
+      IF ( Inst%NORMLAI ) THEN
+         PFTSUM = SUM( Inst%ARRAY_16(I,J,2:16) )
+         IF ( PFTSUM > 0.0_hp ) THEN
+            MISOLAI  = MIN( MISOLAI  / PFTSUM, LAI_MAX )
+            PMISOLAI = MIN( PMISOLAI / PFTSUM, LAI_MAX )
+         ENDIF
+      ENDIF
 
       ! Eventually normalize LAI by PFT (if setting is set
       ! accordingly). ckeller, 7/17/17.
@@ -1932,12 +1942,10 @@
      &                                      Inst%PARDF_LASTXDAYS(I,J) )
 !     &                                      PARDR_15_AVG(I,J),
 !     &                                      PARDF_15_AVG(I,J)  )
-
          ELSE             
  
             ! If night
             GAMMA_PAR = 0.0_hp  
-            
          ENDIF 
 
          ! --------------------------------------------------
@@ -2781,14 +2789,15 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) RESULT( GAMMA_LAI )
+      FUNCTION GET_GAMMA_LAI( CMLAI, BIDIREXCH ) 
+     &   RESULT( GAMMA_LAI )
 !
 ! !INPUT PARAMETERS: 
 !
-      REAL(hp), INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
-      LOGICAL,  INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
-                                          ! the compound undergoes bidirectional
-                                          ! exchange
+      REAL(hp),     INTENT(IN) :: CMLAI       ! Current month's LAI [cm2/cm2]
+      LOGICAL,      INTENT(IN) :: BIDIREXCH   ! Logical flag indicating whether
+                                              ! the compound undergoes bidirectional
+                                              ! exchange
 !
 ! !RETURN VALUE:
 !
@@ -2812,7 +2821,6 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
       !-----------------------
       ! Compute GAMMA_LAI
       !-----------------------
@@ -3501,7 +3509,7 @@
 !
       INTEGER                 :: I, J, P, ARR_IND
       REAL(hp)                :: FACTOR, SPECIES2CARBON
-!      REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
+      !REAL(hp)                :: ARRAY_16(HcoState%NX,HcoState%NY,16)
       REAL(hp)                :: PFT_EF_OMON(15), PFT_EF_MOHX(15)
       REAL(hp)                :: PFT_EF_ACET(15), PFT_EF_BIDR(15)
       REAL(hp)                :: PFT_EF_STRS(15), PFT_EF_OTHR(15)
@@ -4590,6 +4598,14 @@
         RETURN
       ENDIF
       Inst%LAI_PREVDAY = 0.0_sp
+
+      ALLOCATE( Inst%ARRAY_16( NX, NY, 16 ), STAT=AS )
+      IF ( AS /= 0 ) THEN 
+        CALL HCO_ERROR( HcoState%Config%Err,
+     &                  'ARRAY_16', RC )
+        RETURN
+      ENDIF
+      Inst%ARRAY_16 = 0.0_hp
 
       ! Normalization factor
       ! There should be a different normalization factor for each compound, but

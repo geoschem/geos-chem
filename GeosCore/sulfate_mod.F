@@ -1933,7 +1933,7 @@
      &               / AREA_CM2 
 
             ! Drydep flux in chemistry only
-            State_Diag%DryDepChm(I,J,1,DryDep_Id) = FLUX
+            State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
          ENDIF
 #endif
       ENDDO ! I
@@ -2662,6 +2662,7 @@
 !  24 Jun 2016 - R. Yantosca - Now return id_H2O2 < 0 or id_SO2 < 0 (not == 0)
 !  22 Mar 2017 - M. Sulprizio- Add fixes for LWC unit conversion (V. Shah)
 !  07 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  25 Jan 2018 - C. Keller   - Prevent div-by-zero when computing SR 
 !  02 Mar 2018 - M. Sulprizio- Bug fix: reorder IF statements for Fahey and
 !                              Seinfeld decision algorithm (C. Holmes)
 !EOP
@@ -2711,6 +2712,7 @@
       REAL(fp)              :: SO4H1_vv, SO4H2_vv, LSTOT0    !(qjc, 06/20/16) 
       REAL(fp)              :: SO2_ss0, rSIV, fupdateHOBr_0  !(qjc, 06/20/16) 
       REAL(fp)              :: HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0  !(qjc, 01/31/17) 
+      REAL(fp)              :: TMP
 
       REAL(fp)              :: KaqO2, L4, L4S, MnII, FeIII
       REAL(fp)              :: DUST,  Mn_ant,  Mn_nat
@@ -2728,10 +2730,6 @@
       REAL(fp)              :: KTN(NDSTBIN)
       REAL(fp)              :: KTS(NDSTBIN)  
       REAL(fp)              :: KTH(NDSTBIN)
-#if defined( DISCOVER )
-      !ckeller
-      REAL(fp)              :: TMP
-#endif
       !tdf KTH now contains the fraction of uptake of H2SO4 on to each of the
       ! dust size bins, based on a size- and area-weighted formulism
       ! (GET_DUST_ALK)
@@ -2817,10 +2815,7 @@
 !$OMP+PRIVATE( L5, L5S, SRo3, SRhobr                                   ) !qjc
 !$OMP+PRIVATE( L3_1, L3S_1,KaqO3_1, L5_1, L5S_1,HSO3aq,SO3aq           ) !qjc
 !$OMP+PRIVATE( SO4H1_vv, SO4H2_vv, LSTOT0, SO2_ss0, rSIV,fupdateHOBr_0 ) !qjc
-!$OMP+PRIVATE( HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0               ) !qjc
-#if defined( DISCOVER )
-!$OMP+PRIVATE( TMP     
-#endif                                                ) !cak
+!$OMP+PRIVATE( HCO3, HCHOBr, KO3, KHOBr, f_srhobr, HOBr0, TMP          ) !qjc
 !$OMP+PRIVATE( L4,    L4S,     KaqO2,  DUST, Mn_ant, Mn_nat, Mn_tot    )
 !$OMP+PRIVATE( Fe_ant, Fe_nat, Fe_tot, Fe_d, Mn_d,   FeIII,  MnII      )
 !$OMP+PRIVATE( Fe_d_ant, Fe_d_nat                                      )
@@ -2830,7 +2825,9 @@
       DO I = 1, IIPAR
 
          ! Initialize for safety's sake 
-         Ld       = 0e+0_fp
+         Ld       = 0.0_fp
+         LSTOT0   = 0.0_fp
+         LSTOT    = 0.0_fp
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -3690,15 +3687,9 @@
                ! Rate coefficient (M-1 s-1)
                KO3   = 7.32e+14_fp * EXP( -4.03e+3_fp / TK ) ! for O3+SO3
                KHOBr = 5.0e+9_fp                            ! for HOBr+SO3
-#if defined( DISCOVER )
-!               f_srhobr = KHOBr*HOBr0*HCHOBr /
-!     &                   (KHOBr*HOBr0*HCHOBr + KO3*O3*HCO3)
-!               SRhobr = SR * f_srhobr
-!               SRo3   = SR * (1-f_srhobr)
-
-               ! Error trap
+               ! Make sure we don't divide by zero (ckeller, 1/25/18) 
                TMP = KHOBr*HOBr0*HCHOBr + KO3*O3*HCO3
-               IF ( TMP > 0.0_fp ) THEN
+               IF ( TMP > 0.0_fp ) THEN 
                   f_srhobr = KHOBr*HOBr0*HCHOBr / TMP
                   SRhobr   = SR * f_srhobr
                   SRo3     = SR * (1-f_srhobr)
@@ -3708,21 +3699,12 @@
                   SRo3   = 0.e+0_fp
                   so2_sr = 0.e+0_fp
                ENDIF
-#else
-               f_srhobr = KHOBr*HOBr0*HCHOBr /
-     &                   (KHOBr*HOBr0*HCHOBr + KO3*O3*HCO3)
-               SRhobr = SR * f_srhobr
-               SRo3   = SR * (1-f_srhobr)
-#endif
-     
 	    ELSE
-               SR     = 0.e+0_fp
-               SRhobr = 0.e+0_fp
-               SRo3   = 0.e+0_fp
-               so2_sr = 0.e+0_fp
-#if defined( DISCOVER )
-               LSTOT  = 0.e+0_fp ! ckeller 3/7/18
-#endif
+               SR     = 0.0_fp
+               SRhobr = 0.0_fp
+               SRo3   = 0.0_fp
+               so2_sr = 0.0_fp
+               LSTOT  = 0.0_fp
 	    ENDIF
 
             ! We have used the in-cloud LWC to compute the sulfate

@@ -4,7 +4,8 @@ date
 declare -i count=0
 
 #Set the two-way coupled run dir and executable
-rundir="template_dir_to_be_replaced_automatically_later"
+#rundir="template_dir_to_be_replaced_automatically_later"
+rundir='/data/users/yanyy/v11/twoway_test/'
 dir_nested_NA="NA/"
 dir_nested_CH="CH/"
 dir_nested_EU="EU/"
@@ -85,25 +86,25 @@ echo "                 GLOBAL is exchanging with $nested1 $nested2 $nested3"
 
 pushd $global_dir
 echo "  @dir: $global_dir"
-qsub run_global
+./geos > log.geos &
 popd
 
 if [ "$count" == 1 ] || [ "$count" == 2 ] || [ "$count" == 3 ];then
 	pushd $nested1_dir
 	echo "  @dir: $nested1_dir"
-	qsub run_nested
+	./geos > log.geos &
 	popd
 fi
 if [ "$count" == 2 ] || [ "$count" == 3 ];then
 	pushd $nested2_dir
 	echo "  @dir:$nested2_dir"
-	qsub run_nested
+	./geos > log.geos &
 	popd
 fi
 if [ "$count" == 3 ];then
 	pushd $nested3_dir
 	echo "  @dir: $nested3_dir"
-	qsub run_nested
+	./geos > log.geos &
 	popd
 fi
 

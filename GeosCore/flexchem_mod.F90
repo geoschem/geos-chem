@@ -24,9 +24,6 @@ MODULE FlexChem_Mod
   PUBLIC  :: Do_FlexChem
   PUBLIC  :: Init_FlexChem
   PUBLIC  :: Cleanup_FlexChem
-#if defined( DISCOVER )
-  PUBLIC  :: HSAVE_KPP
-#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -44,6 +41,7 @@ MODULE FlexChem_Mod
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  17 Nov 2017 - R. Yantosca - Now call Diag_OH_HO2_O1D_O3P, which will let
 !                              us remove arrays in CMN_O3_SIZE_mod.F
+!  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
 !  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
 !EOP
 !------------------------------------------------------------------------------
@@ -85,12 +83,12 @@ MODULE FlexChem_Mod
   INTEGER,  SAVE        :: PrevMonth = -1
   
   ! Arrays
-  INTEGER,  ALLOCATABLE :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(fp), ALLOCATABLE :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
-  REAL(f4), ALLOCATABLE :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
-  REAL(f4), ALLOCATABLE :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
+  INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
+  REAL(fp), ALLOCATABLE, PUBLIC :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
+  REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
+  REAL(f4), ALLOCATABLE         :: JvSumMon   (:,:,:,:)  ! For monthly avg of J-values
 
 CONTAINS
 !EOC
@@ -255,6 +253,9 @@ CONTAINS
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
 #endif
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+
+    ! For tagged CO saving
+    REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -579,7 +580,7 @@ CONTAINS
        RTOL      = 0.5e-2_dp
     ELSE
        ! Non-UCX mechanisms
-       RTOL      = 2e-1_dp
+       RTOL      = 1e-2_dp
     ENDIF
 
     !%%%%% SOLVER OPTIONS %%%%%
@@ -633,12 +634,13 @@ CONTAINS
     !-----------------------------------------------------------------------
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT  ( SHARED                                                 )&
-    !$OMP PRIVATE  ( I,        J,     L,      N,     YLAT                   )&
-    !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
-    !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
+    !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
+    !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
+    !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
 #if defined( DISCOVER )
     !$OMP PRIVATE  ( Vloc,     Aout                                         )&
 #endif
+    !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
     !$OMP REDUCTION( +:TOTSTEPS                                             )&
@@ -664,6 +666,12 @@ CONTAINS
        RSTATE    = 0.0_dp            ! Rosenbrock output
        SO4_FRAC  = 0.0_fp            ! Fraction of SO4 available for photolysis
        P         = 0                 ! GEOS-Chem photolyis species ID
+
+       ! For tagged CO
+       LCH4     = 0.0_fp    ! Methane loss rate
+       PCO_TOT  = 0.0_fp    ! Total CO production
+       PCO_CH4  = 0.0_fp    ! CO production from CH4
+       PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC
 
        ! Grid-box latitude [degrees]
        YLAT      = GET_YMID( I, J, L )
@@ -879,14 +887,6 @@ CONTAINS
 
        ENDIF
 
-#if defined( DISCOVER )
-       !C(ind_ACTA)  = 0.0_dp
-       !C(ind_HCOOH) = 0.0_dp
-#else
-       C(ind_ACTA)  = 0.0_dp
-       C(ind_HCOOH) = 0.0_dp
-#endif
-
        IF ( .not. Input_Opt%LUCX ) THEN
           ! Need to copy H2O to the C array for KPP (mps, 4/25/16)
           ! NOTE: H2O is a tracer in UCX and is obtained from State_Chm%Species
@@ -976,17 +976,6 @@ CONTAINS
 !       totnumLU = totnumLU + ISTATUS(6)
 !#endif
 
-       ! Zero certain species
-#if defined( DISCOVER )
-       !C(ind_ACTA)  = 0.e0_dp
-       !C(ind_EOH)   = 0.e0_dp
-       !C(ind_HCOOH) = 0.e0_dp
-#else
-       C(ind_ACTA)  = 0.e0_dp
-       C(ind_EOH)   = 0.e0_dp
-       C(ind_HCOOH) = 0.e0_dp
-#endif
-
        ! Try another time if it failed
        IF ( IERR < 0 ) THEN
 
@@ -1070,7 +1059,37 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             !--------------------------------------------------------
+             ! Save out P(CO) and L(CH4) from the fullchem simulation
+             ! for use in tagged CO
+             !--------------------------------------------------------
+             IF ( Input_Opt%DO_SAVE_PCO ) THEN
+                IF ( TRIM(FAM_NAMES(F)) == 'PCO'  ) THEN
+                   PCO_TOT = VAR(KppID) / DT
+                ENDIF
+                IF ( TRIM(FAM_NAMES(F)) == 'LCH4' ) THEN
+                   LCH4    = VAR(KppID) / DT
+                ENDIF
+             ENDIF
+
           ENDDO
+
+          ! For tagged CO, use LCH4 to get P(CO) contributions from
+          ! CH4 and NMVOC
+          IF ( Input_Opt%DO_SAVE_PCO ) THEN
+             ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+             ! than total P(CO) to prevent negative P(CO)_NMVOC
+             PCO_CH4 = MIN( LCH4, PCO_TOT )
+   
+             ! P(CO) from NMVOC is the remaining P(CO)
+             PCO_NMVOC = PCO_TOT - PCO_CH4
+   
+             ! Add to AD65 array [molec/cm3/s]
+             AD65(I,J,L,NFAM+1) = AD65(I,J,L,NFAM+1) + PCO_CH4
+             AD65(I,J,L,NFAM+2) = AD65(I,J,L,NFAM+2) + PCO_NMVOC
+
+          ENDIF
+
        ENDIF
 
 #if defined( TOMAS )
@@ -1103,6 +1122,7 @@ CONTAINS
             ENDIF
           ENDIF
        ENDDO
+
 #endif
 #endif
 

@@ -149,7 +149,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
       INTEGER                                  :: IOS
       CHARACTER(LEN=40)                        :: FTI
       CHARACTER(LEN=80)                        :: TMP_TITLE
@@ -253,7 +253,7 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
 
       INTEGER           :: IOS
       CHARACTER(LEN=80) :: TMP_TITLE
@@ -329,7 +329,7 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
 
       INTEGER                       :: IOS
       CHARACTER(LEN=40)             :: FTI = 'CTM bin 02'
@@ -410,7 +410,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
 !
 ! !LOCAL VARIABLES:
 ! 
@@ -532,7 +532,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-#if defined( BPCH_DIAG ) || defined( BPCH_TPBC )
+#if defined( BPCH_DIAG ) || defined( BPCH_TPBC ) || defined( BPCH_TIMESER )
 !
 ! !LOCAL VARIABLES:
 ! 

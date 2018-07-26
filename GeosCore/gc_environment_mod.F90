@@ -103,6 +103,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input Options object
     INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
     INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
     INTEGER,        OPTIONAL      :: value_I_HI       ! Max local lon index
@@ -113,10 +114,6 @@ CONTAINS
     INTEGER,        OPTIONAL      :: value_IM_WORLD   ! Global # of lons
     INTEGER,        OPTIONAL      :: value_JM_WORLD   ! Global # of lats
     INTEGER,        OPTIONAL      :: value_LM_WORLD   ! Global # of levels
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt        ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -148,16 +145,19 @@ CONTAINS
 !                              which is called after species database init
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
 !  20 Dec 2017 - R. Yantosca - Return when encountering errors
+!  29 Dec 2017 - C. Keller   - Now accept value of LLSTRAT from Input_Opt
+!  14 Mar 2018 - E. Lundgren - Input_Opt parameter is IN only, not INOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
 #if defined( DISCOVER )
     ! Integers
-    INTEGER            :: LLSTRAT, LLTROP
+    INTEGER            :: LLTROP
 #endif
 
     ! Strings
+    INTEGER            :: LLSTRAT
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     
     !=======================================================================
@@ -181,11 +181,11 @@ CONTAINS
     ! (bmy, 12/3/12)
     !-----------------------------------------------------------------------
 
-#if defined( DISCOVER )
     ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
     LLSTRAT = Input_Opt%LLSTRAT
-    IF ( LLSTRAT <= 0 ) LLSTRAT = 59
+    IF ( LLSTRAT <= 0 ) LLSTRAT = 59 
 
+#if defined( DISCOVER )
     ! 132 layers
     LLTROP = 40
     IF ( value_LM==132) LLTROP = 80
@@ -207,11 +207,10 @@ CONTAINS
                         value_LM_WORLD = value_LM_WORLD,  &
 #if defined( DISCOVER )
                         value_LLTROP   = LLTROP,          &
-                        value_LLSTRAT  = LLSTRAT          )
 #else
                         value_LLTROP   = 40,              &
-                        value_LLSTRAT  = 59               )
 #endif
+                        value_LLSTRAT  = LLSTRAT          )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1116,8 +1115,18 @@ CONTAINS
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
 
+#if !defined( ESMF_ )
+    !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
+    !
+    ! NOTE: Do not do this for GCHP, because this will cause a file to
+    ! be written out to disk for each core.  
+    !
+    ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
+    ! but we have to keep it for the time being (bmy, 4/11/18)
+    !--------------------------------------------------------------------
     CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+#endif
 
     IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 

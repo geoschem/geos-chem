@@ -432,7 +432,7 @@ ifdef DEVEL
 endif
 
 # %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
-ifdef NEST}
+ifdef NEST
   BPCH_TPBC          :=yes
 endif
 
@@ -442,6 +442,15 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
 
   # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
+
+  # If we are compiling GEOS-Chem "Classic", then also activate all bpch
+  # timeseries diagnostics.  At this point (v11-02) there are some special
+  # timeseries diagnostics that require local-time binning, which is not
+  # yet available in the netCDF diagnostic output.  This will preserve
+  # backwards compatibility for the time being. (bmy, 4/11/18)
+  ifeq ($(IS_HPC),0)
+     USER_DEFS       += -DBPCH_TIMESER
+  endif
 
   # AND turn off bpch diagnostics UNLESS specified otherwise
   ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
@@ -455,9 +464,9 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
 
 else
 
-  # If netCDF diagnostics have not been explicitly specified,
-  # then only turn on bpch diagnostics AND bpch code for nested BC's
-  USER_DEFS          += -DBPCH_DIAG -DBPCH_TPBC
+  # If netCDF diagnostics have not been explicitly specified, then activate
+  # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TIMESER -DBPCH_TPBC
 
 endif
 
@@ -834,12 +843,6 @@ ifeq ($(shell [[ "$(NO_ISO)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DNO_ISORROPIA
 endif
 
-# Specify year of tagged O3 prod/loss data
-# NOTE: THIS IS OBSOLETE W/ HEMCO! (bmy, 11/21/14)
-ifdef TAGO3YR
-  USER_DEFS          += -DUSE_THIS_O3_YEAR=$(TAGO3YR)
-endif
-
 #------------------------------------------------------------------------------
 # Performance profiling
 #------------------------------------------------------------------------------
@@ -1168,12 +1171,6 @@ ifeq ($(COMPILER_FAMILY),GNU)
     FFLAGS           += -pg
   endif
 
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
-  endif
-
   # Add flexible precision declaration
   ifeq ($(PRECISION),8)
     USER_DEFS        += -DUSE_REAL8
@@ -1295,12 +1292,6 @@ ifeq ($(COMPILER_FAMILY),Intel)
     FFLAGS           += -p
   endif
 
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
-  endif
-
   # Add flexible precision declaration
   ifeq ($(PRECISION),8)
     USER_DEFS        += -DUSE_REAL8
@@ -1396,12 +1387,6 @@ ifeq ($(COMPILER_FAMILY),PGI)
   # Compile for use with the GNU profiler (gprof), if necessary
   ifeq ($(IS_GPROF),1) 
     FFLAGS           += -pg
-  endif
-
-  # Loosen KPP tolerances upon non-convergence and try again
-  REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
-  ifeq ($(shell [[ "$(KPP_SOLVE_ALWAYS)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DKPP_SOLVE_ALWAYS
   endif
 
   # Turn on checking for floating-point exceptions

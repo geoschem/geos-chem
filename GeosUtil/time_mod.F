@@ -118,6 +118,8 @@
       PUBLIC  :: TIMESTAMP_STRING
       PUBLIC  :: YMD_EXTRACT
       PUBLIC  :: EXPAND_DATE
+      PUBLIC  :: Valid_Date
+      PUBLIC  :: Valid_Time
       PUBLIC  :: SYSTEM_DATE_TIME
       PUBLIC  :: SYSTEM_TIMESTAMP
       PUBLIC  :: TIMESTAMP_DIAG
@@ -226,7 +228,8 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Remove obsolete A6 and I6 routines
-!  06 Feb 2018 - E. Lundgren - Change timestep units from min to sec
+!  06 Feb 2018 - E. Lundgren - Change timestep units from min to secf
+!  06 Jul 2018 - R. Yantosca - Add Valid_Date and Valid_Time functions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3018,13 +3021,15 @@
 !  04 Oct 2012 - D. Ridley   - Initial Version
 !  06 Feb 2018 - E. Lundgren - Change ELAPSED_MIN to ELAPSED_SEC to match new
 !                              timestep units of seconds
+!  18 May 2018 - C. Holmes   - Call radiation the first time after half-interval,
+!                              without requiring an exact time match.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: M
+      INTEGER :: M, TMOD, TS
 
       !=================================================================
       ! ITS_TIME_FOR_RT begins here!
@@ -3032,9 +3037,15 @@
       ! Get half a time step value
       M = TS_RAD/2
 
-      ! Is it time for radiation calcs?
-      ! RT time step is in the center of time step
-      FLAG = ( MOD( ELAPSED_SEC, TS_RAD ) == M )
+      ! Elapsed time in this radiation step
+      TMOD =  MOD( ELAPSED_SEC, TS_RAD )
+
+      ! Smallest time step
+      TS = TS_DYN
+
+      ! It's time for radiation, when the current time is greater than
+      ! half step and the previous time was less.
+      FLAG = ( TMOD >= M ) .and. ( TMOD-TS < M )
 
       END FUNCTION ITS_TIME_FOR_RT
 !EOC
@@ -4400,6 +4411,150 @@
       CALL STRREPL( FILENAME, 'mm',   II_STR   )
 
       END SUBROUTINE EXPAND_DATE
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Valid_Date
+!
+! !DESCRIPTION: Function VALID\_DATE returns TRUE if the input date is
+!  a valid calendar date, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Valid_Date( YYYYMMDD ) RESULT( Is_Valid )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: YYYYMMDD   ! YYYY/MM/DD date
+!
+! !RETURN VALUE:
+!
+      LOGICAL             :: Is_Valid   ! =T if YYYYMMDD is a valid date
+                                        ! =F otherwise
+!
+! !REVISION HISTORY: 
+!  06 Jul 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL :: Is_Leap
+      INTEGER :: YYYY, MM, DD, HH, II, SS, LastDay
+
+      !=================================================================
+      ! VALID_DATE begins here!
+      !=================================================================
+
+      ! Assume success until otherwise proven
+      Is_Valid = .TRUE.
+      
+      ! Extract the date value into year, month, and day sections
+      CALL YMD_EXTRACT( YYYYMMDD, YYYY, MM, DD )
+
+      ! Exit if month is out of range
+      IF ( MM < 1 .or. MM > 12 ) THEN
+         Is_Valid = .FALSE.
+         RETURN
+      ENDIF
+
+      ! Get the last day of the month
+      SELECT CASE( MM )
+
+         ! Check for leap year day if it's Feb
+         CASE( 2 )
+            IF ( ITS_A_LEAPYEAR( YYYY ) ) THEN
+               LastDay = 29
+            ELSE
+               LastDay = 28
+            ENDIF
+    
+         ! 30 days hath September, April, June, and November
+         CASE( 4, 6, 9, 11 )
+            LastDay = 30
+
+         ! All the rest have 31
+         CASE DEFAULT
+            LastDay = 31
+             
+      END SELECT
+
+      ! Exit if the day is out of range
+      IF ( DD < 1 .or. DD > LastDay ) THEN
+         Is_Valid = .FALSE.
+         RETURN
+      ENDIF
+
+      END FUNCTION Valid_Date
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Valid_Time
+!
+! !DESCRIPTION: Function VALID\_TIME returns TRUE if the input date is
+!  a valid clock time, or FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Valid_Time( HHMMSS ) RESULT( Is_Valid )
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER, INTENT(IN) :: HHMMSS     ! HH:MM:SS time
+!
+! !RETURN VALUE:
+!
+      LOGICAL             :: Is_Valid   ! =T if HHMMSS is a valid time
+                                        ! =F otherwise
+!
+! !REVISION HISTORY: 
+!  06 Jul 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: HH, MM, SS
+
+      !=================================================================
+      ! VALID_TIME begins here!
+      !=================================================================
+
+      ! Assume success until otherwise proven
+      Is_Valid = .TRUE.
+      
+      ! Extract the time value into hour, minute, and second sections
+      CALL YMD_EXTRACT( HHMMSS, HH, MM, SS )
+
+      ! Exit if hours are out of range
+      IF ( HH < 0 .or. HH > 23 ) THEN
+         Is_Valid = .FALSE.
+         RETURN
+      ENDIF
+
+      ! Exit if minutes are out of range
+      IF ( MM < 0 .or. MM > 59 ) THEN
+         Is_Valid = .FALSE.
+         RETURN
+      ENDIF
+
+      ! Exit if seconds are out of range
+      IF ( SS < 0 .or. SS > 59 ) THEN
+         Is_Valid = .FALSE.
+         RETURN
+      ENDIF
+
+      END FUNCTION Valid_Time
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

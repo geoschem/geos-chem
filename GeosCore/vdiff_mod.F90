@@ -2543,7 +2543,7 @@ contains
           !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
           IF ( Archive_DryDepMix ) THEN
-             State_Diag%DryDepMix(:,:,1,ND) = Dflx(:,:,N)               &
+             State_Diag%DryDepMix(:,:,ND) = Dflx(:,:,N)               &
                                             * 1.0e-4_fp                 &
                                             * ( AVO / EmMW_kg  )
           ENDIF

@@ -608,6 +608,7 @@ CONTAINS
 !  14 Jul 2015 - C. Keller   - Initial version 
 !  26 Oct 2015 - C. Keller   - Update for linked list 
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
+!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -759,6 +760,8 @@ CONTAINS
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
+!  17 Oct 2017 - C. Keller   - Stage2 now updates internal array to tendency
+!                              array (instead of resetting it to zero).
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -878,6 +881,7 @@ CONTAINS
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  19 Jul 2016 - R. Yantosca - Don't nullify local pointers in declarations
 !  19 Jul 2016 - R. Yantosca - Now use State_Chm%Species
+!  29 Dec 2017 - C. Keller   - Don't use HEMCO diagnostics in ESMF env.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -968,8 +972,8 @@ CONTAINS
           Tend = ( TMP - Ptr3D ) / REAL(DT,f4)
        ENDIF
 
+#if !defined( ESMF_ )
        ! Update diagnostics array
-#if !defined(ESMF_) && defined( DISCOVER )
        CALL Diagn_Update( am_I_Root, HcoState, cName=DiagnName, &
                Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
@@ -981,14 +985,11 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Reset values 
-#if defined( DISCOVER )
+       !! Reset values 
        !Ptr3D = 0.0_fp
-       Ptr3D = Tend 
+       ! Update values in the internal array to current tendency
+       Ptr3D =  Tend
        Ptr3D => NULL()
-#else
-       Ptr3D = 0.0_fp
-#endif
 
     ENDDO !I
 

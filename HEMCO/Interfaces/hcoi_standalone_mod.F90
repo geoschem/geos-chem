@@ -660,10 +660,15 @@ CONTAINS
 
     ! Get number of species
     nModelSpec = 0 
-    DO 
+    DO
        CALL GetNextLine( am_I_Root, IU_FILE, DUM, EOF, RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       IF ( EOF ) EXIT
+       IF ( EOF               ) EXIT
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Error encountered in reading SpecFile!.  Please ' // &
+                'doublecheck that all species information has '    // &
+                'been correctly entered.'
+          CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+       ENDIF
        nModelSpec = nModelSpec + 1
     ENDDO
 
@@ -740,7 +745,9 @@ CONTAINS
              IF ( UPP < 0 ) UPP = LNG
           ENDDO
    
-          UPP = UPP - 1 ! Don't read space
+          IF ( I < 8 ) THEN 
+             UPP = UPP - 1 ! Don't read space
+          ENDIF
 
           ! Error check
           IF ( UPP > LNG ) THEN
@@ -753,7 +760,7 @@ CONTAINS
              CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC ) 
              RETURN
           ENDIF
- 
+
           ! Read into vector
           SELECT CASE ( I ) 
              CASE ( 1 )
@@ -786,6 +793,25 @@ CONTAINS
 
     ! Close file
     CLOSE( IU_FILE )
+
+    ! Make sure that the species indexing starts at 1
+    IF ( MINVAL( ModelSpecIDs ) /= 1 ) THEN
+       MSG = 'Error encountered in reading SpecFile!.  The species '      // &
+             'ID numbers do not start at 1!  Please check SpecFile '      // &
+             'for typos.'
+       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
+
+    ! Make sure that the ID of the last species is the same as nModelSpec
+    IF ( MAXVAL( ModelSpecIDs ) /= nModelSpec ) THEN
+       MSG = 'Error encountered in reading SpecFile!.  The ID number '    // &
+             'of the last species does not match the number of species '  // &
+             'that were read from SpecFile!  Please check SpecFile for '  //&
+             'typos.'
+       CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+       RETURN
+    ENDIF
 
     ! Return w/ success
     RC = HCO_SUCCESS
@@ -1477,16 +1503,16 @@ CONTAINS
        IF ( MatchIDx(I) < 0 ) CYCLE
 
        ! increase counter: this is the index in HcoState%Spc!
-       cnt = cnt + 1
+       cnt                        = cnt + 1
 
        ! Set species name and GEOS-Chem tracer ID 
-       IDX = ModelSpecIDs(MatchIDx(I))
-       HcoState%Spc(cnt)%SpcName  = HcoSpecNames(I) 
+       IDX                        = ModelSpecIDs(MatchIDx(I))
+       HcoState%Spc(cnt)%SpcName  = HcoSpecNames(I)
        HcoState%Spc(cnt)%ModID    = IDX
 
        ! Molecular weights of species & emitted species.
-       HcoState%Spc(cnt)%MW_g   = ModelSpecMW(IDX)
-       HcoState%Spc(cnt)%EmMW_g = ModelSpecEmMW(IDX)
+       HcoState%Spc(cnt)%MW_g     = ModelSpecMW(IDX)
+       HcoState%Spc(cnt)%EmMW_g   = ModelSpecEmMW(IDX)
 
        ! Emitted molecules per molecule of species.
        HcoState%Spc(cnt)%MolecRatio = ModelSpecMolecRatio(IDX)

@@ -42,14 +42,14 @@ MODULE HCOX_AeroCom_Mod
 ! emissions (in kg S/s), and the volcano elevation as well as the 
 ! volcano plume column height. These entries need be separated by space
 ! characters. For example:
-!
+!                                                                             .
 ! ###  LAT (-90,90), LON (-180,180), SULFUR [kg S/s], ELEVATION [m], CLOUD_COLUMN_HEIGHT [m]
 ! ### If elevation=cloud_column_height, emit in layer of elevation
 ! ### else, emit in top 1/3 of cloud_column_height
 ! volcano::
 ! 50.170 6.850 3.587963e-03 600. 600. 
 ! ::
-!
+!                                                                             .
 ! The sulfur read from table is emitted as the species defined in the
 ! AeroCom settings section. More than one species can be provided. Mass
 ! sulfur is automatically converted to mass of emitted species (using the
@@ -60,14 +60,29 @@ MODULE HCOX_AeroCom_Mod
 ! factor of 1e-4 kg BrO / kgS for BrO, use the following setting:
 !115     AeroCom_Volcano   : on    SO2/BrO
 !    --> Scaling_BrO       :       1.0e-4
-!    --> AeroCom_Table     :       /path/to/Aerocom.so2_volcanic.$YYYY$MM$DD.rc
-!
-! This extension was primarily added for usage within GEOS-5. 
+!    --> Volcano_Source    :       OMI
+!    --> AeroCom_Table     :       $ROOT/VOLCANO/v2018-03/$YYYY/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+!                                                                             .
+! This extension was originally added for usage within GEOS-5 and AeroCom
+! volcanic emissions, but has been modified to work with OMI-based volcanic
+! emissions from Ge et al. (2016). 
+!                                                                             .
 ! When using this extension, you should turn off any other volcano emission
 ! inventories!
-
+!                                                                             .
+!  References:
+!  ============================================================================
+!  (1 ) Ge, C., J. Wang, S. Carn, K. Yang, P. Ginoux, and N. Krotkov,
+!       Satellite-based global volcanic SO2 emissions and sulfate direct
+!       radiative forcing during 2005-2012, J. Geophys. Res. Atmos., 121(7),
+!       3446-3464, doi:10.1002/2015JD023134, 2016.
+!
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version 
+!  28 Mar 2018 - M. Sulprizio- Update to allow for OMI-based volcanic emissions;
+!                              Added Volcano_Source option to specify AeroCom
+!                              or OMI emissions because the latter are only
+!                              currently available for 2005-2012
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -89,6 +104,7 @@ MODULE HCOX_AeroCom_Mod
    INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index 
    INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index 
    CHARACTER(LEN=255)              :: FileName         ! Volcano file name
+   CHARACTER(LEN=255)              :: VolcSource       ! Volcano data source
    CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
    TYPE(MyInst), POINTER           :: NextInst => NULL()
   END TYPE MyInst
@@ -99,9 +115,9 @@ MODULE HCOX_AeroCom_Mod
   ! AeroCom data is in kgS. Will be converted to kg emitted species.
   ! MW_S is the molecular weight of sulfur 
   REAL(hp), PARAMETER             :: MW_S = 32.0_hp
+
 CONTAINS
 !EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
@@ -255,7 +271,7 @@ CONTAINS
     INTEGER                        :: ExtNr, N, Dum
     LOGICAL                        :: FOUND
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-    CHARACTER(LEN=255)             :: MSG 
+    CHARACTER(LEN=255)             :: MSG, Str
 
     !=================================================================
     ! HCOX_AEROCOM_INIT begins here!
@@ -316,6 +332,16 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! See if emissions data source is given
+    ! As of v11-02f, options are AeroCom or OMI
+    Inst%VolcSource = 'AeroCom'
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Volcano_Source', & 
+                    OptValChar=Str,  FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( FOUND ) Inst%VolcSource = Str
+
+    Print*, Inst%VolcSource
+
     ! See if eruptive and degassing hierarchies are given
     Inst%CatErupt = 51
     Inst%CatDegas = 52
@@ -341,6 +367,8 @@ CONTAINS
           WRITE(MSG,*) 'Apply scale field: ', TRIM(Inst%SpcScalFldNme(N))
           CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDDO
+       WRITE(MSG,*) ' - Emissions data source is ', TRIM(Inst%VolcSource)
+       CALL HCO_MSG( HcoState%Config%Err,  MSG )
        WRITE(MSG,*) ' - Emit eruptive emissions as category ', Inst%CatErupt
        CALL HCO_MSG( HcoState%Config%Err,  MSG )
        WRITE(MSG,*) ' - Emit degassing emissions as category ', Inst%CatDegas
@@ -423,6 +451,9 @@ CONTAINS
 
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version 
+!  28 Mar 2018 - M. Sulprizio- Add check for OMI-based emissions and use closest
+!                              available year if simulation year is outside
+!                              2005-2012
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -451,9 +482,18 @@ CONTAINS
        CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+#if defined ( DISCOVER )
        ! Error trap: skip leap days
        IF ( MM == 2 .AND. DD > 28 ) DD = 28
- 
+#endif
+
+       ! OMI-based volcanic SO2 emissions are available for 2005-2012
+       ! Use closest year available (mps, 3/28/18)
+       IF ( TRIM(Inst%VolcSource) == 'OMI' ) THEN
+          IF ( YYYY < 2005 ) YYYY = 2005
+          IF ( YYYY > 2012 ) YYYY = 2012
+       ENDIF
+
        ! Get file name
        ThisFile = Inst%FileName
        CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )

@@ -65,11 +65,28 @@
 !  (1) The stratospheric O3 species must be species #2.  This is due to how
 !       the Linoz stratospheric O3 chemistry scheme is written.  We have
 !       accordingly reorganized the species numbers below.
+!                                                                             .
 !  (2) The name "tagged_ox_mod.F" is historical.  The Ox species in GEOS-Chem 
 !       has now been replaced with O3.  O3 usually makes up about 95% of Ox.
 !       The nomenclature "tagged Ox" is interchangeable with "tagged O3".
 !       As of Aug 2016, most uses of "tagged Ox" have been replaced with
 !       "tagged O3".
+!                                                                             .
+!  (3) If using all of the tagged O3 species, note that that the sum of
+!       production of species #2 - #12 sums together to equal the production
+!       of species #1.  In other words:
+!                                                                             .
+!         PP(I,J,L,1) will equal SUM( PP(I,J,L,2:12) )
+!                                                                             .
+!       ALSO NOTE: The O3USA species is defined to include all of the
+!       O3 produced over the US (at all levels).  Therefore, it should
+!       be treated separately from species 2 - 12.
+!                                                                             .
+!  (4) When starting a long tagged O3 simulation, we recommend that you use
+!      a restart file where all species concentrations are set to zero.
+!      Then spin up for as many years as it takes to get into steady-state.
+!      This will ensure that the sum of tagged O3 species (#2  - #12) will 
+!      equal the total O3 species (#1).
 !
 ! !REVISION HISTORY:
 !  20 Aug 2003 - A. Fiore    - Initial version  
@@ -289,6 +306,16 @@
 
       !=================================================================
       ! Assign P(O3) to tagged species by geographic/altitude regions
+      !
+      ! NOTE: If using all of the tagged O3 species, note that the
+      ! sum of production of species #2 - #12 sums together to equal
+      ! the production of species #1.  In other words:
+      !
+      !    PP(I,J,L,1) will equal SUM( PP(I,J,L,2:12) )
+      !
+      ! ALSO NOTE: The O3USA species is defined to include all of the
+      ! O3 produced over the US (at all levels).  Therefore, it should
+      ! be treated separately from species #2 - #12.
       !=================================================================
 
       ! Grid box volume [cm3]
