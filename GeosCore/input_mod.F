@@ -3706,8 +3706,10 @@
       ! (bmy, 2/28/13)
       !-----------------------------------------------------------------
 
+#if defined ( BPCH_DIAG )
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD( Input_Opt, RC )
+#endif
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
