@@ -1193,6 +1193,44 @@
          RETURN
       ENDIF
 
+
+      !=================================================================
+      ! Error checks
+      !=================================================================
+
+#if   defined( MERRA2 ) && defined( GRID05x0625 )
+      IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
+         IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 ) THEN
+            IF ( am_I_Root ) THEN
+
+            WRITE( 6,* ) '' 
+            WRITE( 6,* ) 'It has been noted that MERRA-2 nested grid'
+            WRITE( 6,* ) ' simulations can have very high species'
+            WRITE( 6,* ) ' concentrations in the stratosphere caused'
+            WRITE( 6,* ) ' by a violation of the CFL condition due to'
+            WRITE( 6,* ) ' strong stratospheric winds. This is'
+            WRITE( 6,* ) ' especially problematic when using total'
+            WRITE( 6,* ) ' column concentrations. To avoid the issue,'
+            WRITE( 6,* ) ' a timestep of 5/10 instead of 10/20 is'
+            WRITE( 6,* ) ' recommended for CH4 and CO2 simulations.'
+            WRITE( 6,* ) ''
+            WRITE( 6,* ) 'You may remove this trap at your own peril,'
+            WRITE( 6,* ) ' by commenting out the call to GC_ERROR in'
+            WRITE( 6,* ) ' GeosCore/input_mod.F. '
+            WRITE( 6,* ) ''
+            WRITE( 6,* ) 'See the MERRA-2 implementation details page'
+            WRITE( 6,* ) ' on the GEOS-Chem wiki for details'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+
+            ENDIF
+         ENDIF
+      ENDIF
+#endif
+
+      ! Return success
+      RC = GC_SUCCESS
+
       !=================================================================
       ! Print to screen
       !=================================================================
