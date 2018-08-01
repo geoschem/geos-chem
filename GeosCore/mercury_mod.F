@@ -199,6 +199,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Also remove functions GET_VCLDF and
 !                              GET_LWC, they're no longer needed
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -521,6 +522,7 @@
 !  30 Nov 2017 - C. Thackray - Option to use offline ocean Hg concentrations
 !  02 Feb 2018 - C. Thackray - Made Hg2(aq) for red. temperature dependent
 !  10 Feb 2018 - C. Thackray - Switches for chem options
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2032,6 +2034,7 @@
 !    10 Aug 2015 - H. Horowitz (HMH) - adding Br as 'Y', was missing.         
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
 !    30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
 !------------------------------------------------------------------------------
 !BOC                                                                           
 !                                                                              
@@ -2210,6 +2213,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !     01 Mar 2016 - H. Horowitz (HMH) - saving out other reaction rates!       
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
 !    30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -6122,6 +6126,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6676,6 +6681,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  11 Oct 2016 - R. Yantosca - Move call to DO_RED_INPLUME here
 !  13 Feb 2018 - C. Thackray - Put chem switches here
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
