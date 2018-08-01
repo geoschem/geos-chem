@@ -27,7 +27,8 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LRED_JNO2
       USE OCEAN_MERCURY_MOD, ONLY : LRED_CLOUDONLY
-      USE OCEAN_MERCURY_MOD, ONLY : LHALOGENCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LBRYCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LCLCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHGAQCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
@@ -711,7 +712,7 @@
 
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
-         IF ( LHALOGENCHEM ) THEN
+         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
      &           HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -916,7 +917,7 @@
          C_OH        = GET_OH(   I, J, L,        State_Met )
          C_BR        = GET_BR(   I, J, L, C_BRO, State_Met )
 
-         IF ( LHALOGENCHEM ) THEN
+         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
             C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
      &           HEM_NO2(I,J,L), C_O3 )
             C_HO2       = GET_HO2(  I, J, L, State_Met )
@@ -946,8 +947,24 @@
             K_OH = 0e+0_fp
          ENDIF
 
+         ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
+         IF (LBRCHEM) THEN
+            K_BR = GET_HGBR_RATE( I, J, L, 
+     &                            C_BR, State_Met, 
+     &                            C_OH, METHOD )
+         ELSE
+            K_BR = 0e+0_fp
+         ENDIF
+
+         ! Oxidation rate by BrO
+         IF (LBROCHEM) THEN
+            K_BRO = K_HG_BRO * C_BRO
+         ELSE
+            K_BRO = 0e+0_fp
+         ENDIF
+
          ! Oxidation rate by Cl-initiated oxidation                            
-         IF (LHALOGENCHEM) THEN
+         IF (LCLCHEM) THEN
             K_CLY = GET_HGCL_RATE( I,     J,     L, 
      &                             C_CL,  C_OH,  C_HO2,
      &                             C_NO2, C_CLO, C_BRO, 
@@ -979,7 +996,7 @@
          ENDIF
 
          ! Oxidation through Hg0 + Br -> HgBr, HgBr + Y -> Hg2
-         IF (LHALOGENCHEM) THEN
+         IF (LBRYCHEM) THEN
             K_BRY = GET_HGBRY_RATE( I,     J,     L, 
      &                              C_BR,  C_OH,  C_NO2,
      &                              C_HO2, C_CLO, C_BRO, 
@@ -2067,47 +2084,11 @@
       ! assume HgBr+Y same as HgCl+Y based on Dibble et al 2012                
       k3cl = 3.0e-11_fp
 
-      ! T cases instead of smooth function? (cpt 2017)
-      IF ( T < 260e0_fp ) THEN
-         k0NO2 = 27.4e-29_fp
-         kinfNO2 = 22.0e-11_fp
-
-         k0HO2 = 8.40e-29_fp
-         kinfHO2 = 14.8e-11_fp
-
-      ELSEIF (T >= 260e0_fp .AND. T<280e0_fp ) THEN
-
-         k0NO2 = 13.5e-29_fp
-         kinfNO2 = 14.2e-11_fp
-
-         k0HO2 = 4.28e-29_fp
-         kinfHO2 = 9.1e-11_fp
-
-      ELSEIF (T >= 280e0_fp .AND. T<298e0_fp) THEN
-
-         k0NO2 = 9.52e-29_fp
-         kinfNO2 = 12.8e-11_fp
-
-         k0HO2 = 3.01e-29_fp
-         kinfHO2 = 7.55e-11_fp
-
-      ELSEIF (T>= 298e0_fp .AND. T<320e0_fp) THEN
-         k0NO2 = 7.10e-29_fp
-         kinfNO2 = 11.8e-11_fp
-
-         k0HO2 = 2.27e-29_fp
-         kinfHO2 = 6.99e-11_fp
-
-      ELSE
-
-         k0NO2 = 5.09e-29_fp
-         kinfNO2 = 10.9e-11_fp
-
-         k0HO2 = 1.64e-29_fp
-         kinfHO2 = 6.11e-11_fp
-
-      ENDIF
-
+      k0NO2 = 6.91e-29_fp*(300/T)**4.5e0_fp
+      k0HO2 = 2.21e-29_fp*(300/T)**4.37e0_fp
+      kinfNO2 = 2.21e-11_fp*EXP(4.97e2_fp/T)
+      kinfHO2 = 8.42e-12_fp*EXP(6.25e2_fp/T)
+     
 
          k3no2 = k0NO2*Nair/(1+k0NO2*Nair/kinfNO2) * 0.6e0_fp **
      &      ((1+ (log10(k0NO2*Nair/kinfNO2)) ** (2e0_fp) ) ** (-1e0_fp))
@@ -2273,48 +2254,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! and uses a more accurate level of theory than Goodsite 2004          
       k3br = 3.0e-11_fp
 
-      ! Why not smooth function? (cpt 2017)
-      IF ( T < 260e+0_fp) THEN
-         k0NO2 = 27.4e-29_fp
-         kinfNO2 = 22.0e-11_fp
-
-         k0HO2 = 8.40e-29_fp
-         kinfHO2 = 14.8e-11_fp
-
-      ELSEIF (T >= 260e+0_fp .AND. T<280e+0_fp ) THEN
-
-         k0NO2 = 13.5e-29_fp
-         kinfNO2 = 14.2e-11_fp
-
-         k0HO2 = 4.28e-29_fp
-         kinfHO2 = 9.1e-11_fp
-
-      ELSEIF (T >= 280e+0_fp .AND. T<298e+0_fp) THEN
-
-         k0NO2 = 9.52e-29_fp
-         kinfNO2 = 12.8e-11_fp
-
-         k0HO2 = 3.01e-29_fp
-         kinfHO2 = 7.55e-11_fp
-
-      ELSEIF (T>= 298e+0_fp .AND. T<320e+0_fp) THEN
-
-         k0NO2 = 7.10e-29_fp
-         kinfNO2 = 11.8e-11_fp
-
-         k0HO2 = 2.27e-29_fp
-         kinfHO2 = 6.99e-11_fp
-
-      ELSE
-
-         k0NO2 = 5.09e-29_fp
-         kinfNO2 = 10.9e-11_fp
-
-         k0HO2 = 1.64e-29_fp
-         kinfHO2 = 6.11e-11_fp
-
-      ENDIF
-
+      k0NO2 = 6.91e-29_fp*(300/T)**4.5e0_fp
+      k0HO2 = 2.21e-29_fp*(300/T)**4.37e0_fp
+      kinfNO2 = 2.21e-11_fp*EXP(4.97e2_fp/T)
+      kinfHO2 = 8.42e-12_fp*EXP(6.25e2_fp/T)
 
       k3no2 = k0NO2*Nair/(1+k0NO2*Nair/kinfNO2) * 0.6e+0_fp **
      &        ((1+ (log10(k0NO2*Nair/kinfNO2))**(2e+0_fp))**(-1e+0_fp))
@@ -6192,7 +6135,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                :: LDRYD
       LOGICAL                :: LNLPBL
       LOGICAL                :: LGTMM
-      LOGICAL                :: LHALOGENCHEM
+      LOGICAL                :: LBRYCHEM
       INTEGER                :: nAdvect
       INTEGER                :: AS, N
       CHARACTER(LEN=255)     :: LOCATION
@@ -6759,16 +6702,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
       ENDIF
       IF ( .not. FOUND ) THEN
-         LRED_JNO2 = .TRUE.
+         LRED_JNO2 = .FALSE.
       ENDIF
 
-      CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM',  
-     &                OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'LBRYCHEM',  
+     &                OptValBool=LBRYCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LHALOGENCHEM', LOC )
+         CALL ERROR_STOP( 'GetExtOpt LBRYCHEM', LOC )
       ENDIF
       IF ( .not. FOUND ) THEN
-         LHALOGENCHEM = .FALSE.
+         LBRYCHEM = .FALSE.
+      ENDIF
+
+      CALL GetExtOpt( HcoState%Config, -999, 'LCLCHEM',  
+     &                OptValBool=LCLCHEM, FOUND=FOUND, RC=RC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         CALL ERROR_STOP( 'GetExtOpt LCLCHEM', LOC )
+      ENDIF
+      IF ( .not. FOUND ) THEN
+         LCLCHEM = .FALSE.
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
@@ -6873,22 +6825,24 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       WRITE( 6, 120   ) LGCBROMINE
       WRITE( 6, 130   ) LNEI2005
       WRITE( 6, 140   ) LInPlume
-      WRITE( 6, 150   ) LHALOGENCHEM
+      WRITE( 6, 150   ) LBRYCHEM
       WRITE( 6, 160   ) LHGAQCHEM
       WRITE( 6, 170   ) LBRCHEM
       WRITE( 6, 180   ) LBROCHEM
       WRITE( 6, 190   ) LOHO3CHEM
+      WRITE( 6, 200   ) LCLCHEM
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
  130  FORMAT( 'LNEI2005   is set to ', L1                          )
  140  FORMAT( 'LInPlume   is set to ', L1                          )
- 150  FORMAT( 'LHALOGENCHEM   is set to ', L1                          )
+ 150  FORMAT( 'LBRYCHEM   is set to ', L1                          )
  160  FORMAT( 'LHGAQCHEM  is set to ', L1                          )
  170  FORMAT( 'LBRCHEM    is set to ', L1                          )
  180  FORMAT( 'LBROCHEM   is set to ', L1                          )
  190  FORMAT( 'LOHO3CHEM  is set to ', L1                          )
+ 200  FORMAT( 'LCLCHEM    is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
