@@ -163,7 +163,7 @@
       PUBLIC :: LGEIA05 !(add for 2005 GEIA, eck 10/19/11)
       PUBLIC :: LVEGEMIS ! jaf
       PUBLIC :: LRED_JNO2,   LGEOSLWC
-      PUBLIC :: LBRYCHEM,   LCLCHEM
+      PUBLIC :: LHALOGENCHEM
       PUBLIC :: LHGAQCHEM
       PUBLIC :: LRED_CLOUDONLY
       PUBLIC :: LHg2HalfAerosol
@@ -243,7 +243,7 @@
       LOGICAL   :: LGEIA05 !eck, 10/19/11
       LOGICAL   :: LVEGEMIS ! jaf
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
-      LOGICAL   :: LBRYCHEM,   LCLCHEM
+      LOGICAL   :: LHALOGENCHEM
       LOGICAL   :: LHGAQCHEM
       LOGICAL   :: LHg2HalfAerosol
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM

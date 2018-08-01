@@ -27,8 +27,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LRED_JNO2
       USE OCEAN_MERCURY_MOD, ONLY : LRED_CLOUDONLY
-      USE OCEAN_MERCURY_MOD, ONLY : LBRYCHEM
-      USE OCEAN_MERCURY_MOD, ONLY : LCLCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LHALOGENCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHGAQCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
@@ -712,7 +711,7 @@
 
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
-         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
+         IF ( LHALOGENCHEM ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
      &           HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -917,7 +916,7 @@
          C_OH        = GET_OH(   I, J, L,        State_Met )
          C_BR        = GET_BR(   I, J, L, C_BRO, State_Met )
 
-         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
+         IF ( LHALOGENCHEM ) THEN
             C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
      &           HEM_NO2(I,J,L), C_O3 )
             C_HO2       = GET_HO2(  I, J, L, State_Met )
@@ -947,24 +946,8 @@
             K_OH = 0e+0_fp
          ENDIF
 
-         ! Oxidation rate by Br, 1/s (accounts for HgBr intermediate)
-         IF (LBRCHEM) THEN
-            K_BR = GET_HGBR_RATE( I, J, L, 
-     &                            C_BR, State_Met, 
-     &                            C_OH, METHOD )
-         ELSE
-            K_BR = 0e+0_fp
-         ENDIF
-
-         ! Oxidation rate by BrO
-         IF (LBROCHEM) THEN
-            K_BRO = K_HG_BRO * C_BRO
-         ELSE
-            K_BRO = 0e+0_fp
-         ENDIF
-
          ! Oxidation rate by Cl-initiated oxidation                            
-         IF (LCLCHEM) THEN
+         IF (LHALOGENCHEM) THEN
             K_CLY = GET_HGCL_RATE( I,     J,     L, 
      &                             C_CL,  C_OH,  C_HO2,
      &                             C_NO2, C_CLO, C_BRO, 
@@ -996,7 +979,7 @@
          ENDIF
 
          ! Oxidation through Hg0 + Br -> HgBr, HgBr + Y -> Hg2
-         IF (LBRYCHEM) THEN
+         IF (LHALOGENCHEM) THEN
             K_BRY = GET_HGBRY_RATE( I,     J,     L, 
      &                              C_BR,  C_OH,  C_NO2,
      &                              C_HO2, C_CLO, C_BRO, 
@@ -6209,7 +6192,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                :: LDRYD
       LOGICAL                :: LNLPBL
       LOGICAL                :: LGTMM
-      LOGICAL                :: LBRYCHEM
+      LOGICAL                :: LHALOGENCHEM
       INTEGER                :: nAdvect
       INTEGER                :: AS, N
       CHARACTER(LEN=255)     :: LOCATION
@@ -6776,25 +6759,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
       ENDIF
       IF ( .not. FOUND ) THEN
-         LRED_JNO2 = .FALSE.
+         LRED_JNO2 = .TRUE.
       ENDIF
 
-      CALL GetExtOpt( HcoState%Config, -999, 'LBRYCHEM',  
-     &                OptValBool=LBRYCHEM, FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM',  
+     &                OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBRYCHEM', LOC )
+         CALL ERROR_STOP( 'GetExtOpt LHALOGENCHEM', LOC )
       ENDIF
       IF ( .not. FOUND ) THEN
-         LBRYCHEM = .FALSE.
-      ENDIF
-
-      CALL GetExtOpt( HcoState%Config, -999, 'LCLCHEM',  
-     &                OptValBool=LCLCHEM, FOUND=FOUND, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LCLCHEM', LOC )
-      ENDIF
-      IF ( .not. FOUND ) THEN
-         LCLCHEM = .FALSE.
+         LHALOGENCHEM = .FALSE.
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
@@ -6899,24 +6873,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       WRITE( 6, 120   ) LGCBROMINE
       WRITE( 6, 130   ) LNEI2005
       WRITE( 6, 140   ) LInPlume
-      WRITE( 6, 150   ) LBRYCHEM
+      WRITE( 6, 150   ) LHALOGENCHEM
       WRITE( 6, 160   ) LHGAQCHEM
       WRITE( 6, 170   ) LBRCHEM
       WRITE( 6, 180   ) LBROCHEM
       WRITE( 6, 190   ) LOHO3CHEM
-      WRITE( 6, 200   ) LCLCHEM
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
  130  FORMAT( 'LNEI2005   is set to ', L1                          )
  140  FORMAT( 'LInPlume   is set to ', L1                          )
- 150  FORMAT( 'LBRYCHEM   is set to ', L1                          )
+ 150  FORMAT( 'LHALOGENCHEM   is set to ', L1                          )
  160  FORMAT( 'LHGAQCHEM  is set to ', L1                          )
  170  FORMAT( 'LBRCHEM    is set to ', L1                          )
  180  FORMAT( 'LBROCHEM   is set to ', L1                          )
  190  FORMAT( 'LOHO3CHEM  is set to ', L1                          )
- 200  FORMAT( 'LCLCHEM    is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC
