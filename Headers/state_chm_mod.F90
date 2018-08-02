@@ -152,6 +152,11 @@ MODULE State_Chm_Mod
                                                         ! [unitless]
 
      !----------------------------------------------------------------------
+     ! For dry deposition
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: DEPSAV     (:,:,:  ) ! Drydep frequencies [s-1]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -202,6 +207,7 @@ MODULE State_Chm_Mod
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
 !  27 Nov 2017 - E. Lundgren - Add # and ID mapping for more species categories
 !  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
+!  02 Aug 2018 - H.P. Lin    - Add DEPSAV from drydep_mod.F to allow re-init
 !EOP
 !------------------------------------------------------------------------------
 !BOC

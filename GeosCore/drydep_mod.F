@@ -47,7 +47,6 @@
 ! !PUBLIC DATA MEMBERS:
 !
       PUBLIC :: DEPNAME
-      PUBLIC :: DEPSAV
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
@@ -198,6 +197,7 @@
 !                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  02 Aug 2018 - H.P. Lin    - Now use DEPSAV from State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -231,7 +231,6 @@
       !  IZO       : Roughness heights for each Olson surface type
       !  NDVZIND   : Index array for ordering drydep species in DEPVEL
       !  NTRAIND   : Stores species numbers of drydep species
-      !  DEPSAV    : Array containing dry deposition frequencies [s-1]
       !  PBLFRAC   : Array for multiplicative factor for drydep freq
       !  DRYCOEFF  : Polynomial coefficients for dry deposition
       !  HSTAR     : Henry's law constant
@@ -245,6 +244,9 @@
       !    NTYPE     : Max # of landtypes / grid box
       !    NPOLY     : Number of drydep polynomial coefficients
       !    NSURFTYPE : Number of Olson land types
+      !
+      !  NOTE: these variables have been moved to state_chm_mod.F90
+      !    DEPSAV    : Array containing dry deposition frequencies [s-1]
       !========================================================================
 
       ! Scalars
@@ -288,7 +290,6 @@
       CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
       ! Allocatable arrays
-      REAL(fp), TARGET,  ALLOCATABLE :: DEPSAV  (:,:,:) ! Drydep frequencies
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
@@ -425,6 +426,7 @@
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !  05 Oct 2017 - R. Yantosca - Now update State_Diag%DryDepVel diagnostic
+!  02 Aug 2018 - H.P. Lin    - Now use DEPSAV from State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -614,7 +616,7 @@
             !-----------------------------------------------------------
 
             ! Dry deposition frequency [1/s]
-            DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
+            State_Chm%DEPSAV(I,J,D) = ( DVZ / 100.e+0_f8 ) / THIK
 
 #if defined( BPCH_DIAG )
             ! ND44 diagnostic
@@ -3940,6 +3942,8 @@
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  07 Nov 2017 - R. Yantosca - Now return error condition to calling program
+!  02 Aug 2018 - H.P. Lin    - Now use State_Chm%DEPSAV and avoid repeat
+!                              initialization of global constants.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3959,12 +3963,11 @@
       !=================================================================
       ! INIT_DRYDEP begins here!
       !=================================================================
-      
+
       ! Initialize
       RC        = GC_SUCCESS
       IS_Hg     = Input_Opt%ITS_A_MERCURY_SIM
       LDRYD     = Input_Opt%LDRYD
-      NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
       id_HNO3   = IND_('HNO3'  )
@@ -3972,6 +3975,22 @@
       id_ISOPND = IND_('ISOPND')
       ErrMsg    = ''
       ThisLoc   = ' -> at Init_Drydep (in module GeosCore/drydep_mod.F)'
+
+      ! Verify if we have already initialized DRYDEP_MOD.
+      ! If yes, simply initialize State_Chm%DEPSAV field, and skip the
+      ! remaining initializations, which are chemistry-state independent
+      ! assuming species data does not change in a run. (hplin, 8/2/18)
+      IF ( State_Chm%nDryDep > 0 .AND. ALLOCATED( A_DEN ) ) THEN
+         ALLOCATE( State_Chm%DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
+         CALL GC_CheckVar( 'State_Chm%DEPSAV', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
+         State_Chm%DEPSAV = 0e+0_fp
+
+         RETURN
+      ENDIF
+
+      ! No? Then continue initialization by setting NUMDEP = 0
+      NUMDEP    = 0
 
       !===================================================================
       ! Arrays that hold information about dry-depositing species
@@ -4187,10 +4206,10 @@
       ! Allocate arrays
       ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
-      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
-      CALL GC_CheckVar( 'drydep_mod:DEPSAV', 0, RC )
+      ALLOCATE( State_Chm%DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
+      CALL GC_CheckVar( 'State_Chm%DEPSAV', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
-      DEPSAV = 0e+0_fp
+      State_Chm%DEPSAV = 0e+0_fp
 
       ALLOCATE( SALT_V( NR_MAX ), STAT=RC )
       CALL GC_CheckVar( 'drydep_mod:SALT_V', 0, RC )
@@ -4313,7 +4332,6 @@
       IF ( ALLOCATED( A_RADI   ) ) DEALLOCATE( A_RADI   )
       IF ( ALLOCATED( AIROSOL  ) ) DEALLOCATE( AIROSOL  )
       IF ( ALLOCATED( DEPNAME  ) ) DEALLOCATE( DEPNAME  )
-      IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
       IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
       IF ( ALLOCATED( HSTAR    ) ) DEALLOCATE( HSTAR    )

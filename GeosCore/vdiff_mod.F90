@@ -1869,7 +1869,6 @@ contains
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -2266,7 +2265,8 @@ contains
 
           ! Also add drydep frequencies calculated by HEMCO to the DFLX
           ! array. These values are stored in 1/s. They are added in the 
-          ! same manner as the DEPSAV values from drydep_mod.F.
+          ! same manner as the DEPSAV values from drydep_mod stored in
+          ! State_Chm%DEPSAV.
           ! DFLX will be converted to kg/m2/s lateron. (ckeller, 04/01/2014)
           CALL GetHcoVal ( NA, I, J, 1, fnd, dep=dep )
           IF ( fnd ) THEN
@@ -2346,7 +2346,7 @@ contains
              ! given that as2 is in v/v
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,NN) = dflx(I,J,NN) &
-                          + DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp))  &
+                          + State_Chm%DEPSAV(I,J,N) * (wk1/(wk2+1.e-30_fp))  &
                           / ( AIRMW / SpcInfo%emMW_g )
 
 
@@ -2365,7 +2365,7 @@ contains
              ! avoid seg faults in parallelization (ccarouge, bmy, 12/20/10)
              ! Now add to existing dflx (ckeller, 10/16/2014).
              dflx(I,J,N) = dflx(I,J,N) &
-                         + DEPSAV(I,J,ND) * as2_scal(I,J,N) /   &
+                         + State_Chm%DEPSAV(I,J,ND) * as2_scal(I,J,N) /   &
                          ( AIRMW / SpcInfo%emMW_g )
           endif
           
@@ -2565,7 +2565,7 @@ contains
              DO J = 1, JJPAR
              DO I = 1, IIPAR
                 soilflux = dflx(I,J,N) &
-	          / ( SpcInfo%emMW_g * 1.e-3_fp ) &
+            / ( SpcInfo%emMW_g * 1.e-3_fp ) &
                   * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
           
@@ -2581,7 +2581,7 @@ contains
 
     endif
 
-	!Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
+  !Maasa, Add SoilNOx deposition to allow SN code to work with NLPBL on.
 
     !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )

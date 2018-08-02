@@ -344,7 +344,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
-    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
@@ -414,6 +413,7 @@ CONTAINS
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
+!  02 Aug 2018 - H.P. Lin    - Now use State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -708,10 +708,10 @@ CONTAINS
                 ! Init
                 FRQ = 0.0_fp
 
-                ! Dry deposition frequency from drydep_mod.F. This is 
-                ! stored in DEPSAV. Units are [s-1].
+                ! Dry deposition frequency computed in drydep_mod. This is
+                ! stored in State_Chm%DEPSAV. Units are [s-1].
                 IF ( DRYDEPID > 0 ) THEN
-                   FRQ = DEPSAV(I,J,DRYDEPID)
+                   FRQ = State_Chm%DEPSAV(I,J,DRYDEPID)
                 ENDIF
 
                 ! Dry deposition frequency from HEMCO. HEMCO calculates
