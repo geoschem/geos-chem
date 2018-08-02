@@ -617,17 +617,8 @@
       ! tested by other users as appropriate (J. Fisher, 3/2016)
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
-#if     defined( GEOS_FP ) || defined( MERRA2 )
-#if     defined( GRID4x5 )
+
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#elif   defined( GRID2x25 ) 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#endif
-#else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#endif
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
