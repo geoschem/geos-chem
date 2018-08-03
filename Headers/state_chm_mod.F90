@@ -46,6 +46,9 @@ MODULE State_Chm_Mod
   TYPE(SpcPtr), PRIVATE, POINTER :: SpcDataLocal(:)  ! Local pointer to
                                                      ! StateChm%SpcData for
                                                      ! availability to IND_  
+
+  INTEGER, PRIVATE               :: nChmState = 0    ! # chemistry states,
+                                                     ! this CPU
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -202,6 +205,9 @@ MODULE State_Chm_Mod
 !  02 Oct 2017 - E. Lundgren - Abstract metadata and routine to add to Registry
 !  27 Nov 2017 - E. Lundgren - Add # and ID mapping for more species categories
 !  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
+!  03 Aug 2018 - H.P. Lin    - Add nChmState counter for # of chemistry states
+!                              initialized in this CPU, to avoid deallocating
+!                              shared pointers (e.g. species info) until last
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,6 +292,8 @@ CONTAINS
 !                              fullchem and/or aerosol-only simulations
 !  16 Nov 2017 - E. Lundgren - Get grid params and # aerosls from CMN_Size_Mod 
 !                              rather than arguments list
+!  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
+!                              DB if DB is already initialized before
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -312,6 +320,11 @@ CONTAINS
     !=======================================================================
     ! Initialization
     !=======================================================================
+
+    ! Count the # of chemistry states we have initialized, so SpcData(Local)
+    ! is not deallocated until the last ChmState is cleaned up.
+    ! This avoids dangling pointers with detrimental effects. (hplin, 8/3/18)
+    nChmState = nChmState + 1
 
     ! Shorten grid parameters for readability
     IM                    =  IIPAR ! # latitudes
@@ -406,14 +419,23 @@ CONTAINS
     ! Populate the species database object field
     ! (assumes Input_Opt has already been initialized)
     !=======================================================================
-    CALL Init_Species_Database( am_I_Root = am_I_Root,                      &
-                                Input_Opt = Input_Opt,                      &
-                                SpcData   = State_Chm%SpcData,              &
-                                RC        = RC                             )
 
-    ! Point to a private module copy of the species database
-    ! which will be used by the Ind_ indexing function
-    SpcDataLocal => State_Chm%SpcData
+    ! If the species database has already been initialized in this CPU,
+    ! SpcDataLocal in State_Chm_Mod already contains a copy of the species data.
+    ! It can be directly associated to this new chemistry state.
+    ! (assumes one CPU will run one copy of G-C with the same species DB)
+    IF ( ASSOCIATED( SpcDataLocal ) ) THEN
+        State_Chm%SpcData => SpcDataLocal
+    ELSE
+        CALL Init_Species_Database( am_I_Root = am_I_Root,                      &
+                                    Input_Opt = Input_Opt,                      &
+                                    SpcData   = State_Chm%SpcData,              &
+                                    RC        = RC                             )
+
+        ! Point to a private module copy of the species database
+        ! which will be used by the Ind_ indexing function
+        SpcDataLocal => State_Chm%SpcData
+    ENDIF
 
     !=======================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
@@ -1264,6 +1286,8 @@ CONTAINS
 !  28 Aug 2015 - R. Yantosca - Also initialize the species database object
 !  29 Jun 2017 - R. Yantosca - Add error checks for deallocations.  Also
 !                              destroy the registry of State_Chm fields.
+!  03 Aug 2018 - H.P. Lin    - Add a counter for nChmState, only deallocating
+!                              species data if it is the last chemistry state.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1508,7 +1532,16 @@ CONTAINS
     !=======================================================================
     ! Deallocate the species database object field
     !=======================================================================
-    CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
+
+    ! This operation should ONLY be done if there are no remaining chemistry
+    ! states in the system, as destroying this State_Chm%SpcData will destroy
+    ! all %SpcDatas, incl. state_chm_mod.F90's SpcDataLocal, in this CPU.
+    !
+    ! The variable state_chm_mod.F90 nChmState keeps track of the # of chemistry
+    ! states initialized in the system. (hplin, 8/3/18)
+    IF ( nChmState == 1 ) THEN
+        CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
+    ENDIF
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -1519,6 +1552,11 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    !=======================================================================
+    ! Decrease the counter of chemistry states in this CPU
+    !=======================================================================
+    nChmState = nChmState - 1
 
   END SUBROUTINE Cleanup_State_Chm
 !EOC
