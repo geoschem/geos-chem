@@ -2830,6 +2830,8 @@
       IF ( ALLOCATED( ISOA        ) ) DEALLOCATE( ISOA        )
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
+      IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
+      IF ( ALLOCATED( SOAMG       ) ) DEALLOCATE( SOAMG       )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
       IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )
