@@ -668,9 +668,11 @@
       DO J = 1, JJPAR
       DO L = 1, LLPAR
 
+#if defined( BPCH_DIAG )
          ! Reset the AD61_INST array used for tracking instantaneous 
          ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
          AD61_INST(I,J,L,:) = 0e0
+#endif
 
          ! Skip non-chemgrid boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
