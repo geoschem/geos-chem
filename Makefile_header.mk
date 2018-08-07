@@ -201,6 +201,7 @@
 #  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 #  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
 #                              throughout GEOS-Chem.
+#  07 Aug 2018 - R. Yantosca - For now, don't compile TOMAS/ APM when NC_DIAG=y
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -240,6 +241,9 @@ ERR_GIGC             :="Unable to find the GIGC configuration file. Have you dow
 
 # Error message for diagnostics
 ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
+
+# Error message for TOMAS error message
+ERR_MICPHYS           :="At present, microphysics packages (TOMAS, APM) cannot be used when NC_DIAG=y!"
 
 ###############################################################################
 ###                                                                         ###
@@ -440,6 +444,9 @@ endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
 
+  # Set a flag to denote netCDF diagnostics are on
+  IS_NC_DIAG         :=1
+
   # Turn on netCDF diagnostics if explicitly specified
   USER_DEFS          += -DNC_DIAG
 
@@ -463,6 +470,9 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   endif
 
 else
+
+  # Set a flag to denote netCDF diagnostics are off
+  IS_NC_DIAG         :=0
 
   # If netCDF diagnostics have not been explicitly specified, then activate
   # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
@@ -793,36 +803,57 @@ endif
 
 #------------------------------------------------------------------------------
 # Aerosol microphysics settings
+# At present, TOMAS or APM cannot be compiled with NC_DIAG=y! (bmy, 8/7/18)
 #------------------------------------------------------------------------------
 
 # %%%%% TOMAS, 30 bins (default) %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DTOMAS
+  ifeq ($(IS_NC_DIAG),1) 
+    $(error $(ERR_MICPHYS))
+  else
+    USER_DEFS        += -DTOMAS
+  endif
 endif
 
 # %%%%% TOMAS, 40 bins %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS40)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DTOMAS -DTOMAS40
+  ifeq ($(IS_NC_DIAG),1) 
+    $(error $(ERR_MICPHYS))
+  else
+    USER_DEFS        += -DTOMAS -DTOMAS40
+  endif
 endif
 
 # %%%%% TOMAS, 15 bins %%%%% 
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS15)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DTOMAS -DTOMAS15
+  ifeq ($(IS_NC_DIAG),1) 
+    $(error $(ERR_MICPHYS))
+  else
+    USER_DEFS        += -DTOMAS -DTOMAS15
+  endif
 endif
 
 # %%%%% TOMAS, 12 bins %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS12)" =~ $(REGEXP) ]] && echo true),true)
-USER_DEFS            += -DTOMAS -DTOMAS12
+  ifeq ($(IS_NC_DIAG),1) 
+    $(error $(ERR_MICPHYS))
+  else
+    USER_DEFS        += -DTOMAS -DTOMAS12
+  endif
 endif
 
 # %%%%% APM %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS          += -DAPM
+  ifeq ($(IS_NC_DIAG),1) 
+    $(error $(ERR_MICPHYS))
+  else
+    USER_DEFS        += -DAPM
+  endif
 endif
 
 #------------------------------------------------------------------------------

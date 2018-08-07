@@ -4566,6 +4566,7 @@ ccc
       !                 [kg/box/timestep] and the corresponding
       !                  number emission [no./box/timestep]
       !=======================================================================
+#if defined( BPCH_DIAG )
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS
@@ -4586,6 +4587,7 @@ ccc
          ENDDO
          ENDDO
       ENDIF
+#endif
 
  100  CONTINUE
 
@@ -5200,6 +5202,13 @@ ccc
 
 !end anthro emissions
 
+#if defined( BPCH_DIAG )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
+      !%%%% which is only called if BPCH_DIAG=y.  Wrap this block of   %%%%
+      !%%%% code with an #ifdef BPCH_DIAG to prvent compilation issues %%%%
+      !%%%% when NC_DIAG=y.  (bmy, 8/7/18)                             %%%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
       DgnName = 'BIOGENIC_SOAS'
@@ -5211,6 +5220,7 @@ ccc
       TERP_ORGC = Ptr2D(:,:)
       Ptr2D => NULL()
       TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

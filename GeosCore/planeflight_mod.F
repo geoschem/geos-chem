@@ -2242,7 +2242,7 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
-#if   defined( TOMAS )
+#if   defined( TOMAS ) && defined( BPCH_DIAG )
                   !-------------------------------
                   ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
                   !-------------------------------
