@@ -485,7 +485,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_TOMS( am_I_Root, Input_Opt, 
+     &                      State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -494,11 +495,15 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root  ! root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt  ! Input opts
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -511,6 +516,7 @@
 !  16 Mar 2015 - R. Yantosca - TOMS, DTOMS1, DTOMS2 are now pointers
 !  16 Mar 2015 - R. Yantosca - Add Input_Opt, RC arguments for std interface
 !  03 Nov 2016 - B. Henderson- Add extra fields to fix OH issue for GEOS-5
+!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
 !EOP
 !------------------------------------------------------------------------------
 !BOC

@@ -2501,7 +2501,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2509,13 +2510,15 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2527,6 +2530,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags,
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

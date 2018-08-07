@@ -731,6 +731,8 @@ CONTAINS
 !  07 Nov 2017 - R. Yantosca - Now accept Diag_List as an argument
 !  07 Nov 2017 - R. Yantosca - Return error condition to main level
 !  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from input_mod.F
+!  07 Aug 2018 - H.P. Lin    - Unify init routines to accept Input_Opt, State_Chm,
+!                              State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -819,7 +821,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize the MODIS leaf area index module
     !-----------------------------------------------------------------
-    CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
+    CALL Init_Modis_LAI( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Modis_LAI"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -843,7 +845,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
     !-----------------------------------------------------------------
-    CALL Init_Get_Ndep( am_I_Root, RC )
+    CALL Init_Get_Ndep( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Get_Ndep"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -854,7 +856,7 @@ CONTAINS
     ! Initialize "carbon_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LCARB ) THEN
-       CALL Init_Carbon( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_Carbon( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in ""!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -903,7 +905,7 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. &
          Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-       CALL Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_Aerosol( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -915,7 +917,7 @@ CONTAINS
     ! Initialize "linoz_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LLINOZ ) THEN
-       CALL Init_Linoz( am_I_Root, Input_Opt, RC )
+       CALL Init_Linoz( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Linoz"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -926,7 +928,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize "toms_mod.F"
     !-----------------------------------------------------------------
-    CALL Init_Toms( am_I_Root, Input_Opt, RC )
+    CALL Init_Toms( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Toms"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
