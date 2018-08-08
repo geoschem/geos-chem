@@ -948,12 +948,12 @@ CONTAINS
        ! FORMAT statements
  110   FORMAT( 1x, a           )
  120   FORMAT( 1x, a, a        )
- 130   FORMAT( 1x, a, 3x, i8   )
- 135   FORMAT( 1x, a, 3x, i8.8 )
+ 130   FORMAT( 1x, a, 7x, i8   )
+ 135   FORMAT( 1x, a, 7x, i8.8 )
  140   FORMAT( 1x, a, i6       )
- 145   FORMAT( 1x, a, 5x, i6.6 )
- 150   FORMAT( 1x, a, L11      )
- 160   FORMAT( 1x, a, f13.1    )
+ 145   FORMAT( 1x, a, 9x, i6.6 )
+ 150   FORMAT( 1x, a, L15      )
+ 160   FORMAT( 1x, a, f17.1    )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
@@ -1106,6 +1106,8 @@ CONTAINS
 !  08 Mar 2018 - R. Yantosca - Fixed logic bug that was causing incorrect
 !                              computation of UpdateIvalSec for simulations
 !                              longer than a day.
+!  08 Aug 2018 - R. Yantosca - Modify algorithm following FileWriteAlarm:
+!                              allow for update intervals of months or years
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1131,18 +1133,58 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "UpdateAlarm" 
     !=======================================================================
+    IF ( Container%UpdateYmd >= 010000 ) THEN
 
-    ! Split the update interval date and time into constituent values
-    ! NOTE: We assume the update interval will always be less than a day,
-    ! since this is pegged to the "heartbeat" timestep.
-    CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
-    CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+       !--------------------------------------------------------------------
+       ! File close interval is one or more years
+       !--------------------------------------------------------------------
 
-    ! "Update" interval in seconds
-    Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
-                              ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
-                              ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
-                              ( DBLE( Second )                      )
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
+    
+       ! Set the file write interval, accounting for leap year
+       IF ( Its_A_LeapYear( Year ) ) THEN
+          Container%UpdateIvalSec = 366.0_f8 * SECONDS_PER_DAY
+       ELSE
+          Container%UpdateIvalSec = 365.0_f8 * SECONDS_PER_DAY
+       ENDIF
+       
+    ELSE IF ( Container%UpdateYmd >= 000100 ) THEN
+       
+       !--------------------------------------------------------------------
+       ! File close interval is one or more months but less than a year
+       !--------------------------------------------------------------------
+
+       ! Split the current date & time into its constituent values
+       CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
+
+       ! Number of days in the month
+       nDays = DaysPerMonth(Month)
+
+       ! Adjust for leap year
+       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Convert to minutes and set this as the file write interval
+       Container%UpdateIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
+      
+    ELSE
+
+       !--------------------------------------------------------------------
+       ! File close interval is less than a month
+       !--------------------------------------------------------------------
+
+       ! Split the file close interval date/time into its constituent values
+       CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
+       CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
+
+       ! "FileWrite" interval in seconds
+       Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
+                                 ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
+                                 ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
+                                 ( DBLE( Second )                      )
+    ENDIF
 
   END SUBROUTINE HistContainer_UpdateIvalSet
 !EOC
