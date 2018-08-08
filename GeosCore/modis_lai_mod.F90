@@ -1071,21 +1071,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -1097,6 +1101,7 @@ CONTAINS
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
 !  15 Mar 2018 - M. Sulprizio- Update MODIS LAI end year to 2011.
+!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
