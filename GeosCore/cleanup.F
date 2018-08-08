@@ -15,7 +15,6 @@
 !
 ! !USES:
 !
-      USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
       USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
@@ -252,6 +251,7 @@
 !  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  08 Aug 2018 - H.P. Lin    - Remove call to CLEANUP_AEROSOL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -310,7 +310,6 @@
       CALL EMISSIONS_FINAL( am_I_Root, ERROR, RC )
 
       ! Call cleanup routines from individual F90 modules
-      CALL CLEANUP_AEROSOL()
       CALL CLEANUP_C2H6()
       CALL CLEANUP_CARBON()
       CALL CLEANUP_CO2()

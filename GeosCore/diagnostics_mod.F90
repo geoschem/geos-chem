@@ -788,7 +788,7 @@ CONTAINS
        ! AerMassASOA [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassASOA ) THEN
-          State_Diag%AerMassASOA(I,J,L)     = ASOA(I,J,L)                    &
+          State_Diag%AerMassASOA(I,J,L)     = State_Chm%ASOA(I,J,L)          &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -796,8 +796,8 @@ CONTAINS
        ! AerMassBC [ug C/m3]
        !--------------------------------------
        IF ( Archive_AerMassBC ) THEN
-          State_Diag%AerMassBC(I,J,L)       = ( BCPI(I,J,L)                  &
-                                              + BCPO(I,J,L) )                &
+          State_Diag%AerMassBC(I,J,L)       = ( State_Chm%BCPI(I,J,L)        &
+                                              + State_Chm%BCPO(I,J,L) )      &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -823,8 +823,8 @@ CONTAINS
        ! AerMassISOA [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassISOA ) THEN
-          State_Diag%AerMassISOA(I,J,L)     = ( ISOA(I,J,L)                  &
-                                              + ISOAAQ(I,J,L) )              &
+          State_Diag%AerMassISOA(I,J,L)     = ( State_Chm%ISOA(I,J,L)        &
+                                              + State_Chm%ISOAAQ(I,J,L) )    &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -841,7 +841,7 @@ CONTAINS
        ! AerMassNH4 [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassNH4 ) THEN
-          State_Diag%AerMassNH4(I,J,L)      = NH4(I,J,L)                     &
+          State_Diag%AerMassNH4(I,J,L)      = State_Chm%NH4(I,J,L)           &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -849,7 +849,7 @@ CONTAINS
        ! AerMassNIT [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassNIT ) THEN
-          State_Diag%AerMassNIT(I,J,L)      = NIT(I,J,L)                     &
+          State_Diag%AerMassNIT(I,J,L)      = State_Chm%NIT(I,J,L)           &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -857,7 +857,7 @@ CONTAINS
        ! AerMassOPOA [ug/m3], OA:OC=2.1
        !--------------------------------------
        IF ( Archive_AerMassOPOA ) THEN
-          State_Diag%AerMassOPOA(I,J,L)     = OPOA(I,J,L)                    &
+          State_Diag%AerMassOPOA(I,J,L)     = State_Chm%OPOA(I,J,L)          &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -866,11 +866,11 @@ CONTAINS
        !--------------------------------------
        IF ( Archive_AerMassPOA ) THEN
           IF ( Is_POA ) THEN
-             State_Diag%AerMassPOA(I,J,L)   = OCPO(I,J,L)                    &
+             State_Diag%AerMassPOA(I,J,L)   = State_Chm%OCPO(I,J,L)          &
                                             * kgm3_to_ugm3
           ELSE
-             State_Diag%AerMassPOA(I,J,L)   = ( OCPI(I,J,L)                  &
-                                              + OCPO(I,J,L) )                &
+             State_Diag%AerMassPOA(I,J,L)   = ( State_Chm%OCPI(I,J,L)        &
+                                              + State_Chm%OCPO(I,J,L) )      &
                                             * kgm3_to_ugm3
           ENDIF
        ENDIF
@@ -879,8 +879,8 @@ CONTAINS
        ! AerMassSAL [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSAL ) THEN
-          State_Diag%AerMassSAL(I,J,L)      = ( SALA(I,J,L)                  &
-                                              + SALC(I,J,L) )                &
+          State_Diag%AerMassSAL(I,J,L)      = ( State_Chm%SALA(I,J,L)        &
+                                              + State_Chm%SALC(I,J,L) )      &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -888,7 +888,7 @@ CONTAINS
        ! AerMassSO4 [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSO4 ) THEN
-          State_Diag%AerMassSO4(I,J,L)      = SO4(I,J,L)                     &
+          State_Diag%AerMassSO4(I,J,L)      = State_Chm%SO4(I,J,L)            &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -896,7 +896,7 @@ CONTAINS
        ! AerMassSOAGX [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSOAGX ) THEN
-          State_Diag%AerMassSOAGX(I,J,L)    = SOAGX(I,J,L)                   &
+          State_Diag%AerMassSOAGX(I,J,L)    = State_Chm%SOAGX(I,J,L)          &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -922,7 +922,7 @@ CONTAINS
        ! AerMassSOAMG [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassSOAMG ) THEN
-          State_Diag%AerMassSOAMG(I,J,L)    = SOAMG(I,J,L)                   &
+          State_Diag%AerMassSOAMG(I,J,L)    = State_Chm%SOAMG(I,J,L)          &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -930,7 +930,7 @@ CONTAINS
        ! AerMassTSOA [ug/m3]
        !--------------------------------------
        IF ( Archive_AerMassTSOA ) THEN
-          State_Diag%AerMassTSOA(I,J,L)     = TSOA(I,J,L)                    &
+          State_Diag%AerMassTSOA(I,J,L)     = State_Chm%TSOA(I,J,L)           &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -945,7 +945,7 @@ CONTAINS
        ! PM25 [ug/m3]
        !--------------------------------------
        IF ( Archive_PM25 ) THEN
-          State_Diag%PM25(I,J,L)            = PM25(I,J,L)                    &
+          State_Diag%PM25(I,J,L)            = State_Chm%PM25(I,J,L)           &
                                             * kgm3_to_ugm3
        ENDIF
 
@@ -953,9 +953,9 @@ CONTAINS
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
        IF ( Archive_TotalBiogenicOA ) THEN
-          State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L)                   &
-                                              + ISOA(I,J,L)                   &
-                                              + ISOAAQ(I,J,L) )               &
+          State_Diag%TotalBiogenicOA(I,J,L) = ( State_Chm%TSOA(I,J,L)         &
+                                              + State_Chm%ISOA(I,J,L)         &
+                                              + State_Chm%ISOAAQ(I,J,L) )     &
                                             * kgm3_to_ugm3  
        ENDIF
 
@@ -963,13 +963,13 @@ CONTAINS
        ! Sum of all organic aerosol [ug/m3]
        !--------------------------------------
        IF ( Archive_TotalOA ) THEN
-          State_Diag%TotalOA(I,J,L)         = ( TSOA(I,J,L)                  &
-                                              + ISOA(I,J,L)                  & 
-                                              + ASOA(I,J,L)                  &
-                                              + OCPO(I,J,L)                  &
-                                              + OCPI(I,J,L)                  &
-                                              + OPOA(I,J,L)                  &
-                                              + ISOAAQ(I,J,L) )              & 
+          State_Diag%TotalOA(I,J,L)         = ( State_Chm%TSOA(I,J,L)         &
+                                              + State_Chm%ISOA(I,J,L)         & 
+                                              + State_Chm%ASOA(I,J,L)         &
+                                              + State_Chm%OCPO(I,J,L)         &
+                                              + State_Chm%OCPI(I,J,L)         &
+                                              + State_Chm%OPOA(I,J,L)         &
+                                              + State_Chm%ISOAAQ(I,J,L) )     & 
                                             * kgm3_to_ugm3
 
        ENDIF
@@ -980,16 +980,16 @@ CONTAINS
        IF ( Archive_TotalOC ) THEN
           
           IF ( Is_POA ) THEN
-             State_Diag%TotalOC(I,J,L) =                              &
-                  ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)         &
-                    + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J)    &
-                    + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3 
+             State_Diag%TotalOC(I,J,L) =                                                          &
+                  ( ( State_Chm%TSOA(I,J,L) + State_Chm%ISOA(I,J,L) + State_Chm%ASOA(I,J,L)       &
+                    + State_Chm%OCPI(I,J,L) + State_Chm%OPOA(I,J,L) ) / State_Chm%OCFOPOA(I,J)    &
+                    + State_Chm%OCPO(I,J,L) / State_Chm%OCFPOA(I,J) ) * kgm3_to_ugm3 
             
           ELSE
-             State_Diag%TotalOC(I,J,L) =                              &
-                  ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)         &
-                    + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )       &
-                    / OCFOPOA(I,J) ) * kgm3_to_ugm3
+             State_Diag%TotalOC(I,J,L) =                                                          &
+                  ( ( State_Chm%TSOA(I,J,L) + State_Chm%ISOA(I,J,L) + State_Chm%ASOA(I,J,L)       &
+                    + State_Chm%OCPO(I,J,L) + State_Chm%OCPI(I,J,L) + State_Chm%OPOA(I,J,L) )     &
+                    / State_Chm%OCFOPOA(I,J) ) * kgm3_to_ugm3
           ENDIF
          
           IF ( Input_Opt%LSOA ) THEN

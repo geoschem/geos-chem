@@ -82,13 +82,6 @@
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE State_Chm_Mod,      ONLY : Ind_
-      USE AEROSOL_MOD,        ONLY : BCPI, BCPO, OCPI, OCPO, OCPISOA
-      USE AEROSOL_MOD,        ONLY : SALA, SALC, SOILDUST
-      USE AEROSOL_MOD,        ONLY : SO4,  NH4,  NIT
-      USE AEROSOL_MOD,        ONLY : TSOA, ISOA, ASOA, OPOA
-      USE AEROSOL_MOD,        ONLY : PM25
-      USE AEROSOL_MOD,        ONLY : SOAGX,  SOAMG, ISOAAQ
-      USE AEROSOL_MOD,        ONLY : OCFPOA, OCFOPOA
       USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
@@ -134,6 +127,7 @@
 !                              AEROSOL_CONC (in aerosol_mod.F) so it is in a
 !                              single location
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
+!  08 Aug 2018 - H.P. Lin    - Aerosol variables are now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -237,7 +231,7 @@
          ! TSOA [ug/m3]
          ! (terpene SOA)
          !--------------------------------------------------------------
-         AD42(I,J,L,1) = AD42(I,J,L,1) + TSOA(I,J,L) * FACTOR
+         AD42(I,J,L,1) = AD42(I,J,L,1) + State_Chm%TSOA(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! ISOA [ug/m3]
@@ -245,50 +239,67 @@
          !--------------------------------------------------------------
          ! Semivolatile isoprene OA + mechanistic isoprene OA
          AD42(I,J,L,2) = AD42(I,J,L,2) +
-     &                   ( ISOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
+     &                   ( State_Chm%ISOA(I,J,L) + 
+     &                     State_Chm%ISOAAQ(I,J,L) ) * FACTOR
 
          !--------------------------------------------------------------
          ! ASOA [ug/m3]
          ! (benz, tolu, xyle, + NAP/IVOC SOA)
          !--------------------------------------------------------------
-         AD42(I,J,L,3) = AD42(I,J,L,3) + ASOA(I,J,L) * FACTOR
+         AD42(I,J,L,3) = AD42(I,J,L,3) + State_Chm%ASOA(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! POA [ug/m3]
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
-            AD42(I,J,L,4) = AD42(I,J,L,4) + OCPO(I,J,L) * FACTOR 
+            AD42(I,J,L,4) = AD42(I,J,L,4) + 
+     &                      State_Chm%OCPO(I,J,L) * FACTOR 
          ELSE
             AD42(I,J,L,4) = AD42(I,J,L,4) +
-     &                       ( OCPI(I,J,L) + OCPO(I,J,L) ) * FACTOR 
+     &                       ( State_Chm%OCPI(I,J,L) + 
+     &                         State_Chm%OCPO(I,J,L) ) * FACTOR 
          ENDIF
 
          !--------------------------------------------------------------
          ! OPOA [ug/m3]
          !--------------------------------------------------------------
-         AD42(I,J,L,5) = AD42(I,J,L,5) + OPOA(I,J,L) * FACTOR
+         AD42(I,J,L,5) = AD42(I,J,L,5) + State_Chm%OPOA(I,J,L) * FACTOR
 
          !-----------------------------------------------------------
          ! Sum of all organic aerosol [ug/m3]
          !-----------------------------------------------------------
          AD42(I,J,L,6) = AD42(I,J,L,6) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                     OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) +
-     &                     ISOAAQ(I,J,L) ) * FACTOR
+     &                   ( State_Chm%TSOA(I,J,L) + 
+     &                     State_Chm%ISOA(I,J,L) + 
+     &                     State_Chm%ASOA(I,J,L) +
+     &                     State_Chm%OCPO(I,J,L) + 
+     &                     State_Chm%OCPI(I,J,L) + 
+     &                     State_Chm%OPOA(I,J,L) +
+     &                     State_Chm%ISOAAQ(I,J,L) ) * FACTOR
 
          !-----------------------------------------------------------
          ! Sum of all organic carbon [ugC/m3]
          !-----------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,7) = AD42(I,J,L,7) +
-     &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
-     &                        OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+     &                    ( 
+     &                        ( State_Chm%TSOA(I,J,L) + 
+     &                          State_Chm%ISOA(I,J,L) + 
+     &                          State_Chm%ASOA(I,J,L) +
+     &                          State_Chm%OCPI(I,J,L) + 
+     &                          State_Chm%OPOA(I,J,L) ) / 
+     &                      State_Chm%OCFOPOA(I,J) +
+     &                      State_Chm%OCPO(I,J,L) / 
+     &                      State_Chm%OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,7) = AD42(I,J,L,7)  +
-     &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                      / OCFOPOA(I,J) ) * FACTOR
+     &                    ( ( State_Chm%TSOA(I,J,L) + 
+     &                        State_Chm%ISOA(I,J,L) + 
+     &                        State_Chm%ASOA(I,J,L) +
+     &                        State_Chm%OCPO(I,J,L) + 
+     &                        State_Chm%OCPI(I,J,L) + 
+     &                        State_Chm%OPOA(I,J,L) )
+     &                      / State_Chm%OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          ! Add mechanistic isoprene OA
@@ -318,7 +329,9 @@
          ! Sum of biogenic aerosol [ug/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,8) = AD42(I,J,L,8) +
-     &                   ( TSOA(I,J,L) + ISOA(I,J,L) + ISOAAQ(I,J,L) ) *
+     &                   ( State_Chm%TSOA(I,J,L) + 
+     &                     State_Chm%ISOA(I,J,L) + 
+     &                     State_Chm%ISOAAQ(I,J,L) ) *
      &                   FACTOR
           
          !--------------------------------------------------------------
@@ -334,18 +347,21 @@
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
             AD42(I,J,L,10) = AD42(I,J,L,10) +
-     &                       ( OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+     &                       ( State_Chm%OCPO(I,J,L) /
+     &                         State_Chm%OCFPOA(I,J) ) * FACTOR
          ELSE
             AD42(I,J,L,10) = AD42(I,J,L,10) + 
-     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
-     &                       OCFOPOA(I,J) ) * FACTOR
+     &                       ( ( State_Chm%OCPI(I,J,L) + 
+     &                           State_Chm%OCPO(I,J,L) ) /
+     &                       State_Chm%OCFOPOA(I,J) ) * FACTOR
          ENDIF
 
          !--------------------------------------------------------------
          ! OPOA [ugC/m3]
          !--------------------------------------------------------------
          AD42(I,J,L,11) = AD42(I,J,L,11) +
-     &                    OPOA(I,J,L) / OCFOPOA(I,J) * FACTOR
+     &                    State_Chm%OPOA(I,J,L) / 
+     &                    State_Chm%OCFOPOA(I,J) * FACTOR
 
          !--------------------------------------------------------------
          ! Additional aerosol tracers
@@ -353,30 +369,39 @@
 
          ! OC [ugC/m3]
          AD42(I,J,L,12) = AD42(I,J,L,12) + 
-     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
-     &                    OCFOPOA(I,J) ) * FACTOR
+     &                    ( ( State_Chm%OCPI(I,J,L) + 
+     &                        State_Chm%OCPO(I,J,L) ) / 
+     &                    State_Chm%OCFOPOA(I,J) ) * FACTOR
 
          ! BC [ugC/m3]
          AD42(I,J,L,13) = AD42(I,J,L,13) + 
-     &                    ( BCPI(I,J,L) + BCPO(I,J,L) ) * FACTOR
+     &                    ( State_Chm%BCPI(I,J,L) + 
+     &                      State_Chm%BCPO(I,J,L) ) 
+     &                    * FACTOR
 
          ! SO4 [ug/m3]
-         AD42(I,J,L,14) = AD42(I,J,L,14) + SO4(I,J,L) * FACTOR
+         AD42(I,J,L,14) = AD42(I,J,L,14) + 
+     &                    State_Chm%SO4(I,J,L) * FACTOR
 
          ! NH4 [ug/m3]
-         AD42(I,J,L,15) = AD42(I,J,L,15) + NH4(I,J,L) * FACTOR
+         AD42(I,J,L,15) = AD42(I,J,L,15) + 
+     &                    State_Chm%NH4(I,J,L) * FACTOR
 
          ! NIT [ug/m3]
-         AD42(I,J,L,16) = AD42(I,J,L,16) + NIT(I,J,L) * FACTOR
+         AD42(I,J,L,16) = AD42(I,J,L,16) + 
+     &                    State_Chm%NIT(I,J,L) * FACTOR
 
          ! Sea salt [ug/m3]
          AD42(I,J,L,17) = AD42(I,J,L,17) + 
-     &                    ( SALA(I,J,L) + SALC(I,J,L) ) * FACTOR
+     &                    ( State_Chm%SALA(I,J,L) + 
+     &                      State_Chm%SALC(I,J,L) ) 
+     &                    * FACTOR
 
          !--------------------------------------------------------------
          ! PM2.5 [ug/m3]
          !--------------------------------------------------------------
-         AD42(I,J,L,18) = AD42(I,J,L,18) + PM25(I,J,L) * FACTOR
+         AD42(I,J,L,18) = AD42(I,J,L,18) + 
+     &                    State_Chm%PM25(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! Additional diagnostics for SOAGX, SOAMG (tmf, 12/8/07) 
@@ -385,10 +410,12 @@
          !--------------------------------------------------------------
 
          ! SOAGX [ug/m3]
-         AD42(I,J,L,19) = AD42(I,J,L,19) + SOAGX(I,J,L) * FACTOR
+         AD42(I,J,L,19) = AD42(I,J,L,19) + 
+     &                    State_Chm%SOAGX(I,J,L) * FACTOR
 
          ! SOAMG [ug/m3]
-         AD42(I,J,L,20) = AD42(I,J,L,20) + SOAMG(I,J,L) * FACTOR
+         AD42(I,J,L,20) = AD42(I,J,L,20) + 
+     &                    State_Chm%SOAMG(I,J,L) * FACTOR
 
          !--------------------------------------------------------------
          ! Isoprene SOA obtained from irreversible uptake of isoprene

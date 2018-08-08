@@ -97,7 +97,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
+    USE AEROSOL_MOD,          ONLY : AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
     USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
 #if defined( BPCH_DIAG )
@@ -201,6 +201,7 @@ CONTAINS
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  18 Jan 2018 - R. Yantosca - Now do photolysis for all levels, so that 
 !                              J-values can be saved up to the atm top
+!  08 Aug 2018 - H.P. Lin    - SOILDUST is now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -405,7 +406,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%LDUST ) THEN
        CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
-                          State_Diag, SOILDUST,  WAVELENGTH, RC             )
+                          State_Diag, State_Chm%SOILDUST,    WAVELENGTH, RC  )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

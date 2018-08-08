@@ -97,7 +97,6 @@ CONTAINS
 !
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
     USE C2H6_MOD,       ONLY : CHEMC2H6
     USE CARBON_MOD,     ONLY : CHEMCARBON
 #if defined( BPCH_DIAG )
@@ -252,6 +251,7 @@ CONTAINS
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
 !                              match new timestep unit of seconds
+!  08 Aug 2018 - H.P. Lin    - SOILDUST is now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -685,7 +685,8 @@ CONTAINS
 
           !-------------------------------------------------------
           ! Compute aerosol & dust concentrations [kg/m3]
-          ! (NOTE: SOILDUST in "aerosol_mod.f" is computed here)
+          ! (NOTE: SOILDUST is computed here in "aerosol_mod.F"
+          !        and stored in State_Chm.)
           !-------------------------------------------------------
           CALL Aerosol_Conc( am_I_Root, Input_Opt,  State_Met,               &
                              State_Chm, State_Diag, RC                      )
@@ -821,7 +822,7 @@ CONTAINS
              ! Compute dust OD's & surface areas
              WAVELENGTH = 0
              CALL Rdust_Online( am_I_Root,  Input_Opt,  State_Met,           &
-                                State_Chm,  State_Diag, SOILDUST,            &
+                                State_Chm,  State_Diag, State_Chm%SOILDUST,  &
                                 WAVELENGTH, RC                              )
 
              ! Trap potential errors
@@ -1131,7 +1132,6 @@ CONTAINS
     ! References to F90 modules
     USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
     USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
     USE DUST_MOD,       ONLY : RDUST_ONLINE
     USE DUST_MOD,       ONLY : RDUST_OFFLINE
     USE ErrCode_Mod
@@ -1168,6 +1168,7 @@ CONTAINS
 !  12 Aug 2015 - E. Lundgren  - Input tracer units are now [kg/kg] and 
 !                               are converted to [kg] for recomputing OD
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  08 Aug 2018 - H.P. Lin    - SOILDUST is now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1253,8 +1254,8 @@ CONTAINS
              ! from disk. (rjp, tdf, bmy, 4/1/04)
              !==============================================================
              IF ( LDUST ) THEN
-                CALL RDUST_ONLINE( am_I_Root,  Input_Opt,  State_Met,        &
-                                   State_Chm,  State_Diag, SOILDUST,         &
+                CALL RDUST_ONLINE( am_I_Root,  Input_Opt,  State_Met,          &
+                                   State_Chm,  State_Diag, State_Chm%SOILDUST, &
                                    WAVELENGTH, RC                           )
 
                 ! Trap potential errors

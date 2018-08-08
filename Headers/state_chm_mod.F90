@@ -160,6 +160,38 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DEPSAV     (:,:,:  ) ! Drydep frequencies [s-1]
 
      !----------------------------------------------------------------------
+     ! For aerosols
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BCPI       (:,:,:  ) ! Hydrophilic black carbon aerosol   [kg/m3]
+     REAL(fp),          POINTER :: BCPO       (:,:,:  ) ! Hydrophobic black carbon aerosol   [kg/m3]
+     REAL(fp),          POINTER :: OCPI       (:,:,:  ) ! Hydrophilic organic carbon aerosol [kg/m3]
+     REAL(fp),          POINTER :: OCPO       (:,:,:  ) ! Hydrophobic organic carbon aerosol [kg/m3]
+     REAL(fp),          POINTER :: OCPISOA    (:,:,:  ) ! Hydrophilic OC + SOA aerosol       [kg/m3]
+     REAL(fp),          POINTER :: SALA       (:,:,:  ) ! Accumulation mode seasalt aerosol  [kg/m3]
+     REAL(fp),          POINTER :: SALC       (:,:,:  ) ! Coarse mode seasalt aerosol        [kg/m3]
+     REAL(fp),          POINTER :: SO4_NH4_NIT(:,:,:  ) ! Lumped SO4-NH4-NIT aerosol         [kg/m3]
+     REAL(fp),          POINTER :: SO4        (:,:,:  ) ! Sulfate aerosol                    [kg/m3]
+     REAL(fp),          POINTER :: NH4        (:,:,:  ) ! Ammonium aerosol                   [kg/m3]
+     REAL(fp),          POINTER :: NIT        (:,:,:  ) ! Inorganic nitrate aerosol          [kg/m3]
+     REAL(fp),          POINTER :: FRAC_SNA   (:,:,:,:) ! 
+     REAL(fp),          POINTER :: SOILDUST   (:,:,:,:) ! Mineral dust aerosol from soils    [kg/m3]
+     REAL(fp),          POINTER :: SLA        (:,:,:  ) ! Stratospheric liquid aerosol       [kg/m3]
+     REAL(fp),          POINTER :: SPA        (:,:,:  ) ! Stratospheric particulate aerosol  [kg/m3]
+     REAL(fp),          POINTER :: TSOA       (:,:,:  ) ! Terpene SOA                        [kg/m3]
+     REAL(fp),          POINTER :: ISOA       (:,:,:  ) ! Isoprene SOA (VBS scheme)          [kg/m3]
+     REAL(fp),          POINTER :: ASOA       (:,:,:  ) ! Aromatic + IVOC SOA                [kg/m3]
+     REAL(fp),          POINTER :: OPOA       (:,:,:  ) ! Aerosol product of SVOC oxidation  [kg/m3]
+     REAL(fp),          POINTER :: SOAGX      (:,:,:  ) ! SOA product of GLYX                [kg/m3]
+     REAL(fp),          POINTER :: SOAMG      (:,:,:  ) ! SOA product of MYLY                [kg/m3]
+     REAL(fp),          POINTER :: PM25       (:,:,:  ) ! Particulate matter < 2.5 um        [kg/m3]
+     REAL(fp),          POINTER :: ISOAAQ     (:,:,:  ) ! Isoprene SOA (aqueous formation)   [kg/m3]
+     REAL(fp),          POINTER :: SOAS       (:,:,:  ) ! Simple SOA                         [kg/m3]
+     REAL(fp),          POINTER :: OCFPOA     (:,:    ) ! OM/OC for POA                      [-]
+     REAL(fp),          POINTER :: OCFOPOA    (:,:    ) ! OM/OC for OPOA, OCPI, OCPO         [-]
+     REAL(fp),          POINTER :: DAERSL     (:,:,:,:) ! Mass of hydrophobic aerosol from Mian Chin
+     REAL(fp),          POINTER :: WAERSL     (:,:,:,:) ! Mass of hydrophilic aerosol from Mian Chin
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state

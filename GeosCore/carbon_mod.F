@@ -16,7 +16,6 @@
 !
 ! !USES:
 !
-      USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
       USE HCO_ERROR_MOD     ! For HEMCO error reporting
       USE PhysConstants     ! Physical constants
       USE PRECISION_MOD     ! For GEOS-Chem Precisions
@@ -1533,6 +1532,7 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  08 Aug 2018 - H.P. Lin    - OCFPOA, OCFOPOA are now in state_chm_mod from aerosols
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1775,8 +1775,10 @@
             JHC = PARENTPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * 
+     &                            State_Chm%OCFPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * 
+     &                            State_Chm%OCFPOA(I,J)
             ENDDO          
          ENDIF
 
@@ -1787,8 +1789,10 @@
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * 
+     &                            State_Chm%OCFOPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * 
+     &                            State_Chm%OCFOPOA(I,J)
             ENDDO  
          ENDIF
 
@@ -1814,7 +1818,7 @@
          ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
          IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
             MPOC = ( Spc(I,J,L,id_OCPI) + Spc(I,J,L,id_OCPO) ) * FAC
-            MPOC = MPOC * OCFOPOA(I,J)
+            MPOC = MPOC * State_Chm%OCFOPOA(I,J)
          ELSE
             ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
             MPOC = 1e-30_fp
@@ -1898,8 +1902,10 @@
                JHC = PARENTPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
-                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA(I,J)
-                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA(I,J)
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / 
+     &                               State_Chm%OCFPOA(I,J)
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / 
+     &                               State_Chm%OCFPOA(I,J)
                ENDDO
             ENDIF
 
@@ -1909,8 +1915,10 @@
                JHC = PARENTOPOA
                JSV = IDSV(JHC)
                DO IPR = 1, NPROD(JSV)
-                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA(I,J)
-                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA(I,J)
+                  ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / 
+     &                               State_Chm%OCFOPOA(I,J)
+                  ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / 
+     &                               State_Chm%OCFOPOA(I,J)
                ENDDO
             ENDIF
 
@@ -6369,6 +6377,7 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  08 Aug 2018 - H.P. Lin    - OCFPOA and OCFOPOA are now in State_Chm_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6413,10 +6422,10 @@ ccc
       ! Add primary material as appropriate
       IF ( id_POA1 > 0 ) THEN
          MOTEMP = MOTEMP              +
-     &            Spc(I,J,L,id_POA1 ) * OCFPOA(I,J)  +
-     &            Spc(I,J,L,id_POA2 ) * OCFPOA(I,J)  +
-     &            Spc(I,J,L,id_OPOA1) * OCFOPOA(I,J) +
-     &            Spc(I,J,L,id_OPOA2) * OCFOPOA(I,J)
+     &            Spc(I,J,L,id_POA1 ) * State_Chm%OCFPOA(I,J)  +
+     &            Spc(I,J,L,id_POA2 ) * State_Chm%OCFPOA(I,J)  +
+     &            Spc(I,J,L,id_OPOA1) * State_Chm%OCFOPOA(I,J) +
+     &            Spc(I,J,L,id_OPOA2) * State_Chm%OCFOPOA(I,J)
       ELSEIF ( id_OCPI > 0 ) THEN
          MOTEMP = MOTEMP +
      &           ( Spc(I,J,L,id_OCPI) + 

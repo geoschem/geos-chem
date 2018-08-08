@@ -252,7 +252,6 @@
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
-      USE Aerosol_Mod,        ONLY : PM25
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -871,7 +870,7 @@
                !--------------------------------------
                ! PM 2.5, ug/m3 at STP
                !--------------------------------------
-               Q(X,Y,K,W) = Q(X,Y,K,W) + PM25(I,J,L)
+               Q(X,Y,K,W) = Q(X,Y,K,W) + State_Chm%PM25(I,J,L)
                
             ELSE
 
