@@ -118,7 +118,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
@@ -154,6 +153,7 @@
 !                              BC from HEMCO
 !  03 Mar 2015 - C. Keller   - Now do dry-deposition always outside of chempops
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  02 Aug 2018 - H.P. Lin    - Now use State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -245,11 +245,11 @@
          
             ! Dry deposition active for both POP-Gas and POP-Particle; 
             ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
-     &                       DEPSAV(:,:,dd_POPP_OCPO),
-     &                       DEPSAV(:,:,dd_POPP_OCPI), 
-     &                       DEPSAV(:,:,dd_POPP_BCPO),
-     &                       DEPSAV(:,:,dd_POPP_BCPI),
+            CALL CHEM_POPGP( State_Chm%DEPSAV(:,:,dd_POPG), 
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPI), 
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
@@ -258,9 +258,9 @@
      &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
-     &                       DEPSAV(:,:,dd_POPP_OCPO),
-     &                       DEPSAV(:,:,dd_POPP_OCPI),
+            CALL CHEM_POPGP( State_Chm%DEPSAV(:,:,dd_POPG), 
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       am_I_Root, Input_Opt, State_Met,
@@ -271,11 +271,11 @@
      &            dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
+            CALL CHEM_POPGP( State_Chm%DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL, 
-     &                       DEPSAV(:,:,dd_POPP_BCPO),
-     &                       DEPSAV(:,:,dd_POPP_BCPI),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
          
@@ -284,7 +284,7 @@
      &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
+            CALL CHEM_POPGP( State_Chm%DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
@@ -298,10 +298,10 @@
 
             ! Only POPP dry deposition is active
             CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,dd_POPP_OCPO), 
-     &                       DEPSAV(:,:,dd_POPP_OCPI),
-     &                       DEPSAV(:,:,dd_POPP_BCPO),
-     &                       DEPSAV(:,:,dd_POPP_BCPI),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPO), 
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPI),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 
@@ -311,8 +311,8 @@
 
             ! Only POPP_OC dry deposition is active
             CALL CHEM_POPGP( ZERO_DVEL,
-     &                       DEPSAV(:,:,dd_POPP_OCPO),
-     &                       DEPSAV(:,:,dd_POPP_OCPI),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       am_I_Root, Input_Opt, State_Met,
@@ -326,8 +326,8 @@
             CALL CHEM_POPGP( ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       DEPSAV(:,:,dd_POPP_BCPO),
-     &                       DEPSAV(:,:,dd_POPP_BCPI),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPO),
+     &                       State_Chm%DEPSAV(:,:,dd_POPP_BCPI),
      &                       am_I_Root, Input_Opt, State_Met,
      &                       State_Chm, RC )
 

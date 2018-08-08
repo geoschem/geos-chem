@@ -21,7 +21,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -84,6 +83,7 @@
 !                              species ID from State_Chm%Map_Advect.
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  04 Jan 2018 - M. Sulprizio- Now accept State_Diag as an argument
+!  02 Aug 2018 - H.P. Lin    - Now use State_Chm%DEPSAV
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -467,7 +467,8 @@ c     &           'FLUX  AD44'
 ! (ckeller, 3/5/15)
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
-            RKT = DEPSAV(I,J,DRYD(BIN))* GET_FRAC_UNDER_PBLTOP( I, J, L)
+            RKT = State_Chm%DEPSAV(I,J,DRYD(BIN))
+     &            * GET_FRAC_UNDER_PBLTOP( I, J, L )
 !debug            if(i==ii .and. j==jj .and. L==1) 
 c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF (RKT > 0d0) THEN 
@@ -531,7 +532,8 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
-         RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
+         RKT = State_Chm%DEPSAV(I,J,H2SO4ID)
+     &         * GET_FRAC_UNDER_PBLTOP( I, J, L )
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
 #if defined( BPCH_DIAG )

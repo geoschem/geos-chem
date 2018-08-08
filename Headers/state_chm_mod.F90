@@ -155,6 +155,11 @@ MODULE State_Chm_Mod
                                                         ! [unitless]
 
      !----------------------------------------------------------------------
+     ! For dry deposition
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: DEPSAV     (:,:,:  ) ! Drydep frequencies [s-1]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -208,6 +213,7 @@ MODULE State_Chm_Mod
 !  03 Aug 2018 - H.P. Lin    - Add nChmState counter for # of chemistry states
 !                              initialized in this CPU, to avoid deallocating
 !                              shared pointers (e.g. species info) until last
+!  08 Aug 2018 - H.P. Lin    - Add DEPSAV from drydep_mod.F to allow re-init
 !EOP
 !------------------------------------------------------------------------------
 !BOC
