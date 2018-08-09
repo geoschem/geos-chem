@@ -3708,6 +3708,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  08 Aug 2018 - C. Keller: Added check for range/exact data
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3720,6 +3721,7 @@ CONTAINS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
+    INTEGER            :: cYr,    cMt,    cDy,    cHr 
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:)
@@ -3776,6 +3778,12 @@ CONTAINS
        RETURN 
     ENDIF
 
+    ! Get the preferred times, i.e. the preferred year, month, day, 
+    ! or hour (as specified in the configuration file).
+    CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
+                               prefMt, prefDy, prefHr, prefMn, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! ---------------------------------------------------------------- 
     ! For masks, assume that values represent the corners of the mask
     ! box, e.g. there must be four values. Masks are time-independent
@@ -3825,12 +3833,6 @@ CONTAINS
           IDX2 = N
 
        ELSE
-          ! Get the preferred times, i.e. the preferred year, month, day, 
-          ! or hour (as specified in the configuration file).
-          CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
-                                     prefMt, prefDy, prefHr, prefMn, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-      
           ! Currently, data read directly from the configuration file can only
           ! represent one time dimension, i.e. it can only be yearly, monthly,
           ! daily (or hourly data, but this is read all at the same time). 
@@ -3905,7 +3907,35 @@ CONTAINS
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-    
+   
+       ! Check for range/exact flag
+       ! If range is given, the preferred Yr/Mt/Dy/Hr will be negative
+       ! if we are outside the desired range.
+       IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
+          IF ( prefYr == -1 .OR. prefMt == -1 .OR. prefDy == -1 ) IDX1 = -1
+          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 )     IDX1 = -1       
+
+       ! If flag is exact, the preferred date must be equal to the current
+       ! simulation date. 
+       ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
+          IF ( Lct%Dct%Dta%ncYrs(1) > 0 ) THEN
+             IF ( prefYr < Lct%Dct%Dta%ncYrs(1) .OR. &
+                  prefYr > Lct%Dct%Dta%ncYrs(2) ) IDX1 = -1 
+          ENDIF
+          IF ( Lct%Dct%Dta%ncMts(1) > 0 ) THEN
+             IF ( prefMt < Lct%Dct%Dta%ncMts(1) .OR. &
+                  prefMt > Lct%Dct%Dta%ncMts(2) ) IDX1 = -1 
+          ENDIF
+          IF ( Lct%Dct%Dta%ncDys(1) > 0 ) THEN
+             IF ( prefDy < Lct%Dct%Dta%ncDys(1) .OR. &
+                  prefDy > Lct%Dct%Dta%ncDys(2) ) IDX1 = -1 
+          ENDIF
+          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 ) THEN
+             IF ( prefHr < Lct%Dct%Dta%ncHrs(1) .OR. &
+                  prefHr > Lct%Dct%Dta%ncHrs(2) ) IDX1 = -1 
+          ENDIF
+       ENDIF
+ 
        ! IDX1 becomes -1 for data that is outside of the valid range
        ! (and no time cycling enabled). In this case, make sure that
        ! scale factor is set to zero.

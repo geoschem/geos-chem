@@ -94,6 +94,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  08 Aug 2018 - C. Keller - Add extra checks for 'exact' and 'range' fields.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -151,6 +152,33 @@ CONTAINS
        intv = 6
     ENDIF
 
+    ! Special handling of data with 'EXACT' or 'RANGE' flag:
+    ! These data sets should be evaluated whenever the data
+    ! changes (to see if it still falls within the selected
+    ! time window).
+    IF ( Dct%Dta%CycleFlag == HCO_CFLAG_RANGE .OR. &
+         Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
+       IF ( intv == 6 ) THEN
+          IF ( Dct%Dta%ncHrs(1) == -1 .OR. &
+               Dct%Dta%ncHrs(1) /= Dct%Dta%ncHrs(2) ) THEN
+             intv = 2
+          ELSEIF ( Dct%Dta%ncDys(1) == -1 .OR. &
+               Dct%Dta%ncDys(1) /= Dct%Dta%ncDys(2) ) THEN
+             intv = 3
+          ELSEIF ( Dct%Dta%ncMts(1) == -1 .OR. &
+               Dct%Dta%ncMts(1) /= Dct%Dta%ncMts(2) ) THEN
+             intv = 4
+          ELSEIF ( Dct%Dta%ncYrs(1) == -1 .OR. &
+               Dct%Dta%ncYrs(1) /= Dct%Dta%ncYrs(2) ) THEN
+             intv = 5
+          ! Read always 
+          ELSE
+             intv = 1
+          ENDIF
+       ENDIF
+    ENDIF
+
+    ! Add to ReadList according to interval flag
     IF (     intv == 1 ) THEN 
        CALL DtCont_Add( HcoState%ReadLists%Always, Dct ) 
     ELSEIF ( intv == 2 ) THEN 
