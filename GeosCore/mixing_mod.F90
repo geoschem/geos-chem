@@ -144,7 +144,7 @@ CONTAINS
 
     ENDIF
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !-----------------------------------------------------------------------
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height
@@ -153,6 +153,10 @@ CONTAINS
     ! In ESMF mode this routine should not be called during the init
     ! stage: the required met quantities are not yet defined.
     ! (ckeller, 11/23/16)
+    !
+    ! In GC-WRF, which uses the same entry-point as the GEOS-5 GCM, the
+    ! required met quantities are also not defined until GIGC_Chunk_Run,
+    ! so also skip this here (hplin, 8/9/18)
     !-----------------------------------------------------------------------
     CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
 

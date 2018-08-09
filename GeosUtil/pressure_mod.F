@@ -35,7 +35,7 @@
       PUBLIC  :: CLEANUP_PRESSURE
 
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       PUBLIC  :: Accept_External_Pedge
 #endif
 !
@@ -103,7 +103,7 @@
       REAL(fp), ALLOCATABLE :: PFLT_WET(:,:)          ! "Floating" wet sfc pres
       REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
                                                       !  external grid
 #endif
@@ -329,7 +329,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -608,7 +608,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0e+0_fp
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0e+0_fp
@@ -770,8 +770,8 @@
       
 #endif
       
-#if !defined( ESMF_ ) 
-      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
+#if !defined( ESMF_ ) && !defined( MODEL_ )
+      ! Echo info to std output (skip if interfacing with external models)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
@@ -812,14 +812,13 @@
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
       IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
-!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

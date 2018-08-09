@@ -1,5 +1,13 @@
 !BOC
-#if !defined(ESMF_)
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( MODEL_ )
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !        %%%% GEOS-Chem Coupled with External Models %%%%
+      !
+      ! When GEOS-Chem is connected to an external model or in GCHP,
+      ! the GEOS-Chem classic main.F should not be built.
+      !-----------------------------------------------------------------
+#else
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
