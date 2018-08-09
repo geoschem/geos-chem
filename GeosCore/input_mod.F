@@ -2657,6 +2657,9 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LLINOZ
 
+      ! Use Synoz if Linoz is turned off
+      IF ( .not. Input_Opt%LLINOZ ) Input_Opt%LSYNOZ = .TRUE.
+
       ! Turn on unified strat-trop chemistry?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LUCX', RC )
       IF ( RC /= GC_SUCCESS ) THEN
