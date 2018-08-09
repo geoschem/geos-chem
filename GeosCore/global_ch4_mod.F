@@ -1210,11 +1210,6 @@
       USE DIAG_MOD,           ONLY : AD19
 #endif
       USE ErrCode_Mod
-!-----------------------------------------------------------------------------
-! Prior to 12/11/17:
-! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
-!      USE ERROR_MOD,          ONLY : CHECK_SPC
-!-----------------------------------------------------------------------------
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
@@ -1344,14 +1339,6 @@
 !$OMP END PARALLEL DO
 
       ENDIF ! not LUCX (SDE 03/25/13)
-
-!----------------------------------------------------------------------------
-! Prior to 12/11/17:
-! Comment this out to speed up GEOS-Chem (bmy, 12/11/17)
-!      ! Check Spc for negatives and NaN
-!      CALL CHECK_SPC( State_Chm, Input_Opt,
-!     &                'IN global_ch4_mod.F: CH4_STRAT' )
-!----------------------------------------------------------------------------
 
       ! Free pointer
       Spc => NULL()
@@ -1524,11 +1511,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BAIRDENS' )
       BAIRDENS = 0e+0_fp
 
-!------------------------------------------------------------------
-! Prior to 1/12/18:
-! Remove dependence on PD58 (bmy, 1/12/18)
-!      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, PD58), STAT=AS )
-!------------------------------------------------------------------
       ALLOCATE( CH4_EMIS( IIPAR, JJPAR, 15 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
       CH4_EMIS = 0e+0_fp

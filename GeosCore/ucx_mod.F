@@ -1344,32 +1344,6 @@
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
-!------------------------------------------------------------------------------
-! Prior to 1/18/18:
-! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
-!                  ! Get the 4 major mixing ratios
-!                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-!     &                             MR90S, MR30S, MR30N, MR90N,
-!     &                             am_I_Root, Input_Opt )
-!                  ! Figure out which box each is in
-!                  DO I=1,IIPAR   
-!                  DO J=1,JJPAR   
-!                     ! Grid-box latitude index
-!                     YLAT  = GET_YMID( I,J,1 )
-!                     IF ( YLAT < -30e+0_fp ) THEN
-!                        GRID_EMIT(I,J,N) = MR90S
-!                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
-!     &                THEN
-!                        GRID_EMIT(I,J,N) = MR30S
-!                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
-!     &                THEN
-!                        GRID_EMIT(I,J,N) = MR30N
-!                     ELSE
-!                        GRID_EMIT(I,J,N) = MR90N
-!                     ENDIF
-!                  ENDDO
-!                  ENDDO
-!------------------------------------------------------------------------------
                   ! Now obtain monthly mean surface CH4 concentrations
                   ! in main.F (mps, 1/18/18)
                CASE DEFAULT
@@ -1415,32 +1389,6 @@
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
-!------------------------------------------------------------------------------
-! Prior to 1/18/18:
-! We now obtain monthly mean surface CH4 concentrations in main.F (mps, 1/18/18)
-!                  ! Get the 4 major mixing ratios
-!                  CALL GET_UCX_CH4(CFCYEAR+OFFSETYEAR,
-!     &                             MR90S, MR30S, MR30N, MR90N,
-!     &                             am_I_Root, Input_Opt )
-!                  ! Figure out which box each is in
-!                  DO I=1,IIPAR   
-!                  DO J=1,JJPAR   
-!                     ! Grid-box latitude index
-!                     YLAT  = GET_YMID( I,J,1 )
-!                     IF ( YLAT < -30e+0_fp ) THEN
-!                        GRID_EMIT(I,J,N) = MR90S
-!                     ELSE IF ( YLAT >= -30e+0_fp .and. YLAT < 0e+0_fp  )
-!     &                THEN
-!                        GRID_EMIT(I,J,N) = MR30S
-!                     ELSE IF ( YLAT >=   0e+0_fp .and. YLAT < 30e+0_fp )
-!     &                THEN
-!                        GRID_EMIT(I,J,N) = MR30N
-!                     ELSE
-!                        GRID_EMIT(I,J,N) = MR90N
-!                     ENDIF
-!                  ENDDO
-!                  ENDDO
-!------------------------------------------------------------------------------
                   ! Now obtain monthly mean surface CH4 concentrations
                   ! in main.F (mps, 1/18/18)
                CASE DEFAULT
