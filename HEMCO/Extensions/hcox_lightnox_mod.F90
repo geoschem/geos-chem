@@ -907,14 +907,6 @@ CONTAINS
        ! Get lightnox flash rate per minute and IC/CG ratio
        CALL FLASHES_CTH( I, J, H0, FLASHRATE, SFCTYPE ) 
 
-       ! Do not allow flash density to become unrealistically high
-       ! Globally limit the flash rate to its highest observed value
-       ! of 4.2e-3 flashes / km2 / s from the ENTLN global product
-       ! (ltm, mps, 8/9/18)
-       IF ( ( FLASHRATE / 60. / A_KM2 ) > 0.004177159 ) THEN
-            FLASHRATE = 0.004177159 * 60. * A_KM2
-       END IF
-
        !===========================================================
        ! (6) COMPUTE TOTAL LNOx AND PARTITION INTO VERTICAL LAYERS
        ! 
@@ -1026,6 +1018,14 @@ CONTAINS
        END IF ! LTOP    >  0 
        END IF ! LCHARGE >  1 
 
+       ! Do not allow flash density to become unrealistically high
+       ! Globally limit the flash rate to its highest observed value
+       ! of 4.2e-3 flashes / km2 / s from the ENTLN global product
+       ! (ltm, mps, 8/9/18)
+       IF ( ( RATE / 21600. / A_KM2 ) > 0.004177159 ) THEN
+          RATE = 0.004177159 * 21600. * A_KM2
+       END IF
+       
        !-----------------------------------------------------------
        ! Eventually overwrite with values determined from imported
        ! flash rate 
