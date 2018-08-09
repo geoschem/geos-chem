@@ -723,7 +723,53 @@ END SUBROUTINE ComputeFamilies
 ! End of ComputeFamilies function
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+! Get_OHreactivity - returns the OH reactivity
+! The OH reactivity is defined as the inverse of its lifetime.
+! This routine was auto-generated using script OHreact_parser.py.
+! Generated on 2018-08-09
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
+
+! CC - Concentrations of species (local)
+  REAL(kind=dp) :: CC(NSPEC)
+! RR - reaction rates (local)
+  REAL(kind=dp) :: RR(NREACT)
+! OHreact - OH reactivity [s-1]
+  REAL(kind=dp) :: OHreact
+
+  OHreact = RR(2)*CC(224) + 2*RR(6) + 2*RR(7) + RR(8)*CC(233) + RR(9)*CC(173) &
+          + RR(12)*CC(232) + RR(13)*CC(151) + RR(18)*CC(122) + RR(19)*CC(122) + RR(20)*CC(114) &
+          + RR(21)*CC(114) + RR(22)*CC(213) + RR(23)*CC(225) + RR(24)*CC(189) + RR(25)*CC(226) &
+          + RR(26)*CC(95) + RR(29)*CC(93) + RR(32)*CC(228) + RR(35)*CC(177) + RR(36)*CC(235) &
+          + RR(39)*CC(214) + RR(44)*CC(135) + RR(46)*CC(108) + RR(47)*CC(108) + RR(50)*CC(102) &
+          + RR(75)*CC(196) + RR(82)*CC(205) + RR(83)*CC(193) + RR(84)*CC(210) + RR(94)*CC(199) &
+          + RR(108)*CC(211) + RR(124)*CC(128) + RR(125)*CC(146) + RR(134)*CC(209) + RR(136)*CC(134) &
+          + RR(137)*CC(140) + RR(139)*CC(28) + RR(140)*CC(191) + RR(141)*CC(191) + RR(143)*CC(157) &
+          + RR(144)*CC(198) + RR(147)*CC(174) + RR(148)*CC(215) + RR(149)*CC(212) + RR(150)*CC(206) &
+          + RR(151)*CC(206) + RR(166)*CC(142) + RR(167)*CC(142) + RR(168)*CC(100) + RR(169)*CC(80) &
+          + RR(170)*CC(86) + RR(171)*CC(87) + RR(172)*CC(104) + RR(173)*CC(98) + RR(174)*CC(99) &
+          + RR(175)*CC(129) + RR(176)*CC(120) + RR(177)*CC(130) + RR(178)*CC(129) + RR(179)*CC(120) &
+          + RR(180)*CC(130) + RR(181)*CC(18) + RR(182)*CC(63) + RR(183)*CC(64) + RR(184)*CC(58) &
+          + RR(187)*CC(110) + RR(188)*CC(113) + RR(189)*CC(126) + RR(190)*CC(126) + RR(191)*CC(125) &
+          + RR(192)*CC(125) + RR(200)*CC(70) + RR(239)*CC(90) + RR(240)*CC(90) + RR(242)*CC(217) &
+          + RR(246)*CC(218) + RR(251)*CC(115) + RR(254)*CC(208) + RR(263)*CC(74) + RR(264)*CC(78) &
+          + RR(265)*CC(92) + RR(277)*CC(234) + RR(278)*CC(220) + RR(283)*CC(67) + RR(318)*CC(147) &
+          + RR(320)*CC(227) + RR(321)*CC(227) + RR(322)*CC(96) + RR(323)*CC(76) + RR(324)*CC(219) &
+          + RR(325)*CC(195) + RR(326)*CC(79) + RR(327)*CC(197) + RR(328)*CC(91) + RR(329)*CC(72) &
+          + RR(330)*CC(77) + RR(331)*CC(36) + RR(332)*CC(89) + RR(333)*CC(83) + RR(334)*CC(84) &
+          + RR(335)*CC(82) + RR(400)*CC(149) + RR(401)*CC(69) + RR(402)*CC(111) + RR(409)*CC(42) &
+          + RR(410)*CC(200) + RR(414)*CC(190) + RR(415)*CC(150) + RR(420)*CC(123) + RR(421)*CC(158) &
+          + RR(422)*CC(172) + RR(427)*CC(119) + RR(431)*CC(117) + RR(436)*CC(127) + RR(437)*CC(164) &
+          + RR(477)*CC(41) + RR(478)*CC(48) + RR(479)*CC(88) + RR(487)*CC(132) + RR(488)*CC(133) &
+          + RR(498)*CC(139) + RR(506)*CC(103) + RR(520)*CC(148) + RR(521)*CC(160) + RR(525)*CC(118) &
+          + RR(526)*CC(112) + RR(527)*CC(105)
+
+END SUBROUTINE Get_OHreactivity
+! End of Get_OHreactivity subroutine 
+! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 END MODULE gckpp_Util
 

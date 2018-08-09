@@ -600,8 +600,12 @@
          kgN2O = Spc(I,J,L,id_N2O)
 
          ! Get local concentrations in molec/cm3
+#if defined( DISCOVER )
+         OLD_N   = 0.0_fp 
+#else
          OLD_N   = Spc(I,J,L,id_N) * 
      &    (AIRMW / State_Chm%SpcData(id_N)%Info%emMW_g) * XAIR
+#endif
          OLD_NO   = Spc(I,J,L,id_NO) * 
      &    (AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR
          OLD_NO2   = Spc(I,J,L,id_NO2) * 
@@ -740,10 +744,16 @@
          EndIf ! DayFrac < 0
 
          ! Convert to kg
+#if defined( DISCOVER )
+         NEW_N  = 0.0e+0_fp
+         NEW_NO = localNOx*(fracN+fracNO) / (AIRMW/
+     &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+#else
          NEW_N   = localNOx*fracN  /(AIRMW/
      &                State_Chm%SpcData(id_N  )%Info%emMW_g * XAIR)
          NEW_NO  = localNOx*fracNO /(AIRMW/
      &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
+#endif
          NEW_NO2 = localNOx*fracNO2/(AIRMW/
      &                State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
          NEW_NO3 = localNOx*fracNO3/(AIRMW/

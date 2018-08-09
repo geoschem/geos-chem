@@ -84,7 +84,7 @@ CONTAINS
                               value_J_HI,      value_IM,        &
                               value_JM,        value_LM,        &
                               value_IM_WORLD,  value_JM_WORLD,  &
-                              value_LM_WORLD )
+                              value_LM_WORLD,  value_LLSTRAT )
 !
 ! !USES:
 !
@@ -113,6 +113,7 @@ CONTAINS
     INTEGER,        OPTIONAL      :: value_IM_WORLD   ! Global # of lons
     INTEGER,        OPTIONAL      :: value_JM_WORLD   ! Global # of lats
     INTEGER,        OPTIONAL      :: value_LM_WORLD   ! Global # of levels
+    INTEGER,        OPTIONAL      :: value_LLSTRAT    ! # of strat. levels
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -183,8 +184,8 @@ CONTAINS
 
 #if defined( DISCOVER )
     ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
-    LLSTRAT = Input_Opt%LLSTRAT
-    IF ( LLSTRAT <= 0 ) LLSTRAT = 59
+!    LLSTRAT = Input_Opt%LLSTRAT
+!    IF ( LLSTRAT <= 0 ) LLSTRAT = 59
 
     ! 132 layers
     LLTROP = 40
@@ -207,10 +208,10 @@ CONTAINS
                         value_LM_WORLD = value_LM_WORLD,  &
 #if defined( DISCOVER )
                         value_LLTROP   = LLTROP,          &
-                        value_LLSTRAT  = LLSTRAT          )
+                        value_LLSTRAT  = value_LLSTRAT )
 #else
                         value_LLTROP   = 40,              &
-                        value_LLSTRAT  = 59               )
+                        value_LLSTRAT  = 59            )
 #endif
 
     ! Trap potential errors

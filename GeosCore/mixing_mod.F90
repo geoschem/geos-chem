@@ -238,6 +238,11 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
+    ! Is the drydep flux from mixing diagnostic turned on or if
+    ! total drydep flux which requires the contribution from mixing
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                        ASSOCIATED( State_Diag%DryDep )
+
     ! Initialize the diagnostic array for the History Component.  This will 
     ! prevent leftover values from being carried over to this timestep.
     ! (For example, if on the last iteration, the PBL height was higher than
@@ -462,6 +467,11 @@ CONTAINS
     LDRYD      = Input_Opt%LDRYD 
     PBL_DRYDEP = Input_Opt%PBL_DRYDEP
     nAdvect    = State_Chm%nAdvect
+
+    ! Is the drydep flux from mixing diagnostic turned on or if
+    ! total drydep flux which requires the contribution from mixing
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                        ASSOCIATED( State_Diag%DryDep )
 
     ! Initialize pointer
     SpcInfo    => NULL()

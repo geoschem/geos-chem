@@ -134,6 +134,9 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
+#if defined( DISCOVER )
+    USE GcKPP_Util,           ONLY : Get_OHreactivity
+#endif
     USE GC_GRID_MOD,          ONLY : GET_YMID
     USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -263,8 +266,10 @@ CONTAINS
     LOGICAL                :: DO_HETCHEM
 
 #if defined( DISCOVER )
-    ! testing only
-    REAL(dp) :: Vloc(NVAR), Aout(NREACT)
+    ! OH reactivity
+    LOGICAL                :: DoOHreact
+    REAL(fp)               :: OHreact
+    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
 #endif
 
     !=======================================================================
@@ -314,6 +319,13 @@ CONTAINS
    
     ! testing only
     IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRates(:,:,:,:) = 0.0 
+
+    ! OH reactivity
+    DoOHreact = .FALSE.
+    IF ( ASSOCIATED(State_Diag%OHreactivity) ) THEN
+       DoOHreact = .TRUE.
+       State_Diag%OHreactivity(:,:,:) = 0.0
+    ENDIF
 #endif 
 
     !=======================================================================
@@ -537,6 +549,13 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
+#if defined( DISCOVER )
+    ! Init diagnostics
+    IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+       State_Diag%KppError(:,:,:) = 0.0
+    ENDIF
+#endif
+
     !=======================================================================
     ! Set up integration convergence conditions and timesteps
     ! (cf. M. J. Evans)
@@ -637,7 +656,7 @@ CONTAINS
     !$OMP PRIVATE  ( SO4_FRAC, IERR,  RCNTRL, START, FINISH, ISTATUS        )&
     !$OMP PRIVATE  ( RSTATE,   SpcID, KppID,  F,     P                      )&
 #if defined( DISCOVER )
-    !$OMP PRIVATE  ( Vloc,     Aout                                         )&
+    !$OMP PRIVATE  ( Vloc,     Aout, OHreact                                )&
 #endif
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
@@ -960,6 +979,16 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
+#if defined( DISCOVER )
+       ! Print grid box indices to screen if integrate failed
+       IF ( IERR < 0 ) THEN
+          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+          IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+             State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+          ENDIF
+       ENDIF
+#endif
+
 !#if defined( DEVEL )
 !       ! Get time when integrator ends
 !       CALL CPU_TIME( finish )
@@ -1003,7 +1032,20 @@ CONTAINS
           IF ( IERR < 0 ) THEN 
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
+#if defined( DISCOVER )
+             IF ( Input_Opt%KppStop ) THEN
+                CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+             ! Revert to start values
+             ELSE
+                VAR = C(1:NVAR)
+                FIX = C(NVAR+1:NSPEC)
+             ENDIF
+             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+                State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+             ENDIF
+#else
              CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+#endif
           ENDIF
             
        ENDIF
@@ -1131,6 +1173,19 @@ CONTAINS
              KppID                    = State_Chm%Map_Prod(F)
              State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
           ENDDO
+       ENDIF
+#endif
+
+#if defined( DISCOVER )
+       !==============================================================
+       ! Write out OH reactivity
+       ! The OH reactivity is defined here as the inverse of its life-
+       ! time. In a crude ad-hoc approach, manually add all OH reactants
+       ! (ckeller, 9/20/2017)
+       !==============================================================
+       IF ( DoOHreact ) THEN
+          CALL Get_OHreactivity ( C, RCONST, OHreact )
+          State_Diag%OHreactivity(I,J,L) = OHreact
        ENDIF
 #endif
 

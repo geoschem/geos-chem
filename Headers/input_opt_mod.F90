@@ -515,7 +515,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: haveImpRst   = .FALSE.
      LOGICAL                     :: AlwaysSetH2O = .TRUE.
      LOGICAL                     :: UseOnlineVUD = .FALSE.
-     INTEGER                     :: LLSTRAT      = 59
+!     INTEGER                     :: LLSTRAT      = 59
      INTEGER                     :: LLFASTJX     = 601
      INTEGER                     :: NN_RxnRates             ! # of diagnosed reaction rates
      INTEGER, POINTER            :: RxnRates_IDs(:)         ! Reaction rate numbers to be diagnosed
@@ -525,6 +525,7 @@ MODULE Input_Opt_Mod
      INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
      INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE. 
+     LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #else
      LOGICAL                     :: haveImpRst
 #endif

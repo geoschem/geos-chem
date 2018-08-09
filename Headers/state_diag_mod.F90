@@ -101,6 +101,8 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
 #if defined( DISCOVER )
      REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
+     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity 
+     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
 #endif
 
      ! Aerosol characteristics
@@ -443,6 +445,8 @@ CONTAINS
     State_Diag%BetaNO                     => NULL()
 #if defined( DISCOVER )
     State_Diag%CH4pseudoflux              => NULL()
+    State_Diag%OHreactivity               => NULL()
+    State_Diag%KppError                   => NULL()
 #endif
     State_Diag%PM25                       => NULL()
 #if defined( DISCOVER )
@@ -601,6 +605,10 @@ CONTAINS
     arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+#if defined( DISCOVER )
+    ! DryDepVel is needed by some other diagnostics, always use
+    Found = .TRUE.
+#endif
     IF ( Found ) THEN
        if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
@@ -619,6 +627,8 @@ CONTAINS
     arrayID = 'State_Diag%DryDepRa2m'
     diagID  = 'DryDepRa2m'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    ! DryDepRa2m is needed by some other diagnostics, always use
+    Found = .TRUE.
     IF ( Found ) THEN
        IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepRa2m( IM, JM ), STAT=RC )
@@ -636,6 +646,8 @@ CONTAINS
     arrayID = 'State_Diag%DryDepRa10m'
     diagID  = 'DryDepRa10m'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    ! DryDepRa10m is needed by some other diagnostics, always use
+    Found = .TRUE.
     IF ( Found ) THEN
        IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepRa10m( IM, JM ), STAT=RC )
@@ -1622,6 +1634,42 @@ CONTAINS
           State_Diag%CH4pseudoFlux = 0.0_f4
           CALL Register_DiagField( am_I_Root, diagID,                     &
                                    State_Diag%CH4pseudoFlux,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! OH reactivity 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OH_reactivity'
+       diagID  = 'OH_reactivity'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHreactivity = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHreactivity,                  &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! KPP error flag 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%KppError'
+       diagID  = 'KppError'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppError( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppError = 0.0_f4
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppError,                      &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -3710,6 +3758,18 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
+       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%OH_reactivity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
+       DEALLOCATE( State_Diag%KppError, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
@@ -4294,6 +4354,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OH_REACTIVITY' ) THEN
+       IF ( isDesc    ) Desc  = 'OH_reactivity'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
+       IF ( isDesc    ) Desc  = 'KppError'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
 #endif
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' ) THEN
