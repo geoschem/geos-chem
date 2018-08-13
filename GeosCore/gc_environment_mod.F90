@@ -1100,7 +1100,7 @@ CONTAINS
     ENDIF
 
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
-    CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
+    CALL Init_Diag_OH( am_I_Root, Input_Opt, State_Chm, RC )
 
 #if !defined( ESMF_ )
     !--------------------------------------------------------------------

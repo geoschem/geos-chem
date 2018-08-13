@@ -250,6 +250,19 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DELTASOGSAVE(:,:,:,:,:)
 
      !----------------------------------------------------------------------
+     ! For DIAG_OH
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: OH_MASS    (:,:,:  )
+     REAL(fp),          POINTER :: AIR_MASS   (:,:,:  )
+     REAL(fp),          POINTER :: OH_LOSS    (:,:,:  )
+     REAL(fp),          POINTER :: OHCH4_LOSS (:,:,:  )
+     REAL(fp),          POINTER :: CH4_MASS   (:,:,:  )
+     REAL(fp),          POINTER :: CH4_TROPMASS(:,:,:  )
+     REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  )
+
+
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -304,6 +317,7 @@ MODULE State_Chm_Mod
 !                              initialized in this CPU, to avoid deallocating
 !                              shared pointers (e.g. species info) until last
 !  08 Aug 2018 - H.P. Lin    - Add DEPSAV from drydep_mod.F to allow re-init
+!  13 Aug 2018 - H.P. Lin    - Add AEROSOL, CARBON, DIAG_OH_MOD vars
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1990,6 +2004,48 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%DELTASOGSAVE ) ) THEN
        DEALLOCATE( State_Chm%DELTASOGSAVE, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%DELTASOGSAVE', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OH_MASS ) ) THEN
+       DEALLOCATE( State_Chm%OH_MASS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OH_MASS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AIR_MASS ) ) THEN
+       DEALLOCATE( State_Chm%AIR_MASS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AIR_MASS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OH_LOSS ) ) THEN
+       DEALLOCATE( State_Chm%OH_LOSS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OH_LOSS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OHCH4_LOSS ) ) THEN
+       DEALLOCATE( State_Chm%OHCH4_LOSS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OHCH4_LOSS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CH4_MASS ) ) THEN
+       DEALLOCATE( State_Chm%CH4_MASS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH4_MASS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CH4_TROPMASS ) ) THEN
+       DEALLOCATE( State_Chm%CH4_TROPMASS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH4_TROPMASS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CH4_EMIS ) ) THEN
+       DEALLOCATE( State_Chm%CH4_EMIS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CH4_EMIS', 3, RC )
        RETURN
     ENDIF
 

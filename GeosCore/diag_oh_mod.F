@@ -24,7 +24,6 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-      PUBLIC  :: CLEANUP_DIAG_OH
       PUBLIC  :: DO_DIAG_OH
       PUBLIC  :: DO_DIAG_OH_CH4
       PUBLIC  :: INIT_DIAG_OH
@@ -43,15 +42,6 @@
 ! 
       ! Scalars
       LOGICAL               :: DO_SAVE_OH
-
-      ! Arrays 
-      REAL(f8), ALLOCATABLE :: OH_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: AIR_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: OH_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: OHCH4_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_MASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_EMIS(:,:,:)
       
       ! Species ID flags (formerly in tracerid_mod.F)
       INTEGER               :: id_OH
@@ -134,11 +124,11 @@
 
          ! Sum air mass term into AIR_MASS array
          XAIRMASS        = AIRDENS_8         * VOLUME_8
-         AIR_MASS(I,J,L) = AIR_MASS(I,J,L)   + XAIRMASS
+         State_Chm%AIR_MASS(I,J,L) = State_Chm%AIR_MASS(I,J,L)+ XAIRMASS
 
          ! Sum OH mass term into OH_MASS array
          XOHMASS         = State_Chm%Species(I,J,L,id_OH) * XAIRMASS
-         OH_MASS(I,J,L)  = OH_MASS(I,J,L)    + XOHMASS
+         State_Chm%OH_MASS(I,J,L) = State_Chm%OH_MASS(I,J,L) + XOHMASS
 
       ENDDO
       ENDDO
@@ -160,29 +150,32 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DIAG_OH_CH4( I, J, L, XOHMASS, XAIRMASS, XLOSS,
+      SUBROUTINE DO_DIAG_OH_CH4( State_Chm, 
+     &                   I, J, L, XOHMASS, XAIRMASS, XLOSS,
      &                   XCH4LOSS, XCH4TROPMASS, XCH4EMIS, XCH4MASS )
 !
 ! !USES:
 !
-
+      USE State_Chm_Mod,   ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,  INTENT(IN) :: I             ! Longitude index
-      INTEGER,  INTENT(IN) :: J             ! Latitude index
-      INTEGER,  INTENT(IN) :: L             ! Level index
-      REAL(fp), INTENT(IN) :: XOHMASS       ! OH Mass  (from global_ch4_mod.f)
-      REAL(fp), INTENT(IN) :: XAIRMASS      ! Air mass (from global_ch4_mod.f)
-      REAL(fp), INTENT(IN) :: XLOSS         ! Loss of ch3ccl3 by OH
-      REAL(fp), INTENT(IN) :: XCH4LOSS      ! Loss of ch4 by OH
-      REAL(fp), INTENT(IN) :: XCH4MASS      ! CH4 Mass  (from global_ch4_mod.f)
-      REAL(fp), INTENT(IN) :: XCH4TROPMASS  ! CH4 Mass  (from global_ch4_mod.f)
-      REAL(fp), INTENT(IN) :: XCH4EMIS      ! CH4 emissions
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State
+      INTEGER,        INTENT(IN)    :: I               ! Longitude index
+      INTEGER,        INTENT(IN)    :: J               ! Latitude index
+      INTEGER,        INTENT(IN)    :: L               ! Level index
+      REAL(fp),       INTENT(IN)    :: XOHMASS         ! OH Mass  (from global_ch4_mod.f)
+      REAL(fp),       INTENT(IN)    :: XAIRMASS        ! Air mass (from global_ch4_mod.f)
+      REAL(fp),       INTENT(IN)    :: XLOSS           ! Loss of ch3ccl3 by OH
+      REAL(fp),       INTENT(IN)    :: XCH4LOSS        ! Loss of ch4 by OH
+      REAL(fp),       INTENT(IN)    :: XCH4MASS        ! CH4 Mass  (from global_ch4_mod.f)
+      REAL(fp),       INTENT(IN)    :: XCH4TROPMASS    ! CH4 Mass  (from global_ch4_mod.f)
+      REAL(fp),       INTENT(IN)    :: XCH4EMIS        ! CH4 emissions
 ! 
 ! !REVISION HISTORY:
 !  07 Jul 2004 - R. Yantosca - Initial version
 !  15 Sep 2010 - R. Yantosca - Added ProTeX headers
+!  13 Aug 2018 - H.P. Lin    - Now use State_Chm variables
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,13 +184,20 @@
       !=================================================================
 
       ! Sum air mass & OH mass into arrays
-      AIR_MASS(I,J,L)     = AIR_MASS(I,J,L)     + XAIRMASS
-      OH_MASS(I,J,L)      = OH_MASS(I,J,L)      + XOHMASS
-      OH_LOSS(I,J,L)      = OH_LOSS(I,J,L)      + XLOSS
-      OHCH4_LOSS(I,J,L)   = OHCH4_LOSS(I,J,L)   + XCH4LOSS
-      CH4_MASS(I,J,L)     = CH4_MASS(I,J,L)     + XCH4MASS
-      CH4_TROPMASS(I,J,L) = CH4_TROPMASS(I,J,L) + XCH4TROPMASS
-      CH4_EMIS(I,J,L)     = CH4_EMIS(I,J,L)     + XCH4EMIS
+      State_Chm%AIR_MASS(I,J,L)     = State_Chm%AIR_MASS(I,J,L)     +
+     &                                XAIRMASS
+      State_Chm%OH_MASS(I,J,L)      = State_Chm%OH_MASS(I,J,L)      + 
+     &                                XOHMASS
+      State_Chm%OH_LOSS(I,J,L)      = State_Chm%OH_LOSS(I,J,L)      + 
+     &                                XLOSS
+      State_Chm%OHCH4_LOSS(I,J,L)   = State_Chm%OHCH4_LOSS(I,J,L)   +
+     &                                XCH4LOSS
+      State_Chm%CH4_MASS(I,J,L)     = State_Chm%CH4_MASS(I,J,L)     +
+     &                                XCH4MASS
+      State_Chm%CH4_TROPMASS(I,J,L) = State_Chm%CH4_TROPMASS(I,J,L) + 
+     &                                XCH4TROPMASS
+      State_Chm%CH4_EMIS(I,J,L)     = State_Chm%CH4_EMIS(I,J,L)     + 
+     &                                XCH4EMIS
 
       END SUBROUTINE DO_DIAG_OH_CH4
 !EOC
@@ -214,21 +214,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PRINT_DIAG_OH( am_I_Root, Input_Opt, RC )
+      SUBROUTINE PRINT_DIAG_OH( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  21 Oct 2003 - R. Yantosca - Initial version
@@ -236,6 +238,7 @@
 !  25 Jun 2014 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC
 !  25 Jun 2014 - R. Yantosca - Now remove references to tracer_mod.F
 !  08 Jan 2015 - M. Yannetti - Set variables to F8 as needed
+!  13 Aug 2018 - H.P. Lin    - Now use State_Chm arrays
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -267,25 +270,25 @@
       ! FLUSH (6)
       !END IF
       ! Total Mass-weighted OH [molec OH/cm3] * [molec air]
-      SUM_OHMASS = SUM( OH_MASS )
+      SUM_OHMASS = SUM( State_Chm%OH_MASS )
 
       ! Atmospheric air mass [molec air]
-      SUM_MASS   = SUM( AIR_MASS ) 
+      SUM_MASS   = SUM( State_Chm%AIR_MASS ) 
 
       ! OH Loss from CH3CCl3 + OH [molec / box / s]
-      SUM_OHLOSS = SUM( OH_LOSS )
+      SUM_OHLOSS = SUM( State_Chm%OH_LOSS )
 
       ! OH Loss from CH4 + OH [molec / box / s]
-      SUM_OHCH4LOSS = SUM( OHCH4_LOSS )
+      SUM_OHCH4LOSS = SUM( State_Chm%OHCH4_LOSS )
 
       ! Atmospheric mass of CH4
-      SUM_CH4MASS = SUM( CH4_MASS )
+      SUM_CH4MASS = SUM( State_Chm%CH4_MASS )
 
       ! Atmospheric mass of tropospheric CH4
-      SUM_CH4TROPMASS = SUM( CH4_TROPMASS )
+      SUM_CH4TROPMASS = SUM( State_Chm%CH4_TROPMASS )
 
       ! Atmospheric ch4 emissions
-      SUM_CH4EMIS = SUM( CH4_EMIS )
+      SUM_CH4EMIS = SUM( State_Chm%CH4_EMIS )
          
       ! Avoid divide-by-zero errors 
       IF ( SUM_MASS > 0e+0_fp ) THEN 
@@ -381,7 +384,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG_OH( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG_OH( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -390,16 +393,17 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Chm_Mod,      ONLY : Ind_, ChmState
 !
 ! !INPUT VARIABLES:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)     :: am_I_Root
+      TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)    :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  07 Jul 2004 - R. Yantosca - Initial version
@@ -410,6 +414,7 @@
 !  23 Jun 2016 - R. Yantosca - Now use Ind_() function for species ID's
 !  23 Jun 2016 - R. Yantosca - Now define species ID for OH in the INIT phase
 !  23 Jun 2016 - R. Yantosca - Bug fix: exit unless it's a fullchem or CH4 sim
+!  13 Aug 2018 - H.P. Lin    - Now store arrays in State_Chm_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -471,68 +476,35 @@
       !=================================================================
 
       ! Air mass array
-      ALLOCATE( AIR_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%AIR_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIR_MASS' )
-      AIR_MASS = 0e+0_fp
+      State_Chm%AIR_MASS = 0e+0_fp
 
       ! OH mass array
-      ALLOCATE( OH_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%OH_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_MASS' )
-      OH_MASS = 0e+0_fp
+      State_Chm%OH_MASS = 0e+0_fp
 
-      ALLOCATE( OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
-      OH_LOSS = 0e+0_fp
+      State_Chm%OH_LOSS = 0e+0_fp
 
-      ALLOCATE( OHCH4_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%OHCH4_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OHCH4_LOSS' )
-      OHCH4_LOSS = 0e+0_fp
+      State_Chm%OHCH4_LOSS = 0e+0_fp
 
-      ALLOCATE( CH4_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%CH4_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_MASS' )
-      CH4_MASS = 0e+0_fp
+      State_Chm%CH4_MASS = 0e+0_fp
 
-      ALLOCATE( CH4_TROPMASS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%CH4_TROPMASS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_TROPMASS' )
-      CH4_TROPMASS = 0e+0_fp
+      State_Chm%CH4_TROPMASS = 0e+0_fp
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, LMAX ), STAT=AS )
+      ALLOCATE( State_Chm%CH4_EMIS( IIPAR, JJPAR, LMAX ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
-      CH4_EMIS = 0e+0_fp
+      State_Chm%CH4_EMIS = 0e+0_fp
 
       END SUBROUTINE INIT_DIAG_OH
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_diag_oh
-!
-! !DESCRIPTION: Subroutine CLEANUP\_DIAG\_OH deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_DIAG_OH
-! 
-! !REVISION HISTORY: 
-!  07 Jul 2004 - R. Yantosca - Initial version
-!  15 Sep 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      !=================================================================
-      ! CLEANUP_DIAG_OH begins here!
-      !=================================================================
-      IF ( ALLOCATED( OH_MASS  ) ) DEALLOCATE( OH_MASS  )
-      IF ( ALLOCATED( AIR_MASS ) ) DEALLOCATE( AIR_MASS )
-      IF ( ALLOCATED( OH_LOSS  ) ) DEALLOCATE( OH_LOSS  )
-      IF ( ALLOCATED( OHCH4_LOSS  ) ) DEALLOCATE( OHCH4_LOSS  )
-      IF ( ALLOCATED( CH4_MASS  ) ) DEALLOCATE( CH4_MASS  )
-      IF ( ALLOCATED( CH4_TROPMASS  ) ) DEALLOCATE( CH4_TROPMASS  )
-      IF ( ALLOCATED( CH4_EMIS  ) ) DEALLOCATE( CH4_EMIS  )
-
-      END SUBROUTINE CLEANUP_DIAG_OH
 !EOC
       END MODULE DIAG_OH_MOD

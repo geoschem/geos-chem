@@ -1047,8 +1047,8 @@
 !
 ! !INPUT PARAMETERS:
 !
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)     :: State_Met   ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT)  :: State_Chm   ! Chemistry State object
 ! 
 ! !REMARKS:
 !  We now use function ITS_IN_THE_CHEMGRID from chemgrid_mod.F to diagnose
@@ -1069,6 +1069,8 @@
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  14 Dec 2017 - M. Sulprizio- Parallelize DO loop
+!  13 Aug 2018 - H.P. Lin    - Now pass State_Chm to DO_DIAG_OH_CH4,
+!                              also make State_Chm intent INOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1172,7 +1174,7 @@
          ! Pass OH mass, total mass, and loss to "diag_oh_mod.f",
          ! which calculates mass-weighted mean [OH] and CH3CCl3
          ! lifetime.
-         CALL DO_DIAG_OH_CH4( I, J, L, OHMASS, MASST, LOSS, 
+         CALL DO_DIAG_OH_CH4( State_Chm, I, J, L, OHMASS, MASST, LOSS, 
      &        CH4LOSE, CH4TROPMASS, CH4EMIS, CH4MASS )
 
       ENDDO

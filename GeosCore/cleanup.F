@@ -30,7 +30,6 @@
       USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
       USE DIAG53_MOD,              ONLY : CLEANUP_DIAG53
 #endif
-      USE DIAG_OH_MOD,             ONLY : CLEANUP_DIAG_OH
       USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
       USE DUST_MOD,                ONLY : CLEANUP_DUST
       USE ErrCode_Mod
@@ -320,7 +319,6 @@
       CALL CLEANUP_DIAG51()
       CALL CLEANUP_DIAG53()
 #endif
-      CALL CLEANUP_DIAG_OH()
       CALL CLEANUP_DRYDEP()
       CALL CLEANUP_DUST()
 

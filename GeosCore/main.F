@@ -2443,7 +2443,7 @@
       !-----------------------------------------------------------------
       ! Print the mass-weighted mean OH concentration (if applicable)
       !-----------------------------------------------------------------
-      CALL Print_Diag_OH( am_I_Root, Input_Opt, RC )
+      CALL Print_Diag_OH( am_I_Root, Input_Opt, State_Chm, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
