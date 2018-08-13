@@ -525,6 +525,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Feb 2014 - M. Sulprizio- Initial version
+!  10 Aug 2018 - H.P. Lin    - Add missing allocations for RRTMG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,8 +535,25 @@
       IF ( ALLOCATED( ZPJ       ) ) DEALLOCATE( ZPJ       )
       IF ( ALLOCATED( ODMDUST   ) ) DEALLOCATE( ODMDUST   )
       IF ( ALLOCATED( ODAER     ) ) DEALLOCATE( ODAER     )
+      IF ( ALLOCATED( MIEDX     ) ) DEALLOCATE( MIEDX     )
       IF ( ALLOCATED( ISOPOD    ) ) DEALLOCATE( ISOPOD    )
       IF ( ALLOCATED( IRHARR    ) ) DEALLOCATE( IRHARR    )
+      IF ( ALLOCATED( WVAA      ) ) DEALLOCATE( WVAA      )
+      IF ( ALLOCATED( RHAA      ) ) DEALLOCATE( RHAA      )
+      IF ( ALLOCATED( NRLAA     ) ) DEALLOCATE( NRLAA     )
+      IF ( ALLOCATED( NCMAA     ) ) DEALLOCATE( NCMAA     )
+      IF ( ALLOCATED( RDAA      ) ) DEALLOCATE( RDAA      )
+      IF ( ALLOCATED( RWAA      ) ) DEALLOCATE( RWAA      )
+      IF ( ALLOCATED( SGAA      ) ) DEALLOCATE( SGAA      )
+      IF ( ALLOCATED( QQAA      ) ) DEALLOCATE( QQAA      )
+      IF ( ALLOCATED( ALPHAA    ) ) DEALLOCATE( ALPHAA    )
+      IF ( ALLOCATED( REAA      ) ) DEALLOCATE( REAA      )
+      IF ( ALLOCATED( SSAA      ) ) DEALLOCATE( SSAA      )
+      IF ( ALLOCATED( ASYMAA    ) ) DEALLOCATE( ASYMAA    )
+      IF ( ALLOCATED( PHAA      ) ) DEALLOCATE( PHAA      )
+      IF ( ALLOCATED( SPECMASK  ) ) DEALLOCATE( SPECMASK  )
+
+
 #if defined( RRTMG )
       IF ( ALLOCATED( RTODAER   ) ) DEALLOCATE( RTODAER   )
       IF ( ALLOCATED( RTSSAER   ) ) DEALLOCATE( RTSSAER   )
