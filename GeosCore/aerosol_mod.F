@@ -1038,13 +1038,6 @@
      &               + State_Chm%SOILDUST(I,J,L,3)        ! DST1
      &               + State_Chm%SOILDUST(I,J,L,4)        ! DST1
      &               + State_Chm%SOILDUST(I,J,L,5) * 0.38 ! 38% of DST2
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! ISOAAQ should only be added to PM2.5 for Complex SOA. as per discussion
-! from Aerosol Working Group in May 2018 (bmy, 5/11/18)
-!     &               + State_Chm%ISOAAQ(I,J,L)    * ORG_GROWTH 
-!     ! Includes SOAGX+SOAMG
-!-----------------------------------------------------------------------------
 
          ! Include either simple SOA (default) or Complex SOA in
          ! PM2.5 calculation.  In simulations where both Simple SOA and
@@ -1856,11 +1849,6 @@
                ENDIF
 
                ! Get the AOD contribution from isoprene SOA only (eam, 2014)
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! Only compute contribution from ISOAAQ for complex SOA (bmy, 5/11/18)
-!               IF ( N.eq.3 ) THEN
-!-----------------------------------------------------------------------------
                IF ( N == 3 .and. Is_ComplexSOA ) THEN
                   ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
      &                              * State_Met%BXHEIGHT(I,J,L) 

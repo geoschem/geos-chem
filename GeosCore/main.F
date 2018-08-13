@@ -1159,29 +1159,33 @@
 
 #endif
 
-            !===========================================================
-            !       ***** S T R A T - T R O P   F L U X E S *****
-            !===========================================================
-            IF ( LCHEM .and. LSCHEM ) THEN
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
-
-               ! Determine and print STE fluxes (ltm, 06/10/12)
-               CALL Calc_STE( am_I_Root, Input_Opt, State_Chm, 
-     &                        State_Met, RC )
-
-               ! Trap potential errors
-               IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Calc_STE"!'
-                  CALL Error_Stop( ErrMsg, ThisLoc )
-               ENDIF
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "=> Strat chem", RC )
-#endif
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/9/18:
+! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
+!            !===========================================================
+!            !       ***** S T R A T - T R O P   F L U X E S *****
+!            !===========================================================
+!            IF ( LCHEM .and. LSCHEM ) THEN
+!
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_Start( "=> Strat chem", RC )
+!#endif
+!
+!               ! Determine and print STE fluxes (ltm, 06/10/12)
+!               CALL Calc_STE( am_I_Root, Input_Opt, State_Chm, 
+!     &                        State_Met, RC )
+!
+!               ! Trap potential errors
+!               IF ( RC /= GC_SUCCESS ) THEN
+!                  ErrMsg = 'Error encountered in "Calc_STE"!'
+!                  CALL Error_Stop( ErrMsg, ThisLoc )
+!               ENDIF
+!
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_End( "=> Strat chem", RC )
+!#endif
+!            ENDIF
+!------------------------------------------------------------------------------
 
             !===========================================================
             !  *** W R I T E   G E O S - C H E M   R E S T A R T S  ***

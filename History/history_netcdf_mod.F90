@@ -285,13 +285,6 @@ CONTAINS
 
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
-!------------------------------------------------------------------------------
-! Prior to 7/11/18:
-! Now use seconds to avoid roundoff issues (bmy, 7/11/18)
-!          Container%ReferenceJd = Container%CurrentJd                        &
-!                                - ( Container%FileWriteIvalSec /             &
-!                                    SECONDS_PER_DAY                         )
-!------------------------------------------------------------------------------
           Container%ReferenceJsec = Container%CurrentJsec                    &
                                   - Container%FileWriteIvalSec
 
@@ -307,16 +300,6 @@ CONTAINS
           ! and timestamps in all instantaneous files will be consistent.
           ! For all future file writes, set the reference date/time to the
           ! current date/time (CurrentJd).
-!-----------------------------------------------------------------------------
-! Prior to 7/11/18:
-! Now use seconds to avoid roundoff issues (bmy, 7/11/18)
-!          IF ( Container%FirstInst ) THEN
-!             Container%ReferenceJd = Container%EpochJd
-!             Container%FirstInst   = .FALSE.
-!          ELSE
-!             Container%ReferenceJd = Container%CurrentJd
-!          ENDIF
-!-----------------------------------------------------------------------------
           IF ( Container%FirstInst ) THEN
              Container%ReferenceJsec = Container%EpochJsec
              Container%FirstInst   = .FALSE.

@@ -20,10 +20,6 @@
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD                          ! Diag counters & flags
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
-!------------------------------------------------------------------------------
-! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!      USE DIAG_MOD,       ONLY : AD44b, AD_RA, AD_ZL
-!------------------------------------------------------------------------------
 #endif
       USE ERROR_MOD                             ! Error handling routines
       USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
