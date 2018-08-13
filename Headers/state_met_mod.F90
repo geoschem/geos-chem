@@ -980,7 +980,7 @@ CONTAINS
 
     ! Convective fractions are not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
     !-------------------------
     ! CNV_FRC [1]
     !-------------------------
@@ -1530,7 +1530,7 @@ CONTAINS
 
     ! Updraft vertical velocity is not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
     !-------------------------
     ! UPDVVEL [hPa s-1]
     !-------------------------
@@ -2012,7 +2012,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%TMPU1      )) DEALLOCATE( State_Met%TMPU1      )
     IF ( ASSOCIATED( State_Met%TMPU2      )) DEALLOCATE( State_Met%TMPU2      )
 
-#if defined( ESMF_ ) 
+#if defined( ESMF_ ) || defined( MODEL_WRF )
 
     !=========================================================================
     ! SDE 2016-03-28: GCHP requires that these are nullified rather than being
@@ -2524,7 +2524,7 @@ CONTAINS
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 2
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
        CASE ( 'CNVFRC' )
           IF ( isDesc  ) Desc  = 'Convective fraction'
           IF ( isUnits ) Units = '1'

@@ -1829,7 +1829,7 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = 0.0_fp
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )

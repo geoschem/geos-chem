@@ -69,17 +69,15 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-#if ! defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
-      ! HEMCO
-!#if !defined(ESMF_) 
+      ! HEMCO 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
-!#endif
 
 #if   defined( RRTMG )
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
@@ -367,7 +365,7 @@
       CALL CLEANUP_SULFATE()
       CALL CLEANUP_STRAT_CHEM()
       CALL CLEANUP_TAGGED_CO()
-#if ! defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_ )
       CALL CLEANUP_TRANSPORT()
 #endif
       CALL CLEANUP_TOMS()
