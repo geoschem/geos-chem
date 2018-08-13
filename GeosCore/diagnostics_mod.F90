@@ -544,7 +544,6 @@ CONTAINS
 ! !USES:
 !
     USE Aerosol_Mod
-    USE Carbon_Mod,     ONLY : BetaNOSave
     USE CMN_Size_Mod
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -576,6 +575,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  05 Feb 2018 - R. Yantosca - Initial version
+!  13 Aug 2018 - H.P. Lin    - BetaNOsave is now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -640,7 +640,7 @@ CONTAINS
        id_SOAIE   = Ind_( 'SOAIE'  )
        id_SOAME   = Ind_( 'SOAME'  )
        id_SOAMG   = Ind_( 'SOAMG'  )
-       Is_BetaNO  = ALLOCATED( BETANOSAVE )
+       Is_BetaNO  = ALLOCATED( State_Chm%BETANOSAVE )
        Is_POA     = ( id_POA1 > 0 .and. id_POA2 > 0 )
 
        ! Initialize conversion factors for total OC diagnostic
@@ -938,7 +938,7 @@ CONTAINS
        ! BetaNO [ug C/m3]
        !--------------------------------------
        IF ( Archive_BetaNO ) THEN
-          State_Diag%BetaNO(I,J,L)          = BetaNOsave(I,J,L)
+          State_Diag%BetaNO(I,J,L)          = State_Chm%BetaNOsave(I,J,L)
        ENDIF
 
        !--------------------------------------

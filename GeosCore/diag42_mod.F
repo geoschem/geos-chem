@@ -82,7 +82,6 @@
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE State_Chm_Mod,      ONLY : Ind_
-      USE CARBON_MOD,         ONLY : BETANOSAVE
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! NDxx flags
       USE CMN_O3_MOD,         ONLY : SAVEOA
@@ -128,6 +127,7 @@
 !                              single location
 !  28 Sep 2017 - E. Lundgren - Simplify unit conversions with wrapper routine
 !  08 Aug 2018 - H.P. Lin    - Aerosol variables are now in state_chm_mod
+!  13 Aug 2018 - H.P. Lin    - Carbon variables are now in state_chm_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,7 +190,7 @@
          id_SOAMG      = Ind_( 'SOAMG'  )
          id_LVOCOA     = Ind_( 'LVOCOA' )
          id_ISN1OA     = Ind_( 'ISN1OA' )
-         IS_BETANOSAVE = ALLOCATED( BETANOSAVE )
+         IS_BETANOSAVE = ALLOCATED( State_Chm%BETANOSAVE )
 
          ! Define logical flags
          IS_POA    = ( id_POA1   > 0 .and. id_POA2   > 0 )
@@ -339,7 +339,7 @@
          !--------------------------------------------------------------
          IF ( IS_BETANOSAVE ) THEN
             ! will have zero or junk values if not in troposphere
-            AD42(I,J,L,9) = AD42(I,J,L,9) + BETANOSAVE(I,J,L)
+            AD42(I,J,L,9) = AD42(I,J,L,9) + State_Chm%BETANOSAVE(I,J,L)
          ENDIF
 
          !--------------------------------------------------------------

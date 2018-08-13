@@ -192,6 +192,64 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: WAERSL     (:,:,:,:) ! Mass of hydrophilic aerosol from Mian Chin
 
      !----------------------------------------------------------------------
+     ! For carbon
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BCCONV     (:,:,:  )
+     REAL(fp),          POINTER :: OCCONV     (:,:,:  )
+     REAL(fp),          POINTER :: TCOSZ      (:,:    )
+     REAL(fp),          POINTER :: ORVC_SESQ  (:,:,:  )
+     REAL(fp),          POINTER :: GLOB_DARO2 (:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
+
+#if defined( TOMAS )
+     REAL(fp),          POINTER :: BCFF      (:,:,:,:)
+     REAL(fp),          POINTER :: OCFF      (:,:,:,:)
+     REAL(fp),          POINTER :: BCBF      (:,:,:,:)
+     REAL(fp),          POINTER :: OCBF      (:,:,:,:)
+     REAL(fp),          POINTER :: BCBB      (:,:,:,:)
+     REAL(fp),          POINTER :: OCBB      (:,:,:,:)
+
+     REAL(fp),          TARGET  :: BCPI_ANTH_BULK(:,:)
+     REAL(fp),          TARGET  :: BCPO_ANTH_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPI_ANTH_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPO_ANTH_BULK(:,:)
+
+     REAL(fp),          TARGET  :: BCPI_BIOF_BULK(:,:)
+     REAL(fp),          TARGET  :: BCPO_BIOF_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPI_BIOF_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPO_BIOF_BULK(:,:)
+
+     REAL(fp),          TARGET  :: BCPI_BIOB_BULK(:,:)
+     REAL(fp),          TARGET  :: BCPO_BIOB_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPI_BIOB_BULK(:,:)
+     REAL(fp),          TARGET  :: OCPO_BIOB_BULK(:,:)
+
+     REAL(fp),          POINTER :: TERP_ORGC (:,:    )
+     REAL(fp),          POINTER :: CO_ANTH   (:,:    )
+#endif
+
+     ! Diagnostic that tracks how much SOA is formed/evaporated
+     ! (hotp 6/5/10)
+     REAL(fp),          POINTER :: SPECSOAPROD(:,:,:,:,:)
+     REAL(fp),          POINTER :: SPECSOAEVAP(:,:,:,:,:)
+
+     ! semivolpoa4: diagnostic to keep track of POG reacted (hotp 3/27/09)
+     REAL(fp),          POINTER :: GLOB_POGRXN(:,:,:,:)
+
+     ! diagnostic added for RO2 branching ratio (hotp 5/24/10)
+     REAL(fp),          POINTER :: BETANOSAVE (:,:,:)
+
+     ! semivolpoa2: array for POA emissions (hotp 2/27/09)
+     REAL(fp),          POINTER :: POAEMISS   (:,:,:,:)
+
+     ! Array for initial OA+OG (hotp 5/17/10)
+     ! Diagnostic only, dims: I,J,L,MPROD,MSV (hotp 5/22/10)
+     REAL(fp),          POINTER :: OAGINITSAVE(:,:,:,:,:)
+
+     ! Array for change in SOG (diagnostic) (hotp 5/17/10)
+     ! dims: I,J,L,MNOX,MHC
+     REAL(fp),          POINTER :: DELTASOGSAVE(:,:,:,:,:)
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -1564,6 +1622,374 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%fupdateHOBr ) ) THEN
        DEALLOCATE( State_Chm%fupdateHOBr, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DEPSAV ) ) THEN
+       DEALLOCATE( State_Chm%DEPSAV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DEPSAV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPI ) ) THEN
+       DEALLOCATE( State_Chm%BCPI, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPI', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPO ) ) THEN
+       DEALLOCATE( State_Chm%BCPO, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPO', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPI ) ) THEN
+       DEALLOCATE( State_Chm%OCPI, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPI', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPO ) ) THEN
+       DEALLOCATE( State_Chm%OCPO, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPO', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPISOA ) ) THEN
+       DEALLOCATE( State_Chm%OCPISOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPISOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SALA ) ) THEN
+       DEALLOCATE( State_Chm%SALA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SALA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SALC ) ) THEN
+       DEALLOCATE( State_Chm%SALC, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SALC', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO4_NH4_NIT ) ) THEN
+       DEALLOCATE( State_Chm%SO4_NH4_NIT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO4_NH4_NIT', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO4 ) ) THEN
+       DEALLOCATE( State_Chm%SO4, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO4', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NH4 ) ) THEN
+       DEALLOCATE( State_Chm%NH4, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NH4', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%NIT ) ) THEN
+       DEALLOCATE( State_Chm%NIT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%NIT', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%FRAC_SNA ) ) THEN
+       DEALLOCATE( State_Chm%FRAC_SNA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%FRAC_SNA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SOILDUST ) ) THEN
+       DEALLOCATE( State_Chm%SOILDUST, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SOILDUST', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SLA ) ) THEN
+       DEALLOCATE( State_Chm%SLA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SLA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SPA ) ) THEN
+       DEALLOCATE( State_Chm%SPA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SPA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TSOA ) ) THEN
+       DEALLOCATE( State_Chm%TSOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TSOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ISOA ) ) THEN
+       DEALLOCATE( State_Chm%ISOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ISOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ASOA ) ) THEN
+       DEALLOCATE( State_Chm%ASOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ASOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OPOA ) ) THEN
+       DEALLOCATE( State_Chm%OPOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OPOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SOAGX ) ) THEN
+       DEALLOCATE( State_Chm%SOAGX, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SOAGX', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SOAMG ) ) THEN
+       DEALLOCATE( State_Chm%SOAMG, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SOAMG', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%PM25 ) ) THEN
+       DEALLOCATE( State_Chm%PM25, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%PM25', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ISOAAQ ) ) THEN
+       DEALLOCATE( State_Chm%ISOAAQ, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ISOAAQ', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SOAS ) ) THEN
+       DEALLOCATE( State_Chm%SOAS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SOAS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCFPOA ) ) THEN
+       DEALLOCATE( State_Chm%OCFPOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCFPOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCFOPOA ) ) THEN
+       DEALLOCATE( State_Chm%OCFOPOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCFOPOA', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DAERSL ) ) THEN
+       DEALLOCATE( State_Chm%DAERSL, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DAERSL', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%WAERSL ) ) THEN
+       DEALLOCATE( State_Chm%WAERSL, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WAERSL', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCCONV ) ) THEN
+       DEALLOCATE( State_Chm%BCCONV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCCONV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCCONV ) ) THEN
+       DEALLOCATE( State_Chm%OCCONV, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCCONV', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TCOSZ ) ) THEN
+       DEALLOCATE( State_Chm%TCOSZ, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TCOSZ', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%ORVC_SESQ ) ) THEN
+       DEALLOCATE( State_Chm%ORVC_SESQ, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%ORVC_SESQ', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%GLOB_DARO2 ) ) THEN
+       DEALLOCATE( State_Chm%GLOB_DARO2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%GLOB_DARO2', 3, RC )
+       RETURN
+    ENDIF
+
+#if defined( TOMAS )
+    IF ( ASSOCIATED( State_Chm%BCFF ) ) THEN
+       DEALLOCATE( State_Chm%BCFF, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCFF', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCFF ) ) THEN
+       DEALLOCATE( State_Chm%OCFF, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCFF', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCBF ) ) THEN
+       DEALLOCATE( State_Chm%BCBF, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCBF', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCBF ) ) THEN
+       DEALLOCATE( State_Chm%OCBF, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCBF', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCBB ) ) THEN
+       DEALLOCATE( State_Chm%BCBB, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCBB', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCBB ) ) THEN
+       DEALLOCATE( State_Chm%OCBB, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCBB', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPI_ANTH_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPI_ANTH_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPI_ANTH_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPO_ANTH_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPO_ANTH_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPO_ANTH_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPI_ANTH_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPI_ANTH_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPI_ANTH_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPO_ANTH_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPO_ANTH_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPO_ANTH_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPI_BIOF_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPI_BIOF_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPI_BIOF_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPO_BIOF_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPO_BIOF_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPO_BIOF_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPI_BIOF_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPI_BIOF_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPI_BIOF_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPO_BIOF_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPO_BIOF_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPO_BIOF_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPI_BIOB_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPI_BIOB_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPI_BIOB_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BCPO_BIOB_BULK ) ) THEN
+       DEALLOCATE( State_Chm%BCPO_BIOB_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BCPO_BIOB_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPI_BIOB_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPI_BIOB_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPI_BIOB_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OCPO_BIOB_BULK ) ) THEN
+       DEALLOCATE( State_Chm%OCPO_BIOB_BULK, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OCPO_BIOB_BULK', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TERP_ORGC ) ) THEN
+       DEALLOCATE( State_Chm%TERP_ORGC, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TERP_ORGC', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%CO_ANTH ) ) THEN
+       DEALLOCATE( State_Chm%CO_ANTH, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%CO_ANTH', 3, RC )
+       RETURN
+    ENDIF
+#endif
+
+    IF ( ASSOCIATED( State_Chm%SPECSOAPROD ) ) THEN
+       DEALLOCATE( State_Chm%SPECSOAPROD, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SPECSOAPROD', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SPECSOAEVAP ) ) THEN
+       DEALLOCATE( State_Chm%SPECSOAEVAP, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SPECSOAEVAP', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%GLOB_POGRXN ) ) THEN
+       DEALLOCATE( State_Chm%GLOB_POGRXN, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%GLOB_POGRXN', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BETANOSAVE ) ) THEN
+       DEALLOCATE( State_Chm%BETANOSAVE, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BETANOSAVE', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%POAEMISS ) ) THEN
+       DEALLOCATE( State_Chm%POAEMISS, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%POAEMISS', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OAGINITSAVE ) ) THEN
+       DEALLOCATE( State_Chm%OAGINITSAVE, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OAGINITSAVE', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DELTASOGSAVE ) ) THEN
+       DEALLOCATE( State_Chm%DELTASOGSAVE, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DELTASOGSAVE', 3, RC )
        RETURN
     ENDIF
 

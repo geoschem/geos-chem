@@ -35,17 +35,6 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
-      PUBLIC :: BETANOSAVE
-
-      ! ORVC_SESQ needs to be public so that it can be added as a
-      ! restart variable to GEOS-5. (ckeller, 10/10/17)
-      PUBLIC :: ORVC_SESQ
-
-!      ! Make BIOG_SESQ array public so that it can be used by HEMCO
-!      ! (ckeller, 05/19/14)
-!      PUBLIC :: BIOG_SESQ
-!
 ! !REMARKS:
 !  4 Aerosol species : Organic and Black carbon 
 !                    : hydrophilic (soluble) and hydrophobic of each
@@ -213,6 +202,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Also remove functions GET_VCLDF and
 !                              GET_LWC, they're no longer needed
+!  13 Aug 2018 - H.P. Lin    - Move grid-dependent allocatables to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,61 +276,6 @@
       ! Diagnostic that tracks how much parent HC reacts
       ! with each allowed reactant (hotp 5/24/10)
       REAL(fp)              :: DELTAHCSAVE(MNOX,MHC)
-
-      REAL(fp), ALLOCATABLE :: BCCONV(:,:,:)
-      REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
-      REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
-      REAL(fp), ALLOCATABLE :: ORVC_SESQ(:,:,:)
-      REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06) 
-
-#if defined( TOMAS )
-      REAL(fp), ALLOCATABLE, TARGET :: BCFF(:,:,:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCFF(:,:,:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCBF(:,:,:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCBF(:,:,:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCBB(:,:,:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCBB(:,:,:,:)
-
-      REAL(fp), ALLOCATABLE, TARGET :: BCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCPO_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPI_ANTH_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPO_ANTH_BULK(:,:)
-
-      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOF_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOF_BULK(:,:)
-
-      REAL(fp), ALLOCATABLE, TARGET :: BCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: BCPO_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPI_BIOB_BULK(:,:)
-      REAL(fp), ALLOCATABLE, TARGET :: OCPO_BIOB_BULK(:,:)
-
-      REAL(fp), ALLOCATABLE :: TERP_ORGC(:,:)
-      REAL(fp), ALLOCATABLE :: CO_ANTH(:,:)
-#endif 
-
-      ! Diagnostic that tracks how much SOA is formed/evaporated
-      ! (hotp 6/5/10)
-      REAL(fp), ALLOCATABLE :: SPECSOAPROD(:,:,:,:,:)
-      REAL(fp), ALLOCATABLE :: SPECSOAEVAP(:,:,:,:,:)
-
-      ! semivolpoa4: diagnostic to keep track of POG reacted (hotp 3/27/09)
-      REAL(fp), SAVE, ALLOCATABLE :: GLOB_POGRXN(:,:,:,:)
-
-      ! diagnostic added for RO2 branching ratio (hotp 5/24/10)
-      REAL(fp), SAVE, ALLOCATABLE :: BETANOSAVE(:,:,:)
-
-      ! semivolpoa2: array for POA emissions (hotp 2/27/09)
-      REAL(fp), SAVE, ALLOCATABLE :: POAEMISS(:,:,:,:)
-
-      ! Array for initial OA+OG (hotp 5/17/10)
-      ! Diagnostic only, dims: I,J,L,MPROD,MSV (hotp 5/22/10)
-      REAL(fp), SAVE, ALLOCATABLE :: OAGINITSAVE(:,:,:,:,:)
-
-      ! Array for change in SOG (diagnostic) (hotp 5/17/10)
-      ! dims: I,J,L,MNOX,MHC
-      REAL(fp), SAVE, ALLOCATABLE :: DELTASOGSAVE(:,:,:,:,:)
 
       ! Days per month (based on 1998)
       INTEGER               :: NDAYS(12) = (/ 31, 28, 31, 30, 31, 30, 
@@ -610,8 +545,8 @@
 
       ! Chemistry for hydrophobic BC
       IF ( id_BCPO > 0 ) THEN
-         CALL CHEM_BCPO( am_I_Root, Input_Opt, State_Diag,
-     &                   Spc(:,:,:,id_BCPO),   RC          )
+         CALL CHEM_BCPO( am_I_Root, Input_Opt,          State_Chm,
+     &                   State_Diag,Spc(:,:,:,id_BCPO), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
          ENDIF
@@ -619,8 +554,8 @@
 
       ! Chemistry for hydrophilic BC
       IF ( id_BCPI > 0 ) THEN
-         CALL CHEM_BCPI( am_I_Root, Input_Opt, State_Diag,
-     &                   Spc(:,:,:,id_BCPI),   RC )
+         CALL CHEM_BCPI( am_I_Root, Input_Opt,          State_Chm,
+     &                   State_Diag,Spc(:,:,:,id_BCPI), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
          ENDIF
@@ -628,8 +563,8 @@
 
       ! Chemistry for hydrophobic OC (traditional POA only) 
       IF ( id_OCPO > 0 ) THEN
-         CALL CHEM_OCPO( am_I_Root, Input_Opt, State_Diag,
-     &                   Spc(:,:,:,id_OCPO),   RC          )
+         CALL CHEM_OCPO( am_I_Root, Input_Opt,          State_Chm,
+     &                   State_Diag,Spc(:,:,:,id_OCPO), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
          ENDIF
@@ -637,8 +572,8 @@
 
       ! Chemistry for hydrophilic OC (traditional POA only)
       IF ( id_OCPI > 0 ) THEN 
-         CALL CHEM_OCPI( am_I_Root, Input_Opt, State_Diag,
-     &                   Spc(:,:,:,id_OCPI),   RC )
+         CALL CHEM_OCPI( am_I_Root, Input_Opt,          State_Chm,
+     &                   State_Diag,Spc(:,:,:,id_OCPI), RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
          ENDIF
@@ -731,7 +666,7 @@
             ! Compute time scaling arrays for offline OH, NO3
             ! but only if it hasn't been done in EMISSCARBON
             IF ( LSOA .and. ( .not. LEMIS ) ) THEN
-               CALL OHNO3TIME
+               CALL OHNO3TIME ( State_Chm )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMCARB: a OHNO3TIME' )
                ENDIF
@@ -770,7 +705,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_BCPO( am_I_Root, Input_Opt, State_Diag, TC, RC )
+      SUBROUTINE CHEM_BCPO( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Diag, TC,        RC )
 !
 ! !USES:
 !
@@ -782,6 +718,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Chm_Mod,  ONLY : ChmState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
@@ -791,6 +728,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 ! 
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! Chemistry State
       TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic BC [kg]
 !
@@ -819,6 +757,7 @@
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPO, it's obsolete
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  13 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -843,7 +782,7 @@
       ! Initialize
       KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
       DTCHEM    = GET_TS_CHEM()
-      BCCONV    = 0e+0_fp
+      State_Chm%BCCONV    = 0e+0_fp
 
       !=================================================================
       ! For species with dry deposition, the loss rate of dry dep is 
@@ -882,14 +821,14 @@
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
          ! Amount of BCPO converted to BCPI [kg/timestep]
-         BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
+         State_Chm%BCCONV(I,J,L) = ( TC0 - CNEW ) * KBC / ( KBC + FREQ )
 
 #if defined( BPCH_DIAG )
          !==============================================================
          ! ND07 diagnostic: H-philic BC from H_phobic BC [kg/timestep]
          !==============================================================
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
-             AD07_BC(I,J,L) = AD07_BC(I,J,L) + BCCONV(I,J,L)
+             AD07_BC(I,J,L) = AD07_BC(I,J,L) + State_Chm%BCCONV(I,J,L)
          ENDIF
 #endif
 
@@ -903,7 +842,7 @@
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !==============================================================
          IF ( Archive_ProdBCPIfromBCPO ) THEN
-            State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
+            State_Diag%ProdBCPIfromBCPO(I,J,L) = State_Chm%BCCONV(I,J,L)
          ENDIF
 #endif
 
@@ -929,7 +868,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_BCPI( am_I_Root, Input_Opt, State_Diag, TC, RC )
+      SUBROUTINE CHEM_BCPI( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Diag, TC,        RC )
 !
 ! !USES:
 !
@@ -937,6 +877,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Chm_Mod,  ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -945,6 +886,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! Chemistry State
       TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic BC [kg]
 !
@@ -972,6 +914,7 @@
 !                              so we can greatly collapse this code
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRYBCPI, it's obsolete
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  13 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1001,7 +944,7 @@
          TC0 = TC(I,J,L)
 
          ! H-philic BC that used to be H-phobic BC [kg]
-         CCV = BCCONV(I,J,L)
+         CCV = State_Chm%BCCONV(I,J,L)
          
          ! Add the amount of converted BCPO to BCPI
          CNEW = TC0 + CCV
@@ -1020,7 +963,7 @@
       !=================================================================
       ! Zero out the BCCONV array for the next iteration
       !=================================================================
-      BCCONV = 0e+0_fp
+      State_Chm%BCCONV = 0e+0_fp
 
       END SUBROUTINE CHEM_BCPI
 !EOC
@@ -1037,7 +980,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_OCPO( am_I_Root, Input_Opt, State_Diag, TC, RC )
+      SUBROUTINE CHEM_OCPO( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Diag, TC,        RC )
 !
 ! !USES:
 !
@@ -1049,6 +993,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Chm_Mod,  ONLY : ChmState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
@@ -1058,6 +1003,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! Chemistry State
       TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-phobic OC [kg]
 !
@@ -1106,7 +1052,7 @@
       ! Initialize
       KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
       DTCHEM    = GET_TS_CHEM()
-      OCCONV    = 0e+0_fp
+      State_Chm%OCCONV    = 0e+0_fp
 
       !=================================================================
       ! For species with dry deposition, the loss rate of dry dep is 
@@ -1144,14 +1090,14 @@
          IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
 
          ! Amount of OCPO converted to OCPI [kg/timestep]
-         OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
+         State_Chm%OCCONV(I,J,L) = ( TC0 - CNEW ) * KOC / ( KOC + FREQ )
 
 #if defined( BPCH_DIAG )
          !==============================================================
          ! ND07 diagnostic: H-Philic OC from H-phobic [kg/timestep]
          !==============================================================
          IF ( ND07 > 0 .and. L <= LD07 ) THEN
-            AD07_OC(I,J,L) = AD07_OC(I,J,L) + OCCONV(I,J,L) 
+            AD07_OC(I,J,L) = AD07_OC(I,J,L) + State_Chm%OCCONV(I,J,L) 
          ENDIF
 #endif
 
@@ -1165,7 +1111,7 @@
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !=================================================================
          IF ( Archive_ProdOCPIfromOCPO ) THEN
-            State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
+            State_Diag%ProdOCPIfromOCPO(I,J,L) = State_Chm%OCCONV(I,J,L)
          ENDIF
 #endif
 
@@ -1192,7 +1138,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_OCPI( am_I_Root, Input_Opt, State_Diag, TC, RC )
+      SUBROUTINE CHEM_OCPI( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Diag, TC,        RC )
 !
 ! !USES:
 !
@@ -1200,6 +1147,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,   ONLY : OptInput
       USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Chm_Mod,   ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1208,6 +1156,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! Chemistry State
       TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
       REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! H-philic OC [kg]
 
@@ -1234,6 +1183,7 @@
 !  12 Jun 2015 - R. Yantosca - Remove orphaned ND44 drydep variables
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRYOCPI, it's obsolete
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  13 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1263,7 +1213,7 @@
          TC0 = TC(I,J,L)
 
          ! H-philic OC that used to be H-phobic OC [kg]
-         CCV = OCCONV(I,J,L)
+         CCV = State_Chm%OCCONV(I,J,L)
 
          ! Add the amount of converted OCPO to OCPI
          CNEW = TC0 + CCV
@@ -1282,7 +1232,7 @@
       !=================================================================
       ! Zero OCCONV array for next timestep
       !=================================================================
-      OCCONV = 0e+0_fp
+      State_Chm%OCCONV = 0e+0_fp
 
       END SUBROUTINE CHEM_OCPI
 !EOC
@@ -1595,9 +1545,9 @@
       prtDebug     = ( LPRT .and. am_I_Root )
 
       ! Zero some diagnostics (hotp 5/17/10)
-      GLOB_POGRXN  = 0e+0_fp
-      OAGINITSAVE  = 0e+0_fp
-      DELTASOGSAVE = 0e+0_fp
+      State_Chm%GLOB_POGRXN  = 0e+0_fp
+      State_Chm%OAGINITSAVE  = 0e+0_fp
+      State_Chm%DELTASOGSAVE = 0e+0_fp
 
       ! Save initial OA+OG for diagnostic (hotp 5/17/10)
       IF ( LPRT ) THEN
@@ -1639,15 +1589,16 @@
          GLOB_POA_PROD  = 0e+0_fp
          GLOB_OPOA_PROD = 0e+0_fp
          DELTAHCSAVE    = 0e+0_fp
-         SPECSOAPROD    = 0e+0_fp
-         SPECSOAEVAP    = 0e+0_fp
+         State_Chm%SPECSOAPROD    = 0e+0_fp
+         State_Chm%SPECSOAEVAP    = 0e+0_fp
 
          FIRST = .FALSE.
       ENDIF
 
       IF ( prtDebug ) THEN
-         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)), 
-     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
+         print*, ' MAX DARO2 = ', 
+     &           MAXLOC(State_Chm%GLOB_DARO2(:,:,:,1,1)), 
+     &           MAXVAL(State_Chm%GLOB_DARO2(:,:,:,1,1))
       ENDIF
  
       ! semivolpoa2: diagnostic info (hotp 3/11/09) 
@@ -1676,11 +1627,13 @@
 
          ! semivolpoa3: debug POAEMISS
          print*, 'POAEMISS,1,POG1',
-     &          SUM(POAEMISS(:,:,:,1)),POAEMISS(IIDEBUG,JJDEBUG,2,1),
-     &              POAEMISS(IIDEBUG,JJDEBUG,10,1)
+     &          SUM(State_Chm%POAEMISS(:,:,:,1)),
+     &          State_Chm%POAEMISS(IIDEBUG,JJDEBUG,2,1),
+     &          State_Chm%POAEMISS(IIDEBUG,JJDEBUG,10,1)
          print*, 'POAEMISS,2,POG2',
-     &          SUM(POAEMISS(:,:,:,2)),POAEMISS(IIDEBUG,JJDEBUG,2,2),
-     &              POAEMISS(IIDEBUG,JJDEBUG,10,2)
+     &          SUM(State_Chm%POAEMISS(:,:,:,2)),
+     &          State_Chm%POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &          State_Chm%POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! 10/12/09 debug
          IF ( Input_Opt%LSVPOA ) THEN
@@ -2001,19 +1954,28 @@
          ! Parent hydrocarbon reacted diagnostic (hotp 5/17/10)
          DARO2_TOT_0(:)    = DARO2_TOT(:)
 
-         print*, ' MAX DARO2 = ', MAXLOC(GLOB_DARO2(:,:,:,1,1)),
-     &                            MAXVAL(GLOB_DARO2(:,:,:,1,1))
+         print*, ' MAX DARO2 = ', 
+     &           MAXLOC(State_Chm%GLOB_DARO2(:,:,:,1,1)),
+     &           MAXVAL(State_Chm%GLOB_DARO2(:,:,:,1,1))
 
-         DARO2_TOT(1) = DARO2_TOT(1) + SUM(GLOB_DARO2(:,:,:,1,1)) / 1d9
-         DARO2_TOT(2) = DARO2_TOT(2) + SUM(GLOB_DARO2(:,:,:,2,1)) / 1d9
-         DARO2_TOT(3) = DARO2_TOT(3) + SUM(GLOB_DARO2(:,:,:,1,2)) / 1d9
-         DARO2_TOT(4) = DARO2_TOT(4) + SUM(GLOB_DARO2(:,:,:,2,2)) / 1d9
-         DARO2_TOT(5) = DARO2_TOT(5) + SUM(GLOB_DARO2(:,:,:,1,3)) / 1d9
-         DARO2_TOT(6) = DARO2_TOT(6) + SUM(GLOB_DARO2(:,:,:,2,3)) / 1d9
+         DARO2_TOT(1) = DARO2_TOT(1) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,1,1)) / 1d9
+         DARO2_TOT(2) = DARO2_TOT(2) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,2,1)) / 1d9
+         DARO2_TOT(3) = DARO2_TOT(3) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,1,2)) / 1d9
+         DARO2_TOT(4) = DARO2_TOT(4) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,2,2)) / 1d9
+         DARO2_TOT(5) = DARO2_TOT(5) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,1,3)) / 1d9
+         DARO2_TOT(6) = DARO2_TOT(6) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,2,3)) / 1d9
          ! added NAP diagnostic info (hotp 7/22/09)
          ! amount of RO2 reacted in high and low NOx pathways
-         DARO2_TOT(7) = DARO2_TOT(7) + SUM(GLOB_DARO2(:,:,:,1,4)) / 1d9
-         DARO2_TOT(8) = DARO2_TOT(8) + SUM(GLOB_DARO2(:,:,:,2,4)) / 1d9
+         DARO2_TOT(7) = DARO2_TOT(7) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,1,4)) / 1d9
+         DARO2_TOT(8) = DARO2_TOT(8) + 
+     &                  SUM(State_Chm%GLOB_DARO2(:,:,:,2,4)) / 1d9
 
          ! DARO2 is not mass of parent HC, not RO2 (hotp 5/14/10)
          print*,'Accumulated parent HC reacted to RO2H,N products in Tg'
@@ -2055,18 +2017,20 @@
          ENDIF
 
          ! semivolpoa4: diag for POG reacted (hotp 3/27/09)
-         print*, 'POGRXN ', SUM(GLOB_POGRXN(:,:,:,:)),
-     &                      SUM( GLOB_POGRXN(IIDEBUG,JJDEBUG,2,:)),
-     &                      SUM(GLOB_POGRXN(IIDEBUG,JJDEBUG,10,:))
+         print*, 'POGRXN ', SUM(State_Chm%GLOB_POGRXN(:,:,:,:)),
+     &           SUM(State_Chm%GLOB_POGRXN(IIDEBUG,JJDEBUG,2,:)),
+     &           SUM(State_Chm%GLOB_POGRXN(IIDEBUG,JJDEBUG,10,:))
          ! POGRXN (hotp 10/11/09)
-         print*, 'POGRXN p1', SUM(GLOB_POGRXN(:,:,:,1))
-         print*, 'POGRXN p2', SUM(GLOB_POGRXN(:,:,:,2))
+         print*, 'POGRXN p1', SUM(State_Chm%GLOB_POGRXN(:,:,:,1))
+         print*, 'POGRXN p2', SUM(State_Chm%GLOB_POGRXN(:,:,:,2))
 
          ! semivolpoa3: POG1 + POG2
          print*, 'POAEMISS tot',
-     &           SUM(POAEMISS(:,:,:,:)),
-     &   POAEMISS(IIDEBUG,JJDEBUG,2,1)+POAEMISS(IIDEBUG,JJDEBUG,2,2),
-     &   POAEMISS(IIDEBUG,JJDEBUG,10,1)+POAEMISS(IIDEBUG,JJDEBUG,10,2)
+     &           SUM(State_Chm%POAEMISS(:,:,:,:)),
+     &           State_Chm%POAEMISS(IIDEBUG,JJDEBUG,2,1) + 
+     &           State_Chm%POAEMISS(IIDEBUG,JJDEBUG,2,2),
+     &           State_Chm%POAEMISS(IIDEBUG,JJDEBUG,10,1)+
+     &           State_Chm%POAEMISS(IIDEBUG,JJDEBUG,10,2)
 
          ! semivolpoa4opoa: add OPOA (hotp 3/27/09)
          IF ( id_OPOA1 > 0 ) THEN ! hotp 8/24/09 ! hotp 10/11/09
@@ -3348,13 +3312,13 @@
       ENDIF
 
       ! save for diagnostic purposes (hotp 5/24/10)
-      BETANOSAVE(I,J,L) = BETANO
+      State_Chm%BETANOSAVE(I,J,L) = BETANO
 
       ! update for new mtp lumping (hotp 5/22/10)
       NMVOC(1) = Spc(I,J,L,id_MTPA)
       NMVOC(2) = Spc(I,J,L,id_LIMO)
       NMVOC(3) = Spc(I,J,L,id_MTPO)
-      NMVOC(4) = ORVC_SESQ(I,J,L)
+      NMVOC(4) = State_Chm%ORVC_SESQ(I,J,L)
 
       ! Initialize DELHC so that the values from the previous
       ! time step are not carried over.
@@ -3436,7 +3400,7 @@
             !ENDIF
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
-            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:)
+            State_Chm%DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:)
 
             !------------------------------------------
             ! Compute amount of semivolatile formed 
@@ -3472,7 +3436,8 @@
 
             ! Save diagnostic info for bug check (hotp 5/22/10)
             ! convert from kgC to kg
-            DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:) * 68e+0_fp/60e+0_fp
+            State_Chm%DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:) * 
+     &                                            68e+0_fp/60e+0_fp
 
             !------------------------------------------
             ! Compute amount of semivolatile formed 
@@ -3529,13 +3494,13 @@
             ! Diagnostic/debug info (hotp 5/22/10)
             IF ( JHC == PARENTBENZ .or. JHC == PARENTTOLU
      &                             .or. JHC == PARENTXYLE ) THEN 
-               GLOB_DARO2(I,J,L,1:2,JHC-5) = DELHC(1:2)
+               State_Chm%GLOB_DARO2(I,J,L,1:2,JHC-5) = DELHC(1:2)
             ELSE ! NAP
-               GLOB_DARO2(I,J,L,1:2,4) = DELHC(1:2)
+               State_Chm%GLOB_DARO2(I,J,L,1:2,4) = DELHC(1:2)
             ENDIF
 
             ! Total SOG production diagnostic (hotp 5/18/10)
-            DELTASOGSAVE(I,J,L,:,JHC)=DELHC(:)
+            State_Chm%DELTASOGSAVE(I,J,L,:,JHC) = DELHC(:)
 
          ! semivolpoa2: emit POA into 2 semivolatiles here (hotp 2/27/09)
          ELSEIF ( JHC == PARENTPOA ) THEN
@@ -3597,12 +3562,12 @@
      &              MAX( GM0(IPR,IDSV(PARENTPOA)), 1e-32_fp)
 
                ! diagnostic information (hotp 3/28/09)
-               GLOB_POGRXN(I,J,L,IPR) = DOH
+               State_Chm%GLOB_POGRXN(I,J,L,IPR) = DOH
 
                ! Total SOG production diagnostic (hotp 5/18/10)
                ! Caution: the 4th index is actually NOX, but we use
                ! IPR here
-               DELTASOGSAVE(I,J,L,IPR,JHC) = DOH
+               State_Chm%DELTASOGSAVE(I,J,L,IPR,JHC) = DOH
 
             ENDDO
             ENDDO
@@ -3613,8 +3578,8 @@
             IF ( ND07 > 0 .and. L <= LD07 ) THEN
                ! move POGRXN after all JSV (hotp 5/24/10)
                AD07_HC(I,J,L,MSV+1) = AD07_HC(I,J,L,MSV+1) +
-     &                                GLOB_POGRXN(I,J,L,1) +
-     &                                GLOB_POGRXN(I,J,L,2)
+     &                                State_Chm%GLOB_POGRXN(I,J,L,1) +
+     &                                State_Chm%GLOB_POGRXN(I,J,L,2)
             ENDIF
 #endif
 
@@ -3633,14 +3598,15 @@
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)   ! update dims (hotp 5/22/10)
             ! DELHC is now emission of SVOC (POG1 + POG2)
-            DELHC(IPR)   = POAEMISS(I,J,L,1) + POAEMISS(I,J,L,2) 
+            DELHC(IPR)   = State_Chm%POAEMISS(I,J,L,1) + 
+     &                     State_Chm%POAEMISS(I,J,L,2) 
             GM0(IPR,JSV) = GM0(IPR,JSV) 
      &                   + ALPHA(NOX,IPR,JHC)*DELHC(IPR)
    
             ! Total SOG production diagnostic (hotp 5/18/10)
             ! Caution: the 4th index is actually NOX, but we use
             ! IPR here
-            DELTASOGSAVE(I,J,L,IPR,JHC) = DELHC(IPR)
+            State_Chm%DELTASOGSAVE(I,J,L,IPR,JHC) = DELHC(IPR)
    
          ENDDO
          ENDDO
@@ -3656,7 +3622,7 @@
       !Spc(I,J,L,id_MTPA) = MAX( NMVOC(1), 1.e-32_fp )
       !Spc(I,J,L,id_LIMO) = MAX( NMVOC(2), 1.e-32_fp )
       Spc(I,J,L,id_MTPO) = MAX( NMVOC(3), 1.e-32_fp )
-      ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
+      State_Chm%ORVC_SESQ(I,J,L)   = MAX( NMVOC(4), 1.e-32_fp )
 
       ! Free pointer
       Spc => NULL()
@@ -3939,33 +3905,33 @@
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &             State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &             State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_TSOA2
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_TSOA3
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       ! Add C*=0.1 product (hotp 6/12/10)
@@ -3973,11 +3939,11 @@
       IPR = 4
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       !-----------------------------
@@ -4031,33 +3997,33 @@
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_ISOA2
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_ISOA3
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       !-----------------------------
@@ -4113,44 +4079,44 @@
       IPR = 1
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_ASOA2
       IPR = 2
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_ASOA3
       IPR = 3
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       id_SPECIES = id_ASOAN
       IPR = 4
       AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
       IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-         SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAPROD(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
       ELSE
-         SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                 SPECSOAEVAP(I,J,L,IPR,JSV)
+         State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                 State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
       ENDIF
 
       !-----------------------------
@@ -4212,22 +4178,22 @@
          IPR = 1
          AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
          ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
          id_SPECIES = id_POA2
          IPR = 2
          AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
          ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
          !---------------------------
@@ -4281,22 +4247,22 @@
          IPR = 1
          AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
          ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
          id_SPECIES = id_OPOA2
          IPR = 2
          AERCHANGE = AM0(IPR,JSV) - Spc(I,J,L,id_SPECIES)
          IF ( AERCHANGE .GT. 0e+0_fp ) THEN
-            SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAPROD(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAPROD(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAPROD(I,J,L,IPR,JSV)
          ELSE
-            SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
-     &                    SPECSOAEVAP(I,J,L,IPR,JSV)
+            State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV) = AERCHANGE +
+     &                    State_Chm%SPECSOAEVAP(I,J,L,IPR,JSV)
          ENDIF
 
          !---------------------------
@@ -4710,7 +4676,7 @@ ccc
 ! !INTERFACE:
 !
       SUBROUTINE EMISSCARBON( am_I_Root, Input_Opt, 
-     &                        State_Met, RC )
+     &                        State_Met, State_Chm, RC )
 !
 ! !USES:
 !
@@ -4723,6 +4689,7 @@ ccc
       USE PBL_MIX_MOD,           ONLY : GET_PBL_MAX_L
       USE PBL_MIX_MOD,           ONLY : GET_FRAC_OF_PBL
       USE State_Met_Mod,         ONLY : MetState
+      USE State_Chm_Mod,         ONLY : ChmState
       USE TIME_MOD,              ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -4730,6 +4697,7 @@ ccc
       LOGICAL,         INTENT(IN   )  :: am_I_Root   ! Root CPU?
       TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input Options object
       TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology State object
+      TYPE(ChmState),  INTENT(INOUT)  :: State_Chm   ! Chemistry State
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4765,6 +4733,7 @@ ccc
 !                              and POG1) in HEMCO to better reflect that these
 !                              emissions are added to the gas-phase species
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  13 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4786,7 +4755,7 @@ ccc
       RC = GC_SUCCESS
       
       ! Initialize
-      POAEMISS =  0e+0_fp
+      State_Chm%POAEMISS =  0e+0_fp
 
       ! Check if using complex SOA scheme
       IF ( Input_Opt%LSOA ) THEN
@@ -4851,7 +4820,7 @@ ccc
                ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
                TMPFLX           = Emis * GET_TS_EMIS() 
      &                            * GET_AREA_M2(I,J,1)
-               ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L)
+               State_Chm%ORVC_SESQ(I,J,L) = State_Chm%ORVC_SESQ(I,J,L)
      &                          + ( F_OF_PBL  * TMPFLX )
             ENDIF
          ENDIF
@@ -4870,13 +4839,13 @@ ccc
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
      &               * GET_TS_EMIS() * GET_AREA_M2(I,J,1)
-            POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
+            State_Chm%POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
          ENDIF 
          IF ( HCOPOG2 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG2)%Emis%Val(I,J,:))
      &               * GET_TS_EMIS() * GET_AREA_M2(I,J,1)
-            POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
+            State_Chm%POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
       ENDDO
@@ -5039,16 +5008,16 @@ ccc
          SELECT CASE (EMTYPE)
            CASE (1)
                DgnName = 'BCPI_ANTH'
-               emis2d  => BCPI_ANTH_BULK
+               emis2d  => State_Chm%BCPI_ANTH_BULK
            CASE (2)
                DgnName = 'OCPI_ANTH'
-               emis2d  => OCPI_ANTH_BULK
+               emis2d  => State_Chm%OCPI_ANTH_BULK
            CASE (3)
                DgnName = 'BCPO_ANTH'
-               emis2d  => BCPO_ANTH_BULK
+               emis2d  => State_Chm%BCPO_ANTH_BULK
            CASE (4)
                DgnName = 'OCPO_ANTH'
-               emis2d  => OCPO_ANTH_BULK
+               emis2d  => State_Chm%OCPO_ANTH_BULK
          END SELECT
 
          CALL GetHcoDiagn( am_I_Root, DgnName, .FALSE., ERR,
@@ -5072,10 +5041,14 @@ ccc
       ENDDO
 
       ! ---- SCALE INTO TOMAS BINS ---------------------------
-      BCFF(:,:,:,1) = SCALECARB( BCPI_ANTH_BULK(:,:), 1, 1 )
-      BCFF(:,:,:,2) = SCALECARB( BCPO_ANTH_BULK(:,:), 1, 1 )
-      OCFF(:,:,:,1) = OC2OM * SCALECARB( OCPI_ANTH_BULK(:,:), 1, 2 )
-      OCFF(:,:,:,2) = OC2OM * SCALECARB( OCPO_ANTH_BULK(:,:), 1, 2 )
+      State_Chm%BCFF(:,:,:,1) = 
+     &   SCALECARB( State_Chm%BCPI_ANTH_BULK(:,:), 1, 1 )
+      State_Chm%BCFF(:,:,:,2) = 
+     &   SCALECARB( State_Chm%BCPO_ANTH_BULK(:,:), 1, 1 )
+      State_Chm%OCFF(:,:,:,1) = 
+     &   OC2OM * SCALECARB( State_Chm%OCPI_ANTH_BULK(:,:), 1, 2 )
+      State_Chm%OCFF(:,:,:,2) = 
+     &   OC2OM * SCALECARB( State_Chm%OCPO_ANTH_BULK(:,:), 1, 2 )
 
       !end 3d emis
 
@@ -5085,7 +5058,7 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         BCPI_BIOF_BULK = Ptr2D(:,:)
+         State_Chm%BCPI_BIOF_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5094,7 +5067,7 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         BCPO_BIOF_BULK = Ptr2D(:,:)
+         State_Chm%BCPO_BIOF_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5103,7 +5076,7 @@ ccc
             IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         OCPI_BIOF_BULK = Ptr2D(:,:)
+         State_Chm%OCPI_BIOF_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5113,7 +5086,7 @@ ccc
             IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         OCPO_BIOF_BULK = Ptr2D(:,:)
+         State_Chm%OCPO_BIOF_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5122,7 +5095,7 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         BCPI_BIOB_BULK = Ptr2D(:,:)
+         State_Chm%BCPI_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5131,7 +5104,7 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         BCPO_BIOB_BULK = Ptr2D(:,:)
+         State_Chm%BCPO_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5141,7 +5114,7 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-         OCPI_BIOB_BULK = Ptr2D(:,:)
+         State_Chm%OCPI_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
@@ -5151,38 +5124,62 @@ ccc
       IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
       ELSE
-      OCPO_BIOB_BULK = Ptr2D(:,:)
+         State_Chm%OCPO_BIOB_BULK = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
 
       !2d emis
-      BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPI_BIOF_BULK = OCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPO_BIOF_BULK = OCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
+      State_Chm%BCPI_BIOF_BULK = State_Chm%BCPI_BIOF_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%BCPO_BIOF_BULK = State_Chm%BCPO_BIOF_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%OCPI_BIOF_BULK = State_Chm%OCPI_BIOF_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%OCPO_BIOF_BULK = State_Chm%OCPO_BIOF_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
 
-      BCPI_BIOB_BULK = BCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-      BCPO_BIOB_BULK = BCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPI_BIOB_BULK = OCPI_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
-      OCPO_BIOB_BULK = OCPO_BIOB_BULK(:,:) * AREA(:,:) * DTSRCE
+      State_Chm%BCPI_BIOB_BULK = State_Chm%BCPI_BIOB_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%BCPO_BIOB_BULK = State_Chm%BCPO_BIOB_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%OCPI_BIOB_BULK = State_Chm%OCPI_BIOB_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
+      State_Chm%OCPO_BIOB_BULK = State_Chm%OCPO_BIOB_BULK(:,:) * 
+     &                           AREA(:,:) * DTSRCE
 
       !2d biofuel
-      BCBF(:,:,:,1) = SCALECARB( BCPI_BIOF_BULK(:,:), 2, 1 ) 
-      BCBF(:,:,:,2) = SCALECARB( BCPO_BIOF_BULK(:,:), 2, 1 ) 
-      OCBF(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
-      OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
+      State_Chm%BCBF(:,:,:,1) = 
+     &          SCALECARB( State_Chm%BCPI_BIOF_BULK(:,:), 2, 1 ) 
+      State_Chm%BCBF(:,:,:,2) = 
+     &          SCALECARB( State_Chm%BCPO_BIOF_BULK(:,:), 2, 1 ) 
+      State_Chm%OCBF(:,:,:,1) = 
+     &          OC2OM * SCALECARB( State_Chm%OCPI_BIOF_BULK(:,:), 2, 2 ) 
+      State_Chm%OCBF(:,:,:,2) = 
+     &          OC2OM * SCALECARB( State_Chm%OCPO_BIOF_BULK(:,:), 2, 2 )
 
       !2d bioburn
-      BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
-      BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-      OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-      OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
+      State_Chm%BCBB(:,:,:,1) = 
+     &          SCALECARB( State_Chm%BCPI_BIOB_BULK(:,:), 3, 1 )
+      State_Chm%BCBB(:,:,:,2) = 
+     &          SCALECARB( State_Chm%BCPO_BIOB_BULK(:,:), 3, 1 )
+      State_Chm%OCBB(:,:,:,1) = 
+     &          OC2OM * SCALECARB( State_Chm%OCPI_BIOB_BULK(:,:), 3, 2 )
+      State_Chm%OCBB(:,:,:,2) = 
+     &          OC2OM * SCALECARB( State_Chm%OCPO_BIOB_BULK(:,:), 3, 2 )
 
       ! Add into BCSRC and OCSRC
-      BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) + BCBB(:,:,:,1)
-      BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) + BCBB(:,:,:,2)
-      OCSRC(:,:,:,1) = OCFF(:,:,:,1) + OCBF(:,:,:,1) + OCBB(:,:,:,1)
-      OCSRC(:,:,:,2) = OCFF(:,:,:,2) + OCBF(:,:,:,2) + OCBB(:,:,:,2)
+      BCSRC(:,:,:,1) = State_Chm%BCFF(:,:,:,1) + 
+     &                 State_Chm%BCBF(:,:,:,1) + 
+     &                 State_Chm%BCBB(:,:,:,1)
+      BCSRC(:,:,:,2) = State_Chm%BCFF(:,:,:,2) + 
+     &                 State_Chm%BCBF(:,:,:,2) + 
+     &                 State_Chm%BCBB(:,:,:,2)
+      OCSRC(:,:,:,1) = State_Chm%OCFF(:,:,:,1) + 
+     &                 State_Chm%OCBF(:,:,:,1) + 
+     &                 State_Chm%OCBB(:,:,:,1)
+      OCSRC(:,:,:,2) = State_Chm%OCFF(:,:,:,2) + 
+     &                 State_Chm%OCBF(:,:,:,2) + 
+     &                 State_Chm%OCBB(:,:,:,2)
 
       IF ( SGCOAG ) THEN
 !emitsgc uses total OC or EC mass 
@@ -5225,9 +5222,10 @@ ccc
          CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
 !         print*, 'NOT ASSOCIATED TERP_ORGC'
       ENDIF
-      TERP_ORGC = Ptr2D(:,:)
+      State_Chm%TERP_ORGC = Ptr2D(:,:)
       Ptr2D => NULL()
-      TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
+      State_Chm%TERP_ORGC = State_Chm%TERP_ORGC(:,:) * 
+     &                      AREA(:,:) * DTSRCE
 #endif
 
 !$OMP PARALLEL DO
@@ -5238,11 +5236,11 @@ ccc
       CALL CHECKMN( I,         J,         1, 
      &              Input_Opt, State_Met, State_Chm, 
      &              'CHECKMN from emisscarbontomas', RC)
-         IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
+         IF ( State_Chm%TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
-         CALL SOACOND( am_I_Root, TERP_ORGC(I,J), I, J, 1,
+         CALL SOACOND( am_I_Root, State_Chm%TERP_ORGC(I,J), I, J, 1,
      &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
          END IF
       END DO
@@ -5403,7 +5401,7 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME
+      SUBROUTINE OHNO3TIME ( State_Chm )
 !
 ! !USES:
 !
@@ -5411,6 +5409,8 @@ ccc
       USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
       USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
       USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+
+      USE State_Chm_Mod, ONLY : ChmState
 ! 
 ! !REVISION HISTORY:
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -5428,9 +5428,14 @@ ccc
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
 !  16 May 2016 - M. Sulprizio- Remove IJLOOP and change SUNTMP array dimensions
 !                              from (MAXIJ) to (IIPAR,JJPAR)
+!  13 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State
 !
 ! !LOCAL VARIABLES:
 !
@@ -5464,7 +5469,7 @@ ccc
       IF ( FIRST .or. GET_GMT() < 1e-5 ) THEN 
       
          ! Zero arrays
-         TCOSZ(:,:) = 0e+0_fp
+         State_Chm%TCOSZ(:,:) = 0e+0_fp
 
          ! NDYSTEP is # of chemistry time steps in this day
          NDYSTEP = ( 24 - INT( GET_GMT() ) ) * 3600 / GET_TS_CHEM()         
@@ -5520,7 +5525,8 @@ ccc
 
                ! TCOSZ is the sum of SUNTMP at location (I,J)
                ! Do not include negative values of SUNTMP
-               TCOSZ(I,J) = TCOSZ(I,J) + MAX( SUNTMP(I,J), 0e+0_fp )
+               State_Chm%TCOSZ(I,J) = State_Chm%TCOSZ(I,J) +
+     &                                MAX( SUNTMP(I,J), 0e+0_fp )
 
             ENDDO
             ENDDO
@@ -5631,11 +5637,12 @@ ccc
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
-     &      .and. TCOSZ(I,J) > 0e+0_fp ) THEN
+     &      .and. State_Chm%TCOSZ(I,J) > 0e+0_fp ) THEN
 
             ! Impose a diurnal variation on OH during the day
             OH_MOLEC_CM3 = OH(I,J,L)                                *   
-     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( State_Met%SUNCOS(I,J) / 
+     &                       State_Chm%TCOSZ(I,J) )   *
      &                     ( 86400e+0_fp / GET_TS_CHEM() )
 
             ! OH is in kg/m3 (from HEMCO), convert to molec/cm3 (mps, 9/18/14)
@@ -5938,11 +5945,12 @@ ccc
 
          ! Test for sunlight...
          IF ( State_Met%SUNCOS(I,J) > 0e+0_fp 
-     &      .and. TCOSZ(I,J) > 0e+0_fp ) THEN
+     &      .and. State_Chm%TCOSZ(I,J) > 0e+0_fp ) THEN
 
             ! Impose a diurnal variation on OH during the day
             O3_MOLEC_CM3 = O3_MOLEC_CM3                             *  
-     &                     ( State_Met%SUNCOS(I,J) / TCOSZ(I,J) )   *
+     &                     ( State_Met%SUNCOS(I,J) / 
+     &                       State_Chm%TCOSZ(I,J) )   *
      &                     ( 86400e+0_fp / GET_TS_CHEM() )
 
             ! Make sure OH is not negative
@@ -6742,39 +6750,39 @@ ccc
          !----------------------------------------------------
          JHC = PARENTMTPA
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_TSOA1) +
-     &                              Spc(I,J,L,id_TSOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_TSOA2) +
-     &                              Spc(I,J,L,id_TSOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_TSOA3) +
-     &                              Spc(I,J,L,id_TSOG3)
-         OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_TSOA0) +
-     &                              Spc(I,J,L,id_TSOG0)
+         State_Chm%OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_TSOA1) +
+     &                                        Spc(I,J,L,id_TSOG1)
+         State_Chm%OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_TSOA2) +
+     &                                        Spc(I,J,L,id_TSOG2)
+         State_Chm%OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_TSOA3) +
+     &                                        Spc(I,J,L,id_TSOG3)
+         State_Chm%OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_TSOA0) +
+     &                                        Spc(I,J,L,id_TSOG0)
          !----------------------------------------------------
          ! Semivolatile 2: isoprene SOA+SOG in kg
          !----------------------------------------------------
          JHC = PARENTISOP
          JSV = IDSV(JHC)
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) +
-     &                              Spc(I,J,L,id_ISOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) +
-     &                              Spc(I,J,L,id_ISOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) +
-     &                              Spc(I,J,L,id_ISOG3)
+         State_Chm%OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ISOA1) +
+     &                                        Spc(I,J,L,id_ISOG1)
+         State_Chm%OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ISOA2) +
+     &                                        Spc(I,J,L,id_ISOG2)
+         State_Chm%OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ISOA3) +
+     &                                        Spc(I,J,L,id_ISOG3)
          !----------------------------------------------------
          ! Semivolatile 3: lumped arom/IVOC: total SOA+SOG in kg
          !----------------------------------------------------
          JHC = PARENTBENZ
          JSV = IDSV(JHC)
          ! High NOx
-         OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ASOA1) +
-     &                              Spc(I,J,L,id_ASOG1)
-         OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ASOA2) +
-     &                              Spc(I,J,L,id_ASOG2)
-         OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ASOA3) +
-     &                              Spc(I,J,L,id_ASOG3)
+         State_Chm%OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_ASOA1) +
+     &                                        Spc(I,J,L,id_ASOG1)
+         State_Chm%OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_ASOA2) +
+     &                                        Spc(I,J,L,id_ASOG2)
+         State_Chm%OAGINITSAVE(I,J,L,3,JSV) = Spc(I,J,L,id_ASOA3) +
+     &                                        Spc(I,J,L,id_ASOG3)
          ! Low NOx
-         OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_ASOAN)
+         State_Chm%OAGINITSAVE(I,J,L,4,JSV) = Spc(I,J,L,id_ASOAN)
 
          !----------------------------------------------------
          ! POA: total POA+POG in kgC (if semivol simulation)
@@ -6782,10 +6790,10 @@ ccc
          IF ( id_POA1 > 0 ) THEN
             JHC = PARENTPOA
             JSV = IDSV(JHC)
-            OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_POA1) +
-     &                                 Spc(I,J,L,id_POG1)
-            OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_POA2) +
-     &                                 Spc(I,J,L,id_POG2)
+            State_Chm%OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_POA1) +
+     &                                           Spc(I,J,L,id_POG1)
+            State_Chm%OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_POA2) +
+     &                                           Spc(I,J,L,id_POG2)
          ENDIF
 
          !----------------------------------------------------
@@ -6794,10 +6802,10 @@ ccc
          IF ( id_OPOA1 > 0 ) THEN
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
-            OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_OPOA1) +
-     &                                 Spc(I,J,L,id_OPOG1)
-            OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_OPOA2) +
-     &                                 Spc(I,J,L,id_OPOG2)
+            State_Chm%OAGINITSAVE(I,J,L,1,JSV) = Spc(I,J,L,id_OPOA1) +
+     &                                           Spc(I,J,L,id_OPOG1)
+            State_Chm%OAGINITSAVE(I,J,L,2,JSV) = Spc(I,J,L,id_OPOA2) +
+     &                                           Spc(I,J,L,id_OPOG2)
          ENDIF
 
 
@@ -6911,16 +6919,21 @@ ccc
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)
             TEMPDELTA(NOX,IPR) = 
-     &      DELTASOGSAVE(I,J,L,NOX,PARENTMTPA)*ALPHA(NOX,IPR,PARENTMTPA)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTLIMO)*ALPHA(NOX,IPR,PARENTLIMO)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTMTPO)*ALPHA(NOX,IPR,PARENTMTPO)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTSESQ)*ALPHA(NOX,IPR,PARENTSESQ)
+     &      State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTMTPA) * 
+     &      ALPHA(NOX,IPR,PARENTMTPA)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTLIMO) * 
+     &      ALPHA(NOX,IPR,PARENTLIMO)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTMTPO) * 
+     &      ALPHA(NOX,IPR,PARENTMTPO)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTSESQ) * 
+     &      ALPHA(NOX,IPR,PARENTSESQ)
          ENDDO
          ENDDO
 
          ! Product 1, C* = 1 ug/m3
          IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA1) +
      &                                Spc(I,J,L,id_TSOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -6928,13 +6941,14 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
          ! Product 2, C* = 10 ug/m3
          IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) +
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA2) +
      &                                Spc(I,J,L,id_TSOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -6942,13 +6956,14 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
          ! Product 3, C* = 100 ug/m3
          IPR      = 3
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) +
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA3) +
      &                                Spc(I,J,L,id_TSOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -6956,13 +6971,14 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
          ! Product 4, C* = 0.1 ug/m3
          IPR      = 4
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_TSOA0) +
      &                                Spc(I,J,L,id_TSOG0)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -6970,7 +6986,7 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
@@ -6983,13 +6999,15 @@ ccc
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)
             TEMPDELTA(NOX,IPR) = 
-     &      DELTASOGSAVE(I,J,L,NOX,PARENTISOP)*ALPHA(NOX,IPR,PARENTISOP)
+     &           State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTISOP) *
+     &           ALPHA(NOX,IPR,PARENTISOP)
          ENDDO
          ENDDO
 
          ! Product 1, C* = 1 ug/m3
          IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA1) +
      &                                Spc(I,J,L,id_ISOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -6997,11 +7015,11 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+            print*,'DELSOGSAVE NOx=1',State_Chm%DELTASOGSAVE(I,J,L,1,5)
+            print*,'DELSOGSAVE NOx=2',State_Chm%DELTASOGSAVE(I,J,L,2,5)
+            print*,'DELSOGSAVE NOx=3',State_Chm%DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA1),Spc(I,J,L,id_ISOG1)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',State_Met%InStratosphere(I,J,L)
@@ -7009,7 +7027,8 @@ ccc
 
          ! Product 2, C* = 10 ug/m3
          IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA2) +
      &                                Spc(I,J,L,id_ISOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7017,11 +7036,11 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+            print*,'DELSOGSAVE NOx=1',State_Chm%DELTASOGSAVE(I,J,L,1,5)
+            print*,'DELSOGSAVE NOx=2',State_Chm%DELTASOGSAVE(I,J,L,2,5)
+            print*,'DELSOGSAVE NOx=3',State_Chm%DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA2),Spc(I,J,L,id_ISOG2)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',State_Met%InStratosphere(I,J,L)
@@ -7030,7 +7049,8 @@ ccc
 
          ! Product 3, C* = 100 ug/m3
          IPR      = 3
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + SUM(TEMPDELTA(:,IPR))
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              SUM(TEMPDELTA(:,IPR))
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ISOA3) +
      &                                Spc(I,J,L,id_ISOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7038,11 +7058,11 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
-            print*,'DELSOGSAVE NOx=1',DELTASOGSAVE(I,J,L,1,5)
-            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,5)
-            print*,'DELSOGSAVE NOx=3',DELTASOGSAVE(I,J,L,3,5)
+            print*,'DELSOGSAVE NOx=1',State_Chm%DELTASOGSAVE(I,J,L,1,5)
+            print*,'DELSOGSAVE NOx=2',State_Chm%DELTASOGSAVE(I,J,L,2,5)
+            print*,'DELSOGSAVE NOx=3',State_Chm%DELTASOGSAVE(I,J,L,3,5)
             print*,'Spc',Spc(I,J,L,id_ISOA3),Spc(I,J,L,id_ISOG3)
             print*,'NNOX',NNOX(JSV)
             print*,'strat?',State_Met%InStratosphere(I,J,L)
@@ -7057,24 +7077,29 @@ ccc
          DO IPR = 1, NPROD(JSV)
          DO NOX = 1, NNOX(JSV)
             TEMPDELTA(NOX,IPR) = 
-     &      DELTASOGSAVE(I,J,L,NOX,PARENTBENZ)*ALPHA(NOX,IPR,PARENTBENZ)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTTOLU)*ALPHA(NOX,IPR,PARENTTOLU)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTXYLE)*ALPHA(NOX,IPR,PARENTXYLE)
-     &    + DELTASOGSAVE(I,J,L,NOX,PARENTNAP )*ALPHA(NOX,IPR,PARENTNAP )
+     &      State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTBENZ) * 
+     &      ALPHA(NOX,IPR,PARENTBENZ)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTTOLU) * 
+     &      ALPHA(NOX,IPR,PARENTTOLU)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTXYLE) * 
+     &      ALPHA(NOX,IPR,PARENTXYLE)
+     &    + State_Chm%DELTASOGSAVE(I,J,L,NOX,PARENTNAP ) * 
+     &      ALPHA(NOX,IPR,PARENTNAP )
          ENDDO
          ENDDO
 
          ! Low NOx
          NOX      = NLOWNOX
          IPR      = 4
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - Spc(I,J,L,id_ASOAN) )
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
          IF ( prtDebug .and. MBDIFF > ACCEPTERROR ) THEN
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,6:8)
 !            print*,'DELSOGSAVE NOx=2',DELTASOGSAVE(I,J,L,2,11)
@@ -7095,7 +7120,8 @@ ccc
          ! HIGH NOx, Product 1
          NOX      = NHIGHNOX
          IPR      = 1
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA1) +
      &                                Spc(I,J,L,id_ASOG1)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7103,14 +7129,15 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
          ! HIGH NOx, Product 2
          NOX      = NHIGHNOX
          IPR      = 2
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &              TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA2) +
      &                                Spc(I,J,L,id_ASOG2)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7118,14 +7145,15 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
          ! HIGH NOx, Product 3
          NOX      = NHIGHNOX
          IPR      = 3
-         TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+         TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) +
+     &              TEMPDELTA(NOX,IPR)
          MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_ASOA3) +
      &                                Spc(I,J,L,id_ASOG3)   ))
          MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7133,7 +7161,7 @@ ccc
             WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR, JSV,
      &                 'in box ', I, J, L
             print*,'CK_MB ',NOX,IPR,JSV,
-     &             TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &             TEMPSOAG,MBDIFF,State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &             TEMPDELTA(:,IPR)
          ENDIF
 
@@ -7148,15 +7176,17 @@ ccc
             JSV = IDSV(JHC)
             NOX = NONLYNOX
             DO IPR = 1, NPROD(JSV)
-               TEMPDELTA(NOX,IPR) = DELTASOGSAVE(I,J,L,IPR,PARENTPOA ) *
-     &                              ALPHA(NOX,IPR,PARENTPOA ) -
-     &                              DELTASOGSAVE(I,J,L,IPR,PARENTOPOA) *
-     &                              ALPHA(NOX,IPR,PARENTOPOA)
+               TEMPDELTA(NOX,IPR) = 
+     &            State_Chm%DELTASOGSAVE( I,J,L,IPR,PARENTPOA ) *
+     &            ALPHA(NOX,IPR,PARENTPOA ) -
+     &            State_Chm%DELTASOGSAVE( I,J,L,IPR,PARENTOPOA ) *
+     &            ALPHA(NOX,IPR,PARENTOPOA)
             ENDDO
 
             ! Only NOx, Product 1
             IPR      = 1
-            TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+            TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &                 TEMPDELTA(NOX,IPR)
             MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA1) +
      &                                   Spc(I,J,L,id_POG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7164,13 +7194,15 @@ ccc
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
-     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &                TEMPSOAG,MBDIFF,
+     &                State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &                TEMPDELTA(:,IPR)
             ENDIF
 
             ! Only NOx, Product 2
             IPR      = 2
-            TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+            TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &                 TEMPDELTA(NOX,IPR)
             MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_POA2) +
      &                                   Spc(I,J,L,id_POG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7178,7 +7210,8 @@ ccc
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
-     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &                TEMPSOAG,MBDIFF,
+     &                State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &                TEMPDELTA(:,IPR)
             ENDIF
          ENDIF ! POA1
@@ -7192,13 +7225,15 @@ ccc
             JSV = IDSV(JHC)
             NOX = NONLYNOX
             DO IPR = 1, NPROD(JSV)
-               TEMPDELTA(NOX,IPR) = DELTASOGSAVE(I,J,L,IPR,PARENTOPOA) *
+               TEMPDELTA(NOX,IPR) = 
+     &           State_Chm%DELTASOGSAVE(I,J,L,IPR,PARENTOPOA) *
      &                              ALPHA(NOX,IPR,PARENTOPOA)
             ENDDO
 
             ! Only NOx, Product 1
             IPR      = 1
-            TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+            TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &                 TEMPDELTA(NOX,IPR)
             MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA1) +
      &                                   Spc(I,J,L,id_OPOG1)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7206,13 +7241,15 @@ ccc
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
-     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &                TEMPSOAG,MBDIFF,
+     &                State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &                TEMPDELTA(:,IPR)
             ENDIF
 
             ! Only NOx, Product 2
             IPR      = 2
-            TEMPSOAG = OAGINITSAVE(I,J,L,IPR,JSV) + TEMPDELTA(NOX,IPR)
+            TEMPSOAG = State_Chm%OAGINITSAVE(I,J,L,IPR,JSV) + 
+     &                 TEMPDELTA(NOX,IPR)
             MBDIFF   = ABS( TEMPSOAG - ( Spc(I,J,L,id_OPOA2) +
      &                                   Spc(I,J,L,id_OPOG2)   ))
             MBDIFF   = MBDIFF/TEMPSOAG ! convert to fractional error
@@ -7220,7 +7257,8 @@ ccc
                WRITE(*,*) 'MB Problem with NOX, IPR, JSV:', NOX, IPR,
      &                    JSV, 'in box ', I, J, L
                print*,'CK_MB ',NOX,IPR,JSV,
-     &                TEMPSOAG,MBDIFF,OAGINITSAVE(I,J,L,IPR,JSV),
+     &                TEMPSOAG,MBDIFF,
+     &                State_Chm%OAGINITSAVE(I,J,L,IPR,JSV),
      &                TEMPDELTA(:,IPR)
             ENDIF
          ENDIF ! OPOA1
@@ -7235,7 +7273,7 @@ ccc
       DO JHC = 1, MHC
       DO NOX = 1, MNOX
          DELTAHCSAVE(NOX,JHC) = DELTAHCSAVE(NOX,JHC) +
-     &               1e-9_fp * SUM(DELTASOGSAVE(:,:,:,NOX,JHC))
+     &           1e-9_fp * SUM(State_Chm%DELTASOGSAVE(:,:,:,NOX,JHC))
       ENDDO
       ENDDO
 
@@ -7287,57 +7325,72 @@ ccc
          JSV = 1
          IPR = 1
          print*,'TSOA1 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 2
          print*,'TSOA2 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 3
          print*,'TSOA3 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 4
          print*,'TSOA0 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
 
          JSV = 2
          IPR = 1
          print*,'ISOA1 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 2
          print*,'ISOA2 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 3
          print*,'ISOA3 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
 
          JSV = 3
          IPR = 1
          print*,'ASOA1 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 2
          print*,'ASOA2 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 3
          print*,'ASOA3 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 4
          print*,'ASOAN prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
 
          JSV = 4
          IPR = 1
          print*,'POA1  prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 2
          print*,'POA2  prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
 
          JSV = 5
          IPR = 1
          print*,'OPOA1 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
          IPR = 2
          print*,'OPOA2 prod and evap: ',
-     &   SUM(SPECSOAPROD(:,:,:,IPR,JSV)),SUM(SPECSOAEVAP(:,:,:,IPR,JSV))
+     &   SUM(State_Chm%SPECSOAPROD(:,:,:,IPR,JSV)),
+     &   SUM(State_Chm%SPECSOAEVAP(:,:,:,IPR,JSV))
 
       ENDIF
 
@@ -7851,229 +7904,171 @@ ccc
          CALL ERROR_STOP('Too many NOx levels','carbon_mod.f')
       ENDIF
 
-      ALLOCATE( BCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCCONV' )
-      BCCONV = 0e+0_fp
+      State_Chm%BCCONV = 0e+0_fp
 
-      ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
-      OCCONV = 0e+0_fp
+      State_Chm%OCCONV = 0e+0_fp
 
       ! semivolpoa2: for POA emissions (hotp 2/27/09)
       ! Store POG1 and POG2 separately (mps, 1/14/16)
-      ALLOCATE( POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%POAEMISS( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POAEMISS' )
-      POAEMISS = 0e+0_fp
+      State_Chm%POAEMISS = 0e+0_fp
 
       ! JKODROS
 #if defined( TOMAS )
       !SFARINA the next six are introduced with the idea that 
       ! emisscarbontomas needs to be restructured and these
       ! data structures eliminated
-      ALLOCATE( BCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%BCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCFF' )
-      BCFF = 0e+0_fp
+      State_Chm%BCFF = 0e+0_fp
 
-      ALLOCATE( OCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%OCFF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCFF' )
-      OCFF = 0e+0_fp
+      State_Chm%OCFF = 0e+0_fp
 
-      ALLOCATE( BCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%BCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBF' )
-      BCBF = 0e+0_fp
+      State_Chm%BCBF = 0e+0_fp
 
-      ALLOCATE( OCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%OCBF( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBF' )
-      OCBF = 0e+0_fp
+      State_Chm%OCBF = 0e+0_fp
 
-      ALLOCATE( BCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%BCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBB' )
-      BCBB = 0e+0_fp
+      State_Chm%BCBB = 0e+0_fp
 
-      ALLOCATE( OCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
+      ALLOCATE( State_Chm%OCBB( IIPAR, JJPAR, IBINS, 2 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
-      OCBB = 0e+0_fp
+      State_Chm%OCBB = 0e+0_fp
 
       ! BC 
-      ALLOCATE( BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_ANTH_BULK' )
-      BCPI_ANTH_BULK = 0e+0_fp
+      State_Chm%BCPI_ANTH_BULK = 0e+0_fp
 
-      ALLOCATE( BCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_ANTH_BULK' )
-      BCPO_ANTH_BULK = 0e+0_fp
+      State_Chm%BCPO_ANTH_BULK = 0e+0_fp
 
-      ALLOCATE( BCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOF_BULK' )
-      BCPI_BIOF_BULK = 0e+0_fp
+      State_Chm%BCPI_BIOF_BULK = 0e+0_fp
 
-      ALLOCATE( BCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOF_BULK' )
-      BCPO_BIOF_BULK = 0e+0_fp
+      State_Chm%BCPO_BIOF_BULK = 0e+0_fp
 
-      ALLOCATE( BCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPI_BIOB_BULK' )
-      BCPI_BIOB_BULK = 0e+0_fp
+      State_Chm%BCPI_BIOB_BULK = 0e+0_fp
 
-      ALLOCATE( BCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%BCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCPO_BIOB_BULK' )
-      BCPO_BIOB_BULK = 0e+0_fp
+      State_Chm%BCPO_BIOB_BULK = 0e+0_fp
 
       ! OC ----------------
-      ALLOCATE( OCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPI_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_ANTH_BULK' )
-      OCPI_ANTH_BULK = 0e+0_fp
+      State_Chm%OCPI_ANTH_BULK = 0e+0_fp
 
-      ALLOCATE( OCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPO_ANTH_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_ANTH_BULK' )
-      OCPO_ANTH_BULK = 0e+0_fp
+      State_Chm%OCPO_ANTH_BULK = 0e+0_fp
 
-      ALLOCATE( OCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPI_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOF_BULK' )
-      OCPI_BIOF_BULK = 0e+0_fp
+      State_Chm%OCPI_BIOF_BULK = 0e+0_fp
 
-      ALLOCATE( OCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPO_BIOF_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOF_BULK' )
-      OCPO_BIOF_BULK = 0e+0_fp
+      State_Chm%OCPO_BIOF_BULK = 0e+0_fp
 
-      ALLOCATE( OCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPI_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPI_BIOB_BULK' )
-      OCPI_BIOB_BULK = 0e+0_fp
+      State_Chm%OCPI_BIOB_BULK = 0e+0_fp
 
-      ALLOCATE( OCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%OCPO_BIOB_BULK( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCPO_BIOB_BULK' )
-      OCPO_BIOB_BULK = 0e+0_fp
+      State_Chm%OCPO_BIOB_BULK = 0e+0_fp
       
       !biogenic
-      ALLOCATE( TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%TERP_ORGC( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'TERP_ORGC' )
-      TERP_ORGC = 0e+0_fp
+      State_Chm%TERP_ORGC = 0e+0_fp
 
       ! CO anth for scaling xtraSOA
-      ALLOCATE( CO_ANTH( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( State_Chm%CO_ANTH( IIPAR, JJPAR ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'CO_ANTH' )
-      CO_ANTH = 0e+0_fp
+      State_Chm%CO_ANTH = 0e+0_fp
 #endif
       !=================================================================
       ! SOA arrays only have to be allocated if LSOA = T
       !=================================================================
       IF ( Input_Opt%LSOA ) THEN
       
-         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
+         ALLOCATE( State_Chm%TCOSZ( IIPAR, JJPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
-         TCOSZ = 0e+0_fp
+         State_Chm%TCOSZ = 0e+0_fp
 
-         ALLOCATE( ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         ALLOCATE( State_Chm%ORVC_SESQ( IIPAR, JJPAR, LLPAR ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'ORVC_SESQ' )
-         ORVC_SESQ = 0e+0_fp
+         State_Chm%ORVC_SESQ = 0e+0_fp
 
          ! diagnostic  (dkh, 11/11/06) 
          ! increase last dimension by 1 to add NAP (hotp 7/22/09)
-         ALLOCATE( GLOB_DARO2( IIPAR, JJPAR, LLPAR,2,4), STAT=AS )
+         ALLOCATE( State_Chm%GLOB_DARO2( IIPAR, JJPAR, LLPAR, 2, 4 ), 
+     &             STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_DARO2' )
-         GLOB_DARO2 = 0e+0_fp
+         State_Chm%GLOB_DARO2 = 0e+0_fp
 
          ! semivolpoa4: diagnostic (hotp 3/27/09)
-         ALLOCATE( GLOB_POGRXN( IIPAR, JJPAR, LLPAR,2 ), STAT = AS )
+         ALLOCATE( State_Chm%GLOB_POGRXN( IIPAR, JJPAR, LLPAR, 2 ),
+     &             STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GLOB_POGRXN' )
-         GLOB_POGRXN = 0e+0_fp
+         State_Chm%GLOB_POGRXN = 0e+0_fp
 
          ! Initial OA+OG diagnostic (hotp 5/17/10)
-         ALLOCATE( OAGINITSAVE( IIPAR, JJPAR, LLPAR, MPROD, MSV ),
+         ALLOCATE( State_Chm%OAGINITSAVE( IIPAR, JJPAR, LLPAR,
+     &                                    MPROD, MSV ),
      &             STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OAGINITSAVE' )
-         OAGINITSAVE = 0e+0_fp
+         State_Chm%OAGINITSAVE = 0e+0_fp
 
          ! Change in OA+OG diagnostic (hotp 5/17/10)
-         ALLOCATE( DELTASOGSAVE( IIPAR, JJPAR, LLPAR, MNOX, MHC ),
+         ALLOCATE( State_Chm%DELTASOGSAVE( IIPAR, JJPAR, LLPAR, 
+     &                                     MNOX, MHC ),
      &             STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'DELTASOGSAVE' )
-         DELTASOGSAVE = 0e+0_fp
+         State_Chm%DELTASOGSAVE = 0e+0_fp
 
          ! Diagnostic for NO branching ratio (hotp 5/24/10)
-         ALLOCATE( BETANOSAVE( IIPAR, JJPAR, LLPAR), STAT = AS )
+         ALLOCATE( State_Chm%BETANOSAVE( IIPAR, JJPAR, LLPAR ), 
+     &             STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'BETANOSAVE' )
-         BETANOSAVE = 0e+0_fp
+         State_Chm%BETANOSAVE = 0e+0_fp
 
          ! Diagnostic (hotp 6/5/10)
-         ALLOCATE( SPECSOAPROD( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+         ALLOCATE( State_Chm%SPECSOAPROD( IIPAR, JJPAR, LLPAR, 
+     &                                    MPROD, MSV ), 
      &      STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAPROD' )
-         SPECSOAPROD = 0e+0_fp
+         State_Chm%SPECSOAPROD = 0e+0_fp
 
          ! Diagnostic (hotp 6/5/10)
-         ALLOCATE( SPECSOAEVAP( IIPAR, JJPAR, LLPAR, MPROD, MSV), 
+         ALLOCATE( State_Chm%SPECSOAEVAP( IIPAR, JJPAR, LLPAR, 
+     &                                    MPROD, MSV ), 
      &      STAT = AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'SPECSOAEVAP' )
-         SPECSOAEVAP = 0e+0_fp
+         State_Chm%SPECSOAEVAP = 0e+0_fp
 
       ENDIF
 
       END SUBROUTINE INIT_CARBON
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_carbon
-!
-! !DESCRIPTION: Subroutine CLEANUP\_CARBON deallocates all module arrays 
-!  (rjp, bmy, 4/1/04, 7/8/04)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_CARBON
-!
-! !REVISION HISTORY:
-!  (1 ) Now deallocate arrays for secondary organic aerosols (rjp, bmy, 7/8/04)
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
-!                              semivolatile POA simulations (H. Pye)
-!  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-      !=================================================================
-      ! CLEANUP_CARBON begins here!
-      !=================================================================
-      IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
-      IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
-      IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
-      IF ( ALLOCATED( ORVC_SESQ     ) ) DEALLOCATE( ORVC_SESQ     )
-      IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
-      IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
-      IF ( ALLOCATED( GLOB_POGRXN   ) ) DEALLOCATE( GLOB_POGRXN   )
-      IF ( ALLOCATED( OAGINITSAVE   ) ) DEALLOCATE( OAGINITSAVE   )
-      IF ( ALLOCATED( DELTASOGSAVE  ) ) DEALLOCATE( DELTASOGSAVE  )
-      IF ( ALLOCATED( BETANOSAVE    ) ) DEALLOCATE( BETANOSAVE    )
-      IF ( ALLOCATED( SPECSOAPROD   ) ) DEALLOCATE( SPECSOAPROD   )
-      IF ( ALLOCATED( SPECSOAEVAP   ) ) DEALLOCATE( SPECSOAEVAP   )
-
-#if defined ( TOMAS )
-      IF ( ALLOCATED( BCFF           )) DEALLOCATE( BCFF          )
-      IF ( ALLOCATED( OCFF           )) DEALLOCATE( OCFF          )
-      IF ( ALLOCATED( BCBF           )) DEALLOCATE( BCBF          )
-      IF ( ALLOCATED( OCBF           )) DEALLOCATE( OCBF          )
-      IF ( ALLOCATED( BCBB           )) DEALLOCATE( BCBB          )
-      IF ( ALLOCATED( OCBB           )) DEALLOCATE( OCBB          )
-      IF ( ALLOCATED( BCPI_ANTH_BULK )) DEALLOCATE( BCPI_ANTH_BULK)
-      IF ( ALLOCATED( BCPO_ANTH_BULK )) DEALLOCATE( BCPO_ANTH_BULK)
-      IF ( ALLOCATED( BCPI_BIOF_BULK )) DEALLOCATE( BCPI_BIOF_BULK)
-      IF ( ALLOCATED( BCPO_BIOF_BULK )) DEALLOCATE( BCPO_BIOF_BULK)
-      IF ( ALLOCATED( BCPI_BIOB_BULK )) DEALLOCATE( BCPI_BIOB_BULK)
-      IF ( ALLOCATED( BCPO_BIOB_BULK )) DEALLOCATE( BCPO_BIOB_BULK)
-      IF ( ALLOCATED( OCPI_ANTH_BULK )) DEALLOCATE( OCPI_ANTH_BULK)
-      IF ( ALLOCATED( OCPO_ANTH_BULK )) DEALLOCATE( OCPO_ANTH_BULK)
-      IF ( ALLOCATED( OCPI_BIOF_BULK )) DEALLOCATE( OCPI_BIOF_BULK)
-      IF ( ALLOCATED( OCPO_BIOF_BULK )) DEALLOCATE( OCPO_BIOF_BULK)
-      IF ( ALLOCATED( OCPI_BIOB_BULK )) DEALLOCATE( OCPI_BIOB_BULK)
-      IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
-      IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
-      IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
-#endif
-
-      END SUBROUTINE CLEANUP_CARBON
 !EOC
       END MODULE CARBON_MOD

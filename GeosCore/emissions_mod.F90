@@ -221,7 +221,7 @@ CONTAINS
        ! are correctly treated.
        IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
             Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
-          CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+          CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

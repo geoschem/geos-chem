@@ -16,7 +16,6 @@
 ! !USES:
 !
       USE C2H6_MOD,                ONLY : CLEANUP_C2H6
-      USE CARBON_MOD,              ONLY : CLEANUP_CARBON
       USE CO2_MOD,                 ONLY : CLEANUP_CO2
       USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
       USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
@@ -252,6 +251,7 @@
 !  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
 !  08 Aug 2018 - H.P. Lin    - Remove call to CLEANUP_AEROSOL
+!  13 Aug 2018 - H.P. Lin    - Remove call to CLEANUP_CARBON
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -311,7 +311,6 @@
 
       ! Call cleanup routines from individual F90 modules
       CALL CLEANUP_C2H6()
-      CALL CLEANUP_CARBON()
       CALL CLEANUP_CO2()
 #if defined( BPCH_DIAG )
       CALL CLEANUP_DIAG()
