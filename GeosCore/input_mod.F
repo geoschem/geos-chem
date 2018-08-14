@@ -802,7 +802,7 @@
 !
       ! Scalars
       INTEGER            :: N, C
-#if defined(  ESMF_ ) 
+#if defined( ESMF_ ) || defined( MODEL_ )
       INTEGER            :: H,       M,       S
       REAL(f4)           :: init_UTC
 #endif
