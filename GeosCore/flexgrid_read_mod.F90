@@ -312,10 +312,13 @@ CONTAINS
     CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
-    ! Read EVAP
-    v_name = "EVAP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
-    State_Met%EVAP = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read EVAP
+    !v_name = "EVAP"
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !State_Met%EVAP = Q
+    !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
@@ -327,10 +330,13 @@ CONTAINS
     CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
-    ! Read GRN
-    v_name = "GRN"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
-    State_Met%GRN = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read GRN
+    !v_name = "GRN"
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !State_Met%GRN = Q
+    !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
@@ -357,10 +363,13 @@ CONTAINS
     CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LWI = Q
 
-    ! Read LWGNT 
-    v_name = "LWGNT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
-    State_Met%RADLWG = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read LWGNT 
+    !v_name = "LWGNT"
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !State_Met%RADLWG = Q
+    !--------------------------------------------------------------------------
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
@@ -400,10 +409,13 @@ CONTAINS
     CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
-    ! Read PRECSNO
-    v_name = "PRECSNO"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
-    State_Met%PRECSNO = Q
+    !--------------------------------------------------------------------------
+    ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read PRECSNO
+    !v_name = "PRECSNO"
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !State_Met%PRECSNO = Q
+    !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
