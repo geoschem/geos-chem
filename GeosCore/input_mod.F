@@ -7997,6 +7997,10 @@
          RETURN
       ENDIF
 
+#elif defined( FLEXGRID )
+      ! Do not need to check directory for FlexGrid
+      ! Metfield directory is set in HEMCO_Config.rc, not input.geos
+
 #endif
 
       END SUBROUTINE VALIDATE_DIRECTORIES

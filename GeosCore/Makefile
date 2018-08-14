@@ -597,6 +597,10 @@ flexchem_mod.o              : flexchem_mod.F90                               \
                               fast_jx_mod.o           strat_chem_mod.o       \
                               tomas_mod.o
 
+flexgrid_read_mod.o         : flexgrid_read_mod.F90                          \
+                              dao_mod.o               diag_mod.o             \
+                              get_met_mod.o
+
 fvdas_convect_mod.o         : fvdas_convect_mod.F                            \
                               diag_mod.o              depo_mercury_mod.o
 
@@ -632,6 +636,8 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
 
 geosfp_read_mod.o           : geosfp_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
+
+get_met_mod.o               : get_met_mod.F90
 
 get_ndep_mod.o              : get_ndep_mod.F                              
 
@@ -706,6 +712,7 @@ main.o                      : main.F                                         \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
+                              flexgrid_read_mod.o                            \
                               gc_classic_version.H
 
 mapping_mod.o               : mapping_mod.F90                              

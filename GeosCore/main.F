@@ -127,6 +127,7 @@
       USE DAO_MOD               ! Met field definitions
       USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
       USE MERRA2_READ_MOD       ! For reading MERRA2 data
+      USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data 
 #if defined( EXCHANGE )
       USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
@@ -746,12 +747,51 @@
       !-----------------------------------------------------------------
       !        ***** I N I T I A L I Z A T I O N  continued *****
       !-----------------------------------------------------------------
+
+      ! To enable FlexGrid, need to initialize HEMCO and run phase 1
+      ! before reading initial metfields.
+      ! (Jiawei Zhuang 2017/6)
+
+      ! Initialize HEMCO. This reads the HEMCO configuration file
+      ! and creates entries for all data files needed for emission
+      ! calculation. Also sets some logical switches in Input_Opt
+      ! (e.g. LSOILNOX).
+      ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
+      ! is to make sure that HEMCO can still be used to read
+      ! non-emission data such as stratospheric Bry fields. If LEMIS
+      ! is set to FALSE, the emissions driver routines will make sure
+      ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
+      ! 
+      ! This call will also initialize the three built-in HEMCO 
+      ! diagnostics (default, manual, restart).
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_Start( "HEMCO", RC )
+#endif
+
+      CALL Emissions_Init( am_I_Root, Input_Opt,
+     &                     State_Met, State_Chm, RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Emissions_Init"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+       
+      ! Run HEMCO phase 0 as simplfied phase 1 to read initial metfields
+      CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met,
+     &                    State_Chm, TimeForEmis, 0,         RC )
+
+#if defined( USE_TIMERS )
+      CALL GEOS_Timer_End ( "HEMCO", RC )
+#endif
+
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_Start( "Reading met fields",  RC )
       CALL GEOS_Timer_Start( "Input",               RC )
 #endif
 
       ! Read the initial met fields from disk
+      ! This is called after HEMCO initialization so that FlexGrid works
       CALL Read_Initial_Met_Fields()
 
 #if defined( USE_TIMERS )
@@ -839,36 +879,6 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
       ENDIF
-
-      ! Initialize HEMCO. This reads the HEMCO configuration file
-      ! and creates entries for all data files needed for emission
-      ! calculation. Also sets some logical switches in Input_Opt
-      ! (e.g. LSOILNOX).
-      ! Note: always call HEMCO, even if LEMIS is set to FALSE. This
-      ! is to make sure that HEMCO can still be used to read
-      ! non-emission data such as stratospheric Bry fields. If LEMIS
-      ! is set to FALSE, the emissions driver routines will make sure
-      ! that HEMCO does not calculate any emissions (ckeller, 1/12/15).
-      ! 
-      ! This call will also initialize the three built-in HEMCO 
-      ! diagnostics (default, manual, restart).
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "HEMCO", RC )
-#endif
-
-      ! Initialize HEMCO
-      CALL Emissions_Init( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Emissions_Init"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-       ENDIF
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End ( "HEMCO", RC )
-#endif
 
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
@@ -2703,6 +2713,10 @@
       WRITE( 6, 130 ) 'GMAO MERRA-2 (on native 72-layer vertical grid)'
 #endif
 
+#elif defined( FLEXGRID )
+      WRITE( 6, '(a)' ) 
+     &'Using FlexGrid for NetCDF met fields (written by JIAWEI ZHUANG)'
+
 #endif
 
       !-----------------------------------------------------------------
@@ -2943,6 +2957,28 @@
       D = GET_FIRST_I3_TIME()
       CALL Merra2_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
 
+#elif defined( FLEXGRID )
+
+      !=================================================================
+      !    *****  R E A D   F L E X G R I D   F I E L D S    *****
+      !    *****  At the start of the GEOS-Chem simulation  *****
+      !=================================================================
+
+      ! Read time-invariant data
+      CALL FlexGrid_Read_CN  (             Input_Opt, State_Met )
+
+      ! Read 1-hr time-averaged data
+      D = GET_FIRST_A1_TIME()
+      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
+
+      ! Read 3-hr time averaged data
+      D = GET_FIRST_A3_TIME()
+      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+   
+      ! Read 3-hr instantanous data
+      D = GET_FIRST_I3_TIME()
+      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
+
 #endif
 
 #if defined( RRTMG )
@@ -3073,7 +3109,46 @@
          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
          ! and average as polar caps
          CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-         CALL AVGPOLE( State_Met%PS2_DRY )
+         CALL AvgPole( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure at polar caps 
+         CALL AvgPole( State_Met%PS2_WET )
+
+      ENDIF
+
+#elif defined( FLEXGRID )
+
+      !==============================================================
+      !  ****** R E A D   F L E X G R I D   F I E L D S  *****
+      !==============================================================
+
+      !---------------------------------
+      ! A-1 fields (1hr time averaged)
+      !---------------------------------
+      IF ( ITS_TIME_FOR_A1() ) THEN
+         D = GET_A1_TIME()
+         CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! A-3 fields (3-hr time averaged)
+      !----------------------------------
+      IF ( ITS_TIME_FOR_A3() ) THEN
+         D = GET_A3_TIME()
+         CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+      ENDIF
+
+      !----------------------------------
+      ! I-3 fields (3-hr instantaneous
+      !----------------------------------
+      IF ( ITS_TIME_ FOR_I3() ) THEN
+         D = GET_I3_TIME()
+         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
+
+         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+         ! and average as polar caps
+         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
+         CALL AvgPole( State_Met%PS2_DRY )
 
          ! Compute avg moist pressure at polar caps 
          CALL AvgPole( State_Met%PS2_WET )

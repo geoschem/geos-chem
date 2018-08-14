@@ -113,6 +113,10 @@ MODULE HCO_ExtList_Mod
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geosfp'
 #elif defined( MERRA2 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra2'
+#elif defined( FLEXGRID )
+  ! Users should explicitly set MET: geosfp or MET: merra2 in HEMCO_Config.rc,
+  ! because FLEXGRID is intended to unify GEOSFP and MERRA2 in source code.
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'flexgrid'
 #else
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'unknown_model'
 #endif 

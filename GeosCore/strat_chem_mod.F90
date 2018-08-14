@@ -2270,7 +2270,7 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if  defined( GEOS_FP ) || defined( MERRA2 )
+#if  defined( GEOS_FP ) || defined( MERRA2 ) || defined( FLEXGRID )
 
     PO3_vmr = 5.14e-14_fp   
 

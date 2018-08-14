@@ -698,11 +698,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    !======================================================================-
+    !=======================================================================
     ! Reset all emission and deposition values. Do this only if it is time
     ! for emissions, i.e. if those values will be refilled.
     !=======================================================================
-    IF ( IsEmisTime .AND. Phase /= 1 ) THEN
+    IF ( IsEmisTime .AND. Phase == 2 ) THEN
        CALL HCO_FluxArrReset( HcoState, HMRC                                )
 
        ! Trap potential errors
@@ -717,16 +717,19 @@ CONTAINS
 
     !=======================================================================
     ! Define pressure edges [Pa] on HEMCO grid.
+    ! At Phase 0, the pressure field is not known yet.
     !=======================================================================
-    CALL GridEdge_Set( am_I_Root, State_Met, HcoState, HMRC                 )
+    IF ( Phase /= 0 ) THEN
+       CALL GridEdge_Set( am_I_Root, State_Met, HcoState, HMRC              )
 
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "GridEdge_Set"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       CALL Flush( HcoState%Config%Err%Lun )
-       RETURN
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "GridEdge_Set"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
+          RETURN
+       ENDIF
     ENDIF
  
     !=======================================================================
@@ -765,7 +768,7 @@ CONTAINS
     !=======================================================================
     ! Do the following only if it's time to calculate emissions 
     !=======================================================================
-    IF ( Phase /= 1 .AND. IsEmisTime ) THEN 
+    IF ( Phase == 2 .AND. IsEmisTime ) THEN 
 
        !--------------------------------------------------------------------
        ! Set / update ExtState fields.
