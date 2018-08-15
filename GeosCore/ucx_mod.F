@@ -136,8 +136,9 @@
       INTEGER,  PARAMETER           :: I_SPA=2
       INTEGER,  PARAMETER           :: INITMR_BASIS = 2005
 
-#if defined(ESMF_)
-      ! Never use NETCDF in ESMF environment (ckeller, 12/05/14). 
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+      ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
+      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not preprocessed for external grid (hplin, 8/15/18).
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
       LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
