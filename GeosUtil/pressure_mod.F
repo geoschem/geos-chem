@@ -38,6 +38,10 @@
 #if defined( ESMF_ ) || defined( MODEL_ )
       PUBLIC  :: Accept_External_Pedge
 #endif
+
+#if defined( MODEL_WRF )
+      PUBLIC  :: Accept_External_ApBp
+#endif
 !
 ! !REMARKS:
 !
@@ -868,6 +872,61 @@
       RC             = GC_SUCCESS
       
       END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
+#if defined ( MODEL_WRF )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Accept_External_ApBp
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_ApBp sets the GEOS-Chem
+!  hybrid grid AP, BP values with values obtained from an external model,
+!  such as the WRF model.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_ApBp( am_I_Root, ApIn, BpIn, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on root CPU?
+      REAL(fp),       INTENT(IN)  :: ApIn( LLPAR+1 ) ! "A" term for hybrid grid
+      REAL(fp),       INTENT(IN)  :: BpIn( LLPAR+1 ) ! "B" term for hybrid grid
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC              ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for AP, BP.  It allows us to keep the
+!  AP, BP array PRIVATE to this module, which is good programming
+!  practice.
+!
+!  For WRF-GC, you need to enable the v3.9+ hybrid-sigma vertical coordinate system
+!  in the WRF model. Set hybrid_opt = 2 in &dynamics, and ./configure -hyb.
+!  Like WRF-GC itself, hybrid-sigma grids are experimental in WRF 3.9+.
+!
+! !REVISION HISTORY:
+!  17 Aug 2018 - H.P. Lin    - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      AP             = ApIn
+      BP             = BpIn
+
+      ! Return successfully
+      RC             = GC_SUCCESS
+
+      END SUBROUTINE Accept_External_ApBp
 !EOC
 #endif
       END MODULE PRESSURE_MOD
