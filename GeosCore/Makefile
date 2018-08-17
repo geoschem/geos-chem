@@ -744,6 +744,16 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            toms_mod.o             \
                               hco_interface_mod.o
+##############################################################################
+# NOTE: For some reason gfortran 8.x.x throws an internal compiler error
+# in this routine.  The error does not happen when optimization is turned
+# off.  For now, lower the optimization level to get around this issue.
+# The ocean mercury module might eventually be replaced later on.
+#   -- Bob Yantosca, 17 Aug 2018
+ifeq ($(IS_GNU_8),1)
+	$(F90) -c -O1 $<
+endif
+##############################################################################
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o

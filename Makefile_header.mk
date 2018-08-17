@@ -1088,6 +1088,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
   GNU_VERSION        :=$(shell $(FC) -dumpversion)
   GNU_VERSION        :=$(subst .,,$(GNU_VERSION))
   NEWER_THAN_447     :=$(shell perl -e "print ($(GNU_VERSION) gt 447)")
+  IS_GNU_8           :=$(shell perl -e "print ($(GNU_VERSION) ge 800)")
 
   # Base set of compiler flags
   FFLAGS             :=-cpp -w -std=legacy -fautomatic -fno-align-commons
@@ -1116,6 +1117,7 @@ ifeq ($(COMPILER_FAMILY),GNU)
     #                        Intel Sandy-Bridge Xeon (e.g. E5-2680)
     #  -mfpmath=sse         Use SSE extensions
     #  -funroll-loops       Enable loop unrolling
+    #  -ffast-math          Enable fast math optimizations
     OPT              := -O3 -funroll-loops
     #OPT              := -O3 -march=corei7-avx -mfpmath=sse -funroll-loops
   endif
@@ -1509,6 +1511,7 @@ export RRTMG_CLEAN
 export RRTMG_NO_CLEAN
 export KPP_CHEM
 export TIMERS
+export IS_GNU_8
 
 #EOC
 
