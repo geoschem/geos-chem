@@ -1,5 +1,8 @@
 # README for the GEOS-Chem Source code repository
 
+[![Build
+Status](https://travis-ci.org/JiaweiZhuang/geos-chem.svg?branch=travis_ci)](https://travis-ci.org/JiaweiZhuang/geos-chem)
+
 This repository (https://github.com/gcst/geos-chem) contains the source code for the GEOS-Chem model of atmospheric chemistry and composition. 
 
 ---
