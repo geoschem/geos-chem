@@ -361,6 +361,20 @@ ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
   $(error $(ERR_CMPLR))
 endif
 
+# Once we are sure the compiler is valid, then get the version number
+COMPILER_VERSION_LONG :=$(shell $(FC) --version))
+COMPILER_VERSION_LONG :=$(sort $(COMPILER_VERSION_LONG))
+
+# For ifort, the 3rd substring of the sorted text is the version number.
+# For pgfortran and gfortran, it's the 4th substring.
+# NOTE: Future compiler updates may break this algorithm.
+REGEXP      :=(^[Ii][Ff][Oo][Rr][Tt])
+ifeq ($(shell [[ "$(FC)" =~ $(REGEXP) ]] && echo true),true)
+ COMPILER_VERSION :=$(word 3, $(COMPILER_VERSION_LONG))
+else
+ COMPILER_VERSION :=$(word 4, $(COMPILER_VERSION_LONG))
+endif
+
 #------------------------------------------------------------------------------
 # Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
@@ -1269,9 +1283,14 @@ ifeq ($(COMPILER_FAMILY),Intel)
   FFLAGS             += -fp-model source
 
   # Turn on OpenMP parallelization
+  # NOTE: ifort 18 and higher users -qopenmp instead of -openmp
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    FFLAGS           += -openmp
+    ifeq ($(shell [[ "$(COMPILER_VERSION)" =~ 18. ]] && echo true),true)
+      FFLAGS         += -qopenmp
+    else
+      FFLAGS         += -openmp
+    endif
   endif
 
   # Get Operating System (Linux = Linux; Darwin = MacOSX)
