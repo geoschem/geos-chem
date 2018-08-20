@@ -477,7 +477,8 @@ CONTAINS
 
     ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
     ! is not called in ESMF environment (ckeller, 11/29/17).
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
++                       ASSOCIATED( State_Diag%DryDep )
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
