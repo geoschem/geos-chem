@@ -1693,11 +1693,16 @@
       REAL(fp)               :: BELOWGRAD, ABOVEGRAD
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
 
-      ! SDE 2013-07-07: Debug variables
-      REAL(fp)               :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)               :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
-      REAL(fp)               :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
-      REAL(fp)               :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      ! SDE 2013-07-07: Debug variables
+!      REAL(fp)               :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+!      REAL(fp)               :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
+!      REAL(fp)               :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
+!      REAL(fp)               :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
+!------------------------------------------------------------------------------
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
@@ -1737,24 +1742,29 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
 
-      ! For debugging
-      MAXLOSS= 0e+0_fp
-      D_XHNO3= 0e+0_fp
-      D_XNAT = 0e+0_fp
-      D_PPA  = 0e+0_fp
-      D_TK   = 0e+0_fp
-      D_XH2O = 0e+0_fp
-      D_SEDQ = 0e+0_fp
-      D_PSED = 0e+0_fp
-      D_ICE0 = 0e+0_fp
-      D_ICE1 = 0e+0_fp
-      D_H2O0 = 0e+0_fp
-      D_H2O1 = 0e+0_fp
-      D_NAT0 = 0e+0_fp
-      D_NAT1 = 0e+0_fp
-      D_HNO3 = 0e+0_fp
-      D_RMAX = 0e+0_fp
-      D_VMAX = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      ! For debugging
+!      MAXLOSS= 0e+0_fp
+!      D_XHNO3= 0e+0_fp
+!      D_XNAT = 0e+0_fp
+!      D_PPA  = 0e+0_fp
+!      D_TK   = 0e+0_fp
+!      D_XH2O = 0e+0_fp
+!      D_SEDQ = 0e+0_fp
+!      D_PSED = 0e+0_fp
+!      D_ICE0 = 0e+0_fp
+!      D_ICE1 = 0e+0_fp
+!      D_H2O0 = 0e+0_fp
+!      D_H2O1 = 0e+0_fp
+!      D_NAT0 = 0e+0_fp
+!      D_NAT1 = 0e+0_fp
+!      D_HNO3 = 0e+0_fp
+!      D_RMAX = 0e+0_fp
+!      D_VMAX = 0e+0_fp
+!------------------------------------------------------------------------------
 
       ! First settle liquid aerosols (SLA) using scheme found
       ! elsewhere in GEOS-Chem
@@ -1775,12 +1785,18 @@
 !$OMP+PRIVATE( XNO3_BELOW,   XNAT_BELOW,   XICE_BELOW, XPSC_BELOW )
 !$OMP+PRIVATE( P_0,          PSED0,        PSEDABOVE,  BELOWGRAD  )
 !$OMP+PRIVATE( LOCALPROFILE, SEDQUANT,     SEDNO3,     SEDICE     )
-!$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC,     FRACLOSS   )
-!$OMP+PRIVATE( MAXLOSS,      D_ICE0,       D_ICE1,     D_H2O1     )
-!$OMP+PRIVATE( D_H2O0,       D_NAT1,       D_NAT0,     D_HNO3     )
-!$OMP+PRIVATE( D_RMAX,       D_VMAX,       D_SEDQ,     D_PSED     )
-!$OMP+PRIVATE( D_XH2O,       D_XHNO3,      D_XNAT,     D_PPA      )
-!$OMP+PRIVATE( D_TK                                               )
+!$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC                 )
+!------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!!$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC,     FRACLOSS   )
+!!$OMP+PRIVATE( MAXLOSS,      D_ICE0,       D_ICE1,     D_H2O1     )
+!!$OMP+PRIVATE( D_H2O0,       D_NAT1,       D_NAT0,     D_HNO3     )
+!!$OMP+PRIVATE( D_RMAX,       D_VMAX,       D_SEDQ,     D_PSED     )
+!!$OMP+PRIVATE( D_XH2O,       D_XHNO3,      D_XNAT,     D_PPA      )
+!!$OMP+PRIVATE( D_TK                                               )
+!------------------------------------------------------------------------
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR       
@@ -2237,29 +2253,34 @@
                   KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
                   KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
                   
-                  ! Store for debug
-                  IF (LPRT) THEN
-                     FRACLOSS = SEDH2O/Spc(I,J,L+1,id_H2O)
-                     IF (FRACLOSS .gt. MAXLOSS) THEN
-                        MAXLOSS = FRACLOSS
-                        D_ICE0 = XICE_0*ICEMW/INVAIR_0
-                        D_ICE1 = D_ICE0 - SEDICE
-                        D_H2O1 = Spc(I,J,L+1,id_H2O)
-                        D_H2O0 = D_H2O1 + SEDH2O
-                        D_NAT1 = Spc(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
-                        D_NAT0 = D_NAT1 + SEDNAT
-                        D_HNO3 = Spc(I,J,L+1,id_HNO3)
-                        D_RMAX = RAD_AER(I,J,L+1,I_SPA)
-                        D_VMAX = VNAT(L+1)
-                        D_SEDQ = SEDQUANT
-                        D_PSED = PSED0
-                        D_XH2O = D_H2O0*INVAIR_0/ICEMW
-                        D_XHNO3= D_HNO3*INVAIR_0 / HNO3_MW_G
-                        D_XNAT = D_NAT0*INVAIR_0/NATMW
-                        D_PPA  = P_0
-                        D_TK   = TEMP
-                     ENDIF
-                  ENDIF
+!------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!                  ! Store for debug
+!                  IF (LPRT) THEN
+!                     FRACLOSS = SEDH2O/Spc(I,J,L+1,id_H2O)
+!                     IF (FRACLOSS .gt. MAXLOSS) THEN
+!                        MAXLOSS = FRACLOSS
+!                        D_ICE0 = XICE_0*ICEMW/INVAIR_0
+!                        D_ICE1 = D_ICE0 - SEDICE
+!                        D_H2O1 = Spc(I,J,L+1,id_H2O)
+!                        D_H2O0 = D_H2O1 + SEDH2O
+!                        D_NAT1 = Spc(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
+!                        D_NAT0 = D_NAT1 + SEDNAT
+!                        D_HNO3 = Spc(I,J,L+1,id_HNO3)
+!                        D_RMAX = RAD_AER(I,J,L+1,I_SPA)
+!                        D_VMAX = VNAT(L+1)
+!                        D_SEDQ = SEDQUANT
+!                        D_PSED = PSED0
+!                        D_XH2O = D_H2O0*INVAIR_0/ICEMW
+!                        D_XHNO3= D_HNO3*INVAIR_0 / HNO3_MW_G
+!                        D_XNAT = D_NAT0*INVAIR_0/NATMW
+!                        D_PPA  = P_0
+!                        D_TK   = TEMP
+!                     ENDIF
+!                  ENDIF
+!------------------------------------------------------------------------
 
                ENDDO SED_LLOOP
             ENDDO SEDSTEPLOOP
@@ -2269,26 +2290,31 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      IF (LPRT) THEN
-         CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
-         WRITE(6,'(a)') 'Max ice loss statistics:'
-         WRITE(6,'(a,1x,2E12.4)') 'Source ice (before/after) (kg): ',
-     &                         D_ICE0, D_ICE1
-         WRITE(6,'(a,1x,2E12.4)') 'Source H2O (before/after) (kg): ',
-     &                         D_H2O0, D_H2O1
-         WRITE(6,'(a,1x,1E12.4)') 'Source HNO3 (total) (kg)      : ',
-     &                         D_HNO3
-         WRITE(6,'(a,1x,2E12.4)') 'Source NAT (before/after) (kg): ',
-     &                         D_NAT0, D_NAT1
-         WRITE(6,'(a,1x,3E12.4)') 'Source MR (H2O-HNO3-NAT) (v/v): ',
-     &                         D_XH2O, D_XHNO3, D_XNAT
-         WRITE(6,'(a,1x,2E12.4)') 'Source T (K) and P (Pa)       : ',
-     &                         D_TK,   D_PPA
-         WRITE(6,'(a,1x,2E12.4)') 'Particle radius (cm) & V (m/s): ',
-     &                         D_RMAX, D_VMAX
-         WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
-     &                         D_SEDQ, D_PSED
-      ENDIF
+!------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      IF (LPRT) THEN
+!         CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
+!         WRITE(6,'(a)') 'Max ice loss statistics:'
+!         WRITE(6,'(a,1x,2E12.4)') 'Source ice (before/after) (kg): ',
+!     &                         D_ICE0, D_ICE1
+!         WRITE(6,'(a,1x,2E12.4)') 'Source H2O (before/after) (kg): ',
+!    &                         D_H2O0, D_H2O1
+!         WRITE(6,'(a,1x,1E12.4)') 'Source HNO3 (total) (kg)      : ',
+!     &                         D_HNO3
+!         WRITE(6,'(a,1x,2E12.4)') 'Source NAT (before/after) (kg): ',
+!     &                         D_NAT0, D_NAT1
+!         WRITE(6,'(a,1x,3E12.4)') 'Source MR (H2O-HNO3-NAT) (v/v): ',
+!     &                         D_XH2O, D_XHNO3, D_XNAT
+!         WRITE(6,'(a,1x,2E12.4)') 'Source T (K) and P (Pa)       : ',
+!     &                         D_TK,   D_PPA
+!         WRITE(6,'(a,1x,2E12.4)') 'Particle radius (cm) & V (m/s): ',
+!     &                         D_RMAX, D_VMAX
+!         WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
+!     &                         D_SEDQ, D_PSED
+!      ENDIF
+!------------------------------------------------------------------------
 
       ! Free pointers
       Spc       => NULL()
@@ -2634,9 +2660,14 @@
       ! Loop variables
       INTEGER                 :: I, J, L, K
 
-      ! SDE 2013-07-07: Debug variables
-      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      ! SDE 2013-07-07: Debug variables
+!      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
+!      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
+!------------------------------------------------------------------------------
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                 :: prtDebug
@@ -2690,14 +2721,19 @@
       ! Partition H2SO4 before proceeding
       CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
 
-      D_XH2O = 0e+0_fp
-      D_PPA  = 0e+0_fp
-      D_TK   = 0e+0_fp
-      D_XHNO3= 0e+0_fp
-      D_XNAT = 0e+0_fp
-      D_MAXN = 0e+0_fp
-      D_PP   = 0e+0_fp
-      D_PS   = 0e+0_fp
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      D_XH2O = 0e+0_fp
+!      D_PPA  = 0e+0_fp
+!      D_TK   = 0e+0_fp
+!      D_XHNO3= 0e+0_fp
+!      D_XNAT = 0e+0_fp
+!      D_MAXN = 0e+0_fp
+!      D_PP   = 0e+0_fp
+!      D_PS   = 0e+0_fp
+!------------------------------------------------------------------------------
       
       ! Loop over latitude boxes first
 !$OMP PARALLEL DO
@@ -2727,9 +2763,14 @@
 !$OMP+PRIVATE( HOCl_BOX_L,   H2SO4_BOX_G,        HBr_BOX_G     )
 !$OMP+PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L    )
 !$OMP+PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC )
-!$OMP+PRIVATE( D_FRACN,      D_MAXN,             D_XH2O        )
-!$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
-!$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!!$OMP+PRIVATE( D_FRACN,      D_MAXN,             D_XH2O        )
+!!$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
+!!$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
+!------------------------------------------------------------------------------
 !$OMP+PRIVATE( VOL_TOT,      BOX_LAT                           )
 !$OMP+SCHEDULE( DYNAMIC )
       DO L = 1, LLPAR
@@ -2920,25 +2961,30 @@
                      KG_NAT  = HNO3_BOX_S * NATMW *
      &                         State_Met%AD(I,J,L) / AIRMW
 
-                     ! Debug
-                     IF (HNO3SUM.gt.TINY(0e+0_fp)) THEN
-                        D_FRACN = HNO3_BOX_S/HNO3SUM
-                     ELSE
-                        D_FRACN = 0e+0_fp
-                     ENDIF
-!
-!                     IF (D_FRACN.gt.D_MAXN) THEN
-!                        D_MAXN = D_FRACN
-                     IF (HNO3_BOX_S.gt.D_XNAT) THEN
-                        D_MAXN = D_FRACN
-                        D_XH2O = H2OSUM
-                        D_XHNO3= HNO3SUM
-                        D_XNAT = HNO3_BOX_S
-                        D_PPA  = PCENTER_PA
-                        D_PP   = HNO3PP
-                        D_PS   = PSATHNO3
-                        D_TK   = TCENTER
-                     ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!                     ! Debug
+!                     IF (HNO3SUM.gt.TINY(0e+0_fp)) THEN
+!                        D_FRACN = HNO3_BOX_S/HNO3SUM
+!                     ELSE
+!                        D_FRACN = 0e+0_fp
+!                     ENDIF
+!!
+!!                     IF (D_FRACN.gt.D_MAXN) THEN
+!!                        D_MAXN = D_FRACN
+!                     IF (HNO3_BOX_S.gt.D_XNAT) THEN
+!                       D_MAXN = D_FRACN
+!                        D_XH2O = H2OSUM
+!                        D_XHNO3= HNO3SUM
+!                        D_XNAT = HNO3_BOX_S
+!                        D_PPA  = PCENTER_PA
+!                        D_PP   = HNO3PP
+!                        D_PS   = PSATHNO3
+!                        D_TK   = TCENTER
+!                     ENDIF
+!------------------------------------------------------------------------------
                      
                   ELSE
                      HNO3_BOX_S = 0e+0_fp
@@ -3220,34 +3266,39 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      IF ( prtDebug ) THEN
-         CALL DEBUG_MSG( '### UCX: after CALC_STRAT_AER' )
-         WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
-         WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
-     &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak particle density (kg/m3) : ',
-     &                               MAXVAL(RHO_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak particle SAD (cm2/cm3)   : ',
-     &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak particle radius (cm)     : ',
-     &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS # density (#/m3) : ',
-     &                               MAXVAL(NDENS_AER(:,:,:,I_SLA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS density (kg/m3)  : ',
-     &                               MAXVAL(RHO_AER(:,:,:,I_SLA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS SAD (cm2/cm3)    : ',
-     &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
-         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
-     &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
-         WRITE(6,'(a,1x,E12.4)') 'NAT/NO3 fraction in max-NAT box  : ',
-     &                               D_MAXN                       
-         WRITE(6,'(a,3(1x,E12.4))') 'Local MR (H2O-HNO3-NAT) (v/v) : ',
-     &                               D_XH2O,D_XHNO3,D_XNAT        
-         WRITE(6,'(a,3(1x,E12.4))') 'Pressure (box-HNO3-sat) (Pa)  : ',
-     &                               D_PPA,D_PP,D_PS        
-         WRITE(6,'(a,1x,E12.4)') 'Local temperature (K)         : ',
-     &                               D_TK                    
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/20/18:
+! Comment out for now, these are PRIVATE but initialized outside the
+! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
+!      IF ( prtDebug ) THEN
+!         CALL DEBUG_MSG( '### UCX: after CALC_STRAT_AER' )
+!         WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
+!         WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
+!     &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak particle density (kg/m3) : ',
+!     &                               MAXVAL(RHO_AER(:,:,:,I_SPA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak particle SAD (cm2/cm3)   : ',
+!     &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak particle radius (cm)     : ',
+!    &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS # density (#/m3) : ',
+!     &                               MAXVAL(NDENS_AER(:,:,:,I_SLA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS density (kg/m3)  : ',
+!     &                               MAXVAL(RHO_AER(:,:,:,I_SLA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS SAD (cm2/cm3)    : ',
+!     &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
+!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
+!     &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
+!         WRITE(6,'(a,1x,E12.4)') 'NAT/NO3 fraction in max-NAT box  : ',
+!     &                               D_MAXN                       
+!         WRITE(6,'(a,3(1x,E12.4))') 'Local MR (H2O-HNO3-NAT) (v/v) : ',
+!     &                               D_XH2O,D_XHNO3,D_XNAT        
+!         WRITE(6,'(a,3(1x,E12.4))') 'Pressure (box-HNO3-sat) (Pa)  : ',
+!     &                               D_PPA,D_PP,D_PS        
+!         WRITE(6,'(a,1x,E12.4)') 'Local temperature (K)         : ',
+!     &                               D_TK                    
+!      ENDIF
+!------------------------------------------------------------------------------
 
       ! Free pointers
       NULLIFY( Spc, STATE_PSC, KHETI_SLA )
