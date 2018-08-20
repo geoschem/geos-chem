@@ -523,7 +523,8 @@ MODULE Input_Opt_Mod
      INTEGER                     :: NN_Jvals                ! # of diagnosed Jvalues 
      INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
      INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
-     LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE. 
+     LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
+     LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #else
      LOGICAL                     :: haveImpRst
      LOGICAL                     :: AlwaysSetH2O
