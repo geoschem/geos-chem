@@ -1303,7 +1303,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_LINOZ( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_LINOZ( am_I_Root, Input_Opt, 
+     &                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -1311,11 +1312,15 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1328,6 +1333,7 @@
 !  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
 !  14 Mar 2013 - M. Payer    - Replace Ox with O3 for full-chemistry simulation
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
+!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
 !EOP
 !------------------------------------------------------------------------------
 !BOC

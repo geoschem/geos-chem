@@ -1234,12 +1234,6 @@ CONTAINS
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
        currentName_AllCaps = To_Uppercase( current%name )
-!------------------------------------------------------------------------------
-! Prior to 11/16/17:
-! Don't just restrict to State_Diag (bmy, 11/16/17)
-!       IF ( ( current%state == 'DIAG' ) .AND. &
-!            INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
-!------------------------------------------------------------------------------
        IF ( INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
           found = .TRUE.
           EXIT

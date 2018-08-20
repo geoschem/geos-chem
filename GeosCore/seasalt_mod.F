@@ -1232,7 +1232,6 @@
       USE CMN_SIZE_MOD             ! Size parameters
       USE CMN_DIAG_MOD             ! ND59
       USE DAO_MOD,            ONLY : IS_WATER
-      USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
@@ -1240,6 +1239,9 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
+#if defined( BPCH_DIAG )
+      USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
+#endif
 !
 ! !INPUT PARAMETERS: 
 !

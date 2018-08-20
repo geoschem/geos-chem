@@ -68,7 +68,11 @@ MODULE Strat_Chem_Mod
   PUBLIC  :: Init_Strat_Chem
   PUBLIC  :: Do_Strat_Chem
   PUBLIC  :: Cleanup_Strat_Chem
-  PUBLIC  :: Calc_STE
+!----------------------------------------------------------------------------
+! Prior to 8/9/18:
+! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
+!  PUBLIC  :: Calc_STE
+!----------------------------------------------------------------------------
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -1220,249 +1224,253 @@ CONTAINS
   END SUBROUTINE Set_PLVEC
 !EOC
 !------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
+! Prior to 8/9/18:
+! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Calc_Ste
+!!
+!! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
+!!               troposphere exchange flux must have been since the last time
+!!               it was reset
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+!!
+!! !USES:
+!!
+!    USE CMN_SIZE_MOD
+!    USE ErrCode_Mod
+!    USE Input_Opt_Mod,      ONLY : OptInput
+!    USE Species_Mod,        ONLY : Species
+!    USE State_Chm_Mod,      ONLY : ChmState
+!    USE State_Met_Mod,      ONLY : MetState
+!    USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
+!    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+!
+!    IMPLICIT NONE
+!!
+!! !INPUT PARAMETERS:
+!!
+!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!!
+!! !REVISION HISTORY: 
+!!  28 Apr 2012 - L. Murray   - Initial version
+!!  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
+!!                              (wherever expedient)
+!!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
+!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!!                              running with the traditional driver main.F
+!!  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
+!!                              to avoid including code for nested-grid sims
+!!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
+!!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
+!!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg]
+!!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
+!!                              database field emMW_g (emitted species g/mol)
+!!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
+!!                              species ID from State_Chm%Map_Advect.
+!!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
+!!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!
+!    ! Strings
+!    CHARACTER(LEN=255)     :: dateStart, dateEnd
+!
+!    ! Scalars
+!    INTEGER                :: N,         I,       J,    L
+!    INTEGER                :: nAdvect,   NA,      NN
+!    REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
+!    CHARACTER(LEN=63)      :: OrigUnit
+!
+!    ! Arrays
+!    INTEGER                :: LTP(IIPAR,JJPAR      )
+!    REAL(fp)               :: M1 (IIPAR,JJPAR,LLPAR)
+!    REAL(fp)               :: M2 (IIPAR,JJPAR,LLPAR)
+!
+!
+!    ! Pointers
+!    REAL(fp),      POINTER :: Spc(:,:,:,:)
+!    TYPE(Species), POINTER :: SpcInfo
+!
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!    ! By simple mass balance, dStrat/dt = P - L - STE,
+!    ! where STE is the net stratosphere-to-troposphere mass exchange. 
+!    !
+!    ! Therefore, we estimate STE as
+!    !   STE = (P-L) - dStrat/dt
+!    !
+!    ! As the tropopause is dynamic, we use the mean tropopause level during
+!    ! the period for determining initial and end stratospheric masses. 
+!    ! (ltm, 04/28/2012)
+!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!
+!    ! Assume success
+!    RC      = GC_SUCCESS
+!
+!    ! Number of advected species
+!    nAdvect = State_Chm%nAdvect
+!
+!#if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_AS )
+!    ! This method only works for a global domain.
+!    ! It could be modified for nested domains if the total mass flux across the
+!    ! boundaries during the period is taken into account.
+!    RETURN
+!#else
+!
+!    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
+!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       CALL GC_Error('Unit conversion error', RC, &
+!                     'Calc_STE in strat_chem_mod.F')
+!       RETURN
+!    ENDIF  
+!
+!    ! Point to chemical species array [kg]
+!    Spc => State_Chm%Species
+!
+!    ! Determine mean tropopause level for the period
+!    !$OMP PARALLEL DO                               &
+!    !$OMP DEFAULT( SHARED )                         &
+!    !$OMP PRIVATE( I,  J  )
+!    DO J = 1,JJPAR
+!    DO I = 1,IIPAR
+!       LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
+!    ENDDO
+!    ENDDO
+!    !$OMP END PARALLEL DO
+!
+!    ! Period over which STE is being determined [a]
+!    tauEnd = GET_TAU() ! [h]
+!    dt = ( tauEnd - tauInit ) / 24e+0_fp / 365.25e+0_fp
+!
+!    dateStart = 'YYYY-MM-DD hh:mm'
+!    CALL EXPAND_DATE(dateStart,NymdInit,NhmsInit)
+!    dateEnd = 'YYYY-MM-DD hh:mm'
+!    CALL EXPAND_DATE(dateEnd,GET_NYMD(),GET_NHMS())
+!
+!    ! Print to output
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, * ) ''
+!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+!       WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
+!       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
+!       WRITE( 6, '(a)' ) &
+!            '  Global stratosphere-to-troposphere fluxes estimated over'
+!       WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
+!       WRITE( 6, * ) ''
+!       WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
+!    ENDIF
+!100 FORMAT( 2x,a16,' to ',a16 )
+!110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
+!
+!    ! Loop over only the advected species
+!    DO NA = 1, nAdvect
+!
+!       ! Get the species ID from the advected species ID
+!       N = State_Chm%Map_Advect(NA)
+!    
+!       ! Populate before (M1) and after (M2) state for the species [kg]
+!       M1 = MInit(:,:,:,NA)             
+!       M2 =   Spc(:,:,:,N )
+!
+!       ! Zero out troposphere and determine total change in the stratospheric
+!       ! burden of species N (dStrat) [kg]
+!       !$OMP PARALLEL DO &
+!       !$OMP DEFAULT( SHARED ) &
+!       !$OMP PRIVATE( I,  J  )
+!       DO J = 1, JJPAR  
+!       DO I = 1, IIPAR
+!          M2(I,J,1:LTP(I,J)) = 0e+0_fp
+!          M1(I,J,1:LTP(I,J)) = 0e+0_fp
+!       ENDDO
+!       ENDDO
+!       !$OMP END PARALLEL DO
+!       dStrat   = SUM(M2)-SUM(M1)
+!
+!       ! The total chemical tendency (P-L) over the period for species N [kg]
+!       ! Schem_tend is computed in this module for tropchem simulations and
+!       ! in flexchem_mod.F90 for UCX simulations
+!       Tend   = SUM(Schem_tend(:,:,:,N))
+!
+!       ! Calculate flux as STE = (P-L) - dStrat/dt
+!       STE = (Tend-dStrat)/dt ! [kg a-1]
+!
+!       ! Get info about this species from the species database
+!       SpcInfo => State_Chm%SpcData(N)%Info
+!
+!       ! Print to standard output
+!       IF ( am_I_Root ) THEN
+!          WRITE(6,120) TRIM( SpcInfo%Name ),                  &
+!               STE / (SpcInfo%emMW_g * 1.e-3_fp),             & ! mol/a-1
+!               SpcInfo%emMW_g,                                & ! g/mol
+!               STE * 1e-9_fp                                  ! Tg a-1
+!       ENDIF 
+!    ENDDO
+!
+!120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
+!
+!    IF ( am_I_Root ) THEN
+!       WRITE( 6, * ) ''
+!       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+!       WRITE( 6, * ) ''
+!    ENDIF
+!
+!    ! Reset variables for next STE period
+!    NymdInit             = GET_NYMD()
+!    NhmsInit             = GET_NHMS()
+!    TauInit              = GET_TAU()
+!    TPauseL_Cnt          = 0e+0_fp
+!    TPauseL(:,:)         = 0e+0_fp
+!    SChem_tend(:,:,:,:)  = 0e+0_fp
+!
+!    ! Loop over only the advected species
+!    DO NA = 1, nAdvect
+!
+!       ! Get the species ID from the advected species ID
+!       N = State_Chm%Map_Advect(NA)
+!       
+!       ! Reset MINIT for next STE period
+!       MInit(:,:,:,NA)  = Spc(:,:,:,N)
+!
+!    ENDDO
+!
+!    ! Convert species units back to original unit 
+!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                            State_Chm, OrigUnit,  RC )
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       CALL GC_Error('Unit conversion error', RC, &
+!                     'Calc_STE in strat_chem_mod.F')
+!       RETURN
+!    ENDIF  
+!
+!    ! Free pointers
+!    Spc     => NULL()
+!    SpcInfo => NULL()
+!#endif
+!  END SUBROUTINE Calc_STE
+!!EOC
 !------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Calc_Ste
-!
-! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
-!               troposphere exchange flux must have been since the last time
-!               it was reset
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_MOD
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-
-    IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REVISION HISTORY: 
-!  28 Apr 2012 - L. Murray   - Initial version
-!  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
-!                              (wherever expedient)
-!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
-!                              to avoid including code for nested-grid sims
-!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg]
-!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
-!                              database field emMW_g (emitted species g/mol)
-!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!                              species ID from State_Chm%Map_Advect.
-!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    ! Strings
-    CHARACTER(LEN=255)     :: dateStart, dateEnd
-
-    ! Scalars
-    INTEGER                :: N,         I,       J,    L
-    INTEGER                :: nAdvect,   NA,      NN
-    REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
-    CHARACTER(LEN=63)      :: OrigUnit
-
-    ! Arrays
-    INTEGER                :: LTP(IIPAR,JJPAR      )
-    REAL(fp)               :: M1 (IIPAR,JJPAR,LLPAR)
-    REAL(fp)               :: M2 (IIPAR,JJPAR,LLPAR)
-
-
-    ! Pointers
-    REAL(fp),      POINTER :: Spc(:,:,:,:)
-    TYPE(Species), POINTER :: SpcInfo
-
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! By simple mass balance, dStrat/dt = P - L - STE,
-    ! where STE is the net stratosphere-to-troposphere mass exchange. 
-    !
-    ! Therefore, we estimate STE as
-    !   STE = (P-L) - dStrat/dt
-    !
-    ! As the tropopause is dynamic, we use the mean tropopause level during
-    ! the period for determining initial and end stratospheric masses. 
-    ! (ltm, 04/28/2012)
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    ! Assume success
-    RC      = GC_SUCCESS
-
-    ! Number of advected species
-    nAdvect = State_Chm%nAdvect
-
-#if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_AS )
-    ! This method only works for a global domain.
-    ! It could be modified for nested domains if the total mass flux across the
-    ! boundaries during the period is taken into account.
-    RETURN
-#else
-
-    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Calc_STE in strat_chem_mod.F')
-       RETURN
-    ENDIF  
-
-    ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
-
-    ! Determine mean tropopause level for the period
-    !$OMP PARALLEL DO                               &
-    !$OMP DEFAULT( SHARED )                         &
-    !$OMP PRIVATE( I,  J  )
-    DO J = 1,JJPAR
-    DO I = 1,IIPAR
-       LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Period over which STE is being determined [a]
-    tauEnd = GET_TAU() ! [h]
-    dt = ( tauEnd - tauInit ) / 24e+0_fp / 365.25e+0_fp
-
-    dateStart = 'YYYY-MM-DD hh:mm'
-    CALL EXPAND_DATE(dateStart,NymdInit,NhmsInit)
-    dateEnd = 'YYYY-MM-DD hh:mm'
-    CALL EXPAND_DATE(dateEnd,GET_NYMD(),GET_NHMS())
-
-    ! Print to output
-    IF ( am_I_Root ) THEN
-       WRITE( 6, * ) ''
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-       WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
-       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
-       WRITE( 6, '(a)' ) &
-            '  Global stratosphere-to-troposphere fluxes estimated over'
-       WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
-       WRITE( 6, * ) ''
-       WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
-    ENDIF
-100 FORMAT( 2x,a16,' to ',a16 )
-110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
-
-    ! Loop over only the advected species
-    DO NA = 1, nAdvect
-
-       ! Get the species ID from the advected species ID
-       N = State_Chm%Map_Advect(NA)
-    
-       ! Populate before (M1) and after (M2) state for the species [kg]
-       M1 = MInit(:,:,:,NA)             
-       M2 =   Spc(:,:,:,N )
-
-       ! Zero out troposphere and determine total change in the stratospheric
-       ! burden of species N (dStrat) [kg]
-       !$OMP PARALLEL DO &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I,  J  )
-       DO J = 1, JJPAR  
-       DO I = 1, IIPAR
-          M2(I,J,1:LTP(I,J)) = 0e+0_fp
-          M1(I,J,1:LTP(I,J)) = 0e+0_fp
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-       dStrat   = SUM(M2)-SUM(M1)
-
-       ! The total chemical tendency (P-L) over the period for species N [kg]
-       ! Schem_tend is computed in this module for tropchem simulations and
-       ! in flexchem_mod.F90 for UCX simulations
-       Tend   = SUM(Schem_tend(:,:,:,N))
-
-       ! Calculate flux as STE = (P-L) - dStrat/dt
-       STE = (Tend-dStrat)/dt ! [kg a-1]
-
-       ! Get info about this species from the species database
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! Print to standard output
-       IF ( am_I_Root ) THEN
-          WRITE(6,120) TRIM( SpcInfo%Name ),                  &
-               STE / (SpcInfo%emMW_g * 1.e-3_fp),             & ! mol/a-1
-               SpcInfo%emMW_g,                                & ! g/mol
-               STE * 1e-9_fp                                  ! Tg a-1
-       ENDIF 
-    ENDDO
-
-120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
-
-    IF ( am_I_Root ) THEN
-       WRITE( 6, * ) ''
-       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-       WRITE( 6, * ) ''
-    ENDIF
-
-    ! Reset variables for next STE period
-    NymdInit             = GET_NYMD()
-    NhmsInit             = GET_NHMS()
-    TauInit              = GET_TAU()
-    TPauseL_Cnt          = 0e+0_fp
-    TPauseL(:,:)         = 0e+0_fp
-    SChem_tend(:,:,:,:)  = 0e+0_fp
-
-    ! Loop over only the advected species
-    DO NA = 1, nAdvect
-
-       ! Get the species ID from the advected species ID
-       N = State_Chm%Map_Advect(NA)
-       
-       ! Reset MINIT for next STE period
-       MInit(:,:,:,NA)  = Spc(:,:,:,N)
-
-    ENDDO
-
-    ! Convert species units back to original unit 
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, &
-                     'Calc_STE in strat_chem_mod.F')
-       RETURN
-    ENDIF  
-
-    ! Free pointers
-    Spc     => NULL()
-    SpcInfo => NULL()
-#endif
-  END SUBROUTINE Calc_STE
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

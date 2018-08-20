@@ -27,8 +27,7 @@
       USE OCEAN_MERCURY_MOD, ONLY : LBRCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LRED_JNO2
       USE OCEAN_MERCURY_MOD, ONLY : LRED_CLOUDONLY
-      USE OCEAN_MERCURY_MOD, ONLY : LBRYCHEM
-      USE OCEAN_MERCURY_MOD, ONLY : LCLCHEM
+      USE OCEAN_MERCURY_MOD, ONLY : LHALOGENCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHGAQCHEM
       USE OCEAN_MERCURY_MOD, ONLY : LHg2HalfAerosol
       USE OCEAN_MERCURY_MOD, ONLY : STRAT_BR_FACTOR
@@ -200,6 +199,7 @@
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and
 !                              MERRA; Also remove functions GET_VCLDF and
 !                              GET_LWC, they're no longer needed
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -522,6 +522,7 @@
 !  30 Nov 2017 - C. Thackray - Option to use offline ocean Hg concentrations
 !  02 Feb 2018 - C. Thackray - Made Hg2(aq) for red. temperature dependent
 !  10 Feb 2018 - C. Thackray - Switches for chem options
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -616,17 +617,8 @@
       ! tested by other users as appropriate (J. Fisher, 3/2016)
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
-#if     defined( GEOS_FP ) || defined( MERRA2 )
-#if     defined( GRID4x5 )
+
       REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#elif   defined( GRID2x25 ) 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#endif
-#else
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
-#endif
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -712,7 +704,7 @@
 
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
-         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
+         IF ( LHALOGENCHEM ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
      &           HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -917,7 +909,7 @@
          C_OH        = GET_OH(   I, J, L,        State_Met )
          C_BR        = GET_BR(   I, J, L, C_BRO, State_Met )
 
-         IF ( LBRYCHEM .OR. LCLCHEM ) THEN
+         IF ( LHALOGENCHEM ) THEN
             C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
      &           HEM_NO2(I,J,L), C_O3 )
             C_HO2       = GET_HO2(  I, J, L, State_Met )
@@ -964,7 +956,7 @@
          ENDIF
 
          ! Oxidation rate by Cl-initiated oxidation                            
-         IF (LCLCHEM) THEN
+         IF (LHALOGENCHEM) THEN
             K_CLY = GET_HGCL_RATE( I,     J,     L, 
      &                             C_CL,  C_OH,  C_HO2,
      &                             C_NO2, C_CLO, C_BRO, 
@@ -996,7 +988,7 @@
          ENDIF
 
          ! Oxidation through Hg0 + Br -> HgBr, HgBr + Y -> Hg2
-         IF (LBRYCHEM) THEN
+         IF (LHALOGENCHEM) THEN
             K_BRY = GET_HGBRY_RATE( I,     J,     L, 
      &                              C_BR,  C_OH,  C_NO2,
      &                              C_HO2, C_CLO, C_BRO, 
@@ -2033,6 +2025,7 @@
 !    10 Aug 2015 - H. Horowitz (HMH) - adding Br as 'Y', was missing.         
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
 !    30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
 !------------------------------------------------------------------------------
 !BOC                                                                           
 !                                                                              
@@ -2084,47 +2077,11 @@
       ! assume HgBr+Y same as HgCl+Y based on Dibble et al 2012                
       k3cl = 3.0e-11_fp
 
-      ! T cases instead of smooth function? (cpt 2017)
-      IF ( T < 260e0_fp ) THEN
-         k0NO2 = 27.4e-29_fp
-         kinfNO2 = 22.0e-11_fp
-
-         k0HO2 = 8.40e-29_fp
-         kinfHO2 = 14.8e-11_fp
-
-      ELSEIF (T >= 260e0_fp .AND. T<280e0_fp ) THEN
-
-         k0NO2 = 13.5e-29_fp
-         kinfNO2 = 14.2e-11_fp
-
-         k0HO2 = 4.28e-29_fp
-         kinfHO2 = 9.1e-11_fp
-
-      ELSEIF (T >= 280e0_fp .AND. T<298e0_fp) THEN
-
-         k0NO2 = 9.52e-29_fp
-         kinfNO2 = 12.8e-11_fp
-
-         k0HO2 = 3.01e-29_fp
-         kinfHO2 = 7.55e-11_fp
-
-      ELSEIF (T>= 298e0_fp .AND. T<320e0_fp) THEN
-         k0NO2 = 7.10e-29_fp
-         kinfNO2 = 11.8e-11_fp
-
-         k0HO2 = 2.27e-29_fp
-         kinfHO2 = 6.99e-11_fp
-
-      ELSE
-
-         k0NO2 = 5.09e-29_fp
-         kinfNO2 = 10.9e-11_fp
-
-         k0HO2 = 1.64e-29_fp
-         kinfHO2 = 6.11e-11_fp
-
-      ENDIF
-
+      k0NO2 = 6.91e-29_fp*(300/T)**4.5e0_fp
+      k0HO2 = 2.21e-29_fp*(300/T)**4.37e0_fp
+      kinfNO2 = 2.21e-11_fp*EXP(4.97e2_fp/T)
+      kinfHO2 = 8.42e-12_fp*EXP(6.25e2_fp/T)
+     
 
          k3no2 = k0NO2*Nair/(1+k0NO2*Nair/kinfNO2) * 0.6e0_fp **
      &      ((1+ (log10(k0NO2*Nair/kinfNO2)) ** (2e0_fp) ) ** (-1e0_fp))
@@ -2247,6 +2204,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !     01 Mar 2016 - H. Horowitz (HMH) - saving out other reaction rates!       
 !    10 Dec 2016 - H. Horowitz (HMH) - changing to Ted Dibble revised rates    
 !    30 Sep 2017 - C. Thackray (cpt) - merged into v11
+!    30 Aug 2018 - C. Thackray - smoothed T-dep of kNO2, kHO2
 !EOP                                                                           
 !------------------------------------------------------------------------------
 !BOC                                                                           
@@ -2290,48 +2248,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! and uses a more accurate level of theory than Goodsite 2004          
       k3br = 3.0e-11_fp
 
-      ! Why not smooth function? (cpt 2017)
-      IF ( T < 260e+0_fp) THEN
-         k0NO2 = 27.4e-29_fp
-         kinfNO2 = 22.0e-11_fp
-
-         k0HO2 = 8.40e-29_fp
-         kinfHO2 = 14.8e-11_fp
-
-      ELSEIF (T >= 260e+0_fp .AND. T<280e+0_fp ) THEN
-
-         k0NO2 = 13.5e-29_fp
-         kinfNO2 = 14.2e-11_fp
-
-         k0HO2 = 4.28e-29_fp
-         kinfHO2 = 9.1e-11_fp
-
-      ELSEIF (T >= 280e+0_fp .AND. T<298e+0_fp) THEN
-
-         k0NO2 = 9.52e-29_fp
-         kinfNO2 = 12.8e-11_fp
-
-         k0HO2 = 3.01e-29_fp
-         kinfHO2 = 7.55e-11_fp
-
-      ELSEIF (T>= 298e+0_fp .AND. T<320e+0_fp) THEN
-
-         k0NO2 = 7.10e-29_fp
-         kinfNO2 = 11.8e-11_fp
-
-         k0HO2 = 2.27e-29_fp
-         kinfHO2 = 6.99e-11_fp
-
-      ELSE
-
-         k0NO2 = 5.09e-29_fp
-         kinfNO2 = 10.9e-11_fp
-
-         k0HO2 = 1.64e-29_fp
-         kinfHO2 = 6.11e-11_fp
-
-      ENDIF
-
+      k0NO2 = 6.91e-29_fp*(300/T)**4.5e0_fp
+      k0HO2 = 2.21e-29_fp*(300/T)**4.37e0_fp
+      kinfNO2 = 2.21e-11_fp*EXP(4.97e2_fp/T)
+      kinfHO2 = 8.42e-12_fp*EXP(6.25e2_fp/T)
 
       k3no2 = k0NO2*Nair/(1+k0NO2*Nair/kinfNO2) * 0.6e+0_fp **
      &        ((1+ (log10(k0NO2*Nair/kinfNO2))**(2e+0_fp))**(-1e+0_fp))
@@ -6197,6 +6117,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  25 Apr 2016 - R. Yantosca - Now use species database for tagHg indexing
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6209,7 +6130,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                :: LDRYD
       LOGICAL                :: LNLPBL
       LOGICAL                :: LGTMM
-      LOGICAL                :: LBRYCHEM
+      LOGICAL                :: LHALOGENCHEM
       INTEGER                :: nAdvect
       INTEGER                :: AS, N
       CHARACTER(LEN=255)     :: LOCATION
@@ -6751,6 +6672,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  11 Oct 2016 - R. Yantosca - Move call to DO_RED_INPLUME here
 !  13 Feb 2018 - C. Thackray - Put chem switches here
+!  30 Aug 2018 - C. Thackray - Merged halogen chem options
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6779,22 +6701,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          LRED_JNO2 = .FALSE.
       ENDIF
 
-      CALL GetExtOpt( HcoState%Config, -999, 'LBRYCHEM',  
-     &                OptValBool=LBRYCHEM, FOUND=FOUND, RC=RC )
+      CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM',  
+     &                OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBRYCHEM', LOC )
+         CALL ERROR_STOP( 'GetExtOpt LHALOGENCHEM', LOC )
       ENDIF
       IF ( .not. FOUND ) THEN
-         LBRYCHEM = .FALSE.
-      ENDIF
-
-      CALL GetExtOpt( HcoState%Config, -999, 'LCLCHEM',  
-     &                OptValBool=LCLCHEM, FOUND=FOUND, RC=RC )
-      IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LCLCHEM', LOC )
-      ENDIF
-      IF ( .not. FOUND ) THEN
-         LCLCHEM = .FALSE.
+         LHALOGENCHEM = .TRUE.
       ENDIF
 
       CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
@@ -6899,24 +6812,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       WRITE( 6, 120   ) LGCBROMINE
       WRITE( 6, 130   ) LNEI2005
       WRITE( 6, 140   ) LInPlume
-      WRITE( 6, 150   ) LBRYCHEM
+      WRITE( 6, 150   ) LHALOGENCHEM
       WRITE( 6, 160   ) LHGAQCHEM
       WRITE( 6, 170   ) LBRCHEM
       WRITE( 6, 180   ) LBROCHEM
       WRITE( 6, 190   ) LOHO3CHEM
-      WRITE( 6, 200   ) LCLCHEM
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
  100  FORMAT( 'Adjusting Hg simulation settings from HEMCO inputs' )
  110  FORMAT( 'LRED_JNO2  is set to ', L1                          )
  120  FORMAT( 'LGCBROMINE is set to ', L1                          )
  130  FORMAT( 'LNEI2005   is set to ', L1                          )
  140  FORMAT( 'LInPlume   is set to ', L1                          )
- 150  FORMAT( 'LBRYCHEM   is set to ', L1                          )
+ 150  FORMAT( 'LHALOGENCHEM   is set to ', L1                          )
  160  FORMAT( 'LHGAQCHEM  is set to ', L1                          )
  170  FORMAT( 'LBRCHEM    is set to ', L1                          )
  180  FORMAT( 'LBROCHEM   is set to ', L1                          )
  190  FORMAT( 'LOHO3CHEM  is set to ', L1                          )
- 200  FORMAT( 'LCLCHEM    is set to ', L1                          )
       
       END SUBROUTINE SET_OPTIONS_FROM_HEMCO
 !EOC

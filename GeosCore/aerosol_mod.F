@@ -1060,12 +1060,6 @@
      &               + SOILDUST(I,J,L,3)                 ! DST1
      &               + SOILDUST(I,J,L,4)                 ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38          ! 38% of DST2
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! ISOAAQ should only be added to PM2.5 for Complex SOA. as per discussion
-! from Aerosol Working Group in May 2018 (bmy, 5/11/18)
-!     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Includes SOAGX+SOAMG
-!-----------------------------------------------------------------------------
 
          ! Include either simple SOA (default) or Complex SOA in
          ! PM2.5 calculation.  In simulations where both Simple SOA and
@@ -1939,11 +1933,6 @@
                ENDIF
 
                ! Get the AOD contribution from isoprene SOA only (eam, 2014)
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! Only compute contribution from ISOAAQ for complex SOA (bmy, 5/11/18)
-!               IF ( N.eq.3 ) THEN
-!-----------------------------------------------------------------------------
                IF ( N == 3 .and. Is_ComplexSOA ) THEN
                   ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
      &                              * State_Met%BXHEIGHT(I,J,L) 
@@ -2601,7 +2590,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2609,13 +2599,15 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2627,6 +2619,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags,
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2930,6 +2923,8 @@
       IF ( ALLOCATED( ISOA        ) ) DEALLOCATE( ISOA        )
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
+      IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
+      IF ( ALLOCATED( SOAMG       ) ) DEALLOCATE( SOAMG       )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
       IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )

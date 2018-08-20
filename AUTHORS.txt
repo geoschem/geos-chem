@@ -94,10 +94,12 @@ Barron Henderson
 Daven Henze
 Wai Ho-Lo
 Myroslav Hordiichuk
+Christopher Holmes
 Hannah Horowitz
 Zahra Hosseni
 Lu Hu
 Jianping Huang
+Jiayue Huang
 Rynda Hudman Kay
 Kohei Ikeda
 K. J. Liao
@@ -183,6 +185,7 @@ Athanasios Nenes
 Cynthia Nevison
 Eric Nielsen
 Justus Notholt
+Kate O'Dell
 Sachiko Okamoto
 Neil Page
 Paul Palmer
@@ -276,6 +279,7 @@ Ingo Wohltmann
 Shiliang Wu
 Shiliang Wu
 Yaping Xiao
+Yingying Yan
 Matt Yannetti
 Bob Yantosca
 Jack Yatteau

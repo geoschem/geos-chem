@@ -1433,6 +1433,7 @@
            !                 [kg S/box/timestep] and the corresponding
            !                  number emission [no./box/timestep]
            !==============================================================
+#if defined( BPCH_DIAG )
             IF ( ND59 > 0 ) THEN
                !print*, 'JACK IN ND59 SULFATE'
                DO K = 1, IBINS
@@ -1452,7 +1453,6 @@
 !trigger a big particle shift in mnfix and it will look like a
 !'negative number emission' event as defined by this inequality
 
-#if defined( BPCH_DIAG )
 !sfarina - changing the definition of this diagnostic to ignore changes to the
 !distribution by mnfix
 !                  AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) +
@@ -1461,9 +1461,9 @@
 !     &                                  TC1(I,J,L,K)-N0(L,K)
                   AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                   AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
-#endif
                ENDDO
             ENDIF
+#endif
 
          ELSE
          ! Distributing primary emission without sub-grid coagulation

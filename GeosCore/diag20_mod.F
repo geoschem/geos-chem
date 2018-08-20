@@ -445,24 +445,6 @@
             ! Convert Ox_Mass from [molec/cm3] to [molec]
             Ox_Mass        = Ox_Mass * BOXVL
 
-!----------------------------------------------------------------------------
-! Prior to 4/10/18:
-! Comment out old code
-!            ! Convert Ox from [molec/cm3] to [molec]
-!            L_Ox           = State_Chm%Species(I,J,L,id_O3) * BOXVL
-!
-!            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
-!            ! in order to get L(Ox) in [1/cm3/s]
-!            IF ( L_Ox > 0.0_fp ) THEN
-!               L_Ox        = LOx(I,J,L) / L_Ox
-!            ELSE
-!               L_Ox        = 0.0_fp
-!            ENDIF
-!
-!            ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
-!            L_Ox           = L_Ox * 1.e+6_fp
-!------------------------------------------------------------------------------
-
             ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
             ! and then convert to [1/m3/s] for HEMCO
             IF ( Ox_Mass > 0.0_fp ) THEN
