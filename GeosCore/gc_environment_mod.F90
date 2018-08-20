@@ -84,7 +84,7 @@ CONTAINS
                               value_J_HI,      value_IM,        &
                               value_JM,        value_LM,        &
                               value_IM_WORLD,  value_JM_WORLD,  &
-                              value_LM_WORLD )
+                              value_LM_WORLD,  value_LLSTRAT )
 !
 ! !USES:
 !
@@ -114,6 +114,7 @@ CONTAINS
     INTEGER,        OPTIONAL      :: value_IM_WORLD   ! Global # of lons
     INTEGER,        OPTIONAL      :: value_JM_WORLD   ! Global # of lats
     INTEGER,        OPTIONAL      :: value_LM_WORLD   ! Global # of levels
+    INTEGER,        OPTIONAL      :: value_LLSTRAT    ! # of strat. levels
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -182,13 +183,16 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
-    LLSTRAT = Input_Opt%LLSTRAT
-    IF ( LLSTRAT <= 0 ) LLSTRAT = 59 
-
 #if defined( DISCOVER )
+    !LLSTRAT = Input_Opt%LLSTRAT
+    !IF ( LLSTRAT <= 0 ) LLSTRAT = 59 
+
     ! 132 layers
     LLTROP = 40
     IF ( value_LM==132) LLTROP = 80
+#else
+    LLSTRAT = Input_Opt%LLSTRAT
+    IF ( LLSTRAT <= 0 ) LLSTRAT = 59 
 #endif
 
     ! Set dimensions in CMN_SIZE
@@ -207,14 +211,15 @@ CONTAINS
                         value_LM_WORLD = value_LM_WORLD,  &
 #if defined( DISCOVER )
                         value_LLTROP   = LLTROP,          &
+                        value_LLSTRAT  = value_LLSTRAT          )
 #else
                         value_LLTROP   = 40,              &
-#endif
                         value_LLSTRAT  = LLSTRAT          )
+#endif
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
+       ErrMsg = 'Error encountered within call to "Init_CMN_Size"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
