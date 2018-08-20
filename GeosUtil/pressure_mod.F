@@ -894,6 +894,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
+      USE CMN_SIZE_MOD,      ONLY : LLPAR
 !
 ! !INPUT PARAMETERS:
 !
