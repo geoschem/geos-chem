@@ -1842,7 +1842,7 @@
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
                   CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
-     &                 O3_DIAGS,I,J)
+     &                 O3_DIAGS,I,J,Input_Opt)
 !     now convert to the new rc value(s) can probably tidy this up a bit
                   alpha = 10.0_f8**(-0.25-0.013*(
      &                 State_Met%TSKIN(I,J)-273.16_f8))

@@ -62,9 +62,10 @@ CONTAINS
     
     !local variables
     INTEGER                    :: IIodide,JIodide,ITime,fID, &
-         I,J,SumBoxs,III,II,IJ
-    REAL(kind=f8)              :: D_LON,D_LAT,SumIodide,dxdy4,dxdy,mapWt
-    REAL(kind=f8)              :: xedgeC_w,xedgeC_e,yedgeC_s,yedgeC_n
+         I,J,SumBoxs,III,II,JJ,IG
+    REAL(kind=f8)              :: D_LON,D_LAT,SumIodide,dxdy4,dxdy
+    REAL*4                     :: xedgeC_w,xedgeC_e,yedgeC_s,yedgeC_n
+    REAL*4                     :: xedge_w,xedge_e,yedge_s,yedge_n,mapWt
     REAL(kind=f8), DIMENSION(:), ALLOCATABLE :: Lat,Lon,Time
     REAL(kind=f8), DIMENSION(:,:,:), ALLOCATABLE :: Iodide_Map
     CHARACTER(LEN=255)         :: nc_path
@@ -78,7 +79,7 @@ CONTAINS
 
     ! Arrays on the Iodide concentration map NATIVE GRID
     INTEGER, DIMENSION(:), ALLOCATABLE     :: indLon, shiftLon
-    REAL(kind=f8) DIMENSION(:) ALLOCATABLE :: lonedge, latedge
+    REAL(kind=f8), DIMENSION(:), ALLOCATABLE :: lonedge, latedge
 
     !initialise
     Iodide_Conc = 0.0_f8
@@ -106,8 +107,7 @@ CONTAINS
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
        WRITE( 6, 100 ) REPEAT( '%', 79 )
-       WRITE( 6, 110 ) TRIM(nc_file)
-       WRITE( 6, 120 ) TRIM(nc_dir)
+       WRITE( 6, 110 ) TRIM(nc_path)
     ENDIF
 
     !----------------------------------------
@@ -166,9 +166,9 @@ CONTAINS
     v_name = "Ensemble\ Monthly\ mean"
     
     ! Read lat from file
-    st1d   = (/ 1,       1,       1     /)
-    ct1d   = (/ IIodide, JIodide, ITime /)
-    CALL NcRd( Iodide_Map, fId, TRIM(v_name), st1d, ct1d )
+    st3d   = (/ 1,       1,       1     /)
+    ct3d   = (/ IIodide, JIodide, ITime /)
+    CALL NcRd( Iodide_Map, fId, TRIM(v_name), st3d, ct3d )
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
