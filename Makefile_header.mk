@@ -202,6 +202,7 @@
 #  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
 #                              throughout GEOS-Chem.
 #  07 Aug 2018 - R. Yantosca - For now, don't compile TOMAS/ APM when NC_DIAG=y
+#  21 Aug 2018 - R. Yantosca - Simplify testing for netCDF-Fortran 
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -919,77 +920,66 @@ endif
 ###                                                                         ###
 ###############################################################################
 
-# netCDF Library include path.  
-# Test if a separate netcdf-fortran library is specified.
-ifdef GC_F_INCLUDE
-  NC_INC_CMD         := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
-else
+# Test if we have found the nf-config file, which indicates a separate
+# netCDF-Fortran build.  IS_NF_CONFIG=0 indicates that we found nf-config.
+IS_NF_CONFIG         :=$(shell test -f $(GC_F_BIN)/nf-config; echo $$?)
+
+# Test for GEOS-Chem-Libraries or onboard netCDF libraries
+ifeq ($(shell [[ "$(GC_LIB)" =~ GEOS-Chem-Libraries ]] && echo true),true)
+
+  #-----------------------------------------------------------------------
+  # %%%%% We are using the GEOS-Chem-Libraries package %%%%%
+  # 
+  # Both netCDF-Fortran and netCDF-C library files are in the same path
+  #-----------------------------------------------------------------------
+
+  # NetCDF include command: 1 library path
   NC_INC_CMD         := -I$(GC_INCLUDE)
-endif
 
-# Get the version number (e.g. "4130"=netCDF 4.1.3; "4200"=netCDF 4.2, etc.)
-NC_VERSION           :=$(shell $(GC_BIN)/nc-config --version)
-NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|netCDF ||g')
-NC_VERSION           :=$(shell echo "$(NC_VERSION)" | sed 's|\.||g')
-NC_VERSION_LEN       :=$(shell perl -e "print length( $(NC_VERSION) )")
-ifeq ($(NC_VERSION_LEN),3)
- NC_VERSION          :=$(NC_VERSION)0
-endif
-ifeq ($(NC_VERSION_LEN),2) 
- NC_VERSION          :=$(NC_VERSION)00
-endif
-
-# Test if we have at least netCDF 4.2.0.0
-AT_LEAST_NC_4200     :=$(shell perl -e "print ($(NC_VERSION) ge 4200)")
-
-ifeq ($(AT_LEAST_NC_4200),1) 
-
-  #-------------------------------------------------------------------------
-  # netCDF 4.2 and higher:
-  # Use "nf-config --flibs" and "nc-config --libs"
-  # Test if a separate netcdf-fortran path is specified
-  #-------------------------------------------------------------------------
-  ifdef GC_F_BIN 
-    NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
-  else
-    NC_LINK_CMD      := $(shell $(GC_BIN)/nf-config --flibs)
-  endif
+  # NetCDF link command: Add a workaround so that $GC_LIB will specify
+  # the library path.  This should prevent any issues caused by building
+  # the GEOS-Chem-Libraries in one location and moving them to another.
+  NC_LINK_CMD        := $(shell $(GC_BIN)/nf-config --flibs)
   NC_LINK_CMD        += $(shell $(GC_BIN)/nc-config --libs)
-
-else
-
-  #-----------------------------------------------------------------------
-  # Prior to netCDF 4.2:
-  # Use "nc-config --flibs" and nc-config --libs
-  #-----------------------------------------------------------------------
-  NC_LINK_CMD        := $(shell $(GC_BIN)/nc-config --flibs)
-
-endif
-
-#=============================================================================
-#%%%%% FIX FOR USE WITH THE GEOS-Chem-Libraries (bmy, 1/13/15)
-#%%%%% 
-#%%%%% If your GEOS-Chem-Libraries netCDF/HDF5 package was built in one 
-#%%%%% directory and then moved somewhere else, then nf-config and nc-config 
-#%%%%% may not return the proper link directory path.  
-#%%%%% 
-#%%%%% To avoid this error, we shall test if the $GC_LIB environment variable 
-#%%%%% contains the text "GEOS-Chem-Libraries".  (Recall that $GC_LIB is 
-#%%%%% defined in either your .bashrc or .cshrc file depending on which Unix 
-#%%%%% shell you use.)  If we find the text "GEOS-Chem-Libraries" in $GC_LIB, 
-#%%%%% then we shall override the library path returned by nf-config and 
-#%%%%% nc-config with the path specified by $GC_LIB.  This will ensure that 
-#%%%%% we point to the location where the GEOS-Chem-Libraries are installed.
-#%%%%%
-#%%%%% NOTE: This fix should work for most users.  If it does not work, then
-#%%%%% contact the GEOS-Chem Support Team (geos-chem-support@as.harvard.edu).
-#%%%%%
-REGEXP               :="GEOS-Chem-Libraries"
-ifeq ($(shell [[ "$(GC_LIB)" =~ $(REGEXP) ]] && echo true),true)
   NC_LINK_CMD        := $(filter -l%,$(NC_LINK_CMD))
   NC_LINK_CMD        :=-L$(GC_LIB) $(NC_LINK_CMD)
+
+else
+
+  ifeq ($(IS_NF_CONFIG),0)
+
+    #-----------------------------------------------------------------------
+    # %%%%% We are using the onboard netCDF libraries %%%%%
+    #
+    # NetCDF-Fortran and NetCDF-C library files are in different paths,
+    # which is typical of netCDF versions 4.2 and higher.
+    #-----------------------------------------------------------------------
+
+    # NetCDF include command: 2 library paths
+    NC_INC_CMD       := -I$(GC_INCLUDE) -I$(GC_F_INCLUDE)
+
+    # NetCDF link command: 2 sets of link commands
+    NC_LINK_CMD      := $(shell $(GC_F_BIN)/nf-config --flibs)
+    NC_LINK_CMD      += $(shell $(GC_BIN)/nc-config --libs)
+
+  else
+
+    #-----------------------------------------------------------------------
+    # %%%%% We are using the onboard netCDF libraries %%%%%
+    #
+    # NetCDF-Fortran and NetCDF-C library files are in the same path,
+    # which is typical netCDF versions earlier than 4.2.
+    #-----------------------------------------------------------------------
+
+    # NetCDF include command: 1 library path
+    NC_INC_CMD       := -I$(GC_INCLUDE)
+
+    # NetCDF link command: 1 set of link commands
+    NC_LINK_CMD      := $(shell $(GC_BIN)/nc-config --flibs)
+
+  endif
+
 endif
-#=============================================================================
 
 # Save for backwards compatibility
 NCL                  := $(NC_LINK_CMD)
@@ -1543,17 +1533,20 @@ export IS_GNU_8
 
 #headerinfo:
 #	@@echo '####### in Makefile_header.mk ########'
-#	@@echo "COMPILER_FAMILY : $(COMPILER_FAMILY)"
-#	@@echo "COMPILE_CMD     : $(COMPILE_CMD)"
-#	@@echo "DEBUG           : $(DEBUG)"
-#	@@echo "BOUNDS          : $(BOUNDS)"
-#	@@echo "F90             : $(F90)"
-#	@@echo "CC              : $(CC)"
-#	@@echo "INCLUDE         : $(INCLUDE)"
-#	@@echo "LINK            : $(LINK)"
-#	@@echo "USER_DEFS       : $(USER_DEFS)"
-#	@@echo "NC_INC_CMD      : $(NC_INC_CMD)"
-#	@@echo "NC_LINK_CMD     : $(NC_LINK_CMD)"
-#	@@echo "NC_DIAG         : $(NC_DIAG)"
-#	@@echo "BPCH_DIAG       : $(BPCH_DIAG)"
-#	@@echo "NO_REDUCED      : $(NO_REDUCED)"
+#	@@echo "COMPILER_FAMILY  : $(COMPILER_FAMILY)"
+#	@@echo "COMPILER_VERSION : $(COMPILER_VERSION)" 
+#	@@echo "COMPILE_CMD      : $(COMPILE_CMD)"
+#	@@echo "DEBUG            : $(DEBUG)"
+#	@@echo "BOUNDS           : $(BOUNDS)"
+#	@@echo "F90              : $(F90)"
+#	@@echo "CC               : $(CC)"
+#	@@echo "INCLUDE          : $(INCLUDE)"
+#	@@echo "LINK             : $(LINK)"
+#	@@echo "USER_DEFS        : $(USER_DEFS)"
+#	@@echo "IS_NC_CONFIG     : $(IS_NC_CONFIG)"
+#	@@echo "NC_INC_CMD       : $(NC_INC_CMD)"
+#	@@echo "NC_LINK_CMD      : $(NC_LINK_CMD)"
+#	@@echo "NC_DIAG          : $(NC_DIAG)"
+#	@@echo "BPCH_DIAG        : $(BPCH_DIAG)"
+#	@@echo "NO_REDUCED       : $(NO_REDUCED)"
+
