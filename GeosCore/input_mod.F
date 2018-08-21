@@ -3431,7 +3431,56 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_OPt%LWETD
+      READ( SUBSTRS(1:N), * ) Input_Opt%LWETD
+
+      ! Options for Ocean dry deposition
+      ! Turn on iodide from file?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IodideNETCDF', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%IodideNETCDF
+
+      ! location of iodide file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IodideFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%IodideFile
+
+      ! Which iodide scheme?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IodideScheme', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%IodideScheme
+
+      ! Use a fixed surface micro layer in this run?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'FixedMicroLayer', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%FixedMicroLayer
+
+      ! location of iodide file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'MicroLayerSize', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%MicroLayerSize
+
+      ! location of iodide file
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'C0ScaleFactor', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%C0ScaleFactor
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )

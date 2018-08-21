@@ -228,6 +228,15 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LWETD
      REAL(fp)                    :: WETD_CONV_SCAL
      LOGICAL                     :: PBL_DRYDEP      
+     !!!!!------------------------------------
+     !OCEAN DRY DEPOSITION OPTIONS
+     !!!!!------------------------------------
+     LOGICAL                     :: IodideNETCDF
+     CHARACTER(LEN=255)          :: IodideFile
+     CHARACTER(LEN=5)            :: IodideScheme
+     LOGICAL                     :: FixedMicroLayer
+     REAL(f8)                    :: MicroLayerSize
+     REAL(f8)                    :: C0ScaleFactor
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -906,6 +915,16 @@ CONTAINS
     Input_Opt%LWETD                  = .FALSE.
     Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
     Input_Opt%PBL_DRYDEP             = .FALSE.
+
+     !!!!!------------------------------------
+     !OCEAN DRY DEPOSITION OPTIONS
+     !!!!!------------------------------------
+     Input_Opt%IodideNETCDF          = .FALSE.
+     Input_Opt%IodideFile            = ''
+     Input_Opt%IodideScheme          = ''
+     Input_Opt%FixedMicroLayer       = .FALSE.
+     Input_Opt%MicroLayerSize        = 0.0_f8
+     Input_Opt%C0ScaleFactor         = 0.0_f8
 
     !----------------------------------------
     ! GAMAP_MENU fields
