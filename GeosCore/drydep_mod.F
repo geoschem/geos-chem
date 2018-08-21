@@ -246,7 +246,7 @@
       ! Scalars
       INTEGER                        :: NUMDEP,   NWATER
       INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-      INTEGER                        :: id_ACET,  id_ALD2
+      INTEGER                        :: id_ACET,  id_ALD2, ID_O3
       INTEGER                        :: id_NK1
       INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
 
@@ -448,7 +448,7 @@
       REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
-
+      REAL(f8)      :: O3_DIAGS(IIPAR,JJPAR,0:9)  ! text file diagnostics
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
@@ -481,6 +481,7 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
+<<<<<<< HEAD
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
      &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
@@ -494,6 +495,15 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
+=======
+      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
+     &             RADIAT,     TC0,       SUNCOS_MID,
+     &             F0,         HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,      CZ1,       OBK,        CFRAC,     
+     &             ZH,         LSNOW,     DVEL,       AZO,              
+     &             RHB,        PRESSU,    W10,        RC,
+     &             ID_O3,      O3_DIAGS                           )
+>>>>>>> 62943ae... First commit before pull
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -651,12 +661,368 @@
       ENDDO
 !$OMP END PARALLEL DO
 
+      !Write out the values for the updated agriculture values
+      CALL DIAGS_TO_TEXT( O3_DIAGS )
+
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
       ENDIF
 
       END SUBROUTINE DO_DRYDEP
+
+      SUBROUTINE DIAGS_TO_TEXT( VARS )
+
+      USE TIME_MOD
+      USE FILE_MOD,      ONLY : IOERROR
+      USE inquireMod,    ONLY : findFreeLUN
+      USE GC_GRID_MOD,   ONLY : GET_XOFFSET,     GET_YOFFSET
+
+      IMPLICIT NONE
+      
+      !input parameters
+      REAL(f8), INTENT(IN) :: VARS(IIPAR,JJPAR,0:9)
+
+      !time variables
+      INTEGER              :: YEAR, MONTH, DAY, HOUR, MINUTE 
+      !file variables
+      INTEGER              :: IU_OUT, IOS
+      CHARACTER(LEN=24)    :: filename
+      REAL                 :: LAT,LON
+      !loop variables
+      INTEGER              :: I,J,I0,J0,N
+      
+      ! Get date & time values
+      YEAR   = GET_YEAR()
+      MONTH  = GET_MONTH()
+      DAY    = GET_DAY()
+      HOUR   = GET_HOUR()
+      MINUTE = GET_MINUTE()
+
+      !set up the variables for the file
+      IU_OUT = findFreeLun()
+      WRITE(filename,1000) "Ocean_surface_",YEAR,".dat"
+
+ 1000 FORMAT(A14,I4,A4)
+
+      !open the file to be written to
+      OPEN( IU_OUT, FILE=TRIM(filename)
+     &     , STATUS='UNKNOWN',POSITION='APPEND', IOSTAT=IOS )
+
+      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
+      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+
+      !loop over each grid box
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+!     convert I,J to LON,LAT
+         LAT = REAL(J)*(DJSIZE)+(REAL(J0)*DJSIZE)-91.5
+         LON = REAL(I)*(DISIZE)+(REAL(I0)*DISIZE)-181.5
+      IF (VARS(I,J,9) .GT. 0.0_f8) THEN 
+!     write the values to file
+      WRITE( IU_OUT, 1010, IOSTAT=IOS ) YEAR, MONTH, DAY, HOUR, 
+     &        MINUTE, LAT, LON ,REAL(VARS(I,J,0))*100.0,
+     &        REAL(VARS(I,J,1))*100.0,REAL(VARS(I,J,2)),
+     &        REAL(VARS(I,J,3)),REAL(VARS(I,J,4)),
+     &        REAL(VARS(I,J,5)),REAL(VARS(I,J,6)),
+     &        REAL(VARS(I,J,7)),REAL(VARS(I,J,8)),
+     &        REAL(VARS(I,J,9))
+      ENDIF
+      ENDDO
+      ENDDO
+
+ 1010 FORMAT(I4,4(X,I2.2),2(X,F7.2),10(X,F12.8))
+
+      ! Flush the file to disk
+      CALL FLUSH( IU_OUT )
+
+      !close the file
+      CLOSE( IU_OUT )
+
+      END SUBROUTINE DIAGS_TO_TEXT
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: OceanO3
+!
+! !DESCRIPTION: Function OCEANO3 calculates the dry deposition velcoity of O3
+!     to the ocean using equation 16 from Luhar et.al 2017(2)[1*]. Will
+!     account for the turbulence of the surface, Iodide concentration
+!     and surface temperature effects on the dry deposition velocity.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, O3_DIAGS, I, J)
+
+      IMPLICIT NONE
+!     
+! !INPUT PARAMETERS: 
+!
+      REAL(f8), INTENT(IN)  :: TEMPK  ! Temperature [K]
+      REAL(f8), INTENT(IN)  :: USTAR ! Fictional Velocity [m/s]
+      INTEGER,  INTENT(IN)  :: I,J
+      REAL(f8), INTENT(OUT) :: DEPV(0:2)  ! the new deposition vel [cm/s]
+      REAL(f8), INTENT(INOUT) :: O3_DIAGS(IIPAR,JJPAR,0:9)  ! text file diagnostics
+! !REMARKS:
+!     Initial implemenentaion of an improved parameterisation of dry
+!     deposition of ozone to the ocean, currently under development.
+!     rp819@york.ac.uk - 16/10/2017
+!     Later versions should aim to streamline some of these eqns but
+!     for now they will exist seperately (may help with diagnostics)
+!     - Chemical reactivity should remain staged as this can allow for
+!     the introduction of other chemicals to this in the future
+!     - Currently using a constant value for the deltam value for
+!     a quick/temp implementation but this needs revising in fututre
+!     -Diagnostics:
+!     --- The optional input array exists to store the data that is
+!     calculated in this function and I,J are to ensure that the
+!     data is being stored for the correct grid of the simulation
+! 
+! !REVISION HISTORY: 
+! 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Garland
+!
+! !DEFINED PARAMETERS:
+!
+
+      !=================================================================
+      ! OCEANO3 begins here!
+      !=================================================================
+      
+      USTARWater = 0.0345_f8*USTAR
+    
+      a = 51.5_f8-(9134.0/TEMPK)-(8772.2/TEMPK)
+      a = 1.46E6*EXP(a)
+      
+      D = -1896.0/TEMPK
+      D = 1.1E-6*EXP(D)
+
+!     turns out they didn't actually use this for their results and 
+!     just used a fixed value instead so thats's whats been put in now
+!      DelM = c0*SQRT(D/a)
+      DelM = 3.0E-6_f8
+      b = 2.0_f8/(0.4_f8*USTARWater)
+      
+      LAM = a/D
+      LAM = DelM*SQRT(LAM)
+
+!     LUHAR EPSILON EQN
+      EP = 2.0_f8*a*b*(DelM+(b*D/2.0_f8))
+      EP = SQRT(EP)
+
+      PSI = a*b**2*D
+      PSI = EP/SQRT(PSI)
+
+      CALL K0K1_APROX(EP,K0,K1)
+
+      Garland = SQRT(a*D)
+      DEPV(1) = Garland
+
+      DEPV(0) = Garland*((PSI*K1*COSH(LAM)+K0*SINH(LAM))/(PSI*K1* 
+     &     SINH(LAM)+K0*COSH(LAM)))
+
+!     FAIRALL EPSILON EQN
+      EP = b*Garland
+      CALL K0K1_APROX(EP,K0,K1)
+      DEPV(2) = Garland*(K1/K0)
+   
+      O3_DIAGS(I,J,2) = -1.0
+      O3_DIAGS(I,J,3) = a
+      O3_DIAGS(I,J,4) = TEMPK
+      O3_DIAGS(I,J,6) = D
+      O3_DIAGS(I,J,8) = DelM
+      
+      END SUBROUTINE OCEANO3
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: K0K1_APROX
+!
+! !DESCRIPTION: This is a placeholder for a future version of the subroutine.
+!     Currently it just uses some lookup tables to solve for a value of K0 
+!     and K1 but in the future a fiited exponential function for each of
+!     these will be used to approximate the values, this will give much more
+!     flexibility in the usefulness of this routine.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE K0K1_APROX( input_arg, K0, K1 )
+!     
+!     !INPUT PARAMETERS: 
+!     
+      REAL(f8), INTENT(IN)  :: input_arg !the value we want the soln for
+      REAL(f8), INTENT(OUT) :: K0,K1 !the values of the modified bessel fncs
+
+!     !REMARKS: Early implementation version -- needs to be updated as per 
+!     the description
+!     
+!     !REVISION HISTORY: 12/01/2018 -- created R.Pound
+!     
+!     EOP
+!------------------------------------------------------------------------------
+!     BOC
+!     
+!     !LOCAL VARIABLES:
+!     
+      
+      K0 = bessk0(input_arg)
+      K1 = bessk1(input_arg)
+
+      END SUBROUTINE K0K1_APROX
+
+      FUNCTION bessk0(x)
+
+      IMPLICIT NONE
+      REAL(f8), INTENT(IN) :: x
+      REAL(f8) :: bessk0
+!     Returns the modified Bessel function k0(x)
+      REAL(f8) :: y 
+      REAL(f8), DIMENSION(7) :: p = (/-0.57721566,0.42278420,
+     &     0.23069756,0.3488590e-1,0.262698e-2,0.10750e-3,
+     &     0.74e-5/)
+      REAL(f8), DIMENSION(7) :: q = (/1.25331414,-0.7832358e-1,
+     &     0.2189568e-1,-0.1062446e-1,0.587872e-2,
+     &     -0.251540e-2,0.53208e-3/)
+      
+      IF (x <= 2.0) THEN
+         y=x*x/4.0
+         bessk0=(-LOG(x/2.0)*bessi0(x))+poly(y,p)
+      ELSE
+         y=(2.0/x)
+         bessk0=(EXP(-x)/SQRT(x))*poly(y,q)
+      ENDIF
+      END FUNCTION bessk0
+
+      FUNCTION bessk1(x)
+
+      IMPLICIT NONE
+
+      REAL(f8), INTENT(IN) :: x
+      REAL(f8) :: bessk1
+!     Returns the modified Bessel function K1(x) for positive real x.
+      REAL(f8) :: y !Accumulate polynomials 
+      REAL(f8), DIMENSION(7) :: p = (/1.0,0.15443144,
+     &     -0.67278579,-0.18156897,-0.1919402e-1,
+     &     -0.110404e-2,-0.4686e-4/)
+      REAL(f8), DIMENSION(7) :: q = (/1.25331414,0.23498619,
+     &     -0.3655620e-1,0.1504268e-1,-0.780353e-2,
+     &     0.325614e-2,-0.68245e-3/)
+
+      IF (x <= 2.0) THEN !Polynomial fit.
+         y=x*x/4.0
+         bessk1=(LOG(x/2.0)*bessi1(x))+(1.0/x)*poly(y,p)
+      ELSE
+         y=2.0/x
+         bessk1=(EXP(-x)/SQRT(x))*poly(y,q)
+      ENDIF
+      
+      END FUNCTION bessk1
+      
+      FUNCTION bessi0(x)
+
+      IMPLICIT NONE
+      
+      REAL(f8), INTENT(IN) :: x
+      REAL(f8) :: bessi0
+!     Returns the modified Bessel function I0(x) for any real x.
+      REAL(f8) :: ax
+      REAL(f8), DIMENSION(7) :: p = (/1.0,3.5156229,
+     &     3.0899424,1.2067492,0.2659732,0.360768e-1,
+     &     0.45813e-2/)
+      REAL(f8), DIMENSION(9) :: q = (/0.39894228,0.1328592e-1,
+     &     0.225319e-2,-0.157565e-2,0.916281e-2,
+     &     -0.2057706e-1,0.2635537e-1,-0.1647633e-1,
+     &     0.392377e-2/)
+      
+      ax=ABS(x)
+      IF (ax < 3.75) THEN !Polynomial fit.
+         bessi0=poly((x/3.75_f8)**2,p)
+      ELSE
+         bessi0=(EXP(ax)/SQRT(ax))*poly((3.75_f8/ax),q)
+      ENDIF
+      END FUNCTION bessi0
+
+      FUNCTION bessi1(x)
+
+      IMPLICIT NONE
+      REAL(f8), INTENT(IN) :: x
+      REAL(f8) :: bessi1
+!     Returns the modified Bessel function I1(x) for any real x.
+      REAL(f8) :: ax
+      REAL(f8), DIMENSION(7) :: p = (/0.5,0.87890594,
+     &     0.51498869,0.15084934,0.2658733e-1,
+     &     0.301532e-2,0.32411e-3/)
+!     Accumulate polynomials in double precision.
+      REAL(f8), DIMENSION(9) :: q = (/0.39894228,-0.3988024e-1,
+     &     -0.362018e-2,0.163801e-2,-0.1031555e-1,
+     &     0.2282967e-1,-0.2895312e-1,0.1787654e-1,
+     &     -0.420059e-2/)
+
+      ax=ABS(x)
+      IF (ax < 3.75) THEN 
+         bessi1=ax*poly(REAL((x/3.75)**2,f8),p)
+      ELSE
+         bessi1=(EXP(ax)/SQRT(ax))*poly(REAL(3.75/ax,f8),q)
+      ENDIF
+      
+      IF (x < 0.0) bessi1=-bessi1
+      
+      END FUNCTION bessi1
+      
+      FUNCTION poly(x,coeffs)
+
+      IMPLICIT NONE
+      
+      REAL(f8), INTENT(IN) :: x
+      REAL(f8), DIMENSION(:), INTENT(IN) :: coeffs
+      REAL(f8) :: poly
+      REAL(f8) :: pow
+      REAL(f8), DIMENSION(:), ALLOCATABLE :: vec
+      INTEGER :: i,n,nn
+      INTEGER :: NPAR_POLY=8
+      
+      n=SIZE(coeffs)
+      
+      IF (n <= 0) THEN
+         poly=0.0
+      ELSEIF (n < NPAR_POLY) THEN
+         poly=coeffs(n)
+         DO i=n-1,1,-1
+            poly=x*poly+coeffs(i)
+         ENDDO
+      ELSE
+         allocate(vec(n+1))
+         pow=x
+         vec(1:n)=coeffs
+         DO
+            vec(n+1)=0.0
+            nn=ishft(n+1,-1)
+            vec(1:nn)=vec(1:n:2)+pow*vec(2:n+1:2)
+            IF (nn == 1) EXIT
+            pow=pow*pow
+            n=nn
+         ENDDO
+         poly=vec(1)
+         deallocate(vec)
+      ENDIF
+      END FUNCTION poly
+
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -845,12 +1211,22 @@
 !\\
 ! !INTERFACE:
 !
+<<<<<<< HEAD
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          )
+=======
+      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
+     &                   RADIAT,     TEMP,      SUNCOS,
+     &                   F0,         HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,      CZ1,       OBK,       CFRAC,
+     &                   ZH,         LSNOW,     DVEL,      ZO,
+     &                   RHB,        PRESSU,    W10,       RC,
+     &                   ID_O3,      O3_DIAGS                        )
+>>>>>>> 62943ae... First commit before pull
 !
 ! !USES:
 !
@@ -888,6 +1264,7 @@
       REAL(f8), INTENT(IN) :: PRESSU (IIPAR,JJPAR) ! Surface pressure [hPa]
       REAL(f8), INTENT(IN) :: W10    (IIPAR,JJPAR) ! Wind speed @ 10m altitude
                                                    !  [m/s]
+      INTEGER, INTENT(IN)  :: ID_O3                ! GC species number for O3
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -897,6 +1274,7 @@
 ! 
       INTEGER,  INTENT(OUT) :: RC                  ! Success or failure?
       REAL(f8), INTENT(OUT) :: DVEL(IIPAR,JJPAR,NUMDEP) ! Drydep velocity [m/s]
+      REAL(f8), INTENT(OUT) :: O3_DIAGS(IIPAR,JJPAR,0:9) ! text file diagnostics
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -1109,6 +1487,11 @@
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
 
+      ! Integer for the GEOS-CHEM species number ocean O3 special case
+      INTEGER  :: N_SPC
+      REAL(f8) :: DEPVw(0:2)
+      REAL(f8) :: alpha
+
       ! Size of DRYCOEFF (ckeller, 05/19/14)
       INTEGER :: NN
 
@@ -1182,6 +1565,7 @@
       ! Size of drycoeff (ckeller, 05/19/14)
       NN = SIZE(DRYCOEFF)
 
+<<<<<<< HEAD
 #if defined( MODEL_GEOS )
       ! Logical flag for Ra (ckeller, 12/29/17)
       State_Chm%DryDepRa2m  = 0.0_fp
@@ -1195,6 +1579,9 @@
       !   State_Diag%DryDepRa10m = 0.0_fp
       !ENDIF
 #endif
+=======
+      O3_DIAGS = 0.0_f8
+>>>>>>> 62943ae... First commit before pull
 
 !***********************************************************************       
 !
@@ -1262,9 +1649,13 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
+<<<<<<< HEAD
 #if defined( MODEL_GEOS )
 !$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
 #endif
+=======
+!$OMP+PRIVATE( N_SPC,  DEPVw,  alpha                          )
+>>>>>>> 62943ae... First commit before pull
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
@@ -1432,6 +1823,21 @@
 !** exit for non-depositing species or aerosols.
                IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
+!     test for special treatment for O3 drydep to ocean
+               N_SPC = State_Chm%Map_DryDep(K)
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+!     Now apply the Luhar et al. [2018] equations for the special treatment 
+!     of O3 dry deposition to the ocean surface 
+                  CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
+     &                 O3_DIAGS,I,J)
+!     now convert to the new rc value(s) can probably tidy this up a bit
+                  alpha = 10.0_f8**(-0.25-0.013*(
+     &                 State_Met%TSKIN(I,J)-273.16_f8))
+                  RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw(0))
+                  O3_DIAGS(I,J,5) = W10(I,J)
+                  O3_DIAGS(I,J,7) = alpha
+               ENDIF
+
                !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
                XMWH2O = H2OMW * 1.e-3_f8
                RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/
@@ -1468,9 +1874,16 @@
                DTMP2=1.e+0_f8/RLUXX
                DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
                DTMP4=1.e+0_f8/(RDC+RCLX)
-               RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                 O3_DIAGS(I,J,0) = 1.e+0_f8/(DTMP1 + DTMP2 +
+     &                 DTMP3 + DTMP4)
+               ELSE
+                  RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + 
+     &                 DTMP3 + DTMP4) 
+               ENDIF
 !** get surface deposition velocity for aerosols if needed;
 !** equations (15)-(17) of Walcek et al. [1986]
+          
  155           IF (.NOT. AIROSOL(K)) GOTO 160
 
 !-----------------------------------------------------------------------------
@@ -1626,6 +2039,13 @@
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
      &                        9999.e+0_f8))
+               N_SPC = State_Chm%Map_DryDep(K)
+               II = IDEP(ILAND(I,J,LDT)+1)
+               IF(LSNOW(I,J)) II=1
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                  O3_DIAGS(I,J,0) = MAX(1.e+0_f8, MIN(O3_DIAGS(I,J,0), 
+     &                        9999.e+0_f8))
+               ENDIF
  180        CONTINUE
  190     CONTINUE
 !*                                 
@@ -1976,6 +2396,14 @@
      &              (DAIR/DIFFG(TEMPK,PRESSU(I,J),XMW(K)))
      &              **0.667e+0_f8
                IF (AIROSOL(K)) RB=0.e+0_f8
+               N_SPC = State_Chm%Map_DryDep(K)
+               II = IDEP(ILAND(I,J,LDT)+1)
+               IF(LSNOW(I,J)) II=1
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                  O3_DIAGS(I,J,0) = 1.0_f8/(RA + RB + O3_DIAGS(I,J,0))
+                  O3_DIAGS(I,J,1) = 1.0_f8/(RA + RB + RSURFC(K,LDT))
+                  O3_DIAGS(I,J,9) = IUSE(I,J,LDT)/10.0_f8
+               ENDIF
                C1X(K) = RA + RB + RSURFC(K,LDT)
  215        CONTINUE
             GOTO 240
@@ -1987,10 +2415,21 @@
             DO 230 K = 1,NUMDEP 
                IF ( LDEP(K) ) THEN
                   RA     = 1.0D4
+<<<<<<< HEAD
 #if defined( MODEL_GEOS )
                   RA2M   = 1.0D4
                   RA10M  = 1.0D4
 #endif
+=======
+                  N_SPC = State_Chm%Map_DryDep(K)
+                  II = IDEP(ILAND(I,J,LDT)+1)
+                  IF(LSNOW(I,J)) II=1
+                  IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                     O3_DIAGS(I,J,0) = 1.0_f8/(RA + O3_DIAGS(I,J,0))
+                     O3_DIAGS(I,J,1) = 1.0_f8/(RA + RSURFC(K,LDT))
+                     O3_DIAGS(I,J,9) = IUSE(I,J,LDT)/10.0_f8
+                  ENDIF
+>>>>>>> 62943ae... First commit before pull
                   C1X(K) = RA + RSURFC(K,LDT)
                ENDIF
  230        CONTINUE
@@ -2006,6 +2445,7 @@
                IF (.NOT.LDEP(K)) GOTO 400
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+
  400        CONTINUE
 
 #if defined( MODEL_GEOS )
@@ -4120,6 +4560,7 @@
       LDRYD     = Input_Opt%LDRYD
       NUMDEP    = 0
       id_ACET   = 0
+      ID_O3 = 0
       id_ALD2   = 0
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
@@ -4270,6 +4711,10 @@
                CASE( 'ACET' )
                   ! Flag the species ID of ACET for use above.
                   id_ACET = SpcInfo%ModelId
+
+               CASE( 'O3' )
+                  ! Flag the species ID of O3 for use above
+                  ID_O3 = SpcInfo%ModelId
                         
                CASE( 'ALD2' )
                   ! Flag the species ID of ALD2 for use above.
