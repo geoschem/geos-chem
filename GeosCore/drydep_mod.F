@@ -757,7 +757,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, O3_DIAGS, I, J)
+      SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, O3_DIAGS, I, J, 
+     &     Input_Opt)
+
+      USE Input_Opt_Mod, ONLY : OptInput
 
       IMPLICIT NONE
 !     
@@ -766,6 +769,7 @@
       REAL(f8), INTENT(IN)  :: TEMPK  ! Temperature [K]
       REAL(f8), INTENT(IN)  :: USTAR ! Fictional Velocity [m/s]
       INTEGER,  INTENT(IN)  :: I,J
+      TYPE(OptInput), INTENT(IN) :: Input_Opt
       REAL(f8), INTENT(OUT) :: DEPV(0:2)  ! the new deposition vel [cm/s]
       REAL(f8), INTENT(INOUT) :: O3_DIAGS(IIPAR,JJPAR,0:9)  ! text file diagnostics
 ! !REMARKS:
@@ -791,7 +795,8 @@
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Garland
+      REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Garland,
+     &     Iodide
 !
 ! !DEFINED PARAMETERS:
 !
@@ -802,16 +807,24 @@
       
       USTARWater = 0.0345_f8*USTAR
     
-      a = 51.5_f8-(9134.0/TEMPK)-(8772.2/TEMPK)
-      a = 1.46E6*EXP(a)
+      IF (Input_Opt%IodideNETCDF .EQ. .FALSE.) THEN
+         IF (Input_Opt%IodideScheme .EQ. 'MACDO') THEN
+            Iodide = 1.46E6*EXP(-9134.0/TEMPK)
+         ENDIF
+      ELSE
+         !add something here
+      ENDIF
+      a = Iodide*EXP((-8772.2/TEMPK)+51.5)
       
       D = -1896.0/TEMPK
       D = 1.1E-6*EXP(D)
 
-!     turns out they didn't actually use this for their results and 
-!     just used a fixed value instead so thats's whats been put in now
-!      DelM = c0*SQRT(D/a)
-      DelM = 3.0E-6_f8
+      IF (Input_Opt%FixedMicroLayer .EQ. .TRUE.) THEN
+         DelM = Input_Opt%MicroLayerSize
+      ELSE
+         DelM = Input_Opt%C0ScaleFactor*SQRT(D/a)
+      ENDIF
+      
       b = 2.0_f8/(0.4_f8*USTARWater)
       
       LAM = a/D
