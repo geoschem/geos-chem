@@ -6200,6 +6200,11 @@
          DEALLOCATE(SFCMR)
       ENDIF
 
+      ! Reset the NSFCMR count on cleanup. The NSFCMR counter counts the
+      ! objects in SFCMR%, which is deallocated above.
+      ! This is to allow CLEANUP_UCX to fully reset the internal state.
+      NSFCMR = 0
+
       ! Cleanup the NOx coeff arrays 
       IF ( ALLOCATED( NOXCOEFF ) ) DEALLOCATE( NOXCOEFF )
       IF ( ALLOCATED( NOXLAT   ) ) DEALLOCATE( NOXLAT   )
