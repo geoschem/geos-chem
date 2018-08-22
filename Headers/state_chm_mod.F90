@@ -294,6 +294,7 @@ CONTAINS
 !                              rather than arguments list
 !  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
 !                              DB if DB is already initialized before
+!  22 Aug 2018 - R. Yantosca - Fixed typo in registration of SSAlk field
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1021,7 +1022,7 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SSAlk', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SSAlk = 0e+0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SSAlk,            &
                                State_Chm, RC                                )
 
        !------------------------------------------------------------------
