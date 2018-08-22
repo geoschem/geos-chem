@@ -904,22 +904,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR
 
-      ! GEOS-FP subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GEOS_FP_DIR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_FP_DIR
-
-      ! MERRA2 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'MERRA2_DIR',  RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA2_DIR
-
       !-----------------------------------------------------------------
       ! Make sure DATA-DIR ends with a "/" character
       !-----------------------------------------------------------------
@@ -954,16 +938,6 @@
 #elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
 #endif
-
-      !-----------------------------------------------------------------
-      ! Append the resolution specific directory name 
-      ! to each of the met field subdirectories
-      !-----------------------------------------------------------------
-      Input_Opt%GEOS_FP_DIR = TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%GEOS_FP_DIR )
-
-      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%MERRA2_DIR  )
 
       !-----------------------------------------------------------------
       ! Determine if we are running a nested-grid simulation based on
@@ -1010,10 +984,6 @@
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Resolution-specific dir     : ',
      &                    TRIM( Input_Opt%RES_DIR )
-         WRITE( 6, 110 ) 'GEOS-FP    sub-directory    : ', 
-     &                    TRIM( Input_Opt%GEOS_FP_DIR )
-         WRITE( 6, 110 ) 'MERRA-2    sub-directory    : ', 
-     &                    TRIM( Input_Opt%MERRA2_DIR )
          WRITE( 6, 110 ) 'Input restart file          : ', 
      &                    TRIM( Input_Opt%IN_RST_FILE )
          WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
@@ -7952,56 +7922,6 @@
             RETURN
          ENDIF
       ENDIF
-
-#if defined( GEOS_FP )
-
-      ! Check GEOS-FP met field directory (starting date)
-      DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Check GEOS-FP met field directory (ending date)
-      DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-#elif defined( MERRA2 )
-
-      ! Check MERRA2 met field directory (starting date)
-      DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Check MERRA2 met field directory (ending date)
-      DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-#elif defined( FLEXGRID )
-      ! Do not need to check directory for FlexGrid
-      ! Metfield directory is set in HEMCO_Config.rc, not input.geos
-
-#endif
 
       END SUBROUTINE VALIDATE_DIRECTORIES
 !EOC

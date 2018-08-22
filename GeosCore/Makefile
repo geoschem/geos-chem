@@ -487,7 +487,6 @@ cleanup.o                   : cleanup.F                                      \
                               tagged_co_mod.o         tomas_mod.o            \
                               transport_mod.o         ucx_mod.o              \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
-                              geosfp_read_mod.o       merra2_read_mod.o      \
                               tpcore_window_mod.o     flexchem_mod.o         \
                               toms_mod.o              emissions_mod.o        \
                               rrtmg_rad_transfer_mod.o                       \
@@ -634,9 +633,6 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               toms_mod.o              tpcore_bc_mod.o        \
                               vdiff_pre_mod.o         wetscav_mod.o
 
-geosfp_read_mod.o           : geosfp_read_mod.F90                            \
-                              dao_mod.o               diag_mod.o
-
 get_met_mod.o               : get_met_mod.F90
 
 get_ndep_mod.o              : get_ndep_mod.F                              
@@ -696,7 +692,7 @@ main.o                      : main.F                                         \
                               diag51b_mod.o           diag63_mod.o           \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
-                              toms_mod.o              geosfp_read_mod.o      \
+                              toms_mod.o                                     \
                               gc_environment_mod.o    global_ch4_mod.o       \
                               input_mod.o             linoz_mod.o            \
                               mapping_mod.o           toms_mod.o             \
@@ -708,7 +704,7 @@ main.o                      : main.F                                         \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
-                              mixing_mod.o            merra2_read_mod.o      \
+                              mixing_mod.o                                   \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
@@ -724,9 +720,6 @@ mercury_mod.o               : mercury_mod.F                                  \
                               global_br_mod.o         vdiff_pre_mod.o        \
                               land_mercury_mod.o      hco_interface_mod.o    \
                               ocean_mercury_mod.o     pbl_mix_mod.o
-
-merra2_read_mod.o           : merra2_read_mod.F90                            \
-                              dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
                               dao_mod.o                                      \

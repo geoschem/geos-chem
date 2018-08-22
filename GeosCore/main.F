@@ -125,8 +125,6 @@
       ! GEOS-Chem met field I/O modules
       !-----------------------------------------------------------------
       USE DAO_MOD               ! Met field definitions
-      USE GEOSFP_READ_MOD       ! For reading GEOS-FP data
-      USE MERRA2_READ_MOD       ! For reading MERRA2 data
       USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data 
 #if defined( EXCHANGE )
       USE EXCHANGE_MOD          ! For two-way coupled simulations
@@ -2695,31 +2693,6 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! Print met field info
-      !-----------------------------------------------------------------
-#if defined( GEOS_FP )
-
-#if defined( GRIDREDUCED ) 
-      WRITE( 6, 130 ) 'GMAO GEOS-FP (on reduced 47-layer vertical grid)'
-#else
-      WRITE( 6, 130 ) 'GMAO GEOS-FP (on native 72-layer vertical grid)'
-#endif
-
-#elif defined( MERRA2 )
-
-#if defined( GRIDREDUCED )
-      WRITE( 6, 130 ) 'GMAO MERRA-2 (on reduced 47-layer vertical grid)'
-#else
-      WRITE( 6, 130 ) 'GMAO MERRA-2 (on native 72-layer vertical grid)'
-#endif
-
-#elif defined( FLEXGRID )
-      WRITE( 6, '(a)' ) 
-     &'Using FlexGrid for NetCDF met fields (written by JIAWEI ZHUANG)'
-
-#endif
-
-      !-----------------------------------------------------------------
       ! Print status of ISORROPIA
       !-----------------------------------------------------------------
 #if defined( NO_ISORROPIA ) 
@@ -2909,58 +2882,8 @@
       ! Convenience variable for date & time
       INTEGER :: D(2)
 
-#if   defined( GEOS_FP )
-
       !=================================================================
-      !    *****  R E A D   G E O S -- F P   F I E L D S    *****
-      !    *****  At the start of the GEOS-Chem simulation  *****
-      !
-      !    Handle GEOS-FP met fields separately from other met 
-      !=================================================================
-
-      ! Read time-invariant data
-      CALL GeosFp_Read_CN  (             Input_Opt, State_Met )
-
-      ! Read 1-hr time-averaged data
-      D = GET_FIRST_A1_TIME()
-      CALL GeosFp_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-
-      ! Read 3-hr time averaged data
-      D = GET_FIRST_A3_TIME()
-      CALL Geosfp_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-
-      ! Read 3-hr time averaged data
-      D = GET_FIRST_I3_TIME()
-      CALL Geosfp_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
-
-#elif defined( MERRA2 )
-
-      !=================================================================
-      !    *****  R E A D   M E R R A 2   F I E L D S    *****
-      !    *****  At the start of the GEOS-Chem simulation  *****
-      !
-      !    Handle MERRA2 met fields separately from other met 
-      !=================================================================
-
-      ! Read time-invariant data
-      CALL Merra2_Read_CN  (             Input_Opt, State_Met )
-
-      ! Read 1-hr time-averaged data
-      D = GET_FIRST_A1_TIME()
-      CALL Merra2_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-
-      ! Read 3-hr time averaged data
-      D = GET_FIRST_A3_TIME()
-      CALL Merra2_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-
-      ! Read 3-hr time averaged data
-      D = GET_FIRST_I3_TIME()
-      CALL Merra2_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
-
-#elif defined( FLEXGRID )
-
-      !=================================================================
-      !    *****  R E A D   F L E X G R I D   F I E L D S    *****
+      !    *****  R E A D   M E T   F I E L D S    *****
       !    *****  At the start of the GEOS-Chem simulation  *****
       !=================================================================
 
@@ -2978,8 +2901,6 @@
       ! Read 3-hr instantanous data
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
-
-#endif
 
 #if defined( RRTMG )
       !  Adding the call to retrieve MODIS-derived surface
@@ -3038,88 +2959,8 @@
       ! Convenience variable for date & time
       INTEGER :: D(2)
 
-#if   defined( GEOS_FP )
-
       !==============================================================
-      !  ****** R E A D   G E O S -- F P   F I E L D S  *****
-      !==============================================================
-
-      !---------------------------------
-      ! A-1 fields (1hr time averaged)
-      !---------------------------------
-      IF ( ITS_TIME_FOR_A1() ) THEN
-         D = GET_A1_TIME()
-         CALL GeosFp_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! A-3 fields (3-hr time averaged)
-      !----------------------------------
-      IF ( ITS_TIME_FOR_A3() ) THEN
-         D = GET_A3_TIME()
-         CALL Geosfp_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! I-3 fields (3-hr instantaneous
-      !----------------------------------
-      IF ( ITS_TIME_FOR_I3() ) THEN
-         D = GET_I3_TIME()
-         CALL GeosFp_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-         CALL AvgPole( State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure at polar caps 
-         CALL AvgPole( State_Met%PS2_WET )
-
-      ENDIF
-
-#elif defined( MERRA2 )
-
-      !==============================================================
-      !  ****** R E A D   M E R R A 2   F I E L D S  *****
-      !==============================================================
-
-      !---------------------------------
-      ! A-1 fields (1hr time averaged)
-      !---------------------------------
-      IF ( ITS_TIME_FOR_A1() ) THEN
-         D = GET_A1_TIME()
-         CALL Merra2_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! A-3 fields (3-hr time averaged)
-      !----------------------------------
-      IF ( ITS_TIME_FOR_A3() ) THEN
-         D = GET_A3_TIME()
-         CALL Merra2_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! I-3 fields (3-hr instantaneous
-      !----------------------------------
-      IF ( ITS_TIME_FOR_I3() ) THEN
-         D = GET_I3_TIME()
-         CALL Merra2_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-         CALL AvgPole( State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure at polar caps 
-         CALL AvgPole( State_Met%PS2_WET )
-
-      ENDIF
-
-#elif defined( FLEXGRID )
-
-      !==============================================================
-      !  ****** R E A D   F L E X G R I D   F I E L D S  *****
+      !  ****** R E A D   M E T   F I E L D S  *****
       !==============================================================
 
       !---------------------------------
@@ -3154,8 +2995,6 @@
          CALL AvgPole( State_Met%PS2_WET )
 
       ENDIF
-
-#endif
 
 #if defined( RRTMG )
       !  Adding the call to retrieve MODIS-derived surface
