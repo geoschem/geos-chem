@@ -368,6 +368,7 @@ CONTAINS
           ENDIF
        ENDIF
 
+#if !defined ( DISCOVER )  
        !====================================================================
        ! Add some extra error checks for collections that are in the 
        ! collection name list (and therefore will be archived)
@@ -509,7 +510,7 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
-  
+
           ! Throw an error if we cannot find the gridcomp name 
           ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
           G = INDEX( Line, "'GIGCchem'," ) 
@@ -561,6 +562,7 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
+#endif
 
        !====================================================================
        ! Add unique diagnostic names to diag list
