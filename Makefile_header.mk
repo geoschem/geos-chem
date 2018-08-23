@@ -202,6 +202,9 @@
 #  03 Jan 2018 - M. Sulprizio- Remove UCX flag. We now solely use Input_Opt%LUCX
 #                              throughout GEOS-Chem.
 #  07 Aug 2018 - R. Yantosca - For now, don't compile TOMAS/ APM when NC_DIAG=y
+#  23 Aug 2018 - H.P. Lin    - Add NO_EXE=y to inhibit "geos" executable build and
+#                              build libGeosCore.a instead for coupled models driving
+#                              GEOS-Chem externally (by calling its libraries)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -422,6 +425,21 @@ REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(EXTERNAL_FORCING)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DEXTERNAL_FORCING
   NO_GRID_NEEDED     :=1
+endif
+
+#------------------------------------------------------------------------------
+# Coupling GEOS-Chem to External Models settings
+#------------------------------------------------------------------------------
+
+# %%%%% NO_EXE %%%%%
+# Setting NO_EXE=y will inhibit the creation of a final "geos" executable
+# and create a "libGeosCore.a" in the lib folder instead.
+# Used if you are linking GEOS-Chem routines to be driven by an external model.
+# (hplin, 8/23/18)
+REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(NO_EXE)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS          += -DMODEL_
+  NO_EXE             :=1
 endif
 
 #------------------------------------------------------------------------------
