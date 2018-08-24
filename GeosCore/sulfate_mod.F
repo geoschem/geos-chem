@@ -3847,23 +3847,23 @@
      &                      TCVV_S )
 
             ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
-            AD05(I,J,L,16) = AD05(I,J,L,15) +
+            AD05(I,J,L,16) = AD05(I,J,L,16) +
      &                       ((L5S+SRhobr)* State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRo3
-            AD05(I,J,L,17) = AD05(I,J,L,16) +
+            AD05(I,J,L,17) = AD05(I,J,L,17) +
      &                       (SRo3*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRhobr
-            AD05(I,J,L,18) = AD05(I,J,L,17) +
+            AD05(I,J,L,18) = AD05(I,J,L,18) +
      &                       (SRhobr*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by o3s
-            AD05(I,J,L,19) = AD05(I,J,L,18) +
+            AD05(I,J,L,19) = AD05(I,J,L,19) +
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
 
             ! Cloud pH
-            AD05(I,J,L,20) = AD05(I,J,L,19) + HPLUS
+            AD05(I,J,L,20) = AD05(I,J,L,20) + HPLUS
 
             !tdf
             PSO4d_tot   = 0.e+0_fp
@@ -3879,18 +3879,18 @@
                END DO
 
                ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
-               AD05(I,J,L,12) = AD05(I,J,L,11) +
+               AD05(I,J,L,12) = AD05(I,J,L,12) +
      &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
 
                ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
-               AD05(I,J,L,13) = AD05(I,J,L,12) +
+               AD05(I,J,L,13) = AD05(I,J,L,13) +
      &                       ( PNITd_tot * State_Met%AD(I,J,L) /
      &                         TCVV_N )
 
                ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
                ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
-               AD05(I,J,L,14) = AD05(I,J,L,13) +
+               AD05(I,J,L,14) = AD05(I,J,L,14) +
      &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
             ENDIF
@@ -4430,7 +4430,7 @@
       !=================================================================
       IF ( FullRun .and. ( ND05 > 0 .and. L <= LD05 ) ) THEN
          ! L(HNO3) on sea-salt aerosols [kg N/timestep]
-         AD05(I,J,L,14) = AD05(I,J,L,14) +
+         AD05(I,J,L,15) = AD05(I,J,L,15) +
      &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
       ENDIF
 #endif

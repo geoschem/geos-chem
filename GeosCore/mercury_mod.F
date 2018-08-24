@@ -618,7 +618,7 @@
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 14.0e-2_fp
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB

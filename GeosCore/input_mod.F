@@ -3869,14 +3869,14 @@
       INTEGER            :: ND01x, ND02x, ND03x, ND04x, ND05x, ND06x
       INTEGER            :: ND07x, ND08x, ND09x, ND10x, ND11x, ND12x
       INTEGER            :: ND13x, ND14x, ND15x, ND16x, ND17x, ND18x
-      INTEGER            :: ND19x, ND20x, ND21x, ND22x, ND23x, ND24x
+      INTEGER            :: ND19x, ND21x, ND22x, ND24x
       INTEGER            :: ND25x, ND26x, ND27x, ND28x, ND29x, ND30x
       INTEGER            :: ND31x, ND32x, ND33x, ND34x, ND35x, ND36x
-      INTEGER            :: ND37x, ND38x, ND39x, ND40x, ND41x, ND42x
-      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x, ND48x
-      INTEGER            :: ND49x, ND50x, ND51x, ND52x, ND53x, ND54x
+      INTEGER            :: ND37x, ND38x, ND39x, ND41x, ND42x
+      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x
+      INTEGER            :: ND52x, ND53x, ND54x
       INTEGER            :: ND55x, ND56x, ND57x, ND58x, ND59x, ND60x
-      INTEGER            :: ND61x, ND62x, ND63x, ND64x, ND65x, ND66x
+      INTEGER            :: ND61x, ND62x, ND64x, ND66x
       INTEGER            :: ND67x, ND68x, ND69x, ND70x, ND71x, ND72x
       INTEGER            :: ND73x, HR1_JVx, HR2_JVx, HR1_OHx, HR2_OHx
       INTEGER            :: HR1_OTHx, HR2_OTHx
@@ -4891,10 +4891,8 @@
       ND17                         = ND17x
       ND18                         = ND18x
       ND19                         = ND19x
-      ND20                         = ND20x
       ND21                         = ND21x
       ND22                         = ND22x
-      ND23                         = ND23x
       ND24                         = ND24x
       ND25                         = ND25x
       ND26                         = ND26x
@@ -4911,7 +4909,6 @@
       ND37                         = ND37x
       ND38                         = ND38x
       ND39                         = ND39x
-      ND40                         = ND40x
       ND41                         = ND41x
       ND42                         = ND42x
       ND43                         = ND43x
@@ -4919,10 +4916,6 @@
       ND45                         = ND45x
       ND46                         = ND46x
       ND47                         = ND47x
-      ND48                         = ND48x
-      ND49                         = ND49x
-      ND50                         = ND50x
-      ND51                         = ND51x
       ND52                         = ND52x
       ND53                         = ND53x
       ND54                         = ND54x
@@ -4934,7 +4927,6 @@
       ND60                         = ND60x
       ND61                         = ND61x
       ND62                         = ND62x
-      ND63                         = ND63x
       ND64                         = ND64x
       ND66                         = ND66x
       ND67                         = ND67x
@@ -4963,10 +4955,8 @@
       Input_Opt%ND17               = ND17x
       Input_Opt%ND18               = ND18x
       Input_Opt%ND19               = ND19x
-      Input_Opt%ND20               = ND20x
       Input_Opt%ND21               = ND21x
       Input_Opt%ND22               = ND22x
-      Input_Opt%ND23               = ND23x
       Input_Opt%ND24               = ND24x
       Input_Opt%ND25               = ND25x
       Input_Opt%ND26               = ND26x
@@ -4983,7 +4973,6 @@
       Input_Opt%ND37               = ND37x
       Input_Opt%ND38               = ND38x
       Input_Opt%ND39               = ND39x
-      Input_Opt%ND40               = ND40x
       Input_Opt%ND41               = ND41x
       Input_Opt%ND42               = ND42x
       Input_Opt%ND43               = ND43x
@@ -4991,10 +4980,6 @@
       Input_Opt%ND45               = ND45x
       Input_Opt%ND46               = ND46x
       Input_Opt%ND47               = ND47x
-      Input_Opt%ND48               = ND48x
-      Input_Opt%ND49               = ND49x
-      Input_Opt%ND50               = ND50x
-      Input_Opt%ND51               = ND51x
       Input_Opt%ND52               = ND52x
       Input_Opt%ND53               = ND53x
       Input_Opt%ND54               = ND54x
@@ -5006,7 +4991,6 @@
       Input_Opt%ND60               = ND60x
       Input_Opt%ND61               = ND61x
       Input_Opt%ND62               = ND62x
-      Input_Opt%ND63               = ND63x
       Input_Opt%ND64               = ND64x
       Input_Opt%ND66               = ND66x
       Input_Opt%ND67               = ND67x
@@ -5058,18 +5042,6 @@
       ! Also set values for time series diagnostics which can still be
       ! output as binary if other diangostics are netcdf.
       !=================================================================
-      ND40                         = ND40x
-      ND48                         = ND48x
-      ND49                         = ND49x
-      ND50                         = ND50x
-      ND51                         = ND51x
-      ND63                         = ND63x
-      Input_Opt%ND40               = ND40x
-      Input_Opt%ND48               = ND48x
-      Input_Opt%ND49               = ND49x
-      Input_Opt%ND50               = ND50x
-      Input_Opt%ND51               = ND51x
-      Input_Opt%ND63               = ND63x
       Input_Opt%ND70 = ND70x
       Input_Opt%LPRT = ( ND70x > 0 )
 
