@@ -297,6 +297,16 @@ CONTAINS
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
+if defined( NC_DIAG )
+    ! Budget diagnostics
+    REAL(f4), ALLOCATABLE :: initial_mass_full (:,:,:)
+    REAL(f4), ALLOCATABLE :: initial_mass_trop (:,:,:)
+    REAL(f4), ALLOCATABLE :: intial_mass_pbl   (:,:,:)
+    REAL(f4), ALLOCATABLE :: final_mass_full   (:,:,:)
+    REAL(f4), ALLOCATABLE :: final_mass_trop   (:,:,:)
+    REAL(f4), ALLOCATABLE :: final_mass_pbl    (:,:,:)
+#endif
+
     !=======================================================================
     ! DO_CHEMISTRY begins here!
     !=======================================================================
@@ -363,6 +373,56 @@ CONTAINS
     CALL Convert_Spc_Units( am_I_Root,        Input_Opt, State_Met,          &
                             State_Chm,        'kg',      RC,                 &
                             OrigUnit=OrigUnit                               )
+
+#if defined( NC_DIAG )
+    ! ewl dev
+    ! Get the initial mass totals for the budget diagnostics
+    IF ( State_Diag%Archive_BudgetChemistry ) THEN
+    
+       IF ( State_Diag%Archive_BudgetChemistryFull ) THEN
+          ALLOCATE( initial_mass_full( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          ALLOCATE( final_mass_full( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          initial_mass_full = 0.0_f4
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             initial_mass_full(I,J,N) = SUM( State_Chm(I,J,:,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDIF
+    
+       IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
+          ALLOCATE( initial_mass_trop( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          ALLOCATE( final_mass_trop( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          initial_mass_trop = 0.0_f4
+          ! is LLTROP constant for all I,J?
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             initial_mass_trop(I,J,N) = SUM( State_Chm(I,J,1:max_lev_trop,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDIF
+    
+       IF ( State_Diag%Archive_BudgetChemistryPBL ) THEN
+          ALLOCATE( initial_mass_pbl( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          ALLOCATE( final_mass_pbl( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
+          initial_mass_pbl = 0.0_f4
+          ! This one needs care since need to get pbl lev for each I,J
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             initial_mass_pbl(I,J,N) = SUM( State_Chm(I,J,1:max_lev_PBL,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDIF
+    
+    ENDIF
+    ! ewl dev end
+#endif
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1070,6 +1130,61 @@ CONTAINS
 
 #if defined( USE_TIMERS )
     CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
+#if defined( NC_DIAG )
+    ! ewl dev
+    IF ( State_Diag%Archive_BudgetChemistry ) THEN
+       
+       IF ( State_Diag%Archive_BudgetChemistryFull ) THEN
+          final_mass_full = 0.0_f4
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             final_mass_full(I,J,N) = SUM( State_Chm(I,J,:,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+          ! Will need to convert to proper units (kg/m2/s)
+          State_Diag%BudgetChemistryFull = final_mass_full - initial_mass_full
+          DEALLOCATE( initial_mass_full, STAT=RC )
+          DEALLOCATE( final_mass_full, STAT=RC )
+       ENDIF
+    
+       IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
+          final_mass_trop = 0.0_f4
+          ! is LLTROP constant for all I,J?
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             final_mass_trop(I,J,N) = SUM( State_Chm(I,J,1:max_lev_trop,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+          ! Will need to convert to proper units (kg/m2/s)
+          State_Diag%BudgetChemistryTrop = final_mass_trop - initial_mass_trop
+          DEALLOCATE( initial_mass_trop, STAT=RC )
+          DEALLOCATE( final_mass_trop, STAT=RC )
+       ENDIF
+    
+       IF ( State_Diag%Archive_BudgetChemistryPBL ) THEN
+          final_mass_pbl = 0.0_f4
+          ! This one needs care since need to get pbl lev for each I,J
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+          DO N = 1, State_Chm%nAdvect
+             final_mass_pbl(I,J,N) = SUM( State_Chm(I,J,1:max_lev_PBL,N) )
+          ENDDO
+          ENDDO
+          ENDDO
+          ! Will need to convert to proper units (kg/m2/s)
+          State_Diag%BudgetChemistryPBL = final_mass_pb - initial_mass_pbl
+          DEALLOCATE( initial_mass_pbl, STAT=RC )
+          DEALLOCATE( final_mass_pbl, STAT=RC )
+       ENDIF
+    
+    ENDIF
+    ! ewl dev end
 #endif
 
     ! Convert species units back to original unit (ewl, 8/12/15)

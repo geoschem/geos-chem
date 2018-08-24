@@ -1081,7 +1081,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! KHETI_SLA
        !-------------------------------------------------------------------
-       nKHLSA = 11 ! TODO: should this be in CMN_SIZE_Mod?
+       nKHLSA = 11
        ALLOCATE( State_Chm%KHETI_SLA ( IM, JM, LM, nKHLSA ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%KHETISLA', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN

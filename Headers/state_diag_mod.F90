@@ -58,6 +58,57 @@ MODULE State_Diag_Mod
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
 
+     ! Budget diagnostics
+     REAL(f4),  POINTER :: BudgetEmissionsFull      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetEmissionsTrop      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetEmissionsPBL       (:,:,:) 
+     REAL(f4),  POINTER :: BudgetTransportFull      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetTransportTrop      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetTransportPBL       (:,:,:) 
+     REAL(f4),  POINTER :: BudgetDryDepFull         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetDryDepTrop         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetDryDepPBL          (:,:,:) 
+     REAL(f4),  POINTER :: BudgetMixingFull         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetMixingTrop         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetMixingPBL          (:,:,:) 
+     REAL(f4),  POINTER :: BudgetConvectionFull     (:,:,:) 
+     REAL(f4),  POINTER :: BudgetConvectionTrop     (:,:,:) 
+     REAL(f4),  POINTER :: BudgetConvectionPBL      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetChemistryFull      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetChemistryTrop      (:,:,:) 
+     REAL(f4),  POINTER :: BudgetChemistryPBL       (:,:,:) 
+     REAL(f4),  POINTER :: BudgetWetDepFull         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetWetDepTrop         (:,:,:) 
+     REAL(f4),  POINTER :: BudgetWetDepPBL          (:,:,:) 
+     LOGICAL :: Archive_BudgetEmissions
+     LOGICAL :: Archive_BudgetEmissionsFull  
+     LOGICAL :: Archive_BudgetEmissionsTrop  
+     LOGICAL :: Archive_BudgetEmissionsPBL   
+     LOGICAL :: Archive_BudgetTransport  
+     LOGICAL :: Archive_BudgetTransportFull  
+     LOGICAL :: Archive_BudgetTransportTrop  
+     LOGICAL :: Archive_BudgetTransportPBL   
+     LOGICAL :: Archive_BudgetDryDep     
+     LOGICAL :: Archive_BudgetDryDepFull     
+     LOGICAL :: Archive_BudgetDryDepTrop     
+     LOGICAL :: Archive_BudgetDryDepPBL      
+     LOGICAL :: Archive_BudgetMixing     
+     LOGICAL :: Archive_BudgetMixingFull     
+     LOGICAL :: Archive_BudgetMixingTrop     
+     LOGICAL :: Archive_BudgetMixingPBL      
+     LOGICAL :: Archive_BudgetConvection 
+     LOGICAL :: Archive_BudgetConvectionFull 
+     LOGICAL :: Archive_BudgetConvectionTrop 
+     LOGICAL :: Archive_BudgetConvectionPBL  
+     LOGICAL :: Archive_BudgetChemistry  
+     LOGICAL :: Archive_BudgetChemistryFull  
+     LOGICAL :: Archive_BudgetChemistryTrop  
+     LOGICAL :: Archive_BudgetChemistryPBL   
+     LOGICAL :: Archive_BudgetWetDep 
+     LOGICAL :: Archive_BudgetWetDepFull     
+     LOGICAL :: Archive_BudgetWetDepTrop     
+     LOGICAL :: Archive_BudgetWetDepPBL      
+
      ! Dry deposition
      REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
      REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
@@ -180,7 +231,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
      REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:) 
-     
+
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
      !----------------------------------------------------------------------
@@ -229,6 +280,7 @@ MODULE State_Diag_Mod
 !  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
 !  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
 !  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
+!  24 Aug 2018 - E. Lundgren - Add budget diagnostics
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -367,6 +419,28 @@ CONTAINS
     State_Diag%RainFracLS                 => NULL()
     State_Diag%WashFracLS                 => NULL()
 
+    State_Diag%BudgetEmissionsFull        => NULL()          
+    State_Diag%BudgetEmissionsTrop        => NULL()
+    State_Diag%BudgetEmissionsPBL         => NULL()
+    State_Diag%BudgetTransportFull        => NULL()
+    State_Diag%BudgetTransportTrop        => NULL()
+    State_Diag%BudgetTransportPBL         => NULL()
+    State_Diag%BudgetDryDepFull           => NULL()
+    State_Diag%BudgetDryDepTrop           => NULL()
+    State_Diag%BudgetDryDepPBL            => NULL()
+    State_Diag%BudgetMixingFull           => NULL()
+    State_Diag%BudgetMixingTrop           => NULL()
+    State_Diag%BudgetMixingPBL            => NULL()
+    State_Diag%BudgetConvectionFull       => NULL()
+    State_Diag%BudgetConvectionTrop       => NULL()
+    State_Diag%BudgetConvectionPBL        => NULL()
+    State_Diag%BudgetChemistryFull        => NULL()
+    State_Diag%BudgetChemistryTrop        => NULL()
+    State_Diag%BudgetChemistryPBL         => NULL()
+    State_Diag%BudgetWetDepFull           => NULL()
+    State_Diag%BudgetWetDepTrop           => NULL()
+    State_Diag%BudgetWetDepPBL            => NULL()          
+
     State_Diag%SpeciesConc                => NULL()
     State_Diag%JVal                       => NULL()
     State_Diag%JNoon                      => NULL()
@@ -462,6 +536,36 @@ CONTAINS
     State_Diag%AODPSCWL2                  => NULL()
     State_Diag%AODPSCWL3                  => NULL()
 
+    ! Set archive logicals
+    State_Diag%Archive_BudgetEmissions       = .FALSE.          
+    State_Diag%Archive_BudgetEmissionsFull   = .FALSE.          
+    State_Diag%Archive_BudgetEmissionsTrop   = .FALSE.
+    State_Diag%Archive_BudgetEmissionsPBL    = .FALSE.
+    State_Diag%Archive_BudgetTransport       = .FALSE.
+    State_Diag%Archive_BudgetTransportFull   = .FALSE.
+    State_Diag%Archive_BudgetTransportTrop   = .FALSE.
+    State_Diag%Archive_BudgetTransportPBL    = .FALSE.
+    State_Diag%Archive_BudgetDryDep          = .FALSE.
+    State_Diag%Archive_BudgetDryDepFull      = .FALSE.
+    State_Diag%Archive_BudgetDryDepTrop      = .FALSE.
+    State_Diag%Archive_BudgetDryDepPBL       = .FALSE.
+    State_Diag%Archive_BudgetMixing          = .FALSE.
+    State_Diag%Archive_BudgetMixingFull      = .FALSE.
+    State_Diag%Archive_BudgetMixingTrop      = .FALSE.
+    State_Diag%Archive_BudgetMixingPBL       = .FALSE.
+    State_Diag%Archive_BudgetConvection      = .FALSE.
+    State_Diag%Archive_BudgetConvectionFull  = .FALSE.
+    State_Diag%Archive_BudgetConvectionTrop  = .FALSE.
+    State_Diag%Archive_BudgetConvectionPBL   = .FALSE.
+    State_Diag%Archive_BudgetChemistry       = .FALSE.
+    State_Diag%Archive_BudgetChemistryFull   = .FALSE.
+    State_Diag%Archive_BudgetChemistryTrop   = .FALSE.
+    State_Diag%Archive_BudgetChemistryPBL    = .FALSE.
+    State_Diag%Archive_BudgetWetDep          = .FALSE.
+    State_Diag%Archive_BudgetWetDepFull      = .FALSE.
+    State_Diag%Archive_BudgetWetDepTrop      = .FALSE.
+    State_Diag%Archive_BudgetWetDepPBL       = .FALSE.          
+
 #if defined( NC_DIAG )
 
     ! Write header
@@ -486,6 +590,405 @@ CONTAINS
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for emissions  (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetEmissionsFull'
+    diagID  = 'BudgetEmissionsFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetEmissionsFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmissionsFull = 0.0_f4
+       State_Diag%Archive_BudgetEmissionsFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetEmissionsFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetEmissionsTrop'
+    diagID  = 'BudgetEmissionsTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetEmissionsTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmissionsTrop = 0.0_f4
+       State_Diag%Archive_BudgetEmissionsTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetEmissionsTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetEmissionsPBL'
+    diagID  = 'BudgetEmissionsPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetEmissionsPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmissionsPBL = 0.0_f4
+       State_Diag%Archive_BudgetEmissionsPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetEmissionsPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetEmissionsFull .OR. &
+         State_Diag%Archive_BudgetEmissionsTrop .OR. &
+         State_Diag%Archive_BudgetEmissionsPBL ) THEN
+       State_Diag%Archive_BudgetEmissions = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for transport  (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetTransportFull'
+    diagID  = 'BudgetTransportFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetTransportFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportFull = 0.0_f4
+       State_Diag%Archive_BudgetTransportFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetTransportFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetTransportTrop'
+    diagID  = 'BudgetTransportTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetTransportTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportTrop = 0.0_f4
+       State_Diag%Archive_BudgetTransportTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetTransportTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetTransportPBL'
+    diagID  = 'BudgetTransportPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetTransportPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportPBL = 0.0_f4
+       State_Diag%Archive_BudgetTransportPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetTransportPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetTransportFull .OR. &
+         State_Diag%Archive_BudgetTransportTrop .OR. &
+         State_Diag%Archive_BudgetTransportPBL ) THEN
+       State_Diag%Archive_BudgetTransport = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for dry deposition  (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetDryDepFull'
+    diagID  = 'BudgetDryDepFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetDryDepFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetDryDepFull = 0.0_f4
+       State_Diag%Archive_BudgetDryDepFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetDryDepFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetDryDepTrop'
+    diagID  = 'BudgetDryDepTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetDryDepTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetDryDepTrop = 0.0_f4
+       State_Diag%Archive_BudgetDryDepTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetDryDepTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetDryDepPBL'
+    diagID  = 'BudgetDryDepPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetDryDepPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetDryDepPBL = 0.0_f4
+       State_Diag%Archive_BudgetDryDepPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetDryDepPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetDryDepFull .OR. &
+         State_Diag%Archive_BudgetDryDepTrop .OR. &
+         State_Diag%Archive_BudgetDryDepPBL ) THEN
+       State_Diag%Archive_BudgetDryDep = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for mixing (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetMixingFull'
+    diagID  = 'BudgetMixingFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetMixingFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingFull = 0.0_f4
+       State_Diag%Archive_BudgetMixingFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID        &
+                                State_Diag%BudgetMixingFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetMixingTrop'
+    diagID  = 'BudgetMixingTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetMixingTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingTrop = 0.0_f4
+       State_Diag%Archive_BudgetMixingTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID        &
+                                State_Diag%BudgetMixingTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetMixingPBL'
+    diagID  = 'BudgetMixingPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetMixingPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingPBL = 0.0_f4
+       State_Diag%Archive_BudgetMixingPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID        &
+                                State_Diag%BudgetMixingPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetMixingFull .OR. &
+         State_Diag%Archive_BudgetMixingTrop .OR. &
+         State_Diag%Archive_BudgetMixingPBL ) THEN
+       State_Diag%Archive_BudgetMixing = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for convection (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetConvectionFull'
+    diagID  = 'BudgetConvectionFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetConvectionFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionFull = 0.0_f4
+       State_Diag%Archive_BudgetConvectionFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,           &
+                                State_Diag%BudgetConvectionFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetConvectionTrop'
+    diagID  = 'BudgetConvectionTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetConvectionTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionTrop = 0.0_f4
+       State_Diag%Archive_BudgetConvectionTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,           &
+                                State_Diag%BudgetConvectionTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetConvectionPBL'
+    diagID  = 'BudgetConvectionPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetConvectionPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionPBL = 0.0_f4
+       State_Diag%Archive_BudgetConvectionPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,           &
+                                State_Diag%BudgetConvectionPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetConvectionFull .OR. &
+         State_Diag%Archive_BudgetConvectionTrop .OR. &
+         State_Diag%Archive_BudgetConvectionPBL ) THEN
+       State_Diag%Archive_BudgetConvection = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for chemistry (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetChemistryFull'
+    diagID  = 'BudgetChemistryFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetChemistryFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryFull = 0.0_f4
+       State_Diag%Archive_BudgetChemistryFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetChemistryFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetChemistryTrop'
+    diagID  = 'BudgetChemistryTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetChemistryTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryTrop = 0.0_f4
+       State_Diag%Archive_BudgetChemistryTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetChemistryTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetChemistryPBL'
+    diagID  = 'BudgetChemistryPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetChemistryPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryPBL = 0.0_f4
+       State_Diag%Archive_BudgetChemistryPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,          &
+                                State_Diag%BudgetChemistryPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetChemistryFull .OR. &
+         State_Diag%Archive_BudgetChemistryTrop .OR. &
+         State_Diag%Archive_BudgetChemistryPBL ) THEN
+       State_Diag%Archive_BudgetChemistry = .TRUE.
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Budget for wet deposition (average kg/m2/s across single timestep)
+    !-----------------------------------------------------------------------
+    arrayID = 'State_Diag%BudgetWetDepFull'
+    diagID  = 'BudgetWetDepFull'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepFull = 0.0_f4
+       State_Diag%Archive_BudgetWetDepFull = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetWetDepFull, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetWetDepTrop'
+    diagID  = 'BudgetWetDepTrop'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepTrop = 0.0_f4
+       State_Diag%Archive_BudgetWetDepTrop = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetWetDepTrop, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    arrayID = 'State_Diag%BudgetWetDepPBL'
+    diagID  = 'BudgetWetDepPBL'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepPBL = 0.0_f4
+       State_Diag%Archive_BudgetWetDepPBL = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID,       &
+                                State_Diag%BudgetWetDepPBL, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
+         State_Diag%Archive_BudgetWetDepTrop .OR. &
+         State_Diag%Archive_BudgetWetDepPBL ) THEN
+       State_Diag%Archive_BudgetWetDep = .TRUE.
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2899,6 +3402,132 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetEmissionsFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmissionsFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetEmissionsTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmissionsTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetEmissionsPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmissionsPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetTransportFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetTransportFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetTransportFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetTransportTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetTransportTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetTransportTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetDryDepFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetDryDepFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetDryDepFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetDryDepTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetDryDepTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetDryDepTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetDryDepPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetDryDepPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetDryDepPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetMixingFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetMixingFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetMixingFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetMixingTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetMixingTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetMixingTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetMixingPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetMixingPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetMixingPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetConvectionFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetConvectionFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetConvectionFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetConvectionTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetConvectionTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetConvectionTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetConvectionPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetConvectionPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetConvectionPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetChemistryFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetChemistryFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetChemistryFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetChemistryTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetChemistryTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetChemistryTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetChemistryPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetChemistryPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetChemistryPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetWetDepFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetWetDepFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetWetDepFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetWetDepTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetWetDepTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetWetDepTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetWetDepPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetWetDepPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetWetDepPBL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
  
     IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
        DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
@@ -3644,6 +4273,153 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
 
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for emissions'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for emissions'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for emissions'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for transport'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for transport'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for transport'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for dry deposition'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for dry deposition'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for dry deposition'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for mixing'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for mixing'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for mixing'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for convection'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for convection'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for convection'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                ' for chemistry'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for chemistry'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for chemistry'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
+       IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
+                                'for wet deposition'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                'change in column for wet deposition'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
+    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for wet deposition '
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
@@ -4370,7 +5146,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg,    ThisLoc,   Nstr
 
     !=======================================================================
-    ! Get_TagName begins here
+    ! Get_TagInfo begins here
     !=======================================================================
 
     ! Initialize
