@@ -297,13 +297,14 @@ CONTAINS
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
-if defined( NC_DIAG )
+#if defined( NC_DIAG )
     ! Budget diagnostics
+    INTEGER               :: I, J
     REAL(f4), ALLOCATABLE :: initial_mass_full (:,:,:)
-    REAL(f4), ALLOCATABLE :: initial_mass_trop (:,:,:)
-    REAL(f4), ALLOCATABLE :: intial_mass_pbl   (:,:,:)
     REAL(f4), ALLOCATABLE :: final_mass_full   (:,:,:)
+    REAL(f4), ALLOCATABLE :: initial_mass_trop (:,:,:)
     REAL(f4), ALLOCATABLE :: final_mass_trop   (:,:,:)
+    REAL(f4), ALLOCATABLE :: initial_mass_pbl   (:,:,:)
     REAL(f4), ALLOCATABLE :: final_mass_pbl    (:,:,:)
 #endif
 
@@ -383,24 +384,33 @@ if defined( NC_DIAG )
           ALLOCATE( initial_mass_full( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
           ALLOCATE( final_mass_full( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
           initial_mass_full = 0.0_f4
+
+          ! This part could be abstracted and reused by all components
+          ! and three time here, three times later in this subroutine.
+          ! pass N, State_Chm, and 'full' (or 'trop' or 'pbl' and get 
+          ! back 2D array, in correct units (kg/m2)
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             initial_mass_full(I,J,N) = SUM( State_Chm(I,J,:,N) )
+             initial_mass_full(I,J,N) = SUM( State_Chm%Species(I,J,:,N) )
           ENDDO
           ENDDO
           ENDDO
+
        ENDIF
     
        IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
           ALLOCATE( initial_mass_trop( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
           ALLOCATE( final_mass_trop( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
           initial_mass_trop = 0.0_f4
+
+          ! Same here
           ! is LLTROP constant for all I,J?
+          ! placeholder of 20 for now
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             initial_mass_trop(I,J,N) = SUM( State_Chm(I,J,1:max_lev_trop,N) )
+             initial_mass_trop(I,J,N) = SUM( State_Chm%Species(I,J,1:20,N) )
           ENDDO
           ENDDO
           ENDDO
@@ -411,10 +421,11 @@ if defined( NC_DIAG )
           ALLOCATE( final_mass_pbl( IIPAR, JJPAR, State_Chm%nAdvect ), STAT=RC )
           initial_mass_pbl = 0.0_f4
           ! This one needs care since need to get pbl lev for each I,J
+          ! placeholder of 20 for now
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             initial_mass_pbl(I,J,N) = SUM( State_Chm(I,J,1:max_lev_PBL,N) )
+             initial_mass_pbl(I,J,N) = SUM( State_Chm%Species(I,J,1:20,N) )
           ENDDO
           ENDDO
           ENDDO
@@ -1136,12 +1147,15 @@ if defined( NC_DIAG )
     ! ewl dev
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
        
+       ! Consider passing initial mass and getting the state_diag
+       ! value back, so don't need to allocate final at all.
+
        IF ( State_Diag%Archive_BudgetChemistryFull ) THEN
           final_mass_full = 0.0_f4
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             final_mass_full(I,J,N) = SUM( State_Chm(I,J,:,N) )
+             final_mass_full(I,J,N) = SUM( State_Chm%Species(I,J,:,N) )
           ENDDO
           ENDDO
           ENDDO
@@ -1154,10 +1168,11 @@ if defined( NC_DIAG )
        IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
           final_mass_trop = 0.0_f4
           ! is LLTROP constant for all I,J?
+          ! placeholder of 20 for now
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             final_mass_trop(I,J,N) = SUM( State_Chm(I,J,1:max_lev_trop,N) )
+             final_mass_trop(I,J,N) = SUM( State_Chm%Species(I,J,1:20,N) )
           ENDDO
           ENDDO
           ENDDO
@@ -1170,15 +1185,20 @@ if defined( NC_DIAG )
        IF ( State_Diag%Archive_BudgetChemistryPBL ) THEN
           final_mass_pbl = 0.0_f4
           ! This one needs care since need to get pbl lev for each I,J
+          ! placeholder of 20 for now
           DO J = 1, JJPAR
           DO I = 1, IIPAR
           DO N = 1, State_Chm%nAdvect
-             final_mass_pbl(I,J,N) = SUM( State_Chm(I,J,1:max_lev_PBL,N) )
+             final_mass_pbl(I,J,N) = SUM( State_Chm%Species(I,J,1:20,N) )
           ENDDO
           ENDDO
           ENDDO
+
           ! Will need to convert to proper units (kg/m2/s)
-          State_Diag%BudgetChemistryPBL = final_mass_pb - initial_mass_pbl
+          ! If abstract above, have arrays in kg/m2. Just need to 
+          ! divide by the timestep in seconds. does that make sense?
+          ! Chm timestep and dyn timesteps are different...
+          State_Diag%BudgetChemistryPBL = final_mass_pbl - initial_mass_pbl
           DEALLOCATE( initial_mass_pbl, STAT=RC )
           DEALLOCATE( final_mass_pbl, STAT=RC )
        ENDIF

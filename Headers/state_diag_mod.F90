@@ -605,7 +605,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmissionsFull = 0.0_f4
        State_Diag%Archive_BudgetEmissionsFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetEmissionsFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -621,7 +621,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmissionsTrop = 0.0_f4
        State_Diag%Archive_BudgetEmissionsTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetEmissionsTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -637,7 +637,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetEmissionsPBL = 0.0_f4
        State_Diag%Archive_BudgetEmissionsPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetEmissionsPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -662,7 +662,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportFull = 0.0_f4
        State_Diag%Archive_BudgetTransportFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetTransportFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -678,7 +678,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportTrop = 0.0_f4
        State_Diag%Archive_BudgetTransportTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetTransportTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -694,7 +694,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetTransportPBL = 0.0_f4
        State_Diag%Archive_BudgetTransportPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetTransportPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -714,12 +714,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepFull( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetDryDepFull( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetDryDepFull = 0.0_f4
        State_Diag%Archive_BudgetDryDepFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetDryDepFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -730,12 +730,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepTrop( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetDryDepTrop( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetDryDepTrop = 0.0_f4
        State_Diag%Archive_BudgetDryDepTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetDryDepTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -746,12 +746,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepPBL( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetDryDepPBL( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetDryDepPBL = 0.0_f4
        State_Diag%Archive_BudgetDryDepPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,          &
                                 State_Diag%BudgetDryDepPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -776,7 +776,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingFull = 0.0_f4
        State_Diag%Archive_BudgetMixingFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID        &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetMixingFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -792,7 +792,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingTrop = 0.0_f4
        State_Diag%Archive_BudgetMixingTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID        &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetMixingTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -808,7 +808,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingPBL = 0.0_f4
        State_Diag%Archive_BudgetMixingPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID        &
+       CALL Register_DiagField( am_I_Root, diagID,          &
                                 State_Diag%BudgetMixingPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -833,7 +833,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionFull = 0.0_f4
        State_Diag%Archive_BudgetConvectionFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,           &
+       CALL Register_DiagField( am_I_Root, diagID,               &
                                 State_Diag%BudgetConvectionFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -849,7 +849,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionTrop = 0.0_f4
        State_Diag%Archive_BudgetConvectionTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,           &
+       CALL Register_DiagField( am_I_Root, diagID,               &
                                 State_Diag%BudgetConvectionTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -865,7 +865,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetConvectionPBL = 0.0_f4
        State_Diag%Archive_BudgetConvectionPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,           &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetConvectionPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -890,7 +890,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryFull = 0.0_f4
        State_Diag%Archive_BudgetChemistryFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetChemistryFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -906,7 +906,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryTrop = 0.0_f4
        State_Diag%Archive_BudgetChemistryTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetChemistryTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -922,7 +922,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetChemistryPBL = 0.0_f4
        State_Diag%Archive_BudgetChemistryPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
+       CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetChemistryPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -942,12 +942,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepFull = 0.0_f4
        State_Diag%Archive_BudgetWetDepFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetWetDepFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -958,12 +958,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepTrop = 0.0_f4
        State_Diag%Archive_BudgetWetDepTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetWetDepTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -974,12 +974,12 @@ CONTAINS
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetWetDepPBL = 0.0_f4
        State_Diag%Archive_BudgetWetDepPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,       &
+       CALL Register_DiagField( am_I_Root, diagID,          &
                                 State_Diag%BudgetWetDepPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -4273,147 +4273,147 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for transport'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for transport'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for transport'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for mixing'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for mixing'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for mixing'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for convection'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for convection'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for convection'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 ' for chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for wet deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for wet deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for wet deposition '
        IF ( isUnits   ) Units = 'kg m-2 s-1'
