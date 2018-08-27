@@ -161,6 +161,8 @@
 #  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
 #  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
 #  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+#  23 Aug 2018 - H.P. Lin    - If NO_EXE is set (for coupled model driving G-C)
+#                              do not build "geos" but instead "libGeosCore.a"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -212,7 +214,7 @@ MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
 MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
 # Library file
-LIBRARY :=libcore.a
+LIBRARY :=libGeosCore.a
 
 ###############################################################################
 ###                                                                         ###
@@ -228,7 +230,10 @@ all:                                               # Build libraries
 ifeq ($(UNAME),Darwin)
 	ranlib -c ../lib/*
 endif
+ifdef NO_EXE
+	# Is GEOS-Chem coupled to and driven by another model?
 	@$(MAKE) exe
+endif
 
 tomas:
 	@$(MAKE) TOMAS=yes lib                     # TOMAS, 30 bins (default)
@@ -265,9 +270,15 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
-	@$(MAKE) libcore			  
+	@$(MAKE) libcore
 
 libcore: $(OBJECTS)                                # Build code in GeosCore/
+ifdef NO_EXE
+	# Is GEOS-Chem coupled to and driven by another model?
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB) # ...build a libGeosCore.a for use instead
+endif
+
 
 libgigc:
 ifeq ($(wildcard $(FVDIR)/fvdycore.install),)
