@@ -314,8 +314,8 @@ CONTAINS
     REAL(fp),      POINTER :: Ptr2data(:,:,:)
 
     ! Error handling
-    RC = GC_SUCCESS
-    ErrMsg = ''
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
     ThisLoc = ' -> at Init_State_Chm (in Headers/state_chm_mod.F90)'
 
     !=======================================================================
@@ -428,10 +428,10 @@ CONTAINS
     IF ( ASSOCIATED( SpcDataLocal ) ) THEN
         State_Chm%SpcData => SpcDataLocal
     ELSE
-        CALL Init_Species_Database( am_I_Root = am_I_Root,                      &
-                                    Input_Opt = Input_Opt,                      &
-                                    SpcData   = State_Chm%SpcData,              &
-                                    RC        = RC                             )
+        CALL Init_Species_Database( am_I_Root = am_I_Root,                   &
+                                    Input_Opt = Input_Opt,                   &
+                                    SpcData   = State_Chm%SpcData,           &
+                                    RC        = RC                           )
 
         ! Point to a private module copy of the species database
         ! which will be used by the Ind_ indexing function
@@ -439,11 +439,25 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Determine the number of advected, drydep, wetdep, and total species
+    ! Before proceeding, make sure none of the species has a blank name,
+    ! because this has the potential to halt the run inadvertently.
     !=======================================================================
 
     ! The total number of species is the size of SpcData
     State_Chm%nSpecies = SIZE( State_Chm%SpcData )
+
+    ! Exit if any species name is blank
+    DO N = 1, State_Chm%nSpecies
+       IF ( LEN_TRIM(  State_Chm%SpcData(N)%Info%Name ) == 0 ) THEN
+          WRITE( ErrMsg, '("Species number ", i6, " has a blank name!")' ) N
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDDO
+
+    !=======================================================================
+    ! Determine the number of advected, drydep, wetdep, and total species
+    !=======================================================================
 
     ! Get the number of advected, dry-deposited, KPP chemical species,
     ! and and wet-deposited species.  Also return the # of Hg0, Hg2, and 
