@@ -1661,6 +1661,7 @@ CONTAINS
 !                                cause problems with some compilers.
 !  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts 
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1740,6 +1741,15 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
+
+    ! if there is no overlap between original grid and output grid
+    ! reduced will be zero and missing values should be returned
+    if ( in .eq. 0 ) then
+       iq2 = missval
+       lon2 => NULL()
+       q2 => NULL()
+       return
+    endif
 
     ! Periodic BC only valid if the variable is "global"
     xSpan = x1(im+1)-x1(1)
@@ -1954,6 +1964,7 @@ CONTAINS
 !                                cause problems with some compilers. 
 !  29 Apr 2016 - R. Yantosca   - Don't initialize pointers in declaration stmts
 !  08 Apr 2017 - C. Keller     - Skip missing values when interpolating.
+!  21 Aug 2018 - H.P. Lin      - Return missing value if no overlap between lon1, lon2
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2033,6 +2044,15 @@ CONTAINS
     in = n2 - n1
     lon2 => ilon2(n1:n2)
     q2   => iq2(n1:(n2-1),:)
+
+    ! if there is no overlap between original grid and output grid
+    ! reduced will be zero and missing values should be returned
+    if ( in .eq. 0 ) then
+       iq2 = missval
+       lon2 => NULL()
+       q2 => NULL()
+       return
+    endif
 
     ! shadow variables to selected range
     ! Periodic BC only valid if the variable is "global"
