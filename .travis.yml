@@ -8,3 +8,7 @@ before_install:
 
 script:
 - docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make MET=geosfp GRID=4x5"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make MET=geosfp GRID=4x5 NC_DIAG=y"
+
+notifications:
+    slack: gcst:7j7EWzrMDfTbRlG2yYRAbffc
