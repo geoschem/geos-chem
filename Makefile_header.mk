@@ -203,9 +203,11 @@
 #                              throughout GEOS-Chem.
 #  07 Aug 2018 - R. Yantosca - For now, don't compile TOMAS/ APM when NC_DIAG=y
 #  21 Aug 2018 - R. Yantosca - Simplify testing for netCDF-Fortran 
-#  23 Aug 2018 - H.P. Lin    - Add NO_EXE=y to inhibit "geos" executable build and
-#                              build libGeosCore.a instead for coupled models driving
-#                              GEOS-Chem externally (by calling its libraries)
+#  23 Aug 2018 - H.P. Lin    - Add NO_EXE=y to inhibit "geos" executable build
+#                              and build libGeosCore.a instead for coupled
+#                              models driving GEOS-Chem externally (by calling
+#                              its libraries)
+#  28 Aug 2018 - M. Sulprizio- Export EXE_NEEDED to be used in GeosCore/Makefile
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -451,10 +453,11 @@ endif
 # and create a "libGeosCore.a" in the lib folder instead.
 # Used if you are linking GEOS-Chem routines to be driven by an external model.
 # (hplin, 8/23/18)
+EXE_NEEDED           :=1
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(NO_EXE)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DMODEL_
-  NO_EXE             :=1
+  EXE_NEEDED         :=0
 endif
 
 #------------------------------------------------------------------------------
