@@ -7,8 +7,20 @@ before_install:
 - docker pull zhuangjw/docker_gc
 
 script:
-- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make MET=geosfp GRID=4x5"
-- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make MET=geosfp GRID=4x5 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 BPCH_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 NC_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 BPCH_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=025x03125 NEST=ch CHEM=Tropchem TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=025x03125 NEST=ch CHEM=Tropchem TIMERS=1 BPCH_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 BPCH_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 NC_DIAG=y BOUNDS=y DEBUG=y FPEX=y"
 
 notifications:
     slack: gcst:7j7EWzrMDfTbRlG2yYRAbffc
