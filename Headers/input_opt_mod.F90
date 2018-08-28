@@ -221,6 +221,7 @@ MODULE Input_Opt_Mod
      ! CONVECTION MENU fields
      !----------------------------------------
      LOGICAL                     :: LCONV
+     LOGICAL                     :: LRAS
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
      INTEGER                     :: TS_CONV
@@ -594,6 +595,7 @@ MODULE Input_Opt_Mod
 !  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
 !  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
 !  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
+!  28 Aug 2018 - R. Yantosca - Now define LRAS switch for RAS convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -685,6 +687,7 @@ CONTAINS
 !  02 Nov 2017 - R. Yantosca - LWINDO_CU should be .FALSE., not 0
 !  07 Nov 2017 - R. Yantosca - Remove LVARTROP; it's not needed
 !  08 Mar 2018 - R. Yantosca - Bug fix, remove reference to TINDEX here
+!  28 Aug 2018 - R. Yantosca - Now initialize LRAS switch for RAS convection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -885,6 +888,7 @@ CONTAINS
     ! CONVECTION MENU fields
     !----------------------------------------
     Input_Opt%LCONV                  = .FALSE.
+    Input_Opt%LRAS                   = .FALSE.
     Input_Opt%LTURB                  = .FALSE.
     Input_Opt%LNLPBL                 = .FALSE.
     Input_Opt%TS_CONV                = 0
@@ -1236,7 +1240,7 @@ CONTAINS
     Input_Opt%POP_DEL_H              = 0e+0_fp
     Input_Opt%POP_DEL_Hw             = 0e+0_fp
 
-    !----------------------------------------
+    !---------------------------------- -----
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
     Input_Opt%haveImpRst             = .FALSE.
