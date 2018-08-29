@@ -222,7 +222,7 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
 
 # Error message for bad MET input
-ERR_MET              :="Select a met field: MET=geosfp, MET=merra2, MET=flexgrid"
+ERR_MET              :="Select a met field: MET=geosfp, MET=merra2"
 
 # Error message for bad GRID input
 ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
@@ -602,7 +602,7 @@ ifndef NO_MET_NEEDED
   endif
 
   # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGEOS_FP|\-DMERRA2|\-DFLEXGRID)
+  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
   ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
     $(error $(ERR_MET))
   endif
@@ -651,7 +651,7 @@ ifndef NO_GRID_NEEDED
     # Ensure that MET=merra2
     REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0625, you can only use MET=merra2 or flexgrid)
+      $(error When GRID=05x0625, you can only use MET=merra2)
     endif
 
     # Ensure that a nested-grid option is selected
@@ -672,7 +672,7 @@ ifndef NO_GRID_NEEDED
     # Ensure that MET=geosfp
     REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
     ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=025x03125, you can only use MET=geosfp or flexgrid)
+      $(error When GRID=025x03125, you can only use MET=geosfp)
     endif
 
     # Ensure that a nested-grid option is selected

@@ -460,11 +460,6 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
 
-       ! Make sure the tuning factor set in HEMCO_Config.rc matches the
-       ! hard-coded value.
-       ! (Jiawei Zhuang 2017/6)
-       PRINT*,'(FlexGrid check) lightning tuning factor:',Inst%OTD_LIS_SCALE
-
     ENDIF
 
     ! Eventually get OTD-LIS local redistribution factors from HEMCO.

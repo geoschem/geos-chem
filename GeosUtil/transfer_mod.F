@@ -1081,7 +1081,7 @@
 
       ELSE
 
-         ! Copy up to L=36 (GEOS-FP, MERRA-2, FLEXGRID)
+         ! Copy up to L=36 (GEOS-FP, MERRA-2)
          L_COPY = 36
 
       ENDIF
