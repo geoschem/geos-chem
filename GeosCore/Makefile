@@ -714,7 +714,7 @@ main.o                      : main.F                                         \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o            merra2_read_mod.o      \
                               wetscav_mod.o           diag_mod.o             \
-                              rrtmg_rad_transfer_mod.o                       \
+                              rrtmg_rad_transfer_mod.o ras_mod.o             \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
                               gc_classic_version.H
 

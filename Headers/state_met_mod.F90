@@ -37,6 +37,10 @@ MODULE State_Met_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Register_MetField
+  PRIVATE :: Register_MetField_Rfp_2D
+  PRIVATE :: Register_MetField_Rfp_3D
+  PRIVATE :: Register_MetField_Int_2D
+  PRIVATE :: Register_MetField_Int_3D
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -260,7 +264,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: RAS_REEVAPCN  (:,:,:) ! REEVAPCN, computed viaRAS
      REAL(fp), POINTER :: RAS_REEVAPLS  (:,:,:) ! REEVAPLS, computed via RAS
 
-     TYPE(ParamRas),    TARGET    :: RasParams  ! Parameters for RAS code
+     TYPE(ParamRas),    POINTER   :: RasParams  ! Parameters for RAS code
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
@@ -387,19 +391,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Met( am_I_Root, State_Met, RC )
+  SUBROUTINE Init_State_Met( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
+    USE CMN_SIZE_MOD,  ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Obj for meteorology state
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -432,6 +438,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
 !  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
 !  16 Nov 2017 - E. Lundgren - Get grid params from CMN_Size_Mod not arguments
+!  29 Aug 2018 - R. Yantosca - Allocate & register convective fields from RAS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -461,6 +468,13 @@ CONTAINS
     ! module as implemented by Karen Yu.  These fields do not have to 
     ! be registered. (bmy, 8/27/18)
     !=======================================================================
+    
+    ! Allocate the pointer
+    ALLOCATE( State_Met%RasParams, STAT=RC )
+    CALL GC_CheckVar( 'State_Met%RasParams', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    ! Define fields
     State_Met%RasParams%CUFRICFAC      =       1.000_fp
     State_Met%RasParams%SHR_LAMBDA_FAC =       0.05_fp
     State_Met%RasParams%QC_CRIT_CN     =       8.0e-4_fp
@@ -2095,7 +2109,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-
     !=======================================================================
     ! Allocate fields for querying which vertical regime a grid box is in
     ! or if a grid box is near local solar noontime.
@@ -2397,6 +2410,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%RAS_PFLLSAN )) NULLIFY( State_Met%RAS_PFLLSAN  )
     IF ( ASSOCIATED( State_Met%RAS_REEVAPCN)) NULLIFY( State_Met%RAS_REEVAPCN )
     IF ( ASSOCIATED( State_Met%RAS_REEVAPLS)) NULLIFY( State_Met%RAS_REEVAPLS )
+    IF ( ASSOCIATEd( State_Met%RasParams   )) NULLIFY( State_Met%RasParams    )
 
 #else
 
@@ -2460,16 +2474,17 @@ CONTAINS
     IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
 
     ! For the Relaxed Arakawa-Schubert module
-    IF ( ASSOCIATED( State_Met%RAS_CMFMC   )) DEALLOCATE( State_Met%RAS_CMFMC    )
-    IF ( ASSOCIATED( State_Met%RAS_DQRCU   )) DEALLOCATE( State_Met%RAS_DQRCU    )
-    IF ( ASSOCIATED( State_Met%RAS_DQRLSAN )) DEALLOCATE( State_Met%RAS_DQRLSAN  )
-    IF ( ASSOCIATED( State_Met%RAS_DTRAIN  )) DEALLOCATE( State_Met%RAS_DTRAIN   )
-    IF ( ASSOCIATED( State_Met%RAS_PFICU   )) DEALLOCATE( State_Met%RAS_PFICU    )
-    IF ( ASSOCIATED( State_Met%RAS_PFILSAN )) DEALLOCATE( State_Met%RAS_PFILSAN  )
-    IF ( ASSOCIATED( State_Met%RAS_PFLCU   )) DEALLOCATE( State_Met%RAS_PFLCU    )
-    IF ( ASSOCIATED( State_Met%RAS_PFLLSAN )) DEALLOCATE( State_Met%RAS_PFLLSAN  )
-    IF ( ASSOCIATED( State_Met%RAS_REEVAPCN)) DEALLOCATE( State_Met%RAS_REEVAPCN )
-    IF ( ASSOCIATED( State_Met%RAS_REEVAPLS)) DEALLOCATE( State_Met%RAS_REEVAPLS )
+    IF ( ASSOCIATED(State_Met%RAS_CMFMC   )) DEALLOCATE(State_Met%RAS_CMFMC   )
+    IF ( ASSOCIATED(State_Met%RAS_DQRCU   )) DEALLOCATE(State_Met%RAS_DQRCU   )
+    IF ( ASSOCIATED(State_Met%RAS_DQRLSAN )) DEALLOCATE(State_Met%RAS_DQRLSAN )
+    IF ( ASSOCIATED(State_Met%RAS_DTRAIN  )) DEALLOCATE(State_Met%RAS_DTRAIN  )
+    IF ( ASSOCIATED(State_Met%RAS_PFICU   )) DEALLOCATE(State_Met%RAS_PFICU   )
+    IF ( ASSOCIATED(State_Met%RAS_PFILSAN )) DEALLOCATE(State_Met%RAS_PFILSAN )
+    IF ( ASSOCIATED(State_Met%RAS_PFLCU   )) DEALLOCATE(State_Met%RAS_PFLCU   )
+    IF ( ASSOCIATED(State_Met%RAS_PFLLSAN )) DEALLOCATE(State_Met%RAS_PFLLSAN )
+    IF ( ASSOCIATED(State_Met%RAS_REEVAPCN)) DEALLOCATE(State_Met%RAS_REEVAPCN)
+    IF ( ASSOCIATED(State_Met%RAS_REEVAPLS)) DEALLOCATE(State_Met%RAS_REEVAPLS)
+    IF ( ASSOCIATED(State_Met%RasParams   )) DEALLOCATE(State_Met%RasParams   )
 
 #endif
 
@@ -3049,6 +3064,13 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
+       CASE ( 'DQRLSAN' )
+          IF ( isDesc  ) Desc  = 'Production rate of large-scale '        // &
+                                 'precipitation (per dry air)'
+          IF ( isUnits ) Units = 'kg kg-1 s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
        CASE ( 'DTRAIN' )
           IF ( isDesc  ) Desc  = 'Detrainment flux'
           IF ( isUnits ) Units = 'kg m-2 s-1'
@@ -3321,7 +3343,7 @@ CONTAINS
 
        CASE ( 'RASDTRAIN' )
           IF ( isDesc  ) Desc  = 'Detrainment flux, '                     // &
-                                 'via Relaxed Arakawa-Schubert method'    // &
+                                 'via Relaxed Arakawa-Schubert method'
           IF ( isUnits ) Units = 'kg m-2 s-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
@@ -3808,55 +3830,5 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Register_MetField_Int_3D
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Init_RAS_Parameters
-!
-! !DESCRIPTION: Initializes the fields of the ParamRas type.  These are
-!  defined parameters for the Relaxed-Arakawa-Schubert online convection
-!  module from GMAO.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Init_RAS_Parameters( am_I_Root, State_Met, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Precision_Mod
-! 
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(MetState), INTENT(INOUT) :: State_Met
-! 
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,      INTENT(OUT)   :: RC
-!
-! !REVISION HISTORY:
-!  28 Feb 2017 - K. Yu       - Initial Version
-!  27 Aug 2018 - R. Yantosca - Now brought into state_met_mod.F90
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES
-!
-      ! Assume success
-      RC = GIGC_SUCCESS
-
-
-
-      END SUBROUTINE INIT_RASPARAMS
 !EOC
 END MODULE State_Met_Mod

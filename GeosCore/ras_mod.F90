@@ -82,15 +82,15 @@ CONTAINS
 ! !USES:
 ! 
     USE CMN_SIZE_Mod
-    USE Physconsts
+    USE PhysConstants
     USE ErrCode_Mod
     USE Input_Opt_Mod,   ONLY : OptInput
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Met_Mod,   ONLY : MetState
     USE State_Diag_Mod,  ONLY : DgnState
-    USE Time_Mod,        ONLY : GET_TS_DYN
-    USE Pressure_Mod,    ONLY : GET_AP,   GET_BP
-    USE Grid_Mod,        ONLY : GET_XMID, GET_YMID
+    USE Time_Mod,        ONLY : Get_Ts_Dyn
+    USE Pressure_Mod,    ONLY : Get_Ap,   Get_Bp
+    USE GC_Grid_Mod,     ONLY : Get_Xmid, GET_Ymid
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD
     USE DIAG_MOD,        ONLY : AD66
@@ -188,16 +188,17 @@ CONTAINS
     REAL(fp),       POINTER :: PLE(:,:,:)
     REAL(fp),       POINTER :: Q(:,:,:)
     REAL(fp),       POINTER :: DELP(:,:,:)
-    TYPE(ParamRas), POINTER :: RasParams
 
     ! Strings
+    CHARACTER(LEN=256) :: ThisLoc
+    CHARACTER(LEN=512) :: ErrMsg
 
     !=======================================================================
     ! Do_RAS begins here!
     !=======================================================================
 
     ! Initialize
-    RC        =  GIGC_SUCCESS
+    RC        =  GC_SUCCESS
     prtDebug  =  ( am_I_Root .and. Input_Opt%LPRT )
     ErrMsg    = ''
     ThisLoc   = ' -> at Do_Ras (in module GeosCore/ras_mod.F90'
@@ -206,7 +207,6 @@ CONTAINS
     DT        =  GET_TS_DYN() !* 60.0_fp  !### Timesteps are now in seconds!
 
     ! Point to fields of State_Met (flip in vertical where necessary)
-    RasParams => State_Met%RasParams
     TEMP      => State_Met%T       (:,:,LLPAR:1:-1  )
     PMID_DRY  => State_Met%PMID_DRY(:,:,LLPAR:1:-1  )
     PLE       => State_Met%PEDGE   (:,:,LLPAR+1:1:-1)
@@ -307,11 +307,12 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Compute potential temperature
+    !%%%% BMY QUESTION: Use PSC2_WET or PSC2_DRY? %%%%
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
       TH(I,J,L) = TEMP(I,J,L) *                                             &
-                  (State_Met%PSC2(I,J) / PMID_DRY(I,J,L)) ** MAPL_KAPPA
+                  (State_Met%PSC2_WET(I,J) / PMID_DRY(I,J,L)) ** MAPL_KAPPA
     ENDDO
     ENDDO
     ENDDO
@@ -472,15 +473,15 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Compute RASAL_2d
     !-----------------------------------------------------------------------
-    IF ( RASPARAMS%RASAL2 > 0.0_fp ) THEN
-       RASAL2_2d(:) = RASPARAMS%RASAL2
+    IF ( State_Met%RASPARAMS%RASAL2 > 0.0_fp ) THEN
+       RASAL2_2d(:) = State_Met%RASPARAMS%RASAL2
     ELSE
        ! include CNV dependence
        DO I=1, IDIM
           RASAL2_2d(I) = CNV_FRAC(I)                                         &
-               * ABS( RASPARAMS%RASAL2 )                                     &
+               * ABS( State_Met%RASPARAMS%RASAL2 )                           &
                + ( 1.0_fp - CNV_FRAC(I) )                                    &
-               * RASPARAMS%RASAL1
+               * State_Met%RASPARAMS%RASAL1
        ENDDO
     ENDIF
 
@@ -505,7 +506,7 @@ CONTAINS
                K0            = LLPAR,                                        &
                ICMIN         = ICMIN,                                        &
                DT            = DT,                                           &
-               CP0           = MAPL_CP,                                      &
+               CPO           = MAPL_CP,                                      &
                ALHLO         = MAPL_ALHL,                                    &
                GRAVO         = MAPL_GRAV,                                    &
                SEEDRAS       = SEEDRAS,                                      & 
@@ -521,25 +522,25 @@ CONTAINS
                ZCBL          = ZCBLx,                                        &
                MXDIAM        = MXDIAMx,                                      &
                TPERT         = TPERT,                                        &
-               QPERT         = QPERT                                         &
+               QPERT         = QPERT,                                        &
                !----------------------
                ! Inputs
                !----------------------
-               TH0          = THO,                                           &
-               QH0          = QHO,                                           & 
+               THO          = THO,                                           &
+               QHO          = QHO,                                           & 
                QSS          = QSS,                                           & 
                DQS          = DQS,                                           &
                CNV_FRACTION = CNV_FRAC,                                      &
                RASAL2_2d    = RASAL2_2d,                                     &
                PLE          = CNV_PLE,                                       &
                PKE          = PKE,                                           &
+               RASPARAMS    = State_Met%RASPARAMS,                           &
                !----------------------
                ! Outputs
                !----------------------
                FLX          = CNV_FLX,                                       &
                FLXD         = CNV_FLXD,                                      &
                FLXC         = CNV_FLXC,                                      &
-               RASPARAMS    = RASPARAMS,                                     &
                IRC          = IRC                                           )
 
     !------------------------------------------------------------------------
@@ -579,7 +580,8 @@ CONTAINS
        print*, 'max part', maxval(part)
        print*, 'min part', minval(part)
     ENDIF
-
+    
+    !%%%% BMY NOTE 8/29/18: Can parallelize this loop 
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -609,7 +611,7 @@ CONTAINS
        
        IF ( part_tmp >= 0.0_fp ) THEN
           repartition = MIN( part_tmp * State_Met%PFLLSAN(I,J,L),            &
-                                       State_Met%PFLLSAN(I,J,L)             )
+                                        State_Met%PFLLSAN(I,J,L)            )
        ELSE
           repartition = MAX( part_tmp * State_Met%PFLLSAN(I,J,L),            &
                              0.0 ) !-1.0*State_Met%PFLCU(I,J,L))
@@ -660,7 +662,6 @@ CONTAINS
     !AD66(:,:,3,9) = AD66(:,:,3,9) + State_Met%PBLH_MAX
     
     ! Free pointers
-    RasParams => NULL()
     TEMP      => NULL() 
     PMID_DRY  => NULL()
     PLE       => NULL()
@@ -767,11 +768,11 @@ CONTAINS
       !
       !************************************************************************
 
-    USE PRECISION_MOD
+    USE State_Met_Mod, ONLY : ParamRas
 
       !  ARGUMENTS
 
-      INTEGER,                     INTENT(IN   ) ::  IDIM, IRUN, K0, ICMIN
+      INTEGER,                         INTENT(IN   ) ::  IDIM, IRUN, K0, ICMIN
       REAL(fp), DIMENSION (IDIM,K0  ), INTENT(INOUT) ::  THO, QHO
       REAL(fp), DIMENSION (IDIM,K0+1), INTENT(IN   ) ::  PLE, PKE
       REAL(fp), DIMENSION (IDIM,K0  ), INTENT(IN   ) ::  QSS, DQS
@@ -779,15 +780,15 @@ CONTAINS
       REAL(fp), DIMENSION (     K0+1), INTENT(IN   ) ::  SIGE
       REAL(fp), DIMENSION (IDIM,K0  ), INTENT(  OUT) ::  FLX, FLXD
       REAL(fp), DIMENSION (IDIM,K0+1), INTENT(  OUT) ::  FLXC
-      REAL(fP),                        INTENT(IN   ) ::  DT,  CPO, ALHLO, GRAVO
-      INTEGER, DIMENSION (IDIM,2), INTENT(IN   ) ::  SEEDRAS
-      INTEGER, DIMENSION (IDIM  ), INTENT(IN   ) ::  IRAS,JRAS,KCBL
+      REAL(fp),                        INTENT(IN   ) ::  DT, CPO, ALHLO, GRAVO
+      INTEGER,  DIMENSION (IDIM,2),    INTENT(IN   ) ::  SEEDRAS
+      INTEGER,  DIMENSION (IDIM  ),    INTENT(IN   ) ::  IRAS,JRAS,KCBL
       REAL(fp), DIMENSION (IDIM     ), INTENT(IN   ) ::  ZCBL,TPERT,QPERT
       REAL(fp), DIMENSION (IDIM     ), INTENT(  OUT) ::  MXDIAM
       REAL(fp), DIMENSION (IDIM,K0  ), INTENT(IN   ) ::  WGT0,WGT1
 
       !     REAL, DIMENSION(:),          INTENT(IN   ) ::  RASPARAMS
-      type (RASPARAM_TYPE),        INTENT(IN   ) ::  RASPARAMS
+      type (ParamRas),        INTENT(IN   ) ::  RASPARAMS
 
       INTEGER, DIMENSION(IDIM,K0), INTENT(  OUT) ::  IRC
 
@@ -1252,11 +1253,16 @@ CONTAINS
       subroutine FINDDTLS
          real :: SIGDT0,sigmax,sigmin
          integer :: LL
-#ifndef __GFORTRAN__
-         integer :: THE_SEED(2)
-#else
-         integer :: THE_SEED(12)
-#endif
+         
+         ! BMY UPDATE (8/30/18)
+         ! Dimension The_Seed with a large numbe  of integers (100)
+         ! even though we probably won't use all elements.
+         ! Also remove platform-specific code
+         INTEGER :: The_Seed(100)   
+         INTEGER :: Seed_Size
+
+         ! Zero out all elements of The_Seed
+         The_Seed = 0               
 
          THE_SEED(1)=SEEDRAS(I,1)*IRAS(I) + SEEDRAS(I,2)*JRAS(I)
          THE_SEED(2)=SEEDRAS(I,1)*JRAS(I) + SEEDRAS(I,2)*IRAS(I)
@@ -1265,11 +1271,12 @@ CONTAINS
          if(THE_SEED(1) == 0) THE_SEED(1) =  5
          if(THE_SEED(2) == 0) THE_SEED(2) = -5
 
-#ifdef __GFORTRAN__
-         THE_SEED(3:12) = 0
-#endif
-
-         call random_seed(PUT=THE_SEED)
+         ! BMY UPDATE (8/30/18)
+         ! First call Random_Seed to get the size,
+         ! then only use that many elements of The_Seed.
+         ! Otherwise this throws a compile error with gfortran 8.2.0
+         CALL Random_Seed( SIZE = Seed_Size              )
+         call Random_Seed( PUT  = The_Seed(1:Seed_Size)  )
 
          SIGMAX=SIGE(K)
          SIGMIN=SIGE(ICMIN)
@@ -1509,12 +1516,16 @@ CONTAINS
 !*                  GODDARD LABORATORY FOR ATMOSPHERES                 *
 !***********************************************************************
 
-      USE PRECISION_MOD
+      !%%%% BMY NOTE: Consider eventually making everything REAL(fp)
+      !%%%% for stability.  Right now the parameters are defined
+      !%%%% with REAL, which defaults to REAL*4 precision.
+      !%%%% (bmy, 8/29/18)
+      USE PRECISION_MOD, ONLY : fpp => fp
 
       IMPLICIT NONE
-      REAL(fp)   TT, P, Q, DQDT
+      REAL(fpp)  TT, P, Q, DQDT
       LOGICAL LDQDT
-      REAL(fp)   AIRMW, H2OMW
+      REAL(fpp)  AIRMW, H2OMW
       
       PARAMETER ( AIRMW  = 28.97      )                                         
       PARAMETER ( H2OMW  = 18.01      )                                         

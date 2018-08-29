@@ -366,6 +366,7 @@ CONTAINS
     ! Initialize the Meteorology State object
     !=======================================================================
     CALL Init_State_Met( am_I_Root   = am_I_Root,   & ! Root CPU (T/F?)
+                         Input_Opt   = Input_Opt,   & ! Input Options
                          State_Met   = State_Met,   & ! Meteorology State
                          RC          = RC          )  ! Success or failure?
 

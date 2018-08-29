@@ -366,6 +366,7 @@
       ! (Always assume large-scale precip)
       !------------------------------------------
       CALL MAKE_QQ( am_I_Root = am_I_Root,
+     &              Input_Opt = Input_Opt,
      &              State_Met = State_Met,
      &              LS        =.TRUE.,
      &              RC        = RC         )
@@ -434,17 +435,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_QQ( am_I_Root, State_Met, LS, RC )
+      SUBROUTINE MAKE_QQ( am_I_Root, Input_Opt, State_Met, LS, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_mod
       USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
       USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root ! Are we on the root CPU
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt ! Input_Options object
       TYPE(MetState), INTENT(IN)  :: State_Met ! Meteorology State object
       LOGICAL,        INTENT(IN)  :: LS        ! =T, denotes large scale precip
                                                ! =F, denotes convective precip
@@ -536,7 +539,14 @@
 !
 ! !LOCAL VARIABLES:
 !
+      ! Scalars
       INTEGER :: I, J, L
+
+      ! Pointers
+      REAL(fp), POINTER :: DQRLSAN(:,:,:)
+      REAL(fp), POINTER :: PFILSAN(:,:,:)
+      REAL(fp), POINTER :: PFLLSAN(:,:,:)
+      REAL(fp), POINTER :: REEVAPLS(:,:,:)
 
       !=================================================================
       ! Loop over surface grid boxes
@@ -544,6 +554,37 @@
 
       ! Initialize
       RC = GC_SUCCESS
+
+      !-----------------------------------------------------------------------
+      ! If we are using the Relaxed Arakawa-Schubert algorithm (in module
+      ! GeosCore/ras_mod.F90) to compute large-scale fields online, then point 
+      ! to these fields instead of the ones read from the met archive.
+      ! (kyu, bmy, 8/29/18)
+      !
+      ! Field    | Description                             | Units
+      ! =========+=========================================+==================
+      ! DQRLSAN  | 3-D precip production rate  (LS+anvil)  | kg/kg dry air/s
+      ! PFILSAN  | Dwnwd flux of ice precip    (LS+anvil)  | kg/m2/s
+      ! PFLLSAN  | Dwnwd flux of liquid precip (LS+anvil)  | kg/m2/s
+      ! REEVAPLS | Evap of precip'ing LS+anvil condensate  [ kg/kg/s
+      !-----------------------------------------------------------------------
+      IF ( Input_Opt%LRAS ) THEN
+         
+         ! Point to fields computed by Relaxed Arakawa-Schubert module
+         DQRLSAN  => State_Met%RAS_DQRLSAN
+         PFILSAN  => State_Met%RAS_PFILSAN
+         PFLLSAN  => State_Met%RAS_PFLLSAN
+         REEVAPLS => State_Met%RAS_REEVAPLS
+
+      ELSE
+
+         ! Point to fields read from the meteorology archive on disk
+         DQRLSAN  => State_Met%DQRLSAN
+         PFILSAN  => State_Met%PFILSAN
+         PFLLSAN  => State_Met%PFLLSAN
+         REEVAPLS => State_Met%REEVAPLS
+
+      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -554,24 +595,30 @@
 
          ! Rate of new precipitation formation in grid box (I,J,L)
          ! [cm3 H2O/cm3 air/s]
-         QQ(L,I,J)     = ( State_Met%DQRLSAN(I,J,L)                 )
-     &                 * ( State_Met%MAIRDEN(I,J,L)     / 1000.0_fp )
+         QQ(L,I,J)     = (           DQRLSAN(I,J,L)               )
+     &                 * ( State_Met%MAIRDEN(I,J,L) / 1000.0_fp   )
 
          ! Rate of re-evaporation in grid box (I,J,L)
-         ! [cm3 H2O/cm3 air/s]
-         REEVAP(L,I,J) = ( State_Met%REEVAPLS(I,J,L)                )
-     &                 * ( State_Met%AIRDEN(I,J,L)      / 1000.0_fp )
+         ! [cm3 H2O/cm3 air/s] 
+         REEVAP(L,I,J) = (         REEVAPLS(I,J,L)                )
+     &                 * ( State_Met%AIRDEN(I,J,L)  / 1000.0_fp   )
 
 
             ! Column precipitation [cm3 H2O/cm2 air/s]
-         PDOWN(L,I,J)  = ( ( State_Met%PFLLSAN(I,J,L+1) / 1000.0_fp )
-     &                 +   ( State_Met%PFILSAN(I,J,L+1) /  917.0_fp ) )
+         PDOWN(L,I,J)  = ( ( PFLLSAN(I,J,L+1)       / 1000.0_fp )
+     &                 +   ( PFILSAN(I,J,L+1)       /  917.0_fp ) )
      &                 * 100.0_fp
 
       ENDDO
       ENDDO  
       ENDDO
 !$OMP END PARALLEL DO
+
+      ! Free pointers
+      DQRLSAN  => NULL()
+      PFILSAN  => NULL()
+      PFLLSAN  => NULL()
+      REEVAPLS => NULL()
 
       END SUBROUTINE MAKE_QQ
 !EOC

@@ -110,6 +110,7 @@
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
       USE PBL_MIX_MOD           ! To compute PBL height 
+      USE RAS_MOD               ! Relaxed Arakawa-Schubert convection 
       USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
@@ -1808,6 +1809,28 @@
 #endif
 
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a TURBDAY:2' )
+
+            !===========================================================
+            ! **** R E L A X E D   A R A K A W A   S C H U B E R T ****
+            ! ****               A L G O R I T H M                 ****
+            !===========================================================
+            IF ( Input_Opt%LRAS .and. ( LCONV .or. LWETD ) ) THEN
+
+               ! Compute the following fields online using the
+               ! relaxed Arakawa-Schubert algorithm 
+               !      
+               ! (1) RAS_CMFMC     (5) RAS_PFILSAN   
+               ! (2) RAS_DQRCU     (6) RAS_PFLLSAN
+               ! (3) RAS_DQRLSAN   (7) RAS_REEAPCN
+               ! (4) RAS_PFICU     (8) RAS_REEVAPLS
+               !
+               ! Use these fields in convection and/or wetdep instead 
+               ! of the corresponding fields that are read from the 
+               ! meteorology archive. (kyu, bmy, 8/29/18)
+               CALL Do_RAS( am_I_Root, Input_Opt,  State_Met,     
+     &                      State_Chm, State_Diag, RC         )
+
+            ENDIF
 
             !===========================================================
             !        ***** C L O U D   C O N V E C T I O N *****

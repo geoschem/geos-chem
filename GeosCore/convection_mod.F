@@ -738,10 +738,6 @@
       
       ! Point to columns of derived-type object fields
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
-      CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
-      DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
-      DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
-      REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
       DELP_DRY => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
       H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
@@ -750,12 +746,46 @@
                                                     ! [mol/mol dry air]
       SpcInfo  => NULL()                            ! Species database entry
 
-      ! PFICU and PFLCU are on level edges
-      PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
-                                                    !  ice precip [kg/m2/s]
-      PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
-                                                    !  liquid precip [kg/m2/s]
-        
+ 
+      !-----------------------------------------------------------------------
+      ! If we are using the Relaxed Arakawa-Schubert algorithm (in module
+      ! GeosCore/ras_mod.F90) to compute convective fields online, then point 
+      ! to these fields instead of the ones read from the met archive.
+      ! (kyu, bmy, 8/29/18)
+      !
+      ! Field    | Description                              | Units
+      ! =========+==========================================+================
+      ! CMFMC    | Cloud mass flux                          | kg/m2/s
+      ! DQRCU    | Conv. precipitation production rate      | kg/kg dry air/s
+      ! DTRAIN   | Detrainment flux                         | kg/m2/s
+      ! REEVAPCN | Evaporative submlimation of conv. precip | kg/kg dry air/s
+      ! PFICU    | Downward flux of convective ice precip   | kg/m2/s
+      ! PFLCU    | Downward flux of convective liquid precip| kg/m2/s
+      !
+      ! NOTE: PFICU and PFLCU are on level edges!
+      !-----------------------------------------------------------------------
+      IF ( Input_Opt%LRAS ) THEN
+         
+         ! Point to fields computed by Relaxed Arakawa-Schubert module
+         CMFMC    => State_Met%RAS_CMFMC   (I,J,2:LLPAR+1)
+         DQRCU    => State_Met%RAS_DQRCU   (I,J,:        )
+         DTRAIN   => State_Met%RAS_DTRAIN  (I,J,:        )
+         REEVAPCN => State_Met%RAS_REEVAPCN(I,J,:        )
+         PFICU    => State_Met%RAS_PFICU   (I,J,2:LLPAR+1)
+         PFLCU    => State_Met%RAS_PFLCU   (I,J,2:LLPAR+1)
+
+      ELSE
+
+         ! Point to fields read from the meteorology archive on disk
+         CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1)
+         DQRCU    => State_Met%DQRCU   (I,J,:        )
+         DTRAIN   => State_Met%DTRAIN  (I,J,:        )
+         REEVAPCN => State_Met%REEVAPCN(I,J,:        )
+         PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1)
+         PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1)
+
+      ENDIF
+
       ! # of levels and # of species
       NLAY     = LLPAR
       NC       = State_Chm%nAdvect
@@ -1526,18 +1556,18 @@
       !================================================================
       
       ! Nullify pointers
-      NULLIFY( BXHEIGHT )
-      NULLIFY( CMFMC    )
-      NULLIFY( DQRCU    )
-      NULLIFY( DTRAIN   )
-      NULLIFY( PFICU    )
-      NULLIFY( PFLCU    )
-      NULLIFY( REEVAPCN )
-      NULLIFY( DELP_DRY )
-      NULLIFY( T        )
-      NULLIFY( H2O2s    )
-      NULLIFY( SO2s     )
-      NULLIFY( Q        )
+      BXHEIGHT => NULL()
+      CMFMC    => NULL()
+      DQRCU    => NULL()
+      DTRAIN   => NULL()
+      PFICU    => NULL()
+      PFLCU    => NULL()
+      REEVAPCN => NULL()
+      DELP_DRY => NULL()
+      T        => NULL()
+      H2O2s    => NULL()
+      SO2s     => NULL()
+      Q        => NULL()
 
       ! Set error code to success
       RC                      = GC_SUCCESS

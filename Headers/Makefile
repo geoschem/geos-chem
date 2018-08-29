@@ -207,6 +207,7 @@ state_diag_mod.o       : state_diag_mod.F90       \
 state_met_mod.o        : state_met_mod.F90        \
                          charpak_mod.o            \
                          errcode_mod.o            \
+	                 input_opt_mod.o          \
                          CMN_SIZE_mod.o           \
                          precision_mod.o          \
                          registry_mod.o
