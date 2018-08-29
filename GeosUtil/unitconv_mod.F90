@@ -180,6 +180,10 @@ CONTAINS
     ! Convert_Spc_Units begins here!
     !====================================================================
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
     ! Assume success
     RC =  GC_SUCCESS
 
@@ -305,6 +309,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_RC, RC, LOC )
     ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
 
   END SUBROUTINE Convert_Spc_Units
 !EOC

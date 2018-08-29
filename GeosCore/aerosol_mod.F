@@ -28,6 +28,7 @@
       PUBLIC :: CLEANUP_AEROSOL
       PUBLIC :: INIT_AEROSOL
       PUBLIC :: RDAER
+      PUBLIC :: Set_AerMass_Diagnostic
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -148,6 +149,8 @@
 !  16 Jan 2018 - M. Sulprizio- Add option for spatially and seasonally varying
 !                              OM/OC from Philip et al. (2014); Make OCFPOA
 !                              and OCFOPOA 2-D arrays.
+!  28 Aug 2018 - E. Lundgren - Move aerosol mass diagnostic routine here due
+!                              to dependency on module variables
 !------------------------------------------------------------------------------
 !BOC
 !
@@ -202,6 +205,18 @@
       ! a new hygroscopic species) requires manual update of this mapping
       ! (ewl, 1/23/17)
       INTEGER :: Map_NRHAER(5)
+
+      ! Diagnostic switches
+      LOGICAL            :: Is_POA
+      
+      ! Conversionf factors to ugC/m3 for Total Organic Carbon diagnostic
+      REAL(fp)           :: Fac_INDIOL
+      REAL(fp)           :: Fac_ISN1OA
+      REAL(fp)           :: Fac_LVOCOA
+      REAL(fp)           :: Fac_SOAGX
+      REAL(fp)           :: Fac_SOAIE
+      REAL(fp)           :: Fac_SOAME
+      REAL(fp)           :: Fac_SOAMG
 #endif
 
       !=================================================================
@@ -2834,5 +2849,525 @@
       IF ( ALLOCATED( OCFOPOA     ) ) DEALLOCATE( OCFOPOA     )
 
       END SUBROUTINE CLEANUP_AEROSOL
+!EOC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_aermass_diagnostic
+!
+! !DESCRIPTION: Computes the aerosol mass diagnostic (formerly ND42 bpch
+!  diagnostic).
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Set_AerMass_Diagnostic( am_I_Root,  Input_Opt,  
+     &                                   State_Met,  State_Chm, 
+     &                                   State_Diag, RC         )
+!
+! !USES:
+!
+      USE CMN_Size_Mod
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE PhysConstants,  ONLY : MwCarb
+      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,          INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: This diagnostic mimics the bpch diagnostic routine "DIAG42".
+!
+! !REVISION HISTORY:
+!  05 Feb 2018 - R. Yantosca - Initial version
+!  28 Aug 2018 - E. Lundgren - Move this subroutine from diagnostics_mod.F90
+!                              and remove setting State_Diag%BetaNO which is
+!                              now done in carbon_mod.F
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+#if defined( NC_DIAG )
+      ! SAVEd scalars
+      LOGICAL                  :: First = .TRUE.
+      
+      ! Scalars
+      INTEGER                  :: I, J, L
+      
+      ! Strings
+      CHARACTER(LEN=63)        :: OrigUnit
+      CHARACTER(LEN=255)       :: ThisLoc
+      CHARACTER(LEN=512)       :: ErrMsg
+      
+      ! Pointers      
+      REAL(fp),      POINTER   :: AirVol(:,:,:  )
+      REAL(fp),      POINTER   :: Spc   (:,:,:,:)
+      TYPE(Species), POINTER   :: SpcInfo
+!
+! !DEFINED PARAMETERS:
+!
+      ! Convert [kg/m3] to [ug/m3]
+      REAL(fp),      PARAMETER :: kgm3_to_ugm3 = 1.0e+9_fp
+      
+      ! Define number of carbon atoms in each irreversible isoprene
+      ! SOA tracer species. Named according to the parent HC (same 
+      ! number of carbons):
+      REAL(fp),      PARAMETER :: NCIMAE   = 4e+0_fp
+      REAL(fp),      PARAMETER :: NCIEPOX  = 5e+0_fp
+      REAL(fp),      PARAMETER :: NCINDIOL = NCIEPOX
+      REAL(fp),      PARAMETER :: NCGLYX   = 2e+0_fp
+      REAL(fp),      PARAMETER :: NCGLYC   = NCGLYX
+      REAL(fp),      PARAMETER :: NCMGLY   = 3e+0_fp
+      REAL(fp),      PARAMETER :: NCLVOC   = NCIEPOX
+      REAL(fp),      PARAMETER :: NCISN1   = NCIEPOX
+      
+      !=======================================================================
+      ! Set_AerMass_Diagnostic begins here!
+      !=======================================================================
+      
+      ! Initialize
+      RC       = GC_SUCCESS
+      ErrMsg   = ''
+      ThisLoc  = ' -> at Set_AerMass_Diagnostic ' //
+     &           '(in module GeosCore/aerosol_mod.F)'
+      
+      ! Define species ID flags for the aerosol mass diagnostics
+      IF ( First ) THEN
+      
+         !--------------------------------------------------------------------
+         ! Look up species indices in State_Chm%SPECIES
+         !--------------------------------------------------------------------
+         id_INDIOL  = Ind_( 'INDIOL' )
+         id_ISN1OA  = Ind_( 'ISN1OA' )
+         id_LVOCOA  = Ind_( 'LVOCOA' )
+         id_POA1    = Ind_( 'POA1'   )
+         id_POA2    = Ind_( 'POA2'   )
+         id_SOAGX   = Ind_( 'SOAGX'  )
+         id_SOAIE   = Ind_( 'SOAIE'  )
+         id_SOAME   = Ind_( 'SOAME'  )
+         id_SOAMG   = Ind_( 'SOAMG'  )
+         Is_POA     = ( id_POA1 > 0 .and. id_POA2 > 0 )
+      
+         ! Initialize conversion factors for total OC diagnostic
+         Fac_INDIOL = 0.0_fp
+         Fac_ISN1OA = 0.0_fp
+         Fac_LVOCOA = 0.0_fp
+         Fac_SOAGX  = 0.0_fp
+         Fac_SOAIE  = 0.0_fp
+         Fac_SOAME  = 0.0_fp
+         Fac_SOAMG  = 0.0_fp
+      
+         !--------------------------------------------------------------------
+         ! Set conversion factors for certain isoprene SOA species,
+         ! or, if they aren't present, disable their diagnostics
+         !--------------------------------------------------------------------
+         IF ( id_INDIOL > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_INDIOL)%Info
+            Fac_INDIOL =  ( NCINDIOL  * MwCarb 
+     &                      / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassINDIOL ) THEN
+               State_Diag%Archive_AerMassINDIOL = .FALSE.
+               ErrMsg = 'Disabling AerMassINDIOL diagnostic.' //
+     &                  '  INDIOL is not a defined species for' //
+     &                  ' this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_ISN1OA > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_ISN1OA)%Info
+            Fac_ISN1OA =  ( NCISN1 * MwCarb 
+     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassISN1OA ) THEN
+               State_Diag%Archive_AerMassISN1OA = .FALSE.
+               ErrMsg = 'Disabling AerMassISN1OA diagnostic.' //
+     &                  '  ISN1OA is not a defined species for ' //
+     &                  'this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_LVOCOA > 0  ) THEN
+            SpcInfo    => State_Chm%SpcData(id_LVOCOA)%Info
+            Fac_LVOCOA = ( NCLVOC * MwCarb 
+     &                   / ( SpcInfo%Mw_G * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
+               State_Diag%Archive_AerMassLVOCOA = .FALSE.
+               ErrMsg = 'Disabling AerMassLVOCOA diagnostic.' //
+     &                  '  LVOCOA is not a defined species for' //
+     &                  ' this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_SOAGX > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_SOAGX)%Info
+            Fac_SOAGX  = ( NCGLYX * MwCarb 
+     &                   / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassSOAGX ) THEN
+               State_Diag%Archive_AerMassSOAGX = .FALSE.
+               ErrMsg = 'Disabling AerMassSOAGX diagnostic.' //
+     &                  '  SOAGX is not a defined species for ' //
+     &                  'this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_SOAIE > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_SOAIE)%Info
+            Fac_SOAIE  =  ( NCIEPOX * MwCarb 
+     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassSOAIE ) THEN
+               State_Diag%Archive_AerMassSOAIE = .FALSE.
+               ErrMsg = 'Disabling AerMassSOAIE diagnostic.' //
+     &                  '  SOAIE is not a defined species for' //
+     &                  ' this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_SOAME > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_SOAME)%Info
+            Fac_SOAME  =  ( NCIMAE  * MwCarb 
+     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassSOAME ) THEN
+               State_Diag%Archive_AerMassSOAME = .FALSE.
+               ErrMsg = 'Disabling AerMassLVOCOA diagnostic.' //
+     &                  '  SOAME is not a defined species for' //
+     &                  ' this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         IF ( id_SOAMG > 0 ) THEN
+            SpcInfo    => State_Chm%SpcData(id_SOAMG)%Info
+            Fac_SOAMG  =  ( NCMGLY  * MwCarb 
+     &                    / ( SpcInfo%Mw_g * 1e-3_fp ) )
+            SpcInfo    => NULL()
+         ELSE
+            IF ( State_Diag%Archive_AerMassSOAMG ) THEN
+               State_Diag%Archive_AerMassSOAMG = .FALSE.
+               ErrMsg = 'Disabling AerMassSOAMG diagnostic.' //
+     &                  '  SOAMG is not a defined GEOS-Chem ' //
+     &                  'species for this simulation.'
+               CALL GC_Warning( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+      
+         ! Reset first-time flag
+         First = .FALSE.
+      ENDIF
+      
+      !=======================================================================
+      ! Convert species units to [kg] for this routine
+      !=======================================================================
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Convert_Spc_Units"!' //
+     &            '  Could not convert units from [' // 
+     &            TRIM( OrigUnit ) // ' to [kg] before ' //
+     &            'computing aerosol mass and PM2.5 diagnostics!' 
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      !=======================================================================
+      ! Compute Aerosol mass and PM2.5 diagnostics using concentrations 
+      ! from the end of the chemistry timestep, which should be more 
+      ! consistent with the legacy ND42 bpch diagnostics
+      !=======================================================================
+      
+      ! Point to fielss of State_Chm and State_Met
+      Spc    => State_Chm%Species
+      AirVol => State_Met%AIRVOL
+
+!$OMP PARALLEL DO         
+!$OMP+DEFAULT( SHARED   ) 
+!$OMP+PRIVATE( I, J, L  )
+      DO L = 1, LLPAR
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+         
+         !--------------------------------------
+         ! AerMassASOA [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassASOA ) THEN
+            State_Diag%AerMassASOA(I,J,L)     = ASOA(I,J,L)            
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassBC [ug C/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassBC ) THEN
+            State_Diag%AerMassBC(I,J,L)       = ( BCPI(I,J,L)          
+     &                                          + BCPO(I,J,L) )        
+     &                                         * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassINDIOL [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassINDIOL ) THEN
+            State_Diag%AerMassINDIOL(I,J,L)   = Spc(I,J,L,id_INDIOL)   
+     &                                        * kgm3_to_ugm3           
+     &                                        / AirVol(I,J,L)
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassISN1OA [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassISN1OA ) THEN
+            State_Diag%AerMassISN1OA(I,J,L)   = Spc(I,J,L,id_ISN1OA)   
+     &                                        * kgm3_to_ugm3           
+     &                                        / AirVol(I,J,L)
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassISOA [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassISOA ) THEN
+            State_Diag%AerMassISOA(I,J,L)     = ( ISOA(I,J,L)          
+     &                                          + ISOAAQ(I,J,L) )      
+     &                                          * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassLVOCOA [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
+            State_Diag%AerMassLVOCOA(I,J,L)   = Spc(I,J,L,id_LVOCOA)   
+     &                                        * kgm3_to_ugm3           
+     &                                        / AirVol(I,J,L)
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassNH4 [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassNH4 ) THEN
+            State_Diag%AerMassNH4(I,J,L)      = NH4(I,J,L)             
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassNIT [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassNIT ) THEN
+            State_Diag%AerMassNIT(I,J,L)      = NIT(I,J,L)             
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassOPOA [ug/m3], OA:OC=2.1
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassOPOA ) THEN
+            State_Diag%AerMassOPOA(I,J,L)     = OPOA(I,J,L)            
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassPOA [ug/m3], OA:OC=2.1
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassPOA ) THEN
+            IF ( Is_POA ) THEN
+               State_Diag%AerMassPOA(I,J,L)   = OCPO(I,J,L)            
+     &                                        * kgm3_to_ugm3
+            ELSE
+               State_Diag%AerMassPOA(I,J,L)   = ( OCPI(I,J,L)          
+     &                                          + OCPO(I,J,L) )        
+     &                                          * kgm3_to_ugm3
+            ENDIF
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSAL [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSAL ) THEN
+            State_Diag%AerMassSAL(I,J,L)      = ( SALA(I,J,L)       
+     &                                          + SALC(I,J,L) )     
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSO4 [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSO4 ) THEN
+            State_Diag%AerMassSO4(I,J,L)      = SO4(I,J,L)          
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSOAGX [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSOAGX ) THEN
+            State_Diag%AerMassSOAGX(I,J,L)    = SOAGX(I,J,L)        
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSOAIE [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSOAIE ) THEN
+            State_Diag%AerMassSOAIE(I,J,L)    = Spc(I,J,L,id_SOAIE) 
+     &                                        * kgm3_to_ugm3        
+     &                                        / AirVol(I,J,L)
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSOAME [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSOAME ) THEN
+            State_Diag%AerMassSOAME(I,J,L)    = Spc(I,J,L,id_SOAME) 
+     &                                        * kgm3_to_ugm3        
+     &                                        / AirVol(I,J,L)
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassSOAMG [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassSOAMG ) THEN
+            State_Diag%AerMassSOAMG(I,J,L)    = SOAMG(I,J,L)        
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! AerMassTSOA [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_AerMassTSOA ) THEN
+            State_Diag%AerMassTSOA(I,J,L)     = TSOA(I,J,L)         
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! PM25 [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_PM25 ) THEN
+            State_Diag%PM25(I,J,L)            = PM25(I,J,L)         
+     &                                        * kgm3_to_ugm3
+         ENDIF
+      
+         !--------------------------------------
+         ! Sum of all biogenic organic aerosol
+         !--------------------------------------
+         IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
+            State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L)
+     &                                          + ISOA(I,J,L)
+     &                                          + ISOAAQ(I,J,L) )
+     &                                        * kgm3_to_ugm3  
+         ENDIF
+      
+         !--------------------------------------
+         ! Sum of all organic aerosol [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_TotalOA ) THEN
+            State_Diag%TotalOA(I,J,L)         = ( TSOA(I,J,L)     
+     &                                          + ISOA(I,J,L)     
+     &                                          + ASOA(I,J,L)     
+     &                                          + OCPO(I,J,L)     
+     &                                          + OCPI(I,J,L)     
+     &                                          + OPOA(I,J,L)     
+     &                                          + ISOAAQ(I,J,L) ) 
+     &                                        * kgm3_to_ugm3
+      
+         ENDIF
+      
+         !--------------------------------------
+         ! Sum of all organic carbon [ug/m3]
+         !--------------------------------------
+         IF ( State_Diag%Archive_TotalOC ) THEN
+            
+            IF ( Is_POA ) THEN
+               State_Diag%TotalOC(I,J,L) =                          
+     &               ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)     
+     &                 + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J)  
+     &                 + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3 
+              
+            ELSE
+               State_Diag%TotalOC(I,J,L) =                          
+     &               ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L)     
+     &                 + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )   
+     &                 / OCFOPOA(I,J) ) * kgm3_to_ugm3
+            ENDIF
+           
+            IF ( Input_Opt%LSOA ) THEN
+               State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L)  
+     &                     + ( ( Spc(I,J,L,id_SOAIE)  * Fac_SOAIE  )    
+     &                       + ( Spc(I,J,L,id_SOAME)  * Fac_SOAME  )    
+     &                       + ( Spc(I,J,L,id_INDIOL) * Fac_INDIOL )    
+     &                       + ( Spc(I,J,L,id_SOAGX)  * Fac_SOAGX  )    
+     &                       + ( Spc(I,J,L,id_SOAMG)  * Fac_SOAMG  )    
+     &                       + ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA )    
+     &                       + ( Spc(I,J,L,id_ISN1OA) * Fac_ISN1OA ) )  
+     &                     / AirVol(I,J,L) * kgm3_to_ugm3
+           ENDIF
+      
+        ENDIF
+      
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Free pointers
+      Spc      => NULL()
+      AirVol   => NULL()
+      
+      !=======================================================================
+      ! Convert species units to [kg] for this routine
+      !=======================================================================
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
+     &                        State_Chm, OrigUnit,  RC         )
+      
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Convert_Spc_Units"!  ' //
+     &            'Could not convert units from [kg] back to ' // 
+     &            'the original unit of ['  // TRIM( OrigUnit ) //
+     &            '] after computing aerosol mass ' //
+     &             'and PM2.5 diagnostics'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+#endif
+      END SUBROUTINE Set_AerMass_Diagnostic
 !EOC
       END MODULE AEROSOL_MOD

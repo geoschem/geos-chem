@@ -36,7 +36,6 @@ MODULE MIXING_MOD
 !
 ! !PRIVATE TYPES:
 !
-  LOGICAL :: Archive_DrydepMix   ! Is the DryDepMix diag turned on?
 
 CONTAINS
 !EOC
@@ -59,14 +58,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,      ONLY : ERROR_STOP
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE PBL_MIX_MOD,    ONLY : COMPUTE_PBL_HEIGHT
-    USE PBL_MIX_MOD,    ONLY : DO_PBL_MIX
-    USE State_Met_Mod,  ONLY : MetState
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState 
-    USE VDIFF_MOD,      ONLY : DO_PBL_MIX_2
+    USE ERROR_MOD,       ONLY : ERROR_STOP
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
+    USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
+    USE State_Met_Mod,   ONLY : MetState
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Diag_Mod,  ONLY : DgnState 
+    USE VDIFF_MOD,       ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
 !
@@ -91,6 +90,7 @@ CONTAINS
 !                              populate PBL quantities w/ the initial met
 !  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
 !   6 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  28 aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -100,7 +100,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! DO_MIXING begins here!
+    ! INIT_MIXING begins here!
     !=======================================================================
 
     ! Assume success
@@ -108,11 +108,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
-    ! Is the drydep flux from mixing diagnostic turned on or if
-    ! total drydep flux which requires the contribution from mixing
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                        ASSOCIATED( State_Diag%DryDep )
-
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
     !-----------------------------------------------------------------------
@@ -187,12 +182,20 @@ CONTAINS
 !
 ! !USES:
 !
+#if defined( NC_DIAG )
+    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_MOd,     ONLY : DgnState
+#if defined( NC_DIAG )
+    USE Time_Mod,           ONLY : Get_Ts_Dyn
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#endif
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
@@ -233,6 +236,19 @@ CONTAINS
     LOGICAL            :: OnlyAbovePBL
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
+#if defined( NC_DIAG )
+    ! Budget diagnostics
+    CHARACTER(LEN=63)             :: OrigUnit
+    REAL(fp)                      :: DT_Dyn
+    REAL(fp), POINTER             :: ptr2d(:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassFull (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassTrop (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassPBL  (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassFull   (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassTrop   (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassPBL    (:,:,:)
+#endif
+
     !=======================================================================
     ! DO_MIXING begins here!
     !=======================================================================
@@ -242,18 +258,76 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
-    ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
-    ! is not called in ESMF environment (ckeller, 11/29/17).
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
+#if defined( NC_DIAG )
+    !-------------------------------------------------
+    ! Get initial column masses for budget diagnostics
+    !-------------------------------------------------
+    IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+       ! Convert species units to kg/m2
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
+                               State_Chm,  'kg/m2',   RC,          &
+                               OrigUnit=OrigUnit                  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Full column
+       IF ( State_Diag%Archive_BudgetMixingFull ) THEN
+          ALLOCATE( initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassFull = 0.0_fp
+          ptr2d => initialMassFull
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+       ENDIF
+    
+       ! Troposphere only
+       IF ( State_Diag%Archive_BudgetMixingTrop ) THEN
+          ALLOCATE( initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassTrop = 0.0_fp
+          ptr2d => initialMassTrop
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+       ENDIF
+    
+       ! PBL-only
+       IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+          ALLOCATE( initialMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassPBL = 0.0_fp
+          ptr2d => initialMassPBL
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+       ENDIF
+
+       ! Error trapping
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Mixing budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Convert species conc back to original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                               State_Chm, OrigUnit,  RC         )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     ! Initialize the diagnostic array for the History Component.  This will 
     ! prevent leftover values from being carried over to this timestep.
     ! (For example, if on the last iteration, the PBL height was higher than
     ! it is now, then we will have stored drydep fluxes up to that height,
     ! so we need to zero these out.)
-    IF ( Archive_DryDepMix ) THEN
+    IF ( State_Diag%Archive_DryDepMix ) THEN
        State_Diag%DryDepMix = 0.0_f4
     ENDIF
+#endif
 
     !-----------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
@@ -326,6 +400,79 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+#if defined( NC_DIAG )
+    !-------------------------------------
+    ! Compute budget diagnostics [kg/m2/s]
+    !-------------------------------------
+    IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+       ! Dynamic timestep [s]
+       DT_Dyn = Get_Ts_Dyn()
+
+       ! Convert species units to kg/m2
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
+                               State_Chm,  'kg/m2',   RC,          &
+                               OrigUnit=OrigUnit                  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+          RETURN
+       ENDIF
+       
+       ! Full column
+       IF ( State_Diag%Archive_BudgetMixingFull ) THEN
+          ALLOCATE( finalMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassFull = 0.0_fp
+          ptr2d => finalMassFull
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetMixingFull =    &
+                         ( finalMassFull - initialMassFull ) / DT_Dyn
+          DEALLOCATE( initialMassFull, STAT=RC )
+          DEALLOCATE( finalMassFull, STAT=RC )
+       ENDIF
+    
+       ! Troposphere only
+       IF ( State_Diag%Archive_BudgetMixingTrop ) THEN
+          ALLOCATE( finalMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassTrop = 0.0_fp
+          ptr2d => finalMassTrop
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetMixingTrop =   &
+                         ( finalMassTrop - initialMassTrop ) / DT_Dyn
+          DEALLOCATE( initialMassTrop, STAT=RC )
+          DEALLOCATE( finalMassTrop, STAT=RC )
+       ENDIF
+    
+       ! PBL-only
+       IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+          ALLOCATE( finalMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassPBL = 0.0_fp
+          ptr2d => finalMassPBL
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetMixingPBL =   &            
+                         ( finalMassPBL - initialMassPBL ) / DT_Dyn
+          DEALLOCATE( initialMassPBL, STAT=RC )
+          DEALLOCATE( finalMassPBL, STAT=RC )
+       ENDIF
+
+       ! Error trapping
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Mixing budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Convert species conc back to original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                               State_Chm, OrigUnit,  RC         )
+    ENDIF
+#endif
 
   END SUBROUTINE DO_MIXING 
 !EOC
@@ -478,10 +625,6 @@ CONTAINS
 
     ! Initialize pointer
     SpcInfo           => NULL()
-
-    ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
-    ! is not called in ESMF environment (ckeller, 11/29/17).
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix )
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -833,7 +976,7 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
+                   IF ( State_Diag%Archive_DryDepMix .and. DryDepID > 0 ) THEN
                       State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
 #endif

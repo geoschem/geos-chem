@@ -3342,6 +3342,11 @@
       ! save for diagnostic purposes (hotp 5/24/10)
       BETANOSAVE(I,J,L) = BETANO
 
+      ! Save to State_Diag for output as netcdf diagnostic (ewl, 8/28/18)
+      IF ( State_Diag%Archive_BetaNO ) THEN
+         State_Diag%BetaNO(I,J,L) = BETANO
+      ENDIF
+
       ! update for new mtp lumping (hotp 5/22/10)
       NMVOC(1) = Spc(I,J,L,id_MTPA)
       NMVOC(2) = Spc(I,J,L,id_LIMO)

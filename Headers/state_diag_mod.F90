@@ -57,6 +57,7 @@ MODULE State_Diag_Mod
 
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
+     LOGICAL :: Archive_SpeciesConc
 
      ! Budget diagnostics
      REAL(f4),  POINTER :: BudgetEmissionsFull      (:,:,:) 
@@ -114,11 +115,15 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
      REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
-    !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
-    !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
-    !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
-    !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
-     ! Waiting for inputs on new resistance diagnostics commented out above
+     LOGICAL :: Archive_DryDep   
+     LOGICAL :: Archive_DryDepChm
+     LOGICAL :: Archive_DryDepMix
+
+     ! Waiting for inputs on new resistance diagnostics
+     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
+     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
+     !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
+     !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
 
      ! Chemistry
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
@@ -186,6 +191,29 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: TotalOA         (:,:,:  ) ! Sum of all OA [ug/m3]
      REAL(f4),  POINTER :: TotalOC         (:,:,:  ) ! Sum of all OC [ug/m3]
      REAL(f4),  POINTER :: TotalBiogenicOA (:,:,:  ) ! Sum of biog OC [ug/m3]
+     LOGICAL :: Archive_AerMass
+     LOGICAL :: Archive_AerMassASOA     
+     LOGICAL :: Archive_AerMassBC       
+     LOGICAL :: Archive_AerMassINDIOL   
+     LOGICAL :: Archive_AerMassISN1OA   
+     LOGICAL :: Archive_AerMassISOA     
+     LOGICAL :: Archive_AerMassLVOCOA   
+     LOGICAL :: Archive_AerMassNH4      
+     LOGICAL :: Archive_AerMassNIT      
+     LOGICAL :: Archive_AerMassOPOA     
+     LOGICAL :: Archive_AerMassPOA      
+     LOGICAL :: Archive_AerMassSAL      
+     LOGICAL :: Archive_AerMassSO4      
+     LOGICAL :: Archive_AerMassSOAGX    
+     LOGICAL :: Archive_AerMassSOAIE    
+     LOGICAL :: Archive_AerMassSOAME    
+     LOGICAL :: Archive_AerMassSOAMG    
+     LOGICAL :: Archive_AerMassTSOA     
+     LOGICAL :: Archive_BetaNO          
+     LOGICAL :: Archive_PM25            
+     LOGICAL :: Archive_TotalOA         
+     LOGICAL :: Archive_TotalOC         
+     LOGICAL :: Archive_TotalBiogenicOA 
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -202,13 +230,20 @@ MODULE State_Diag_Mod
                                                      !  species lost in 
                                                      !  convective updraft
      REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
+     LOGICAL :: Archive_CloudConvFlux
+     LOGICAL :: Archive_WetLossConvFrac
+     LOGICAL :: Archive_WetLossConv
 
      ! Wet deposition
      REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
-     
+     LOGICAL :: Archive_WetLossLS     
+     LOGICAL :: Archive_PrecipFracLS
+     LOGICAL :: Archive_RainFracLS  
+     LOGICAL :: Archive_WashFracLS    
+
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
      REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
@@ -280,7 +315,6 @@ MODULE State_Diag_Mod
 !  05 Oct 2017 - R. Yantosca - Add separate drydep fields for chem & mixing
 !  06 Oct 2017 - R. Yantosca - Declare SpeciesConc as an 8-byte real field
 !  02 Nov 2017 - R. Yantosca - Update wetdep and convection diagnostic names
-!  24 Aug 2018 - E. Lundgren - Add budget diagnostics
 !EOC
 !------------------------------------------------------------------------------
 !BOC
@@ -536,7 +570,13 @@ CONTAINS
     State_Diag%AODPSCWL2                  => NULL()
     State_Diag%AODPSCWL3                  => NULL()
 
-    ! Set archive logicals
+    ! Set archive logicals for diagnostics
+    State_Diag%Archive_SpeciesConc           = .FALSE.
+    State_Diag%Archive_DryDep                = .FALSE.
+    State_Diag%Archive_DryDepChm             = .FALSE.
+    State_Diag%Archive_DryDepMix             = .FALSE.
+
+    ! Set archive logicals for budget
     State_Diag%Archive_BudgetEmissions       = .FALSE.          
     State_Diag%Archive_BudgetEmissionsFull   = .FALSE.          
     State_Diag%Archive_BudgetEmissionsTrop   = .FALSE.
@@ -564,7 +604,43 @@ CONTAINS
     State_Diag%Archive_BudgetWetDep          = .FALSE.
     State_Diag%Archive_BudgetWetDepFull      = .FALSE.
     State_Diag%Archive_BudgetWetDepTrop      = .FALSE.
-    State_Diag%Archive_BudgetWetDepPBL       = .FALSE.          
+    State_Diag%Archive_BudgetWetDepPBL       = .FALSE.  
+
+    ! Set archive logicals for for aerosol mass
+    State_Diag%Archive_AerMass               = .FALSE.
+    State_Diag%Archive_AerMassASOA           = .FALSE.
+    State_Diag%Archive_AerMassBC             = .FALSE.
+    State_Diag%Archive_AerMassINDIOL         = .FALSE.
+    State_Diag%Archive_AerMassISN1OA         = .FALSE.
+    State_Diag%Archive_AerMassISOA           = .FALSE.
+    State_Diag%Archive_AerMassLVOCOA         = .FALSE.
+    State_Diag%Archive_AerMassNH4            = .FALSE.
+    State_Diag%Archive_AerMassNIT            = .FALSE.
+    State_Diag%Archive_AerMassOPOA           = .FALSE.
+    State_Diag%Archive_AerMassPOA            = .FALSE.
+    State_Diag%Archive_AerMassSAL            = .FALSE.
+    State_Diag%Archive_AerMassSO4            = .FALSE.
+    State_Diag%Archive_AerMassSOAGX          = .FALSE.
+    State_Diag%Archive_AerMassSOAIE          = .FALSE.
+    State_Diag%Archive_AerMassSOAME          = .FALSE.
+    State_Diag%Archive_AerMassSOAMG          = .FALSE.
+    State_Diag%Archive_AerMassTSOA           = .FALSE.
+    State_Diag%Archive_BetaNO                = .FALSE.
+    State_Diag%Archive_PM25                  = .FALSE.
+    State_Diag%Archive_TotalOA               = .FALSE.
+    State_Diag%Archive_TotalOC               = .FALSE.
+    State_Diag%Archive_TotalBiogenicOA       = .FALSE. 
+
+    ! Set logicals for convection diagnostics
+    State_Diag%Archive_CloudConvFlux         = .FALSE.
+    State_Diag%Archive_WetLossConvFrac       = .FALSE.
+    State_Diag%Archive_WetLossConv           = .FALSE.
+
+    ! Set logicals for large-scale wet deposition diagnostics
+    State_Diag%Archive_WetLossLS             = .FALSE.
+    State_Diag%Archive_PrecipFracLS          = .FALSE.
+    State_Diag%Archive_RainFracLS            = .FALSE.
+    State_Diag%Archive_WashFracLS            = .FALSE.
 
 #if defined( NC_DIAG )
 
@@ -587,6 +663,7 @@ CONTAINS
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SpeciesConc = 0.0_f8
+       State_Diag%Archive_SpeciesConc = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesConc, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -611,6 +688,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only emissions
     arrayID = 'State_Diag%BudgetEmissionsTrop'
     diagID  = 'BudgetEmissionsTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -627,6 +705,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only emissions
     arrayID = 'State_Diag%BudgetEmissionsPBL'
     diagID  = 'BudgetEmissionsPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -643,6 +722,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for emissions budget
     IF ( State_Diag%Archive_BudgetEmissionsFull .OR. &
          State_Diag%Archive_BudgetEmissionsTrop .OR. &
          State_Diag%Archive_BudgetEmissionsPBL ) THEN
@@ -668,6 +748,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only transport
     arrayID = 'State_Diag%BudgetTransportTrop'
     diagID  = 'BudgetTransportTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -684,6 +765,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only transport
     arrayID = 'State_Diag%BudgetTransportPBL'
     diagID  = 'BudgetTransportPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -700,6 +782,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for transport budget
     IF ( State_Diag%Archive_BudgetTransportFull .OR. &
          State_Diag%Archive_BudgetTransportTrop .OR. &
          State_Diag%Archive_BudgetTransportPBL ) THEN
@@ -725,6 +808,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only dry deposition
     arrayID = 'State_Diag%BudgetDryDepTrop'
     diagID  = 'BudgetDryDepTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -741,6 +825,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only dry deposition
     arrayID = 'State_Diag%BudgetDryDepPBL'
     diagID  = 'BudgetDryDepPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -757,6 +842,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for dry deposition budget
     IF ( State_Diag%Archive_BudgetDryDepFull .OR. &
          State_Diag%Archive_BudgetDryDepTrop .OR. &
          State_Diag%Archive_BudgetDryDepPBL ) THEN
@@ -782,6 +868,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only mixing
     arrayID = 'State_Diag%BudgetMixingTrop'
     diagID  = 'BudgetMixingTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -798,6 +885,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only mixing
     arrayID = 'State_Diag%BudgetMixingPBL'
     diagID  = 'BudgetMixingPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -814,6 +902,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for mixing budget
     IF ( State_Diag%Archive_BudgetMixingFull .OR. &
          State_Diag%Archive_BudgetMixingTrop .OR. &
          State_Diag%Archive_BudgetMixingPBL ) THEN
@@ -839,6 +928,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only convection
     arrayID = 'State_Diag%BudgetConvectionTrop'
     diagID  = 'BudgetConvectionTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -855,6 +945,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only convection
     arrayID = 'State_Diag%BudgetConvectionPBL'
     diagID  = 'BudgetConvectionPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -871,6 +962,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for convection budget
     IF ( State_Diag%Archive_BudgetConvectionFull .OR. &
          State_Diag%Archive_BudgetConvectionTrop .OR. &
          State_Diag%Archive_BudgetConvectionPBL ) THEN
@@ -896,6 +988,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only chemistry
     arrayID = 'State_Diag%BudgetChemistryTrop'
     diagID  = 'BudgetChemistryTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -912,6 +1005,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only chemistry
     arrayID = 'State_Diag%BudgetChemistryPBL'
     diagID  = 'BudgetChemistryPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -928,6 +1022,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Set high-level logical for archiving chemistry budget
     IF ( State_Diag%Archive_BudgetChemistryFull .OR. &
          State_Diag%Archive_BudgetChemistryTrop .OR. &
          State_Diag%Archive_BudgetChemistryPBL ) THEN
@@ -953,6 +1048,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! Trop-only wet deposition
     arrayID = 'State_Diag%BudgetWetDepTrop'
     diagID  = 'BudgetWetDepTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -969,6 +1065,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! PBL-only wet deposition
     arrayID = 'State_Diag%BudgetWetDepPBL'
     diagID  = 'BudgetWetDepPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -985,6 +1082,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    ! High-level logical for wet deposition budget
     IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
          State_Diag%Archive_BudgetWetDepTrop .OR. &
          State_Diag%Archive_BudgetWetDepPBL ) THEN
@@ -1005,6 +1103,8 @@ CONTAINS
        CALL GC_CheckVar( ArrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepChm = 0.0_f4
+       State_Diag%Archive_DryDepChm = .TRUE.
+       State_Diag%Archive_DryDep = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepChm, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1024,6 +1124,8 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepMix = 0.0_f4
+       State_Diag%Archive_DryDepMix = .TRUE.
+       State_Diag%Archive_DryDep = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepMix, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1041,6 +1143,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDep = 0.0_f4
+       State_Diag%Archive_DryDep = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDep, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1160,6 +1263,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%CloudConvFlux = 0.0_f4
+       State_Diag%Archive_CloudConvFlux = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%CloudConvFlux, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1177,6 +1281,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConvFrac = 0.0_f4
+       State_Diag%Archive_WetLossConvFrac = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,                           &
                                 State_Diag%WetLossConvFrac,                  & 
                                 State_Chm, State_Diag, RC                   )
@@ -1195,6 +1300,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossConv = 0.0_f4
+       State_Diag%Archive_WetLossConv = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossConv, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1212,6 +1318,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WetLossLS = 0.0_f4
+       State_Diag%Archive_WetLossLS = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WetLossLS, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1229,6 +1336,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PrecipFracLS = 0.0_f4
+       State_Diag%Archive_PrecipFracLS = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%PrecipFracLS, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1246,6 +1354,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%RainFracLS = 0.0_f4
+       State_Diag%Archive_RainFracLS = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%RainFracLS,   &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1263,6 +1372,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%WashFracLS = 0.0_f4
+       State_Diag%Archive_WashFracLS = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%WashFracLS,   &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1762,6 +1872,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassASOA = 0.0_f4
+          State_Diag%Archive_AerMassASOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassASOA,                   &
                                    State_Chm, State_Diag, RC                )
@@ -1780,6 +1891,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassINDIOL = 0.0_f4
+          State_Diag%Archive_AerMassINDIOL = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassINDIOL,                 &
                                    State_Chm, State_Diag, RC                )
@@ -1787,7 +1899,7 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
-       ! Aerosol mass of ISN10A [ug/m3]
+       ! Aerosol mass of ISN1OA [ug/m3]
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AerMassISN1OA'
        diagID  = 'AerMassISN1OA'
@@ -1798,6 +1910,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassISN1OA = 0.0_f4
+          State_Diag%Archive_AerMassISN1OA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassISN1OA,                 &
                                    State_Chm, State_Diag, RC                )
@@ -1816,6 +1929,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassISOA = 0.0_f4
+          State_Diag%Archive_AerMassISOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassISOA,                   &
                                    State_Chm, State_Diag, RC                )
@@ -1834,6 +1948,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassLVOCOA = 0.0_f4
+          State_Diag%Archive_AerMassLVOCOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassLVOCOA,                 &
                                    State_Chm, State_Diag, RC                )
@@ -1852,6 +1967,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassOPOA = 0.0_f4
+          State_Diag%Archive_AerMassOPOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassOPOA,                   &
                                    State_Chm, State_Diag, RC                )
@@ -1870,6 +1986,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassPOA = 0.0_f4
+          State_Diag%Archive_AerMassPOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassPOA,                    &
                                    State_Chm, State_Diag, RC                )
@@ -1888,6 +2005,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAGX = 0.0_f4
+          State_Diag%Archive_AerMassSOAGX = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSOAGX,                  &
                                    State_Chm, State_Diag, RC                )
@@ -1906,6 +2024,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAIE = 0.0_f4
+          State_Diag%Archive_AerMassSOAIE = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSOAIE,                  &
                                    State_Chm, State_Diag, RC                )
@@ -1924,6 +2043,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAME = 0.0_f4
+          State_Diag%Archive_AerMassSOAME = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSOAME,                  &
                                    State_Chm, State_Diag, RC                )
@@ -1942,6 +2062,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSOAMG = 0.0_f4
+          State_Diag%Archive_AerMassSOAMG = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSOAMG,                  &
                                    State_Chm, State_Diag, RC                )
@@ -1960,6 +2081,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassTSOA = 0.0_f4
+          State_Diag%Archive_AerMassTSOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassTSOA,                   &
                                    State_Chm, State_Diag, RC                )
@@ -1978,6 +2100,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%BetaNO = 0.0_f4
+          State_Diag%Archive_BetaNO = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%BetaNO,                        &
                                    State_Chm, State_Diag, RC                )
@@ -1996,6 +2119,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalBiogenicOA = 0.0_f4
+          State_Diag%Archive_TotalBiogenicOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%TotalBiogenicOA,               &
                                    State_Chm, State_Diag, RC                )
@@ -2766,6 +2890,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassBC = 0.0_f4
+          State_Diag%Archive_AerMassBC = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassBC,                     &
                                    State_Chm, State_Diag, RC                )
@@ -2784,6 +2909,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassNH4 = 0.0_f4
+          State_Diag%Archive_AerMassNH4 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassNH4,                    &
                                    State_Chm, State_Diag, RC                )
@@ -2802,6 +2928,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassNIT = 0.0_f4
+          State_Diag%Archive_AerMassNIT = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassNIT,                    &
                                    State_Chm, State_Diag, RC                )
@@ -2820,6 +2947,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSAL = 0.0_f4
+          State_Diag%Archive_AerMassSAL = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSAL,                    &
                                    State_Chm, State_Diag, RC                )
@@ -2838,6 +2966,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerMassSO4 = 0.0_f4
+          State_Diag%Archive_AerMassSO4 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%AerMassSO4,                    &
                                    State_Chm, State_Diag, RC                )
@@ -2856,6 +2985,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PM25 = 0.0_f4
+          State_Diag%Archive_PM25 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%PM25,                          &
                                    State_Chm, State_Diag, RC                )
@@ -2874,6 +3004,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalOA = 0.0_f4
+          State_Diag%Archive_TotalOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%TotalOA,                       &
                                    State_Chm, State_Diag, RC                )
@@ -2892,6 +3023,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%TotalOC = 0.0_f4
+          State_Diag%Archive_TotalOC = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%TotalOC,                       &
                                    State_Chm, State_Diag, RC                )
@@ -3336,6 +3468,34 @@ CONTAINS
                          Registry    = State_Diag%Registry,                  &
                          ShortFormat = .TRUE.,                               &
                          RC          = RC                                   )
+
+    !=======================================================================
+    ! Set logicals for sets of diagnostics
+    !=======================================================================
+    State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA    .or.    &
+                                   State_Diag%Archive_AerMassBC      .or.    &
+                                   State_Diag%Archive_AerMassINDIOL  .or.    &
+                                   State_Diag%Archive_AerMassISN1OA  .or.    &
+                                   State_Diag%Archive_AerMassISOA    .or.    &
+                                   State_Diag%Archive_AerMassLVOCOA  .or.    &
+                                   State_Diag%Archive_AerMassNH4     .or.    &
+                                   State_Diag%Archive_AerMassNIT     .or.    &
+                                   State_Diag%Archive_AerMassOPOA    .or.    &
+                                   State_Diag%Archive_AerMassPOA     .or.    &
+                                   State_Diag%Archive_AerMassSAL     .or.    &
+                                   State_Diag%Archive_AerMassSO4     .or.    &
+                                   State_Diag%Archive_AerMassSOAGX   .or.    &
+                                   State_Diag%Archive_AerMassSOAIE   .or.    &
+                                   State_Diag%Archive_AerMassSOAME   .or.    &
+                                   State_Diag%Archive_AerMassSOAMG   .or.    &
+                                   State_Diag%Archive_AerMassTSOA    .or.    &
+                                   State_Diag%Archive_BetaNO         .or.    &
+                                   State_Diag%Archive_PM25           .or.    &
+                                   State_Diag%Archive_TotalOA        .or.    &
+                                   State_Diag%Archive_TotalOC        .or.    &
+                                   State_Diag%Archive_TotalBiogenicOA         )
+
+
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

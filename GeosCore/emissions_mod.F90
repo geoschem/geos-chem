@@ -130,8 +130,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( am_I_Root, Input_Opt, State_Met,                 &
-                            State_Chm, EmisTime,  Phase,     RC             ) 
+  SUBROUTINE Emissions_Run( am_I_Root, Input_Opt,  State_Met,                 &
+                            State_Chm, State_Diag, EmisTime,  Phase, RC      ) 
 !
 ! !USES:
 !
@@ -139,15 +139,27 @@ CONTAINS
     USE BROMOCARB_MOD,      ONLY : SET_CH3BR
     USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
+#if defined( NC_DIAG )
+    USE CMN_Size_Mod
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+#endif
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
+#if defined( NC_DIAG )
+    USE Precision_Mod
+#endif
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Diag_Mod,     ONLY : DgnState
 #if defined ( TOMAS )
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
+#endif
+#if defined( NC_DIAG )
+    USE Time_Mod,           ONLY : Get_Ts_Emis
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 #endif
 
     ! Setting other surface VMRs
@@ -170,6 +182,7 @@ CONTAINS
 !
     TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry state 
+    TYPE(DgnState), INTENT(INOUT)  :: State_Diag  ! Diagnostics State object
     TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input opts
     INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
@@ -182,6 +195,7 @@ CONTAINS
 !                              a fullchem or aerosol simulation
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  22 Jan 2018 - R. Yantosca - Return error code to calling program
+!  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -190,6 +204,19 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+#if defined( NC_DIAG )
+    ! Budget diagnostics
+    CHARACTER(LEN=63)             :: OrigUnit
+    REAL(fp)                      :: DT_Emis
+    REAL(fp), POINTER             :: ptr2d(:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassFull (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassTrop (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: initialMassPBL  (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassFull   (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassTrop   (:,:,:)
+    REAL(fp), ALLOCATABLE, TARGET :: finalMassPBL    (:,:,:)
+#endif
 
     !=================================================================
     ! EMISSIONS_RUN begins here!
@@ -212,160 +239,288 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! The following only needs to be done in phase 2
-    IF ( Phase /= 1 ) THEN 
+    ! Exit if Phase 1
+    IF ( Phase == 1 ) RETURN
 
-       ! Call carbon emissions module to make sure that sesquiterpene
-       ! emissions calculated in HEMCO (SESQ) are passed to the internal
-       ! species array in carbon, as well as to ensure that POA emissions
-       ! are correctly treated.
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
-            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
-          CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+#if defined( NC_DIAG )
+    !=======================================================================
+    ! Get initial column masses for budget diagnostics
+    !=======================================================================
+    IF ( State_Diag%Archive_BudgetEmissions ) THEN
 
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "EmissCarbon"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-    ! Call TOMAS emission routines (JKodros 6/2/15)
-#if defined ( TOMAS )
-       CALL EmissCarbonTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-       ! Trap potential errors
+       ! Convert species units to kg/m2
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
+                               State_Chm,  'kg/m2',   RC,          &
+                               OrigUnit=OrigUnit                  )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissCarbonTomas"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
           RETURN
        ENDIF
 
-       CALL EmissSulfateTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissSulfateTomas"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       ! Full column
+       IF ( State_Diag%Archive_BudgetEmissionsFull ) THEN
+          ALLOCATE( initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassFull = 0.0_fp
+          ptr2d => initialMassFull
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
        ENDIF
-
-#endif
-   
-       ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
-       ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
-       ! thus need to be added explicitly, which is done in EMISSCO2.
-       IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-          CALL EmissCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "EmissCO2"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-   
-       ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
-       ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
-       ! ...) and write them into the individual emissions arrays defined in
-       ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
-       ! call to EMISSCH4 is for backwards consistency, in particular for the
-       ! ND58 diagnostics.
-       IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
-          ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
-          CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "EmissCH4"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-   
-       ! For UCX, use Seb's routines for stratospheric species for now.
-       IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
-          CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Emiss_Basic"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       ! For mercury, use old emissions code for now
-       IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-          CALL EmissMercury( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "EmissMercury"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       ! Prescribe some concentrations if needed
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-  
-          !========================================================
-          !jpp, 2/12/08: putting a call to SET_CH3Br
-          !              which is in bromocarb_mod.f
-          !       ***** Fix CH3Br Concentration in PBL *****
-          ! Kludge: eventually I want to keep the concentration
-          !         entirely fixed! Ask around on how to...
-          !========================================================
-          IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
-             CALL Set_CH3Br( am_I_Root, Input_Opt, State_Met, &
-                             State_Chm, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Set_CH3BR"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-          ENDIF
-   
-          ! ----------------------------------------------------
-          ! If selected in input.geos, then set the MBL
-          ! concentration of BrO equal to 1 pptv during daytime.
-          ! ----------------------------------------------------
-          IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-             CALL Set_BrO( am_I_Root, Input_Opt, State_Met, & 
-                           State_Chm, RC          )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Set_BrO"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-          ENDIF
-   
-          ! Set other (non-UCX) fixed VMRs
-          If ( Input_Opt%LEMIS ) Then
-             CALL FixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
-                             State_Chm, RC          )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "FixSfcVmr"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          endif
- 
-       ENDIF
-    ENDIF ! Phase/=1  
     
-    ! Return w/ success
-    RC = GC_SUCCESS
+       ! Troposphere only
+       IF ( State_Diag%Archive_BudgetEmissionsTrop ) THEN
+          ALLOCATE( initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassTrop = 0.0_fp
+          ptr2d => initialMassTrop
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+       ENDIF
+    
+       ! PBL-only
+       IF ( State_Diag%Archive_BudgetEmissionsPBL ) THEN
+          ALLOCATE( initialMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          initialMassPBL = 0.0_fp
+          ptr2d => initialMassPBL
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+       ENDIF
+
+       ! Error trapping
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Emissions budget diagnostics error 1', RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Convert species conc back to original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                               State_Chm, OrigUnit,  RC         )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
+    ! Call carbon emissions module to make sure that sesquiterpene
+    ! emissions calculated in HEMCO (SESQ) are passed to the internal
+    ! species array in carbon, as well as to ensure that POA emissions
+    ! are correctly treated.
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
+       CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissCarbon"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+#if defined ( TOMAS )
+    ! Call TOMAS emission routines (JKodros 6/2/15)
+    CALL EmissCarbonTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "EmissCarbonTomas"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    CALL EmissSulfateTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "EmissSulfateTomas"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
+
+    ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
+    ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
+    ! thus need to be added explicitly, which is done in EMISSCO2.
+    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+       CALL EmissCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissCO2"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+   
+    ! For CH4 simulation or if CH4 is defined, call EMISSCH4. 
+    ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
+    ! ...) and write them into the individual emissions arrays defined in
+    ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
+    ! call to EMISSCH4 is for backwards consistency, in particular for the
+    ! ND58 diagnostics.
+    IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
+       ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
+       CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissCH4"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+   
+    ! For UCX, use Seb's routines for stratospheric species for now.
+    IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
+       CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Emiss_Basic"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! For mercury, use old emissions code for now
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       CALL EmissMercury( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissMercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Prescribe some concentrations if needed
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+  
+       !========================================================
+       !jpp, 2/12/08: putting a call to SET_CH3Br
+       !              which is in bromocarb_mod.f
+       !       ***** Fix CH3Br Concentration in PBL *****
+       ! Kludge: eventually I want to keep the concentration
+       !         entirely fixed! Ask around on how to...
+       !========================================================
+       IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
+          CALL Set_CH3Br( am_I_Root, Input_Opt, State_Met, &
+                          State_Chm, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_CH3BR"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+   
+       ! ----------------------------------------------------
+       ! If selected in input.geos, then set the MBL
+       ! concentration of BrO equal to 1 pptv during daytime.
+       ! ----------------------------------------------------
+       IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
+          CALL Set_BrO( am_I_Root, Input_Opt, State_Met, & 
+                        State_Chm, RC          )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "Set_BrO"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+   
+       ! Set other (non-UCX) fixed VMRs
+       If ( Input_Opt%LEMIS ) Then
+          CALL FixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
+                          State_Chm, RC          )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "FixSfcVmr"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       endif
+ 
+    ENDIF
+
+#if defined( NC_DIAG )
+    !=======================================================================
+    ! Compute budget diagnostics [kg/m2/s]
+    !=======================================================================
+    IF ( State_Diag%Archive_BudgetEmissions ) THEN
+
+       ! Emissions timestep [s]
+       DT_Emis = Get_Ts_Emis()
+
+       ! Convert species units to kg/m2
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
+                               State_Chm,  'kg/m2',   RC,          &
+                               OrigUnit=OrigUnit                  )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+          RETURN
+       ENDIF
+       
+       ! Full column
+       IF ( State_Diag%Archive_BudgetEmissionsFull ) THEN
+          ALLOCATE( finalMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassFull = 0.0_fp
+          ptr2d => finalMassFull
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetEmissionsFull =    &
+                         ( finalMassFull - initialMassFull ) / DT_Emis
+          DEALLOCATE( initialMassFull, STAT=RC )
+          DEALLOCATE( finalMassFull, STAT=RC )
+       ENDIF
+    
+       ! Troposphere only
+       IF ( State_Diag%Archive_BudgetEmissionsTrop ) THEN
+          ALLOCATE( finalMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassTrop = 0.0_fp
+          ptr2d => finalMassTrop
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetEmissionsTrop =   &
+                         ( finalMassTrop - initialMassTrop ) / DT_Emis
+          DEALLOCATE( initialMassTrop, STAT=RC )
+          DEALLOCATE( finalMassTrop, STAT=RC )
+       ENDIF
+    
+       ! PBL-only
+       IF ( State_Diag%Archive_BudgetEmissionsPBL ) THEN
+          ALLOCATE( finalMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
+          finalMassPBL = 0.0_fp
+          ptr2d => finalMassPBL
+          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
+                                    State_Chm%Map_Advect, ptr2d, RC )
+          ptr2d => NULL()
+          State_Diag%BudgetEmissionsPBL =   &            
+                         ( finalMassPBL - initialMassPBL ) / DT_Emis
+          DEALLOCATE( initialMassPBL, STAT=RC )
+          DEALLOCATE( finalMassPBL, STAT=RC )
+       ENDIF
+
+       ! Error trapping
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL GC_Error( 'Emissions budget diagnostics error 2', RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Convert species conc back to original units
+       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                               State_Chm, OrigUnit,  RC         )
+    ENDIF
+#endif
    
    END SUBROUTINE EMISSIONS_RUN
 !EOC

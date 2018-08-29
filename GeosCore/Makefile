@@ -464,7 +464,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tagged_o3_mod.o         tomas_mod.o            \
-                              flexchem_mod.o
+                              flexchem_mod.o          diagnostics_mod.o
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
@@ -502,7 +502,7 @@ convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
                               fvdas_convect_mod.o     wetscav_mod.o          \
                               mercury_mod.o           tendencies_mod.o       \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o
 
 dao_mod.o                   : dao_mod.F
 
@@ -564,14 +564,13 @@ diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F
 
-diagnostics_mod.o           : diagnostics_mod.F90                            \
-                              aerosol_mod.o           carbon_mod.o
+diagnostics_mod.o           : diagnostics_mod.F90
 
 drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
@@ -582,7 +581,8 @@ emissions_mod.o             : emissions_mod.F90                              \
                               co2_mod.o               global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
-                              ucx_mod.o               sfcvmr_mod.o
+                              ucx_mod.o               sfcvmr_mod.o           \
+                              diagnostics_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o
@@ -706,7 +706,7 @@ main.o                      : main.F                                         \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
-                              gc_classic_version.H
+                              aerosol_mod.o           gc_classic_version.H
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -722,7 +722,7 @@ merra2_read_mod.o           : merra2_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
-                              dao_mod.o                                      \
+                              dao_mod.o               diagnostics_mod.o      \
                               diag_mod.o              drydep_mod.o           \
                               hcoi_gc_main_mod.o      get_ndep_mod.o         \
                               pbl_mix_mod.o           tendencies_mod.o       \
@@ -834,7 +834,8 @@ transport_mod.o             : transport_mod.F                                \
                               diag_mod.o              dao_mod.o              \
                               pjc_pfix_mod.o          tpcore_bc_mod.o        \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
-                              tendencies_mod.o        pjc_pfix_window_mod.o
+                              tendencies_mod.o        pjc_pfix_window_mod.o  \
+                              diagnostics_mod.o
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               fast_jx_mod.o           global_ch4_mod.o       \
@@ -860,7 +861,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tendencies_mod.o        hco_interface_mod.o    \
-                              tomas_mod.o
+                              tomas_mod.o             diagnostics_mod.o
 
 ###############################################################################
 ###                                                                         ###
