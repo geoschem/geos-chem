@@ -2550,6 +2550,8 @@ END FUNCTION GetEmisLUnit
 !
 ! !REVISION HISTORY:
 !  06 May 2016 - C. Keller   - Initial Version
+!  16 Jul 2018 - C. Keller   - Bug fix: get PBL height in m, properly compute
+!                              fractions in lowest / highest level.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2615,6 +2617,7 @@ END FUNCTION GetEmisLUnit
        IF ( h2 > h1 ) THEN
           DilFact = dh / ( h2 - h1 )
        ELSE
+          !write(*,*) 'Warning: GetDilFact h2 not greater than h1!!! ',LowLL,UppLL,L,EmisL1,EmisL2,EmisL1Unit,EmisL2Unit
           DilFact = 1.0_hp
        ENDIF
 
