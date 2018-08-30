@@ -288,9 +288,6 @@
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
-      ! Are certain History diagnostics turned on?
-      LOGICAL                        :: Archive_DryDepVel
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -711,7 +708,7 @@
 
 #if defined( NC_DIAG )
             ! Archive dry dep velocity [cm/s]
-            IF ( Archive_DryDepVel ) THEN
+            IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
 #endif
@@ -4419,11 +4416,6 @@
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
     
-      !===================================================================
-      ! Set logical flags to determine if diagnostics are turned on
-      !===================================================================
-      Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
-
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

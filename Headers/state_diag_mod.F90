@@ -118,6 +118,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_DryDep   
      LOGICAL :: Archive_DryDepChm
      LOGICAL :: Archive_DryDepMix
+     LOGICAL :: Archive_DryDepVel
 
      ! Waiting for inputs on new resistance diagnostics
      !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
@@ -138,6 +139,18 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: O3PconcAfterChem(:,:,:  ) !  FlexChem solver 
      REAL(f4),  POINTER :: Loss            (:,:,:,:) ! Chemical loss of species
      REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
+     LOGICAL :: Archive_JVal            
+     LOGICAL :: Archive_JNoon           
+     LOGICAL :: Archive_RxnRates        
+     LOGICAL :: Archive_UVFluxDiffuse   
+     LOGICAL :: Archive_UVFluxDirect    
+     LOGICAL :: Archive_UVFluxNet       
+     LOGICAL :: Archive_OHconcAfterChem 
+     LOGICAL :: Archive_HO2concAfterChem
+     LOGICAL :: Archive_O1DconcAfterChem
+     LOGICAL :: Archive_O3PconcAfterChem
+     LOGICAL :: Archive_Loss            
+     LOGICAL :: Archive_Prod            
 
      ! Aerosol characteristics
      REAL(f4),  POINTER :: AerHygGrowth    (:,:,:,:) ! Hydroscopic growth of spc
@@ -149,6 +162,14 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AerSurfAreaPSC  (:,:,:  ) ! Polar strat cld surf area
      REAL(f4),  POINTER :: AerNumDenSLA    (:,:,:  ) ! Strat liquid # density
      REAL(f4),  POINTER :: AerNumDenPSC    (:,:,:  ) ! Polar strat cloud  # den
+     LOGICAL :: Archive_AerHygGrowth   
+     LOGICAL :: Archive_AerAqVol       
+     LOGICAL :: Archive_AerSurfAreaHyg 
+     LOGICAL :: Archive_AerSurfAreaDust 
+     LOGICAL :: Archive_AerSurfAreaSLA  
+     LOGICAL :: Archive_AerSurfAreaPSC  
+     LOGICAL :: Archive_AerNumDenSLA    
+     LOGICAL :: Archive_AerNumDenPSC    
                                      
      ! Aerosol optical depths
      REAL(f4),  POINTER :: AODDust         (:,:,:  ) ! Dust optical depth
@@ -167,6 +188,22 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AODPSCWL1       (:,:,:  ) ! Polar strat cloud 
      REAL(f4),  POINTER :: AODPSCWL2       (:,:,:  ) ! optical depths for 
      REAL(f4),  POINTER :: AODPSCWL3       (:,:,:  ) ! wavelengths 1, 2, and 3
+     LOGICAL :: Archive_AODDust         
+     LOGICAL :: Archive_AODDustWL1      
+     LOGICAL :: Archive_AODDustWL2      
+     LOGICAL :: Archive_AODDustWL3      
+     LOGICAL :: Archive_AODHygWL1       
+     LOGICAL :: Archive_AODHygWL2       
+     LOGICAL :: Archive_AODHygWL3       
+     LOGICAL :: Archive_AODSOAfromAqIsopWL1
+     LOGICAL :: Archive_AODSOAfromAqIsopWL2
+     LOGICAL :: Archive_AODSOAfromAqIsopWL3
+     LOGICAL :: Archive_AODSLAWL1       
+     LOGICAL :: Archive_AODSLAWL2       
+     LOGICAL :: Archive_AODSLAWL3       
+     LOGICAL :: Archive_AODPSCWL1       
+     LOGICAL :: Archive_AODPSCWL2       
+     LOGICAL :: Archive_AODPSCWL3       
 
      ! Aerosol mass and PM2.5
      REAL(f4),  POINTER :: AerMassASOA     (:,:,:  ) ! Aromatic SOA [ug/m3]
@@ -191,7 +228,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: TotalOA         (:,:,:  ) ! Sum of all OA [ug/m3]
      REAL(f4),  POINTER :: TotalOC         (:,:,:  ) ! Sum of all OC [ug/m3]
      REAL(f4),  POINTER :: TotalBiogenicOA (:,:,:  ) ! Sum of biog OC [ug/m3]
-     LOGICAL :: Archive_AerMass
+     LOGICAL :: Archive_AerMass        
      LOGICAL :: Archive_AerMassASOA     
      LOGICAL :: Archive_AerMassBC       
      LOGICAL :: Archive_AerMassINDIOL   
@@ -219,14 +256,19 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
      REAL(f4),  POINTER :: AdvFluxMerid    (:,:,:,:) ! NW Advective Flux
      REAL(f4),  POINTER :: AdvFluxVert     (:,:,:,:) ! Vertical Advective Flux
+     LOGICAL :: Archive_AdvFluxZonal
+     LOGICAL :: Archive_AdvFluxMerid
+     LOGICAL :: Archive_AdvFluxVert 
 
      ! Mixing
      REAL(f4),  POINTER :: PBLMixFrac      (:,:,:  ) ! Frac of BL occupied by lev
      REAL(f4),  POINTER :: PBLFlux         (:,:,:,:) ! BL mixing mass flux
+     LOGICAL :: Archive_PBLMixFrac 
+     LOGICAL :: Archive_PBLFlux    
 
      ! Convection
      REAL(f4),  POINTER :: CloudConvFlux   (:,:,:,:) ! Cloud conv. mass flux
-     REAL(f4),  POINTER :: WetLossConvFrac (:,:,:,:) ! Fraction of soluble
+     REAL(f4),  POINTER :: WetLossConvFrac (:,:,:,:) ! Fraction of soluble 
                                                      !  species lost in 
                                                      !  convective updraft
      REAL(f4),  POINTER :: WetLossConv     (:,:,:,:) ! Loss in convect. updraft
@@ -235,7 +277,8 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_WetLossConv
 
      ! Wet deposition
-     REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS rainout/washout
+     REAL(f4),  POINTER :: WetLossLS       (:,:,:,:) ! Loss in LS 
+                                                     ! rainout/washout
      REAL(f4),  POINTER :: PrecipFracLS    (:,:,:  ) ! Frac of box in LS precip
      REAL(f4),  POINTER :: RainFracLS      (:,:,:,:) ! Frac lost to LS rainout
      REAL(f4),  POINTER :: WashFracLS      (:,:,:,:) ! Frac lost to LS washout
@@ -247,6 +290,8 @@ MODULE State_Diag_Mod
      ! Carbon aerosols
      REAL(f4),  POINTER :: ProdBCPIfromBCPO(:,:,:  ) ! Prod BCPI from BCPO
      REAL(f4),  POINTER :: ProdOCPIfromOCPO(:,:,:  ) ! Prod OCPI from OCPO
+     LOGICAL :: Archive_ProdBCPIfromBCPO
+     LOGICAL :: Archive_ProdOCPIfromOCPO
 
      ! Sulfur aerosols prod & loss
      REAL(f4),  POINTER :: ProdSO2fromDMSandOH        (:,:,:) 
@@ -266,6 +311,23 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: ProdSO4fromSRHOBr          (:,:,:)
      REAL(f4),  POINTER :: ProdSO4fromO3s             (:,:,:)
      REAL(f4),  POINTER :: LossHNO3onSeaSalt          (:,:,:) 
+     LOGICAL :: Archive_ProdSO2fromDMSandOH        
+     LOGICAL :: Archive_ProdSO2fromDMSandNO3       
+     LOGICAL :: Archive_ProdSO2fromDMS             
+     LOGICAL :: Archive_ProdMSAfromDMS             
+     LOGICAL :: Archive_ProdNITfromHNO3uptakeOnDust
+     LOGICAL :: Archive_ProdSO4fromGasPhase        
+     LOGICAL :: Archive_ProdSO4fromH2O2inCloud     
+     LOGICAL :: Archive_ProdSO4fromO3inCloud       
+     LOGICAL :: Archive_ProdSO4fromO2inCloudMetal  
+     LOGICAL :: Archive_ProdSO4fromO3inSeaSalt     
+     LOGICAL :: Archive_ProdSO4fromOxidationOnDust 
+     LOGICAL :: Archive_ProdSO4fromUptakeOfH2SO4g  
+     LOGICAL :: Archive_ProdSO4fromHOBrInCloud     
+     LOGICAL :: Archive_ProdSO4fromSRO3            
+     LOGICAL :: Archive_ProdSO4fromSRHOBr          
+     LOGICAL :: Archive_ProdSO4fromO3s             
+     LOGICAL :: Archive_LossHNO3onSeaSalt          
 
      !----------------------------------------------------------------------
      ! Specialty Simulation Diagnostic Arrays
@@ -274,6 +336,8 @@ MODULE State_Diag_Mod
      ! Radon / Lead / Beryllium specialty simulation
      REAL(f4),  POINTER :: PbFromRnDecay   (:,:,:  ) ! Pb emitted from Rn decay
      REAL(f4),  POINTER :: RadDecay        (:,:,:,:) ! Radioactive decay
+     LOGICAL :: Archive_PbFromRnDecay
+     LOGICAL :: Archive_RadDecay
 
      ! TOMAS aerosol microphysics specialty simulation
  
@@ -294,6 +358,14 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: RadClrSkyLWTOA  (:,:,:  ) ! Clr-sky LW rad @ atm top
      REAL(f4),  POINTER :: RadClrSkySWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
      REAL(f4),  POINTER :: RadClrSkySWTOA  (:,:,:  ) ! Clr-sky SW rad @ atm top
+     LOGICAL :: Archive_RadAllSkyLWSurf 
+     LOGICAL :: Archive_RadAllSkyLWTOA  
+     LOGICAL :: Archive_RadAllSkySWSurf 
+     LOGICAL :: Archive_RadAllSkySWTOA  
+     LOGICAL :: Archive_RadClrSkyLWSurf 
+     LOGICAL :: Archive_RadClrSkyLWTOA  
+     LOGICAL :: Archive_RadClrSkySWSurf 
+     LOGICAL :: Archive_RadClrSkySWTOA  
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
@@ -431,27 +503,9 @@ CONTAINS
     nProd     = State_Chm%nProd
     nWetDep   = State_Chm%nWetDep
 
-    ! Free pointers
-    State_Diag%AdvFluxZonal               => NULL()
-    State_Diag%AdvFluxMerid               => NULL()
-    State_Diag%AdvFluxVert                => NULL()
-
-    State_Diag%DryDep                     => NULL()
-    State_Diag%DryDepChm                  => NULL()
-    State_Diag%DryDepMix                  => NULL()
-    State_Diag%DryDepVel                  => NULL()
-
-    State_Diag%CloudConvFlux              => NULL()
-    State_Diag%WetLossConvFrac            => NULL()
-    State_Diag%WetLossConv                => NULL()
-
-    State_Diag%PBLMixFrac                 => NULL()
-    State_Diag%PBLFlux                    => NULL()
-
-    State_Diag%WetLossLS                  => NULL()
-    State_Diag%PrecipFracLS               => NULL()
-    State_Diag%RainFracLS                 => NULL()
-    State_Diag%WashFracLS                 => NULL()
+    ! Free pointers and set logicals
+    State_Diag%SpeciesConc                => NULL()
+    State_Diag%Archive_SpeciesConc        = .FALSE.
 
     State_Diag%BudgetEmissionsFull        => NULL()          
     State_Diag%BudgetEmissionsTrop        => NULL()
@@ -474,109 +528,6 @@ CONTAINS
     State_Diag%BudgetWetDepFull           => NULL()
     State_Diag%BudgetWetDepTrop           => NULL()
     State_Diag%BudgetWetDepPBL            => NULL()          
-
-    State_Diag%SpeciesConc                => NULL()
-    State_Diag%JVal                       => NULL()
-    State_Diag%JNoon                      => NULL()
-    State_Diag%RxnRates                   => NULL()
-    State_Diag%UVFluxDiffuse              => NULL()
-    State_Diag%UVFluxDirect               => NULL()
-    State_Diag%UVFluxNet                  => NULL()
-    State_Diag%ProdBCPIfromBCPO           => NULL()
-    State_Diag%ProdOCPIfromOCPO           => NULL()
-    State_Diag%OHconcAfterChem            => NULL()
-    State_Diag%HO2concAfterChem           => NULL()
-    State_Diag%O1DconcAfterChem           => NULL()
-    State_Diag%O3PconcAfterChem           => NULL()
-    State_Diag%Loss                       => NULL()
-    State_Diag%Prod                       => NULL()
-
-    State_Diag%AerMassASOA                => NULL()
-    State_Diag%AerMassBC                  => NULL()
-    State_Diag%AerMassINDIOL              => NULL()
-    State_Diag%AerMassISN1OA              => NULL()
-    State_Diag%AerMassISOA                => NULL()
-    State_Diag%AerMassLVOCOA              => NULL()
-    State_Diag%AerMassNH4                 => NULL()
-    State_Diag%AerMassNIT                 => NULL()
-    State_Diag%AerMassOPOA                => NULL()
-    State_Diag%AerMassPOA                 => NULL()
-    State_Diag%AerMassSAL                 => NULL()
-    State_Diag%AerMassSO4                 => NULL()
-    State_Diag%AerMassSOAGX               => NULL()
-    State_Diag%AerMassSOAIE               => NULL()
-    State_Diag%AerMassSOAME               => NULL()
-    State_Diag%AerMassSOAMG               => NULL()
-    State_Diag%AerMassTSOA                => NULL()
-    State_Diag%BetaNO                     => NULL()
-    State_Diag%PM25                       => NULL()
-    State_Diag%TotalOA                    => NULL()
-    State_Diag%TotalOC                    => NULL()
-    State_Diag%TotalBiogenicOA            => NULL()
-
-    State_Diag%PbFromRnDecay              => NULL()
-    State_Diag%RadDecay                   => NULL()
-
-    State_Diag%ProdMSAfromDMS             => NULL() 
-    State_Diag%ProdSO2fromDMSandOH        => NULL() 
-    State_Diag%ProdSO2fromDMSandNO3       => NULL() 
-    State_Diag%ProdSO2fromDMS             => NULL()   
-    State_Diag%ProdSO4fromGasPhase        => NULL() 
-    State_Diag%ProdSO4fromH2O2inCloud     => NULL() 
-    State_Diag%ProdSO4fromO3inCloud       => NULL() 
-    State_Diag%ProdSO4fromHOBrInCloud     => NULL()
-    State_Diag%ProdSO4fromO2inCloudMetal  => NULL() 
-    State_Diag%ProdSO4fromO3inSeaSalt     => NULL() 
-    State_Diag%ProdSO4fromOxidationOnDust => NULL() 
-    State_Diag%ProdSO4fromUptakeOfH2SO4g  => NULL()
-    State_Diag%ProdSO4fromSRO3            => NULL()
-    State_Diag%ProdSO4fromSRHOBr          => NULL()
-    State_Diag%ProdSO4fromO3s             => NULL()
-    State_Diag%ProdNITfromHNO3uptakeOnDust=> NULL()
-    State_Diag%LossHNO3onSeaSalt          => NULL() 
-
-    State_Diag%RadAllSkyLWSurf            => NULL()
-    State_Diag%RadAllSkyLWTOA             => NULL()
-    State_Diag%RadAllSkySWSurf            => NULL()
-    State_Diag%RadAllSkySWTOA             => NULL()
-    State_Diag%RadClrSkyLWSurf            => NULL()
-    State_Diag%RadClrSkyLWTOA             => NULL()
-    State_Diag%RadClrSkySWSurf            => NULL()
-    State_Diag%RadClrSkySWTOA             => NULL()
-
-    State_Diag%AerHygGrowth               => NULL()
-    State_Diag%AerAqVol                   => NULL()
-    State_Diag%AerSurfAreaHyg             => NULL()
-    State_Diag%AerSurfAreaDust            => NULL()
-    State_Diag%AerSurfAreaSLA             => NULL()
-    State_Diag%AerSurfAreaPSC             => NULL()
-    State_Diag%AerNumDenSLA               => NULL()
-    State_Diag%AerNumDenPSC               => NULL()
-                                     
-    State_Diag%AODDust                    => NULL()
-    State_Diag%AODDustWL1                 => NULL()
-    State_Diag%AODDustWL2                 => NULL()
-    State_Diag%AODDustWL3                 => NULL()
-    State_Diag%AODHygWL1                  => NULL()
-    State_Diag%AODHygWL2                  => NULL()
-    State_Diag%AODHygWL3                  => NULL()
-    State_Diag%AODSOAfromAqIsopWL1        => NULL()
-    State_Diag%AODSOAfromAqIsopWL2        => NULL()
-    State_Diag%AODSOAfromAqIsopWL3        => NULL()
-    State_Diag%AODSLAWL1                  => NULL()
-    State_Diag%AODSLAWL2                  => NULL()
-    State_Diag%AODSLAWL3                  => NULL()
-    State_Diag%AODPSCWL1                  => NULL()
-    State_Diag%AODPSCWL2                  => NULL()
-    State_Diag%AODPSCWL3                  => NULL()
-
-    ! Set archive logicals for diagnostics
-    State_Diag%Archive_SpeciesConc           = .FALSE.
-    State_Diag%Archive_DryDep                = .FALSE.
-    State_Diag%Archive_DryDepChm             = .FALSE.
-    State_Diag%Archive_DryDepMix             = .FALSE.
-
-    ! Set archive logicals for budget
     State_Diag%Archive_BudgetEmissions       = .FALSE.          
     State_Diag%Archive_BudgetEmissionsFull   = .FALSE.          
     State_Diag%Archive_BudgetEmissionsTrop   = .FALSE.
@@ -606,41 +557,225 @@ CONTAINS
     State_Diag%Archive_BudgetWetDepTrop      = .FALSE.
     State_Diag%Archive_BudgetWetDepPBL       = .FALSE.  
 
-    ! Set archive logicals for for aerosol mass
-    State_Diag%Archive_AerMass               = .FALSE.
-    State_Diag%Archive_AerMassASOA           = .FALSE.
-    State_Diag%Archive_AerMassBC             = .FALSE.
-    State_Diag%Archive_AerMassINDIOL         = .FALSE.
-    State_Diag%Archive_AerMassISN1OA         = .FALSE.
-    State_Diag%Archive_AerMassISOA           = .FALSE.
-    State_Diag%Archive_AerMassLVOCOA         = .FALSE.
-    State_Diag%Archive_AerMassNH4            = .FALSE.
-    State_Diag%Archive_AerMassNIT            = .FALSE.
-    State_Diag%Archive_AerMassOPOA           = .FALSE.
-    State_Diag%Archive_AerMassPOA            = .FALSE.
-    State_Diag%Archive_AerMassSAL            = .FALSE.
-    State_Diag%Archive_AerMassSO4            = .FALSE.
-    State_Diag%Archive_AerMassSOAGX          = .FALSE.
-    State_Diag%Archive_AerMassSOAIE          = .FALSE.
-    State_Diag%Archive_AerMassSOAME          = .FALSE.
-    State_Diag%Archive_AerMassSOAMG          = .FALSE.
-    State_Diag%Archive_AerMassTSOA           = .FALSE.
-    State_Diag%Archive_BetaNO                = .FALSE.
-    State_Diag%Archive_PM25                  = .FALSE.
-    State_Diag%Archive_TotalOA               = .FALSE.
-    State_Diag%Archive_TotalOC               = .FALSE.
-    State_Diag%Archive_TotalBiogenicOA       = .FALSE. 
+    State_Diag%DryDep                     => NULL()
+    State_Diag%DryDepChm                  => NULL()
+    State_Diag%DryDepMix                  => NULL()
+    State_Diag%DryDepVel                  => NULL()
+    State_Diag%Archive_DryDep             = .FALSE.
+    State_Diag%Archive_DryDepChm          = .FALSE.
+    State_Diag%Archive_DryDepMix          = .FALSE.
+    State_Diag%Archive_DryDepVel          = .FALSE.
 
-    ! Set logicals for convection diagnostics
-    State_Diag%Archive_CloudConvFlux         = .FALSE.
-    State_Diag%Archive_WetLossConvFrac       = .FALSE.
-    State_Diag%Archive_WetLossConv           = .FALSE.
+    State_Diag%JVal                       => NULL()
+    State_Diag%JNoon                      => NULL()
+    State_Diag%RxnRates                   => NULL()
+    State_Diag%UVFluxDiffuse              => NULL()
+    State_Diag%UVFluxDirect               => NULL()
+    State_Diag%UVFluxNet                  => NULL()
+    State_Diag%OHconcAfterChem            => NULL()
+    State_Diag%HO2concAfterChem           => NULL()
+    State_Diag%O1DconcAfterChem           => NULL()
+    State_Diag%O3PconcAfterChem           => NULL()
+    State_Diag%Loss                       => NULL()
+    State_Diag%Prod                       => NULL()
+    State_Diag%Archive_JVal               = .FALSE.
+    State_Diag%Archive_JNoon              = .FALSE.
+    State_Diag%Archive_RxnRates           = .FALSE.
+    State_Diag%Archive_UVFluxDiffuse      = .FALSE.
+    State_Diag%Archive_UVFluxDirect       = .FALSE.
+    State_Diag%Archive_UVFluxNet          = .FALSE.
+    State_Diag%Archive_OHconcAfterChem    = .FALSE.
+    State_Diag%Archive_HO2concAfterChem   = .FALSE.
+    State_Diag%Archive_O1DconcAfterChem   = .FALSE.
+    State_Diag%Archive_O3PconcAfterChem   = .FALSE.
+    State_Diag%Archive_Loss               = .FALSE.
+    State_Diag%Archive_Prod               = .FALSE.
 
-    ! Set logicals for large-scale wet deposition diagnostics
-    State_Diag%Archive_WetLossLS             = .FALSE.
-    State_Diag%Archive_PrecipFracLS          = .FALSE.
-    State_Diag%Archive_RainFracLS            = .FALSE.
-    State_Diag%Archive_WashFracLS            = .FALSE.
+    State_Diag%AerHygGrowth               => NULL()
+    State_Diag%AerAqVol                   => NULL()
+    State_Diag%AerSurfAreaHyg             => NULL()
+    State_Diag%AerSurfAreaDust            => NULL()
+    State_Diag%AerSurfAreaSLA             => NULL()
+    State_Diag%AerSurfAreaPSC             => NULL()
+    State_Diag%AerNumDenSLA               => NULL()
+    State_Diag%AerNumDenPSC               => NULL()
+    State_Diag%Archive_AerHygGrowth       = .FALSE.
+    State_Diag%Archive_AerAqVol           = .FALSE.
+    State_Diag%Archive_AerSurfAreaHyg     = .FALSE.
+    State_Diag%Archive_AerSurfAreaDust    = .FALSE.
+    State_Diag%Archive_AerSurfAreaSLA     = .FALSE.
+    State_Diag%Archive_AerSurfAreaPSC     = .FALSE.
+    State_Diag%Archive_AerNumDenSLA       = .FALSE.
+    State_Diag%Archive_AerNumDenPSC       = .FALSE.
+
+    State_Diag%AODDust                     => NULL()
+    State_Diag%AODDustWL1                  => NULL()
+    State_Diag%AODDustWL2                  => NULL()
+    State_Diag%AODDustWL3                  => NULL()
+    State_Diag%AODHygWL1                   => NULL()
+    State_Diag%AODHygWL2                   => NULL()
+    State_Diag%AODHygWL3                   => NULL()
+    State_Diag%AODSOAfromAqIsopWL1         => NULL()
+    State_Diag%AODSOAfromAqIsopWL2         => NULL()
+    State_Diag%AODSOAfromAqIsopWL3         => NULL()
+    State_Diag%AODSLAWL1                   => NULL()
+    State_Diag%AODSLAWL2                   => NULL()
+    State_Diag%AODSLAWL3                   => NULL()
+    State_Diag%AODPSCWL1                   => NULL()
+    State_Diag%AODPSCWL2                   => NULL()
+    State_Diag%AODPSCWL3                   => NULL()  
+    State_Diag%Archive_AODDust             = .FALSE.
+    State_Diag%Archive_AODDustWL1          = .FALSE.
+    State_Diag%Archive_AODDustWL2          = .FALSE.
+    State_Diag%Archive_AODDustWL3          = .FALSE.
+    State_Diag%Archive_AODHygWL1           = .FALSE.
+    State_Diag%Archive_AODHygWL2           = .FALSE.
+    State_Diag%Archive_AODHygWL3           = .FALSE.
+    State_Diag%Archive_AODSOAfromAqIsopWL1 = .FALSE.
+    State_Diag%Archive_AODSOAfromAqIsopWL2 = .FALSE.
+    State_Diag%Archive_AODSOAfromAqIsopWL3 = .FALSE.
+    State_Diag%Archive_AODSLAWL1           = .FALSE.
+    State_Diag%Archive_AODSLAWL2           = .FALSE.
+    State_Diag%Archive_AODSLAWL3           = .FALSE.
+    State_Diag%Archive_AODPSCWL1           = .FALSE.
+    State_Diag%Archive_AODPSCWL2           = .FALSE.
+    State_Diag%Archive_AODPSCWL3           = .FALSE.
+
+    State_Diag%AerMassASOA                => NULL()
+    State_Diag%AerMassBC                  => NULL()
+    State_Diag%AerMassINDIOL              => NULL()
+    State_Diag%AerMassISN1OA              => NULL()
+    State_Diag%AerMassISOA                => NULL()
+    State_Diag%AerMassLVOCOA              => NULL()
+    State_Diag%AerMassNH4                 => NULL()
+    State_Diag%AerMassNIT                 => NULL()
+    State_Diag%AerMassOPOA                => NULL()
+    State_Diag%AerMassPOA                 => NULL()
+    State_Diag%AerMassSAL                 => NULL()
+    State_Diag%AerMassSO4                 => NULL()
+    State_Diag%AerMassSOAGX               => NULL()
+    State_Diag%AerMassSOAIE               => NULL()
+    State_Diag%AerMassSOAME               => NULL()
+    State_Diag%AerMassSOAMG               => NULL()
+    State_Diag%AerMassTSOA                => NULL()
+    State_Diag%BetaNO                     => NULL()
+    State_Diag%PM25                       => NULL()
+    State_Diag%TotalOA                    => NULL()
+    State_Diag%TotalOC                    => NULL()
+    State_Diag%TotalBiogenicOA            => NULL()
+    State_Diag%Archive_AerMass            = .FALSE.
+    State_Diag%Archive_AerMassASOA        = .FALSE.
+    State_Diag%Archive_AerMassBC          = .FALSE.
+    State_Diag%Archive_AerMassINDIOL      = .FALSE.
+    State_Diag%Archive_AerMassISN1OA      = .FALSE.
+    State_Diag%Archive_AerMassISOA        = .FALSE.
+    State_Diag%Archive_AerMassLVOCOA      = .FALSE.
+    State_Diag%Archive_AerMassNH4         = .FALSE.
+    State_Diag%Archive_AerMassNIT         = .FALSE.
+    State_Diag%Archive_AerMassOPOA        = .FALSE.
+    State_Diag%Archive_AerMassPOA         = .FALSE.
+    State_Diag%Archive_AerMassSAL         = .FALSE.
+    State_Diag%Archive_AerMassSO4         = .FALSE.
+    State_Diag%Archive_AerMassSOAGX       = .FALSE.
+    State_Diag%Archive_AerMassSOAIE       = .FALSE.
+    State_Diag%Archive_AerMassSOAME       = .FALSE.
+    State_Diag%Archive_AerMassSOAMG       = .FALSE.
+    State_Diag%Archive_AerMassTSOA        = .FALSE.
+    State_Diag%Archive_BetaNO             = .FALSE.
+    State_Diag%Archive_PM25               = .FALSE.
+    State_Diag%Archive_TotalOA            = .FALSE.
+    State_Diag%Archive_TotalOC            = .FALSE.
+    State_Diag%Archive_TotalBiogenicOA    = .FALSE. 
+
+    State_Diag%AdvFluxZonal               => NULL()
+    State_Diag%AdvFluxMerid               => NULL()
+    State_Diag%AdvFluxVert                => NULL()
+    State_Diag%Archive_AdvFluxZonal       = .FALSE.
+    State_Diag%Archive_AdvFluxMerid       = .FALSE.
+    State_Diag%Archive_AdvFluxVert        = .FALSE.
+
+    State_Diag%PBLMixFrac                 => NULL()
+    State_Diag%PBLFlux                    => NULL()
+    State_Diag%Archive_PBLMixFrac         = .FALSE.
+    State_Diag%Archive_PBLFlux            = .FALSE.
+
+    State_Diag%CloudConvFlux              => NULL()
+    State_Diag%WetLossConvFrac            => NULL()
+    State_Diag%WetLossConv                => NULL()
+    State_Diag%Archive_CloudConvFlux      = .FALSE.
+    State_Diag%Archive_WetLossConvFrac    = .FALSE.
+    State_Diag%Archive_WetLossConv        = .FALSE.
+
+    State_Diag%WetLossLS                  => NULL()
+    State_Diag%PrecipFracLS               => NULL()
+    State_Diag%RainFracLS                 => NULL()
+    State_Diag%WashFracLS                 => NULL()
+    State_Diag%Archive_WetLossLS          = .FALSE.
+    State_Diag%Archive_PrecipFracLS       = .FALSE.
+    State_Diag%Archive_RainFracLS         = .FALSE.
+    State_Diag%Archive_WashFracLS         = .FALSE.
+
+    State_Diag%ProdBCPIfromBCPO           => NULL()
+    State_Diag%ProdOCPIfromOCPO           => NULL()
+    State_Diag%Archive_ProdBCPIfromBCPO   = .FALSE.
+    State_Diag%Archive_ProdOCPIfromOCPO   = .FALSE.
+
+    State_Diag%ProdSO2fromDMSandOH        => NULL() 
+    State_Diag%ProdSO2fromDMSandNO3       => NULL() 
+    State_Diag%ProdSO2fromDMS             => NULL()   
+    State_Diag%ProdMSAfromDMS             => NULL() 
+    State_Diag%ProdNITfromHNO3uptakeOnDust=> NULL()
+    State_Diag%ProdSO4fromGasPhase        => NULL() 
+    State_Diag%ProdSO4fromH2O2inCloud     => NULL() 
+    State_Diag%ProdSO4fromO3inCloud       => NULL() 
+    State_Diag%ProdSO4fromO2inCloudMetal  => NULL() 
+    State_Diag%ProdSO4fromO3inSeaSalt     => NULL() 
+    State_Diag%ProdSO4fromOxidationOnDust => NULL() 
+    State_Diag%ProdSO4fromUptakeOfH2SO4g  => NULL()
+    State_Diag%ProdSO4fromHOBrInCloud     => NULL()
+    State_Diag%ProdSO4fromSRO3            => NULL()
+    State_Diag%ProdSO4fromSRHOBr          => NULL()
+    State_Diag%ProdSO4fromO3s             => NULL()
+    State_Diag%LossHNO3onSeaSalt          => NULL() 
+    State_Diag%Archive_ProdSO2fromDMSandOH         = .FALSE. 
+    State_Diag%Archive_ProdSO2fromDMSandNO3        = .FALSE. 
+    State_Diag%Archive_ProdSO2fromDMS              = .FALSE.   
+    State_Diag%Archive_ProdMSAfromDMS              = .FALSE. 
+    State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .FALSE.
+    State_Diag%Archive_ProdSO4fromGasPhase         = .FALSE. 
+    State_Diag%Archive_ProdSO4fromH2O2inCloud      = .FALSE. 
+    State_Diag%Archive_ProdSO4fromO3inCloud        = .FALSE. 
+    State_Diag%Archive_ProdSO4fromO2inCloudMetal   = .FALSE. 
+    State_Diag%Archive_ProdSO4fromO3inSeaSalt      = .FALSE. 
+    State_Diag%Archive_ProdSO4fromOxidationOnDust  = .FALSE. 
+    State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g   = .FALSE.
+    State_Diag%Archive_ProdSO4fromHOBrInCloud      = .FALSE.
+    State_Diag%Archive_ProdSO4fromSRO3             = .FALSE.
+    State_Diag%Archive_ProdSO4fromSRHOBr           = .FALSE.
+    State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
+    State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE. 
+
+    State_Diag%PbFromRnDecay              => NULL()
+    State_Diag%RadDecay                   => NULL()
+    State_Diag%Archive_PbFromRnDecay      = .FALSE.
+    State_Diag%Archive_RadDecay           = .FALSE.
+
+    State_Diag%RadAllSkyLWSurf            => NULL()
+    State_Diag%RadAllSkyLWTOA             => NULL()
+    State_Diag%RadAllSkySWSurf            => NULL()
+    State_Diag%RadAllSkySWTOA             => NULL()
+    State_Diag%RadClrSkyLWSurf            => NULL()
+    State_Diag%RadClrSkyLWTOA             => NULL()
+    State_Diag%RadClrSkySWSurf            => NULL()
+    State_Diag%RadClrSkySWTOA             => NULL()
+    State_Diag%Archive_RadAllSkyLWSurf    = .FALSE.
+    State_Diag%Archive_RadAllSkyLWTOA     = .FALSE.
+    State_Diag%Archive_RadAllSkySWSurf    = .FALSE.
+    State_Diag%Archive_RadAllSkySWTOA     = .FALSE.
+    State_Diag%Archive_RadClrSkyLWSurf    = .FALSE.
+    State_Diag%Archive_RadClrSkyLWTOA     = .FALSE.
+    State_Diag%Archive_RadClrSkySWSurf    = .FALSE.
+    State_Diag%Archive_RadClrSkySWTOA     = .FALSE.
 
 #if defined( NC_DIAG )
 
@@ -1161,6 +1296,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepVel = 0.0_f4
+       State_Diag%Archive_DryDepVel = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepVel, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1178,6 +1314,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxZonal = 0.0_f4
+       State_Diag%Archive_AdvFluxZonal = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxZonal, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1195,6 +1332,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxMerid = 0.0_f4
+       State_Diag%Archive_AdvFluxMerid = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxMerid, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1212,6 +1350,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%AdvFluxVert = 0.0_f4
+       State_Diag%Archive_AdvFluxVert = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%AdvFluxVert, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1229,6 +1368,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PBLMixFrac = 0.0_f4
+       State_Diag%Archive_PBLMixFrac = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLMixFrac, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1246,6 +1386,7 @@ CONTAINS
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%PBLFlux = 0.0_f4
+       State_Diag%Archive_PBLFlux = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%PBLFlux, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1397,6 +1538,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%PbFromRnDecay = 0.0_f4
+          State_Diag%Archive_PbFromRnDecay = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%PbFromRnDecay,                &
                                    State_Chm, State_Diag, RC )
@@ -1416,6 +1558,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadDecay = 0.0_f4
+          State_Diag%Archive_RadDecay = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%RadDecay,  &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1474,6 +1617,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWSurf = 0.0_f4
+          State_Diag%Archive_RadAllSkyLWSurf = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadAllSkyLWSurf,              &
                                    State_Chm, State_Diag, RC )
@@ -1492,6 +1636,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWTOA = 0.0_f4
+          State_Diag%Archive_RadAllSkyLWTOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadAllSkyLWTOA,               &
                                    State_Chm, State_Diag, RC )
@@ -1510,6 +1655,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWSurf = 0.0_f4
+          State_Diag%Archive_RadAllSkySWSurf = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadAllSkySWSurf,              &
                                    State_Chm, State_Diag, RC )
@@ -1528,6 +1674,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWTOA = 0.0_f4
+          State_Diag%Archive_RadAllSkySWTOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadAllSkySWTOA,               &
                                    State_Chm, State_Diag, RC )
@@ -1546,6 +1693,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWSurf = 0.0_f4
+          State_Diag%Archive_RadClrSkyLWSurf = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadClrSkyLWSurf,              &
                                    State_Chm, State_Diag, RC )
@@ -1564,6 +1712,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWTOA = 0.0_f4
+          State_Diag%Archive_RadClrSkyLWTOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadClrSkyLWTOA,               &
                                    State_Chm, State_Diag, RC )
@@ -1582,6 +1731,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWSurf = 0.0_f4
+          State_Diag%Archive_RadClrSkySWSurf = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadClrSkySWSurf,              &
                                    State_Chm, State_Diag, RC )
@@ -1600,6 +1750,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWTOA = 0.0_f4
+          State_Diag%Archive_RadClrSkySWTOA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%RadClrSkySWTOA, &
                                    State_Chm, State_Diag, RC )
@@ -1692,6 +1843,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JVal = 0.0_f4
+          State_Diag%Archive_JVal = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%JVal,       &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1712,6 +1864,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%JNoon = 0.0_f4
+          State_Diag%Archive_JNoon = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,     State_Diag%JNoon,  &
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1729,6 +1882,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDiffuse = 0.0_f4
+          State_Diag%Archive_UVFluxDiffuse = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%UVFluxDiffuse,                 &
                                    State_Chm, State_Diag, RC )
@@ -1747,6 +1901,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxDirect = 0.0_f4
+          State_Diag%Archive_UVFluxDirect = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%UVFluxDirect,                  &
                                    State_Chm, State_Diag, RC )
@@ -1765,6 +1920,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%UVFluxNet = 0.0_f4
+          State_Diag%Archive_UVFluxNet = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%UVFluxNet, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1782,6 +1938,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%HO2concAfterChem = 0.0_f4
+          State_Diag%Archive_HO2concAfterChem = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%HO2concAfterChem,              &
                                    State_Chm, State_Diag, RC )
@@ -1800,6 +1957,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%O1DconcAfterChem = 0.0_f4
+          State_Diag%Archive_O1DconcAfterChem = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        & 
                                    State_Diag%O1DconcAfterChem,              &
                                    State_Chm, State_Diag, RC )
@@ -1818,6 +1976,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%O3PconcAfterChem = 0.0_f4
+          State_Diag%Archive_O3PconcAfterChem = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%O3PconcAfterChem,              &
                                    State_Chm, State_Diag, RC )
@@ -1836,6 +1995,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromHOBrInCloud = 0.0_f4
+          State_Diag%Archive_ProdSO4fromHOBrInCloud = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        & 
                                    State_Diag%ProdSO4fromHOBrInCloud,        &
                                    State_Chm, State_Diag, RC                )
@@ -1854,6 +2014,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromSRHOBr = 0.0_f4
+          State_Diag%Archive_ProdSO4fromSRHOBr = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromSRHOBr,             &
                                    State_Chm, State_Diag, RC                )
@@ -2229,6 +2390,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%OHconcAfterChem = 0.0_f4
+          State_Diag%Archive_OHconcAfterChem = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%OHconcAfterChem,               &
                                    State_Chm, State_Diag, RC )
@@ -2282,6 +2444,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDust = 0.0_f4
+          State_Diag%Archive_AODDust = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODDust,    &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2300,6 +2463,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL1 = 0.0_f4
+          State_Diag%Archive_AODDustWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                    &
                                    State_Diag%AODDustWL1,                &
                                    State_Chm, State_Diag, RC )
@@ -2319,6 +2483,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL2 = 0.0_f4
+          State_Diag%Archive_AODDustWL2 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%AODDustWL2,                   &
                                    State_Chm, State_Diag, RC )
@@ -2338,6 +2503,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODDustWL3 = 0.0_f4
+          State_Diag%Archive_AODDustWL3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%AODDustWL3,                   &
                                    State_Chm, State_Diag, RC )
@@ -2357,6 +2523,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL1 = 0.0_f4
+          State_Diag%Archive_AODHygWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL1, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2375,6 +2542,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL2 = 0.0_f4
+          State_Diag%Archive_AODHygWL2 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL2, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2393,6 +2561,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODHygWL3 = 0.0_f4
+          State_Diag%Archive_AODHygWL3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODHygWL3, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2412,6 +2581,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL1 = 0.0_f4
+          State_Diag%Archive_AODSOAfromAqIsopWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,              &
                                    State_Diag%AODSOAfromAqIsopWL1, &
                                    State_Chm, State_Diag, RC )
@@ -2432,6 +2602,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL2 = 0.0_f4
+          State_Diag%Archive_AODSOAfromAqIsopWL2 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,              &
                                    State_Diag%AODSOAfromAqIsopWL2, &
                                    State_Chm, State_Diag, RC )
@@ -2452,6 +2623,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSOAfromAqIsopWL3 = 0.0_f4
+          State_Diag%Archive_AODSOAfromAqIsopWL3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,              &
                                    State_Diag%AODSOAfromAqIsopWL3, &
                                    State_Chm, State_Diag, RC )
@@ -2472,6 +2644,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
+          State_Diag%Archive_AODSLAWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2491,6 +2664,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
+          State_Diag%Archive_AODSLAWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2510,6 +2684,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODSLAWL1 = 0.0_f4
+          State_Diag%Archive_AODSLAWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODSLAWL1, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2529,6 +2704,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL1 = 0.0_f4
+          State_Diag%Archive_AODPSCWL1 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AODPSCWL1, &
                                    State_Chm, State_Diag, RC )
        ENDIF
@@ -2547,6 +2723,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL2 = 0.0_f4
+          State_Diag%Archive_AODPSCWL2 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,     &
                                    State_Diag%AODPSCWL2,  &
                                    State_Chm, State_Diag, RC )
@@ -2566,6 +2743,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AODPSCWL3 = 0.0_f4
+          State_Diag%Archive_AODPSCWL3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,    &
                                    State_Diag%AODPSCWL3, &
                                    State_Chm, State_Diag, RC )
@@ -2583,6 +2761,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerHygGrowth = 0.0_f4
+          State_Diag%Archive_AerHygGrowth = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,       &
                                    State_Diag%AerHygGrowth, &
                                    State_Chm, State_Diag, RC )
@@ -2601,6 +2780,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaDust = 0.0_f4
+          State_Diag%Archive_AerSurfAreaDust = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,          &
                                    State_Diag%AerSurfAreaDust, &
                                    State_Chm, State_Diag, RC )
@@ -2619,6 +2799,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaHyg = 0.0_f4
+          State_Diag%Archive_AerSurfAreaHyg = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,      &
                                    State_Diag%AerSurfAreaHyg, &
                                    State_Chm, State_Diag, RC )
@@ -2637,6 +2818,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerNumDenSLA = 0.0_f4
+          State_Diag%Archive_AerNumDenSLA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,       &
                                    State_Diag%AerNumDenSLA, &
                                    State_Chm, State_Diag, RC )
@@ -2655,6 +2837,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerNumDenPSC = 0.0_f4
+          State_Diag%Archive_AerNumDenPSC = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,       &
                                    State_Diag%AerNumDenPSC, &
                                    State_Chm, State_Diag, RC )
@@ -2673,6 +2856,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerAqVol = 0.0_f4
+          State_Diag%Archive_AerAqVol = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%AerAqVol, &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2690,6 +2874,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaSLA = 0.0_f4
+          State_Diag%Archive_AerSurfAreaSLA = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,           &
                                    State_Diag%AerSurfAreaSLA, &
                                    State_Chm, State_Diag, RC )
@@ -2708,6 +2893,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%AerSurfAreaPSC = 0.0_f4
+          State_Diag%Archive_AerSurfAreaPSC = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,         &
                                    State_Diag%AerSurfAreaPSC, &
                                    State_Chm, State_Diag, RC )
@@ -2727,6 +2913,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdBCPIfromBCPO = 0.0_f4
+          State_Diag%Archive_ProdBCPIfromBCPO = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdBCPIfromBCPO,             &
                                    State_Chm, State_Diag, RC )
@@ -2746,6 +2933,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdOCPIfromOCPO = 0.0_f4
+          State_Diag%Archive_ProdOCPIfromOCPO = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdOCPIfromOCPO,             &
                                    State_Chm, State_Diag, RC )
@@ -2764,6 +2952,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromH2O2inCloud = 0.0_f4
+          State_Diag%Archive_ProdSO4fromH2O2inCloud = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromH2O2inCloud,        &
                                    State_Chm, State_Diag, RC                )
@@ -2782,6 +2971,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO3inCloud = 0.0_f4
+          State_Diag%Archive_ProdSO4fromO3inCloud = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromO3inCloud,          &
                                    State_Chm, State_Diag, RC                )
@@ -2800,6 +2990,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO2inCloudMetal = 0.0_f4
+          State_Diag%Archive_ProdSO4fromO2inCloudMetal = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromO2inCloudMetal,     &
                                    State_Chm, State_Diag, RC                )
@@ -2818,6 +3009,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSo4fromO3inSeaSalt = 0.0_f4
+          State_Diag%Archive_ProdSo4fromO3inSeaSalt = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSo4fromO3inSeaSalt,        &
                                    State_Chm, State_Diag, RC                )
@@ -2836,6 +3028,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromSRO3 = 0.0_f4
+          State_Diag%Archive_ProdSO4fromSRO3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdSO4fromSRO3,              &
                                    State_Chm, State_Diag, RC               )
@@ -2854,6 +3047,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromO3s = 0.0_f4
+          State_Diag%Archive_ProdSO4fromO3s = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromO3s,                &
                                    State_Chm, State_Diag, RC                )
@@ -2872,6 +3066,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossHNO3onSeaSalt = 0.0_f4
+          State_Diag%Archive_LossHNO3onSeaSalt = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%LossHNO3onSeaSalt,             &
                                    State_Chm, State_Diag, RC )
@@ -3123,6 +3318,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromGasPhase = 0.0_f4
+          State_Diag%Archive_ProdSO4fromGasPhase = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       & 
                                    State_Diag%ProdSO4fromGasPhase,            &
                                    State_Chm, State_Diag, RC               )
@@ -3141,6 +3337,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdMSAfromDMS = 0.0_f4
+          State_Diag%Archive_ProdMSAfromDMS = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdMSAfromDMS,                &
                                    State_Chm, State_Diag, RC                )
@@ -3159,6 +3356,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMS = 0.0_f4
+          State_Diag%Archive_ProdSO2fromDMS = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdSO2fromDMS,               &
                                    State_Chm, State_Diag, RC               )
@@ -3177,6 +3375,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMSandNO3 = 0.0_f4
+          State_Diag%Archive_ProdSO2fromDMSandNO3 = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdSO2fromDMSandNO3,         &
                                    State_Chm, State_Diag, RC               )
@@ -3195,6 +3394,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO2fromDMSandOH = 0.0_f4
+          State_Diag%Archive_ProdSO2fromDMSandOH = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                       &
                                    State_Diag%ProdSO2fromDMSandOH,          &
                                    State_Chm, State_Diag, RC               )
@@ -3269,6 +3469,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%Loss = 0.0_f4
+          State_Diag%Archive_Loss = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%Loss,      &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3289,6 +3490,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%Prod = 0.0_f4
+          State_Diag%Archive_Prod = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID, State_Diag%Prod,      &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3348,6 +3550,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromOxidationOnDust = 0.0_f4
+          State_Diag%Archive_ProdSO4fromOxidationOnDust = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromOxidationOnDust,    &
                                    State_Chm, State_Diag, RC )
@@ -3366,6 +3569,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdNITfromHNO3uptakeOnDust = 0.0_f4
+          State_Diag%Archive_ProdNITfromHNO3uptakeOnDust = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdNITfromHNO3uptakeOnDust,   &
                                    State_Chm, State_Diag, RC )
@@ -3384,6 +3588,7 @@ CONTAINS
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdSO4fromUptakeOfH2SO4g = 0.0_f4
+          State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdSO4fromUptakeOfH2SO4g,     &
                                    State_Chm, State_Diag, RC )
@@ -3450,6 +3655,7 @@ CONTAINS
     !   CALL GC_CheckVar( arrayID, 0, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
     !   State_Diag%xxx = 0.0_f4
+    !   State_Diag%Archive_xxx = .TRUE.
     !   CALL Register_DiagField( am_I_Root, diagID, State_Diag%xxx, &
     !                            State_Chm, State_Diag, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
@@ -3494,8 +3700,6 @@ CONTAINS
                                    State_Diag%Archive_TotalOA        .or.    &
                                    State_Diag%Archive_TotalOC        .or.    &
                                    State_Diag%Archive_TotalBiogenicOA         )
-
-
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

@@ -370,10 +370,6 @@
       INTEGER :: id_LISOPOH, id_LISOPNO3
       INTEGER :: id_SOAS,    id_SOAP
 
-      ! Diagnostic flags
-      LOGICAL :: Archive_ProdBCPIfromBCPO
-      LOGICAL :: Archive_ProdOCPIfromOCPO
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -903,7 +899,7 @@
          !
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !==============================================================
-         IF ( Archive_ProdBCPIfromBCPO ) THEN
+         IF ( State_Diag%Archive_ProdBCPIfromBCPO ) THEN
             State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
          ENDIF
 #endif
@@ -1165,7 +1161,7 @@
          !
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !=================================================================
-         IF ( Archive_ProdOCPIfromOCPO ) THEN
+         IF ( State_Diag%Archive_ProdOCPIfromOCPO ) THEN
             State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
          ENDIF
 #endif
@@ -7731,12 +7727,6 @@ ccc
       
       ! Assume success
       RC = GC_SUCCESS
-
-      ! Check if netCDF diagnostics are turned on
-      Archive_ProdBCPIfromBCPO = 
-     &     ASSOCIATED( STate_Diag%ProdBCPIfromBCPO )
-      Archive_ProdOCPIfromOCPO = 
-     &     ASSOCIATED( STate_Diag%ProdOCPIfromOCPO )
 
       ! Define species IDs
       id_ASOG1    = IND_('ASOG1'   )
