@@ -114,15 +114,18 @@ MODULE HCO_ExtList_Mod
 #if defined( GEOS_FP )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'GEOSFP'
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'geosfp'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2011'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2011'  ! Constant met fld year
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NC_VER = 'nc'    ! NetCDF extension
 #elif defined( MERRA2 )
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'MERRA2'
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'merra2'
-  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2015'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2015'  ! Constant met fld year
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NC_VER = 'nc4'   ! NetCDF extension
 #else
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'UNKNOWN_MET'
   CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'unknown_met'
   CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = 'unknown_year'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_EXT= 'unknown_extension'
 #endif 
 
   ! Default resolution token
@@ -1561,6 +1564,12 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_CN_YR
     CALL HCO_AddOpt( am_I_Root, CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
+    
+    ! NetCDF version extension
+    CALL GetExtOpt( CF, CoreNr, 'NC', OptValChar=DUM, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) DUM = DEF_NC_VER
+    CALL HCO_AddOpt( am_I_Root, CF, 'NC', DUM, CoreNr, RC, VERB=.FALSE. )
     
     ! Resolution token
     CALL GetExtOpt( CF, CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
