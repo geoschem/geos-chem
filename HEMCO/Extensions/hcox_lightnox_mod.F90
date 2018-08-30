@@ -386,6 +386,8 @@ CONTAINS
 !  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective 
 !                              fraction CNV_FRC (ESMF only).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Aug 2018 - C. Keller   - Use diagnostic names for special diagnostics.
+!                              This makes interface with GEOS easier.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,18 +436,8 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( HcoClock_First( HcoState%Clock, .TRUE. ) ) THEN
 
-       ! See if we have to write out manual diagnostics. These are all
-       ! defined together, so check only for one diagnostics.
-       DiagnID = 56001
-       CALL DiagnCont_Find ( HcoState%Diagn, DiagnID, -1, -1, -1, -1, &
-                             '', 0, Inst%DoDiagn, TmpCnt )
-       TmpCnt => NULL()
-
-!       ! Eventually get OTD-LIS local redistribution factors from HEMCO.
-!       IF ( Inst%LOTDLOC ) THEN
-!          CALL HCO_GetPtr( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
-!          IF ( RC /= HCO_SUCCESS ) RETURN
-!       ENDIF
+       ! ckeller, 8/30/18: Always write out diagnostics
+       Inst%DoDiagn = .TRUE.
 
        ! Get scale factor. 
        ! - Try to read from configuration file first.
@@ -1170,31 +1162,31 @@ CONTAINS
 
     ! Eventually add individual diagnostics. These go by names!
     IF ( Inst%DoDiagn ) THEN
-       DiagnID =  56001
+       ! Total flash rates
        Arr2D   => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
-                          cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_TOTAL_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnID =  56002
+       ! Intracloud flash rates 
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
-                          cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnID =  56003
+       ! Cloud to ground flash rates
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
-                          cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
-       DiagnID =  56004
+       ! Cloud top height
        Arr2D     => TOPDIAGN(:,:)
-       CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
-                          cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+       CALL Diagn_Update( am_I_Root,   HcoState, cName='LIGHTNING_CLOUD_TOP', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
