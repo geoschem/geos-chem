@@ -103,7 +103,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input Options object
     INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
     INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
     INTEGER,        OPTIONAL      :: value_I_HI       ! Max local lon index

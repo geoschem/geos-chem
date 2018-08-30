@@ -750,8 +750,6 @@
 #if defined( DISCOVER )
          ! Now add all N to NO to get around problems caused by
          ! using negative molar mass for N (SDE 2018-03-19)
-         NEW_N   = 0.d0
-         NEW_NO  = localNOx*(fracN+fracNO) /(AIRMW/
          NEW_N  = 0.0e+0_fp
          NEW_NO = localNOx*(fracN+fracNO) / (AIRMW/
      &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
