@@ -177,29 +177,6 @@
       INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
 #if defined( NC_DIAG )
-      ! Diagnostic flags
-      LOGICAL :: Archive_AerAqVol 
-      LOGICAL :: Archive_AerHygGrowth
-      LOGICAL :: Archive_AerSurfAreaHyg
-      LOGICAL :: Archive_AerSurfAreaSLA
-      LOGICAL :: Archive_AerSurfAreaPSC
-      LOGICAL :: Archive_AerNumDenSLA
-      LOGICAL :: Archive_AerNumDenPSC
-      LOGICAL :: Archive_AOD
-      LOGICAL :: Archive_AODStrat
-      LOGICAL :: Archive_AODHygWL1
-      LOGICAL :: Archive_AODHygWL2
-      LOGICAL :: Archive_AODHygWL3
-      LOGICAL :: Archive_AODSOAWL1
-      LOGICAL :: Archive_AODSOAWL2
-      LOGICAL :: Archive_AODSOAWL3
-      LOGICAL :: Archive_AODSLAWL1
-      LOGICAL :: Archive_AODSLAWL2
-      LOGICAL :: Archive_AODSLAWL3
-      LOGICAL :: Archive_AODPSCWL1
-      LOGICAL :: Archive_AODPSCWL2
-      LOGICAL :: Archive_AODPSCWL3
-
       ! Index to map between NRHAER and species database hygroscopic species
       ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
       ! a new hygroscopic species) requires manual update of this mapping
@@ -1941,8 +1918,8 @@
                !  Hygroscopic growth of Organic Carbon     [unitless]
                !  Hygroscopic growth of Sea Salt (accum)   [unitless]
                !  Hygroscopic growth of Sea Salt (coarse)  [unitless]
-               IF ( Archive_AerHygGrowth .AND. L <= LLCHEM .AND. 
-     &              ODSWITCH.EQ.1 ) THEN
+               IF ( State_Diag%Archive_AerHygGrowth .AND.
+     &              L <= LLCHEM .AND. ODSWITCH.EQ.1 ) THEN
                   State_Diag%AerHygGrowth(I,J,L,Map_NRHAER(N)) = SCALEOD
                ENDIF
 #endif
@@ -2036,7 +2013,7 @@
                !----------------------------------------------------
                ! Netcdf diagnostics computed here:
                !  Aqueous aerosol volume
-               IF ( Archive_AerAqVol .AND. N.EQ.1 ) THEN
+               IF ( State_Diag%Archive_AerAqVol .AND. N.EQ.1 ) THEN
                  State_Diag%AerAqVol(I,J,L) =
      &                         ( ERADIUS(I,J,L,NDUST+N) * 
      &                         TAREA(I,J,L, N+NDUST) ) / 3.D0
@@ -2139,10 +2116,10 @@
                ! Netcdf diagnostics computed here:
                !  Strat aerosol liquid surface area
                !  Polar strat cloud surface area
-               IF ( Archive_AerSurfAreaSLA ) THEN
+               IF ( State_Diag%Archive_AerSurfAreaSLA ) THEN
                   State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
                ENDIF
-               IF ( Archive_AerSurfAreaPSC ) THEN
+               IF ( State_Diag%Archive_AerSurfAreaPSC ) THEN
                   State_Diag%AerSurfAreaPSC(I,J,L) = SADSTRAT
                ENDIF
 
@@ -2153,38 +2130,39 @@
                !  Strat. particulate aerosol opt. depth   [unitless]
                !  Strat. particulate aerosol num. density [#/cm3   ]
                ! NOTE: Diagnostic output for each wavelength
-               IF ( Archive_AODStrat .and. ODSWITCH .EQ. 1 ) THEN
+               IF ( State_Diag%Archive_AODStrat .and. 
+     &              ODSWITCH .EQ. 1 ) THEN
                   IF ( IsSLA ) THEN
-                     IF ( Archive_AerNumDenSLA ) THEN
+                     IF ( State_Diag%Archive_AerNumDenSLA ) THEN
                         State_Diag%AerNumDenSLA(I,J,L) = 
      &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
                      ENDIF
-                     IF ( Archive_AODSLAWL1 ) THEN
+                     IF ( State_Diag%Archive_AODSLAWL1 ) THEN
                         State_Diag%AODSLAWL1(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,1),N)
                      ENDIF
-                     IF ( Archive_AODSLAWL2 ) THEN
+                     IF ( State_Diag%Archive_AODSLAWL2 ) THEN
                         State_Diag%AODSLAWL2(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,2),N)
                      ENDIF
-                     IF ( Archive_AODSLAWL3 ) THEN
+                     IF ( State_Diag%Archive_AODSLAWL3 ) THEN
                         State_Diag%AODSLAWL3(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,3),N)
                      ENDIF
                   ELSEIF ( IsPSC ) THEN
-                     IF ( Archive_AerNumDenPSC ) THEN
+                     IF ( State_Diag%Archive_AerNumDenPSC ) THEN
                         State_Diag%AerNumDenPSC(I,J,L) = 
      &                                 NDENS_AER(I,J,L,ISTRAT)*1.d-6
                      ENDIF
-                     IF ( Archive_AODPSCWL1 ) THEN
+                     IF ( State_Diag%Archive_AODPSCWL1 ) THEN
                         State_Diag%AODPSCWL1(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,1),N)
                      ENDIF
-                     IF ( Archive_AODPSCWL2 ) THEN
+                     IF ( State_Diag%Archive_AODPSCWL2 ) THEN
                         State_Diag%AODPSCWL2(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,2),N)
                      ENDIF
-                     IF ( Archive_AODPSCWL3 ) THEN
+                     IF ( State_Diag%Archive_AODPSCWL3 ) THEN
                         State_Diag%AODPSCWL3(I,J,L) = 
      &                                 ODAER(I,J,L,IWVSELECT(1,3),N)
                      ENDIF
@@ -2315,7 +2293,7 @@
       ENDIF
 #endif
 #if defined( NC_DIAG )
-      IF ( Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
+      IF ( State_Diag%Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2360,13 +2338,16 @@
                   !  Sea Salt (accum) Opt Depth (lambda1,2,3 nm)  [.]
                   !  Sea Salt (coarse) Opt Depth(lambda1,2,3 nm)  [.]
                   IF ( .not. LINTERP ) THEN
-                     IF ( Archive_AODHygWL1 .AND. IsWL1 ) THEN
+                     IF ( State_Diag%Archive_AODHygWL1 .AND. 
+     &                    IsWL1 ) THEN
                            State_Diag%AODHygWL1(I,J,L,Map_NRHAER(N)) = 
      &                                ODAER(I,J,L,IWVSELECT(1,W),N)
-                     ELSEIF ( Archive_AODHygWL2 .AND. IsWL2 ) THEN
+                     ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. 
+     &                        IsWL2 ) THEN
                            State_Diag%AODHygWL2(I,J,L,Map_NRHAER(N)) =
      &                                ODAER(I,J,L,IWVSELECT(1,W),N)
-                     ELSEIF ( Archive_AODHygWL3 .AND. IsWL3 ) THEN
+                     ELSEIF ( State_Diag%Archive_AODHygWL3 
+     &                        .AND. IsWL3 ) THEN
                            State_Diag%AODHygWL3(I,J,L,Map_NRHAER(N)) =
      &                                ODAER(I,J,L,IWVSELECT(1,W),N)
                      ENDIF
@@ -2377,17 +2358,20 @@
                      !catch any zero values before interpolation
                      IF ((ODAER(I,J,L,IWVSELECT(2,W),N).GT.0).AND.
      &                   (ODAER(I,J,L,IWVSELECT(1,W),N).GT.0)) THEN
-                        IF ( Archive_AODHygWL1 .AND. IsWL1 ) THEN
+                        IF ( State_Diag%Archive_AODHygWL1 
+     &                       .AND. IsWL1 ) THEN
                            State_Diag%AODHygWL1(I,J,L,Map_NRHAER(N)) = 
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**
      &                   (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
-                        ELSEIF ( Archive_AODHygWL2 .AND. IsWL2 ) THEN
+                        ELSEIF ( State_Diag%Archive_AODHygWL2 .AND. 
+     &                           IsWL2 ) THEN
                            State_Diag%AODHygWL2(I,J,L,Map_NRHAER(N)) =
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**
      &                   (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)))
-                        ELSEIF ( Archive_AODHygWL3 .AND. IsWL3 ) THEN
+                        ELSEIF ( State_Diag%Archive_AODHygWL3 .AND. 
+     &                           IsWL3 ) THEN
                            State_Diag%AODHygWL3(I,J,L,Map_NRHAER(N)) =
      &                   ODAER(I,J,L,IWVSELECT(2,W),N)*ACOEF_WV(W)**
      &                   (BCOEF_WV(W)*LOG(ODAER(I,J,L,IWVSELECT(1,W),N)/
@@ -2400,15 +2384,18 @@
                   ! Netcdf diagnostics computed here:
                   !  AOD for SOA from aq isoprene (lambda1,2,3 nm) [unitless]
                   IF ( ( N == 3 ) .and. Is_ComplexSOA ) THEN
-                     IF ( Archive_AODSOAWL1 .AND. IsWL1 ) THEN
+                     IF ( State_Diag%Archive_AODSOAfromAqIsopWL1 .AND. 
+     &                    IsWL1 ) THEN
                         State_Diag%AODSOAfromAqIsopWL1(I,J,L) = 
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                      ENDIF
-                     IF ( Archive_AODSOAWL2 .AND. IsWL2 ) THEN
+                     IF ( State_Diag%Archive_AODSOAfromAqIsopWL2 .AND. 
+     &                    IsWL2 ) THEN
                         State_Diag%AODSOAfromAqIsopWL2(I,J,L) =
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                      ENDIF
-                     IF ( Archive_AODSOAWL3 .AND. IsWL3 ) THEN
+                     IF ( State_Diag%Archive_AODSOAfromAqIsopWL3 .AND. 
+     &                    IsWL3 ) THEN
                         State_Diag%AODSOAfromAqIsopWL3(I,J,L) =
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
                      ENDIF
@@ -2426,7 +2413,8 @@
       !------------------------------------
       ! Aerosol Surface Areas
       !------------------------------------
-      IF ( Archive_AerSurfAreaHyg .AND. ODSWITCH .EQ. 1) THEN
+      IF ( State_Diag%Archive_AerSurfAreaHyg .AND. 
+     &     ODSWITCH .EQ. 1) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
@@ -2596,50 +2584,6 @@
       id_INDIOL = Ind_( 'INDIOL' )
       id_LVOCOA = Ind_( 'LVOCOA' )
       id_ISN1OA = Ind_( 'ISN1OA' )
-
-#if defined( NC_DIAG )
-      ! Are certain diagnostics turned on?
-      Archive_AODHygWL1    = ASSOCIATED(State_Diag%AODHygWL1)
-      Archive_AODHygWL2    = ASSOCIATED(State_Diag%AODHygWL2)
-      Archive_AODHygWL3    = ASSOCIATED(State_Diag%AODHygWL3)
-      Archive_AODSOAWL1    = ASSOCIATED(State_Diag%AODSOAfromAqIsopWL1)
-      Archive_AODSOAWL2    = ASSOCIATED(State_Diag%AODSOAfromAqIsopWL2)
-      Archive_AODSOAWL3    = ASSOCIATED(State_Diag%AODSOAfromAqIsopWL3)
-      Archive_AerSurfAreaHyg = ASSOCIATED(State_Diag%AerSurfAreaHyg)
-      
-      ! Special flags if combinations the above are turned on
-      Archive_AOD          = Archive_AODHygWL1
-     &                  .OR. Archive_AODHygWL2
-     &                  .OR. Archive_AODHygWL3
-     &                  .OR. Archive_AODSOAWL1
-     &                  .OR. Archive_AODSOAWL2
-     &                  .OR. Archive_AODSOAWL3
-      Archive_AerHygGrowth = ASSOCIATED(State_Diag%AerHygGrowth)
-      Archive_AerAqVol     = ASSOCIATED(State_Diag%AerAqVol)
-
-      IF ( Input_Opt%LUCX ) THEN
-         Archive_AODSLAWL1      = ASSOCIATED(State_Diag%AODSLAWL1)
-         Archive_AODSLAWL2      = ASSOCIATED(State_Diag%AODSLAWL2)
-         Archive_AODSLAWL3      = ASSOCIATED(State_Diag%AODSLAWL3)
-         Archive_AODPSCWL1      = ASSOCIATED(State_Diag%AODPSCWL1)
-         Archive_AODPSCWL2      = ASSOCIATED(State_Diag%AODPSCWL2)
-         Archive_AODPSCWL3      = ASSOCIATED(State_Diag%AODPSCWL3)
-         Archive_AerNumDenSLA   = ASSOCIATED(State_Diag%AerNumDenSLA)
-         Archive_AerNumDenPSC   = ASSOCIATED(State_Diag%AerNumDenPSC)
-
-         ! Special flags if combinations of the above are turned on
-         Archive_AODStrat       = Archive_AODSLAWL1
-     &                       .OR. Archive_AODSLAWL2  
-     &                       .OR. Archive_AODSLAWL3        
-     &                       .OR. Archive_AODPSCWL1     
-     &                       .OR. Archive_AODPSCWL2     
-     &                       .OR. Archive_AODPSCWL3     
-     &                       .OR. Archive_AerNumDenSLA  
-     &                       .OR. Archive_AerNumDenPSC  
-         Archive_AerSurfAreaSLA = ASSOCIATED(State_Diag%AerSurfAreaSLA)
-         Archive_AerSurfAreaPSC = ASSOCIATED(State_Diag%AerSurfAreaPSC)
-      ENDIF
-#endif
 
       !=================================================================
       ! Allocate arrays

@@ -56,14 +56,6 @@ MODULE FlexChem_Mod
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
   LOGICAL               :: Do_ND43
-  LOGICAL               :: Archive_OHconcAfterchem
-  LOGICAL               :: Archive_HO2concAfterchem
-  LOGICAL               :: Archive_O1DconcAfterchem
-  LOGICAL               :: Archive_O3PconcAfterchem
-  LOGICAL               :: Archive_Prod
-  LOGICAL               :: Archive_Loss
-  LOGICAL               :: Archive_JVal
-  LOGICAL               :: Archive_JNoon
 
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
@@ -281,10 +273,10 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( Archive_Loss  ) State_Diag%Loss  = 0.0_f4
-    IF ( Archive_Prod  ) State_Diag%Prod  = 0.0_f4
-    IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
-    IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
+    IF ( State_Diag%Archive_Loss  ) State_Diag%Loss  = 0.0_f4
+    IF ( State_Diag%Archive_Prod  ) State_Diag%Prod  = 0.0_f4
+    IF ( State_Diag%Archive_JVal  ) State_Diag%JVal  = 0.0_f4
+    IF ( State_Diag%Archive_JNoon ) State_Diag%JNoon = 0.0_f4
     
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
@@ -745,14 +737,15 @@ CONTAINS
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
-                IF ( Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
+                IF ( State_Diag%Archive_JVal ) THEN
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)    &
                                             + PHOTOL(N)
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
-                IF ( Archive_JNoon .and. State_Met%IsLocalNoon(I,J) ) THEN
+                IF ( State_Diag%Archive_JNoon .and. &
+                     State_Met%IsLocalNoon(I,J) ) THEN
                    State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
                                              + ( PHOTOL(N) * JNoon_Fac )
                 ENDIF
@@ -1089,7 +1082,7 @@ CONTAINS
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
-       IF ( Archive_Loss ) THEN
+       IF ( State_Diag%Archive_Loss ) THEN
           DO F = 1, State_Chm%nLoss
              KppID                    = State_Chm%Map_Loss(F)
              State_Diag%Loss(I,J,L,F) = VAR(KppID) / DT
@@ -1097,7 +1090,7 @@ CONTAINS
        ENDIF
 
        ! Chemical production of species or families [molec/cm3/s]
-       IF ( Archive_Prod ) THEN
+       IF ( State_Diag%Archive_Prod ) THEN
           DO F = 1, State_Chm%nProd
              KppID                    = State_Chm%Map_Prod(F)
              State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
@@ -1318,10 +1311,18 @@ CONTAINS
     ! Zero the netCDF diagnostic arrays (if activated) above the 
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
-    IF ( Archive_OHconcAfterChem  ) State_Diag%OHconcAfterChem  = 0.0_f4
-    IF ( Archive_HO2concAfterChem ) State_Diag%HO2concAfterChem = 0.0_f4
-    IF ( Archive_O1DconcAfterChem ) State_Diag%O1DconcAfterChem = 0.0_f4
-    IF ( Archive_O3PconcAfterChem ) State_Diag%O3PconcAfterChem = 0.0_f4
+    IF ( State_Diag%Archive_OHconcAfterChem  ) THEN
+       State_Diag%OHconcAfterChem  = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_HO2concAfterChem ) THEN
+       State_Diag%HO2concAfterChem = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
+       State_Diag%O1DconcAfterChem = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
+       State_Diag%O3PconcAfterChem = 0.0_f4
+    ENDIF
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED )  &
@@ -1352,7 +1353,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
-            IF ( Archive_OHconcAfterChem ) THEN
+            IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
 #endif
@@ -1376,7 +1377,7 @@ CONTAINS
 
 #if defined( NC_DIAG ) 
             ! HISTORY (aka netCDF diagnostics)
-            IF ( Archive_HO2concAfterChem ) THEN
+            IF ( State_Diag%Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
@@ -1400,7 +1401,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
-               IF ( Archive_O1DconcAfterChem ) THEN
+               IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
                   State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
 #endif
@@ -1422,7 +1423,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
-               IF ( Archive_O3PconcAfterChem ) THEN
+               IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
                   State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF
 #endif
@@ -1562,23 +1563,13 @@ CONTAINS
     ! Is the ND43 bpch diagnostic turned on?
     Do_ND43                  = ( Input_Opt%ND43 > 0 ) 
 
-    ! Are the relevant netCDF diagnostics turned on?
-    Archive_OHconcAfterChem  = ASSOCIATED( State_Diag%OHconcAfterChem  )
-    Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
-    Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
-    Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
-    Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
-    Archive_JNoon            = ASSOCIATED( State_Diag%JNoon            )
-    Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
-    Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
-
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
     ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
     IF ( .not. Input_Opt%LUCX ) THEN  
        
        ! O1D diagnostic is only used w/ UCX
-       IF ( Archive_O1DconcAfterChem ) THEN
+       IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
           ErrMsg = 'The "O1DconcAfterChem" diagnostic is turned on ' //      &
                    'but the UCX mechanism is not being used!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1586,7 +1577,7 @@ CONTAINS
        ENDIF
 
        ! O3P diagnostic is only used w/ UCX
-       IF ( Archive_O3PconcAfterChem ) THEN
+       IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
           ErrMsg = 'The "O3PconcAfterChem" diagnostic is turned on ' //      &
                    'but the UCX mechanism is not being used!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1596,11 +1587,11 @@ CONTAINS
     ENDIF
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
-    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                  .or.            &  
-                                    Archive_OHconcAfterChem  .or.            &
-                                    Archive_HO2concAfterChem .or.            &
-                                    Archive_O1DconcAfterChem .or.            &
-                                    Archive_O3PconcAfterChem                )
+    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                             .or. &  
+                                    State_Diag%Archive_OHconcAfterChem  .or. &
+                                    State_Diag%Archive_HO2concAfterChem .or. &
+                                    State_Diag%Archive_O1DconcAfterChem .or. &
+                                    State_Diag%Archive_O3PconcAfterChem     )
 
     !=======================================================================
     ! Allocate arrays

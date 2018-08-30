@@ -324,7 +324,8 @@ CONTAINS
     ! (For example, if on the last iteration, the PBL height was higher than
     ! it is now, then we will have stored drydep fluxes up to that height,
     ! so we need to zero these out.)
-    IF ( State_Diag%Archive_DryDepMix ) THEN
+    IF ( State_Diag%Archive_DryDepMix .or.  &
+         State_Diag%Archive_DryDep        ) THEN
        State_Diag%DryDepMix = 0.0_f4
     ENDIF
 #endif
@@ -976,7 +977,9 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( State_Diag%Archive_DryDepMix .and. DryDepID > 0 ) THEN
+                   IF ( ( State_Diag%Archive_DryDepMix .or.        &
+                          State_Diag%Archive_DryDep        ) .and. &
+                          DryDepID > 0 ) THEN
                       State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
 #endif

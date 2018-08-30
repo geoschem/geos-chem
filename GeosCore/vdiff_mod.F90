@@ -120,7 +120,6 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
 
   LOGICAL :: Do_ND44           = .FALSE. ! Do ND44 bpch diagnostic
-  LOGICAL :: Archive_DryDepMix = .FALSE. ! Is drydep flux diagnostic turned on?
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -2479,7 +2478,9 @@ contains
     ! specialty simulations) are accounted for in species 1..nDrydep,
     ! so we don't need to do any further special handling.
     !=======================================================================
-    if ( Do_ND44 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepMix ) then
+    if ( Do_ND44 .or. LGTMM .or. LSOILNOX .or.  &
+         State_Diag%Archive_DryDepMix     .or.  &
+         State_Diag%Archive_DryDep       ) then
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -2542,9 +2543,10 @@ contains
           !
           !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
-          IF ( Archive_DryDepMix ) THEN
+          IF ( State_Diag%Archive_DryDepMix .OR. &
+               State_Diag%Archive_DryDep ) THEN
              State_Diag%DryDepMix(:,:,ND) = Dflx(:,:,N)               &
-                                            * 1.0e-4_fp                 &
+                                            * 1.0e-4_fp               &
                                             * ( AVO / EmMW_kg  )
           ENDIF
 #endif
@@ -2892,11 +2894,6 @@ contains
        Do_ND44 = ( ND44 > 0 ) 
 #endif
       
-       ! Test if we are archiving the drydep flux (from mixing) diagnostic
-       ! or total drydep flux which requires the contribution from mixing
-       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                           ASSOCIATED( State_Diag%DryDep    )
-
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF

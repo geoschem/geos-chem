@@ -204,11 +204,6 @@ MODULE Tpcore_FvDas_Mod
 !------------------------------------------------------------------------------
 !BOC
 
-  ! Diagnostic flags
-  LOGICAL :: Archive_AdvFluxZonal
-  LOGICAL :: Archive_AdvFluxMerid
-  LOGICAL :: Archive_AdvFluxVert
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -296,11 +291,6 @@ CONTAINS
        write(*,*) 'Minimum size of subdomain is 3'
     endif
 
-    ! Test if netCDF diagnostic arrays are activated
-    Archive_AdvFluxZonal = ASSOCIATED( State_Diag%AdvFluxZonal )
-    Archive_AdvFluxMerid = ASSOCIATED( State_Diag%AdvFluxMerid )
-    Archive_AdvFluxVert  = ASSOCIATED( State_Diag%AdvFluxVert  )
-    
     !-----------------------------------------------------------------------
     ! Allocate arrays
     !-----------------------------------------------------------------------
@@ -656,9 +646,9 @@ CONTAINS
     Do_ND26 = ( ND26 > 0 )
 
     ! Zero netCDF diagnostic arrays
-    IF ( Archive_AdvFluxZonal ) State_Diag%AdvFluxZonal = 0.0_f4
-    IF ( Archive_AdvFluxMerid ) State_Diag%AdvFluxMerid = 0.0_f4
-    IF ( Archive_AdvFluxVert  ) State_Diag%AdvFluxVert  = 0.0_f4
+    IF ( State_Diag%Archive_AdvFluxZonal ) State_Diag%AdvFluxZonal = 0.0_f4
+    IF ( State_Diag%Archive_AdvFluxMerid ) State_Diag%AdvFluxMerid = 0.0_f4
+    IF ( State_Diag%Archive_AdvFluxVert  ) State_Diag%AdvFluxVert  = 0.0_f4
 
     ! Add definition of j1p and j2p for enlarge polar cap. (ccc, 11/20/08)
     j1p = 3
@@ -1052,7 +1042,7 @@ CONTAINS
        !  s        1      hPa     m      1       DeltaT
        !
        !======================================================================
-       IF ( Do_ND24 .or. Archive_AdvFluxZonal ) THEN
+       IF ( Do_ND24 .or. State_Diag%Archive_AdvFluxZonal ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1093,7 +1083,7 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( Archive_AdvFluxZonal ) THEN
+             IF ( State_Diag%Archive_AdvFluxZonal ) THEN
                 Kflip                                 = KM - K + 1 ! flip vert
                 State_Diag%AdvFluxZonal(I,J,Kflip,IQ) = DTC(I,J,K)
              ENDIF
@@ -1116,7 +1106,7 @@ CONTAINS
        ! ND24 E-W diagnostics.  The geometrical factor was already applied to
        ! fy in Ytp. (ccc, 4/1/09)
        !======================================================================
-       IF ( Do_ND25 .or. Archive_AdvFluxMerid ) THEN
+       IF ( Do_ND25 .or. State_Diag%Archive_AdvFluxMerid ) THEN
 
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1156,7 +1146,7 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( Archive_AdvFluxMerid ) THEN
+             IF ( State_Diag%Archive_AdvFluxMerid ) THEN
                 Kflip                                 = KM - K + 1  ! flip vert
                 State_Diag%AdvFluxMerid(I,J,Kflip,IQ) = DTC(I,J,K) 
              ENDIF
@@ -1186,7 +1176,7 @@ CONTAINS
        ! flux at the bottom of KM (the surface box) is not zero by design. 
        ! (phs, 3/4/08)
        !======================================================================
-       IF ( Do_ND26 .or. Archive_AdvFluxVert ) THEN
+       IF ( Do_ND26 .or. State_Diag%Archive_AdvFluxVert ) THEN
           
           ! Zero temp array
           DTC = 0e+0_fp
@@ -1239,7 +1229,7 @@ CONTAINS
 
              ! Units: [kg/s]
              ! But consider changing to area-independent units [kg/m2/s]
-             IF ( Archive_AdvFluxVert ) THEN
+             IF ( State_Diag%Archive_AdvFluxVert ) THEN
                 Kflip                                = KM - K + 1  !flip vert
                 State_Diag%AdvFluxVert(I,J,Kflip,IQ) = DTC(I,J,K) 
              ENDIF

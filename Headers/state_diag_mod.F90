@@ -115,9 +115,9 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
      REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
-     LOGICAL :: Archive_DryDep   
      LOGICAL :: Archive_DryDepChm
      LOGICAL :: Archive_DryDepMix
+     LOGICAL :: Archive_DryDep   
      LOGICAL :: Archive_DryDepVel
 
      ! Waiting for inputs on new resistance diagnostics
@@ -188,6 +188,8 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AODPSCWL1       (:,:,:  ) ! Polar strat cloud 
      REAL(f4),  POINTER :: AODPSCWL2       (:,:,:  ) ! optical depths for 
      REAL(f4),  POINTER :: AODPSCWL3       (:,:,:  ) ! wavelengths 1, 2, and 3
+     LOGICAL :: Archive_AOD
+     LOGICAL :: Archive_AODStrat
      LOGICAL :: Archive_AODDust         
      LOGICAL :: Archive_AODDustWL1      
      LOGICAL :: Archive_AODDustWL2      
@@ -624,6 +626,8 @@ CONTAINS
     State_Diag%AODPSCWL1                   => NULL()
     State_Diag%AODPSCWL2                   => NULL()
     State_Diag%AODPSCWL3                   => NULL()  
+    State_Diag%Archive_AOD                 = .FALSE.
+    State_Diag%Archive_AODStrat            = .FALSE.
     State_Diag%Archive_AODDust             = .FALSE.
     State_Diag%Archive_AODDustWL1          = .FALSE.
     State_Diag%Archive_AODDustWL2          = .FALSE.
@@ -1239,7 +1243,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepChm = 0.0_f4
        State_Diag%Archive_DryDepChm = .TRUE.
-       State_Diag%Archive_DryDep = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepChm, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1260,7 +1263,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepMix = 0.0_f4
        State_Diag%Archive_DryDepMix = .TRUE.
-       State_Diag%Archive_DryDep = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepMix, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -3676,7 +3678,7 @@ CONTAINS
                          RC          = RC                                   )
 
     !=======================================================================
-    ! Set logicals for sets of diagnostics
+    ! Set high-level logicals for diagnostics
     !=======================================================================
     State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA    .or.    &
                                    State_Diag%Archive_AerMassBC      .or.    &
@@ -3700,6 +3702,26 @@ CONTAINS
                                    State_Diag%Archive_TotalOA        .or.    &
                                    State_Diag%Archive_TotalOC        .or.    &
                                    State_Diag%Archive_TotalBiogenicOA         )
+
+     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1           .or. &
+                                 State_Diag%Archive_AODHygWL2           .or. &
+                                 State_Diag%Archive_AODHygWL3           .or. &
+                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
+                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
+                                 State_Diag%Archive_AODSOAfromAqIsopWL1 .or. &
+                                 State_Diag%Archive_AODDust             .or. &
+                                 State_Diag%Archive_AODDustWL1          .or. &
+                                 State_Diag%Archive_AODDustWL2          .or. &
+                                 State_Diag%Archive_AODDustWL3        )
+
+     State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1    .or. &
+                                     State_Diag%Archive_AODSLAWL2    .or. &
+                                     State_Diag%Archive_AODSLAWL3    .or. &     
+                                     State_Diag%Archive_AODPSCWL1    .or. &  
+                                     State_Diag%Archive_AODPSCWL2    .or. &  
+                                     State_Diag%Archive_AODPSCWL3    .or. &  
+                                     State_Diag%Archive_AerNumDenSLA .or. &  
+                                     State_Diag%Archive_AerNumDenPSC       ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
