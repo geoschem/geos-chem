@@ -78,6 +78,8 @@ MODULE HCO_ExtList_Mod
 !                              now the same as options and can be flexibly
 !                              set by the user.
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  29 Aug 2018 - M. Sulprizio- Users can now specify $MET or $met to use
+!                              uppercase or lowercase strings for met field
 !EOP
 !-----------------------------------------------------------------------------
 !BOC
@@ -90,10 +92,10 @@ MODULE HCO_ExtList_Mod
   !---------------------------------------------------------------------------
   ! Default tokens
   ! HEMCO has three tokens that can be specified in the HEMCO configuration
-  ! file: ROOT (root directory), MET (met fields), and RES (horizontal 
+  ! file: ROOT (root directory), MET/met (met fields), and RES (horizontal 
   ! resolution). These tokens can be used in file names to be dynamically
-  ! replaced, e.g. file.$MET.$RES.nc becomes file.geos5.4x5.nc if MET is set
-  ! to 'geos5' and RES to '4x5'. Opts are also allowed for dates ($YYYY,
+  ! replaced, e.g. file.$MET.$RES.nc becomes file.GEOSFP.4x5.nc if MET is set
+  ! to 'GEOSFP' and RES to '4x5'. Opts are also allowed for dates ($YYYY,
   ! $MM, $DD, $HH, see routine HCO_CharParse).
   ! The default tokens below will be used if by default, i.e. if the
   ! corresponding token is not specified in the HEMCO configuration file.
@@ -110,11 +112,17 @@ MODULE HCO_ExtList_Mod
 
   ! Default met field token
 #if defined( GEOS_FP )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'geosfp'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'GEOSFP'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'geosfp'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2011'
 #elif defined( MERRA2 )
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'merra2'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'MERRA2'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'merra2'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = '2015'
 #else
-  CHARACTER(LEN=15),   PARAMETER :: DEF_MET = 'unknown_model'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_UC = 'UNKNOWN_MET'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_MET_LC = 'unknown_met'
+  CHARACTER(LEN=15),   PARAMETER :: DEF_CN_YR  = 'unknown_year'
 #endif 
 
   ! Default resolution token
@@ -1536,12 +1544,24 @@ CONTAINS
     ! Also save in local variable (for fast access via HCO_ROOT)
     CF%ROOT = ADJUSTL( TRIM(DUM) )
 
-    ! Meteorology token
+    ! Meteorology token (uppercase)
     CALL GetExtOpt( CF, CoreNr, 'MET', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
-    IF ( .NOT. FOUND) DUM = DEF_MET
+    IF ( .NOT. FOUND) DUM = DEF_MET_UC
     CALL HCO_AddOpt( am_I_Root, CF, 'MET', DUM, CoreNr, RC, VERB=.FALSE. )
+    
+    ! Meteorology token (lowercase)
+    CALL GetExtOpt( CF, CoreNr, 'met', OptValChar=DUM, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) DUM = DEF_MET_LC
+    CALL HCO_AddOpt( am_I_Root, CF, 'met', DUM, CoreNr, RC, VERB=.FALSE. )
 
+    ! Year for constant met fields
+    CALL GetExtOpt( CF, CoreNr, 'CNYR', OptValChar=DUM, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) DUM = DEF_CN_YR
+    CALL HCO_AddOpt( am_I_Root, CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
+    
     ! Resolution token
     CALL GetExtOpt( CF, CoreNr, 'RES', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
