@@ -39,11 +39,9 @@
       ! SOAupdate: for branching ratio diagnostic (hotp 5/24/10)
       PUBLIC :: BETANOSAVE
 
-#if defined( DISCOVER )
       ! ORVC_SESQ needs to be public so that it can be added as a
       ! restart variable to GEOS-5. (ckeller, 10/10/17)
       PUBLIC :: ORVC_SESQ
-#endif
 
 !      ! Make BIOG_SESQ array public so that it can be used by HEMCO
 !      ! (ckeller, 05/19/14)
@@ -4568,6 +4566,7 @@ ccc
       !                 [kg/box/timestep] and the corresponding
       !                  number emission [no./box/timestep]
       !=======================================================================
+#if defined( BPCH_DIAG )
       IF ( ND59 > 0 ) THEN 
          DO L = 1, PBL_MAX
          DO K = 1, IBINS
@@ -4588,6 +4587,7 @@ ccc
          ENDDO
          ENDDO
       ENDIF
+#endif
 
  100  CONTINUE
 
@@ -5202,6 +5202,13 @@ ccc
 
 !end anthro emissions
 
+#if defined( BPCH_DIAG )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
+      !%%%% which is only called if BPCH_DIAG=y.  Wrap this block of   %%%%
+      !%%%% code with an #ifdef BPCH_DIAG to prvent compilation issues %%%%
+      !%%%% when NC_DIAG=y.  (bmy, 8/7/18)                             %%%%
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
       DgnName = 'BIOGENIC_SOAS'
@@ -5213,6 +5220,7 @@ ccc
       TERP_ORGC = Ptr2D(:,:)
       Ptr2D => NULL()
       TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
+#endif
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -7649,7 +7657,8 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_CARBON( am_I_Root, Input_Opt, 
+     &                        State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -7658,6 +7667,7 @@ ccc
       USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
 #if defined( TOMAS )
       USE TOMAS_MOD,          ONLY : IBINS
@@ -7665,9 +7675,10 @@ ccc
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -7699,6 +7710,7 @@ ccc
 !  11 Aug 2015 - R. Yantosca - Add support for MERRA2 data
 !  23 Sep 2015 - R. Yantosca - Remove reference to DRY* flags, they're obsolete
 !  02 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC

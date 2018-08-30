@@ -213,14 +213,16 @@
 !  20 Jul 2016 - R. Yantosca - Remove references to NNPAR (now use nAdvect)
 !  20 Sep 2016 - R. Yantosca - Bug fix for Gfortran: Make sure the IT_IS_*
 !                              variables are declared as LOGICAL, not INTEGER
-!   3 Oct 2016 - R. Yantosca - Bug fix: don't allocate ND71 scalar variables
+!  03 Oct 2016 - R. Yantosca - Bug fix: don't allocate ND71 scalar variables
+!  09 Mar 2018 - R. Yantosca - Now use LLPAR to size diagnostic arrays, 
+!                              which facilitates bpch vs.netCDF comparisons
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect
+      INTEGER :: NMAX, AS, NEMISS, LMAX, nAdvect, NFAM
       LOGICAL :: IT_IS_A_CH3I_SIM
       LOGICAL :: IT_IS_A_FULLCHEM_SIM
       LOGICAL :: IT_IS_A_MERCURY_SIM
@@ -310,7 +312,9 @@
       ! ND05: Sulfate Prod/loss
       !=================================================================
       IF ( ND05 > 0 ) THEN
-         LD05 = MIN( ND05, LLCHEM )
+
+         ! Now size ND05 for all vertical levels (bmy, 3/9/18)
+         LD05 = MIN( ND05, LLPAR )
 
          ALLOCATE( AD05( IIPAR, JJPAR, LD05, PD05 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD05' )
@@ -355,7 +359,7 @@
       ! ND12: Distribution of emissions in boundary layer [fraction]
       !       --> uses AD12 array (allocatable)
       !=================================================================
-      LD12 = MIN( ND12, LLCHEM )
+      LD12 = MIN( ND12, LLPAR )
 
       IF ( ND12 > 0 ) THEN 
          ALLOCATE( AD12( IIPAR, JJPAR, LD12 ), STAT=AS )
@@ -367,10 +371,15 @@
       !       --> uses CONVFLUP array (allocatable)
       !=================================================================
       IF ( ND14 > 0 ) THEN
-         LD14 = MIN( ND14, LLCONVM )
+!------------------------------------------------
+! Prior to 3/19/18:
+! Use LLPAR instead of LLCONVM (bmy, 3/19/18)
+!         LD14 = MIN( ND14, LLCONVM )
+!------------------------------------------------
+         LD14 = MIN( ND14, LLPAR )
          NMAX = nAdvect
 
-         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLCONVM, NMAX ), STAT=AS )
+         ALLOCATE( CONVFLUP( IIPAR, JJPAR, LLPAR, NMAX ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'CONVFLUP' )
       ENDIF
 
@@ -466,7 +475,7 @@
       IF ( ND19 > 0 ) THEN 
          LD19 = MIN( ND19, LLPAR )
 	 
-         ALLOCATE( AD19( IIPAR, JJPAR, LD19 ), STAT=AS )
+         ALLOCATE( AD19( IIPAR, JJPAR, LD19, PD19 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD19' )
       ENDIF 
 
@@ -488,8 +497,8 @@
       !       --> uses AD21 array (allocatable) 
       !=================================================================
       IF ( Input_Opt%ND21 > 0 ) THEN
+         ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
          Input_Opt%LD21 = MIN( Input_Opt%ND21, LLCHEM )
-         !LD21 = LLCHEM
 
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, Input_Opt%LD21, PD21 ), STAT=AS )
@@ -504,14 +513,8 @@
       !=================================================================
       IF ( ND22 > 0 ) THEN
 
-         ! For full chemistry, mesospheric boxes (and stratospheric, in
-         ! the non-stratchem run) are ignored. We therefore cap LD22
-         ! at LLCHEM (bmy, 4/2/01)
-         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-            LD22 = MIN( ND22, LLCHEM )
-         ELSE
-            LD22 = MIN( ND22, LLPAR  )
-         ENDIF
+         ! Now size J-value diagnostic for all vertical levels (bmy, 3/9/18)
+         LD22 = MIN( ND22, LLPAR  )
 
          ! Accumulating diagnostic array
          ALLOCATE( AD22( IIPAR, JJPAR, LD22, PD22 ), STAT=AS )
@@ -693,13 +696,8 @@
       !=================================================================
       IF ( ND43 > 0 ) THEN
          
-         ! For full chemistry, only save OH up to the tropopause.  
-         ! For tagged CO ior CO-OH, save OH everywhere (bmy, 2/12/01)
-         IF ( IT_IS_A_FULLCHEM_SIM ) THEN
-            LD43 = MIN( ND43, LLCHEM )
-         ELSE
-            LD43 = MIN( ND43, LLPAR  )
-         ENDIF
+         ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
+         LD43 = MIN( ND43, LLPAR  )
 
          ! Accumulating diagnostic array
          ALLOCATE( AD43( IIPAR, JJPAR, LD43, PD43 ), STAT=AS )
@@ -839,7 +837,14 @@
       !        --> uses AD54 array (allocatable)
       !=================================================================
       IF ( ND54 > 0 ) THEN
-         LD54 = MIN( ND54, LLCHEM)
+
+         ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
+!----------------------------------------------
+! Prior to 3/19/18:
+! Now set max value as LLPAR (bmy, 3/19/18)
+!         LD54 = MIN( ND54, LLCHEM)
+!----------------------------------------------
+         LD54 = MIN( ND54, LLPAR )
 
          ALLOCATE( AD54( IIPAR, JJPAR, LD54 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD54' )
@@ -1002,13 +1007,17 @@
       !       --> Uses AD65 array (allocatable)
       !=================================================================
       IF ( ND65 > 0 ) THEN
-         IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-            LD65 = MIN( ND65, LLCHEM )
+         
+         ! Now size diagnostic arrays with all vertical levels (bmy, 3/9/18)
+         LD65 = MIN( ND65, LLPAR  )
+
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+            NFAM = Input_Opt%NFAM + 2
          ELSE
-            LD65 = MIN( ND65, LLPAR  )
+            NFAM = Input_Opt%NFAM
          ENDIF
 
-         ALLOCATE( AD65( IIPAR, JJPAR, LD65, Input_Opt%NFAM ), STAT=AS )
+         ALLOCATE( AD65( IIPAR, JJPAR, LD65, NFAM ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD64' )
       ENDIF
 

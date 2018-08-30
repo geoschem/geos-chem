@@ -71,11 +71,14 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      REAL(f8)                    :: EpochJd             ! Astronomical Julian
                                                         !  date @ start of sim
-                                                        !  1=accum from source
+     REAL(f8)                    :: EpochJsec           ! Astronomical Julian
+                                                        !  secs @ start of sim
      INTEGER                     :: CurrentYmd          ! Current YMD date
      INTEGER                     :: CurrentHms          ! Current hms time
      REAL(f8)                    :: CurrentJd           ! Astronomical Julian
                                                         !  date @ current time
+     REAL(f8)                    :: CurrentJsec         ! Astronomical Julian
+                                                        !  secs @ current time
      REAL(f8)                    :: ElapsedSec          ! Elapsed seconds
                                                         !  since start of sim
      REAL(f8)                    :: UpdateAlarm         ! Alarm (elapsed sec)
@@ -90,7 +93,9 @@ MODULE HistContainer_Mod
      !----------------------------------------------------------------------
      INTEGER                     :: ReferenceYmd        ! Reference YMD & hms 
      INTEGER                     :: ReferenceHms        !  for the "time" dim
-     REAL(f8)                    :: ReferenceJD         ! Julian Date at the
+     REAL(f8)                    :: ReferenceJd         ! Julian Date at the
+                                                        !  reference YMD & hms
+     REAL(f8)                    :: ReferenceJsec       ! Julian Seconds @ the
                                                         !  reference YMD & hms
      INTEGER                     :: CurrTimeSlice       ! Current time slice
                                                         !  for the "time" dim
@@ -106,10 +111,9 @@ MODULE HistContainer_Mod
      REAL(f8)                    :: UpdateIvalSec       ! Update interval [sec]
      INTEGER                     :: Operation           ! Operation code
                                                         !  0=copy from source
+                                                        !  1=accum from source
      REAL(f8)                    :: HeartBeatDtSec      ! The "heartbeat"
                                                         !  timestep [sec]
-     REAL(f8)                    :: HeartBeatDtDays     ! The "heartbeat"
-                                                        !  timestep [days]
 
      !----------------------------------------------------------------------
      ! Quantities for file creation, writing, and I/O status
@@ -142,6 +146,7 @@ MODULE HistContainer_Mod
      CHARACTER(LEN=20)           :: StartTimeStamp      ! Timestamps at start
      CHARACTER(LEN=20)           :: EndTimeStamp        !  and end of sim
      CHARACTER(LEN=20)           :: Spc_Units           ! Units of SC%Species
+     CHARACTER(LEN=255)          :: FileExpId           ! Filename ExpId
      CHARACTER(LEN=255)          :: FilePrefix          ! Filename prefix
      CHARACTER(LEN=255)          :: FileTemplate        ! YMDhms template
      CHARACTER(LEN=255)          :: FileName            ! Name of nc file
@@ -212,13 +217,13 @@ CONTAINS
                                    FileWriteYmd,   FileWriteHms,             &
                                    FileWriteAlarm, FileCloseYmd,             &
                                    FileCloseHms,   FileCloseAlarm,           &
-                                   FileId,         FilePrefix,               &
-                                   FileName,       FileTemplate,             &
-                                   Conventions,    NcFormat,                 &
-                                   History,        ProdDateTime,             &
-                                   Reference,      Title,                    &
-                                   Contact,        StartTimeStamp,           &
-                                   EndTimeStamp                             )
+                                   FileId,         FileExpId,                &
+                                   FilePrefix,     FileName,                 &
+                                   FileTemplate,   Conventions,              &
+                                   NcFormat,       History,                  &
+                                   ProdDateTime,   Reference,                &
+                                   Title,          Contact,                  &
+                                   StartTimeStamp, EndTimeStamp             )
 !
 ! !USES:
 !
@@ -271,6 +276,7 @@ CONTAINS
     ! OPTIONAL INPUTS: netCDF file identifiers and metadata
     !-----------------------------------------------------------------------
     INTEGER,             OPTIONAL    :: FileId         ! netCDF file ID
+    CHARACTER(LEN=*),    OPTIONAL    :: FileExpId      ! Dir name + file string
     CHARACTER(LEN=*),    OPTIONAL    :: FilePrefix     ! Filename prefix
     CHARACTER(LEN=*),    OPTIONAL    :: FileTemplate   ! YMDhms template
     CHARACTER(LEN=*),    OPTIONAL    :: Conventions    ! e.g. "COARDS"
@@ -325,7 +331,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: ThisId
+    INTEGER            :: ThisId, C
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, TempStr
@@ -517,13 +523,32 @@ CONTAINS
     ENDIF
 
     !----------------------------------
+    ! File ExpId (the dir name plus
+    ! beginning of file name)
+    !----------------------------------
+    IF ( LEN_TRIM( FileExpId ) > 0 ) THEN
+       TempStr             = FileExpId
+       Container%FileExpId = TempStr
+    ELSE
+       Container%FileExpId = 'GEOSChem'
+    ENDIF
+
+    ! Add an error check.  The netCDF routines apparently cannot write
+    ! files with "./" in the file path.  Strip out such occurrences.
+    C = INDEX( Container%FileExpId, './' )
+    IF ( C > 0 ) THEN
+       Container%FileExpId = Container%FileExpId(C+2:)
+    ENDIF
+
+    !----------------------------------
     ! File Prefix
     !----------------------------------
     IF ( LEN_TRIM( FilePrefix ) > 0 ) THEN
        TempStr              = FilePrefix
        Container%FilePrefix = TempStr
     ELSE
-       Container%FilePrefix = 'GEOSChem.' // TRIM( Name ) // '.'
+       Container%FilePrefix = TRIM( Container%FileExpId ) // '.' //         &
+                              TRIM( Name                ) // '.'
     ENDIF
 
     !----------------------------------
@@ -537,14 +562,14 @@ CONTAINS
           TempStr                = FileTemplate
           Container%FileTemplate = TempStr
        ELSE
-          Container%FileTemplate = '%y4%m2%d2.nc4'
+          Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
        ENDIF
 
     ELSE
 
        ! If the FILETEMPLATE argument isn't passed, 
        ! then construct a default template 
-       Container%FileTemplate = '%y4%m2%d2.nc4'
+       Container%FileTemplate = '%y4%m2%d2_%h2%n2z.nc4'
 
     ENDIF
 
@@ -688,11 +713,13 @@ CONTAINS
     Container%Spc_Units       = ''
 
     ! Set the other time/date fields from EpochJd, CurrentYmd, CurrentHms, etc.
+    Container%EpochJsec       = Container%EpochJd * SECONDS_PER_DAY
+    Container%CurrentJsec     = Container%EpochJSec
     Container%CurrentJd       = Container%EpochJd
+    Container%ReferenceJsec   = Container%EpochJsec
     Container%ReferenceJd     = Container%EpochJd
     Container%ReferenceYmd    = Container%CurrentYmd
     Container%ReferenceHms    = Container%CurrentHms
-    Container%HeartBeatDtDays = Container%HeartBeatDtSec / SECONDS_PER_DAY
 
     ! These other time fields will be defined later
     Container%ElapsedSec      = 0.0_f8
@@ -868,7 +895,9 @@ CONTAINS
        WRITE( 6, 130 ) 'nX               : ', Container%nX
        WRITE( 6, 130 ) 'nY               : ', Container%nY
        WRITE( 6, 130 ) 'nZ               : ', Container%nZ
+       WRITE( 6, 160 ) 'EpochJsec        : ', Container%EpochJsec
        WRITE( 6, 160 ) 'EpochJd          : ', Container%EpochJd
+       WRITE( 6, 160 ) 'CurrentJSec      : ', Container%CurrentJSec
        WRITE( 6, 160 ) 'CurrentJd        : ', Container%CurrentJd
        WRITE( 6, 135 ) 'CurrentYmd       : ', Container%CurrentYmd
        WRITE( 6, 145 ) 'CurrentHms       : ', Container%CurrentHms
@@ -880,9 +909,9 @@ CONTAINS
        WRITE( 6, 160 ) 'UpdateAlarm      : ', Container%UpdateAlarm
        WRITE( 6, 120 ) 'Operation        : ', OpCode( Container%Operation )
        WRITE( 6, 160 ) 'HeartBeatDtSec   : ', Container%HeartBeatDtSec
-       WRITE( 6, 160 ) 'HeartBeatDtDays  : ', Container%HeartBeatDtDays
        WRITE( 6, 135 ) 'ReferenceYmd     : ', Container%ReferenceYmd
        WRITE( 6, 145 ) 'ReferenceHms     : ', Container%ReferenceHms
+       WRITE( 6, 160 ) 'ReferenceJsec    : ', Container%ReferenceJd
        WRITE( 6, 160 ) 'ReferenceJd      : ', Container%ReferenceJd
        WRITE( 6, 135 ) 'FileWriteYmd     : ', Container%FileWriteYmd
        WRITE( 6, 145 ) 'FileWriteHms     : ', Container%FileWriteHms
@@ -900,7 +929,7 @@ CONTAINS
        WRITE( 6, 130 ) 'yDimId           : ', Container%yDimId 
        WRITE( 6, 130 ) 'zDimId           : ', Container%zDimId 
        WRITE( 6, 130 ) 'tDimId           : ', Container%tDimId 
-       WRITE( 6, 120 ) 'FileName         : ', TRIM( Container%FileName     )
+       WRITE( 6, 120 ) 'FileExpId        : ', TRIM( Container%FileExpId    )
        WRITE( 6, 120 ) 'FilePrefix       : ', TRIM( Container%FilePrefix   )
        WRITE( 6, 120 ) 'FileTemplate     : ', TRIM( Container%FileTemplate )
        WRITE( 6, 120 ) 'Filename         : ', TRIM( Container%FileName     )
@@ -919,12 +948,12 @@ CONTAINS
        ! FORMAT statements
  110   FORMAT( 1x, a           )
  120   FORMAT( 1x, a, a        )
- 130   FORMAT( 1x, a, 3x, i8   )
- 135   FORMAT( 1x, a, 3x, i8.8 )
+ 130   FORMAT( 1x, a, 7x, i8   )
+ 135   FORMAT( 1x, a, 7x, i8.8 )
  140   FORMAT( 1x, a, i6       )
- 145   FORMAT( 1x, a, 5x, i6.6 )
- 150   FORMAT( 1x, a, L11      )
- 160   FORMAT( 1x, a, f13.1    )
+ 145   FORMAT( 1x, a, 9x, i6.6 )
+ 150   FORMAT( 1x, a, L15      )
+ 160   FORMAT( 1x, a, f17.1    )
 
        ! If there are HISTORY ITEMS belonging to this container ...
        IF ( ASSOCIATED( Container%HistItems ) ) THEN 
@@ -1074,6 +1103,11 @@ CONTAINS
 !  18 Sep 2017 - R. Yantosca - Now return update interval in seconds
 !  26 Oct 2017 - R. Yantosca - Now allow update interval to be greater
 !                              than one month (similar to write, close)
+!  08 Mar 2018 - R. Yantosca - Fixed logic bug that was causing incorrect
+!                              computation of UpdateIvalSec for simulations
+!                              longer than a day.
+!  08 Aug 2018 - R. Yantosca - Modify algorithm following FileWriteAlarm:
+!                              allow for update intervals of months or years
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1099,7 +1133,7 @@ CONTAINS
     !=======================================================================
     ! Compute the interval for the "UpdateAlarm" 
     !=======================================================================
-    IF ( Container%FileCloseYmd >= 010000 ) THEN
+    IF ( Container%UpdateYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
        ! File close interval is one or more years
@@ -1115,7 +1149,7 @@ CONTAINS
           Container%UpdateIvalSec = 365.0_f8 * SECONDS_PER_DAY
        ENDIF
        
-    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
+    ELSE IF ( Container%UpdateYmd >= 000100 ) THEN
        
        !--------------------------------------------------------------------
        ! File close interval is one or more months but less than a year
@@ -1138,14 +1172,14 @@ CONTAINS
     ELSE
 
        !--------------------------------------------------------------------
-       ! Update interval is less than a month
+       ! File close interval is less than a month
        !--------------------------------------------------------------------
 
-       ! Split the update interval date and time into constituent values
+       ! Split the file close interval date/time into its constituent values
        CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
        CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
 
-       ! "Update" interval in seconds
+       ! "FileWrite" interval in seconds
        Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
                                  ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
                                  ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
@@ -1441,6 +1475,8 @@ CONTAINS
 !  21 Aug 2017 - R. Yantosca - Initial version
 !  29 Aug 2017 - R. Yantosca - Now make HeartBeatDt an optional field; if not
 !                              specified, use Container%HeartBeatDtDays
+!  11 Jul 2018 - R. Yantosca - Now increment time in seconds instead of days
+!                              to avoid roundoff error in computation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1459,17 +1495,24 @@ CONTAINS
          ' -> at HistContainer_SetTime (in History/history_mod.F90)' 
 
     !========================================================================
-    ! Update the current Julian date by the heartbeat time (in days)
+    ! Update the current time by the heartbeat time (in seconds)
     !========================================================================
-
-    ! Update the Julian date by the heart beat interval in decimal days
+ 
+    ! Update the Astronomical Julian seconds value by the heartbeat interval.
+    ! Increment in seconds instead of days to avoid roundoff errors.
     IF ( PRESENT( HeartBeatDt ) ) THEN
-       Container%CurrentJd = Container%CurrentJd + HeartBeatDt
+       Container%CurrentJsec = Container%CurrentJsec +                       &
+                               HeartBeatDt
     ELSE
-       Container%CurrentJd = Container%CurrentJd + Container%HeartBeatDtDays
+       Container%CurrentJsec = Container%CurrentJsec +                       &
+                               Container%HeartBeatDtSec
     ENDIF
-       
-    ! Convert the Julian Day to year/month/day and hour/minutes/seconds
+
+    ! Convert Astronomical Julian Seconds to Astronomical Julian Date,
+    ! for the conversion to calendar date and time. (bmy, 7/11/18)
+    Container%CurrentJd = Container%CurrentJsec / SECONDS_PER_DAY
+
+    ! Convert the Astronomical Julian Date to calendar date and time
     CALL CalDate( JulianDay = Container%CurrentJd,                           &
                   yyyymmdd  = Container%CurrentYmd,                          &
                   hhmmss    = Container%CurrentHms                          )
@@ -1478,10 +1521,12 @@ CONTAINS
     ! Compute elapsed time quantities
     !========================================================================
 
-    ! Compute the elapsed time in minutes since the start of the run
-    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-                               TimeBaseJd = Container%EpochJd,               &
-                               ElapsedSec = Container%ElapsedSec            )
+   ! Compute the elapsed time in seconds since the start of the run
+   CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,          &
+                              TimeBaseJsec = Container%EpochJsec,            &
+                              ElapsedSec   = Container%ElapsedSec           )
+
+
 
   END SUBROUTINE HistContainer_SetTime
 !EOC

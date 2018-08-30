@@ -207,6 +207,10 @@ MODULE GCKPP_HETRATES
 !  Parrella et al, Tropospheric bromine chemistry: implications for present and
 !    pre-industrial ozone and mercury, Atmos. Chem. Phys., 12, 6,723-6,740,
 !    doi:10.5194/acp-12-6723-2012, 2012.
+!  Schmidt, J., et al., “Modelling the observed tropospheric BrO background: 
+!    Importance of multiphase chemistry & implications for ozone, OH, & 
+!    mercury”, J Geophys. Res-Atmos., 121, 024229, 
+!    https://doi.org/10.1002/2015JD024229, 2016.
 !  Sherwen, T., et al., Global impacts of tropospheric halogens (Cl, Br, I) on
 !    oxidants and composition in GEOS-Chem, Atmos. Chem. Phys., 16, 12239-12271,
 !    https://doi.org/10.5194/acp-16-12239-2016, 2016.
@@ -303,7 +307,7 @@ MODULE GCKPP_HETRATES
       Real(fp)         :: kITemp, kIITemp
 
       ! Cloud parameters
-      Real(fp)         :: rLiq, ALiq, VLiq
+      Real(fp)         :: rLiq, ALiq, VLiq, CLDFr
       Real(fp)         :: rIce, AIce, VIce
 
       ! Volume of air (cm3)
@@ -380,7 +384,7 @@ MODULE GCKPP_HETRATES
       RELHUM        = RELHUM * 100e+0_fp
 
       !--------------------------------------------------------------------
-      ! Get species molecular weights [kg/mol]
+      ! Get species molecular weights [g/mol]
       !--------------------------------------------------------------------
       IF ( FIRST) THEN
          ! Hardcode HO2 for now
@@ -610,7 +614,7 @@ MODULE GCKPP_HETRATES
 
       ! Get cloud physical parameters
       CALL Cld_Params( I, J, L, XDenA, VAir, TempK, QLiq, QIce, State_Met, &
-                       rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce )
+                       rLiq,  ALiq,  VLiq, rIce,  AIce,  VIce, CLDFr )
 
       ! Retrieve cloud pH and alkalinity
       pHCloud    = State_Chm%pHCloud(I,J,L)
@@ -633,8 +637,8 @@ MODULE GCKPP_HETRATES
 
       ! Get the concentration of Br/Cl in clouds
       CALL Get_Halide_CldConc(spcVec(Ind_('HBr')),spcVec(Ind_('HCl')),&
-                              VLiq, VIce, VAir, TempK, xArea(8), xRadi(8),&
-                              brConc_Cld, clConc_Cld)
+                              VLiq, VIce, VAir, CLDFr, TempK, xArea(8),&
+                              xRadi(8), brConc_Cld, clConc_Cld)
 
       ! Get the concentration of Br in sea-salt (in excess of any assumed
       ! baseline)
@@ -1781,6 +1785,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETGLYX
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMGLY
@@ -1864,6 +1870,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMGLY
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -1964,6 +1972,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETIEPOX
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2076,6 +2086,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETIMAE
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetLVOC
@@ -2150,6 +2162,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETLVOC
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetISN1OG
@@ -2223,6 +2237,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETISN1OG
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2301,6 +2317,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETISOPND
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetISOPNB
@@ -2377,6 +2395,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETISOPNB
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2455,6 +2475,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETMACRN
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMVKN
@@ -2531,6 +2553,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMVKN
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2609,6 +2633,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETR4N2
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetDHDN
@@ -2686,6 +2712,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETDHDN
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetMONITS
@@ -2759,6 +2787,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETMONITS
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2834,6 +2864,8 @@ MODULE GCKPP_HETRATES
     END FUNCTIOn HETMONITU
 !EOC
 !------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
 !BOP
 !
 ! !IROUTINE: HetHONIT
@@ -2907,6 +2939,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETHONIT
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -2983,6 +3017,8 @@ MODULE GCKPP_HETRATES
 
     END FUNCTIOn HETIONITA
 !EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
@@ -3475,7 +3511,13 @@ MODULE GCKPP_HETRATES
          XStkCf = 0.0e+0_fp
          r_gp   = 1.0e+0_fp
       ELSE
-         CALL Gamma_HOBr_AER(rAer, denAir, 2, TK, clConc, brConc, &
+!-----------------------------------------------------------------------------
+! Prior to 7/17/18:
+! Xuan Wang says to replace 2 with X in the call to GAMMA_HOBR_AER
+! (bmy, 7/17/18)
+!         CALL Gamma_HOBr_AER(rAer, denAir, 2, TK, clConc, brConc, &
+!-----------------------------------------------------------------------------
+         CALL Gamma_HOBr_AER(rAer, denAir, X, TK, clConc, brConc, &
                              hConc, GAM_HOBr, r_gp)
          XStkCf = GAM_HOBr
       ENDIF
@@ -4386,10 +4428,7 @@ MODULE GCKPP_HETRATES
 !
       FUNCTION GAMMA_HOBr_X( Radius, n_air, X, T, C_Y, C_Hp ) RESULT( GAM )  
 !
-! !USES:
-!
-!
-! !OUTPUT PARAMETER:
+! !OUTPUT PARAMETERS:
       ! Reactive uptake coefficient (unitless)
       REAL(fp)                       :: GAM
 !
@@ -4469,13 +4508,17 @@ MODULE GCKPP_HETRATES
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: gamma_HOBr_cld
+!
+! !DESCRIPTION: Returns GAMMA for HOBr in clouds (need better description)
+!\\
+!\\
+! !INTERFACE:
+!
     SUBROUTINE GAMMA_HOBr_CLD( Radius, n_air, X, T, C_Y1, C_Y2, &
                                C_Y3, C_Y4, C_Hp, GAM_HOBr, r_gp )
 !
-! !USES:
-!
-!
-! !OUTPUT PARAMETER:
+! !OUTPUT PARAMETERS:
       ! Reactive uptake coefficient (unitless)
       REAL(fp), INTENT(OUT)          :: GAM_HOBr, r_gp
 !
@@ -4600,6 +4643,13 @@ MODULE GCKPP_HETRATES
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
+!
+! !IROUTINE: gamma_HOBr_aer
+!
+! !DESCRIPTION: Returns GAMMA for HOBr in aerosol? (need better description)
+!\\
+!\\!
+! !INTERFACE:
 !
     SUBROUTINE GAMMA_HOBr_AER( Radius, n_air, X, T, C_Y1, C_Y2, &
                                C_Hp, GAM_HOBr, r_gp )
@@ -4758,8 +4808,7 @@ MODULE GCKPP_HETRATES
 ! !IROUTINE: COTH
 !
 ! !DESCRIPTION: COTH (Hyperbolic cotangent)
-! !             coth(x) = cosh(x)/sinh(x) = (1 + exp(-2x))/(1 - exp(-2x))
-!
+!               coth(x) = cosh(x)/sinh(x) = (1 + exp(-2x))/(1 - exp(-2x))
 !\\
 !\\
 ! !INTERFACE:
@@ -4795,12 +4844,11 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: REACTODIFF_CORR
 !
-! !DESCRIPTION: REACTODIFF_CORR 
-! !    Correction =  COTH( x ) - ( 1/x )
-! !             x = radius / l
-! !    Correction approaches 1 as x becomes large, corr(x>1000)~1
-! !    Correction approaches x/3 as x goes towards 0
-!
+! !DESCRIPTION: REACTODIFF\_CORR 
+!     Correction =  COTH( x ) - ( 1/x )
+!              x = radius / l
+!     Correction approaches 1 as x becomes large, corr(x>1000)~1
+!     Correction approaches x/3 as x goes towards 0
 !\\
 !\\
 ! !INTERFACE:
@@ -5856,8 +5904,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Cld_Params
 !
-! !DESCRIPTION: Subroutine CLD_PARAMS returns ice and liquid cloud 
-!  parameters based on State_Met.off of cloud particles.
+! !DESCRIPTION: Subroutine CLD\_PARAMS returns ice and liquid cloud 
+!  parameters based on State\_Met off of cloud particles.
 !\\
 !\\
 ! !INTERFACE:
@@ -5865,7 +5913,7 @@ MODULE GCKPP_HETRATES
     SUBROUTINE CLD_PARAMS( I,      J,      L,    DENAIR,            &
                            VAir,   T,      QL,   QI,     State_Met, &
                            rLiq,   ALiq,   VLiq, &
-                           rIce,   AIce,   VIce )
+                           rIce,   AIce,   VIce, CLDFr )
 
 !
 ! !USES:
@@ -5891,6 +5939,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),       INTENT(OUT) :: AIce     ! Sfc area of ice cloud (cm2/cm3)
       REAL(fp),       INTENT(OUT) :: VLiq     ! Volume of liq. cloud (cm3/cm3)
       REAL(fp),       INTENT(OUT) :: VIce     ! Volume of ice cloud (cm3/cm3)
+      REAL(fp),       INTENT(OUT) :: CLDFr     ! cloud fraction
 !
 ! !REMARKS:
 !
@@ -5928,7 +5977,6 @@ MODULE GCKPP_HETRATES
       REAL(fp)            :: AREA_L     ! Surface area (liquid)        [cm2/cm3]
       REAL(fp)            :: AREA_I     ! Surface area (ice) )         [cm2/cm3]
       REAL(fp)            :: Vcl, Vci   ! Volume of the cloud (liq and ice) [cm3]
-      Real(fp)            :: MX         ! Molar mass                   [kg/mol]
       LOGICAL             :: IS_LAND, IS_ICE, Is_Warm
    
       ! Pointers
@@ -5949,7 +5997,10 @@ MODULE GCKPP_HETRATES
 
       ! Fixed for now
       rIce = xCldrIce
- 
+
+      CLDFr = CLDF(I,J,L)
+      IF ( CLDFR.le.0.0e+0_fp ) CLDFr = 1.0e-32_fp
+
       ! Quick test - is there any cloud?
       IF (((QL.le.0.0e+0_fp).and.(QL.le.0.0e+0_fp)).or.(CLDF(I,J,L).le.0.0e+0_fp)) THEN
          rLiq = xCldR_Cont
@@ -6073,13 +6124,14 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Get_Halide_CldConc
 !
-! !DESCRIPTION: Subroutine GET_HALIDE_CLDCONC returns the in-cloud concentration
-!  of bromide and chloride (Br- and Cl-).
+! !DESCRIPTION: Subroutine GET\_HALIDE\_CLDCONC returns the in-cloud 
+!  concentration of bromide and chloride (Br- and Cl-).
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, TK, SA_SULF, R_SULF, br_conc, cl_conc )
+      SUBROUTINE GET_HALIDE_CLDCONC( HBr, HCl, VLiq, VIce, VAir, CLDFr, &
+                 TK, SA_SULF, R_SULF, br_conc, cl_conc )
 
 !
 ! !USES:
@@ -6091,6 +6143,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),  INTENT(IN) :: VAir    ! Volume of air [cm3]
       REAL(fp),  INTENT(IN) :: SA_SULF, R_SULF! Sulfate aerosol surface area (cm2/cm3) and radius (cm)
       REAL(fp),  INTENT(IN) :: VLiq, VIce ! Volume of the cloud (liq and ice) [cm3]
+      REAL(fp),  INTENT(IN) :: CLDFr ! cloud fraction 
       REAL(fp),  INTENT(IN) :: TK      ! Air temperature [K]
 
 !
@@ -6126,7 +6179,7 @@ MODULE GCKPP_HETRATES
       T2L = 1.0e0_fp / ( 1.0e0_fp - (1.0e0_fp - DR_RATIO)**3.0e0_fp )
       !---------------------------------------------------------------
 
-      V_tot = (VLiq/VAir) + ((VIce/VAir) / T2L) + &
+      V_tot = (VLiq/CLDFr/VAir) + ((VIce/CLDFr/VAir) / T2L) + &
                SA_SULF * R_SULF / 3.0e0_fp  ! (cm3(liq)/cm3(air)
 
       IF (V_tot.lt.1.0e-20) THEN
@@ -6207,8 +6260,8 @@ MODULE GCKPP_HETRATES
 !
 ! !IROUTINE: Compute_L2G_Local
 !
-! !DESCRIPTION: Subroutine COMPUTE_L2G_LOCAL is a local copy of the liquid-gas
-!  partitioning routine in GEOS-Chem's wetscav_mod.F file.
+! !DESCRIPTION: Subroutine COMPUTE\_L2G\_LOCAL is a local copy of the 
+!  liquid-gas partitioning routine in GEOS-Chem's wetscav\_mod.F file.
 !\\
 !\\
 ! !INTERFACE:

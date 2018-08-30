@@ -129,7 +129,7 @@
 
       ! Parameters
       INTEGER,           PARAMETER   :: MAXVARS   = 800
-      INTEGER,           PARAMETER   :: MAXPOINTS = 10000
+      INTEGER,           PARAMETER   :: MAXPOINTS = 100000
       INTEGER,           PARAMETER   :: MAXREAC   = 50
       INTEGER,           PARAMETER   :: MAXRO2    = 45
       INTEGER,           PARAMETER   :: MAXAN     = 15
@@ -149,7 +149,13 @@
       REAL*4,            ALLOCATABLE :: PLAT(:)               
       REAL*4,            ALLOCATABLE :: PLON(:)               
       REAL*4,            ALLOCATABLE :: PPRESS(:)             
-      CHARACTER(LEN=5),  ALLOCATABLE :: PTYPE(:)              
+      REAL*4,            ALLOCATABLE :: POBS(:)
+      REAL*4,            ALLOCATABLE :: PTAMB(:)
+      REAL*4,            ALLOCATABLE :: PH2OMR(:)
+      REAL*4,            ALLOCATABLE :: PPOTTEMP(:)
+      REAL*4,            ALLOCATABLE :: PRH(:)
+      REAL*4,            ALLOCATABLE :: PGPSALT(:)
+      CHARACTER(LEN=7),  ALLOCATABLE :: PTYPE(:)              
 
       ! For specifying variables to save at each flight point
       INTEGER                        :: NPVAR        
@@ -205,7 +211,7 @@
 ! !INTERFACE:
 !
       SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, State_Chm,
-     &                              RC )
+     &                              State_Met, RC )
 !
 ! !USES:
 !
@@ -214,6 +220,7 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput 
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -223,6 +230,7 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -257,9 +265,7 @@
       LOGICAL            :: IS_OPEN
       INTEGER            :: I,  IP,      N,   TEMP, LENGTH
       INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
-      CHARACTER(LEN=7)   :: NAMES
-      CHARACTER(LEN=20)  :: LINE
-      CHARACTER(LEN=10)  :: TYPE
+      CHARACTER(LEN=6)   :: TYPE
 
       !=================================================================
       ! SETUP_PLANEFLIGHT begins here!
@@ -324,7 +330,7 @@
      &                     IU_FILE,   RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC)
+      CALL READ_POINTS( am_I_Root, Input_Opt, State_Met, IU_FILE, RC)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -374,18 +380,20 @@
 
       ! Write header
       IF ( am_I_Root ) THEN
-         WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE', 'YYYYMMDD', 'HHMM',
-     &        'LAT', 'LON', 'PRESS', ( PNAME(I), I=1,NPVAR )
+
+         WRITE( IU_PLANE, 110 ) 'POINT', 'TYPE',  'YYYYMMDD', 'HHMM',
+     &                          'LAT',   'LON',   'PRESS',    'OBS', 
+     &                          'T-IND', 'P-IND', 'I-IND',    'J-IND',
+     &                          ( PNAME(I), I=1,NPVAR )
       ENDIF
 
       ! FORMAT string
-      ! Replace 95 by 250 (win)
-      ! use 200 for non-Tomas sims (sfarina)
-
 #if   defined( TOMAS )
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,250(a10,x) )
+ 110  FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X,
+     &        A9,X,A3,X,A5,X,A5,X,250(a10,x) )
 #else
- 110  FORMAT( A5,X,A5,X,A8,X,A4,X,A7,X,A7,X,A7,X,200(a10,x) )
+ 110  FORMAT( A5,X,A7,X,A8,X,A4,X,A7,X,A7,X,A7,X,A10,X,
+     &        A9,X,A3,X,A5,X,A5,X,200(a11,x) )
 #endif
 
       END SUBROUTINE SETUP_PLANEFLIGHT
@@ -513,6 +521,9 @@
       ! Zero reaction counter
       R = 0
 
+      ! Zero production counter
+      PR = 0
+
       ! Loop over all variables
       DO N = 1, NPVAR
 
@@ -587,7 +598,12 @@
                IF ( LINE == 'GMAO_IIEV'  ) PVAR(N) = 1007
                IF ( LINE == 'GMAO_JJEV'  ) PVAR(N) = 1008
                IF ( LINE == 'GMAO_LLEV'  ) PVAR(N) = 1009
-               IF ( LINE == 'GMAO_RH'    ) PVAR(N) = 1010
+               IF ( LINE == 'GMAO_RELH'  ) PVAR(N) = 1010
+               IF ( LINE == 'GMAO_PVRT'  ) PVAR(N) = 1011
+               IF ( LINE == 'GMAO_PSLV'  ) PVAR(N) = 1012
+               IF ( LINE == 'GMAO_AVGW'  ) PVAR(N) = 1013
+               IF ( LINE == 'GMAO_THTA'  ) PVAR(N) = 1014
+               IF ( LINE == 'GMAO_PRES'  ) PVAR(N) = 1015
                IF ( LINE == 'GMAO_ICE00' ) PVAR(N) = 1100
                IF ( LINE == 'GMAO_ICE10' ) PVAR(N) = 1101
                IF ( LINE == 'GMAO_ICE20' ) PVAR(N) = 1102
@@ -878,20 +894,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, IU_FILE, RC )
+      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Met,
+     &                        IU_FILE,   RC )
 !
 ! !USES:
 !
       USE BPCH2_MOD,          ONLY : GET_TAU0
+      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE FILE_MOD,           ONLY : IOERROR
+      USE GC_GRID_MOD,        ONLY : GET_IJ
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE PhysConstants,      ONLY : g0
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)  :: IU_FILE     ! Logical unit # of file
 !
 ! !OUTPUT PARAMETERS:
@@ -912,8 +934,14 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER           :: N, IOS, QYY, QMM, QDD, QHH, QMN
-      REAL*4            :: LAT, LON, PRES
-      CHARACTER(LEN=10) :: TYPE
+      REAL*4            :: LAT, LON, PRES, OBS
+      REAL*4            :: TAMB, H2OMR, POTTEMP, GPSALT
+      CHARACTER(LEN=7)  :: TYPE
+      CHARACTER(LEN=7)  :: NAME
+
+      ! ajt for CCGG
+      INTEGER           :: IJ(2), L, L_ALT
+      REAL(fp)          :: MOD_ELEV
 
       !=================================================================
       ! READ_POINTS begins here!
@@ -936,8 +964,9 @@
          
          ! Read a line from the file
          READ( IU_FILE, 100, IOSTAT=IOS ) 
-     &        TYPE, QDD, QMM, QYY, QHH, QMN, LAT, LON, PRES
- 100     FORMAT( 6x,a5,x,i2,x,i2,x,i4,x,i2,x,i2,x,f7.2,x,f7.2,x,f7.2 )
+     &        TYPE, QDD, QMM, QYY, QHH, QMN, LAT, LON, PRES, OBS
+ 100     FORMAT( 5x,a7,x,i2,x,i2,x,i4,x,i2,x,i2,x,f7.2,x,f7.2,x,f7.2,
+     &           x,f10.3 )
 
          ! Error check
          IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'read_points:2' )
@@ -1011,7 +1040,7 @@
          IF ( LON > 180.0 ) LON = LON - 360e0
 
          ! Error check LONGITUDE
-         IF ( LON < -180 .OR. LON > 180 ) THEN 
+         IF ( LON < -180.0 .OR. LON > 180.0 ) THEN 
             IF ( am_I_Root ) THEN
                WRITE( 6, 125 ) LON
                WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.f)'
@@ -1030,6 +1059,67 @@
             CALL GEOS_CHEM_STOP
          ENDIF
         
+         ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+         IF ( LAT <   10e0 .OR. LAT >  70e0  .OR. 
+     &        LON < -140e0 .OR. LON > -40e0 ) THEN
+            PRINT*, ' Outside nested domain, skipping record ', N
+            CYCLE
+         ENDIF
+#endif
+
+         ! Convert from altitude to pressure if we have CCCG data or
+         ! tower data
+         NAME = ADJUSTL(PTYPE(N))
+         IF ( NAME(1:1)  .EQ. 'S'      .OR. ! NOAA Surface
+     &        TRIM(NAME) .EQ. 'Aacg'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Abne'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acar'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acma'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Acrv'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Adnd'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Aesp'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Aetl'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Ahil'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Ahip'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Alef'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Anha'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Apfa'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Arta'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Asca'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Asgp'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Atgc'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Athd'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Awbi'   .OR. ! NOAA Aircraft
+     &        TRIM(NAME) .EQ. 'Tamt'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tbao'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tcrv'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tlef'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tlew'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmbo'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmvy'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tmwo'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tnwr'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tsct'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tsgp'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Tstr'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twbi'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twgc'   .OR. ! NOAA Tower
+     &        TRIM(NAME) .EQ. 'Twkt' ) THEN ! NOAA Tower
+            ! Change units
+            L_ALT = 0
+            IJ = GET_IJ(LON,LAT)
+            DO L = 1, LLPAR
+               MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0
+     &                  + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
+               IF ( (L_ALT    .EQ.    0)  .AND.
+     &              (MOD_ELEV .GT. PRES) ) THEN
+                  L_ALT = L
+               ENDIF
+            ENDDO
+            PRES = State_Met%PMID(IJ(1),IJ(2),L_ALT)
+         ENDIF
+
          ! Assign LAT value into global PLAT array
          PLAT(N)   = LAT
 
@@ -1038,6 +1128,9 @@
 
          ! Assign PRES value into global PPRESS array
          PPRESS(N) = PRES
+
+         ! Assign OBS value into global PPRESS array
+         POBS(N) = OBS
 
       ENDDO
 
@@ -1427,11 +1520,9 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : NDUST, NAER
-#if   defined( TOMAS )
+#if defined( BPCH_DIAG ) && defined( TOMAS )
       USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1501,15 +1592,16 @@
 !
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL             :: IS_FULLCHEM, LINTERP
-      INTEGER             :: I, IP, IRHN, J, L, M, N, R, RH, V
-      INTEGER             :: K, LL, PR
-      INTEGER             :: LPLANE, IWV, ISPC
+      INTEGER             :: I, J, L, M, N, R, PR, V
+      INTEGER             :: LL     !eds
+      INTEGER             :: LPLANE, IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
       LOGICAL             :: CHEMSTEP
       REAL*8              :: FLTGMT   ! eam (06/2015)
       REAL*8              :: XRH      ! MET field RH (eam, 08/2015)
       CHARACTER(LEN=63)   :: OrigUnit
+      CHARACTER(LEN=7)    :: NAME
 
       ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC 
       INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1569,7 +1661,7 @@
       ! Loop over all the locations that have not yet been found
       DO M = PPOINT, NPOINTS
 
-         ! Starting & end times of chemistry interval
+         ! Starting & end times of transport timestep
          PTAUE = GET_TAU0( MONTH, DAY, YEAR, HOUR, MINUTE, 0 )
          ! Modification from kyu (eam, 03/2015)
          !PTAUS = PTAUE - ( GET_TS_DIAG() / 3600e+0_fp )
@@ -1604,11 +1696,11 @@
          !==============================================================
          IF ( PTAU(M) < PTAUS ) THEN
 
-            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            !PRINT*, PTAU(M), PTAUS
+!            PRINT*, 'BEGIN PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
-            CALL WRITE_VARS_TO_FILE( M, VARI )      
+            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )      
 
             ! Increment pointer
             PPOINT = PPOINT + 1
@@ -1620,8 +1712,8 @@
          ! (skim, 7/24/13)
          ELSE IF ( PTAU(M) > PTAUE ) THEN
 
-            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
-            !PRINT*, PTAU(M), PTAUE
+!            PRINT*, 'END PLANEFLIGHT', PTYPE(M), PDATE(M), PTIME(M)
+!            PRINT*, PTAU(M), PTAUE
 
             ! Exit this loop and the subroutine
             EXIT
@@ -1633,10 +1725,33 @@
             
             ! Print the flight track point number
             WRITE( 6, 100 ) PTYPE(M), PDATE(M), PTIME(M) 
- 100        FORMAT( '     - PLANEFLIGHT: Archived ',a5,1x,i8.8,1x,i4.4 )
+ 100        FORMAT( '     - PLANEFLIGHT: Archived ',a7,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
             CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
+
+            ! If this is a surface observation, set L=1
+            !
+            ! NOAA Surface observations start with 'S' in Planeflight.dat
+            ! Other surface observation strings can be added here
+            NAME = ADJUSTL(PTYPE(M))
+            IF ( NAME(1:1)  .EQ. 'S' ) THEN
+
+               ! Make sure it is the users intention to set L=1
+               IF ( am_I_Root ) THEN
+                  WRITE( 6, '(a)') 'WARNING: NOAA Surface Observation. '
+                  WRITE( 6, '(a)') 'Forcing L=1. If this is intended, '
+                  WRITE( 6, '(a)') 'you may comment out the call to '
+                  WRITE( 6, '(a)') 'GEOS_CHEM_STOP in routine '
+                  WRITE( 6, '(a)') 'PLANEFLIGHT (planeflight_mod.f)'
+                  WRITE( 6, '(a)') REPEAT( '=', 79 )
+               ENDIF
+               CALL GEOS_CHEM_STOP
+
+               ! Force L=1
+               L = 1
+
+            ENDIF
 
             ! Initialize reaction counter
             R = 0
@@ -1817,11 +1932,48 @@
                   CASE ( 1009 )
                      VARI(V) = L
 
-                  !--------------------------------
-                  ! GEOS-Chem relative humidity (%)
-                  !--------------------------------
+                  !--------------------------
+                  ! GEOS-Chem Relative Humidity [%]
+                  !--------------------------
                   CASE ( 1010 )
                      VARI(V) = State_Met%RH(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Ertel's potential vorticity
+                  !--------------------------
+                  CASE ( 1011 )
+                     ! Disable for now. State_Met%PV is not defined.
+                     !VARI(V) = State_Met%PV(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Sea Level pressure [hPa]
+                  !--------------------------
+                  CASE ( 1012 )
+                     VARI(V) = State_Met%SLP(I,J)
+
+                  !--------------------------
+                  ! GEOS-Chem Water Vapor
+                  !  mixing ratio [v/v]
+                  !--------------------------
+                  CASE ( 1013 )
+                     VARI(V) = State_Met%AVGW(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Potential Temp
+                  !  (Theta) [k]
+                  !  (same calc used in diag1.F)
+                  !--------------------------
+                  CASE ( 1014 )
+                   VARI(V) = State_Met%T(I,J,L) *
+     &                     ( State_Met%PEDGE(I,J,1) /
+     &                       State_Met%PMID(I,J,L) )**0.286
+
+                  !--------------------------
+                  ! GEOS-Chem Pressure
+                  ! at center of grid box [hPa]
+                  !--------------------------
+                  CASE ( 1015 )
+                  VARI(V) = State_Met%PMID(I,J,L)
 
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's
@@ -2096,7 +2248,7 @@
 
                      IF ( VARI(V) < TINY ) VARI(V) = 0.e+0_fp
 
-#if   defined( TOMAS )
+#if   defined( TOMAS ) && defined( BPCH_DIAG )
                   !-------------------------------
                   ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
                   !-------------------------------
@@ -2134,7 +2286,7 @@
             NULLIFY( Spc )
 
             ! Write data for the Mth plane point out to disk
-            CALL WRITE_VARS_TO_FILE( M, VARI )
+            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )
 
             ! Increment the record pointer
             PPOINT = PPOINT + 1
@@ -2206,8 +2358,8 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
-      INTEGER :: I0, J0   ! (lds, 8/25/11)
-
+      INTEGER :: I0, J0 
+      
       !=================================================================
       ! TEST_VALID begins here!
       !=================================================================
@@ -2260,16 +2412,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_VARS_TO_FILE( IND, VARI )
+      SUBROUTINE WRITE_VARS_TO_FILE( State_Met, IND, VARI )
 !
 ! !USES:
 !
-      USE FILE_MOD, ONLY : IOERROR
+      USE CMN_SIZE_MOD
+      USE FILE_MOD,      ONLY : IOERROR
+      USE GC_GRID_MOD,   ONLY : GET_IJ
+      USE State_Met_Mod, ONLY : MetState
+      USE TIME_MOD
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: IND           ! # of the flight track point
-      REAL(fp),  INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
+      TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
+      INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
+      REAL(fp),       INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -2287,26 +2444,56 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
       INTEGER       :: I, IOS
+      INTEGER       :: IIJJ(2), II, JJ, L, LL
+      REAL*4        :: LON_TMP, LAT_TMP
 
       !=================================================================
       ! WRITE_VARS_TO_FILE begins here!
       !=================================================================
 
+      LON_TMP = REAL(PLON(IND),4)
+      LAT_TMP = REAL(PLAT(IND),4)
+
+      ! Skip observations outside the nested domain
+#if   defined( NESTED_NA )
+      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR. 
+     &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
+         PRINT*, ' Outside nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+      ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
+      IIJJ = GET_IJ( LON_TMP, LAT_TMP )
+      II = IIJJ(1)      
+      JJ = IIJJ(2)    
+      LL = 0
+      IF ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,1) ) LL = 1
+      DO L = 1, LLPAR
+         IF ( ( PPRESS(IND) .LT. State_Met%PEDGE(II,JJ,L)   ) .AND.
+     &        ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,L+1) ) ) LL = L
+      ENDDO
+      IF (LL .EQ. 0) LL = LLPAR
+
+
       ! Write data to file
       WRITE( IU_PLANE, 110, IOSTAT=IOS ) 
      &     IND, PTYPE(IND), INT( PDATE(IND) ), INT( PTIME(IND) ),
-     &     PLAT(IND), PLON(IND), PPRESS(IND), ( VARI(I), I=1,NPVAR )
+     &     PLAT(IND), PLON(IND), PPRESS(IND), POBS(IND),
+     &     INT( GET_ELAPSED_SEC() / GET_TS_DYN() ),
+     &     LL, II, JJ,
+     &     ( VARI(I), I=1,NPVAR )
       
       ! Format string
       ! FP replace 95 by 200
 ! 110  FORMAT( I5,   X, A5,   X, I8.8, X, I4.4, X, 
 !     &        F7.2, X, F7.2, X, F7.2, X, 95(es11.3e3,x) )
 #if   defined( TOMAS )
- 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
-     &       250(es11.3e3,x))
+ 110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
+     $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,250(es11.3e3,x))
 #else
- 110  FORMAT(I5,X,A5,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,
-     &       200(es11.3e3,x))
+ 110  FORMAT(I5,X,A7,X,I8.8,X,I4.4,X,F7.2,X,F7.2,X,F7.2,X,F10.3,
+     $       X,I9.9,X,I3.3,X,I5.5,X,I5.5,X,200(es11.3e3,x))
 #endif
 
       ! Error check
@@ -2807,6 +2994,9 @@
          ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
 
+         ALLOCATE( POBS( MAXPOINTS ), STAT=AS )
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'POBS' )
+
          ! Reset IS_INIT flag
          IS_INIT = .TRUE.
       ENDIF
@@ -2827,6 +3017,7 @@
       PLAT   = 0e0
       PLON   = 0e0
       PPRESS = 0e0
+      POBS   = 0e0
 
       END SUBROUTINE INIT_PLANEFLIGHT
 !EOC
@@ -2864,6 +3055,7 @@
       IF ( ALLOCATED( PLAT   ) ) DEALLOCATE( PLAT   )
       IF ( ALLOCATED( PLON   ) ) DEALLOCATE( PLON   )
       IF ( ALLOCATED( PPRESS ) ) DEALLOCATE( PPRESS )
+      IF ( ALLOCATED( POBS   ) ) DEALLOCATE( POBS   )
 
       END SUBROUTINE CLEANUP_PLANEFLIGHT
 !EOC

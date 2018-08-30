@@ -11,7 +11,7 @@ COUPLE="COUPLE=yes"
 #COUPLEEU="COUPLEEU=4x5eu"
 COUPLECH="COUPLECH=2x25ch"
 COUPLENA="COUPLENA=2x25na"
-COUPLEEU="COUPLEEU=2x25eu"
+#COUPLEEU="COUPLEEU=2x25eu"
 
 #Set the nesting option
 NESTEU="NEST=eu"
@@ -20,6 +20,11 @@ NESTCH="NEST=ch"
 
 #Set the MET input
 MET="MET=geos5"
+
+PRE="PRECISION=4"
+
+#Set the CHEM input
+CHEM='CHEM=TROPCHEM'
 
 #Set the GRID input
 GRID="GRID=2x25"
@@ -36,7 +41,7 @@ geosch="geosch"
 option="-j4"
 
 #Set the code dir and run dir
-dir_code="/home/yanyy/geoschem/run/src/Code.v9-02.two-way/"
+dir_code="/data/users/yanyy/v11/Code_dir/twoway_test/"
 dir_coupler="PKUCPL/"
 dir_geos="geos/"
 dir_geosna="geosna/"
@@ -50,7 +55,7 @@ if [ ${#COUPLECH} != 0 ]; then
 rm -f $dir_code$dir_coupler$dir_geosch$geos
 cd $dir_code
 make realclean
-make $option $MET $GRIDNEST $NESTCH $COUPLE $COUPLECH
+make $option $MET $CHEM $GRIDNEST $NESTCH $COUPLE $COUPLECH #$PRE
 cp $dir_code$dir_bin$geos $dir_code$dir_coupler$dir_geosch
 fi
 
@@ -59,7 +64,7 @@ if [ ${#COUPLENA} != 0 ]; then
 rm -f $dir_code$dir_coupler$dir_geosna$geos
 cd $dir_code
 make realclean
-make $option $MET $GRIDNEST $NESTNA $COUPLE $COUPLENA
+make $option $MET $CHEM $GRIDNEST $NESTNA $COUPLE $COUPLENA #$PRE
 cp $dir_code$dir_bin$geos $dir_code$dir_coupler$dir_geosna
 fi
 
@@ -68,7 +73,7 @@ if [ ${#COUPLEEU} != 0 ]; then
 rm -f $dir_code$dir_coupler$dir_geoseu$geos
 cd $dir_code
 make realclean
-make $option $MET $GRIDNEST $NESTEU $COUPLE $COUPLEEU
+make $option $MET $CHEM $GRIDNEST $NESTEU $COUPLE $COUPLEEU #$PRE
 cp $dir_code$dir_bin$geos $dir_code$dir_coupler$dir_geoseu
 fi
 
@@ -76,7 +81,7 @@ fi
 rm -f $dir_code$dir_coupler$dir_geos$geos
 cd $dir_code
 make realclean
-make $option $MET $GRID $COUPLE $COUPLENA $COUPLECH $COUPLEEU
+make $option $MET $CHEM $GRID $COUPLE $COUPLENA $COUPLECH $COUPLEEU # $PRE
 cp $dir_code$dir_bin$geos $dir_code$dir_coupler$dir_geos
 
 #Compile the PKUCPL

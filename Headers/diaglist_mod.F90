@@ -9,13 +9,13 @@
 !  and subroutines used for reading and storing user-configured diagnostic
 !  information from the history configuration file, specifically names
 !  and information derived from the names. The diagnostics list is
-!  used to allocate diagnostics stored in container State_Diag and to 
+!  used to allocate diagnostics stored in container State\_Diag and to 
 !  declare exports in GCHP. It does not store collection information. A
 !  module-level collection list containing names all collections that
 !  are declared in HISTORY.rc with names not commented out is also in
 !  this module. This is used to prevent adding diagnostics to the 
 !  diagnostic list that are in collections not turned on in HISTORY.rc,
-!  thereby preventing their analogous State_Diag array initialization 
+!  thereby preventing their analogous State\_Diag array initialization 
 !  in GEOS-Chem.
 ! 
 ! !INTERFACE:
@@ -127,9 +127,9 @@ CONTAINS
 !\\
 !\\
 !  NOTE: This routine has to be called before any of the GEOS-Chem objects
-!  Input_Opt, State_Chm, State_Met, and State_Diag are created.  When using
+!  Input\_Opt, State\_Chm, State\_Met, and State\_Diag are created. When using
 !  GCHP, we must create the ESMF/MAPL export objects for the diagnostics
-!  in the Set_Services routine.  Set_Services is called before GEOS-Chem
+!  in the Set\_Services routine.  Set\_Services is called before GEOS-Chem
 !  is initialized.
 !\\
 !\\
@@ -158,6 +158,8 @@ CONTAINS
 ! !REVISION HISTORY:
 !  22 Sep 2017 - E. Lundgren - initial version
 !  28 Nov 2017 - C. J. Lee   - Allow state MET variables to have underscores
+!  29 Dec 2017 - C. Keller   - Look for GEOSCHEMCHEM instead of GIGCchem when
+!                              on NCCS Discover.
 !  22 Jan 2018 - E. Lundgren - Allow use of AOD wavelengths in diagnostic names
 !  26 Jan 2018 - E. Lundgren - Read collection names and skip collection diags
 !                              where HISTORY.rc declared col name commented out
@@ -167,39 +169,52 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                 :: fId, IOS, N, N1, N2, N3, I, J
-    INTEGER                 :: IWLMAX, IWLMAXLOC(1), IWL(3)
-    INTEGER                 :: numSpcWords, numIDWords
-    CHARACTER(LEN=255)      :: errMsg, thisLoc, nameAllCaps
-    CHARACTER(LEN=255)      :: line, SubStrs(500), SubStr
-    CHARACTER(LEN=255)      :: wildcard, tag, name, state
-    CHARACTER(LEN=255)      :: metadataID, registryID, registryIDprefix
-    CHARACTER(LEN=255)      :: collname
-    LOGICAL                 :: EOF, found, isWildcard, isTagged
+    ! Scalars
+    LOGICAL                  :: EOF, found, isWildcard, isTagged
+    LOGICAL                  :: InDefSection, InFieldsSection
+    INTEGER                  :: QMatch, CMatch, LineNum
+    INTEGER                  :: fId, IOS, N, N1, N2, N3, I, J, C, F, G
+    INTEGER                  :: IWLMAX, IWLMAXLOC(1), IWL(3)
+    INTEGER                  :: numSpcWords, numIDWords
 
-    ! Pointer
-    TYPE(DgnItem),  POINTER :: NewDiagItem
-    TYPE(ColItem),  POINTER :: NewCollItem
+    ! Strings
+    CHARACTER(LEN=80 )       :: ErrorLine
+    CHARACTER(LEN=255)       :: errMsg, thisLoc, nameAllCaps
+    CHARACTER(LEN=255)       :: line, SubStrs(500), SubStr
+    CHARACTER(LEN=255)       :: wildcard, tag, name, state
+    CHARACTER(LEN=255)       :: metadataID, registryID, registryIDprefix
+    CHARACTER(LEN=255)       :: collname, AttName, AttValue
+    CHARACTER(LEN=255)       :: AttComp,  FieldName
+
+    ! SAVEd variables
+    CHARACTER(LEN=255), SAVE :: LastCollName
+
+    ! Pointers
+    TYPE(DgnItem),   POINTER :: NewDiagItem
+    TYPE(ColItem),   POINTER :: NewCollItem
 
     !=======================================================================
     ! Init_DiagList begins here
     !=======================================================================
 
     ! Initialize
-    RC            = GC_SUCCESS
-    ErrMsg        = ''
-    ThisLoc       = ' -> at Init_DiagList (Headers/diaglist_mod.F90)'
-    EOF           = .FALSE.
-    found         = .FALSE.
-    NewDiagItem   => NULL()
-    RadWL(:)      =  ''
-    IsFullChem    =  .FALSE.
+    RC              =  GC_SUCCESS
+    ErrMsg          =  ''
+    ThisLoc         =  ' -> at Init_DiagList (Headers/diaglist_mod.F90)'
+    EOF             = .FALSE.
+    found           = .FALSE.
+    NewDiagItem     => NULL()
+    RadWL(:)        =   ''
+    IsFullChem      = .FALSE.
+    InDefSection    = .FALSE.
+    InFieldsSection = .FALSE.
+    LastCollName    = ''
 
     ! Create DiagList object
-    DiagList%head => NULL()
+    DiagList%head   => NULL()
 
     ! Create ColList object
-    CollList%head  => NULL()
+    CollList%head   => NULL()
 
     !=======================================================================
     ! Read the input.geos configuration file to find out:
@@ -262,18 +277,25 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Zero the line counter
+    LineNum = 0
+
     !====================================================================
     ! Read history config file line by line in a loop
     !====================================================================
     DO
     
        ! Read line and strip leading/trailing spaces. Skip if commented out
-       Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+       LineNum = LineNum + 1
        IF ( EOF ) EXIT
        IF ( IOS > 0 ) THEN
           ErrMsg = 'Unexpected end-of-file in "'       // &
                     TRIM( historyConfigFile ) // '" (1)!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          WRITE( ErrorLine, '(i6)' ) LineNum
+ 250      FORMAT( ' -> ERROR occurred at (or near) line ', i6,               &
+                      ' of the HISTORY.rc file' )
+          CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
           RETURN
        ENDIF
        IF ( Line(1:1) == '#' ) CYCLE
@@ -299,12 +321,14 @@ CONTAINS
              ENDIF
 
              ! Read the next line and strip leading/trailing spaces
-             Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+             Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+             LineNum = LineNum + 1
 
              IF ( IOS > 0 .OR. EOF ) THEN
                 ErrMsg = 'Unexpected end-of-file in "'       // &
                           TRIM( historyConfigFile ) // '" (2)!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
              ENDIF
 
@@ -330,11 +354,13 @@ CONTAINS
           ! Skip this collection if not found in list
           IF ( .NOT. Found ) THEN
              DO WHILE ( INDEX( Line, '::' ) .le. 0 ) 
-                Line = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                Line    = ReadOneLine( fId, EOF, IOS, Squeeze=.TRUE. )
+                LineNum = LineNum + 1
                 IF ( IOS > 0 .OR. EOF ) THEN
                    ErrMsg = 'Unexpected end-of-file in "'       // &
                              TRIM( historyConfigFile ) // '" (4)!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                    RETURN
                 ENDIF
              ENDDO
@@ -342,11 +368,209 @@ CONTAINS
           ENDIF
        ENDIF
 
+#if !defined ( DISCOVER )  
+       !====================================================================
+       ! Add some extra error checks for collections that are in the 
+       ! collection name list (and therefore will be archived)
+       !====================================================================
+
+       ! The double-colon indicates the end of a collection definition
+       IF ( INDEX( Line, '::' ) > 0 ) THEN
+          InDefSection    = .FALSE.
+          InFieldsSection = .FALSE.
+          LastCollName    = ''
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! If the line has a "." character, then this denotes that we are
+       ! in the section where collection attributes are defined
+       !--------------------------------------------------------------------
+       IF ( INDEX( Line, '.' ) > 0 ) THEN
+
+          ! Denote that we are in the definition section
+          InDefSection = .TRUE. 
+          
+          ! Split the line into substrings
+          CALL StrSplit( Line, " ", SubStrs, N )
+          AttName  = SubStrs(1)           ! Attribute name
+          AttValue = SubStrs(2)           ! Attribute value
+          AttComp  = Substrs(3)           ! Gridded component name (for GCHP)
+
+          ! If the .fields tag is found, then denote that we are 
+          ! in the section where collection fields are defined
+          ! we have entered into th
+          IF ( INDEX( Line, '.fields' ) > 0 ) THEN 
+             InFieldsSection = .TRUE.
+             LastCollName    = collName
+          ENDIF
+        
+          ! We expect at least 2 substrings
+          IF ( LEN_TRIM( AttValue ) == 0 ) THEN
+             ErrMsg = 'The value of attribute "'// TRIM( AttName )        // &
+                      '" is missing! Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Each collection attribute definition needs to end with a colon
+          C = LEN_TRIM( AttName )
+          IF ( AttName(C:C) /= ':' ) THEN
+             ErrMsg = 'The "' // TRIM( AttName ) // '" '                  // &
+                      'collection attribute did not end with a ":" '      // &
+                      'character!  Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! The "template", "filename", and "format", attribute values
+          ! must be single-quoted strings that are followed by a comma,
+          ! or else GCHP will die with an error.
+          !-----------------------------------------------------------------
+          IF ( INDEX( AttName, '.template' ) > 0   .or.                      &
+               INDEX( AttName, '.filename' ) > 0   .or.                      &
+               INDEX( AttName, '.format'   ) > 0  ) THEN
+
+             ! Make sure that the value starts with a single quote
+             IF ( AttValue(1:1) /= "'" ) THEN
+                ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
+                          '" does not begin with a single quote '         // &
+                          'character! Please check the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+
+             ! Make sure that the value ends with a single quote
+             ! (comma is optional)
+             C = LEN_TRIM( AttValue )
+             IF ( AttValue(C-1:C) /= "'," ) THEN
+                ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
+                         '" must end with a single quote character, '     // &
+                         'followed by a comma. '                          // &
+                         'Please check the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! The "mode" attribute value must be a quoted string.  The comma
+          ! is optional, or at least omitting it isn't fatal for GCHP.
+          !-----------------------------------------------------------------
+          IF ( INDEX( AttName, '.mode' ) > 0 ) THEN
+
+             ! Make sure that the value starts with a single quote
+             IF ( AttValue(1:1) /= "'" ) THEN
+                ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
+                          '" does not begin with a single quote '         // &
+                          'character! Please check the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+
+             ! Make sure that the value ends with a single quote
+             ! (comma is optional)
+             C = LEN_TRIM( AttValue )
+             IF ( AttValue(C:C) == ',' ) C = C -1
+             IF ( AttValue(C:C) /= "'" ) THEN
+                ErrMsg = 'The value of attribute "'// TRIM( AttName )     // &
+                         '" must end with a single quote character. '     // &
+                         'Please check the HISTORY.rc file.'
+                WRITE( ErrorLine, 250 ) LineNum
+                CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                RETURN
+             ENDIF
+          ENDIF
+
+       ENDIF
+
+       !-----------------------------------------------------------------
+       ! Further error checks for the fields attribute
+       !-----------------------------------------------------------------
+       IF ( InFieldsSection ) THEN
+
+          ! Extract the current collection name, which forms the first
+          ! part of the attribute name (up to the "." character.  If this 
+          ! does not match the expected collection name, then we have a 
+          ! missing separator ("::") somewhere.  Stop with an error.
+          C = INDEX( AttName, '.' )
+          IF ( AttName(1:C-1) /= TRIM( LastCollName ) ) THEN
+             ErrMsg = 'Attribute "' // TRIM( AttName ) // ' specifies a ' // &
+                      'value for collection "' // TRIM( AttName(1:C-1) )  // &
+                      '", but the expected collection name is "'          // &
+                      TRIM( LastCollName ) // '".  This indicates that '  // &
+                      'the end-of-collection delimiter (i.e. "::") is '   // &
+                      'missing.  Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Throw an error if we cannot find the gridcomp name 
+          ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
+          G = INDEX( Line, "'GIGCchem'," ) 
+          IF ( G == 0 ) THEN
+             ErrMsg = 'The name of the GCHP gridded component '           // &
+                      "(e.g. 'GIGCchem') for attribute "  // '" '         // &
+                      TRIM( AttName ) // '" must be enclosed in '         // &
+                      'single quotes and be followed by a comma. '        // &
+                      'Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Save into LineSq the text of the line, skipping over
+          ! the attribute name (if we are on the first line),
+          ! as well as the gridcomp name
+          F = INDEX( Line, '.fields' )             
+          IF ( F > 0 ) THEN
+             C = INDEX( Line, ':' )
+             FieldName = Line(C+1:G-1)
+          ELSE
+             FieldName = Line(1:G-1)
+          ENDIF
+
+          ! Pack all whitespace in LineSq
+          CALL StrSqueeze( FieldName )
+          CALL CStrip( FieldName )
+
+          ! Make sure that the value starts with a single quote
+          IF ( FieldName(1:1) /= "'" ) THEN
+             ErrMsg = 'The diagnostic field name "' // TRIM( FieldName )  // &
+                      '" does not begin with a single quote '             // &
+                      'character! Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          ! Make sure that the value ends with a single quote
+          C = LEN_TRIM( FieldName )
+          IF ( FieldName(C-1:C) /= "'," ) THEN
+             ErrMsg = 'The diagnostic field name "' // TRIM( FieldName )  // &
+                      '" must end with a single quote character '         // &
+                      'followed by a comma, '                             // &
+                      'Please check the HISTORY.rc file.'
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
+
        !====================================================================
        ! Add unique diagnostic names to diag list
        !==================================================================== 
    
        ! Skip line if GIGCchem not present
+       ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
+       ! scan accordingly (ckeller, 12/29/17)
 #if defined( DISCOVER )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
@@ -1012,12 +1236,6 @@ CONTAINS
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
        currentName_AllCaps = To_Uppercase( current%name )
-!------------------------------------------------------------------------------
-! Prior to 11/16/17:
-! Don't just restrict to State_Diag (bmy, 11/16/17)
-!       IF ( ( current%state == 'DIAG' ) .AND. &
-!            INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
-!------------------------------------------------------------------------------
        IF ( INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
           found = .TRUE.
           EXIT
@@ -1035,7 +1253,7 @@ CONTAINS
 !
 ! !IROUTINE: Print_DiagList 
 !
-! !DESCRIPTION: Subroutine Print_DiagList prints information for all
+! !DESCRIPTION: Subroutine Print\_DiagList prints information for all
 !  DiagItem members in a DiagList linked list.
 !\\
 !\\
@@ -1111,7 +1329,7 @@ CONTAINS
 !
 ! !IROUTINE: Print_ColList 
 !
-! !DESCRIPTION: Subroutine Print_ColList prints information for all
+! !DESCRIPTION: Subroutine Print\_ColList prints information for all
 !  ColItem members in a ColList linked list.
 !\\
 !\\
@@ -1175,7 +1393,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_DiagList 
 !
-! !DESCRIPTION: Subroutine Cleanup_DiagList deallocates a DiagList
+! !DESCRIPTION: Subroutine Cleanup\_DiagList deallocates a DiagList
 !  object and all of its member objects including the linked list of
 !  DiagItem objects.
 !\\
@@ -1240,7 +1458,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_ColList 
 !
-! !DESCRIPTION: Subroutine Cleanup_ColList deallocates a ColList
+! !DESCRIPTION: Subroutine Cleanup\_ColList deallocates a ColList
 !  object and all of its member objects including the linked list of
 !  ColItem objects.
 !\\

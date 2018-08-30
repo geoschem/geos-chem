@@ -45,7 +45,7 @@ CONTAINS
 ! !IROUTINE: set_ch4
 !
 ! !DESCRIPTION: Subroutine SET\_CH4 copies monthly mean surface CH4 from
-!  HEMCO and applies it to CH4 concentrations in State_Chm%Species.
+!  HEMCO and applies it to CH4 concentrations in State\_Chm%Species.
 !\\
 !\\
 ! !INTERFACE:

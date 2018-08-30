@@ -100,7 +100,6 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( BPCH_DIAG )
       ! For "diaginfo.dat"
 !      INTEGER,           PARAMETER   :: MAXCAT    = 150
       INTEGER,           PARAMETER   :: MAXCAT    = 160
@@ -144,7 +143,6 @@
       INTEGER :: id_PAN,   id_POA1,  id_PRPE  
       INTEGER :: id_SO2,   id_TSOA1, id_POG1,  id_POG2  
       INTEGER :: id_TOLU,  id_XYLE,  id_HNO3
-#endif
 
       CONTAINS
 !EOC
@@ -197,8 +195,6 @@
       ! Assume success
       RC = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
-
       ! Allocate and initialize variables
       CALL INIT_GAMAP( am_I_Root, Input_Opt, State_Chm, RC )
 
@@ -216,8 +212,6 @@
 
       ! Deallocate variables
       CALL CLEANUP_GAMAP
-
-#endif
 
       END SUBROUTINE DO_GAMAP
 !EOC
@@ -257,8 +251,6 @@
       !=================================================================
       ! CREATE_DINFO begins here!
       !=================================================================
-
-#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -318,7 +310,6 @@
 
       ! Close file
       CLOSE( IU_FILE )
-#endif
 
       END SUBROUTINE CREATE_DINFO
 !EOC
@@ -369,15 +360,11 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
-
-
       INTEGER           :: D, IOS, N, T
       INTEGER           :: IU_FILE
       REAL*4            :: SCALE_NEW
       CHARACTER(LEN=2)  :: C
       CHARACTER(LEN=40) :: UNIT_NEW, NAME_NEW, FNAME_NEW
-#endif
 
       !=================================================================
       ! CREATE_TINFO begins here!
@@ -385,8 +372,6 @@
 
       ! Assume success
       RC      =  GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
@@ -703,7 +688,6 @@
             ENDDO
          ENDIF
       ENDDO
-#endif
 
       END SUBROUTINE CREATE_TINFO
 !EOC
@@ -747,7 +731,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER :: IOS
 
       !=================================================================
@@ -764,7 +747,6 @@
 
       ! FORMAT string
  100  FORMAT( a8, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
-#endif
 
       END SUBROUTINE WRITE_TINFO
 !EOC
@@ -804,7 +786,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER           :: IOS
       CHARACTER(LEN=79) :: SEPARATOR
 
@@ -861,7 +842,6 @@
  170  FORMAT( '# Quantities for Soil NOx restart file' )
  180  FORMAT( '# ND', i2.2, ' diagnostic quantities'   )
  190  FORMAT( '# TOMAS aerosol rate [cm-3 s-1]'      )   !(win, 7/9/09)
-#endif
 
       END SUBROUTINE WRITE_SEPARATOR
 !EOC
@@ -916,7 +896,6 @@
 !
 ! !LOCAL VARIABLES:
 ! 
-#if defined( BPCH_DIAG )
       INTEGER :: N
 
       !=================================================================
@@ -1742,7 +1721,6 @@
 
       ! Number of categories
       NCATS = N
-#endif
 
       END SUBROUTINE INIT_DIAGINFO
 !EOC
@@ -1764,7 +1742,7 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU, STRWVSELECT
+      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -1861,13 +1839,13 @@
 !  23 Jan 2017 - R. Yantosca - Now write metadata for all species (advected
 !                              or not) for the ND45 tracer conc. diagnostic
 !  26 Sep 2017 - M. Sulprizio- Add new halogen species to ND22 (L. Zhu)
+!  23 Mar 2018 - E. Lundgren - Get lambda array from Input_Opt not cmn_fjx_mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
       INTEGER                 :: N, NN, NYMDb, NHMSb, T, T0, T1
       INTEGER                 :: nAdvect, nDryDep, nSpecies
       LOGICAL                 :: DO_TIMESERIES
@@ -1879,7 +1857,6 @@
 
       ! Objects
       TYPE(Species), POINTER  :: SpcInfo
-#endif
 
       !=================================================================
       ! INIT_TRACERINFO begins here!
@@ -1887,8 +1864,6 @@
 
       ! Assume success
       RC = GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Initialization
       DUM = 1.0
@@ -1967,6 +1942,7 @@
       ! Number of ND45 tracers, now all species (bmy, 1/23/17)
       NTRAC(45) = nSpecies
 
+#if defined( BPCH_DIAG )
       !-------------------------------------
       ! Hg source, production & loss (ND03)
       !
@@ -2137,37 +2113,69 @@
                   FNAME(T,03) = 'Prod of Hg2 from Br'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE( 7 )
+                  NAME (T,03) = 'Hg2_BrY'
+                  FNAME(T,03) = 'Prod of Hg2 from BrY'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 8 )
+                  NAME (T,03) = 'Hg2_ClY'
+                  FNAME(T,03) = 'Prod of Hg2 from ClY'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 9 )
                   NAME (T,03) = 'Br'
                   FNAME(T,03) = 'Br concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 8 )
+               CASE( 10 )
                   NAME (T,03) = 'BrO'
                   FNAME(T,03) = 'BrO concentration'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 9 )
+               CASE( 11 )
                   NAME (T,03) = 'PBM'
                   FNAME(T,03) = 'Particle bound mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )      
-               CASE( 10 )
+               CASE( 12 )
                   NAME (T,03) = 'RGM'
                   FNAME(T,03) = 'Reactive gaseous mercury'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 ) 
-               CASE( 11 )
+               CASE( 13 )
                   NAME (T,03) = 'Br_pol'
                   FNAME(T,03) = 'Polar Br concentration'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 12 )
+               CASE( 14 )
                   NAME (T,03) = 'BrO_pol' 
                   FNAME(T,03) = 'Polar BrO concentration'
                   UNIT (T,03) = 'pptv'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
-               CASE( 13 )
+               CASE( 15 )
                   NAME (T,03) = 'O3_pol'
                   FNAME(T,03) = 'Polar O3 concentration'
                   UNIT (T,03) = 'ppbv'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 16 )
+                  NAME (T,03) = 'HgBr2'
+                  FNAME(T,03) = 'oxidation of HgBr by Br'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 17 )
+                  NAME (T,03) = 'HgBrBrO'
+                  FNAME(T,03) = 'oxidation of HgBr by BrO'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 18 )
+                  NAME (T,03) = 'HgBrHO2'
+                  FNAME(T,03) = 'oxidation of HgBr by HO2'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 19 )
+                  NAME (T,03) = 'HgBrNO2'
+                  FNAME(T,03) = 'oxidation of HgBr by NO2'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 20 )
+                  NAME (T,03) = 'HgBrClO'
+                  FNAME(T,03) = 'oxidation of HgBr by ClO'
+                  INDEX(T,03) = ( N ) + ( SPACING * 35 )
+               CASE( 21 )
+                  NAME (T,03) = 'HgBrOH'
+                  FNAME(T,03) = 'oxidation of HgBr by OH'
                   INDEX(T,03) = ( N ) + ( SPACING * 35 )
                CASE DEFAULT
                   ! Nothing
@@ -4571,7 +4579,6 @@
 
       ENDIF ! LSPLIT
 
-
       !-------------------------------------
       ! CO2 sources & fluxes
       !-------------------------------------
@@ -5153,17 +5160,34 @@
       IF ( ND19 > 0 ) THEN
          
          ! Number of tracers
-         NTRAC(19) = 1
-         T = 1
-          
-         ! Define quantities
-         NAME (T,19) = 'CH4Loss'
-         FNAME(T,19) = 'CH4 Loss from Reaction with OH'
-         UNIT (T,19) = 'kg'
-         INDEX(T,19) = T + ( SPACING * 32 )
-         MWT  (T,19) = 1.6e-3
-         MOLC (T,19) = 1
-         SCALE(T,19) = 1e0
+         NTRAC(19) = 3
+
+         ! Loop over tracers
+         DO T = 1, NTRAC(19)
+
+            ! Define quantities
+            UNIT (T,19) = 'kg'
+            INDEX(T,19) = T + ( SPACING * 32 )
+            MWT  (T,19) = 1.6e-3
+            MOLC (T,19) = 1
+            SCALE(T,19) = 1e0
+            
+            ! Get name long-name (and sometimes, unit)
+            SELECT CASE( T )
+               CASE( 1 )
+                  NAME (T,19) = 'OHLoss'
+                  FNAME(T,19) = 'CH4 Loss from Reaction with OH'
+               CASE( 2 )
+                  NAME (T,19) = 'StLoss'
+                  FNAME(T,19) = 'CH4 Loss in the stratosphere'
+               CASE( 3 )
+                  NAME (T,19) = 'ClLoss'
+                  FNAME(T,19) = 'CH4 Loss from Reaction with Cl'
+               CASE DEFAULT
+                  ! Nothing
+            END SELECT
+
+         ENDDO
 
       ENDIF
 
@@ -5202,9 +5226,9 @@
                   FNAME(T,21) = 'Mineral dust surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 6  )
-                  NAME (T,21) = 'OPSO4'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSO4'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Sulfate opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 7  )
                   NAME (T,21) = 'HGSO4'
                   FNAME(T,21) = 'Hygr growth of SO4'
@@ -5213,9 +5237,9 @@
                   FNAME(T,21) = 'Sulfate surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 9  )
-                  NAME (T,21) = 'OPBC'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPBC'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Black carbon opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 10 )
                   NAME (T,21) = 'HGBC'
                   FNAME(T,21) = 'Hygr growth of BC'
@@ -5224,9 +5248,9 @@
                   FNAME(T,21) = 'BC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 12 )
-                  NAME (T,21) = 'OPOC'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPOC'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Org carbon opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 13 )
                   NAME (T,21) = 'HGOC'
                   FNAME(T,21) = 'Hygr growth of OC'
@@ -5235,9 +5259,9 @@
                   FNAME(T,21) = 'OC surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 15 )
-                  NAME (T,21) = 'OPSSa'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSSa'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 16 ) 
                   NAME (T,21) = 'HGSSa'
                   FNAME(T,21) = 'Hygr growth of seasalt (accum)'
@@ -5246,9 +5270,9 @@
                   FNAME(T,21) = 'Seasalt (accum) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 18 )
-                  NAME (T,21) = 'OPSSc'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPSSc'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Seasalt (coarse) opt depth ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 19 ) 
                   NAME (T,21) = 'HGSSc'
                   FNAME(T,21) = 'Hygr growth of seasalt (coarse)'
@@ -5257,129 +5281,129 @@
                   FNAME(T,21) = 'Seasalt (coarse) surface area'
                   UNIT (T,21) = 'cm2/cm3'
                CASE( 21 )
-                  NAME (T,21) = 'OPD1'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD1'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 22 )
-                  NAME (T,21) = 'OPD2'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD2'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 23 )
-                  NAME (T,21) = 'OPD3'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD3'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 24 )
-                  NAME (T,21) = 'OPD4'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD4'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 25 )
-                  NAME (T,21) = 'OPD5'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD5'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 26 )
-                  NAME (T,21) = 'OPD6'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD6'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 27 )
-                  NAME (T,21) = 'OPD7'//STRWVSELECT(1)
+                  NAME (T,21) = 'OPD7'//Input_Opt%STRWVSELECT(1)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                          // STRWVSELECT(1) //'nm)'
+     &                          // Input_Opt%STRWVSELECT(1) //'nm)'
                CASE( 28 )
-                  NAME (T,21) = 'OPSO4'//STRWVSELECT(2)
+                  NAME (T,21) = 'OPSO4'//Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 29 )
-                  NAME (T,21) = 'OPBC' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPBC' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'BC opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 30 )
-                  NAME (T,21) = 'OPOC' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPOC' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'OC opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 31 )
-                  NAME (T,21) = 'OPSSa' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPSSa' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 32 )
-                  NAME (T,21) = 'OPSSc' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPSSc' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'seasalt (coarse) opt depth ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 33 )
-                  NAME (T,21) = 'OPD1' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD1' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 34 )
-                  NAME (T,21) = 'OPD2' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD2' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 35 )
-                  NAME (T,21) = 'OPD3' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD3' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 36 )
-                  NAME (T,21) = 'OPD4' // STRWVSELECT(2) 
+                  NAME (T,21) = 'OPD4' // Input_Opt%STRWVSELECT(2) 
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 37 )
-                  NAME (T,21) = 'OPD5' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD5' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 38 )
-                  NAME (T,21) = 'OPD6' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD6' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 39 )
-                  NAME (T,21) = 'OPD7' // STRWVSELECT(2)
+                  NAME (T,21) = 'OPD7' // Input_Opt%STRWVSELECT(2)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                           // STRWVSELECT(2) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(2) // 'nm)'
                CASE( 40 )
-                  NAME (T,21) = 'OPSO4' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSO4' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 41 )
-                  NAME (T,21) = 'OPBC' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPBC' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'BC opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 42 )
-                  NAME (T,21) = 'OPOC' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPOC' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'OC opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 43 )
-                  NAME (T,21) = 'OPSSa' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSSa' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Seasalt (accum) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 44 )
-                  NAME (T,21) = 'OPSSc' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPSSc' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'seasalt (coarse) opt depth ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 45 )
-                  NAME (T,21) = 'OPD1' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD1' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 1 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 46 )
-                  NAME (T,21) = 'OPD2' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD2' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 2 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 47 )
-                  NAME (T,21) = 'OPD3' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD3' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 3 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 48 )
-                  NAME (T,21) = 'OPD4' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD4' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 4 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 49 )
-                  NAME (T,21) = 'OPD5' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD5' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 5 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 50 )
-                  NAME (T,21) = 'OPD6' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD6' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 6 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
                CASE( 51 )
-                  NAME (T,21) = 'OPD7' // STRWVSELECT(3)
+                  NAME (T,21) = 'OPD7' // Input_Opt%STRWVSELECT(3)
                   FNAME(T,21) = 'Dust bin 7 AOD ('
-     &                           // STRWVSELECT(3) // 'nm)'
+     &                           // Input_Opt%STRWVSELECT(3) // 'nm)'
 
                ! For the UCX simualtion
                CASE( 52 )
@@ -6722,6 +6746,7 @@
          ENDDO
       ENDIF
 
+#endif
       !-------------------------------------      
       ! Time series diags (ND{48,49,50,51})
       !-------------------------------------      
@@ -6820,7 +6845,7 @@
          ENDDO
       ENDIF
 
-
+#if defined( BPCH_DIAG )
       !-----------------------------------
       ! gamma HO2 (ND52) jaegle (02/26/09)
       ! Now saves out multiple gamma values (eam, 2014)
@@ -7117,7 +7142,7 @@
       IF ( ND58 > 0 ) THEN
 
          ! Number of tracers
-         NTRAC(58) = 12
+         NTRAC(58) = 15
 
          ! Loop over tracers
          DO T = 1, NTRAC(58)
@@ -7128,41 +7153,47 @@
                   NAME (T,58) = 'CH4_TOT'
                   FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
                CASE( 2 )
-                  NAME (T,58) = 'CH4_GAO'
-                  FNAME(T,58) = 'CH4 Emissions gas & oil'
+                  NAME (T,58) = 'CH4_OIL'
+                  FNAME(T,58) = 'CH4 Emissions oil'
                CASE( 3 )
+                  NAME (T,58) = 'CH4_GAS'
+                  FNAME(T,58) = 'CH4 Emissions gas'
+               CASE( 4 )
                   NAME (T,58) = 'CH4_COL'
                   FNAME(T,58) = 'CH4 Emissions coal'
-               CASE( 4 )
+               CASE( 5 )
                   NAME (T,58) = 'CH4_LIV'
                   FNAME(T,58) = 'CH4 Emissions livestock'
-               CASE( 5 )
-                  NAME (T,58) = 'CH4_WST'
-                  FNAME(T,58) = 'CH4 Emissions waste'
                CASE( 6 )
-                  NAME (T,58) = 'CH4_BFL'
-                  FNAME(T,58) = 'CH4 Emissions biofuel'
+                  NAME (T,58) = 'CH4_LDF'
+                  FNAME(T,58) = 'CH4 Emissions landfills'
                CASE( 7 )
+                  NAME (T,58) = 'CH4_WST'
+                  FNAME(T,58) = 'CH4 Emissions wastewater'
+               CASE( 8 )
                   NAME (T,58) = 'CH4_RIC'
                   FNAME(T,58) = 'CH4 Emissions rice'
-               CASE( 8 )
+               CASE( 9 )
                   NAME (T,58) = 'CH4_OTA'
                   FNAME(T,58) = 'CH4 Emissions other anthro'
-               CASE( 9 )
+               CASE( 10 )
                   NAME (T,58) = 'CH4_BBN'
                   FNAME(T,58) = 'CH4 Emissions bioburn'
-               CASE( 10 )
+               CASE( 11 )
                   NAME (T,58) = 'CH4_WTL'
                   FNAME(T,58) = 'CH4 Emissions wetlands'
-               CASE( 11 )
+               CASE( 12 )
+                  NAME (T,58) = 'CH4_SEE'
+                  FNAME(T,58) = 'CH4 Emissions seeps'
+               CASE( 13 )
+                  NAME (T,58) = 'CH4_LAK'
+                  FNAME(T,58) = 'CH4 Emissions lakes'
+               CASE( 14 )
+                  NAME (T,58) = 'CH4_TER'
+                  FNAME(T,58) = 'CH4 Emissions termites'
+               CASE( 15 )
                   NAME (T,58) = 'CH4_SAB'
                   FNAME(T,58) = 'CH4 Emissions soil abs'
-               CASE( 12 )
-                  NAME (T,58) = 'CH4_OTN'
-                  FNAME(T,58) = 'CH4 Emissions other natural'
-               CASE( 13 )
-                  NAME (T,58) = 'CH4_Loss'
-                  FNAME(T,58) = 'CH4 Loss by Reaction w/ OH'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -7262,7 +7293,7 @@
       ENDIF
 
 #endif
-
+#endif
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
       !-------------------------------------      
@@ -7308,6 +7339,7 @@
          ENDDO
       ENDIF
 
+#if defined( BPCH_DIAG )
       !-------------------------------------      
       ! Radiative flux (ND63) (SDE 2013-10-25)
       !-------------------------------------
@@ -7393,6 +7425,34 @@
 #endif
 
          ENDDO
+
+         ! Extras for saving CO production fields
+         IF ( Input_Opt%DO_SAVE_PCO ) THEN
+
+            ! CO production from CH4
+            NTRAC(65) = NTRAC(65)+1
+            T = NTRAC(65)
+            NAME (T,65) = 'PCO_CH4'
+            FNAME(T,65) = 'PCO from CH4 only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = 0e0
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+            ! CO production from NMVOC
+            NTRAC(65) = NTRAC(65)+1
+            T = NTRAC(65)
+            NAME (T,65) = 'PCO_NMVOC'
+            FNAME(T,65) = 'PCO from NMVOC only'
+            INDEX(T,65) = T + ( SPACING * 17 )
+            MOLC (T,65) = 1 
+            MWT  (T,65) = 0e0
+            SCALE(T,65) = 1e0
+            UNIT(T,65) = 'molec/cm3/s'
+
+         ENDIF
+
       ENDIF
 
       !-------------------------------------      
@@ -7678,40 +7738,49 @@
                   FNAME0      = 'Surface LW Clear-sky'
                CASE( 9  )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0  = 'aer. op. depth ('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0  = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 10 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0  = 'Single scat. alb.('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0  = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 11 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(1)
-                  FNAME0     = 'asym param ('//STRWVSELECT(1)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(1)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(1)//'nm)'
                CASE( 12  )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0     = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 13 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0   = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 14 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(2)
-                  FNAME0     = 'asym param ('//STRWVSELECT(2)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(2)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(2)//'nm)'
                CASE( 15 )
                   NAME0      = 'AOD'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0     = 'aer. op. depth ('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0     = 'aer. op. depth ('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
                CASE( 16 )
                   NAME0      = 'SSA'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0   = 'Single scat. alb.('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0   = 'Single scat. alb.('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
                CASE( 17 )
                   NAME0      = 'ASM'
-                  NAME1      = STRWVSELECT(3)
-                  FNAME0     = 'asym param ('//STRWVSELECT(3)//'nm)'
+                  NAME1      = Input_Opt%STRWVSELECT(3)
+                  FNAME0     = 'asym param ('//
+     &                         Input_Opt%STRWVSELECT(3)//'nm)'
             END SELECT
 
             ! Get name long-name (and sometimes, unit)
@@ -7814,11 +7883,10 @@
 
          ENDDO
       ENDIF
+#endif
 
       ! Nullify pointer
       SpcInfo  => NULL()
-
-#endif
 
       END SUBROUTINE INIT_TRACERINFO
 !EOC
@@ -7904,8 +7972,6 @@
 
       ! Assume success
       RC = GC_SUCCESS
-
-#if defined( BPCH_DIAG )
 
       ! Save from arguments to module variables
       DFILE = Input_Opt%GAMAP_DIAGINFO
@@ -8076,7 +8142,6 @@
          HDFSCALE(:,:)  = SCALE(:,:)
          
       ENDIF
-#endif
 
       END SUBROUTINE INIT_GAMAP
 !EOC
@@ -8103,7 +8168,6 @@
       !===================================================================
       ! CLEANUP_GAMAP begins here!
       !===================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( CATEGORY ) ) DEALLOCATE( CATEGORY )
       IF ( ALLOCATED( DESCRIPT ) ) DEALLOCATE( DESCRIPT )
       IF ( ALLOCATED( FNAME    ) ) DEALLOCATE( FNAME    )
@@ -8115,7 +8179,6 @@
       IF ( ALLOCATED( OFFSET   ) ) DEALLOCATE( OFFSET   )
       IF ( ALLOCATED( SCALE    ) ) DEALLOCATE( SCALE    )
       IF ( ALLOCATED( UNIT     ) ) DEALLOCATE( UNIT     )
-#endif
 
       END SUBROUTINE CLEANUP_GAMAP
 !EOC

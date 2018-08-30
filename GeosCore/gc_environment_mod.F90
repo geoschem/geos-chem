@@ -103,6 +103,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input Options object
     INTEGER,        OPTIONAL      :: value_I_LO       ! Min local lon index
     INTEGER,        OPTIONAL      :: value_J_LO       ! Min local lat index
     INTEGER,        OPTIONAL      :: value_I_HI       ! Max local lon index
@@ -149,16 +150,19 @@ CONTAINS
 !                              which is called after species database init
 !  30 Jun 2016 - M. Sulprizio- Remove call to INIT_COMODE_LOOP; it's obsolete
 !  20 Dec 2017 - R. Yantosca - Return when encountering errors
+!  29 Dec 2017 - C. Keller   - Now accept value of LLSTRAT from Input_Opt
+!  14 Mar 2018 - E. Lundgren - Input_Opt parameter is IN only, not INOUT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 
 #if defined( DISCOVER )
     ! Integers
-    INTEGER            :: LLSTRAT, LLTROP
+    INTEGER            :: LLTROP
 #endif
 
     ! Strings
+    INTEGER            :: LLSTRAT
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     
     !=======================================================================
@@ -183,12 +187,8 @@ CONTAINS
     !-----------------------------------------------------------------------
 
 #if defined( DISCOVER )
-    ! Accept LLSTRAT from Input_Opt. Defaults to 59 (ckeller, 12/29/17).
-!    LLSTRAT = Input_Opt%LLSTRAT
-!    IF ( LLSTRAT <= 0 ) LLSTRAT = 59
-
-    ! 132 layers
     LLTROP = 40
+    ! 132 layers
     IF ( value_LM==132) LLTROP = 80
 #endif
 
@@ -216,7 +216,7 @@ CONTAINS
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_State_Diag"!'
+       ErrMsg = 'Error encountered within call to "Init_CMN_Size"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -748,6 +748,8 @@ CONTAINS
 !  07 Nov 2017 - R. Yantosca - Now accept Diag_List as an argument
 !  07 Nov 2017 - R. Yantosca - Return error condition to main level
 !  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from input_mod.F
+!  07 Aug 2018 - H.P. Lin    - Unify init routines to accept Input_Opt, State_Chm,
+!                              State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -836,7 +838,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize the MODIS leaf area index module
     !-----------------------------------------------------------------
-    CALL Init_Modis_LAI( am_I_Root, Input_Opt, RC )
+    CALL Init_Modis_LAI( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Modis_LAI"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -860,7 +862,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize the GET_NDEP_MOD for soil NOx deposition (bmy, 6/17/16)
     !-----------------------------------------------------------------
-    CALL Init_Get_Ndep( am_I_Root, RC )
+    CALL Init_Get_Ndep( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Get_Ndep"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -871,7 +873,7 @@ CONTAINS
     ! Initialize "carbon_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LCARB ) THEN
-       CALL Init_Carbon( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_Carbon( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in ""!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -920,7 +922,7 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. &
          Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
-       CALL Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
+       CALL Init_Aerosol( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -932,7 +934,7 @@ CONTAINS
     ! Initialize "linoz_mod.F"
     !-----------------------------------------------------------------
     IF ( Input_Opt%LLINOZ ) THEN
-       CALL Init_Linoz( am_I_Root, Input_Opt, RC )
+       CALL Init_Linoz( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Linoz"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -943,7 +945,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize "toms_mod.F"
     !-----------------------------------------------------------------
-    CALL Init_Toms( am_I_Root, Input_Opt, RC )
+    CALL Init_Toms( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Init_Toms"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1117,8 +1119,18 @@ CONTAINS
     ! Enable Mean OH (or CH3CCl3) diag for runs which need it
     CALL Init_Diag_OH( am_I_Root, Input_Opt, RC )
 
+#if !defined( ESMF_ )
+    !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
+    !
+    ! NOTE: Do not do this for GCHP, because this will cause a file to
+    ! be written out to disk for each core.  
+    !
+    ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
+    ! but we have to keep it for the time being (bmy, 4/11/18)
+    !--------------------------------------------------------------------
     CALL Do_Gamap( am_I_Root, Input_Opt, State_Chm, RC )
+#endif
 
     IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 

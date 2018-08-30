@@ -308,6 +308,8 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: Hier           ! Hierarchy
      INTEGER                     :: ScalID         ! Scale factor ID
      INTEGER                     :: Oper           ! Operator
+     INTEGER                     :: levScalID1     ! ID of vertical level field
+     INTEGER                     :: levScalID2     ! ID of vertical level field
      INTEGER                     :: nScalID        ! # of scale factor IDs 
      INTEGER,            POINTER :: Scal_cID(:)    ! assoc. scalefactor IDs
      LOGICAL                     :: Scal_cID_set   ! cIDs or scalIDs 
@@ -326,7 +328,7 @@ MODULE HCO_TYPES_MOD
   !-------------------------------------------------------------------------
   TYPE :: FileData
      CHARACTER(LEN=255)          :: ncFile    ! file path+name
-     CHARACTER(LEN= 31)          :: ncPara    ! file parameter
+     CHARACTER(LEN= 50)          :: ncPara    ! file parameter
      INTEGER                     :: ncYrs(2)  ! year range
      INTEGER                     :: ncMts(2)  ! month range
      INTEGER                     :: ncDys(2)  ! day range

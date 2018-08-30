@@ -53,7 +53,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt,  State_Met,                 &
+  SUBROUTINE INIT_MIXING ( am_I_Root, Input_Opt, State_Met,                 &
                            State_Chm, State_Diag, RC                        )
 !
 ! !USES:
@@ -451,6 +451,10 @@ CONTAINS
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
 
+    ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
+    LOGICAL                 :: ITS_A_CH4_SIM
+    REAL(fp)                :: total_ch4_pre_soil_absorp(IIPAR,JJPAR,LLPAR)
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
@@ -462,11 +466,12 @@ CONTAINS
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
 
     ! Initialize
-    LSCHEM     = Input_Opt%LSCHEM
-    LEMIS      = Input_Opt%LEMIS 
-    LDRYD      = Input_Opt%LDRYD 
-    PBL_DRYDEP = Input_Opt%PBL_DRYDEP
-    nAdvect    = State_Chm%nAdvect
+    LSCHEM            = Input_Opt%LSCHEM
+    LEMIS             = Input_Opt%LEMIS
+    LDRYD             = Input_Opt%LDRYD
+    PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
+    ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
+    nAdvect           = State_Chm%nAdvect
 
     ! Is the drydep flux from mixing diagnostic turned on or if
     ! total drydep flux which requires the contribution from mixing
@@ -474,7 +479,12 @@ CONTAINS
                         ASSOCIATED( State_Diag%DryDep )
 
     ! Initialize pointer
-    SpcInfo    => NULL()
+    SpcInfo           => NULL()
+
+    ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
+    ! is not called in ESMF environment (ckeller, 11/29/17).
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
++                       ASSOCIATED( State_Diag%DryDep )
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -539,17 +549,28 @@ CONTAINS
 
 #if defined( USE_TEND )
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', RC )
+    CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'FLUX', RC )
 #endif
 
+    !-----------------------------------------------------------------------
+    ! For tagged CH4 simulations
+    ! Save the total CH4 concentration before apply soil absorption
+    !-----------------------------------------------------------------------
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+       total_ch4_pre_soil_absorp = State_Chm%Species(:,:,:,1)
+    ENDIF
+
+    !=======================================================================
     ! Do for every advected species and grid box
-!$OMP PARALLEL DO                                                    &
-!$OMP DEFAULT ( SHARED )                                             &
-!$OMP PRIVATE( I, J, L, L1, L2, N, D, PBL_TOP, FND, TMP, DRYDEPID  ) &
-!$OMP PRIVATE( FRQ, RKT, FRAC, FLUX, AREA_M2,   MWkg, ChemGridOnly ) & 
-!$OMP PRIVATE( DryDepSpec, EmisSpec, DRYD_TOP,  EMIS_TOP, PNOXLOSS ) &
-!$OMP PRIVATE( DENOM, SpcInfo, NA                                  )
+    !=======================================================================
+!$OMP PARALLEL DO                                                           &
+!$OMP DEFAULT( SHARED                                                     ) &
+!$OMP PRIVATE( I,        J,            L,          L1,       L2           ) &
+!$OMP PRIVATE( N,        PBL_TOP,      FND,        TMP,      DryDepId     ) &
+!$OMP PRIVATE( FRQ,      RKT,          FRAC,       FLUX,     Area_m2      ) &
+!$OMP PRIVATE( MWkg,     ChemGridOnly, DryDepSpec, EmisSpec, DRYD_TOP     ) &
+!$OMP PRIVATE( EMIS_TOP, PNOXLOSS,     DENOM,      SpcInfo,  NA           )
     DO NA = 1, nAdvect
 
        ! Get the species ID from the advected species ID
@@ -558,9 +579,9 @@ CONTAINS
        ! Get info about this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Check if we need to do dry deposition for this species 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
 
        ! Initialize
        DryDepSpec = .FALSE.
@@ -587,28 +608,28 @@ CONTAINS
                DryDepSpec = .TRUE. 
        ENDIF
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Check if we need to do emissions for this species 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( LEMIS ) THEN
           CALL GetHcoVal ( N, 1, 1, 1, EmisSpec, emis = TMP )
        ELSE
           EmisSpec = .FALSE.
        ENDIF
 
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        ! Can go to next species if this species does not have 
        ! dry deposition and/or emissions
-       !----------------------------------------------------------------
+       !--------------------------------------------------------------------
        IF ( .NOT. DryDepSpec .AND. .NOT. EmisSpec ) CYCLE
 
        ! Loop over all grid boxes
        DO J = 1, JJPAR    
        DO I = 1, IIPAR    
 
-          !------------------------------------------------------------
+          !-----------------------------------------------------------------
           ! Define various quantities before computing tendencies
-          !------------------------------------------------------------
+          !-----------------------------------------------------------------
 
           ! Get PBL_TOP at this grid box
           PBL_TOP = State_Met%PBL_TOP_L(I,J)
@@ -685,10 +706,10 @@ CONTAINS
           ! Loop over selected vertical levels 
           DO L = L1, L2
 
-             !----------------------------------------------------------
+             !--------------------------------------------------------------
              ! Apply dry deposition frequencies to all levels below the
              ! PBL top.
-             !----------------------------------------------------------
+             !--------------------------------------------------------------
              IF ( DryDepSpec .AND. ( L <= DRYD_TOP ) ) THEN
 
                 ! Init
@@ -816,19 +837,19 @@ CONTAINS
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
                    IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
-                      State_Diag%DryDepMix(I,J,L,DryDepId) = Flux
+                      State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
 #endif
 
                 ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
 
-             !----------------------------------------------------------
+             !--------------------------------------------------------------
              ! Apply emissions.
              ! These are always taken from HEMCO
-             !----------------------------------------------------------
+             !--------------------------------------------------------------
              IF ( EmisSpec .AND. ( L <= EMIS_TOP ) ) THEN
-    
+
                 ! Get HEMCO emissions. Units are [kg/m2/s].
                 CALL GetHcoVal ( N, I, J, L, FND, emis=TMP )
            
@@ -846,6 +867,41 @@ CONTAINS
                 ENDIF
              ENDIF
 
+             !--------------------------------------------------------------
+             ! Special handling for tagged CH4 simulations
+             !
+             ! Tagged CH4 species are split off into a separate loop to
+             ! ensure we remove soil absorption from NA=1 (total CH4) first
+             !--------------------------------------------------------------
+             IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+
+                ! If we are in the chemistry grid
+                IF ( L <= EMIS_TOP ) THEN
+
+                   ! Total CH4 species
+                   IF ( NA == 1 ) THEN
+
+                      ! Get soil absorption from HEMCO. Units are [kg/m2/s].
+                      ! CH4_SAB is species #15
+                      CALL GetHcoVal ( 15, I, J, L, FND, emis=TMP )
+
+                      ! Remove soil absorption from total CH4 emissions
+                      IF ( FND ) THEN
+
+                         ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
+                         FLUX = TMP * TS
+
+                         ! Apply soil absorption as loss
+                         State_Chm%Species(I,J,L,N) =                       &
+                         State_Chm%Species(I,J,L,N) - FLUX 
+                      ENDIF
+
+                   ENDIF
+
+                ENDIF
+
+             ENDIF
+
              ! Prevent negative concentrations. (ckeller, 3/29/16)
              State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
 
@@ -859,10 +915,52 @@ CONTAINS
     ENDDO !N
 !$OMP END PARALLEL DO
 
+    !--------------------------------------------------------------
+    ! Special handling for tagged CH4 simulations
+    !--------------------------------------------------------------
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+
+!$OMP PARALLEL DO               &
+!$OMP DEFAULT( SHARED         ) &
+!$OMP PRIVATE( I, J, L, N, NA )
+       DO NA = 1, nAdvect
+
+          ! Get the species ID from the advected species ID
+          N = State_Chm%Map_Advect(NA)
+
+          ! Loop over all grid boxes
+          DO L = 1, LLPAR
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             ! Tagged CH4 tracers
+             IF ( NA >= 2 .and. NA <= nAdvect-1 ) THEN
+
+                ! Apply soil absorption to each tagged CH4 species
+                ! (Xueying Yu, 12/08/2017)
+                State_Chm%Species(I,J,L,N) =                    &
+                     SAFE_DIV(State_Chm%Species(I,J,L,N),       &
+                              total_ch4_pre_soil_absorp(I,J,L), &
+                              0.e+0_fp) *                       &
+                     State_Chm%Species(I,J,L,1)
+
+             ENDIF
+
+             ! Prevent negative concentrations. (ckeller, 3/29/16)
+             State_Chm%Species(I,J,L,N) = MAX(State_Chm%Species(I,J,L,N),0.0_fp)
+
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDDO
+!$OMP END PARALLEL DO
+
+    ENDIF
+
 #if defined( USE_TEND )
-      ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
-                        State_Chm, 'FLUX', TS, RC )
+    ! Calculate tendencies and write to diagnostics (ckeller, 7/15/2015)
+    CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, &
+                      State_Chm, 'FLUX', TS, RC )
 #endif
 
     ! Convert State_Chm%species back to original units

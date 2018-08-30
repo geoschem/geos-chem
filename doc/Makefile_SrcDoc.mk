@@ -126,10 +126,10 @@ $(CORE)/mapping_mod.F90               \
 $(CORE)/get_ndep_mod.F                \
 ./gc_chemistry.P                      \
 $(CORE)/emissions_mod.F90             \
-$(CORE)/chemgrid_mod.F                \
-$(CORE)/chemistry_mod.F               \
+$(CORE)/chemistry_mod.F90             \
 $(CORE)/fast_jx_mod.F                 \
 $(CORE)/uvalbedo_mod.F90              \
+$(CORE)/set_global_ch4_mod.F90        \
 $(CORE)/set_prof_o3.F                 \
 $(CORE)/toms_mod.F                    \
 $(CORE)/flexchem_mod.F90              \
@@ -137,7 +137,6 @@ $(KPP)/Standard/gckpp_HetRates.F90    \
 $(CORE)/ucx_mod.F                     \
 $(CORE)/bromocarb_mod.F               \
 $(CORE)/cldice_HBrHOBr_rxn.F          \
-$(CORE)/get_global_ch4.F              \
 $(CORE)/strat_chem_mod.F90            \
 $(CORE)/linoz_mod.F                   \
 ./gc_aerosol.P                        \

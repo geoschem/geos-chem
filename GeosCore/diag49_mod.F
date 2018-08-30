@@ -141,6 +141,7 @@
 !
 ! !PRIVATE TYPES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! MODULE VARIABLES
       !
@@ -159,7 +160,6 @@
       ! MODELNAME        : Used for bpch file output
       ! RESERVED         : Used for bpch file output
       !=================================================================
-
       INTEGER            :: IOFF,           JOFF,    LOFF
       INTEGER            :: I0,             J0
       INTEGER            :: ND49_NI,        ND49_NJ, ND49_NL
@@ -178,6 +178,7 @@
       INTEGER            :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
       INTEGER            :: id_PASV, id_IPMN, id_OH
+#endif
 
       CONTAINS
 !EOC
@@ -200,33 +201,35 @@
 !
 ! !USES:
 !
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
       USE CMN_O3_MOD	           ! SAVEOH  SAVEOA
 !------------------------------------------------------------------------------
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
-!#if defined ( BPCH_DIAG )
+!#if defined ( BPCH_DIAG ) || defined( BPCH_TIMESER )
 !      USE DIAG_MOD,           ONLY : AD44b, AD_RA, AD_ZL
 !#endif
 !------------------------------------------------------------------------------
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLun
       USE PhysConstants            ! XTRA2, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Diag_Mod,     ONLY : DgnState
-      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,           GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,      GET_TS_DIAG
       USE TIME_MOD,           ONLY : GET_TAU,            GET_HOUR
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -310,6 +313,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! SAVEd scalars
       LOGICAL, SAVE            :: FIRST  = .TRUE.
       LOGICAL, SAVE            :: IS_FULLCHEM
@@ -351,11 +355,13 @@
 
       ! For mass conservation tests
       LOGICAL                  :: DO_MASSCONS
+#endif
       
       !=================================================================
       ! DIAG49 begins here!
       !=================================================================
 
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Assume success
       RC            =  GC_SUCCESS
 
@@ -1729,8 +1735,9 @@
       !=================================================================
       ! Close the file at the proper time
       !=================================================================
-      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
 
+      IF ( ITS_TIME_TO_CLOSE_FILE() .and. DO_DIAG_WRITE ) THEN
+         
          ! Expand date tokens in the file name
          FILENAME = TRIM( Input_Opt%ND49_FILE )
 !--- Previous to (ccc, 8/12/09)
@@ -1747,6 +1754,7 @@
 
       ! Free pointers
       Spc => NULL()
+#endif
 
       END SUBROUTINE DIAG49
 !EOC
@@ -1767,9 +1775,11 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_SECOND
+#endif
 !
 ! !RETURN VALUE:
 !
@@ -1787,6 +1797,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       REAL(fp) :: HR1
 
       !=================================================================
@@ -1801,6 +1812,7 @@
       HR1      = HR1 * 1e+2_fp
 
       ITS_TIME = ( INT( HR1 ) == 00 )
+#endif
 
       END FUNCTION ITS_TIME_TO_CLOSE_FILE
 !EOC
@@ -1821,10 +1833,12 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,      ONLY : GET_TS_DIAG
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1846,6 +1860,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER       :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
@@ -1876,7 +1891,8 @@
       ELSE
          ITS_TIME = Input_Opt%DO_ND49
       ENDIF
-            
+
+#endif            
       END FUNCTION ITS_TIME_FOR_DIAG49
 !EOC
 !------------------------------------------------------------------------------
@@ -1915,12 +1931,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC
@@ -1941,6 +1958,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
@@ -1949,7 +1969,7 @@
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
       USE GC_GRID_MOD,   ONLY : GET_YOFFSET
       USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1976,7 +1996,9 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       CHARACTER(LEN=255) :: LOCATION
+#endif
 
       !=================================================================
       ! INIT_DIAG49 begins here!
@@ -1984,6 +2006,8 @@
 
       ! Assume success
       RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG49 ("diag49_mod.f")'
@@ -2094,6 +2118,7 @@
       ! Reset grid offsets to global values for bpch write
       I0        = GET_XOFFSET( GLOBAL=.TRUE. )
       J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
+#endif
 
       END SUBROUTINE INIT_DIAG49
 !EOC

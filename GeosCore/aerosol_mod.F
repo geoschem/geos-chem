@@ -887,7 +887,6 @@
      &                       + Spc(I,J,L,id_OPOA2) )
      &                       * OCFOPOA(I,J) / AIRVOL(I,J,L) 
             ENDIF
-
          ENDIF
 
          !-------------------------------------------------------
@@ -969,7 +968,7 @@
          IF ( Is_SimpleSOA ) THEN
             OCPISOA(I,J,L) = 
      &        ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) +
-     &          Spc(I,J,L,id_SOAS)             ) / AIRVOL(I,J,L)
+     &          Spc(I,J,L,id_SOAS)                  ) / AIRVOL(I,J,L)
 
          ELSEIF ( Is_ComplexSOA ) THEN
 
@@ -1002,8 +1001,11 @@
          ENDIF
 
          ! Add mechanistic isoprene OA (eam, 08/2015)
-         OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
-                  
+         ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
+         IF ( Is_ComplexSOA ) THEN
+            OCPISOA(I,J,L) = OCPISOA(I,J,L) + ISOAAQ(I,J,L)
+         ENDIF
+
          ! Now avoid division by zero (bmy, 4/20/04)
          OCPISOA(I,J,L) = MAX( OCPISOA(I,J,L), 1e-35_fp )
 
@@ -1058,10 +1060,12 @@
      &               + SOILDUST(I,J,L,3)                 ! DST1
      &               + SOILDUST(I,J,L,4)                 ! DST1
      &               + SOILDUST(I,J,L,5) * 0.38          ! 38% of DST2
-     &               + ISOAAQ(I,J,L)     * ORG_GROWTH    ! Includes SOAGX+SOAMG
 
-         ! Include either simple SOA (default) or complex SOA in
-         ! PM2.5 calculation
+         ! Include either simple SOA (default) or Complex SOA in
+         ! PM2.5 calculation.  In simulations where both Simple SOA and
+         ! Complex SOA species are carried (i.e. "benchmark"), then
+         ! only the Simple SOA will be added to PM2.5, in order to avoid
+         ! double-counting. (bmy, 5/11/18)
          IF ( Is_SimpleSOA ) THEN
             PM25(I,J,L) = PM25(I,J,L)
      &                  + SOAS(I,J,L)    * ORG_GROWTH
@@ -1070,6 +1074,8 @@
      &                  + TSOA(I,J,L)    * ORG_GROWTH
      &                  + ISOA(I,J,L)    * ORG_GROWTH
      &                  + ASOA(I,J,L)    * ORG_GROWTH
+     &                  + ISOAAQ(I,J,L)  * ORG_GROWTH    ! Includes SOAGX+SOAMG
+
          ENDIF
 
          ! Apply STP correction factor based on ideal gas law
@@ -1302,6 +1308,7 @@
 !  17 Jan 2018 - E. Lundgren - Implement netcdf cloud diagnostics (eq to ND21)
 !  17 Jan 2018 - E. Lundgren - Fix bpch diagnostic indexing for aer aq volume
 !                              and SOA AOD from aq isoprene (34->58; 35->59)
+!  11 May 2018 - R. Yantosca - Rename LSOA to Is_ComplexSOA for clarity
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1382,7 +1389,7 @@
       LOGICAL             :: LCARB
       LOGICAL             :: LSSALT
       LOGICAL             :: LSULF
-      LOGICAL             :: LSOA
+      LOGICAL             :: Is_ComplexSOA
       LOGICAL             :: LSTRATOD
       LOGICAL             :: LRAD
       LOGICAL             :: LBCAE  ! (xnw, 8/24/15)
@@ -1429,7 +1436,7 @@
       LCARB                = Input_Opt%LCARB
       LSSALT               = Input_Opt%LSSALT
       LSULF                = Input_Opt%LSULF
-      LSOA                 = Input_Opt%LSOA
+      Is_ComplexSOA        = Input_Opt%LSOA
       LSTRATOD             = Input_Opt%LSTRATOD
       LRAD                 = Input_Opt%LRAD
       LBCAE                = Input_Opt%LBCAE !(xnw, 8/24/15)
@@ -1926,7 +1933,7 @@
                ENDIF
 
                ! Get the AOD contribution from isoprene SOA only (eam, 2014)
-               IF ( N.eq.3 ) THEN
+               IF ( N == 3 .and. Is_ComplexSOA ) THEN
                   ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0
      &                              * State_Met%BXHEIGHT(I,J,L) 
      &                              * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / 
@@ -2292,7 +2299,7 @@
          DO N = 1, NRHAER 
 
             ! Loop over wavelengths in input.geos radiation menu
-            DO W = 1, NWVSELECT 
+            DO W = 1, Input_Opt%NWVSELECT 
 
                !no interpolation required if these are the same
                IF (IWVSELECT(1,W).EQ.IWVSELECT(2,W)) THEN
@@ -2351,9 +2358,9 @@
                   !----------------------------------------------------
                   ! ND21 bpch diagnostics computed here:
                   !  #58: SOA from Aqueous Isoprene AOD [unitless]
-                  IF ((N.eq.3) .and. LSOA ) THEN
+                  IF ( ( N == 3 ) .and. Is_ComplexSOA ) THEN
                      AD21(I,J,L,IISOPAOD) = AD21(I,J,L,IISOPAOD) +
-     &                                ISOPOD(I,J,L,IWVSELECT(1,W))
+     &                                      ISOPOD(I,J,L,IWVSELECT(1,W))
                   ENDIF
 
                ENDDO
@@ -2403,7 +2410,7 @@
          DO N = 1, NRHAER 
 
             ! Loop over wavelengths set in input.geos radiation menu
-            DO W = 1, NWVSELECT 
+            DO W = 1, Input_Opt%NWVSELECT 
 
                ! Set wavelength logical
                IsWL1 = .FALSE.
@@ -2477,7 +2484,7 @@
                   !----------------------------------------------------
                   ! Netcdf diagnostics computed here:
                   !  AOD for SOA from aq isoprene (lambda1,2,3 nm) [unitless]
-                  IF ((N.eq.3) .and. LSOA ) THEN
+                  IF ( ( N == 3 ) .and. Is_ComplexSOA ) THEN
                      IF ( Archive_AODSOAWL1 .AND. IsWL1 ) THEN
                         State_Diag%AODSOAfromAqIsopWL1(I,J,L) = 
      &                                ISOPOD(I,J,L,IWVSELECT(1,W))
@@ -2583,7 +2590,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE Init_Aerosol( am_I_Root, Input_Opt, 
+     &                         State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2591,13 +2599,15 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2609,6 +2619,7 @@
 !  05 Mar 2013 - R. Yantosca - Now accept am_I_Root, Input_Opt, RC arguments
 !  17 Jun 2016 - R. Yantosca - Now use locally-defined species ID flags,
 !  13 Dec 2017 - R. Yantosca - Now accept State_Diag as an argument
+!  07 Aug 2018 - H.P. Lin    - Now accept State_Chm as an argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2912,6 +2923,8 @@
       IF ( ALLOCATED( ISOA        ) ) DEALLOCATE( ISOA        )
       IF ( ALLOCATED( ASOA        ) ) DEALLOCATE( ASOA        )
       IF ( ALLOCATED( OPOA        ) ) DEALLOCATE( OPOA        )
+      IF ( ALLOCATED( SOAGX       ) ) DEALLOCATE( SOAGX       )
+      IF ( ALLOCATED( SOAMG       ) ) DEALLOCATE( SOAMG       )
       IF ( ALLOCATED( PM25        ) ) DEALLOCATE( PM25        )
       IF ( ALLOCATED( WAERSL      ) ) DEALLOCATE( WAERSL      )
       IF ( ALLOCATED( DAERSL      ) ) DEALLOCATE( DAERSL      )

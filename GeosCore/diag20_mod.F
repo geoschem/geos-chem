@@ -183,6 +183,7 @@
 !  10 Aug 2016 - M. Sulprizio- Remove State_Chm%Tracers from LOx calculation and
 !                              replace with State_chm%Species. Convert from
 !                              molec/cm3 to molec using BOXVL.
+!  10 Apr 2018 - R. Yantosca - Now divide LOx by the mass of Ox, not O3
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,13 +192,25 @@
 !
       ! SAVEd scalars
       LOGICAL,  SAVE      :: FIRST = .TRUE.
-      INTEGER,  SAVE      :: id_O3
       REAL(fp), SAVE      :: O3_MW_g
+      INTEGER,  SAVE      :: id_O3,      id_NO2,    id_NO3,    id_PAN
+      INTEGER,  SAVE      :: id_NPMN,    id_IPMN,   id_PPN,    id_HNO4
+      INTEGER,  SAVE      :: id_N2O5,    id_HNO3,   id_BrO,    id_HOBr
+      INTEGER,  SAVE      :: id_BrNO2,   id_BrNO3,  id_MPN,    id_ETHLN
+      INTEGER,  SAVE      :: id_ISN1,    id_ISOPNB, id_ISOPND, id_MACRN
+      INTEGER,  SAVE      :: id_MVKN,    id_PROPNN, id_R4N2,   id_INPN
+      INTEGER,  SAVE      :: id_ISNP,    id_INO2,   id_ISNOOA, id_ISNOOB
+      INTEGER,  SAVE      :: id_ISNOHOO, id_MAN2,   id_PRN1,   id_PRPN
+      INTEGER,  SAVE      :: id_R4N1,    id_PMNN,   id_MACRNO2,id_ClO
+      INTEGER,  SAVE      :: id_HOCl,    id_ClNO2,  id_ClNO3,  id_Cl2O2
+      INTEGER,  SAVE      :: id_OClO,    id_O,      id_O1D,    id_IO
+      INTEGER,  SAVE      :: id_HOI,     id_IONO,   id_IONO2,  id_OIO
+      INTEGER,  SAVE      :: id_I2O2,    id_I2O3,   id_I2O4
 
       ! Scalars
       LOGICAL             :: DO_WRITE
       INTEGER             :: I, J, L, N
-      REAL(fp)            :: P_Ox, L_Ox
+      REAL(fp)            :: P_Ox, L_Ox, Ox_Mass
       REAL(fp)            :: LT
       REAL(fp)            :: BOXVL
 
@@ -222,8 +235,58 @@
       ! First-time initialization
       IF ( FIRST ) THEN
 
-         ! Get the species ID of O3
-         id_O3 = Ind_('O3')
+         ! Get the species ID's
+         id_O3      = Ind_('O3'     )
+         id_NO2     = Ind_('NO2'    )
+         id_NO3     = Ind_('NO3'    )
+         id_PAN     = Ind_('PAN'    )
+         id_NPMN    = Ind_('NPMN'   )
+         id_IPMN    = Ind_('IPMN'   )
+         id_PPN     = Ind_('PPN'    )
+         id_HNO4    = Ind_('HNO4'   )
+         id_N2O5    = Ind_('N2O5'   )
+         id_HNO3    = Ind_('HNO3'   )
+         id_BrO     = Ind_('BrO'    )
+         id_HOBr    = Ind_('HOBr'   )
+         id_BrNO2   = Ind_('BrNO2'  )
+         id_BrNO3   = Ind_('BrNO3'  )
+         id_MPN     = Ind_('MPN'    )
+         id_ETHLN   = Ind_('ETHLN'  )
+         id_ISN1    = Ind_('ISN1'   )
+         id_ISOPNB  = Ind_('ISOPNB' )
+         id_ISOPND  = Ind_('ISOPND' )
+         id_MACRN   = Ind_('MACRN'  )
+         id_MVKN    = Ind_('MVKN'   )
+         id_PROPNN  = Ind_('PROPNN' )
+         id_R4N2    = Ind_('R4N2'   )
+         id_INPN    = Ind_('INPN'   )
+         id_ISNP    = Ind_('ISNP'   )
+         id_INO2    = Ind_('INO2'   )
+         id_ISNOOA  = Ind_('ISNOOA' )
+         id_ISNOOB  = Ind_('ISNOOB' )
+         id_ISNOHOO = Ind_('ISNOHOO')
+         id_MAN2    = Ind_('MAN2'   )
+         id_PRN1    = Ind_('PRN1'   )
+         id_PRPN    = Ind_('PRPN'   )
+         id_R4N1    = Ind_('R4N1'   )
+         id_PMNN    = Ind_('PMNN'   )
+         id_MACRNO2 = Ind_('MACRNO2')
+         id_ClO     = Ind_('ClO'    )
+         id_HOCl    = Ind_('HOCl'   )
+         id_ClNO2   = Ind_('ClNO2'  )
+         id_ClNO3   = Ind_('ClNO3'  )
+         id_Cl2O2   = Ind_('Cl2O2'  )
+         id_OClO    = Ind_('OClO'   )
+         id_O       = Ind_('O'      )
+         id_O1D     = Ind_('O1D'    )
+         id_IO      = Ind_('IO'     )
+         id_HOI     = Ind_('HOI'    )
+         id_IONO    = Ind_('IONO'   )
+         id_IONO2   = Ind_('IONO2'  )
+         id_OIO     = Ind_('OIO'    )
+         id_I2O2    = Ind_('I2O2'   )
+         id_I2O3    = Ind_('I2O3'   ) 
+         id_I2O4    = Ind_('I2O4'   )     
 
          ! Error check
          IF ( id_O3 <= 0 ) THEN
@@ -256,15 +319,16 @@
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL )
+!$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL, Ox_Mass )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LD65
+      DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Zero P(Ox), L(Ox) variables for safety's sake
-         P_Ox  = 0e+0_fp
-         L_Ox  = 0e+0_fp
+         P_Ox    = 0.0_fp
+         L_Ox    = 0.0_fp
+         Ox_Mass = 0.0_fp
 
          ! If this is a grid box where we have done chemistry, then ...
          IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -306,19 +370,86 @@
             ! Grid box volume [cm3]
             BOXVL          = State_Met%AIRVOL(I,J,L) * 1e+6_fp
 
-            ! Convert Ox from [molec/cm3] to [molec]
-            L_Ox           = State_Chm%Species(I,J,L,id_O3) * BOXVL
+            ! Compute the mass of Ox following the family definition
+            ! in KPP/Tropchem/gckpp.kpp.  At this point, Ox_mass is 
+            ! in units of [molec/cm3].
+            !
+            ! NOTE: If you update the Ox family definition, you will 
+            ! also need to update this statement below.  
+            !
+            ! ALSO NOTE: We know that this is horribly kludged, but in 
+            ! the interest of preparing v11-02 for release, we have 
+            ! written this in the brute-force manner.  At a later time 
+            ! we can examine how to make this more elegant.  This might 
+            ! require modifying the KPP solver code, so we'll worry 
+            ! about it later. (bmy, 4/10/18)
+            !
+            Ox_Mass        = State_Chm%Species(I,J,L,id_O3     ) 
+     &                     + State_Chm%Species(I,J,L,id_NO2    ) 
+     &                     + State_Chm%Species(I,J,L,id_NO3    )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_PAN    ) 
+     &                     + State_Chm%Species(I,J,L,id_NPMN   ) 
+     &                     + State_Chm%Species(I,J,L,id_IPMN   ) 
+     &                     + State_Chm%Species(I,J,L,id_PPN    ) 
+     &                     + State_Chm%Species(I,J,L,id_HNO4   ) 
+     &                     + State_Chm%Species(I,J,L,id_N2O5   )*3.0_fp
+     &                     + State_Chm%Species(I,J,L,id_HNO3   ) 
+     &                     + State_Chm%Species(I,J,L,id_BrO    ) 
+     &                     + State_Chm%Species(I,J,L,id_HOBr   ) 
+     &                     + State_Chm%Species(I,J,L,id_BrNO2  ) 
+     &                     + State_Chm%Species(I,J,L,id_BrNO3  )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_MPN    ) 
+     &                     + State_Chm%Species(I,J,L,id_ETHLN  ) 
+     &                     + State_Chm%Species(I,J,L,id_ISN1   ) 
+     &                     + State_Chm%Species(I,J,L,id_ISOPNB ) 
+     &                     + State_Chm%Species(I,J,L,id_ISOPND ) 
+     &                     + State_Chm%Species(I,J,L,id_MACRN  ) 
+     &                     + State_Chm%Species(I,J,L,id_MVKN   ) 
+     &                     + State_Chm%Species(I,J,L,id_PROPNN ) 
+     &                     + State_Chm%Species(I,J,L,id_R4N2   ) 
+     &                     + State_Chm%Species(I,J,L,id_INPN   ) 
+     &                     + State_Chm%Species(I,J,L,id_ISNP   ) 
+     &                     + State_Chm%Species(I,J,L,id_INO2   ) 
+     &                     + State_Chm%Species(I,J,L,id_ISNOOA ) 
+     &                     + State_Chm%Species(I,J,L,id_ISNOOB ) 
+     &                     + State_Chm%Species(I,J,L,id_ISNOHOO) 
+     &                     + State_Chm%Species(I,J,L,id_MAN2   ) 
+     &                     + State_Chm%Species(I,J,L,id_PRN1   ) 
+     &                     + State_Chm%Species(I,J,L,id_PRPN   ) 
+     &                     + State_Chm%Species(I,J,L,id_R4N1   ) 
+     &                     + State_Chm%Species(I,J,L,id_PMNN   ) 
+     &                     + State_Chm%Species(I,J,L,id_MACRNO2) 
+     &                     + State_Chm%Species(I,J,L,id_ClO    ) 
+     &                     + State_Chm%Species(I,J,L,id_HOCl   ) 
+     &                     + State_Chm%Species(I,J,L,id_ClNO2  ) 
+     &                     + State_Chm%Species(I,J,L,id_ClNO3  )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_Cl2O2  )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_OClO   )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_IO     ) 
+     &                     + State_Chm%Species(I,J,L,id_HOI    ) 
+     &                     + State_Chm%Species(I,J,L,id_IONO   ) 
+     &                     + State_Chm%Species(I,J,L,id_IONO2  )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_OIO    )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_I2O2   )*2.0_fp
+     &                     + State_Chm%Species(I,J,L,id_I2O3   )*3.0_fp
+     &                     + State_Chm%Species(I,J,L,id_I2O4   )*4.0_fp
 
-            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
-            ! in order to get L(Ox) in [1/cm3/s]
-            IF ( L_Ox > 0.0_fp ) THEN
-               L_Ox        = LOx(I,J,L) / L_Ox
-            ELSE
-               L_Ox        = 0.0_fp
+            ! The "Standard" KPP mechanism has all of the same species in
+            ! its Ox family definition, plus O and O1D.  Add these too.
+            IF ( Input_Opt%LUCX ) THEN
+               Ox_Mass     = Ox_Mass
+     &                     + State_Chm%Species(I,J,L,id_O      ) 
+     &                     + State_Chm%Species(I,J,L,id_O1D    ) 
             ENDIF
 
-            ! Convert to [1/m3/s], for HEMCO (bmy, 7/7/15)
-            L_Ox           = L_Ox * 1.e+6_fp
+            ! Convert Ox_Mass from [molec/cm3] to [molec]
+            Ox_Mass        = Ox_Mass * BOXVL
+
+            ! Divide L(Ox) [molec/cm3/s] by Ox mass [molec] 
+            ! and then convert to [1/m3/s] for HEMCO
+            IF ( Ox_Mass > 0.0_fp ) THEN
+               L_Ox        = ( LOx(I,J,L) / Ox_Mass ) *  1.0e+6_fp
+            ENDIF
 
             ! Store L(Ox) [1/m3/s] in PL24H array
             PL24H(I,J,L,2) = PL24H(I,J,L,2) + L_Ox
@@ -344,7 +475,7 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         DO L = 1, LD65
+         DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
             IF ( COUNT(I,J,L) /= 0 ) THEN
@@ -428,6 +559,7 @@
 !  06 Jul 2015 - R. Yantosca - Bug fix: restore missing JFIRST assignment
 !  08 Jul 2015 - R. Yantosca - Now save out as per m3 instead of per cm3
 !  09 Aug 2016 - M. Sulprizio- Move routine from diag_pl_mod.F to diag20_mod.F
+!  10 Apr 2018 - R. Yantosca - Now save out levels 1:LLPAR instead of 1:LD65
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -439,7 +571,7 @@
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
       REAL(f4)           :: LONRES, LATRES
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -478,17 +610,17 @@
       ARRAY = 0e0
 
       ! Cast P(Ox) to REAL*4
-      ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,1)
+      ARRAY = PL24H(:,:,:,1)
 
       ! Now save out as kg/m3/s, compatible with HEMCO (bmy, 7/8/15)
       UNIT = 'kg/m3/s'
 
       ! Save P(Ox) to BPCH file
-      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
-     &            HALFPOLAR, CENTER180, CATEGORY,  1,           
-     &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LD65 ,     IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
+      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY, 1,           
+     &            UNIT,      TAU0,      TAU1,     RESERVED,  
+     &            IIPAR,     JJPAR,     LLPAR,    IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY               )
 
       !=================================================================
       ! Save L(Ox) to disk
@@ -498,17 +630,17 @@
       ARRAY = 0e0
 
       ! Cast L(Ox) to REAL*4
-      ARRAY(:,:,1:LD65) = PL24H(:,:,1:LD65,2)
+      ARRAY = PL24H(:,:,:,2)
 
       ! Now save out as 1/m3/s, compatible with HEMCO (bmy, 7/8/15)
       UNIT = '1/m3/s'
 
       ! Save L(Ox) to BPCH file
-      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,    LATRES,    
-     &            HALFPOLAR, CENTER180, CATEGORY,  2,           
-     &            UNIT,      TAU0,      TAU1,      RESERVED,  
-     &            IIPAR,     JJPAR,     LD65,      IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY(:,:,1:LD65)  )
+      CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
+     &            HALFPOLAR, CENTER180, CATEGORY, 2,           
+     &            UNIT,      TAU0,      TAU1,     RESERVED,  
+     &            IIPAR,     JJPAR,     LLPAR,    IFIRST,
+     &            JFIRST,    LFIRST,    ARRAY               )
 
       ! Close BPCH file
       CLOSE( IU_ND20 )
@@ -630,6 +762,8 @@
 ! 
 ! !REVISION HISTORY:
 !  09 Aug 2016 - M. Sulprizio- Initial version
+!  10 Apr 2018 - R. Yantosca - Allocate arrays 1:LLPAR instead of 1:LD65
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -644,11 +778,11 @@
       RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG )
-      ALLOCATE( COUNT( IIPAR, JJPAR, LD65 ), STAT=RC )
+      ALLOCATE( COUNT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
       COUNT = 0
 
-      ALLOCATE( PL24H( IIPAR, JJPAR, LD65, 2 ), STAT=RC )
+      ALLOCATE( PL24H( IIPAR, JJPAR, LLPAR, 2 ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
       PL24H = 0e+0_fp
 

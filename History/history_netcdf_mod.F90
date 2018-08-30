@@ -127,7 +127,8 @@ CONTAINS
        Container%IsFileDefined = .FALSE.
        Container%ReferenceYmd  = UNDEFINED_INT
        Container%ReferenceHms  = UNDEFINED_INT
-       Container%ReferenceJd   = UNDEFINED_DBL
+!       Container%ReferenceJd   = UNDEFINED_DBL
+       Container%ReferenceJsec = UNDEFINED_DBL
        Container%CurrTimeSlice = UNDEFINED_INT
 
        !--------------------------------------------------------------------
@@ -210,6 +211,8 @@ CONTAINS
 !  28 Aug 2017 - R. Yantosca - Now make sure AREA is written as REAL(f4)
 !  28 Aug 2017 - R. Yantosca - Replace "TBD" in units w/ species units
 !  30 Aug 2017 - R. Yantosca - Now print file write info only on the root CPU
+!  11 Jul 2018 - R. Yantosca - Avoid roundoff errors when computing the
+!                              file reference date and time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,6 +224,7 @@ CONTAINS
     INTEGER                     :: VarXDimId,  VarYDimId
     INTEGER                     :: VarZDimId,  VarTDimId
     INTEGER                     :: yyyymmdd,   hhmmss
+    INTEGER                     :: nLev,       nILev
     INTEGER                     :: DataType
 
     ! Strings                   
@@ -281,9 +285,8 @@ CONTAINS
 
           ! Subtract the file write alarm interval that we added to
           ! the current date/time (CurrentJd) field at initialization
-          Container%ReferenceJd = Container%CurrentJd                        &
-                                - ( Container%FileWriteIvalSec /             &
-                                    SECONDS_PER_DAY                         )
+          Container%ReferenceJsec = Container%CurrentJsec                    &
+                                  - Container%FileWriteIvalSec
 
        ELSE
 
@@ -298,13 +301,17 @@ CONTAINS
           ! For all future file writes, set the reference date/time to the
           ! current date/time (CurrentJd).
           IF ( Container%FirstInst ) THEN
-             Container%ReferenceJd = Container%EpochJd
+             Container%ReferenceJsec = Container%EpochJsec
              Container%FirstInst   = .FALSE.
           ELSE
-             Container%ReferenceJd = Container%CurrentJd
+             Container%ReferenceJsec = Container%CurrentJsec
           ENDIF
-
        ENDIF
+
+       ! Convert the reference time from Astronomical Julian Seconds
+       ! to Astronomical Julian Date.  This is needed for the conversion
+       ! to calendar date and time via routine CALDATE.
+       Container%ReferenceJd = Container%ReferenceJsec / SECONDS_PER_DAY
 
        ! Recompute the ReferenceYmd and ReferenceHms fields
        CALL CalDate( JulianDay = Container%ReferenceJd,                      &
@@ -360,6 +367,15 @@ CONTAINS
        Container%ProdDateTime = ''
 !------------------------------------------------------------------------------
 
+       ! Pick the dimensions of the lev and ilev variables properly
+       IF ( Container%OnLevelEdges ) THEN
+          nILev = Container%NZ
+          nLev  = nILev - 1
+       ELSE
+          nLev  = Container%NZ
+          nILev = nLev  + 1
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Create the file and add global attributes
        ! Remain in netCDF define mode upon exiting this routine
@@ -372,8 +388,8 @@ CONTAINS
                        NcFile         = FileName,                            &
                        nLon           = Container%nX,                        &
                        nLat           = Container%nY,                        &
-                       nLev           = Container%nZ,                        &
-                       nIlev          = Container%nZ+1,                      &
+                       nLev           = nLev,                                &
+                       nIlev          = nILev,                               &
                        nTime          = NF_UNLIMITED,                        &
                        NcFormat       = Container%NcFormat,                  &
                        Conventions    = Container%Conventions,               &
@@ -490,7 +506,6 @@ CONTAINS
                                Item     = Current%Item,                      &
                                VarUnits = VarUnits                          )
 
-
           ! Replace "TBD"  with the current units of State_Chm%Species
           IF ( TRIM( VarUnits ) == 'TBD' ) THEN
              VarUnits = Container%Spc_Units
@@ -506,6 +521,7 @@ CONTAINS
                            VarCt        = Current%Item%NcVarId,              &
                            timeId       = Current%Item%NcTDimId,             &
                            levId        = Current%Item%NcZDimId,             &
+                           iLevId       = Current%Item%NcIDimId,             &
                            latId        = Current%Item%NcYDimId,             &
                            lonId        = Current%Item%NcXDimId,             &
                            VarLongName  = Current%Item%LongName,             &
@@ -645,6 +661,7 @@ CONTAINS
 !  03 Aug 2017 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Elapsed time is now in seconds, but keep the
 !                              time vector in minutes since the ref date/time
+!  11 Jul 2018 - R. Yantosca - Pass args in seconds to COMPUTE_ELAPSED_TIME
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -709,10 +726,15 @@ CONTAINS
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
+!    ! Compute the elapsed time in seconds since the file creation
+!    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
+!                               TimeBaseJd = Container%ReferenceJd,           & 
+!                               ElapsedSec = Container%TimeStamp             )
+
     ! Compute the elapsed time in seconds since the file creation
-    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-                               TimeBaseJd = Container%ReferenceJd,           & 
-                               ElapsedSec = Container%TimeStamp             )
+    CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,         &
+                               TimeBaseJsec = Container%ReferenceJsec,       & 
+                               ElapsedSec   = Container%TimeStamp           )
 
     ! For time-averaged collections, offset the timestamp 
     ! by 1/2 of the file averaging interval in minutes

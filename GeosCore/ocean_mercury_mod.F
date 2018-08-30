@@ -135,6 +135,7 @@
 !  12 Jul 2016 - E. Lundgren - Remove bpch restart file option and associated 
 !                              routines. Now use netcdf in restart_mod.F.
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  27 Feb 2018 - C. Thackray - added L_ADD_MBL_BR and LRED_CLOUDONLY switches
 !******************************************************************************
 !
       USE inquireMod,    ONLY : findFreeLUN
@@ -157,10 +158,14 @@
       PUBLIC :: CHECK_OCEAN_MERCURY   ! Call from restart_mod for nc rst (ewl)
       PUBLIC :: CLEANUP_OCEAN_MERCURY
       PUBLIC :: OCEAN_MERCURY_FLUX
-      PUBLIC :: LDYNSEASALT, LPOLARBR, LBRCHEM, LBROCHEM
+      PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      PUBLIC :: L_ADD_MBL_BR
       PUBLIC :: LGEIA05 !(add for 2005 GEIA, eck 10/19/11)
       PUBLIC :: LVEGEMIS ! jaf
       PUBLIC :: LRED_JNO2,   LGEOSLWC
+      PUBLIC :: LHALOGENCHEM
+      PUBLIC :: LHGAQCHEM
+      PUBLIC :: LRED_CLOUDONLY
       PUBLIC :: LHg2HalfAerosol
       PUBLIC :: STRAT_BR_FACTOR,        LAnthroHgOnly
       PUBLIC :: LOHO3CHEM,              LnoUSAemis
@@ -233,10 +238,13 @@
 
       ! Logical switches for the mercury simulation, all of which are 
       ! set in INIT_MERCURY (cdh, 9/1/09)
-      LOGICAL   :: LDYNSEASALT, LPOLARBR, LBRCHEM, LBROCHEM
+      LOGICAL   :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
+      LOGICAL   :: L_ADD_MBL_BR, LRED_CLOUDONLY
       LOGICAL   :: LGEIA05 !eck, 10/19/11
       LOGICAL   :: LVEGEMIS ! jaf
       LOGICAL   :: LRED_JNO2,   LGEOSLWC
+      LOGICAL   :: LHALOGENCHEM
+      LOGICAL   :: LHGAQCHEM
       LOGICAL   :: LHg2HalfAerosol
       LOGICAL   :: LAnthroHgOnly,          LOHO3CHEM
       LOGICAL   :: LGCBROMINE !eds 4/19/12
@@ -3524,8 +3532,27 @@
       !-----------------------------------------------------------------
       ! Exit if you are not using the dynamic ocean
       !-----------------------------------------------------------------
-      IF ( .not. Input_Opt%LDYNOCEAN ) RETURN
+      IF ( .not. Input_Opt%LDYNOCEAN ) THEN
+         ALLOCATE( Hg0aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg0aq' )
+         Hg0aq = 0e+0_fpp
+
+         ALLOCATE( Hg2aq( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hg2aq' )
+         Hg2aq = 0e+0_fpp
+
+         !     eds 8/31/10 Added NN to HgPaq throughout module
+         ALLOCATE( HgPaq (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq' )
+         HgPaq = 0e+0_fpp
+
+         !eds 5/15/12 fix
+         ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
+         HgPaq = 0e+0_fpp
       
+         RETURN
+      ENDIF
       !-----------------------------------------------------------------
       ! These variables are only needed for the dynamic ocean option
       !-----------------------------------------------------------------

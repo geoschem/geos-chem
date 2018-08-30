@@ -218,17 +218,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_Get_Ndep( am_I_Root, RC )
+      SUBROUTINE Init_Get_Ndep( am_I_Root, Input_Opt, 
+     &                          State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_Mod
       USE ErrCode_Mod
       USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL, INTENT(IN)           :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -242,6 +249,7 @@
 ! !REVISION HISTORY: 
 !  25 Jul 2014 - R. Yantosca - Initial version
 !  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
+!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
 !EOP
 !------------------------------------------------------------------------------
 !BOC

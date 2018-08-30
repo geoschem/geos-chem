@@ -362,9 +362,6 @@
 #endif
       INTEGER,    PARAMETER :: NPOLY    = 20
 
-      ! LLCONVM - Max number of layers for convection
-      INTEGER               :: LLCONVM
-
       ! MAXFAM -- Max number of families for prod and loss output
       INTEGER,    PARAMETER :: MAXFAM = 40
 
@@ -582,6 +579,7 @@
 !  03 Dec 2012 - R. Yantosca - Now allocate DLON, DLAT arrays here.
 !  04 Aug 2015 - C. Keller   - Added value_LLTROP and value_LLSTRAT. 
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  05 Jul 2018 - H. Lin      - Initialize DLAT to 0 (previously missing)
 !EOP
 !------------------------------------------------------------------------------
 !BOC      
@@ -723,9 +721,6 @@
       ! Set values for former variables declared as parameters
       !=================================================================
 
-      ! Max number of layers for convection
-      LLCONVM = LLPAR - 1
-
       ! Number of aerosol categories
       IF ( Input_Opt%LUCX ) THEN
          ! UCX-based mechanisms include stratospheric aerosols
@@ -746,7 +741,7 @@
       ! Delta-latitudes [degrees]
       ALLOCATE( DLAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= GC_SUCCESS ) RETURN
-      DLON = 0e+0_fpp
+      DLAT = 0e+0_fpp
 
       ! Return w/ success
       RC = GC_SUCCESS

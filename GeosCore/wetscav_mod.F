@@ -3450,7 +3450,9 @@
 #if defined( TOMAS )
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
       USE TOMAS_MOD,      ONLY : GETFRACTION
+#if defined( BPCH_DIAG )
       USE DIAG_MOD,       ONLY : AD05
+#endif
 #endif
 !
 ! !INPUT PARAMETERS: 
@@ -3692,7 +3694,6 @@
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
-
 
          !--------------------------------------------------------------
          ! Error checks
@@ -4097,13 +4098,15 @@
 
 #if defined( TOMAS )
 !added for TOMAS (win, 7/16/09)
+#if defined( BPCH_DIAG )
             ! Save the amout of SO4 [kg S/m2] added via aqueous 
             ! chem to ND05(6) diagnostic assuming it's all 
             ! by reacting with H2O2 (win, 7/16/09)
             IF ( ND05 > 0 .and. L <= LD05 ) 
      &         AD05(I,J,L,6) = AD05(I,J,L,6) +
      &         ( GAINED * 32e+0_fp / 64e+0_fp )
-                            
+#endif
+
             ! Re-evaporated portion get distributed onto
             ! size-resolved sulfate by AQOXID (win, 7/16/09)
             IF ( GAINED > 0e+0_fp ) THEN 
@@ -4303,7 +4306,6 @@
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
 
-  
          !--------------------------------------------------------------
          ! Error checks
          !--------------------------------------------------------------
@@ -4586,7 +4588,6 @@
          IF ( LSOILNOX ) THEN
             CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
          ENDIF
-
 
          !--------------------------------------------------------------
          ! Error checks

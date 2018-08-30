@@ -279,13 +279,10 @@
       REAL*8, ALLOCATABLE :: SSAA(:,:,:)
       REAL*8, ALLOCATABLE :: ASYMAA(:,:,:)
       REAL*8, ALLOCATABLE :: PHAA(:,:,:,:)
-      REAL*8  :: WVSELECT(3)  !wavelengths requested by user
       INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
       INTEGER :: IRTWVSELECT(2,3) !index of requested RT wavelengths
 
       ! max of 3 but need 2 per wavelength if interpolating
-      INTEGER :: NWVSELECT !number of selected AOD output wavelengths
-                           !(max=3)
       INTEGER :: NWVREQUIRED !number of wvs required for interpolation
       INTEGER :: IWVREQUIRED(6) !index of wavelengths for interpo.
       INTEGER :: NRTWVREQUIRED !number of wvs required for RT interpolation
@@ -297,7 +294,6 @@
       !coefficients for interpolation of wavelength (and for RT too)
       REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
       REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
-      CHARACTER*5 :: STRWVSELECT(3) !String array of requested wavelengths
       INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species
                                                 ! on input menu 
       INTEGER, ALLOCATABLE :: SPECMASK(:) !list of binary switches for different
@@ -351,7 +347,10 @@
 !                              We now set several variables here that depend on
 !                              LLPAR, since LLPAR is no longer a parameter and
 !                              can't be used to define a parameter.
+!  29 Dec 2017 - C. Keller   - Initialize RNAMES to empty strings.
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
+!  23 Mar 2018 - E. Lundgren - Move NWVSELECT, WVSELECT, and STRWVSELECT to 
+!                              Input_Opt since read in from input.geos
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -508,6 +507,9 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       RTASYMAER = 0d0
 #endif
+
+      ! Initialize RNAMES to empty string (ckeller,12/29/17)
+      RNAMES(:) = ""
 
       ! Return w/ success
       RC = GC_SUCCESS

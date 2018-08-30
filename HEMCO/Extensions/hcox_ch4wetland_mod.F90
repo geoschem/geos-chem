@@ -31,10 +31,22 @@
 !    --> Scaling\_CH4\_NA   :       1.10
 !    --> ScaleField\_CH4\_NA:       NAFIELD
 !    --> ScaleField\_CH4\_EU:       EUFIELD 
+!    --> Cat\_Wetlands      :       1
+!    --> Cat\_Rice          :       2
 !
 ! The fields NAFIELD and EUFIELD must be defined in the base emission section of 
 ! the HEMCO configuration file. You can apply any scale factors/masks to that
 ! field.
+!\\
+!\\
+! Wetland and rice emissions are now emitted as separate emission categories.
+! Default category is 1 for wetland emissions and 2 for rice emissions. These
+! categories can be changed in the CH4\_WETLANDS definitions of the HEMCO
+! configuration file (see above). In combination with the ExtNr (121), these
+! categories can then be used in the HEMCO diagnostics file to output wetland
+! and rice emissions separately, e.g.:
+! CH4\_WETL 121 1 -1 2 kg/m2/s 
+! CH4\_RICE 121 2 -1 2 kg/m2/s 
 !\\
 !\\
 ! References:
@@ -79,6 +91,7 @@ MODULE HCOX_CH4WETLAND_Mod
 !                              scale factors and mask regions.
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  24 Aug 2017 - M. Sulprizio- Remove support for GEOS-4, GEOS-5, MERRA
+!  30 Apr 2018 - C. Keller   - Add categories for wetlands and rice
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -150,8 +163,9 @@ CONTAINS
     INTEGER,         INTENT(INOUT) :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY: 
-!  11 Sep 2014 - C. Keller - Initial version
+!  11 Sep 2014 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Apr 2018 - C. Keller   - Rice and wetland emissions now have separate categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -707,6 +721,7 @@ CONTAINS
 ! !REVISION HISTORY:
 !  11 Sep 2014 - C. Keller - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Apr 2018 - C. Keller   - Rice and wetland emissions now have separate categories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -796,7 +811,7 @@ CONTAINS
     ! See if wetland and rice categories are given
     Inst%CatWetland = 1
     Inst%CatRice    = 2
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetland', & 
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Wetlands', & 
                     OptValInt=Dum, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%CatWetland = Dum

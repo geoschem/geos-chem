@@ -73,7 +73,7 @@ MODULE Chemistry_Mod
 ! !PRIVATE TYPES:
 !
 
-  INTEGER :: id_O3, id_CO, id_DST1, id_NK1   ! Species ID flags
+  INTEGER :: id_DST1, id_NK1   ! Species ID flags
 
 CONTAINS
 !EOC
@@ -334,10 +334,6 @@ CONTAINS
     IF ( FIRST ) THEN
        id_DST1 = Ind_('DST1')
        id_NK1  = Ind_('NK1' )
-#if defined( USE_TEND )
-       id_O3   = Ind_('O3'  )
-       id_CO   = Ind_('CO'  )
-#endif
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -527,7 +523,7 @@ CONTAINS
              
              ! Recalculate PSC
              CALL Calc_Strat_Aer( am_I_Root, Input_Opt, State_Met,           &
-                                  State_Chm, RC                             )
+                                  State_Chm, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -962,22 +958,19 @@ CONTAINS
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
 #endif 
 
-          ! Only call after the first 24 hours
-          IF ( GET_ELAPSED_SEC() >= GET_TS_CHEM() ) THEN
-             CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,                 &
-                           State_Chm, State_Diag, RC                        )
+          CALL ChemCh4( am_I_Root, Input_Opt,  State_Met,                 &
+                        State_Chm, State_Diag, RC                        )
 
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "ChemCh4"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in "ChemCh4"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> Gas-phase chem", RC )
 #endif
-          ENDIF
 
        !====================================================================
        ! Mercury
@@ -1519,8 +1512,6 @@ CONTAINS
        FIRST  = .FALSE.
 
        ! Define species ID's
-       id_O3   = Ind_( 'O3'   )
-       id_CO   = Ind_( 'CO'   )
        id_DST1 = Ind_( 'DST1' )
        id_NK1  = Ind_( 'NK1'  )
 

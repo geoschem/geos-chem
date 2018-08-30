@@ -134,7 +134,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine HCOI\_GC\_INIT initializes the HEMCO derived
 ! types and arrays. The HEMCO configuration is read from the HEMCO 
-! configuration file (as listed in Input_Opt%HcoConfigFile) and stored in 
+! configuration file (as listed in Input\_Opt%HcoConfigFile) and stored in 
 ! the HEMCO configuration object. The entire HEMCO setup is based upon the
 ! entries in the HEMCO configuration object. It is possible to explicitly 
 ! provide a (previously read) HEMCO configuration object via input argument 
@@ -446,7 +446,7 @@ CONTAINS
     ! Initialize all HEMCO extensions. This also selects the required 
     ! met fields used by each extension.
     !=======================================================================
-    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC                     )
+    CALL HCOX_Init( am_I_Root, HcoState, ExtState, HMRC )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1291,7 +1291,7 @@ CONTAINS
 !\\
 !\\
 ! Fields from the HEMCO data list are given priority over the target fields from
-! Met\_State, Chm\_State, etc. For example, if the HEMCO data list contains 
+! State\_Met, State\_Chm, etc. For example, if the HEMCO data list contains 
 ! a field named 'U10M', this field will be used in ExtState%U10M in lieu of
 ! State\_Met%U10M. 
 !\\  
@@ -2464,9 +2464,9 @@ CONTAINS
        ENDIF
 
        !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
-       ! Add 3 extra species (ISOP, ACET, MONX) for tagged CO 
+       ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO 
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-          nSpc = nSpc + 3 
+          nSpc = nSpc + 5
        ENDIF
 
        ! Assign species variables
@@ -2546,13 +2546,13 @@ CONTAINS
           !------------------------------------------------------------------
           ! %%%%% FOR THE TAGGED CO SIMULATION %%%%%
           !
-          ! Add the non-advected species ISOP, ACET, and MONX
-          ! in the last 3 species slots (bmy, ckeller, 6/1/16)
+          ! Add the non-advected species ISOP, ACET, MTPA, LIMO, MTPO
+          ! in the last 5 species slots (bmy, ckeller, 6/1/16)
           !------------------------------------------------------------------
           IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
        
-             ! Add 3 additional species
-             DO L = 1, 3
+             ! Add 5 additional species
+             DO L = 1, 5
                 
                 ! ISOP, ACET, MONX follow the regular tagged CO species
                 M = State_Chm%nAdvect + L
@@ -2564,7 +2564,11 @@ CONTAINS
                    CASE( 2 )
                       ThisName = 'ACET'
                    CASE( 3 )
-                      ThisName = 'MONX'
+                      ThisName = 'MTPA'
+                   CASE( 4 )
+                      ThisName = 'LIMO'
+                   CASE( 5 )
+                      ThisName = 'MTPO'
                 END SELECT
 
                 ! Add physical properties to the HEMCO state

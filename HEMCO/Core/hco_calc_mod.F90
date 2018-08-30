@@ -785,6 +785,8 @@ CONTAINS
     ! Pointers
     TYPE(DataCont), POINTER :: ScalDct
     TYPE(DataCont), POINTER :: MaskDct
+    TYPE(DataCont), POINTER :: LevDct1
+    TYPE(DataCont), POINTER :: LevDct2
 
     ! Scalars
     REAL(sp)                :: TMPVAL, MaskScale
@@ -846,6 +848,20 @@ CONTAINS
     totLL = 0
     nnLL  = 0
 
+    ! Check for level index containers
+    IF ( BaseDct%levScalID1 > 0 ) THEN
+       CALL Pnt2DataCont( am_I_Root, HcoState, BaseDct%levScalID1, LevDct1, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       LevDct1 => NULL()
+    ENDIF
+    IF ( BaseDct%levScalID2 > 0 ) THEN
+       CALL Pnt2DataCont( am_I_Root, HcoState, BaseDct%levScalID2, LevDct2, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ELSE
+       LevDct2 => NULL()
+    ENDIF
+
     ! Loop over all latitudes and longitudes
 !$OMP PARALLEL DO                                                      &
 !$OMP DEFAULT( SHARED )                                                &
@@ -864,8 +880,11 @@ CONTAINS
        ENDIF
 
        ! Get lower and upper vertical index
-       CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, I, J, LowLL, UppLL, RC )
+       CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, LevDct1, LevDct2, &
+                          I, J, LowLL, UppLL, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
+          WRITE(MSG,*) 'Error getting vertical index at location ',I,J,&
+                       ': ', TRIM(BaseDct%cName)
           ERROR = 1 ! Will cause error
           EXIT
        ENDIF 
@@ -912,6 +931,8 @@ CONTAINS
                                   BaseDct%Dta%EmisL2Unit, I, J, L, LowLL,  &
                                   UppLL, DilFact, RC )
                 IF ( RC /= HCO_SUCCESS ) THEN
+                   WRITE(MSG,*) 'Error getting dilution factor at ',I,J,&
+                                ': ', TRIM(BaseDct%cName)
                    ERROR = 1
                    EXIT
                 ENDIF 
@@ -1085,7 +1106,7 @@ CONTAINS
        
           ! Get lower and upper vertical index
           CALL GetVertIndx ( am_I_Root, HcoState, BaseDct, &
-                             I, J, LowLL, UppLL, RC )
+                             LevDct1, LevDct2, I, J, LowLL, UppLL, RC )
           IF ( RC /= HCO_SUCCESS ) THEN
              ERROR = 1 ! Will cause error
              EXIT
@@ -1968,8 +1989,13 @@ CONTAINS
     ENDIF
 
     ! For operator set to 3, mirror value
+    ! MaskVal=1 becomes 0 and MaskVal=0/missing becomes 1
     IF ( Dct%Oper == 3 ) THEN
-       MaskVal = 1.0_sp - MaskVal 
+       IF ( (MaskVal == 0.0_sp) .OR. (MaskVal == HCO_MISSVAL) ) THEN
+          MaskVal = 1.0_sp
+       ELSEIF ( MaskVal == 1.0_sp ) THEN
+          MaskVal = 1.0_sp - MaskVal 
+       ENDIF
     ENDIF
 
     ! Treat as binary?
@@ -2133,7 +2159,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetVertIndx ( am_I_Root, HcoState, Dct, I, J, LowLL, UppLL, RC )
+  SUBROUTINE GetVertIndx ( am_I_Root, HcoState, Dct, &
+                           LevDct1, LevDct2, I, J, LowLL, UppLL, RC )
 !
 ! !USES:
 !
@@ -2143,6 +2170,8 @@ CONTAINS
 !
     LOGICAL,  INTENT(IN   )           :: am_I_Root   ! Root CPU?
     TYPE(HCO_State), POINTER          :: HcoState    ! HEMCO state object
+    TYPE(DataCont),  POINTER          :: LevDct1     ! Level index 1 container
+    TYPE(DataCont),  POINTER          :: LevDct2     ! Level index 2 container
     INTEGER,  INTENT(IN   )           :: I           ! lon index 
     INTEGER,  INTENT(IN   )           :: J           ! lat index
 !
@@ -2161,6 +2190,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    INTEGER  :: EmisLUnit
+    REAL(hp) :: EmisL
 
     !=================================================================
     ! GetVertIndx begins here
@@ -2179,13 +2210,45 @@ CONTAINS
     ! levels. Possible to go from PBL to max. specified level.
     ELSE
        ! Lower level
+       ! --> Check if scale factor is used to determine lower and/or
+       !     upper level
+       IF ( ASSOCIATED(LevDct1) ) THEN
+          EmisL = GetEmisL ( am_I_Root, HcoState, LevDct1, I, J )
+          IF ( EmisL < 0.0_hp ) THEN
+             RC = HCO_FAIL
+             RETURN
+          ENDIF
+          EmisLUnit = GetEmisLUnit ( am_I_Root, HcoState, LevDct1 )
+          IF ( EmisLUnit < 0 ) THEN
+             RC = HCO_FAIL
+             RETURN
+          ENDIF
+       ELSE
+          EmisL     = Dct%Dta%EmisL1
+          EmisLUnit = Dct%Dta%EmisL1Unit
+       ENDIF
        CALL GetIdx( am_I_Root, HcoState, I, J, &
-          Dct%Dta%EmisL1, Dct%Dta%EmisL1Unit, LowLL, RC ) 
+                    EmisL, EmisLUnit, LowLL, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Upper level
+       IF ( ASSOCIATED(LevDct2) ) THEN
+          EmisL = GetEmisL ( am_I_Root, HcoState, LevDct2, I, J )
+          IF ( EmisL < 0.0_hp ) THEN
+             RC = HCO_FAIL
+             RETURN
+          ENDIF
+          EmisLUnit = GetEmisLUnit ( am_I_Root, HcoState, LevDct2 )
+          IF ( EmisLUnit < 0 ) THEN
+             RC = HCO_FAIL
+             RETURN
+          ENDIF
+       ELSE
+          EmisL     = Dct%Dta%EmisL2
+          EmisLUnit = Dct%Dta%EmisL2Unit
+       ENDIF
        CALL GetIdx( am_I_Root, HcoState, I, J, &
-          Dct%Dta%EmisL2, Dct%Dta%EmisL2Unit, UppLL, RC ) 
+                    EmisL, EmisLUnit, UppLL, RC ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Upper level must not be lower than lower level
@@ -2196,6 +2259,125 @@ CONTAINS
     RC = HCO_SUCCESS
 
   END SUBROUTINE GetVertIndx
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: GetEmisL 
+!
+! !DESCRIPTION: Returns the emission level read from a scale factor. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GetEmisL ( am_I_Root, HcoState, LevDct, I, J ) RESULT ( EmisL )
+!
+! !USES:
+!
+    USE HCO_TYPES_MOD
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+    USE HCO_tIdx_MOD,     ONLY : tIDx_GetIndx
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
+    TYPE(DataCont),  POINTER        :: LevDct         ! Level index 1 container
+    INTEGER,         INTENT(IN   )  :: I, J           ! horizontal index 
+!
+! !RETURN VALUE:
+!
+    REAL(hp)                        :: EmisL
+! 
+! !REVISION HISTORY:
+!  26 Jan 2018 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: levtidx
+
+    !=================================================================
+    ! GetEmisL begins here
+    !=================================================================
+    levtidx = tIDx_GetIndx( am_I_Root, HcoState, LevDct%Dta, I, J )
+    IF ( levtidx <= 0 ) THEN
+       WRITE(*,*)' Cannot get time slice for field '//&
+       TRIM(LevDct%cName)//': GetEmisL (hco_calc_mod.F90)'
+       EmisL = -1.0 
+       RETURN
+    ENDIF
+
+    IF ( LevDct%Dta%SpaceDim == 1 ) THEN
+       EmisL = LevDct%Dta%V2(levtidx)%Val(1,1)
+    ELSEIF ( LevDct%Dta%SpaceDim == 2 ) THEN
+       EmisL = LevDct%Dta%V2(levtidx)%Val(I,J)
+    ELSEIF ( LevDct%Dta%SpaceDim == 3 ) THEN
+       EmisL = LevDct%Dta%V3(levtidx)%Val(I,J,1)
+    ENDIF
+
+    IF ( EmisL == HCO_MISSVAL ) EmisL = 0.0_hp
+
+END FUNCTION GetEmisL
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !FUNCTION: GetEmisLUnit 
+!
+! !DESCRIPTION: Returns the emission level unit read from a scale factor. 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GetEmisLUnit ( am_I_Root, HcoState, LevDct ) RESULT( EmisLUnit )
+!
+! !USES:
+!
+    USE HCO_TYPES_MOD
+    USE HCO_STATE_MOD,    ONLY : HCO_State
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,         INTENT(IN   )  :: am_I_Root      ! Root CPU? 
+    TYPE(HCO_State), POINTER        :: HcoState       ! HEMCO state object
+    TYPE(DataCont),  POINTER        :: LevDct         ! Level index 1 container
+!
+! !RETURN VALUE:
+!
+    INTEGER                         :: EmisLUnit
+! 
+! !REVISION HISTORY:
+!  26 Jan 2018 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    !=================================================================
+    ! GetEmisLUnit begins here
+    !=================================================================
+
+    ! For now, only meters are supported
+    EmisLUnit = HCO_EMISL_M
+
+    ! Dummy check that units on field are actually in meters
+    IF ( TRIM(LevDct%Dta%OrigUnit) /= 'm' .AND. &
+         TRIM(LevDct%Dta%OrigUnit) /= '1'        ) THEN
+       WRITE(*,*) TRIM(LevDct%cName)// &
+       ' must have units of `m`, instead found '//&
+       TRIM(LevDct%Dta%OrigUnit)//': GetEmisLUnit (hco_calc_mod.F90)'
+       EmisLUnit = -1
+    ENDIF
+
+END FUNCTION GetEmisLUnit
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
@@ -2271,7 +2453,7 @@ CONTAINS
        ENDIF
 
        ! Special case of negative height
-       IF ( alt < 0.0_hp ) THEN
+       IF ( alt <= 0.0_hp ) THEN
           lidx = 1
           RETURN
        ENDIF
@@ -2375,7 +2557,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER    :: L1
-    REAL(hp)   :: h1, h2, dh
+    REAL(hp)   :: h1, h2, lh, dh
 
     !=================================================================
     ! GetDilFact begins here
@@ -2395,48 +2577,36 @@ CONTAINS
        ! Height of grid box of interest (in m)
        dh = HcoState%Grid%BXHEIGHT_M%Val(I,J,L)
 
-       ! Get bottom height
-       h1 = 0.0_hp
-       IF ( EmisL1Unit == HCO_EMISL_M .OR. &
-            EmisL1Unit == HCO_EMISL_PBL     ) THEN
+       ! Get height of bottom level LowLL (in m)
+       IF ( EmisL1Unit == HCO_EMISL_M ) THEN 
           h1 = EmisL1
+       ELSEIF ( EmisL1Unit == HCO_EMISL_PBL ) THEN
+          h1 = HcoState%Grid%PBLHEIGHT%Val(I,J)
        ELSE
           IF ( LowLL > 1 ) THEN
-             DO L1=1,LowLL-1
-                h1 = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-             ENDDO 
+             h1 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(LowLL-1)))
+          ELSE
+             h1 = 0.0_hp 
           ENDIF
        ENDIF
 
-       ! Only use fraction of lowest level
-       IF ( L == LowLL ) THEN
-          IF ( EmisL1Unit == HCO_EMISL_M   .OR. & 
-               EmisL1Unit == HCO_EMISL_PBL       ) THEN
-             dh = h1 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L) - EmisL1
-          ENDIF 
-       ENDIF
-
-       ! Get top height 
-       h2 = 0.0_hp
-       IF ( EmisL2Unit == HCO_EMISL_M .OR. &
-            EmisL2Unit == HCO_EMISL_PBL     ) THEN
+       ! Get height of top level UppLL (in m)
+       IF ( EmisL2Unit == HCO_EMISL_M ) THEN 
           h2 = EmisL2
+       ELSEIF ( EmisL2Unit == HCO_EMISL_PBL ) THEN 
+          h2 = HcoState%Grid%PBLHEIGHT%Val(I,J)
        ELSE
-          DO L1=1,UppLL
-             h2 = h2 + HcoState%Grid%BXHEIGHT_M%Val(I,J,L1)
-          ENDDO
+          h2 = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:UppLL))
        ENDIF
 
-       ! Only use fraction of top level
+       ! Adjust dh if we are in lowest level 
+       IF ( L == LowLL ) THEN
+          dh = SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:LowLL)) - h1
+       ENDIF
+
+       ! Adjust dh if we are in top level
        IF ( L == UppLL ) THEN
-          IF ( EmisL2Unit == HCO_EMISL_M   .OR. & 
-               EmisL2Unit == HCO_EMISL_PBL       ) THEN
-             IF ( L > 1 ) THEN
-                dh = EmisL2 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(L-1)))
-             ELSE
-                dh = EmisL2
-             ENDIF
-          ENDIF 
+          dh = h2 - SUM(HcoState%Grid%BXHEIGHT_M%Val(I,J,1:(UppLL-1)))
        ENDIF
 
        ! compute dilution factor: the new flux should emit the same mass per

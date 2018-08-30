@@ -101,6 +101,7 @@
 !
 ! !PRIVATE TYPES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! MODULE VARIABLES
       !
@@ -142,6 +143,7 @@
       ! Arrays
       REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
+#endif
 
       CONTAINS
 !EOC
@@ -167,7 +169,9 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE Time_Mod,           ONLY : ITS_A_NEW_DAY
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -192,9 +196,15 @@
 !------------------------------------------------------------------------------
 !BOC
 
+
       !=================================================================
       ! DIAG50 begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Accumulate data over a 24-hr period in the Q array
       CALL ACCUMULATE_DIAG50
@@ -205,6 +215,8 @@
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
          CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
       ENDIF
+
+#endif
 
       END SUBROUTINE DIAG50
 !EOC
@@ -226,20 +238,22 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Met_Mod,      ONLY : MetState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH
-      USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L, GET_PBL_TOP_m
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING, GET_TS_DYN
       USE Aerosol_Mod,        ONLY : PM25
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -311,6 +325,8 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+
       ! SAVEd scalars
       LOGICAL, SAVE       :: FIRST = .TRUE.
       LOGICAL, SAVE       :: IS_FULLCHEM, IS_SEASALT
@@ -329,16 +345,9 @@
       REAL(fp)            :: C1, C2, PBLDEC, TEMPBL, TMP, SCALEAODnm
       CHARACTER(LEN=16)   :: STAMP
 
-!------------------------------------------------------------------------------
-! Prior to 1/3/18:
-! IND is not used here (mps, 1/3/18)
-!      ! Aerosol types (rvm, aad, bmy, 7/20/04)
-!      INTEGER             :: IND(6) = (/ 22, 29, 36, 43, 50, 15 /)
-!------------------------------------------------------------------------------
-
       ! Pointers
-      REAL(fp), POINTER     :: Spc(:,:,:,:)
-
+      REAL(fp), POINTER   :: Spc(:,:,:,:)
+#endif
       !=================================================================
       ! ACCUMULATE_DIAG50 begins here!
       !=================================================================
@@ -346,7 +355,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Number of advected species
       nAdvect = State_Chm%nAdvect
@@ -880,6 +889,7 @@
       Spc => NULL()
 
 #endif
+
       END SUBROUTINE ACCUMULATE_DIAG50
 !EOC
 !------------------------------------------------------------------------------
@@ -899,20 +909,19 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG ) 
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
-#endif
       USE CMN_SIZE_MOD             ! Size Parameters
-      USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET
       USE GC_GRID_MOD,        ONLY : GET_YOFFSET
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
-      USE State_Chm_Mod,      ONLY : ChmState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG
       USE TIME_MOD,           ONLY : GET_NHMS
@@ -920,13 +929,19 @@
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TIME_MOD,           ONLY : TIMESTAMP_STRING
 
-#if   defined( USE_HDF5 )
+#if defined( USE_HDF5 )
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      !%%%%% NOTE: THIS IS PROBABLY BROKEN, WE WILL NOT REPLACE IT
+      !%%%%% BECAUSE WE ARE GOING TO MOVE TO netCDF OUTPUT (bmy, 4/11/18)
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! Only include this if we are linking to HDF5 library (bmy, 12/21/09)
       USE HDF_MOD,            ONLY : OPEN_HDF
       USE HDF_MOD,            ONLY : CLOSE_HDF
       USE HDF_MOD,            ONLY : WRITE_HDF
       USE HDF5,               ONLY : HID_T
       INTEGER(HID_T)              :: IU_ND50_HDF
+#endif
+
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -976,6 +991,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER            :: DIVISOR(ND50_NI,ND50_NJ,ND50_NL)
       INTEGER            :: I,    J,     L,   W, N, nAdvect
       INTEGER            :: GMNL, GMTRC, IOS, X, Y, K, NHMS
@@ -983,6 +999,7 @@
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
       CHARACTER(LEN=255) :: FILENAME
+#endif
 
       !=================================================================
       ! WRITE_DIAG50 begins here!
@@ -991,7 +1008,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Nubmer of advected species
       nAdvect   = State_Chm%nAdvect
@@ -1401,7 +1418,6 @@
       
       ! Zero accumulating array
       Q            = 0e+0_fp
-
 #endif
 
       END SUBROUTINE WRITE_DIAG50
@@ -1445,12 +1461,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC
@@ -1471,10 +1488,11 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
-#endif
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
@@ -1482,8 +1500,8 @@
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
       USE GC_GRID_MOD,   ONLY : GET_YOFFSET
       USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE Input_Opt_Mod, ONLY : OptInput
       USE TIME_MOD,      ONLY : GET_TAUb
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1513,8 +1531,10 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER            :: AS
       CHARACTER(LEN=255) :: LOCATION
+#endif
 
       !=================================================================
       ! INIT_DIAG50 begins here!
@@ -1523,7 +1543,7 @@
       ! Assume success
       RC = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Initialize
       LOCATION               = 'INIT_DIAG50 ("diag50_mod.f")'
@@ -1654,7 +1674,6 @@
       ALLOCATE( COUNT_CHEM3D( ND50_NI, ND50_NJ, ND50_NL ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'COUNT_CHEM3D' )
       COUNT_CHEM3D = 0e+0_fp
-
 #endif
 
       END SUBROUTINE INIT_DIAG50
@@ -1671,7 +1690,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_DIAG50
+      SUBROUTINE CLEANUP_DIAG50()
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -1680,10 +1699,10 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! CLEANUP_DIAG50 begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
 #endif

@@ -47,6 +47,7 @@
 !
 ! !PRIVATE TYPES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! MODULE VARIABLES
       !
@@ -62,7 +63,6 @@
       ! MODELNAME        : Used for binary punch file write
       ! TITLE            : Used for binary punch file write 
       !=================================================================
-
       INTEGER            :: IOFF,           JOFF
       INTEGER            :: I0,             J0
       INTEGER            :: ND63_NI,        ND63_NJ,  ND63_NL
@@ -75,6 +75,7 @@
 
       ! LUN for ND63 diagnostic file
       INTEGER            :: IU_ND63
+#endif
 
       CONTAINS
 !EOC
@@ -96,29 +97,29 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
-      USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
-#endif
-      USE CMN_O3_MOD	      ! Pure O3, SAVENO2
       USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
+      USE CMN_O3_MOD	      ! Pure O3, SAVENO2
       USE ERROR_MOD,          ONLY : SAFE_DIV, ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_XOFFSET,     GET_YOFFSET
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
       USE HCO_TYPES_MOD,      ONLY : DiagnCont
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE Input_Opt_Mod,      ONLY : OptInput
       USE inquireMod,         ONLY : findFreeLUN
       USE PhysConstants
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,   GET_PBL_TOP_m
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD,        GET_NHMS
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG,   GET_TS_DIAG
       USE TIME_MOD,           ONLY : GET_TAU,         GET_HOUR
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY,   TIMESTAMP_STRING
       USE TIME_MOD,           ONLY : GET_TAUb
+#endif
 !
 ! !INPUT ARGUMENTS
 !
@@ -149,7 +150,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER                       :: IOS,  GMTRC, GMNL, I, J, K, L 
       INTEGER                       :: N,    R,     H,    W, X, Y
       INTEGER                       :: NHMS, TS_DIAG
@@ -176,11 +177,17 @@
 !
       REAL(f8), PARAMETER           :: CM2PERM2 = 10000e+0_f8
       CHARACTER(LEN=255), PARAMETER :: LOC = 'DIAG63 (DIAG63_MOD.F)' 
+#endif
 
       !=================================================================
       ! DIAG63 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+     
       ! Initialize
       DiagnCnt => NULL()
 
@@ -344,9 +351,9 @@
 
       ! Return w/ success
       DiagnCnt => NULL()
-#endif
 
       RC = GC_SUCCESS
+#endif
 
       END SUBROUTINE DIAG63
 !EOC
@@ -367,9 +374,11 @@
 !
 ! !USES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE TIME_MOD, ONLY : GET_HOUR
       USE TIME_MOD, ONLY : GET_MINUTE
       USE TIME_MOD, ONLY : GET_SECOND
+#endif
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
@@ -382,6 +391,8 @@
 ! !LOCAL VARIABLES:
 !
       LOGICAL :: ITS_TIME
+
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       REAL(fp)  :: HR1
 
       !=================================================================
@@ -394,8 +405,9 @@
 
        ! If the next dyn step is the start of a new day, return TRUE
       ITS_TIME = ( INT( HR1 ) == 00 )
- 
-       END FUNCTION ITS_TIME_TO_CLOSE_FILE
+#endif
+
+      END FUNCTION ITS_TIME_TO_CLOSE_FILE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -414,10 +426,12 @@
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE ERROR_MOD,     ONLY : GEOS_CHEM_STOP
       USE TIME_MOD,      ONLY : GET_ELAPSED_SEC
       USE TIME_MOD,      ONLY : GET_TS_DIAG
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -436,6 +450,7 @@
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER       :: XSEC, TS_DIAG
       LOGICAL, SAVE :: FIRST = .TRUE.
 
@@ -466,6 +481,7 @@
       ELSE
          ITS_TIME = Input_Opt%DO_ND63
       ENDIF
+#endif
             
       END FUNCTION ITS_TIME_FOR_DIAG63
 !EOC
@@ -482,7 +498,6 @@
 !\\
 ! !INTERFACE:
 !
-
       FUNCTION GET_I( X ) RESULT( I )
 !
 ! !USES:
@@ -506,12 +521,13 @@
       !=================================================================
       ! GET_I begins here!
       !=================================================================
-
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Add the offset to X to get I  
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
       IF ( I > IIPAR ) I = I - IIPAR
+#endif
 
       END FUNCTION GET_I
 !EOC
@@ -532,6 +548,9 @@
 !
 ! !USES:
 !
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
@@ -540,7 +559,7 @@
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
       USE GC_GRID_MOD,   ONLY : GET_YOFFSET
       USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE Input_Opt_Mod, ONLY : OptInput
+#endif
 !
 ! !INPUT PARAMETERS: 
 !
@@ -560,7 +579,7 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       CHARACTER(LEN=255)             :: LOCATION
 #endif
       
@@ -571,7 +590,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+
       ! Initialize
       LOCATION               = 'INIT_DIAG63 ("diag63_mod.f")'
      

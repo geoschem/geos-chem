@@ -306,7 +306,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-      ' -> at GEOS_Timer_Start (in module GeosCore/geos_timers_mod.F90)'
+      ' -> at GEOS_Timer_Start (in module GeosUtil/geos_timers_mod.F90)'
 
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
@@ -406,7 +406,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at GEOS_Timer_End (in module GeosCore/geos_timers_mod.F90)'
+       ' -> at GEOS_Timer_End (in module GeosUtil/geos_timers_mod.F90)'
 
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
@@ -515,7 +515,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at Geos_Timer_Print (in module GeosCore/geos_timers_mod.F90)'
+       ' -> at Geos_Timer_Print (in module GeosUtil/geos_timers_mod.F90)'
 
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
@@ -591,7 +591,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at Geos_Timer_PrintAll (in module GeosCore/geos_timers_mod.F90)'
+       ' -> at Geos_Timer_PrintAll (in module GeosUtil/geos_timers_mod.F90)'
  
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.
@@ -671,7 +671,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = & 
-       ' -> at Geos_Timer_StopAll  (in module GeosCore/geos_timers_mod.F90)'
+       ' -> at Geos_Timer_StopAll  (in module GeosUtil/geos_timers_mod.F90)'
 
     ! First it is important to check if timers are enabled.
     IF (.not. DoTimers) THEN       ! Assume False for optimization.

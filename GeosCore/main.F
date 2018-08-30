@@ -56,7 +56,6 @@
       !-----------------------------------------------------------------
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
-      USE GLOBAL_CH4_MOD        ! For offline CH4 simulation
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
       USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
       USE STRAT_CHEM_MOD        ! For linearized stratospheric chemistry
@@ -77,10 +76,12 @@
       !-----------------------------------------------------------------
 #if defined( BPCH_DIAG )
       USE BENCHMARK_MOD         ! For the 1-month benchmark simulations
-      USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG_MOD              ! G-C diagnostic arrays & counters
       USE DIAG41_MOD            ! For ND41  (afternoon PBL       ) diag
       USE DIAG42_MOD            ! For ND42  (SOA products        ) diag
+#endif
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+      USE CMN_DIAG_MOD          ! Logical switches for G-C diagnostics
       USE DIAG48_MOD            ! For ND48  (station timeseries  ) diag
       USE DIAG49_MOD            ! For ND49  (inst. timeseries    ) diag
       USE DIAG50_MOD            ! For ND50  (24h avg timeseries  ) diag
@@ -91,7 +92,9 @@
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
-      USE HCOI_GC_MAIN_MOD       ! Writes out HEMCO diagnostics (C. Keller)
+      USE GOSAT_CH4_MOD         ! For GOSAT observation operator
+      USE TCCON_CH4_MOD         ! For TCCON observation operator
+      USE HCOI_GC_MAIN_MOD      ! Writes out HEMCO diagnostics (C. Keller)
 
       !-----------------------------------------------------------------
       ! GEOS-Chem dynamics modules
@@ -283,6 +286,8 @@
 !                              when we are running specialty simulations
 !  12 Jul 2016 - E. Lundgren - Remove binary punch restart file option
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  16 Jun 2017 - M. Sulprizio- Add call for GOSAT CH4 observation operator
+!  17 Aug 2017 - M. Sulprizio- Add call for TCCON CH4 observation operator
 !  23 Aug 2017 - R. Yantosca - Now add at timer for the History component
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  30 Aug 2017 - R. Yantosca - Move the HISTORY UPDATE block before call to
@@ -314,15 +319,15 @@
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
       INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
-      INTEGER                  :: ND40x
       REAL(f8)                 :: TAU,           TAUb      
+      REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
       CHARACTER(LEN=255)       :: historyConfigFile
       CHARACTER(LEN=512)       :: ErrMsg
 #if defined( RRTMG )
       ! For RRTMG
       INTEGER                  :: ICLD=0,ISEED=10
-      INTEGER                  :: RR
+      INTEGER                  :: RADSPEC
 #endif
 
       ! Arrays
@@ -353,7 +358,6 @@
 
       ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
       LOGICAL                  :: ITS_A_FULLCHEM_SIM 
-      LOGICAL                  :: ITS_A_CH4_SIM
       LOGICAL                  :: ITS_A_MERCURY_SIM  
       LOGICAL                  :: ITS_A_TAGCO_SIM
       LOGICAL                  :: ITS_AN_AEROSOL_SIM 
@@ -411,13 +415,8 @@
       ! Define dimensions for fields of the Input Options object
       ! NOTE: At this point we have not yet read in the "input.geos"
       ! file so these are just placeholder values (bmy, 11/7/12)
-#if defined( BPCH_DIAG )
       Input_Opt%MAX_DIAG      = MAX_DIAG ! Max # of diags from CMN_DIAG_mod.F
-#else
-      Input_Opt%MAX_DIAG      = 1        ! or placeholder value if BPCH_DIAG=n
-#endif
       Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
-      Input_Opt%MAX_PASV      = 50       ! Set to large placeholder value
       Input_Opt%LINOZ_NLAT    = 18
       Input_Opt%LINOZ_NMONTHS = 12
       Input_Opt%LINOZ_NFIELDS = 7
@@ -460,9 +459,7 @@
       CALL GEOS_Timer_Add( "RRTMG",                                RC )
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
-#if defined( BPCH_DIAG )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
-#endif
 #if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
@@ -517,7 +514,6 @@
       ! Copy values from Input_Opt.  These replace the variables
       ! from logical_mod.F and tracer_mod.F. (bmy, 3/29/13)
       ITS_A_FULLCHEM_SIM  =  Input_Opt%ITS_A_FULLCHEM_SIM
-      ITS_A_CH4_SIM       =  Input_Opt%ITS_A_CH4_SIM
       ITS_A_MERCURY_SIM   =  Input_Opt%ITS_A_MERCURY_SIM
       ITS_A_TAGCO_SIM     =  Input_Opt%ITS_A_TAGCO_SIM 
       ITS_AN_AEROSOL_SIM  =  Input_Opt%ITS_AN_AEROSOL_SIM
@@ -540,13 +536,6 @@
       LUCX                =  Input_Opt%LUCX
       LWETD               =  Input_Opt%LWETD
       LWINDO              =  Input_Opt%LWINDO
-
-      ! Define a shadow variable for ND40
-#if defined( BPCH_DIAG )
-      ND40x               = ND40
-#else
-      ND40x               = 0
-#endif
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -1160,7 +1149,6 @@
 
                ! Flush file units
                CALL CTM_FLUSH()
-
             ENDIF
 
 #if defined( USE_TIMERS )
@@ -1169,30 +1157,35 @@
             CALL GEOS_Timer_End( "Output",                       RC )
 #endif
 
-#endif 
-            !===========================================================
-            !       ***** S T R A T - T R O P   F L U X E S *****
-            !===========================================================
-            IF ( LSCHEM ) THEN
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "=> Strat chem", RC )
 #endif
 
-               ! Determine and print STE fluxes (ltm, 06/10/12)
-               CALL Calc_STE( am_I_Root, Input_Opt, State_Chm, 
-     &                        State_Met, RC )
-
-               ! Trap potential errors
-               IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Calc_STE"!'
-                  CALL Error_Stop( ErrMsg, ThisLoc )
-               ENDIF
-
-#if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "=> Strat chem", RC )
-#endif
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 8/9/18:
+! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
+!            !===========================================================
+!            !       ***** S T R A T - T R O P   F L U X E S *****
+!            !===========================================================
+!            IF ( LCHEM .and. LSCHEM ) THEN
+!
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_Start( "=> Strat chem", RC )
+!#endif
+!
+!               ! Determine and print STE fluxes (ltm, 06/10/12)
+!               CALL Calc_STE( am_I_Root, Input_Opt, State_Chm, 
+!     &                        State_Met, RC )
+!
+!               ! Trap potential errors
+!               IF ( RC /= GC_SUCCESS ) THEN
+!                  ErrMsg = 'Error encountered in "Calc_STE"!'
+!                  CALL Error_Stop( ErrMsg, ThisLoc )
+!               ENDIF
+!
+!#if defined( USE_TIMERS )
+!               CALL GEOS_Timer_End( "=> Strat chem", RC )
+!#endif
+!            ENDIF
+!------------------------------------------------------------------------------
 
             !===========================================================
             !  *** W R I T E   G E O S - C H E M   R E S T A R T S  ***
@@ -1242,10 +1235,10 @@
             ! Set time at beginning of next diagnostic timestep
             CALL SET_DIAGb( TAU )
 
+#if defined( BPCH_DIAG )
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
-#if defined( BPCH_DIAG )
             CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
             CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
 #endif
@@ -1539,7 +1532,7 @@
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_TPBC )
             ! Output BC's
             ! Save boundary conditions (global grid) for future nested run
             IF ( LWINDO ) THEN
@@ -1853,9 +1846,6 @@
          ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
          CALL Get_Overhead_O3_For_FastJ( am_I_Root )
          
-         ! Also need to compute avg P, T for CH4 chemistry (bmy, 1/16/01)
-         IF ( ITS_A_CH4_SIM ) CALL CH4_AvgTp( State_Met )
-
          ! Every chemistry timestep...
          IF ( ITS_TIME_FOR_CHEM() ) THEN
 
@@ -2008,7 +1998,7 @@
                   RADSPEC = NSPECRADMENU - 1
                ENDIF
 
-               DO N = 1, NSPECRADMENU
+               DO N = 1, RADSPEC
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
@@ -2103,13 +2093,15 @@
 
 #endif
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
          !
-         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         ! %%%%% NOTE: Works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
+         ! %%%%% but for timing purposes, count this as bpch  %%%%%
+         ! %%%%% because it is not computed with History.     %%%%%
          !--------------------------------------------------------------
-         IF ( ND40x > 0 .and. DO_DIAG_WRITE ) THEN 
+         IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
 
 #if defined( USE_TIMERS )
@@ -2120,7 +2112,7 @@
 
                ! Initialize planeflight diagnostic
                CALL Setup_PlaneFlight( am_I_Root, Input_Opt, 
-     &                                 State_Chm, RC )
+     &                                 State_Chm, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2133,6 +2125,59 @@
                CALL GEOS_Timer_End( "Output",                      RC )
                CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
 #endif      
+
+            ENDIF
+         ENDIF
+#endif
+
+#if defined( BPCH_DIAG )
+         !--------------------------------------------------------------
+         ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
+         !
+         ! CH4 columns from the GOSAT instrument (mps, 6/16/17)
+         !--------------------------------------------------------------
+         IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+               CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
+
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
+            ENDIF
+         ENDIF
+
+         !--------------------------------------------------------------
+         ! **** C H 4   S I M U L A T I O N   D I A G N O S I C S ****
+         !
+         ! CH4 columns from the TCCON instrument (mps, 8/17/17)
+         !--------------------------------------------------------------
+         IF ( Input_Opt%TCCON_CH4_OBS ) THEN
+            IF ( ITS_A_NEW_HOUR() ) THEN
+      
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_PRIOR = COST_FUNC
+!------------------------------------------------------------------------------
+
+               CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm,
+     &                                    State_Met, COST_FUNC )
+
+!------------------------------------------------------------------------------
+! For adjoint model only:
+!            ! Track cost function contributions
+!            CF_GOSCH4 = CF_GOSCH4 + COST_FUNC - CF_PRIOR
+!------------------------------------------------------------------------------
             ENDIF
          ENDIF
 
@@ -2151,7 +2196,7 @@
             CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
          ENDIF
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !
@@ -2170,9 +2215,9 @@
          ! with species array and not be biased by emissions, kyu 30
          ! jan 2015
          !
-         ! %%%%% NOTE: Currently only works if BPCH_DIAG=y %%%%%
+         ! %%%%% NOTE: works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
          !--------------------------------------------------------------
-         IF ( ND40x > 0 ) THEN 
+         IF ( ND40 > 0 ) THEN 
             ! Archive data along the flight track
             CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
      &                        State_Chm, State_Diag, RC )
@@ -2183,7 +2228,6 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
-
          IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG40' )
 
          !--------------------------------------------------------------
@@ -2205,6 +2249,7 @@
 
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG1' )
 
+#if defined( BPCH_DIAG )
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
             IF ( ND41 > 0 ) CALL DIAG41()
@@ -2222,6 +2267,7 @@
                ENDIF
             ENDIF
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG42' )
+#endif
 
             ! 24-hr timeseries
             IF ( Input_Opt%DO_ND50 ) THEN
@@ -2566,6 +2612,7 @@
 !  22 Oct 2012 - R. Yantosca - Now echo info if -DDEVEL is used
 !  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
 !  16 Mar 2017 - M. Sulprizio- Print model version to log file
+!  26 Jul 2018 - R. Yantosca - Now get version # from gc_classic_version.H
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2574,14 +2621,13 @@
 !
       ! For system time stamp
       CHARACTER(LEN=16) :: STAMP
-      CHARACTER(LEN=16) :: VERSION
 
-      ! Set GEOS-Chem version
-      VERSION = 'v11-02'
+#include "gc_classic_version.H"
 
       !-----------------------------------------------------------------
       ! Print resolution info
       !-----------------------------------------------------------------
+
 #if   defined( GRID4x5   )
       WRITE( 6, '(a)' )                   
      &    REPEAT( '*', 13 )                                          //
@@ -2617,7 +2663,7 @@
       !-----------------------------------------------------------------
       ! Print model version
       !-----------------------------------------------------------------
-      WRITE( 6, 110 ) TRIM( VERSION )
+      WRITE( 6, 110 ) TRIM( GC_CLASSIC_VERSION )
 
       !-----------------------------------------------------------------
       ! Print compiler

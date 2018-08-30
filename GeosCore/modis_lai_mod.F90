@@ -641,20 +641,29 @@ CONTAINS
 !                              read code to new routine Read_Modis.
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
+!  15 Mar 2018 - M. Sulprizio- Move nc_dir definition to here from Read_Modis.
+!                              We now use updates MODIS LAI files stored in
+!                              MODIS_LAI_201707/, while CHLR files are still
+!                              read from MODIS_LAI_201204/.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    CHARACTER(LEN=255)   :: nc_dir          ! netCDF directory name
     CHARACTER(LEN=255)   :: nc_tmpl         ! netCDF file name template 
     LOGICAL              :: ReadLAI         ! T = read LAI, F = read CHLR
 
     ! Assume success
     RC = GC_SUCCESS
 
+    ! Construct file path from directory & file name (use LAI directory)
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201707/'
+
     ! Set filename template for LAI
     nc_tmpl = 'For_Olson_2001/MODIS.LAIv.V5.generic.025x025.YYYY.nc'
+    nc_tmpl = TRIM( nc_dir ) // TRIM( nc_tmpl )
 
     ! Always read LAI file
     ReadLAI = .true.
@@ -664,8 +673,12 @@ CONTAINS
     ! Read CHLR only if organic marine aerosols tracers are turned on
     IF ( Input_Opt%LMPOA ) THEN
 
+       ! Construct file path from directory & file name (use LAI directory)
+       nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
+
        ! Set filename template for CHLR
        nc_tmpl = 'For_Olson_2001/MODIS.CHLRv.V5.generic.025x025.YYYY.nc'
+       nc_tmpl = TRIM( nc_dir ) // TRIM( nc_tmpl )
 
        ! Read CHLR file
        ReadLAI = .false.
@@ -737,8 +750,6 @@ CONTAINS
                          
     ! Character strings  
     CHARACTER(LEN=255)   :: nc_file            ! netCDF file name
-    CHARACTER(LEN=255)   :: nc_dir             ! netCDF directory name
-    CHARACTER(LEN=255)   :: nc_path            ! netCDF path name
     CHARACTER(LEN=255)   :: v_name             ! netCDF variable name 
     CHARACTER(LEN=255)   :: a_name             ! netCDF attribute name
     CHARACTER(LEN=255)   :: a_val              ! netCDF attribute value
@@ -789,13 +800,6 @@ CONTAINS
     ! Save for next iteration
 
     !======================================================================
-    ! Initialize variables
-    !======================================================================
-
-    ! Construct file path from directory & file name (use LAI directory)
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'MODIS_LAI_201204/'
-
-    !======================================================================
     ! Read current month's LAI or CHLR
     !======================================================================
 
@@ -824,13 +828,11 @@ CONTAINS
     ENDIF
 
     ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )  
+    CALL Ncop_Rd( fId, TRIM(nc_file) )  
 
     ! Echo info to stdout
     WRITE( 6, 100 ) REPEAT( '%', 79 )
     WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
 
     ! Variable name
     v_name = "MODIS"
@@ -893,13 +895,11 @@ CONTAINS
     ENDIF
 
     ! Open file for read
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
+    CALL Ncop_Rd( fId, TRIM(nc_file) )
      
     ! Echo info to stdout
     WRITE( 6, 100 ) REPEAT( '%', 79 )
     WRITE( 6, 110 ) TRIM(nc_file)
-    WRITE( 6, 120 ) TRIM(nc_dir)
 
     ! Variable name
     v_name = "MODIS"
@@ -1071,21 +1071,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, RC )
+  SUBROUTINE Init_Modis_Lai( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  03 Apr 2012 - R. Yantosca - Initial version
@@ -1096,6 +1100,8 @@ CONTAINS
 !  08 Jul 2015 - E. Lundgren - New end years to match files from M. Johnson
 !  13 Sep 2017 - M. Sulprizio- Remove Input_Opt%USE_OLSON_2001. Olson 2001 is
 !                              now the default.
+!  15 Mar 2018 - M. Sulprizio- Update MODIS LAI end year to 2011.
+!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1116,14 +1122,10 @@ CONTAINS
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
     !======================================================================
-    ! Restore LAI_END to 2008. Matthew Johnson provided LAI data files for
-    ! 2009-2011, but MODIS LAI for 2009 onwards is still undergoing
-    ! validation by Barron H. and Eloise M. (mps, 7/20/15)
     I_MODIS     = 1440             ! For Olson 2001, use MODIS LAI
     J_MODIS     = 720              ! on the 0.25 x 0.25 native grid
     MODIS_START = 2005             ! First year of MODIS data  
-    LAI_END     = 2008             ! Last  year of MODIS data
-                                   ! Force to 2008 (skim, 1/29/14)
+    LAI_END     = 2011             ! Last  year of MODIS data
     CHLR_END    = 2011             ! Last  year of MODIS CHLR data
 
     ALLOCATE( MODIS_LAI( I_MODIS, J_MODIS ), STAT=RC ) 

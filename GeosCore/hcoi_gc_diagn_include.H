@@ -19,6 +19,7 @@
 !  01 Oct 1995 - R. Yantosca - Initial version
 !  08 Dec 2009 - R. Yantosca - Added ProTeX headers
 !  22 Feb 2015 - C. Keller   - Added eruptive and degassing volcanoes.
+!  27 Jul 2018 - M. Sulprizio- Added trash burning category (E. Marais)  
 !
 ! !DEFINED PARAMETERS:
 !
@@ -28,6 +29,7 @@
   INTEGER, PARAMETER :: CATEGORY_BIOGENIC      = 4
   INTEGER, PARAMETER :: CATEGORY_BIOMASS       = 5
   INTEGER, PARAMETER :: CATEGORY_SHIP          = 10
+  INTEGER, PARAMETER :: CATEGORY_TRASH         = 12
   INTEGER, PARAMETER :: CATEGORY_AIRCRAFT      = 20
   INTEGER, PARAMETER :: CATEGORY_VOLCANO       = 50
   INTEGER, PARAMETER :: CATEGORY_VOLCANO_ERUPT = 51

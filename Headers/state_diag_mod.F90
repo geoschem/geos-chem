@@ -22,7 +22,6 @@ MODULE State_Diag_Mod
 ! USES:
 
   USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
-  USE CMN_FJX_Mod,     ONLY : STRWVSELECT
   USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
@@ -60,9 +59,9 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
 
      ! Dry deposition
-     REAL(f4),  POINTER :: DryDepChm       (:,:,:,:) ! Drydep flux in chemistry
-     REAL(f4),  POINTER :: DryDepMix       (:,:,:,:) ! Drydep flux in mixing
-     REAL(f4),  POINTER :: DryDep          (:,:,:,:) ! Total drydep flux
+     REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
+     REAL(f4),  POINTER :: DryDepMix       (:,:,:  ) ! Drydep flux in mixing
+     REAL(f4),  POINTER :: DryDep          (:,:,:  ) ! Total drydep flux
      REAL(f4),  POINTER :: DryDepVel       (:,:,:  ) ! Dry deposition velocity
     !REAL(f4),  POINTER :: DryDepRst_RA    (:,:,:  ) ! Aerodynamic resistance
     !REAL(f4),  POINTER :: DryDepRst_RB    (:,:,:  ) ! Aerodynamic resistance
@@ -335,9 +334,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Strings
+    CHARACTER(LEN=5  )     :: TmpWL
     CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
     CHARACTER(LEN=255)     :: arrayID,  diagID
-    INTEGER                :: N, IM, JM, LM
+
+    ! Scalars
+    INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
     INTEGER                :: nHygGrth
@@ -352,6 +354,7 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_State_Diag (in Headers/state_diag_mod.F90)'
     Found     = .FALSE.
+    TmpWL     = ''
 
     ! Save shadow variables from Input_Opt
     Is_UCX    = Input_Opt%LUCX
@@ -534,7 +537,7 @@ CONTAINS
     diagID  = 'SpeciesConc'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%SpeciesConc( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -553,8 +556,8 @@ CONTAINS
     ! Also turn on this diagnostic array if outputting total dry dep flux
     CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepChm( IM, JM, LM, nDryDep ), STAT=RC )
+       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( ArrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepChm = 0.0_f4
@@ -572,8 +575,8 @@ CONTAINS
     ! Also turn on this diagnostic array if outputting total dry dep flux
     CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDepMix( IM, JM, LM, nDryDep ), STAT=RC )
+       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDepMix = 0.0_f4
@@ -589,8 +592,8 @@ CONTAINS
     diagID  = 'DryDep'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%DryDep( IM, JM, LM, nDryDep ), STAT=RC )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%DryDep = 0.0_f4
@@ -610,7 +613,7 @@ CONTAINS
     Found = .TRUE.
 #endif
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -685,7 +688,7 @@ CONTAINS
     diagID  = 'AdvFluxZonal'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxZonal( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -702,7 +705,7 @@ CONTAINS
     diagID  = 'AdvFluxMerid'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxMerid( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -719,7 +722,7 @@ CONTAINS
     diagID  = 'AdvFluxVert'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%AdvFluxVert( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -736,7 +739,7 @@ CONTAINS
     diagID  = 'PBLMixFrac'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PBLMixFrac( IM, JM, LM ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -753,7 +756,7 @@ CONTAINS
     diagID  = 'PBLFlux'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PBLFlux( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -770,7 +773,7 @@ CONTAINS
     diagID  = 'CloudConvFlux'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%CloudConvFlux( IM, JM, LM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -787,7 +790,7 @@ CONTAINS
     diagID  = 'WetLossConvFrac'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossConvFrac( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -805,7 +808,7 @@ CONTAINS
     diagID  = 'WetLossConv'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossConv( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -822,7 +825,7 @@ CONTAINS
     diagID  = 'WetLossLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WetLossLS( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -839,7 +842,7 @@ CONTAINS
     diagID  = 'PrecipFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%PrecipFracLS( IM, JM, LM ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -856,7 +859,7 @@ CONTAINS
     diagID  = 'RainFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%RainFracLS( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -873,7 +876,7 @@ CONTAINS
     diagID  = 'WashFracLS'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
-       if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%WashFracLS( IM, JM, LM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -897,7 +900,7 @@ CONTAINS
        diagID  = 'PbFromRnDecay'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PbFromRnDecay( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -916,7 +919,7 @@ CONTAINS
        diagID  = 'RadDecay'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadDecay( IM, JM, LM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -974,7 +977,7 @@ CONTAINS
        diagID  = 'RadAllSkyLWSurf'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -992,7 +995,7 @@ CONTAINS
        diagID  = 'RadAllSkyLWTOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1010,7 +1013,7 @@ CONTAINS
        diagID  = 'RadAllSkySWSurf'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1028,7 +1031,7 @@ CONTAINS
        diagID  = 'RadAllSkySWTOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1046,7 +1049,7 @@ CONTAINS
        diagID  = 'RadClrSkyLWSurf'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1064,7 +1067,7 @@ CONTAINS
        diagID  = 'RadClrSkyLWTOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1082,7 +1085,7 @@ CONTAINS
        diagID  = 'RadClrSkySWSurf'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1100,7 +1103,7 @@ CONTAINS
        diagID  = 'RadClrSkySWTOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nSpecies ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1173,8 +1176,12 @@ CONTAINS
        diagID  = 'RxnRates'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+#if defined ( DISCOVER )
           ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), STAT=RC )
+#else
+          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
+#endif
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RxnRates = 0.0_f4
@@ -1194,7 +1201,7 @@ CONTAINS
        diagID  = 'JVal'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%JVal( IM, JM, LM, nPhotol+2 ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1214,7 +1221,7 @@ CONTAINS
        diagID  = 'JNoon'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%JNoon( IM, JM, LM, nPhotol+2 ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1231,7 +1238,7 @@ CONTAINS
        diagID  = 'UVFluxDiffuse'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxDiffuse( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1249,7 +1256,7 @@ CONTAINS
        diagID  = 'UVFluxDirect'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxDirect( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1267,7 +1274,7 @@ CONTAINS
        diagID  = 'UVFluxNet'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%UVFluxNet( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1284,7 +1291,7 @@ CONTAINS
        diagID  = 'HO2concAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%HO2concAfterChem( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1302,7 +1309,7 @@ CONTAINS
        diagID  = 'O1DconcAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%O1DconcAfterChem( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1320,7 +1327,7 @@ CONTAINS
        diagID  = 'O3PconcAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%O3PconcAfterChem( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1338,7 +1345,7 @@ CONTAINS
        diagID  = 'ProdSO4fromHOBrInCloud'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromHOBrInCloud( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1356,7 +1363,7 @@ CONTAINS
        diagID  = 'ProdSO4fromSRHOBr'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromSRHOBr( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1374,7 +1381,7 @@ CONTAINS
        diagID  = 'AerMassASOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassASOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1392,7 +1399,7 @@ CONTAINS
        diagID  = 'AerMassINDIOL'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassINDIOL( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1410,7 +1417,7 @@ CONTAINS
        diagID  = 'AerMassISN1OA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassISN1OA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1428,7 +1435,7 @@ CONTAINS
        diagID  = 'AerMassISOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassISOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1446,7 +1453,7 @@ CONTAINS
        diagID  = 'AerMassLVOCOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassLVOCOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1464,7 +1471,7 @@ CONTAINS
        diagID  = 'AerMassOPOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassOPOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1482,7 +1489,7 @@ CONTAINS
        diagID  = 'AerMassPOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassPOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1500,7 +1507,7 @@ CONTAINS
        diagID  = 'AerMassSOAGX'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAGX( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1518,7 +1525,7 @@ CONTAINS
        diagID  = 'AerMassSOAIE'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAIE( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1536,7 +1543,7 @@ CONTAINS
        diagID  = 'AerMassSOAME'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAME( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1554,7 +1561,7 @@ CONTAINS
        diagID  = 'AerMassSOAMG'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSOAMG( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1572,7 +1579,7 @@ CONTAINS
        diagID  = 'AerMassTSOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassTSOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1590,7 +1597,7 @@ CONTAINS
        diagID  = 'BetaNO'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%BetaNO( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1608,7 +1615,7 @@ CONTAINS
        diagID  = 'TotalBiogenicOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalBiogenicOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1776,7 +1783,7 @@ CONTAINS
        Found = .TRUE. ! Always add - needed for NOx diagnostics
 #endif
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1863,7 +1870,7 @@ CONTAINS
        diagID  = 'AODDust'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDust( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1877,10 +1884,11 @@ CONTAINS
        ! Dust Optical Depth per bin at 1st wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL1'
-       diagID  = 'AODDust' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)                           ! Workaround for ifort 17
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm' ! to avoid seg faults
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL1( IM, JM, LM, NDUST ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1895,10 +1903,11 @@ CONTAINS
        ! Dust Optical Depth per bin at 2nd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL2'
-       diagID  = 'AODDust' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL2', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL2( IM, JM, LM, NDUST ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1913,10 +1922,11 @@ CONTAINS
        ! Dust Optical Depth per bin at 3rd wavelength
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%AODDustWL3' 
-       diagID  = 'AODDust' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODDust' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODDustWL3', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODDustWL3( IM, JM, LM, NDUST ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1931,10 +1941,11 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL1'
-       diagID  = 'AODHyg' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL1( IM, JM, LM, nHygGrth ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1948,10 +1959,11 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL2'
-       diagID  =  'AODHyg' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2) 
+       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL2', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL2( IM, JM, LM, nHygGrth ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1965,10 +1977,11 @@ CONTAINS
        ! Optical Depth per Hygroscopic Aerosol Species at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODHygWL3'
-       diagID  =  'AODHyg' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3) 
+       diagID  =  'AODHyg' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, 'AODHygWL3', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODHygWL3( IM, JM, LM, nHygGrth ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -1982,11 +1995,12 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL1'
-       diagID  = 'AODSOAfromAqIsoprene' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List,  &
                             'AODSOAfromAqIsopreneWL1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL1( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2001,11 +2015,12 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL2'
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM(RadWL(2)) // 'nm'
+       TmpWl   = RadWL(2)
+       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODSOAfromAqIsopreneWL2', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL2( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2020,11 +2035,12 @@ CONTAINS
        ! Isoprene SOA Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSOAfromAqIsopWL3'
-       diagID  =  'AODSOAfromAqIsoprene' // TRIM(RadWL(3)) // 'nm'
+       TmpWl   = RadWL(3)
+       diagID  =  'AODSOAfromAqIsoprene' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODSOAfromAqIsopreneWL3', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSOAfromAqIsopWL3( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2039,11 +2055,12 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2057,11 +2074,12 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 2nd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL2', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2075,11 +2093,12 @@ CONTAINS
        ! Stratospheric Liquid Aerosol Optical Depth at 3rd Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODSLAWL1'
-       diagID  = 'AODStratLiquidAer' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODStratLiquidAer' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODStratLiquidAerWL3', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODSLAWL1( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2093,11 +2112,12 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL1'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(1)) // 'nm'
+       TmpWL   = RadWL(1)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL1', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL1( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2110,11 +2130,12 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL2'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(2)) // 'nm'
+       TmpWL   = RadWL(2)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL2', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL2( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2128,11 +2149,12 @@ CONTAINS
        ! Polar Stratospheric Cloud Type 1a/2 Optical Depth at 1st Wavelength
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%AODPSCWL3'
-       diagID  = 'AODPolarStratCloud' // TRIM(RadWL(3)) // 'nm'
+       TmpWL   = RadWL(3)
+       diagID  = 'AODPolarStratCloud' // TRIM( TmpWL ) // 'nm'
        CALL Check_DiagList( am_I_Root, Diag_List, &
                             'AODPolarStratCloudWL3', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AODPSCWL3( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2149,7 +2171,7 @@ CONTAINS
        diagID  = 'AerHygroscopicGrowth'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerHygGrowth( IM, JM, LM, nHygGrth ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2167,7 +2189,7 @@ CONTAINS
        diagID  = 'AerSurfAreaDust'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaDust( IM, JM, LM ), STAT=RC)
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2185,7 +2207,7 @@ CONTAINS
        diagID  = 'AerSurfAreaHyg'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaHyg( IM, JM, LM, nHygGrth ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2203,7 +2225,7 @@ CONTAINS
        diagID  = 'AerNumDensityStratLiquid'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerNumDenSLA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2221,7 +2243,7 @@ CONTAINS
        diagID  = 'AerNumDensityStratParticulate'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerNumDenPSC( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2239,7 +2261,7 @@ CONTAINS
        diagID  = 'AerAqueousVolume'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerAqVol( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2256,7 +2278,7 @@ CONTAINS
        diagID  = 'AerSurfAreaStratLiquid'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaSLA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2274,7 +2296,7 @@ CONTAINS
        diagID  = 'AerSurfAreaPolarStratCloud'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerSurfAreaPSC( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2293,7 +2315,7 @@ CONTAINS
        diagID  = 'ProdBCPIfromBCPO'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdBCPIfromBCPO( IM, JM, LM ), STAT=RC ) 
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2312,7 +2334,7 @@ CONTAINS
        diagID  = 'ProdOCPIfromOCPO'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdOCPIfromOCPO( IM, JM, LM ), STAT=RC ) 
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2330,7 +2352,7 @@ CONTAINS
        diagID  = 'ProdSO4fromH2O2inCloud'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromH2O2inCloud( IM, JM, LM ), STAT=RC ) 
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2348,7 +2370,7 @@ CONTAINS
        diagID  = 'ProdSO4fromO3inCloud'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO3inCloud( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2366,7 +2388,7 @@ CONTAINS
        diagID  = 'ProdSO4fromO2inCloudMetal'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal(IM, JM, LM), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2384,7 +2406,7 @@ CONTAINS
        diagID  = 'ProdSo4fromO3inSeaSalt'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSo4fromO3inSeaSalt( IM, JM, LM ), STAT=RC ) 
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2402,7 +2424,7 @@ CONTAINS
        diagID  = 'ProdSO4fromSRO3'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromSRO3( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2420,7 +2442,7 @@ CONTAINS
        diagID  = 'ProdSO4fromO3s'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromO3s( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2438,7 +2460,7 @@ CONTAINS
        diagID  = 'LossHNO3onSeaSalt'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%LossHNO3onSeaSalt( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2456,7 +2478,7 @@ CONTAINS
        diagID  = 'AerMassBC'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassBC( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2474,7 +2496,7 @@ CONTAINS
        diagID  = 'AerMassNH4'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassNH4( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2492,7 +2514,7 @@ CONTAINS
        diagID  = 'AerMassNIT'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassNIT( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2510,7 +2532,7 @@ CONTAINS
        diagID  = 'AerMassSAL'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSAL( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2528,7 +2550,7 @@ CONTAINS
        diagID  = 'AerMassSO4'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%AerMassSO4( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2546,7 +2568,7 @@ CONTAINS
        diagID  = 'PM25'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%PM25( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2685,7 +2707,7 @@ CONTAINS
        diagID  = 'TotalOA'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalOA( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2703,7 +2725,7 @@ CONTAINS
        diagID  = 'TotalOC'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%TotalOC( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2736,11 +2758,14 @@ CONTAINS
              CASE( 3  ) 
                 diagID = 'AODDust'
              CASE( 4  ) 
-                diagID = 'AODDust' // TRIM( RadWL(1) ) // 'nm'
+                TmpWL  = RadWL(1)
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 5  ) 
-                diagID = 'AODDust' // TRIM( RadWL(2) ) // 'nm'
+                TmpWL  = RadWL(2) 
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 6  )                
-                diagID = 'AODDust' // TRIM( RadWL(3) ) // 'nm'
+                TmpWL  = RadWL(3)
+                diagID = 'AODDust' // TRIM( TmpWL ) // 'nm'
              CASE( 7  )                
                 diagID = 'ProdSO4fromH2O2inCloud'
              CASE( 8  )                
@@ -2799,7 +2824,7 @@ CONTAINS
        diagID  = 'ProdSO4fromGasPhase'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromGasPhase( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2817,7 +2842,7 @@ CONTAINS
        diagID  = 'ProdMSAfromDMS'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdMSAfromDMS( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2835,7 +2860,7 @@ CONTAINS
        diagID  = 'ProdSO2fromDMS'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMS( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2853,7 +2878,7 @@ CONTAINS
        diagID  = 'ProdSO2fromDMSandNO3'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMSandNO3( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2871,7 +2896,7 @@ CONTAINS
        diagID  = 'ProdSO2fromDMSandOH'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO2fromDMSandOH( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2945,7 +2970,7 @@ CONTAINS
        ! such as "LossCH4byOH" won't be confused with this diagnostic.
        CALL Check_DiagList( am_I_Root, Diag_List, 'Loss_', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Loss( IM, JM, LM, nLoss ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -2965,7 +2990,7 @@ CONTAINS
        ! such as "ProdBCPIfromBCPO" won't be confused with this diagnostic.
        CALL Check_DiagList( am_I_Root, Diag_List, 'Prod_', Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%Prod( IM, JM, LM, nProd ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3024,7 +3049,7 @@ CONTAINS
        diagID  = 'ProdSO4fromOxidationOnDust'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromOxidationOnDust(IM,JM,LM), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3042,7 +3067,7 @@ CONTAINS
        diagID  = 'ProdNITfromHNO3uptakeOnDust'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust(IM,JM,LM), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3060,7 +3085,7 @@ CONTAINS
        diagID  = 'ProdSO4fromUptakeOfH2SO4g'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
-          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g(IM,JM,LM), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -3126,7 +3151,7 @@ CONTAINS
     !diagID  = 'xxx'
     !CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     !IF ( Found ) THEN
-    !   if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+    !   IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
     !   ALLOCATE( State_Diag%xxx( IM, JM, LM, n ), STAT=RC ) ! Edits dims
     !   CALL GC_CheckVar( arrayID, 0, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
@@ -3978,7 +4003,7 @@ CONTAINS
 ! !IROUTINE: Get_Metadata_State_Diag
 !
 ! !DESCRIPTION: Subroutine GET\_METADATA\_STATE\_DIAG retrieves basic 
-!  information about each State_Diag field.
+!  information about each State\_Diag field.
 !\\
 !\\
 ! !INTERFACE:
@@ -4028,6 +4053,7 @@ CONTAINS
     LOGICAL            :: isVLoc,  isTagged, isType
 
     ! Strings
+    CHARACTER(LEN=5  ) :: TmpWL
     CHARACTER(LEN=255) :: ThisLoc, Name_AllCaps
     CHARACTER(LEN=512) :: ErrMsg
 
@@ -4076,19 +4102,19 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPMIX' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from mixing'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
-       IF ( isRank    ) Rank  = 3
+       IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPVEL' ) THEN
@@ -4217,7 +4243,7 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'WETLOSSLS' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of soluble species in large-scale ' // &
                                 'precipitation'
-       IF ( isUnits   ) Units = 'placeholder'
+       IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'WET'
 
@@ -5143,7 +5169,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_2D
 !
-! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 2-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5312,7 +5338,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_3D
 !
-! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5488,7 +5514,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R4_4D
 !
-! !DESCRIPTION: Registers a 4-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 4-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5637,7 +5663,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_Rfp_3D
 !
-! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
@@ -5811,7 +5837,7 @@ CONTAINS
 !
 ! !IROUTINE: Register_DiagField_R8_4D
 !
-! !DESCRIPTION: Registers a 4-dimensional, 8-byte real field of State_Diag,
+! !DESCRIPTION: Registers a 4-dimensional, 8-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.  
 !\\
 !\\

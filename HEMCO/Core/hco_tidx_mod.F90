@@ -964,6 +964,8 @@ CONTAINS
 !  18 Sep 2013 - C. Keller - Initial version (update) 
 !  29 Feb 2016 - C. Keller - Added time shift option
 !  03 Mar 2017 - C. Keller - Added option to deal with UTC weekdays 
+!  08 Aug 2018 - C. Keller - Don't set hours to -1 for local time,
+!                            this is obsolete.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1080,10 +1082,10 @@ CONTAINS
     ! Hourly and daily data that is in local time shall be completely
     ! read into memory. This will ensure that for every time zone, the 
     ! correct values can be selected.
-    IF ( Dta%IsLocTime ) THEN
-       !Dta%ncDys = -1
-       Dta%ncHrs = -1
-    ENDIF
+!    !IF ( Dta%IsLocTime ) THEN
+!       !Dta%ncDys = -1
+!       !Dta%ncHrs = -1
+!    ENDIF
 
     ! Weekdaily data is always in local time. All seven time slices will
     ! be read into memory.

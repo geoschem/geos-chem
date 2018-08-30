@@ -618,6 +618,9 @@ CONTAINS
                str(I:I) == '/'  .OR. &
                str(I:I) == '^'  .OR. &
                str(I:I) == '_'  .OR. &
+               str(I:I) == '*'  .OR. &
+               str(I:I) == '/'  .OR. &
+               str(I:I) == '^'  .OR. &
                str(I:I) == '-'  .OR. &
                str(I:I) == 'x'  .OR. &
                str(I:I) == '('  .OR. &
