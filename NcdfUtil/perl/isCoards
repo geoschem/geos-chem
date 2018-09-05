@@ -202,9 +202,10 @@ sub analyzeTime($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if times are monotonic
+  # %%%%% Check if times are monotonically increasing
   $value = &isMonotonic( $times );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ){
     $msg  = qq/$sep $var $value\n/;
     @BAD  = ( @BAD,  $msg );
   } else {
@@ -558,9 +559,10 @@ sub analyzeLat($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if latitudes are monotonic
+  # %%%%% Check if latitudes are monotonically increasing
   $value = &isMonotonic( $latitudes );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ) {
     $msg  = qq/$sep $var $value\n/;
     @BAD  = ( @BAD,  $msg );
   } else {
@@ -654,9 +656,10 @@ sub analyzeLon($) {
     @BAD  = ( @BAD,  $msg );
   }
 
-  # %%%%% Check if latitudes are monotonic
+  # %%%%% Check if longitudes are monotonically increasing
   $value = &isMonotonic( $longitudes );
-  if ( $value eq "has repeat values" || $value eq "is not monotonic" ) {
+  if ( $value eq "has repeat values" || $value eq "is not monotonic" ||
+       $value eq "is monotonically decreasing" ) {
     $msg  = qq/$sep $var $value\n/;
     @BAD  = ( @BAD,  $msg );
   } else {
