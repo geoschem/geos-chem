@@ -3365,6 +3365,8 @@
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100     ) 'Turn on cloud convection?   : ',
      &                        Input_Opt%LCONV
+         WRITE( 6, 100     ) '=> Use fields from RAS?     : ',
+     &                        Input_Opt%LRAS
          WRITE( 6, 100     ) 'Turn on PBL mixing?         : ',
      &                        Input_Opt%LTURB
          WRITE( 6, 100     ) 'Turn on non-local PBL?      : ',

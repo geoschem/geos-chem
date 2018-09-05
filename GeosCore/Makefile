@@ -786,6 +786,9 @@ pops_mod.o           	    : pops_mod.F    	                             \
 
 ras_mod.o                   : ras_mod.F90                                      \
                               diag_mod.o
+ifeq ($(PRECISION),8)
+	$(F90) -c $(FREEFORM) $(R8) $<
+endif
 
 restart_mod.o               : restart_mod.F                                  \
                               depo_mercury_mod.o      hco_interface_mod.o    \

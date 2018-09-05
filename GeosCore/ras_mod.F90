@@ -128,26 +128,23 @@ CONTAINS
     INTEGER         :: I, J, L
     INTEGER         :: ICMIN
     REAL(fp)        :: PMIN_DET, PMIN_CBL
-    REAL(fp)        :: AUTOC_CN_OCN, AUTOC_CN_LAND, AUTOC_CN_ZDEP
+    REAL(fp)        :: AUTOC_CN_OCN, AUTOC_CN_LAND
     INTEGER         :: KCBLMIN
     REAL(fp)        :: CBL_QPERT, CBL_TPERT, CBL_TPERT_MXOCN, CBL_TPERT_MXLND
-    REAL(fp)        :: CNV_Q600_MIN, CNV_Q600_MAX
     REAL(fp)        :: DT, LON, part_tmp
-    REAL(fp)        :: COLUMN_RAS, COLUMN_FP, REPARTITION
-    REAL(fp)        :: REPARTITION_DQR, REPARTITION_PFI
-   
+    REAL(fp)        :: COLUMN_RAS, COLUMN_FP, REPART
+    REAL(fp)        :: REPART_DQR, REPART_PFI
+    REAL(fp)        :: RAS_CRIT
+
     ! Arrays
     REAL(fp)        :: PREF(LLPAR+1)
     INTEGER         :: TMP_INT(IIPAR, JJPAR)
     REAL(fp)        :: TMP_REAL(IIPAR, JJPAR)
     INTEGER         :: KPBL(IIPAR, JJPAR)
-    REAL(fp)        :: EDGE_PRES(IIPAR, JJPAR)
-    REAL(fp)        :: QV600(IIPAR, JJPAR)
     REAL(fp)        :: TH(IIPAR,JJPAR,LLPAR)
     REAL(fp)        :: CMFMC(IIPAR, JJPAR, LLPAR+1)
     REAL(fp)        :: DTRAIN(IIPAR, JJPAR, LLPAR)
     REAL(fp)        :: PART(IIPAR,JJPAR)
-    REAL(fp)        :: CONV_FRAC(IIPAR,JJPAR)
 
     ! reshaped arrays
     REAL(fp)        :: TEMPERATURE(IIPAR*JJPAR, LLPAR)
@@ -181,7 +178,17 @@ CONTAINS
     REAL(fp)        :: RASAL2_2d(IIPAR*JJPAR)
     REAL(fp)        :: MXDIAMx(IIPAR*JJPAR)
     INTEGER         :: IRC(IIPAR*JJPAR, LLPAR)
-    
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% GCST UPDATE:
+    !%%% These variables are in a block of code that never gets executed,
+    !%%% so leave them commented out for now. (bmy, 9/5/18)
+    !%%%
+    !!REAL(fp)        :: CNV_Q600_MIN, CNV_Q600_MAX
+    !!REAL(fp)        :: EDGE_PRES(IIPAR, JJPAR)
+    !!REAL(fp)        :: QV600(IIPAR, JJPAR)
+    !!REAL(fp)        :: CONV_FRAC(IIPAR,JJPAR)
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     ! Pointers 
     REAL(fp),       POINTER :: TEMP(:,:,:) 
     REAL(fp),       POINTER :: PMID_DRY(:,:,:)
@@ -198,25 +205,92 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    RC        =  GC_SUCCESS
-    prtDebug  =  ( am_I_Root .and. Input_Opt%LPRT )
-    ErrMsg    = ''
-    ThisLoc   = ' -> at Do_Ras (in module GeosCore/ras_mod.F90'
-    IDIM      =  IIPAR * JJPAR
-    IRUN      =  IIPAR * JJPAR
-    DT        =  GET_TS_DYN() !* 60.0_fp  !### Timesteps are now in seconds!
+    RC          =  GC_SUCCESS
+    prtDebug    =  ( am_I_Root .and. Input_Opt%LPRT )
+    ErrMsg      = ''
+    ThisLoc     = ' -> at Do_Ras (in module GeosCore/ras_mod.F90'
+    IDIM        =  IIPAR * JJPAR
+    IRUN        =  IIPAR * JJPAR
+    DT          =  GET_TS_DYN()
+
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% GCST UPDATE:
+    !%%% Set local variables to zero for safety's sake; at least the ones
+    !%%% that aren't defined further down in the code. (bmy, 9/5/18)
+
+    ! Integers
+    CBL_METHOD   = 0
+    ICMIN        = 0
+    KCBLMIN      = 0
+    TMP_INT      = 0
+    SEEDRAS      = 0
+    IRAS         = 0
+    JRAS         = 0
+    KCBL         = 0
+    KPBL         = 0
+    IRC          = 0
+
+    ! Floating-point reals
+    part_tmp     = 0.0_fp
+    COLUMN_RAS   = 0.0_fp
+    COLUMN_FP    = 0.0_fp
+    REPART       = 0.0_fp
+    REPART_DQR   = 0.0_fp
+    REPART_PFI   = 0.0_fp
+    RAS_CRIT     = 0.0_fp
+    PREF         = 0.0_fp
+    TMP_REAL     = 0.0_fp
+    TH           = 0.0_fp
+    CMFMC        = 0.0_fp
+    DTRAIN       = 0.0_fp
+    PART         = 0.0_fp
+    TEMPERATURE  = 0.0_fp
+    SURF_TEMP    = 0.0_fp
+    FRLAND       = 0.0_fp
+    SIGE         = 0.0_fp
+    PK           = 0.0_fp
+    PLO          = 0.0_fp
+    ZLO          = 0.0_fp
+    ZLE          = 0.0_fp
+    ZCBLx        = 0.0_fp
+    WGT0         = 0.0_fp
+    WGT1         = 0.0_fp
+    CNV_PLE      = 0.0_fp
+    TPERT        = 0.0_fp
+    QPERT        = 0.0_fp
+    QSSFC        = 0.0_fp
+    PKE          = 0.0_fp
+    QSS          = 0.0_fp
+    DQS          = 0.0_fp
+    CNV_FRAC     = 0.0_fp
+    THO          = 0.0_fp
+    QHO          = 0.0_fp
+    CNV_FLX      = 0.0_fp
+    CNV_FLXD     = 0.0_fp
+    CNV_FLXC     = 0.0_fp
+    RASAL2_2d    = 0.0_fp
+    MXDIAMx      = 0.0_fp
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% GCST UPDATE:
+    !%%% These variables are in a block of code that never gets
+    !%%% executed, so leave them commented out for now (bmy, 9/5/18)
+    !!CNV_Q600_MIN = 0.0_fp
+    !!CNV_Q600_MAX = 0.0_fp
+    !!EDGE_PRES    = 0.0_fp
+    !!QV600        = 0.0_fp
+    !!CONV_FRAC    = 0.0_fp
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ! Point to fields of State_Met (flip in vertical where necessary)
-    TEMP      => State_Met%T       (:,:,LLPAR:1:-1  )
-    PMID_DRY  => State_Met%PMID_DRY(:,:,LLPAR:1:-1  )
-    PLE       => State_Met%PEDGE   (:,:,LLPAR+1:1:-1)
-    Q         => State_Met%SPHU    (:,:,LLPAR:1:-1  )
-    DELP      => State_Met%DELP    (:,:,LLPAR:1:-1  )
+    TEMP        => State_Met%T       (:,:,LLPAR:1:-1  )
+    PMID_DRY    => State_Met%PMID_DRY(:,:,LLPAR:1:-1  )
+    PLE         => State_Met%PEDGE   (:,:,LLPAR+1:1:-1)
+    Q           => State_Met%SPHU    (:,:,LLPAR:1:-1  )
+    DELP        => State_Met%DELP    (:,:,LLPAR:1:-1  )
 
     !-----------------------------------------------------------------------
     ! Compute ICMIN and associated values
     !-----------------------------------------------------------------------
-    
     PMIN_DET      = 3000.0_fp
     PMIN_CBL      = 50000.0_fp
     AUTOC_CN_OCN  = 2.5e-3_fp
@@ -235,7 +309,7 @@ CONTAINS
     TMP_INT = 0
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-       TMP_INT(I,J) = 1000000 * ( 100*TEMP(I,J,LLPAR)   -                   &
+       TMP_INT(I,J) = 1000000 * ( 100*TEMP(I,J,LLPAR)   -                    &
                              INT( 100*TEMP(I,J,LLPAR) ) ) 
     ENDDO
     ENDDO
@@ -246,7 +320,7 @@ CONTAINS
     TMP_INT = 0
     DO J = 1, JJPAR
     DO I = 1, IIPAR
-       TMP_INT(I,J) = 1000000 * ( 100*TEMP(I,J,LLPAR-1) -                   &
+       TMP_INT(I,J) = 1000000 * ( 100*TEMP(I,J,LLPAR-1) -                    &
                              INT( 100*TEMP(I,J,LLPAR-1) ) ) 
     ENDDO
     ENDDO
@@ -256,13 +330,15 @@ CONTAINS
       
     !-----------------------------------------------------------------------
     ! Compute IRAS, JRAS, and SIGE
-    !----------------------------------------------------------------------
+    !-----------------------------------------------------------------------
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        LON = GET_XMID(I,J,1)
        IF ( LON < 0.0_fp ) LON = 360.0_fp + LON
-       IRAS((J-1)*IIPAR + I) = NINT( LON / 360.0_fp * 2.0_fp * PI * 100.0_fp)
-       JRAS((J-1)*IIPAR + I) = NINT( GET_YMID(I,J,1) / 360.0_fp * 2.0_fp * PI * 100.0_fp)
+       IRAS((J-1)*IIPAR + I) = NINT( LON             / 360.0_fp *            &
+                                     2.0_fp          * PI       * 100.0_fp  )
+       JRAS((J-1)*IIPAR + I) = NINT( GET_YMID(I,J,1) / 360.0_fp *            &
+                                     2.0_fp          * PI       * 100.0_fp  )
     ENDDO
     ENDDO
 
@@ -307,7 +383,7 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Compute potential temperature
-    !%%%% BMY QUESTION: Use PSC2_WET or PSC2_DRY? %%%%
+    !%%%% GCST QUESTION: Use PSC2_WET or PSC2_DRY? %%%%
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
@@ -353,8 +429,8 @@ CONTAINS
                              * ( PKE(I,L+1) - PK(I,L)   )                    &
                              * ZLE(I,L)
 
-       ZLE(I,L) = ZLO(I,L)   + ( MAPL_CP  / MAPL_GRAV )                      &
-                             * ( PK (I,L) - PKE(I,L)  )                      &
+       ZLE(I,L) = ZLO(I,L)   + ( MAPL_CP    / MAPL_GRAV )                    &
+                             * ( PK (I,L)   - PKE(I,L)  )                    &
                              * ZLE(I,L)
     ENDDO
     ENDDO
@@ -385,47 +461,52 @@ CONTAINS
                                      sum(ZCBLx)/IDIM
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! Compute CNV_FRACTION
-    ! NOTE: This block seems to be omitted, can probably comment out.
-    !------------------------------------------------------------------------
-    IF ( .FALSE. ) THEN 
-       CNV_Q600_MIN = 0.00250_fp
-       CNV_Q600_MAX = 0.00600_fp
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% GCST UPDATE:
+!%%% NOTE: This block will never execute, so comment it out for now
+!%%% to save some CPU cycles. (bmy, 9/5/18)
+!
+!    !------------------------------------------------------------------------
+!    ! Compute CNV_FRACTION
+!    !------------------------------------------------------------------------
+!    IF ( .FALSE. ) THEN
+!       CNV_Q600_MIN = 0.00250_fp
+!       CNV_Q600_MAX = 0.00600_fp
+!
+!       TMP_REAL = 0.0_fp
+!
+!       ! Look for 600 mb grid cell
+!       DO J = 1, JJPAR
+!       DO I = 1, IIPAR
+!       DO L = 1, LLPAR
+!          QV600(I,J) = Q(I,J,L)
+!          EDGE_PRES(I,J) = PLE(I,J,L)
+!          IF ( EDGE_PRES(I,J) > 600.0_fp ) EXIT
+!       ENDDO
+!       ENDDO
+!       ENDDO
+!       QV600 = QV600 / 1000.0_fp
+!
+!       IF ( CNV_Q600_MAX > CNV_Q600_MIN ) THEN
+!          DO J = 1, JJPAR
+!          DO I = 1, IIPAR
+!             TMP_REAL(I,J) = MAX(0.0_fp, MIN(1.0_fp, (QV600(I,J) - &
+!                             CNV_Q600_MIN) / (CNV_Q600_MAX - CNV_Q600_MIN)))
+!          ENDDO
+!          ENDDO
+!       ENDIF
+!
+!       CONV_FRAC = TMP_REAL
+!
+!!%%% GCST NOTE: Attach netCDF diagnostics here
+!!   AD66(:,:,1,9) = AD66(:,:,1,9) + TMP_REAL
+!
+!       ! Reshape to 1-d
+!       CALL REARRANGE_GRID(TMP_REAL, CNV_FRAC)
+!    ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-       TMP_REAL = 0.0_fp
-       
-       ! Look for 600 mb grid cell
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-       DO L = 1, LLPAR
-          QV600(I,J) = Q(I,J,L)
-          EDGE_PRES(I,J) = PLE(I,J,L)
-          IF ( EDGE_PRES(I,J) > 600.0_fp ) EXIT
-       ENDDO
-       ENDDO
-       ENDDO
-       QV600 = QV600 / 1000.0_fp
-
-       IF ( CNV_Q600_MAX > CNV_Q600_MIN ) THEN
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
-             TMP_REAL(I,J) = MAX(0.0_fp, MIN(1.0_fp, (QV600(I,J) - &
-                             CNV_Q600_MIN) / (CNV_Q600_MAX - CNV_Q600_MIN)))
-          ENDDO
-          ENDDO
-       ENDIF
-
-       CONV_FRAC = TMP_REAL
-   
-!%%% BMY NOTE: Attach netCDF diagnostics here
-!   AD66(:,:,1,9) = AD66(:,:,1,9) + TMP_REAL
-
-       ! Reshape to 1-d
-       CALL REARRANGE_GRID(TMP_REAL, CNV_FRAC)
-    ENDIF
-
-    CNV_FRAC = 1.0_fp
+    CNV_FRAC         = 1.0_fp
 
     !---------------------------------------------------------------------
     ! Compute TPERT and QPERT
@@ -439,15 +520,17 @@ CONTAINS
        
     ! Compute TPERT
     DO L = 1, LLPAR
-       CALL REARRANGE_GRID(TEMP(:,:,L), TEMPERATURE(:,L))
+       CALL REARRANGE_GRID( TEMP(:,:,L), TEMPERATURE(:,L) )
     ENDDO
     CALL REARRANGE_GRID( State_Met%TSKIN, SURF_TEMP )
 
     TPERT  = ABS(CBL_TPERT) * ( SURF_TEMP - ( TEMPERATURE(:,LLPAR) + MAPL_GRAV*ZLO(:,LLPAR)/MAPL_CP )  ) 
     CALL REARRANGE_2D(TPERT,TMP_REAL)
 
-!%%% BMY NOTE: Attach netCDF diagnostics here
-!       AD66(:,:,6,9) = AD66(:,:,6,9) + TMP_REAL
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% GCST UPDATE: Attach netCDF diagnostics here ??
+!!       AD66(:,:,6,9) = AD66(:,:,6,9) + TMP_REAL
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     !if (CBL_TPERT < 0) then
     ! Make TPERT 0 in areas of deep convection
@@ -457,7 +540,7 @@ CONTAINS
     TPERT  = MAX( TPERT, 0.0_fp )
     QPERT  = MAX( QPERT, 0.0_fp )
 
-    CALL REARRANGE_GRID(State_Met%FRLAND, FRLAND)
+    CALL REARRANGE_GRID( State_Met%FRLAND, FRLAND )
 
     WHERE ( FRLAND < 0.1_fp ) 
        TPERT = MIN( TPERT , CBL_TPERT_MXOCN ) ! ocean
@@ -490,7 +573,7 @@ CONTAINS
     !------------------------------------------------------------------------
     DO L = 1, LLPAR
     DO I = 1, IDIM
-       CALL QSAT(TEMPERATURE(I,L), PLO(I,L), QSS(I,L), DQS(I,L), .TRUE.)
+       CALL QSAT( TEMPERATURE(I,L), PLO(I,L), QSS(I,L), DQS(I,L), .TRUE. )
     ENDDO
     ENDDO
 
@@ -543,6 +626,7 @@ CONTAINS
                FLXC         = CNV_FLXC,                                      &
                IRC          = IRC                                           )
 
+
     !------------------------------------------------------------------------
     ! Remap outputs to 2D grid
     !------------------------------------------------------------------------
@@ -554,7 +638,7 @@ CONTAINS
     CALL REARRANGE_2D( CNV_FLXC(:,LLPAR+1), CMFMC(:,:,LLPAR+1) )
 
     !------------------------------------------------------------------
-    ! Save to State_Met
+    ! Save to State_Met (flip in the vertical)
     !------------------------------------------------------------------
     State_Met%RAS_CMFMC  = CMFMC (:,:,LLPAR+1:1:-1)
     State_Met%RAS_DTRAIN = DTRAIN(:,:,LLPAR  :1:-1)
@@ -566,13 +650,39 @@ CONTAINS
     DO I = 1, IIPAR
        COLUMN_RAS = SUM( State_Met%RAS_CMFMC(I,J,:) )
        COLUMN_FP  = SUM( State_Met%CMFMC    (I,J,:) )
-       !IF (CONV_FRAC(I,J) < 0.5) THEN
-       IF ( COLUMN_RAS < 1e-2_fp                                  .or.        &
-            ABS( COLUMN_RAS - COLUMN_FP) / COLUMN_RAS < 0.25_fp ) THEN
+
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+       !%%% GCST UPDATE:
+       !%%% Prevent division by zero.  If COLUMN_RAS is zero, then don't
+       !%%% place it in the denominator of the IF statement.  Instead,
+       !%%% precompute it and hold it in variable for later use. 
+       !%%% (bmy, 9/4/18)
+       !%%%-------------------------------------------------------------------
+       !%%% Comment out original code here:
+       !!IF (CONV_FRAC(I,J) < 0.5) THEN
+       !!IF ( COLUMN_RAS < 1e-2_fp                                  .or.       &
+       !!     ABS( COLUMN_RAS - COLUMN_FP) / COLUMN_RAS < 0.25_fp ) THEN
+       !!   PART(I,J) = 0.0_fp
+       !!ELSE
+       !!   PART(I,J) = 1.0_fp - ( COLUMN_FP / COLUMN_RAS )
+       !!ENDIF
+       !%%%------------------------------------------------------------------
+
+       ! Avoid div-by-zero in the expression for COLUMN_RAS
+       IF ( ABS( COLUMN_RAS ) > 1e-32_fp ) THEN
+          RAS_CRIT = ABS( COLUMN_RAS - COLUMN_FP ) / COLUMN_RAS
+       ELSE
+          RAS_CRIT = 0.0_fp
+       ENDIF
+
+       ! Evaluate the IF statement
+       IF ( COLUMN_RAS < 1e-2_fp .or. RAS_CRIT < 0.25_fp ) THEN 
           PART(I,J) = 0.0_fp
        ELSE
           PART(I,J) = 1.0_fp - ( COLUMN_FP / COLUMN_RAS )
        ENDIF
+       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     ENDDO
     ENDDO
 
@@ -581,60 +691,75 @@ CONTAINS
        print*, 'min part', minval(part)
     ENDIF
     
-    !%%%% BMY NOTE 8/29/18: Can parallelize this loop 
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% GCST UPDATE: (bmy, 9/5/18)
+    !%%% (1) Can parallelize this loop)
+    !%%% (2) Might want to have one "IF ( part_tmp >= 0 )" block; 
+    !%%%      this would be more efficient
+    !%%% (3) Check with Karen if doing the partition is proper or not.
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     DO L = 1, LLPAR
     DO J = 1, JJPAR
     DO I = 1, IIPAR
        part_tmp = PART(I,J)
 
+       !--------------------------------------------------------------------
+       ! Repartition between DQRCU & DQRLSAN and PFICU & PFILSAN
+       !--------------------------------------------------------------------
        IF ( part_tmp >= 0.0_fp ) THEN
-          repartition_dqr = MIN( part_tmp * State_Met%DQRLSAN(I,J,L),        &
-                                            State_Met%DQRLSAN(I,J,L)        )
+          repart_dqr = MIN( part_tmp * State_Met%DQRLSAN(I,J,L),             &
+                                       State_Met%DQRLSAN(I,J,L)             )
 
-          repartition_pfi = MIN( part_tmp * State_Met%PFILSAN(I,J,L),        &
-                                            State_Met%PFILSAN(I,J,L)        )
+          repart_pfi = MIN( part_tmp * State_Met%PFILSAN(I,J,L),             &
+                                       State_Met%PFILSAN(I,J,L)             )
        ELSE
-          repartition_dqr = MAX( part_tmp * State_Met%DQRLSAN(I,J,L),        &
-                                  -1.0_fp * State_Met%DQRCU(I,J,L)          )
+          repart_dqr = MAX( part_tmp * State_Met%DQRLSAN(I,J,L),             &
+                             -1.0_fp * State_Met%DQRCU(I,J,L)               )
 
-          repartition_pfi = MAX( part_tmp * State_Met%PFILSAN(I,J,L),        &
-                                 0.0 )!-1.0*State_Met%PFICU(I,J,L))
+          repart_pfi = MAX( part_tmp * State_Met%PFILSAN(I,J,L),             &
+                            0.0  )!-1.0*State_Met%PFICU(I,J,L))
        ENDIF
 
        ! Repartition DQR
-       State_Met%RAS_DQRCU(I,J,L)   = State_Met%DQRCU(I,J,L)   !+ repart'd_dqr 
-       State_Met%RAS_DQRLSAN(I,J,L) = State_Met%DQRLSAN(I,J,L) !- repart'd_dqr
+       State_Met%RAS_DQRCU(I,J,L)   = State_Met%DQRCU(I,J,L)   + repart_dqr
+       State_Met%RAS_DQRLSAN(I,J,L) = State_Met%DQRLSAN(I,J,L) - repart_dqr
 
        ! Repartition PFI
-       State_Met%RAS_PFICU(I,J,L)   = State_Met%PFICU(I,J,L)   !+ repart'd_pfi
-       State_Met%RAS_PFILSAN(I,J,L) = State_Met%PFILSAN(I,J,L) !- repart'd_pfi
-       
+       State_Met%RAS_PFICU(I,J,L)   = State_Met%PFICU(I,J,L)   + repart_pfi
+       State_Met%RAS_PFILSAN(I,J,L) = State_Met%PFILSAN(I,J,L) - repart_pfi
+
+       !--------------------------------------------------------------------
+       ! Repartition between PFLCU and PFLLSAN
+       !--------------------------------------------------------------------    
        IF ( part_tmp >= 0.0_fp ) THEN
-          repartition = MIN( part_tmp * State_Met%PFLLSAN(I,J,L),            &
-                                        State_Met%PFLLSAN(I,J,L)            )
+          repart = MIN( part_tmp * State_Met%PFLLSAN(I,J,L),                 &
+                                   State_Met%PFLLSAN(I,J,L)                 )
        ELSE
-          repartition = MAX( part_tmp * State_Met%PFLLSAN(I,J,L),            &
+          repart = MAX( part_tmp * State_Met%PFLLSAN(I,J,L),                 &
                              0.0 ) !-1.0*State_Met%PFLCU(I,J,L))
        ENDIF
 
        ! Repartition PFL
-       State_Met%RAS_PFLCU(I,J,L)   = State_Met%PFLCU(I,J,L)   !+ repartition
-       State_Met%RAS_PFLLSAN(I,J,L) = State_Met%PFLLSAN(I,J,L) !- repartition
+       State_Met%RAS_PFLCU(I,J,L)   = State_Met%PFLCU(I,J,L)   + repart
+       State_Met%RAS_PFLLSAN(I,J,L) = State_Met%PFLLSAN(I,J,L) - repart
 
+       !--------------------------------------------------------------------
+       ! Repartition between REEVAPCS and REEVAPLSAN
+       !--------------------------------------------------------------------    
        IF ( part_tmp >= 0.0_fp ) THEN
-          repartition = MIN( part_tmp * State_Met%REEVAPLS(I,J,L),           &
-                             0.5_fp   * State_Met%REEVAPLS(I,J,L)           )
+          repart = MIN( part_tmp * State_Met%REEVAPLS(I,J,L),                &
+                        0.5_fp   * State_Met%REEVAPLS(I,J,L)                )
        ELSE
-          repartition = MAX( part_tmp * 0.5_fp*State_Met%REEVAPLS(I,J,L),    &
-                             0.0) ! -1.0*State_Met%REEVAPCN(I,J,L))
+          repart = MAX( part_tmp * 0.5_fp*State_Met%REEVAPLS(I,J,L),         &
+                        0.0) ! -1.0*State_Met%REEVAPCN(I,J,L))
        ENDIF
 
        ! Repartition REEVAP
-       !IF (State_Met%REEVAPCN(I,J,L) <0 .and. repartition <0) THEN
-       !    repartition = 0.0
-       !ENDIF
-       State_Met%RAS_REEVAPCN(I,J,L) = State_Met%REEVAPCN(I,J,L) !+ repartition
-       State_Met%RAS_REEVAPLS(I,J,L) = State_Met%REEVAPLS(I,J,L) !- repartition
+       IF ( State_Met%REEVAPCN(I,J,L) < 0.0_fp .and. repart < 0.0_fp ) THEN
+           repart = 0.0_fp
+       ENDIF
+       State_Met%RAS_REEVAPCN(I,J,L) = State_Met%REEVAPCN(I,J,L) + repart
+       State_Met%RAS_REEVAPLS(I,J,L) = State_Met%REEVAPLS(I,J,L) - repart
 
     ENDDO
     ENDDO
@@ -652,14 +777,14 @@ CONTAINS
                              MINVAL( State_Met%RAS_REEVAPCN )
     ENDIF
 
-    !------------------------------------------------------------------
-    !%%% BMY NOTE: Update netCDF diagnostics here
-    ! Write to diagnostic
-    !------------------------------------------------------------------
-    !AD66(:,:,:,7) = AD66(:,:,:,7) + State_Met%RAS_CMFMC
-    !AD66(:,:,:,8) = AD66(:,:,:,8) + State_Met%RAS_DTRAIN
-    !AD66(:,:,2,9) = AD66(:,:,2,9) + part
-    !AD66(:,:,3,9) = AD66(:,:,3,9) + State_Met%PBLH_MAX
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%% GCST UPDATE:
+    !%%% May need to attach netCDF diagnostics here for some (bmy, 9/5/18)
+    !!AD66(:,:,:,7) = AD66(:,:,:,7) + State_Met%RAS_CMFMC
+    !!AD66(:,:,:,8) = AD66(:,:,:,8) + State_Met%RAS_DTRAIN
+    !!AD66(:,:,2,9) = AD66(:,:,2,9) + part
+    !!AD66(:,:,3,9) = AD66(:,:,3,9) + State_Met%PBLH_MAX
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     ! Free pointers
     TEMP      => NULL() 
@@ -768,7 +893,7 @@ CONTAINS
       !
       !************************************************************************
 
-    USE State_Met_Mod, ONLY : ParamRas
+      USE State_Met_Mod, ONLY : ParamRas
 
       !  ARGUMENTS
 
@@ -868,18 +993,18 @@ CONTAINS
 
 
 
-      real*8 :: MAX_NEG_BOUY = 1.0 ! no inhibition for =1.0
-      !!real*8 :: ALFINT = 0.5
-      !!real*8 :: ALFINQ = 0.5
-      real*8 :: RHFACL = 0.0 ! not used
-      real*8 :: RHFACS = 0.0 ! no inhibition
-      !!real*8 :: ALFIND = 1.0
-      !!real*8 :: RHC_LS = 0.80
-      real*8 :: dsfc   = 0.001
-      real*8 :: cd     = 1.e-3
-      real*8 :: wfnc   = 0.0
-      real*8 :: tla    = -1.0
-      real*8 :: dpd    = 300.
+      real*8 :: MAX_NEG_BOUY = 1.0_f8 ! no inhibition for =1.0
+      !!real*8 :: ALFINT = 0.5_f8
+      !!real*8 :: ALFINQ = 0.5_f8
+      real*8 :: RHFACL = 0.0_f8 ! not used
+      real*8 :: RHFACS = 0.0_f8 ! no inhibition
+      !!real*8 :: ALFIND = 1.0_f8
+      !!real*8 :: RHC_LS = 0.80_f8
+      real*8 :: dsfc   = 0.001_f8
+      real*8 :: cd     = 1.e-3_f8
+      real*8 :: wfnc   = 0.0_f8
+      real*8 :: tla    = -1.0_f8
+      real*8 :: dpd    = 300.0_f8
 
 
       ! *********************************************************************
@@ -888,6 +1013,144 @@ CONTAINS
       IF(IRUN <= 0) RETURN
 
       IRC = -2
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% GCST UPDATE:
+!%%% Zero out local varaiables for safety's sake (bmy, 9/4/18)
+
+      ! INTEGER
+      RC            = 0
+      K             = 0
+      MY_PE         = 0
+      I             = 0
+      IC            = 0
+      L             = 0
+      ICL           = 0
+      ITR           = 0
+      ICL_C         = 0
+      N_DTL         = 0
+      NDTLEXPON     = 0
+      KPBL          = 0
+
+      ! REAL(fp)
+      POI_SV        = 0.0_fp
+      QOI_SV        = 0.0_fp
+      POI           = 0.0_fp
+      QOI           = 0.0_fp
+      DQQ           = 0.0_fp
+      BET           = 0.0_fp
+      GAM           = 0.0_fp
+      POI_c         = 0.0_fp
+      QOI_c         = 0.0_fp
+      PRH           = 0.0_fp
+      PRI           = 0.0_fp
+      GHT           = 0.0_fp
+      DPT           = 0.0_fp
+      DPB           = 0.0_fp
+      PKI           = 0.0_fp
+      TCU           = 0.0_fp
+      QCU           = 0.0_fp
+      UCU           = 0.0_fp
+      VCU           = 0.0_fp
+      CLN           = 0.0_fp
+      RNS           = 0.0_fp
+      POL           = 0.0_fp
+      DM            = 0.0_fp
+      QST           = 0.0_fp
+      SSL           = 0.0_fp
+      RMF           = 0.0_fp
+      RNN           = 0.0_fp
+      RN1           = 0.0_fp
+      RMFC          = 0.0_fp
+      RMFP          = 0.0_fp
+      GMS           = 0.0_fp
+      ETA           = 0.0_fp
+      GMH           = 0.0_fp
+      EHT           = 0.0_fp
+      HCC           = 0.0_fp
+      RMFD          = 0.0_fp
+      HOL           = 0.0_fp
+      HST           = 0.0_fp
+      QOL           = 0.0_fp
+      ZOL           = 0.0_fp
+      HCLD          = 0.0_fp
+      LAMBDSV       = 0.0_fp
+      BKE           = 0.0_fp
+      CVW           = 0.0_fp
+      UPDFRC        = 0.0_fp
+      RASAL         = 0.0_fp
+      MTKWI         = 0.0_fp
+      UPDFRP        = 0.0_fp
+      BK2           = 0.0_fp
+      BK3           = 0.0_fp
+      PRJ           = 0.0_fp
+      PRS           = 0.0_fp
+      QHT           = 0.0_fp
+      SHT           = 0.0_fp
+      ZET           = 0.0_fp
+      XYD           = 0.0_fp
+      XYD0          = 0.0_fp
+      LAMBDSV2      = 0.0_fp
+      TX2           = 0.0_fp
+      TX3           = 0.0_fp
+      UHT           = 0.0_fp
+      VHT           = 0.0_fp
+      AKM           = 0.0_fp
+      ACR           = 0.0_fp
+      ALM           = 0.0_fp
+      TTH           = 0.0_fp
+      QQH           = 0.0_fp
+      SHTRG         = 0.0_fp
+      DQX           = 0.0_fp
+      WFN           = 0.0_fp
+      TEM           = 0.0_fp
+      TRG           = 0.0_fp
+      TRGEXP        = 0.0_fp
+      EVP           = 0.0_fp
+      WLQ           = 0.0_fp
+      QCC           = 0.0_fp
+      MTKW_MAX      = 0.0_fp
+      SHTRG_FAC     = 0.0_fp
+      SIGE_MINHOL   = 0.0_fp
+      WFNOG         = 0.0_fp 
+      cld_radius    = 0.0_fp 
+      areal_frac    = 0.0_fp 
+      spect_mflx    = 0.0_fp 
+      cvw_cbase     = 0.0_fp 
+      LAMBDA_MIN    = 0.0_fp
+      LAMBDA_MAX    = 0.0_fp
+
+      ! REAL*8
+      tcu8          = 0.0_f8
+      qcu8          = 0.0_f8
+      pcu           = 0.0_f8
+      flx8          = 0.0_f8
+      cup           = 0.0_f8
+      toi8          = 0.0_f8
+      qoi8          = 0.0_f8
+      prsm8         = 0.0_f8
+      phil8         = 0.0_f8
+      qli8          = 0.0_f8
+      qii8          = 0.0_f8
+      trcfac        = 0.0_f8
+      ALFIND        = 0.0_f8
+      ALFINT        = 0.0_f8
+      ALFINQ        = 0.0_f8
+      RHC_LS        = 0.0_f8
+      prs8          = 0.0_f8
+      phih8         = 0.0_f8
+      FRACBL        = 0.0_f8
+      dt8           = 0.0_f8
+      rasalf        = 0.0_f8    
+
+      ! LOGICALS
+      revap         = .FALSE.
+      wrkfun        = .FALSE.
+      calkpb        = .FALSE.
+      crtfun        = .FALSE.
+      lprnt         = .FALSE.
+      dndrft        = .FALSE.
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       RASAL1        = RASPARAMS%RASAL1
       RASAL2        = RASPARAMS%RASAL2
@@ -906,17 +1169,35 @@ CONTAINS
       RHMN          = RASPARAMS%RAS_RHMIN
       RHMX          = RASPARAMS%RAS_RHFULL
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%% GCST UPDATE: 
+!%%% Use the proper kind parameter (e.g. "_fp") in exponents (bmy, 9/4/18)
+!%%%
+!%%% Comment out old code here:
+!!      GRAV  = GRAVO
+!!      ALHL  = ALHLO
+!!      CP    = CPO
+!!      CPI   = 1.0/CP      
+!!      ALHI  = 1.0/ALHL
+!!      GRAVI = 1.0/GRAV
+!!      CPBG  = CP*GRAVI
+!!      DDT   = DAYLEN/DT
+!!      AFC   = -1.04E-4*SQRT(DT*113.84)
+!!      LBCP  = ALHL*CPI
+!!      OBG   = 100.*GRAVI
+!!
       GRAV  = GRAVO
       ALHL  = ALHLO
       CP    = CPO
-      CPI   = 1.0/CP      
-      ALHI  = 1.0/ALHL
-      GRAVI = 1.0/GRAV
-      CPBG  = CP*GRAVI
-      DDT   = DAYLEN/DT
-      AFC   = -1.04E-4*SQRT(DT*113.84)
-      LBCP  = ALHL*CPI
-      OBG   = 100.*GRAVI
+      CPI   = 1.0_fp      / CP      
+      ALHI  = 1.0_fp      / ALHL
+      GRAVI = 1.0_fp      / GRAV
+      CPBG  = CP          * GRAVI
+      DDT   = DAYLEN      / DT
+      AFC   = -1.04E-4_fp * SQRT( DT * 113.84_fp )
+      LBCP  = ALHL        *CPI
+      OBG   = 100.0_fp    * GRAVI
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       DO I=1,IRUN
 
@@ -1095,7 +1376,6 @@ CONTAINS
             RASAL(IC) = RASAL1 + (RASAL2i-RASAL1)*MIN(1.0,(ZET(IC) - 2000.)/8000.)**RASAL_EXP
          ENDIF
    !WMP  RASAL(IC) = MIN( RASAL(IC) , 1.0e5 )
-
          RASAL(IC) = DT / RASAL(IC)
 
          !  TEST FOR CRITICAL WORK FUNCTION
@@ -1254,15 +1534,17 @@ CONTAINS
          real :: SIGDT0,sigmax,sigmin
          integer :: LL
          
-         ! BMY UPDATE (8/30/18)
-         ! Dimension The_Seed with a large numbe  of integers (100)
-         ! even though we probably won't use all elements.
-         ! Also remove platform-specific code
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% GCST UPDATE:
+         !%%% Dimension The_Seed with a large number of integers (100)
+         !%%% even though we probably won't use all elements.
+         !%%% Also remove platform-specific code. (bmy, 8/30/18)
          INTEGER :: The_Seed(100)   
          INTEGER :: Seed_Size
 
-         ! Zero out all elements of The_Seed
+         !%%% Zero out all elements of The_Seed
          The_Seed = 0               
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          THE_SEED(1)=SEEDRAS(I,1)*IRAS(I) + SEEDRAS(I,2)*JRAS(I)
          THE_SEED(2)=SEEDRAS(I,1)*JRAS(I) + SEEDRAS(I,2)*IRAS(I)
@@ -1270,13 +1552,16 @@ CONTAINS
          THE_SEED(2)=THE_SEED(2)*SEEDRAS(I,1)/( SEEDRAS(I,2) + 10)
          if(THE_SEED(1) == 0) THE_SEED(1) =  5
          if(THE_SEED(2) == 0) THE_SEED(2) = -5
-
-         ! BMY UPDATE (8/30/18)
-         ! First call Random_Seed to get the size,
-         ! then only use that many elements of The_Seed.
-         ! Otherwise this throws a compile error with gfortran 8.2.0
+         
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+         !%%% GCST UPDATE:
+         !%%% First call Random_Seed to get the size,
+         !%%% then only use that many elements of The_Seed.
+         !%%% Otherwise this throws a compile error with gfortran 8.2.0.
+         !%%% (bmy, 8/30/18)
          CALL Random_Seed( SIZE = Seed_Size              )
          call Random_Seed( PUT  = The_Seed(1:Seed_Size)  )
+         !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
          SIGMAX=SIGE(K)
          SIGMIN=SIGE(ICMIN)

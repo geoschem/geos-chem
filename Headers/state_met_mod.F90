@@ -463,45 +463,6 @@ CONTAINS
     LM = LLPAR ! # levels
 
     !=======================================================================
-    ! Initialize parameters of the State_Met%RasParams sub-object.
-    ! This is passed as INTENT(IN) to the Relaxed Arakawa-Schubert 
-    ! module as implemented by Karen Yu.  These fields do not have to 
-    ! be registered. (bmy, 8/27/18)
-    !=======================================================================
-    
-    ! Allocate the pointer
-    ALLOCATE( State_Met%RasParams, STAT=RC )
-    CALL GC_CheckVar( 'State_Met%RasParams', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    ! Define fields
-    State_Met%RasParams%CUFRICFAC      =       1.000_fp
-    State_Met%RasParams%SHR_LAMBDA_FAC =       0.05_fp
-    State_Met%RasParams%QC_CRIT_CN     =       8.0e-4_fp
-    State_Met%RasParams%RASAL2         =  -43200.0_fp
-    State_Met%RasParams%RASNCL         =    -300.0_fp
-    State_Met%RasParams%LAMBDA_FAC     =       4.0_fp
-    State_Met%RasParams%LAMBMX_FAC     =       0.0_fp
-    State_Met%RasParams%MIN_DIAMETER   =     200.0_fp
-    State_Met%RasParams%CUFRICLAMBDA   =       7.5e-4_fp
-    State_Met%RasParams%RDTLEXPON      =       1.0_fp
-    State_Met%RasParams%STRAPPING      =      -1.0_fp
-    State_Met%RasParams%SDQV2          =       1.3_fp
-    State_Met%RasParams%SDQV3          =       1.3_fp
-    State_Met%RasParams%SDQVT1         =     263.0_fp
-    State_Met%RasParams%ACRITFAC       =       0.5_fp
-    State_Met%RasParams%HMINTRIGGER    =       1.0_fp
-    State_Met%RasParams%LLDISAGGXP     =       0.0_fp
-    State_Met%RasParams%PBLFRAC        =       0.1_fp
-    State_Met%RasParams%RASAUTORAMPB   =       0.8_fp
-    State_Met%RasParams%RASAL_EXP      =       1
-    State_Met%RasParams%RAS_RHMIN      =       0.5_fp
-    State_Met%RasParams%RAS_RHFULL     =       0.65_fp
-    State_Met%RasParams%AUTOC_CN_ZDEP  =       1.0+fp
-    State_Met%RasParams%MAXDALLOWED_S  =    4000.0_fp
-    State_Met%RasParams%MAXDALLOWED_D  = State_Met%RasParams%MAXDALLOWED_S
-
-    !=======================================================================
     ! The following fields of State_Met may or may not get allocated
     ! depending on the met field being used, or if we are using GEOS-Chem
     ! in the ESMF/HPC configuration.  Make sure to nullify these fields
@@ -1858,10 +1819,65 @@ CONTAINS
     !=======================================================================
     ! The following fields are used with the Relaxed Arakawa-Schubert
     ! (RAS) module.  Convection and wetdep will use these fields 
-    ! computed by RAS instead of the fields read in from the met archive.
-    ! (kyu, bmy, 8/28/18)
+    ! computed by RAS instead of the fields read in from the met archive,
+    ! if Input_Opt%LRAS = TRUE.  (kyu, bmy, 8/28/18)
     !=======================================================================
+
+    ! Nullify fields
+    State_Met%RasParams     => NULL()
+    State_Met%RAS_CMFMC     => NULL()
+    State_Met%RAS_DQRCU     => NULL()
+    State_Met%RAS_DQRLSAN   => NULL()
+    State_Met%RAS_DTRAIN    => NULL()
+    State_Met%RAS_PFICU     => NULL()
+    State_Met%RAS_PFLCU     => NULL()
+    State_Met%RAS_PFLLSAN   => NULL()
+    State_Met%RAS_PFILSAN   => NULL()
+    State_Met%RAS_REEVAPCN  => NULL()
+    State_Met%RAS_REEVAPLS  => NULL()
+
+    ! Allocate these fields if the Relaxed Arakawa-Schubert option is selected
     IF ( Input_Opt%LRAS ) THEN
+
+       !--------------------------
+       ! RasParams object
+       !--------------------------
+
+       ! Allocate the pointer
+       ALLOCATE( State_Met%RasParams, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%RasParams', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Initialize parameters of the State_Met%RasParams sub-object.
+       ! This is passed as INTENT(IN) to the Relaxed Arakawa-Schubert
+       ! module as implemented by Karen Yu.  These fields do not have
+       ! to be registered. (bmy, 8/27/18)
+       State_Met%RasParams%CUFRICFAC      =       1.000_fp
+       State_Met%RasParams%SHR_LAMBDA_FAC =       0.05_fp
+       State_Met%RasParams%QC_CRIT_CN     =       8.0e-4_fp
+       State_Met%RasParams%RASAL1         =    1800.0_fp
+       State_Met%RasParams%RASAL2         =  -43200.0_fp
+       State_Met%RasParams%RASNCL         =    -300.0_fp
+       State_Met%RasParams%LAMBDA_FAC     =       4.0_fp
+       State_Met%RasParams%LAMBMX_FAC     =       0.0_fp
+       State_Met%RasParams%MIN_DIAMETER   =     200.0_fp
+       State_Met%RasParams%CUFRICLAMBDA   =       7.5e-4_fp
+       State_Met%RasParams%RDTLEXPON      =       1.0_fp
+       State_Met%RasParams%STRAPPING      =      -1.0_fp
+       State_Met%RasParams%SDQV2          =       1.3_fp
+       State_Met%RasParams%SDQV3          =       1.3_fp
+       State_Met%RasParams%SDQVT1         =     263.0_fp
+       State_Met%RasParams%ACRITFAC       =       0.5_fp
+       State_Met%RasParams%HMINTRIGGER    =       1.0_fp
+       State_Met%RasParams%LLDISAGGXP     =       0.0_fp
+       State_Met%RasParams%PBLFRAC        =       0.1_fp
+       State_Met%RasParams%RASAUTORAMPB   =       0.8_fp
+       State_Met%RasParams%RASAL_EXP      =       1
+       State_Met%RasParams%RAS_RHMIN      =       0.5_fp
+       State_Met%RasParams%RAS_RHFULL     =       0.65_fp
+       State_Met%RasParams%AUTOC_CN_ZDEP  =       1.0+fp
+       State_Met%RasParams%MAXDALLOWED_S  =    4000.0_fp
+       State_Met%RasParams%MAXDALLOWED_D  = State_Met%RasParams%MAXDALLOWED_S
 
        !----------------------------
        ! RAS_CMFMC [kg m-2 s-1]
@@ -1982,7 +1998,7 @@ CONTAINS
                                State_Met%RAS_REEVAPLS, State_Met,    RC     )
        CALL GC_CheckVar( 'State_Met%RAS_REEVAPLS', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    
+
     ENDIF
 
     !=======================================================================

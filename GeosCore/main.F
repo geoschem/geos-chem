@@ -1816,10 +1816,10 @@
             !===========================================================
             IF ( Input_Opt%LRAS .and. ( LCONV .or. LWETD ) ) THEN
 
-               ! Compute the following fields online using the
-               ! relaxed Arakawa-Schubert algorithm 
-               !      
-               ! (1) RAS_CMFMC     (5) RAS_PFILSAN   
+               ! Compute the following convective fields online
+               ! using the relaxed Arakawa-Schubert algorithm:
+               !
+               ! (1) RAS_CMFMC     (5) RAS_PFILSAN
                ! (2) RAS_DQRCU     (6) RAS_PFLLSAN
                ! (3) RAS_DQRLSAN   (7) RAS_REEAPCN
                ! (4) RAS_PFICU     (8) RAS_REEVAPLS
@@ -1829,7 +1829,6 @@
                ! meteorology archive. (kyu, bmy, 8/29/18)
                CALL Do_RAS( am_I_Root, Input_Opt,  State_Met,     
      &                      State_Chm, State_Diag, RC         )
-
             ENDIF
 
             !===========================================================
