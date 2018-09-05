@@ -557,7 +557,13 @@ CONTAINS
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
-    
+
+#if defined( MERRA2 )
+    ! Convert pressure quantities from [Pa] -> [hPa]
+    State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+    State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
+#endif
+
 #if defined( BPCH_DIAG )
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
@@ -1316,6 +1322,11 @@ CONTAINS
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
 
+#if defined( MERRA2 )
+    ! Convert PS1_WET from [Pa] to [hPa]
+    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+#endif
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -1463,6 +1474,11 @@ CONTAINS
        State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
 
     ENDWHERE
+
+#if defined( MERRA2 )
+    ! Convert PS2_WET from [Pa] to [hPa]
+    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+#endif
 
     !======================================================================
     ! Diagnostics, cleanup, and quit

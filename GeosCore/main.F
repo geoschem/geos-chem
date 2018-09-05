@@ -2693,6 +2693,27 @@
 #endif
 
       !-----------------------------------------------------------------
+      ! Print met field info
+      !-----------------------------------------------------------------
+#if defined( GEOS_FP )
+
+#if defined( GRIDREDUCED ) 
+      WRITE( 6, 130 ) 'GMAO GEOS-FP (on reduced 47-layer vertical grid)'
+#else
+      WRITE( 6, 130 ) 'GMAO GEOS-FP (on native 72-layer vertical grid)'
+#endif
+
+#elif defined( MERRA2 )
+
+#if defined( GRIDREDUCED )
+      WRITE( 6, 130 ) 'GMAO MERRA-2 (on reduced 47-layer vertical grid)'
+#else
+      WRITE( 6, 130 ) 'GMAO MERRA-2 (on native 72-layer vertical grid)'
+#endif
+
+#endif
+
+      !-----------------------------------------------------------------
       ! Print status of ISORROPIA
       !-----------------------------------------------------------------
 #if defined( NO_ISORROPIA ) 
