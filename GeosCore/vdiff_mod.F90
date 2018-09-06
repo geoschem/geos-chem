@@ -149,6 +149,7 @@ MODULE VDIFF_MOD
 !                              remove unused parameters
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  09 Aug 2018 - J. Lin      - Add simple bug fix to ensure mass conservation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -401,6 +402,8 @@ contains
 
     real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
                                     ! (as2)
+
+    real(fp) :: sum_qp0, sum_qp1    ! Jintai Lin 20180809
 
     !=================================================================
     ! vdiff begins here!
@@ -743,6 +746,31 @@ contains
     endwhere
 
 !-----------------------------------------------------------------------
+! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
+!   Without this fix, mass is almost but not completed conserved,
+!   which is OK for full chemistry simulations but a big problem
+!   for long lived species such as CH4 and CO2
+!-----------------------------------------------------------------------
+    DO M = 1, pcnst
+    do I = 1, plonl
+
+       ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+       !   including pre-mixing mass and surface flux (emis+drydep)
+       sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
+                 State_Met%AD(I,lat,plev-ntopfl+1:1:-1)) &
+               + dqbot(I,M) * State_Met%AD(I,lat,1)
+
+       ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+       sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
+                 State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+       qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+                              sum_qp0 / sum_qp1
+
+    enddo
+    ENDDO
+
+!-----------------------------------------------------------------------
 ! 	... diffuse sh
 !-----------------------------------------------------------------------
 
@@ -793,6 +821,29 @@ contains
        dqbot = 0e+0_fp
        call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
+
+!-----------------------------------------------------------------------
+! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
+!   Without this fix, mass is almost but not completed conserved,
+!   which is OK for full chemistry simulations but a big problem
+!   for long lived species such as CH4 and CO2
+!-----------------------------------------------------------------------
+       DO M = 1, pcnst
+       do I = 1, plonl
+
+          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+          sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
+                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+          sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
+                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+                                 sum_qp0 / sum_qp1
+
+       enddo
+       ENDDO
 
        DO M = 1, pcnst
        DO L = 1, plev 
@@ -1359,7 +1410,6 @@ contains
        do k = ntopfl+1,plev-1
           do i = 1,plonl
              zfq(i,k,m) = (qm1(i,k,m) + cc(i,k)*zfq(i,k-1,m))*term(i,k)
-             
           end do
        end do
     end do
@@ -1367,9 +1417,8 @@ contains
 ! 	... bottom level: (includes  surface fluxes)
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1d(i) = 1.e+0_fp/(1.e+0_fp + cc(i,plev) - &
-                  cc(i,plev)*ze(i,plev-1))
-       ze(i,plev) = 0.
+       tmp1d(i) = 1.e+0_fp/(1.e+0_fp + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
+       ze(i,plev) = 0.e+0_fp
     end do
     do m = 1,ncnst
        do i = 1,plonl
