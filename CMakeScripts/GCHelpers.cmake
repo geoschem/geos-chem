@@ -119,37 +119,44 @@ macro(dump_log LOG)
     endif()
 endmacro()
 
-#[[ warn_path_rules
+#[[ check_path_rules
 
 Check that the path stored in VAR follows certain rules. Warnings
 are logged to LOG.
 
 Usage:
-    warn_path_rules(VAR LOG
+    check_path_rules(VAR LOG
         [PARENT]
         [EXISTS]
         [WRITABLE]
         [CONTAINS <rel path> ...]
+        [IS_OK_RESULT <var>]
     )
 
 Options:
-    PARENT      Inspect the parent directory of ${${VAR}}, rather than 
-                ${${VAR}} itself.
+    PARENT          Inspect the parent directory of ${${VAR}}, rather than 
+                    ${${VAR}} itself.
 
-    EXISTS      Asserts that ${${VAR}} exists.
+    EXISTS          Asserts that ${${VAR}} exists.
 
-    WRITABLE    Assert that ${${VAR}} is writable.
+    WRITABLE        Assert that ${${VAR}} is writable.
 
-    CONTAINS    Assert that ${${VAR}} contains the given relative paths.
+    CONTAINS        Assert that ${${VAR}} contains the given relative paths.
+
+    IS_OK_RESULT    If all checks passed, ${IS_OK_RESULT} is set to TRUE.
+                    If a test failed it is set to FALSE.
 
 ]]
-function(warn_path_rules VAR LOG)
+function(check_path_rules VAR LOG)
     cmake_parse_arguments(ENFORCE
         "EXISTS;PARENT;WRITABLE"
-        ""
+        "IS_OK_RESULT"
         "CONTAINS"
         ${ARGN}
     )
+    # Get length of log before checks. If post length is greater than a 
+    # failed check was encountered. 
+    list(LENGTH ${LOG} PRE_LENGTH)
 
     # Make sure the path is absolute
     if(NOT IS_ABSOLUTE "${${VAR}}")
@@ -186,6 +193,16 @@ function(warn_path_rules VAR LOG)
         endforeach()
     endif()
     set(${LOG} "${${LOG}}" PARENT_SCOPE)
+
+    # Check if a failed test occured
+    if(DEFINED ENFORCE_IS_OK_RESULT)
+        list(LENGTH ${LOG} POST_LENGTH)
+        if(${POST_LENGTH} GREATER ${PRE_LENGTH})
+            set(${ENFORCE_IS_OK_RESULT} "FALSE" PARENT_SCOPE)
+        else()
+            set(${ENFORCE_IS_OK_RESULT} "TRUE" PARENT_SCOPE)
+        endif()
+    endif()
 endfunction()
 
 
