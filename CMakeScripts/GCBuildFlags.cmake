@@ -23,22 +23,23 @@ endif()
 # Get run directory
 message(STATUS "Run directory setup:")
 
-set_dynamic_default(RUNDIR "<path to run directory>"
+set(RUNDIR_PROMPT "<path to run directory>")
+set_dynamic_default(RUNDIR "${RUNDIR_PROMPT}"
     LOG RUNDIR_LOG
 )
 dump_log(RUNDIR_LOG)
 
-check_path_rules(RUNDIR WARNING_LOG
-    EXISTS 
-    WRITABLE
-    CONTAINS getRunInfo
-    IS_OK_RESULT RUNDIR_OK
-)
 
-# Error until run directory has been set properly
-if(NOT ${RUNDIR_OK})
-    stringify_list(WARNING_LOG JOIN "\n" AFTER)
-    message(FATAL_ERROR "${WARNING_LOG}")
+
+# Verify RUNDIR
+if("${RUNDIR}" STREQUAL "${RUNDIR_PROMPT}")
+    message(FATAL_ERROR "You haven't set RUNDIR!")
+elseif(NOT IS_ABSOLUTE "${RUNDIR}")
+    set(RUNDIR "${CMAKE_BINARY_DIR}/${RUNDIR}")
+endif()
+
+if(NOT EXISTS "${RUNDIR}/getRunInfo")
+    message(FATAL_ERROR "Invalid RUNDIR. ${RUNDIR}/getRunInfo doesn't exist!")
 endif()
 
 # Inspect run directory
