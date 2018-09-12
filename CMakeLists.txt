@@ -19,4 +19,11 @@ add_subdirectory(KPP)
 add_subdirectory(Headers)
 add_subdirectory(GeosUtil)
 add_subdirectory(NcdfUtil)
+add_subdirectory(History)
+add_subdirectory(HEMCO)
+add_subdirectory(ISOROPIA)
+add_subdirectory(GeosRad)
+
+add_subdirectory(GeosCore)
+
 
