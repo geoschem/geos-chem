@@ -42,7 +42,7 @@ CONTAINS
 !\\
 !\\
 ! !INTERFACE:
-  SUBROUTINE SeaSurface_Iodide(am_I_Root,Month,Iodide_Conc,Input_Opt)
+  SUBROUTINE SeaSurface_Iodide(am_I_Root,Iodide_Conc,Input_Opt)
 
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -56,9 +56,9 @@ CONTAINS
 #   include "netcdf.inc"
 
     LOGICAL, INTENT(IN)        :: am_I_Root
-    INTEGER, INTENT(IN)        :: Month
+    !INTEGER, INTENT(IN)        :: Month
     TYPE(OptInput), INTENT(IN) :: Input_Opt
-    REAL(kind=f8), DIMENSION(IIPAR,JJPAR), INTENT(OUT) :: Iodide_Conc
+    REAL(kind=f8), POINTER, INTENT(OUT) :: Iodide_Conc
     
     !local variables
     INTEGER                    :: IIodide,JIodide,ITime,fID, &
@@ -75,7 +75,8 @@ CONTAINS
      
     ! Arrays for netCDF start and count values
     INTEGER            :: st1d(1), ct1d(1)   ! For 1D arrays    
-    INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays 
+    INTEGER            :: st3d(3), ct3d(3)   ! For 3D arrays
+    INTEGER            :: Month
 
     ! Arrays on the Iodide concentration map NATIVE GRID
     INTEGER, DIMENSION(:), ALLOCATABLE     :: indLon, shiftLon
@@ -123,7 +124,7 @@ CONTAINS
     CALL NcRd( Lon, fId, TRIM(v_name), st1d, ct1d )
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
     ENDIF
 
     !----------------------------------------
@@ -139,7 +140,7 @@ CONTAINS
     CALL NcRd( Lat, fId, TRIM(v_name), st1d, ct1d )
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
     ENDIF
 
     !----------------------------------------
@@ -155,7 +156,7 @@ CONTAINS
     CALL NcRd( Time, fId, TRIM(v_name), st1d, ct1d )
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
     ENDIF
 
     !----------------------------------------
@@ -163,7 +164,7 @@ CONTAINS
     !----------------------------------------
     
     ! Variable name
-    v_name = "Ensemble\ Monthly\ mean"
+    v_name = "Ensemble Monthly mean"
     
     ! Read lat from file
     st3d   = (/ 1,       1,       1     /)
@@ -171,7 +172,7 @@ CONTAINS
     CALL NcRd( Iodide_Map, fId, TRIM(v_name), st3d, ct3d )
     ! Echo info to stdout
     IF ( am_I_Root ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val) 
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
     ENDIF
 
     !=================================================================
@@ -217,66 +218,68 @@ CONTAINS
     !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
     !$OMP PRIVATE( xedge_e,  yedge_n,   SumIodide,IG                 ) &
     !$OMP SCHEDULE( DYNAMIC )
-    DO J = 1, JJPAR
-       DO I = 1, IIPAR    
+    DO Month = 1, 12
+       DO J = 1, JJPAR
+          DO I = 1, IIPAR
 
-          IG = I + I_LO - 1
+             IG = I + I_LO - 1
 
-          ! Edges of this GEOS-CHEM GRID box
-          xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
-          yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
-          xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
-          yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
-
-          ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
-          dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
-          
-          SumIodide = 0.0_f8
-          SumBoxs = 0
-
-          ! Loop over latitudes on the NATIVE GRID
-          DO JJ  = 1, JIodide
-
-             ! Latitude edges of this NATIVE GRID box
-             yedge_s    = latedge(JJ  )                ! S edge
-             yedge_n    = latedge(JJ+1)                ! N edge
+             ! Edges of this GEOS-CHEM GRID box
+             xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
+             yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
+             xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
+             yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
              
-             DO III = 1, IIodide
-                ! Initialize
-                dxdy = 0.0_f8
-                mapWt = 0.0_f8
+             ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
+             dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
+             
+             SumIodide = 0.0_f8
+             SumBoxs = 0
 
-                IF ( IG == 1 ) THEN
-                   II = shiftLon(III)
-                ELSE
-                   II = indLon(III)
-                ENDIF
+             ! Loop over latitudes on the NATIVE GRID
+             DO JJ  = 1, JIodide
+
+                ! Latitude edges of this NATIVE GRID box
+                yedge_s    = latedge(JJ  )                ! S edge
+                yedge_n    = latedge(JJ+1)                ! N edge
+             
+                DO III = 1, IIodide
+                   ! Initialize
+                   dxdy = 0.0_f8
+                   mapWt = 0.0_f8
+
+                   IF ( IG == 1 ) THEN
+                      II = shiftLon(III)
+                   ELSE
+                      II = indLon(III)
+                   ENDIF
                 
-                ! Edges of this NATIVE GRID box
-                xedge_w    = lonedge(II  )                ! W edge
-                xedge_e    = lonedge(II+1)                ! E edge
+                   ! Edges of this NATIVE GRID box
+                   xedge_w    = lonedge(II  )                ! W edge
+                   xedge_e    = lonedge(II+1)                ! E edge
 
-                IF ( IG == 1 .and. II >= shiftLon(1) )  THEN
-                   xedge_w = xedge_w - 360.0_f8
-                   xedge_e = xedge_e - 360.0_f8
-                ENDIF
+                   IF ( IG == 1 .and. II >= shiftLon(1) )  THEN
+                      xedge_w = xedge_w - 360.0_f8
+                      xedge_e = xedge_e - 360.0_f8
+                   ENDIF
 
-                ! "Area" of the NATIVE GRID BOX in degrees (DLON * DLAT)
-                dxdy = ( xedge_e - xedge_w )*( yedge_n - yedge_s )
-                
-                CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
-                              yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
-                              mapWt                                 )
+                   ! "Area" of the NATIVE GRID BOX in degrees (DLON * DLAT)
+                   dxdy = ( xedge_e - xedge_w )*( yedge_n - yedge_s )
+                   
+                   CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
+                        yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
+                        mapWt                                 )
 
-                IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+                   IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
 
-                SumBoxs = SumBoxs + 1
-                SumIodide = SumIodide + Iodide_Map(II,JJ,Month)
-             END DO
-          ENDDO
+                   SumBoxs = SumBoxs + 1
+                   SumIodide = SumIodide + Iodide_Map(II,JJ,Month)
+                END DO
+             ENDDO
 
-          Iodide_Conc(I,J) = SumIodide/REAL(SumBoxs,f8)
+             Iodide_Conc(I,J,Month) = SumIodide/REAL(SumBoxs,f8)
 
+          END DO
        END DO
     END DO
     !$OMP END PARALLEL DO

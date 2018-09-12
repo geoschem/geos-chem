@@ -176,7 +176,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: UPDVVEL       (:,:,:) ! Updraft vertical velocity 
                                                 !  [hPa/s]
      REAL(fp), POINTER :: V             (:,:,:) ! N/S component of wind [m s-1]
-
+     REAL(fp), POINTER :: Iodide_Conc   (:,:,:) ! temp home of the sea surface iodide
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
@@ -1195,6 +1195,21 @@ CONTAINS
     !=======================================================================
     ! Allocate 3-D Arrays
     !=======================================================================
+    Iodide_Conc   (:,:,:)
+
+    !-------------------------
+    ! Sea surface iodide
+    !-------------------------
+    ALLOCATE( State_Met%Iodide_Conc( IM, JM, 1:12), STAT=RC )
+    !CALL GC_CheckVar( 'State_Met%', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN           
+    State_Met%AD = 0.0_fp
+    IF (Input_Opt%IodideNETCDF .EQ. .TRUE.) THEN
+    
+    END IF
+    !CALL Register_MetField( am_I_Root, 'AD', State_Met%AD, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! AD [kg]

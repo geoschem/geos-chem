@@ -451,7 +451,7 @@
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR   ) ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
       REAL(f8)      :: O3_DIAGS(IIPAR,JJPAR,0:9 )  ! text file diagnostics
-      REAL(f8)      :: Iodide_Conc(IIPAR,JJPAR  )  
+      !REAL(f8)      :: Iodide_Conc(IIPAR,JJPAR  )  
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
@@ -483,12 +483,12 @@
      &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
-      IF (Input_Opt%IodideNETCDF == .TRUE.) THEN
-         CALL SeaSurface_Iodide(am_I_Root,GET_MONTH(),Iodide_Conc,
-     &        Input_Opt)
-      ELSE 
-         Iodide_Conc = 0.0_f8
-      ENDIF
+      !IF (Input_Opt%IodideNETCDF == .TRUE.) THEN
+      !   CALL SeaSurface_Iodide(am_I_Root,GET_MONTH(),Iodide_Conc,
+     !&        Input_Opt)
+      !ELSE 
+      !   Iodide_Conc = 0.0_f8
+      !ENDIF
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
@@ -497,7 +497,7 @@
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            
-     &             ID_O3,      O3_DIAGS,  Iodide_Conc              )
+     &             ID_O3,      O3_DIAGS                           )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -732,7 +732,8 @@
       ENDDO
       ENDDO
 
- 1010 FORMAT(I4,4(X,I2.2),2(X,F7.2),10(X,F12.8))
+ 1010 FORMAT(I4,4(X,I2.2),2(X,F7.2),3(X,F12.8),X,F12.4,2(X,F12.8)
+     &     ,X,F14.13,3(X,F12.8))
 
       ! Flush the file to disk
       CALL FLUSH( IU_OUT )
@@ -759,9 +760,10 @@
 ! !INTERFACE:
 !
       SUBROUTINE OCEANO3(TEMPK, USTAR, DEPV, O3_DIAGS, I, J, 
-     &     Input_Opt,Iodide_Conc)
+     &     Input_Opt,State_Met)
 
       USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Met_Mod,      ONLY : MetState
 
       IMPLICIT NONE
 !     
@@ -769,9 +771,10 @@
 !
       REAL(f8), INTENT(IN)  :: TEMPK  ! Temperature [K]
       REAL(f8), INTENT(IN)  :: USTAR ! Fictional Velocity [m/s]
-      REAL(f8), INTENT(IN)  :: Iodide_Conc(IIPAR,JJPAR  )
+      !REAL(f8), INTENT(IN)  :: Iodide_Conc(IIPAR,JJPAR  )
       INTEGER,  INTENT(IN)  :: I,J
       TYPE(OptInput), INTENT(IN) :: Input_Opt
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       REAL(f8), INTENT(OUT) :: DEPV(0:2)  ! the new deposition vel [cm/s]
       REAL(f8), INTENT(INOUT) :: O3_DIAGS(IIPAR,JJPAR,0:9)  ! text file diagnostics
 ! !REMARKS:
@@ -816,7 +819,8 @@
             Iodide = 1.0E-9_f8*((0.225*(TEMPK-273.16)**2)+19)
          ENDIF
       ELSE
-         Iodide = Iodide_Conc(I,J)
+         !print*, 'Iodide', Iodide_Conc(I,J)*1.0E-9_f8
+         Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
       ENDIF
       a = Iodide*EXP((-8772.2/TEMPK)+51.5)
       
@@ -853,7 +857,7 @@
       EP = b*Garland
       CALL K0K1_APROX(EP,K0,K1)
       DEPV(2) = Garland*(K1/K0)
-   
+      !print*, 'Dv', DEPV(2)
       O3_DIAGS(I,J,2) = Iodide
       O3_DIAGS(I,J,3) = a
       O3_DIAGS(I,J,4) = TEMPK
@@ -1234,7 +1238,7 @@
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          
-     &                   ID_O3,      O3_DIAGS,  Iodide_Conc           )
+     &                   ID_O3,      O3_DIAGS                      )
 
 !
 ! !USES:
@@ -1273,7 +1277,7 @@
       REAL(f8), INTENT(IN) :: PRESSU (IIPAR,JJPAR) ! Surface pressure [hPa]
       REAL(f8), INTENT(IN) :: W10    (IIPAR,JJPAR) ! Wind speed @ 10m altitude
                                                    !  [m/s]
-      REAL(f8), INTENT(IN) :: Iodide_Conc(IIPAR,JJPAR)
+      !REAL(f8), INTENT(IN) :: Iodide_Conc(IIPAR,JJPAR)
       INTEGER, INTENT(IN)  :: ID_O3                ! GC species number for O3
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1837,7 +1841,7 @@
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
                   CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
-     &                 O3_DIAGS,I,J,Input_Opt,Iodide_Conc)
+     &                 O3_DIAGS,I,J,Input_Opt,State_Met)
 !     now convert to the new rc value(s) can probably tidy this up a bit
                   alpha = 10.0_f8**(-0.25-0.013*(
      &                 State_Met%TSKIN(I,J)-273.16_f8))
