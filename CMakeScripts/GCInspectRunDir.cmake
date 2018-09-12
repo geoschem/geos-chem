@@ -12,7 +12,7 @@ that the responses of that function, e.g. "geosfp", are modified to the
 expected values of GCBuildFlags, e.g. "GEOS_FP".
 ]]
 
-message(STATUS "Getting build configuration for ${RUNDIR}")
+message(STATUS "Bootstrapping ${RUNDIR}")
 
 # Make sure that the run directory is defined
 if(NOT DEFINED RUNDIR)
@@ -61,6 +61,4 @@ else()
     set(RUNDIR_NESTED "TRUE")
     string(TOUPPER "${RUNDIR_REGION}" RUNDIR_REGION)
 endif()
-
-message(STATUS "Finished getting build configuration from run directory.")
 
