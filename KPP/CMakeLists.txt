@@ -5,6 +5,8 @@ Uses variables:
 
 if("${MECH}" STREQUAL "Standard")
     add_subdirectory(Standard)    
+elseif("${MECH}" STREQUAL "Tropchem")
+    add_subdirectory(Tropchem)
 else()
-    message(FATAL_ERROR "Build system for MECH, ${MECH}, is not yet supported.")
+    message(FATAL_ERROR "KPP build target for MECH=${MECH} is not yet implemented")
 endif()

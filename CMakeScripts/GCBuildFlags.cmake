@@ -106,6 +106,11 @@ set_dynamic_option(MECH "${RUNDIR_MECH}"
     OPTIONS "Standard" "Tropchem" "SOA_SVPOA"
 )
 
+if(${MECH} STREQUAL "Tropchem")
+    set_dynamic_default(GC_DEFINES GRIDREDUCED)
+endif()
+
+
 # Build RRTMG?
 set_dynamic_option(RRTMG "FALSE"
     LOG GENERAL_OPTIONS_LOG
