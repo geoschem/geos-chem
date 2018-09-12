@@ -258,7 +258,7 @@ function(set_dynamic_option VAR)
     # Check EXACTLY rule
     if(DEFINED SDO_SELECT_EXACTLY)
         if(NOT ${SELECTED_COUNT} EQUAL ${SDO_SELECT_EXACTLY})
-            stringify_list(MY_LOG PRINT)
+            dump_log(${SDO_LOG})
             message(FATAL_ERROR "Exactly ${SDO_SELECT_EXACTLY} items must be selected for ${VAR}")
         endif()
     endif()

@@ -13,6 +13,10 @@ Exported variables:
 
 ]]
 
+
+# Include logging and setting helpers
+include(GCHelpers)
+
 # Guard against multiple includes
 if(DEFINED GC_BUILD_FLAGS_INCLUDED)
     return()
