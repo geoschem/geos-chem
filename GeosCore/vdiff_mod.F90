@@ -233,6 +233,7 @@ contains
     USE DIAG_MOD,           ONLY : TURBFLUP
 #endif
     USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : IS_SAFE_DIV
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -411,6 +412,10 @@ contains
 
     ! Assume success
     RC = GC_SUCCESS
+
+    ! Initialize
+    sum_qp0  = 0.0_fp
+    sum_qp1  = 0.0_fp
 
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
@@ -764,8 +769,10 @@ contains
        sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
                  State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
 
-       qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
-                              sum_qp0 / sum_qp1
+       IF ( IS_SAFE_DIV( sum_qp0, sum_qp1 ) ) THEN
+          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+                                 sum_qp0 / sum_qp1
+       ENDIF
 
     enddo
     ENDDO
