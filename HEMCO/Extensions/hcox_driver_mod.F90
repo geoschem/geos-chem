@@ -400,7 +400,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Customized emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Custom ) THEN
+    IF ( ExtState%Custom > 0 ) THEN
        CALL HCOX_Custom_Run( amIRoot, ExtState, HcoState, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -408,7 +408,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! SeaFlx (Air-sea exchange)
     !-----------------------------------------------------------------------
-    IF ( ExtState%SeaFlux) THEN
+    IF ( ExtState%SeaFlux > 0 ) THEN
        CALL HCOX_SeaFlux_Run( amIRoot, ExtState, HcoState, RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -416,7 +416,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! ParaNox (Ship NO emissions) 
     !-----------------------------------------------------------------------
-    IF (ExtState%ParaNOx ) THEN
+    IF (ExtState%ParaNOx > 0 ) THEN
        CALL HCOX_ParaNox_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -464,7 +464,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Sea salt aerosols
     !-----------------------------------------------------------------------
-    IF ( ExtState%SeaSalt ) THEN
+    IF ( ExtState%SeaSalt > 0 ) THEN
        CALL HCOX_SeaSalt_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -480,7 +480,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! GFED biomass burning emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%GFED ) THEN
+    IF ( ExtState%GFED > 0 ) THEN
        CALL HCOX_GFED_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -488,7 +488,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! FINN biomass burning emissions 
     ! ----------------------------------------------------------------------
-    IF ( ExtState%FINN ) THEN
+    IF ( ExtState%FINN > 0 ) THEN
        CALL HcoX_FINN_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -538,7 +538,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Ocean inorganic iodine emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%Inorg_Iodine ) THEN
+    IF ( ExtState%Inorg_Iodine > 0 ) THEN
        CALL HCOX_Iodine_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
@@ -636,25 +636,25 @@ CONTAINS
        CALL ExtStateFinal( ExtState ) 
 
        ! Call individual cleanup routines
-       IF ( ExtState%Custom        ) CALL HCOX_Custom_Final()
-       IF ( ExtState%SeaFlux       ) CALL HCOX_SeaFlux_Final()
-       IF ( ExtState%ParaNOx       ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,RC)
+       IF ( ExtState%Custom  > 0   ) CALL HCOX_Custom_Final ( ExtState )
+       IF ( ExtState%SeaFlux > 0   ) CALL HCOX_SeaFlux_Final( ExtState )
+       IF ( ExtState%ParaNOx > 0   ) CALL HCOX_PARANOX_Final(am_I_Root,HcoState,ExtState,RC)
        IF ( ExtState%LightNOx > 0  ) CALL HCOX_LIGHTNOX_Final( ExtState )
        IF ( ExtState%DustDead > 0  ) CALL HCOX_DustDead_Final( ExtState )
 #if defined( TOMAS)
        IF ( ExtState%TOMAS_DustDead > 0)  CALL HCOX_TOMAS_DustDead_Final(ExtState)
 #endif
        IF ( ExtState%DustGinoux    ) CALL HCOX_DustGinoux_Final()
-       IF ( ExtState%SeaSalt       ) CALL HCOX_SeaSalt_Final()
+       IF ( ExtState%SeaSalt > 0   ) CALL HCOX_SeaSalt_Final( ExtState )
        IF ( ExtState%Megan  > 0    ) CALL HCOX_Megan_Final(am_I_Root,HcoState,ExtState,RC)
-       IF ( ExtState%GFED          ) CALL HCOX_GFED_Final()
+       IF ( ExtState%GFED > 0      ) CALL HCOX_GFED_Final( ExtState )
        IF ( ExtState%SoilNOx > 0   ) CALL HCOX_SoilNox_Final(am_I_Root,HcoState,ExtState,RC)
-       IF ( ExtState%FINN          ) CALL HcoX_FINN_Final
+       IF ( ExtState%FINN > 0      ) CALL HcoX_FINN_Final( ExtState )
        IF ( ExtState%GC_RnPbBe     ) CALL HCOX_GC_RnPbBe_Final()
        IF ( ExtState%GC_POPs       ) CALL HCOX_GC_POPs_Final()
        IF ( ExtState%Wetland_CH4>0 ) CALL HCOX_CH4Wetland_Final( ExtState )
        IF ( ExtState%AeroCom > 0   ) CALL HCOX_AeroCom_Final( ExtState )
-       IF ( ExtState%Inorg_Iodine  ) CALL HCOX_Iodine_Final()
+       IF ( ExtState%Inorg_Iodine>0) CALL HCOX_Iodine_Final( ExtState )
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_Jeagle  ) CALL HCOX_TOMAS_Jeagle_Final()
 #endif       
