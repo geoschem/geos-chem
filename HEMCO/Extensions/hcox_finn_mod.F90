@@ -101,12 +101,14 @@ MODULE HcoX_FINN_Mod
   !=================================================================
   ! MODULE PARAMETERS
   !
+  ! nSpcMax : Maximum number of emitted species
   ! N_EMFAC : Number of emission factors per species
   ! N_SPEC  : Number of FINN species
   ! MW_CO2  : Molecular weight of CO2  (g/mol)
   ! MW_NMOC : Molecular weight of NMOC (g/mol). Assumed MW for NMOC
   !           is 68 g/mol.
   !=================================================================
+  INTEGER,           PARAMETER   :: nSpcMax = 100
   INTEGER,           PARAMETER   :: N_EMFAC = 6
   INTEGER,           PARAMETER   :: N_SPEC  = 58
   REAL(dp),          PARAMETER   :: MW_CO2  = 44.01_dp
@@ -114,65 +116,71 @@ MODULE HcoX_FINN_Mod
 !
 ! !PRIVATE TYPES:
 !
-  !=================================================================
-  ! HEMCO VARIABLES 
-  !
-  ! ExtNr   : Extension number 
-  ! UseDay  : True if daily data is used
-  !=================================================================
-  INTEGER                        :: ExtNr
-  LOGICAL                        :: UseDay
+  TYPE :: MyInst
+   !=================================================================
+   ! HEMCO VARIABLES 
+   !
+   ! ExtNr   : Extension number 
+   ! UseDay  : True if daily data is used
+   !=================================================================
+   INTEGER                        :: Instance
+   INTEGER                        :: ExtNr
+   LOGICAL                        :: UseDay
+ 
+   !=================================================================
+   ! SPECIES VARIABLES 
+   !
+   ! nSpc           : Number of used species (specified in config. file)
+   ! SpcNames       : Names of all used species
+   ! HcoIDs         : HEMCO species IDs of all used species 
+   ! FinnIDs        : Index of used species within FINN
+   ! FINN_SPEC_NAME : Names of all FINN species
+   !=================================================================
+   INTEGER                        :: nSpc
+   CHARACTER(LEN=31), POINTER     :: SpcNames(:)
+   CHARACTER(LEN=61), POINTER     :: SpcScalFldNme(:)
+   INTEGER,           POINTER     :: HcoIDs(:)
+   INTEGER,           POINTER     :: FinnIDs(:)
+   CHARACTER(LEN=6),  POINTER     :: FINN_SPEC_NAME(:)
+   
+   !=================================================================
+   ! SCALE FACTORS 
+   !
+   ! FINN_EMFAC: emission scale factors for each species and 
+   !             emission factor type. The filename of the emissions
+   !             emissions factor table is specified in the HEMCO
+   !             configuration file. The scale factors are converted
+   !             to kg species/kg CO2 when reading them from disk.
+   ! OCPIfrac  : Fraction of OC that converts into hydrophilic OC.
+   !             Can be set in HEMCO configuration file (default=0.5)
+   ! BCPIfrac  : Fraction of BC that converts into hydrophilic BC.
+   !             Can be set in HEMCO configuration file (default=0.2)
+   ! SpcScal  : Additional scaling factors assigned to species through
+   !            the HEMCO configuration file (e.g. Scaling_CO). 
+   !=================================================================
+   REAL(dp),          POINTER     :: FINN_EMFAC(:,:)
+   REAL(sp),          POINTER     :: SpcScal(:)
+   REAL(sp)                       :: OCPIfrac
+   REAL(sp)                       :: BCPIfrac
+ 
+   !=================================================================
+   ! DATA ARRAY POINTERS 
+   !
+   ! These are the pointers to the 6 vegetation type data arrays
+   ! specified in the configuration file
+   !=================================================================
+   REAL(hp),          POINTER     :: VEGTYP1(:,:) => NULL()
+   REAL(hp),          POINTER     :: VEGTYP2(:,:) => NULL()
+   REAL(hp),          POINTER     :: VEGTYP3(:,:) => NULL()
+   REAL(hp),          POINTER     :: VEGTYP4(:,:) => NULL()
+   REAL(hp),          POINTER     :: VEGTYP5(:,:) => NULL()
+   REAL(hp),          POINTER     :: VEGTYP9(:,:) => NULL()
 
-  !=================================================================
-  ! SPECIES VARIABLES 
-  !
-  ! nSpcMax        : Maximum number of emitted species
-  ! nSpc           : Number of used species (specified in config. file)
-  ! SpcNames       : Names of all used species
-  ! HcoIDs         : HEMCO species IDs of all used species 
-  ! FinnIDs        : Index of used species within FINN
-  ! FINN_SPEC_NAME : Names of all FINN species
-  !=================================================================
-  INTEGER,           PARAMETER   :: nSpcMax = 100
-  INTEGER                        :: nSpc
-  CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
-  CHARACTER(LEN=61), ALLOCATABLE :: SpcScalFldNme(:)
-  INTEGER,           ALLOCATABLE :: HcoIDs(:)
-  INTEGER,           ALLOCATABLE :: FinnIDs(:)
-  CHARACTER(LEN=6),  ALLOCATABLE :: FINN_SPEC_NAME(:)
-  
-  !=================================================================
-  ! SCALE FACTORS 
-  !
-  ! FINN_EMFAC: emission scale factors for each species and 
-  !             emission factor type. The filename of the emissions
-  !             emissions factor table is specified in the HEMCO
-  !             configuration file. The scale factors are converted
-  !             to kg species/kg CO2 when reading them from disk.
-  ! OCPIfrac  : Fraction of OC that converts into hydrophilic OC.
-  !             Can be set in HEMCO configuration file (default=0.5)
-  ! BCPIfrac  : Fraction of BC that converts into hydrophilic BC.
-  !             Can be set in HEMCO configuration file (default=0.2)
-  ! SpcScal  : Additional scaling factors assigned to species through
-  !            the HEMCO configuration file (e.g. Scaling_CO). 
-  !=================================================================
-  REAL(dp),          ALLOCATABLE :: FINN_EMFAC(:,:)
-  REAL(sp),          ALLOCATABLE :: SpcScal(:)
-  REAL(sp)                       :: OCPIfrac
-  REAL(sp)                       :: BCPIfrac
+   TYPE(MyInst), POINTER           :: NextInst => NULL()
+  END TYPE MyInst
 
-  !=================================================================
-  ! DATA ARRAY POINTERS 
-  !
-  ! These are the pointers to the 6 vegetation type data arrays
-  ! specified in the configuration file
-  !=================================================================
-  REAL(hp),          POINTER     :: VEGTYP1(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP2(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP3(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP4(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP5(:,:) => NULL()
-  REAL(hp),          POINTER     :: VEGTYP9(:,:) => NULL()
+  ! Pointer to instances
+  TYPE(MyInst), POINTER            :: AllInst => NULL()
 
 CONTAINS
 !EOC
@@ -254,12 +262,15 @@ CONTAINS
     ! Pointers
     REAL(hp), POINTER   :: THISTYP(:,:)
 
+    ! Local instance
+    TYPE(MyInst), POINTER :: Inst 
+
     !=======================================================================
     ! HCOX_FINN_Run begins here!
     !=======================================================================
 
     ! Return if extension disabled 
-    IF ( .NOT. ExtState%FINN ) RETURN
+    IF ( ExtState%FINN <= 0 ) RETURN
 
     ! Enter 
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_FINN_RUN (hcox_finn_mod.F90)', RC ) 
@@ -267,6 +278,15 @@ CONTAINS
 
     ! Init
     THISTYP => NULL()
+
+    ! Get instance
+    Inst => NULL()
+    CALL InstGet ( ExtState%FINN, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find FINN instance Nr. ', ExtState%FINN
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
 
 !==============================================================================
 ! This code is required for the vertical distribution of biomass burning emiss.
@@ -280,34 +300,34 @@ CONTAINS
     ! Get pointers to data arrays 
     !-----------------------------------------------------------------------
     !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
-       IF ( UseDay ) THEN
+       IF ( Inst%UseDay ) THEN
           PREFIX = 'FINN_DAILY_'
        ELSE
           PREFIX = 'FINN_'
        ENDIF
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP1'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP1, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP1, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP2'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP2, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP2, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP3'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP3, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP3, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP4'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP4, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP4, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        FLDNME = TRIM(PREFIX) // 'VEGTYP5'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP5, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP5, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
    
        FLDNME = TRIM(PREFIX) // 'VEGTYP9'
-       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), VEGTYP9, RC )
+       CALL HCO_EvalFld( am_I_Root, HcoState, TRIM(FLDNME), Inst%VEGTYP9, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
 !       FIRST = .FALSE.
@@ -315,7 +335,7 @@ CONTAINS
 
     ! For logfile
     IF ( am_I_Root ) THEN
-       IF ( UseDay ) THEN
+       IF ( Inst%UseDay ) THEN
           IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
              CALL HcoClock_Get( am_I_Root, HcoState%Clock, &
                                 cYYYY=cYYYY, cMM=cMM, cDD=cDD, RC=RC )
@@ -343,18 +363,18 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Loop over all emitted species
-    DO N = 1, nSpc
+    DO N = 1, Inst%nSpc
 
        ! ID is the FINN species index of this species 
-       FinnID = FinnIDs(N)
+       FinnID = Inst%FinnIDs(N)
        IF ( FinnID <= 0 ) CYCLE
 
        ! HcoID is the HEMCO species index of this species 
-       HcoID = HcoIDs(N)
+       HcoID = Inst%HcoIDs(N)
        IF ( HcoID < 0 ) CYCLE
 
        ! Species with no emission factor have FINN_EMFAC=0
-       IF ( MAXVAL(FINN_EMFAC(FinnID,:)) <= 0.0_hp ) CYCLE
+       IF ( MAXVAL(Inst%FINN_EMFAC(FinnID,:)) <= 0.0_hp ) CYCLE
 
        ! SpcArr are the total biomass burning emissions for this
        ! species. TypArr are the emissions from a given vegetation type. 
@@ -370,17 +390,17 @@ CONTAINS
          
           ! Select emission factor array
           IF ( NF == 1 ) THEN
-             THISTYP => VEGTYP1 
+             THISTYP => Inst%VEGTYP1 
           ELSEIF ( NF == 2 ) THEN
-             THISTYP => VEGTYP2 
+             THISTYP => Inst%VEGTYP2 
           ELSEIF ( NF == 3 ) THEN
-             THISTYP => VEGTYP3
+             THISTYP => Inst%VEGTYP3
           ELSEIF ( NF == 4 ) THEN
-             THISTYP => VEGTYP4
+             THISTYP => Inst%VEGTYP4
           ELSEIF ( NF == 5 ) THEN
-             THISTYP => VEGTYP5
+             THISTYP => Inst%VEGTYP5
           ELSEIF ( NF == 6 ) THEN
-             THISTYP => VEGTYP9
+             THISTYP => Inst%VEGTYP9
           ELSE
              CALL HCO_ERROR ( HcoState%Config%Err, 'Undefined emission factor', RC )
              RETURN
@@ -390,7 +410,7 @@ CONTAINS
           ! type and sum to get total emissions for the species on the
           ! native grid - emissions are in [kg CO2/m2/s[. FINN_EMFAC is
           ! in [kg X]/[kg CO2].
-          TypArr(:,:) = THISTYP(:,:) * FINN_EMFAC(FinnID,NF)
+          TypArr(:,:) = THISTYP(:,:) * Inst%FINN_EMFAC(FinnID,NF)
 
           ! TODO: Add to diagnostics here
 
@@ -399,21 +419,21 @@ CONTAINS
        ENDDO !NF
 
        ! Apply species specific scale factors
-       SpcArr = SpcArr * SpcScal(N)
+       SpcArr = SpcArr * Inst%SpcScal(N)
 
        ! Check for masking
-       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(SpcScalFldNme(N)), RC )
+       CALL HCOX_SCALE( am_I_Root, HcoState, SpcArr, TRIM(Inst%SpcScalFldNme(N)), RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       SELECT CASE ( SpcNames(N) )
+       SELECT CASE ( Inst%SpcNames(N) )
           CASE ( 'OCPI' )
-             SpcArr = SpcArr * OCPIfrac
+             SpcArr = SpcArr * Inst%OCPIfrac
           CASE ( 'OCPO' )
-             SpcArr = SpcArr * (1.0_sp - OCPIfrac)
+             SpcArr = SpcArr * (1.0_sp - Inst%OCPIfrac)
           CASE ( 'BCPI' )
-             SpcArr = SpcArr * BCPIfrac
+             SpcArr = SpcArr * Inst%BCPIfrac
           CASE ( 'BCPO' )
-             SpcArr = SpcArr * (1.0_sp - BCPIfrac)
+             SpcArr = SpcArr * (1.0_sp - Inst%BCPIfrac)
        END SELECT
 
 !==============================================================================
@@ -490,7 +510,7 @@ CONTAINS
 
        ! Add flux to HEMCO emission array
        CALL HCO_EmisAdd( am_I_Root, HcoState,    SpcArr, HcoID, &
-                         RC,        ExtNr=ExtNr, Cat=-1, Hier=-1 ) 
+                         RC,        ExtNr=Inst%ExtNr, Cat=-1, Hier=-1 ) 
        IF ( RC /= HCO_SUCCESS ) THEN
           MSG = 'HCO_EmisAdd error: ' // TRIM(HcoState%Spc(HcoID)%SpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -499,7 +519,7 @@ CONTAINS
  
        ! Write out total (daily or monthly) emissions to log-file
        IF ( am_I_Root ) THEN
-          IF ( UseDay ) THEN
+          IF ( Inst%UseDay ) THEN
              IF ( HcoClock_NewDay( HcoState%Clock, .TRUE. ) ) THEN
                 TOTAL = SUM(SpcArr(:,:)*HcoState%Grid%AREA_M2%Val(:,:))
                 TOTAL = TOTAL * 86400.0_hp * 1e-9_hp
@@ -522,6 +542,7 @@ CONTAINS
 
     ! Nullify pointers
     THISTYP   => NULL()
+    Inst      => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
@@ -576,6 +597,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
+    INTEGER               :: ExtNr
     INTEGER               :: N_SPEC_EMFAC  ! # of CO2 file emission species
     INTEGER               :: N_NMOC        ! # of VOC file NMOC ratios
     INTEGER               :: IU_FILE, L, N_LUMPED, tmpNr
@@ -607,6 +629,8 @@ CONTAINS
     REAL(dp), ALLOCATABLE :: NMOC_RATIO_IN(:,:)
     REAL*8                :: NMOC_EMFAC(N_EMFAC), NMOC_RATIO(N_EMFAC)
 
+    ! Local instance
+    TYPE(MyInst), POINTER :: Inst 
 
     !=======================================================================
     ! HCOX_FINN_INIT begins here!
@@ -620,6 +644,15 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_FINN_INIT (hcox_finn_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Create local instance for this simulation
+    Inst => NULL()
+    CALL InstCreate ( ExtNr, ExtState%FINN, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create FINN instance', RC )
+       RETURN
+    ENDIF
+
+    ! Check if this is GFED4
     !-----------------------------------------------------------------------
     ! Get settings 
     ! The CO scale factor (to account for oxidation from VOCs) as well as 
@@ -640,9 +673,9 @@ CONTAINS
                      OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       BCPIfrac = 0.2
+       Inst%BCPIfrac = 0.2
     ELSE
-       BCPIfrac = ValSp
+       Inst%BCPIfrac = ValSp
     ENDIF
 
     ! Try to read hydrophilic fractions of OC. Defaults to 0.5.
@@ -650,26 +683,26 @@ CONTAINS
                      OptValSp=ValSp, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-       OCPIfrac = 0.5
+       Inst%OCPIfrac = 0.5
     ELSE
-       OCPIfrac = ValSp
+       Inst%OCPIfrac = ValSp
     ENDIF
 
     ! Error check: OCPIfrac and BCPI frac must be between 0 and 1
-    IF ( OCPIfrac < 0.0_sp .OR. OCPIfrac > 1.0_sp .OR. &
-         BCPIfrac < 0.0_sp .OR. BCPIfrac > 1.0_sp     ) THEN
+    IF ( Inst%OCPIfrac < 0.0_sp .OR. Inst%OCPIfrac > 1.0_sp .OR. &
+         Inst%BCPIfrac < 0.0_sp .OR. Inst%BCPIfrac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'hydrophilic fractions must be between 0-1: ', &
-          OCPIfrac, BCPIfrac
+          Inst%OCPIfrac, Inst%BCPIfrac
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
  
     ! Use daily data?
     CALL GetExtOpt( HcoState%Config, ExtNr, 'FINN_daily', &
-                     OptValBool=UseDay, FOUND=FOUND, RC=RC ) 
+                     OptValBool=Inst%UseDay, FOUND=FOUND, RC=RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN 
-       UseDay = .FALSE.
+       Inst%UseDay = .FALSE.
     ENDIF
 
     !----------------------------------------------------------------------- 
@@ -677,54 +710,54 @@ CONTAINS
     !----------------------------------------------------------------------- 
 
     ! FINN species names
-    ALLOCATE ( FINN_SPEC_NAME ( N_SPEC ), STAT=AS )
+    ALLOCATE ( Inst%FINN_SPEC_NAME ( N_SPEC ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FINN_SPEC_NAME', RC )
        RETURN
     ENDIF
-    FINN_SPEC_NAME = ''
+    Inst%FINN_SPEC_NAME = ''
 
     ! Allocate scale factors table: FINN_EMFAC holds the species/CO2
     ! scale factors for all FINN species.
-    ALLOCATE ( FINN_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
+    ALLOCATE ( Inst%FINN_EMFAC ( N_SPEC, N_EMFAC ), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FINN_EMFAC', RC )
        RETURN
     ENDIF
-    FINN_EMFAC = 0.0_dp
+    Inst%FINN_EMFAC = 0.0_dp
 
     ! Allocate and initialize vectors holding species information for
     ! all species to be emitted 
-    ALLOCATE ( FinnIDs(nSpcMax), HcoIDs(nSpcMax), SpcNames(nSpcMax), &
-               SpcScal(nSpcMax), SpcScalFldNme(nSpcMax), STAT=AS )
+    ALLOCATE ( Inst%FinnIDs(nSpcMax), Inst%HcoIDs(nSpcMax), Inst%SpcNames(nSpcMax), &
+               Inst%SpcScal(nSpcMax), Inst%SpcScalFldNme(nSpcMax), STAT=AS )
 
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate FinnIDs', RC )
        RETURN
     ENDIF
-    nSpc             = 0
-    FinnIDs(:)       = -1
-    HcoIDs(:)        = -1
-    SpcScal          = 1.0_sp
-    SpcNames(:)      = ''
-    SpcScalFldNme(:) = HCOX_NOSCALE
+    Inst%nSpc             = 0
+    Inst%FinnIDs(:)       = -1
+    Inst%HcoIDs(:)        = -1
+    Inst%SpcScal          = 1.0_sp
+    Inst%SpcNames(:)      = ''
+    Inst%SpcScalFldNme(:) = HCOX_NOSCALE
 
-    ALLOCATE ( VEGTYP1(HcoState%NX,HcoState%NY), &
-               VEGTYP2(HcoState%NX,HcoState%NY), &
-               VEGTYP3(HcoState%NX,HcoState%NY), &
-               VEGTYP4(HcoState%NX,HcoState%NY), &
-               VEGTYP5(HcoState%NX,HcoState%NY), &
-               VEGTYP9(HcoState%NX,HcoState%NY), STAT=AS )
+    ALLOCATE ( Inst%VEGTYP1(HcoState%NX,HcoState%NY), &
+               Inst%VEGTYP2(HcoState%NX,HcoState%NY), &
+               Inst%VEGTYP3(HcoState%NX,HcoState%NY), &
+               Inst%VEGTYP4(HcoState%NX,HcoState%NY), &
+               Inst%VEGTYP5(HcoState%NX,HcoState%NY), &
+               Inst%VEGTYP9(HcoState%NX,HcoState%NY), STAT=AS )
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR( HcoState%Config%Err, 'Cannot allocate VEGTYP', RC )
        RETURN
     ENDIF
-    VEGTYP1 = 0.0_hp
-    VEGTYP2 = 0.0_hp
-    VEGTYP3 = 0.0_hp
-    VEGTYP4 = 0.0_hp
-    VEGTYP5 = 0.0_hp
-    VEGTYP9 = 0.0_hp
+    Inst%VEGTYP1 = 0.0_hp
+    Inst%VEGTYP2 = 0.0_hp
+    Inst%VEGTYP3 = 0.0_hp
+    Inst%VEGTYP4 = 0.0_hp
+    Inst%VEGTYP5 = 0.0_hp
+    Inst%VEGTYP9 = 0.0_hp
 
     !----------------------------------------------------------------------- 
     ! Define FINN species names
@@ -732,66 +765,66 @@ CONTAINS
       
     ! Species listed in emission factor ratios (CO2/X) table (except NMOC,
     ! which is speciated as specified in the VOC speciation table).
-    FINN_SPEC_NAME(1)  = 'CO2'
-    FINN_SPEC_NAME(2)  = 'CO'
-    FINN_SPEC_NAME(3)  = 'CH4'
-    FINN_SPEC_NAME(4)  = 'NOx'
-    FINN_SPEC_NAME(5)  = 'SO2'
-    FINN_SPEC_NAME(6)  = 'OC'
-    FINN_SPEC_NAME(7)  = 'BC'
-    FINN_SPEC_NAME(8)  = 'NH3'
-    FINN_SPEC_NAME(9)  = 'NO'    ! Currently not used
-    FINN_SPEC_NAME(10) = 'NO2'   ! Currently not used
+    Inst%FINN_SPEC_NAME(1)  = 'CO2'
+    Inst%FINN_SPEC_NAME(2)  = 'CO'
+    Inst%FINN_SPEC_NAME(3)  = 'CH4'
+    Inst%FINN_SPEC_NAME(4)  = 'NOx'
+    Inst%FINN_SPEC_NAME(5)  = 'SO2'
+    Inst%FINN_SPEC_NAME(6)  = 'OC'
+    Inst%FINN_SPEC_NAME(7)  = 'BC'
+    Inst%FINN_SPEC_NAME(8)  = 'NH3'
+    Inst%FINN_SPEC_NAME(9)  = 'NO'    ! Currently not used
+    Inst%FINN_SPEC_NAME(10) = 'NO2'   ! Currently not used
 
     ! Species listed in VOC speciation table
-    FINN_SPEC_NAME(11) = 'ACET'
-    FINN_SPEC_NAME(12) = 'ACTA'   ! Not currently emitted by BB in GC
-    FINN_SPEC_NAME(13) = 'ALD2'
-    FINN_SPEC_NAME(14) = 'ALK4'
-    FINN_SPEC_NAME(15) = 'APINE'  ! Currently lumped into MTPA
-    FINN_SPEC_NAME(16) = 'AROM'   ! Currently not used
-    FINN_SPEC_NAME(17) = 'BENZ'
-    FINN_SPEC_NAME(18) = 'BPINE'  ! Currently lumped into MTPA
-    FINN_SPEC_NAME(19) = 'C2H2'
-    FINN_SPEC_NAME(20) = 'C2H4'
-    FINN_SPEC_NAME(21) = 'C2H6'
-    FINN_SPEC_NAME(22) = 'C3H8'
-    FINN_SPEC_NAME(23) = 'CARENE' ! Currently lumped into MTPA
-    FINN_SPEC_NAME(24) = 'CH2Br2'
-    FINN_SPEC_NAME(25) = 'CH2O'
-    FINN_SPEC_NAME(26) = 'CH3Br'
-    FINN_SPEC_NAME(27) = 'CH3CN'
-    FINN_SPEC_NAME(28) = 'CH3I'
-    FINN_SPEC_NAME(29) = 'DMS'
-    FINN_SPEC_NAME(30) = 'EOH'    ! Not currently emitted in GC
-    FINN_SPEC_NAME(31) = 'ETBENZ' ! Currently lumped with TOLU
-    FINN_SPEC_NAME(32) = 'FUR'    ! Currently not used
-    FINN_SPEC_NAME(33) = 'GLYC'
-    FINN_SPEC_NAME(34) = 'GLYX'
-    FINN_SPEC_NAME(35) = 'HAC'
-    FINN_SPEC_NAME(36) = 'HCN'    ! Not currently emitted in GC
-    FINN_SPEC_NAME(37) = 'HCOOH'  ! Not currently emitted by BB in GC
-    FINN_SPEC_NAME(38) = 'HNO2'   ! Not currently emitted in GC
-    FINN_SPEC_NAME(39) = 'ISOP'   ! Not currently emitted by BB in GC
-    FINN_SPEC_NAME(40) = 'LIMO'
-    FINN_SPEC_NAME(41) = 'MACR'   ! Not currently emitted in GC
-    FINN_SPEC_NAME(42) = 'MEK'
-    FINN_SPEC_NAME(43) = 'MGLY'
-    FINN_SPEC_NAME(44) = 'MNO3'
-    FINN_SPEC_NAME(45) = 'MOH'    ! Not currently emitted in GC
-    FINN_SPEC_NAME(46) = 'MTPO'   ! Not currently emitted in GC
-    FINN_SPEC_NAME(47) = 'MVK'    ! Not currently emitted in GC
-    FINN_SPEC_NAME(48) = 'PRPE'
-    FINN_SPEC_NAME(49) = 'R4N2'   ! Not currently emitted in GC
-    FINN_SPEC_NAME(50) = 'RCHO'   ! Not currently emitted by BB in GC
-    FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
-    FINN_SPEC_NAME(52) = 'ROH'    ! Currently not used
-    FINN_SPEC_NAME(53) = 'SESQ'   ! Currently not used
-    FINN_SPEC_NAME(54) = 'STYR'   ! Currently lumped with TOLU
-    FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
-    FINN_SPEC_NAME(56) = 'TOLU'
-    FINN_SPEC_NAME(57) = 'XYLE'
-    FINN_SPEC_NAME(58) = 'H2'     ! Currently not used
+    Inst%FINN_SPEC_NAME(11) = 'ACET'
+    Inst%FINN_SPEC_NAME(12) = 'ACTA'   ! Not currently emitted by BB in GC
+    Inst%FINN_SPEC_NAME(13) = 'ALD2'
+    Inst%FINN_SPEC_NAME(14) = 'ALK4'
+    Inst%FINN_SPEC_NAME(15) = 'APINE'  ! Currently lumped into MTPA
+    Inst%FINN_SPEC_NAME(16) = 'AROM'   ! Currently not used
+    Inst%FINN_SPEC_NAME(17) = 'BENZ'
+    Inst%FINN_SPEC_NAME(18) = 'BPINE'  ! Currently lumped into MTPA
+    Inst%FINN_SPEC_NAME(19) = 'C2H2'
+    Inst%FINN_SPEC_NAME(20) = 'C2H4'
+    Inst%FINN_SPEC_NAME(21) = 'C2H6'
+    Inst%FINN_SPEC_NAME(22) = 'C3H8'
+    Inst%FINN_SPEC_NAME(23) = 'CARENE' ! Currently lumped into MTPA
+    Inst%FINN_SPEC_NAME(24) = 'CH2Br2'
+    Inst%FINN_SPEC_NAME(25) = 'CH2O'
+    Inst%FINN_SPEC_NAME(26) = 'CH3Br'
+    Inst%FINN_SPEC_NAME(27) = 'CH3CN'
+    Inst%FINN_SPEC_NAME(28) = 'CH3I'
+    Inst%FINN_SPEC_NAME(29) = 'DMS'
+    Inst%FINN_SPEC_NAME(30) = 'EOH'    ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(31) = 'ETBENZ' ! Currently lumped with TOLU
+    Inst%FINN_SPEC_NAME(32) = 'FUR'    ! Currently not used
+    Inst%FINN_SPEC_NAME(33) = 'GLYC'
+    Inst%FINN_SPEC_NAME(34) = 'GLYX'
+    Inst%FINN_SPEC_NAME(35) = 'HAC'
+    Inst%FINN_SPEC_NAME(36) = 'HCN'    ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(37) = 'HCOOH'  ! Not currently emitted by BB in GC
+    Inst%FINN_SPEC_NAME(38) = 'HNO2'   ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(39) = 'ISOP'   ! Not currently emitted by BB in GC
+    Inst%FINN_SPEC_NAME(40) = 'LIMO'
+    Inst%FINN_SPEC_NAME(41) = 'MACR'   ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(42) = 'MEK'
+    Inst%FINN_SPEC_NAME(43) = 'MGLY'
+    Inst%FINN_SPEC_NAME(44) = 'MNO3'
+    Inst%FINN_SPEC_NAME(45) = 'MOH'    ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(46) = 'MTPO'   ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(47) = 'MVK'    ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(48) = 'PRPE'
+    Inst%FINN_SPEC_NAME(49) = 'R4N2'   ! Not currently emitted in GC
+    Inst%FINN_SPEC_NAME(50) = 'RCHO'   ! Not currently emitted by BB in GC
+    Inst%FINN_SPEC_NAME(51) = 'RCOOH'  ! Currently not used
+    Inst%FINN_SPEC_NAME(52) = 'ROH'    ! Currently not used
+    Inst%FINN_SPEC_NAME(53) = 'SESQ'   ! Currently not used
+    Inst%FINN_SPEC_NAME(54) = 'STYR'   ! Currently lumped with TOLU
+    Inst%FINN_SPEC_NAME(55) = 'TMB'    ! Currently lumped with XYLE
+    Inst%FINN_SPEC_NAME(56) = 'TOLU'
+    Inst%FINN_SPEC_NAME(57) = 'XYLE'
+    Inst%FINN_SPEC_NAME(58) = 'H2'     ! Currently not used
 
     !=======================================================================
     ! We now get the following input information from hard-coded F90
@@ -829,7 +862,7 @@ CONTAINS
     IF ( am_I_Root ) THEN
        MSG = 'Use FINN extension'
        CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
-       WRITE(MSG,*) '   - Use daily data          : ', UseDay
+       WRITE(MSG,*) '   - Use daily data          : ', Inst%UseDay
        CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
@@ -921,7 +954,7 @@ CONTAINS
 
           ! Search for SpcName in FINN
           DO N = 1, N_SPEC 
-             IF ( TRIM(SpcName) == TRIM(FINN_SPEC_NAME(N)) ) THEN
+             IF ( TRIM(SpcName) == TRIM(Inst%FINN_SPEC_NAME(N)) ) THEN
 
                 ! Update number of species to be emitted via FINN and
                 ! archive all related information in vectors FinnIDs, 
@@ -929,8 +962,8 @@ CONTAINS
 
                 ! nSpc is the total number of emitted FINN species. Must
                 ! not exceed nSpcMax.
-                nSpc = nSpc + 1             
-                IF ( nSpc > nSpcMax ) THEN
+                Inst%nSpc = Inst%nSpc + 1             
+                IF ( Inst%nSpc > nSpcMax ) THEN
                    MSG = 'nSpc greater than nSpcMax, please increase ' // &
                          'parameter `nSpcMax` in hcox_finn_mod.F90'
                    CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
@@ -940,20 +973,20 @@ CONTAINS
                 ! Archive corresponding FINN species ID, HEMCO species ID,
                 ! scale factor, etc.
                 Matched             = .TRUE.
-                FinnIDs(nSpc)       = N
-                HcoIDs (nSpc)       = tHcoIDs(L)
-                SpcNames(nSpc)      = tSpcNames(L) 
-                SpcScalFldNme(nSpc) = tSpcScalFldNme(L) 
-                SpcScal(nSpc)       = tSpcScal(L)
+                Inst%FinnIDs(Inst%nSpc)       = N
+                Inst%HcoIDs (Inst%nSpc)       = tHcoIDs(L)
+                Inst%SpcNames(Inst%nSpc)      = tSpcNames(L) 
+                Inst%SpcScalFldNme(Inst%nSpc) = tSpcScalFldNme(L) 
+                Inst%SpcScal(Inst%nSpc)       = tSpcScal(L)
 
                 ! Verbose
                 IF ( am_I_Root ) THEN 
-                   MSG = '   - FINN species ' // TRIM(FINN_SPEC_NAME(N)) // &
-                         '     will be emitted as ' // TRIM(SpcNames(nSpc))
+                   MSG = '   - FINN species ' // TRIM(Inst%FINN_SPEC_NAME(N)) // &
+                         '     will be emitted as ' // TRIM(Inst%SpcNames(Inst%nSpc))
                    CALL HCO_MSG(HcoState%Config%Err,MSG )
-                WRITE(MSG,*) '     --> Uniform scale factor : ', SpcScal(nSpc)
+                WRITE(MSG,*) '     --> Uniform scale factor : ', Inst%SpcScal(Inst%nSpc)
                 CALL HCO_MSG(HcoState%Config%Err,MSG )
-                WRITE(MSG,*) '     --> Scale field          : ', TRIM(SpcScalFldNme(nSpc)) 
+                WRITE(MSG,*) '     --> Scale field          : ', TRIM(Inst%SpcScalFldNme(Inst%nSpc)) 
                 CALL HCO_MSG(HcoState%Config%Err,MSG )
                 ENDIF   
 
@@ -965,7 +998,7 @@ CONTAINS
                 ! Get emission factor in [kg X]/[kg CO2]. 
                 DO M = 1, N_SPECSTRS
                    TMPNAME = IN_SPEC_NAME(M)
-                   IF ( TRIM(FINN_SPEC_NAME(N)) == TRIM(TMPNAME(5:8)) ) THEN
+                   IF ( TRIM(Inst%FINN_SPEC_NAME(N)) == TRIM(TMPNAME(5:8)) ) THEN
                       ! First two entries are not species. Also, EMFAC 
                       ! is stored as [mole CO2]/[mole X], but we want the 
                       ! inverse.  This gives us [mole X]/[mole CO2].  
@@ -975,25 +1008,25 @@ CONTAINS
                       ! [mole CO2]/[g X], so the adjustment factor is 
                       ! calculated slightly differently for those two 
                       ! species!
-                      IF ( TRIM(FINN_SPEC_NAME(N)) == 'OC' .OR. &
-                           TRIM(FINN_SPEC_NAME(N)) == 'BC'       ) THEN
+                      IF ( TRIM(Inst%FINN_SPEC_NAME(N)) == 'OC' .OR. &
+                           TRIM(Inst%FINN_SPEC_NAME(N)) == 'BC'       ) THEN
                          AdjFact = 1.0_dp / MW_CO2
 
                       ! Make sure that adjustment factor for CO is always
                       ! computed using the MW of CO. CO might be used as
                       ! proxy for other species (e.g. Hg0), in which case
                       ! we still want to normalize by the MW of CO. 
-                      ELSEIF ( TRIM(FINN_SPEC_NAME(N)) == 'CO' ) THEN
+                      ELSEIF ( TRIM(Inst%FINN_SPEC_NAME(N)) == 'CO' ) THEN
                          AdjFact = 28.01_dp / MW_CO2
 
                       ! Normalize by species' molecular weight.
                       ELSE
                          AdjFact = 1.0_dp / MW_CO2 * &
-                                   HcoState%Spc(HcoIDs(nSpc))%EmMW_g
+                                   HcoState%Spc(Inst%HcoIDs(Inst%nSpc))%EmMW_g
                       ENDIF
-                      FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
+                      Inst%FINN_EMFAC(N,:) = AdjFact / EMFAC_IN(M,:)
                       IF ( am_I_Root ) THEN
-                         WRITE( MSG, 200 ) TRIM( FINN_SPEC_NAME(N)) 
+                         WRITE( MSG, 200 ) TRIM( Inst%FINN_SPEC_NAME(N)) 
                          CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF
                       EXIT
@@ -1010,12 +1043,12 @@ CONTAINS
    
                 DO M = 1, N_NMOCSTRS
                    TMPNAME = IN_NMOC_NAME(M)
-                   IF ( TRIM(FINN_SPEC_NAME(N)) == TRIM(TMPNAME) ) THEN
+                   IF ( TRIM(Inst%FINN_SPEC_NAME(N)) == TRIM(TMPNAME) ) THEN
                       ! First two entries are not species
                       NMOC_RATIO = NMOC_RATIO_IN(M,:)
                       IS_NMOC = .TRUE.
                       IF ( am_I_Root ) THEN
-                         WRITE( MSG, 201 ) TRIM( FINN_SPEC_NAME(N) )
+                         WRITE( MSG, 201 ) TRIM( Inst%FINN_SPEC_NAME(N) )
                          CALL HCO_MSG(HcoState%Config%Err,MSG )
                       ENDIF
                       EXIT
@@ -1032,11 +1065,11 @@ CONTAINS
                 ! so we also multiply here by the number of carbon atoms/molec.
                 IF ( IS_NMOC ) THEN
                    DO M = 1, N_EMFAC
-                      C_MOLEC         = HcoState%Spc(HcoIDs(nSpc))%MolecRatio
-                      AdjFact         = HcoState%Spc(HcoIDs(nSpc))%EmMW_g
-                      FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
-                                        ( NMOC_RATIO(M) * C_MOLEC ) * &
-                                        ( AdjFact       * 1e-3_hp )
+                      C_MOLEC              = HcoState%Spc(Inst%HcoIDs(Inst%nSpc))%MolecRatio
+                      AdjFact              = HcoState%Spc(Inst%HcoIDs(Inst%nSpc))%EmMW_g
+                      Inst%FINN_EMFAC(N,M) = NMOC_EMFAC(M)             * &
+                                           ( NMOC_RATIO(M) * C_MOLEC ) * &
+                                           ( AdjFact       * 1e-3_hp )
                    ENDDO
                 ENDIF
              ENDIF
@@ -1053,7 +1086,7 @@ CONTAINS
           ! them will be added to the same model species.
    
           ! --> TMB is lumped into XYLE
-          IF ( SpcNames(nSpc) == 'XYLE' ) THEN
+          IF ( Inst%SpcNames(Inst%nSpc) == 'XYLE' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'TMB'
                 Missing  = .TRUE.
@@ -1062,7 +1095,7 @@ CONTAINS
           ENDIF
 
           ! --> ETBENZ and STYR are lumped into TOLU
-          IF ( SpcNames(nSpc) == 'TOLU' ) THEN
+          IF ( Inst%SpcNames(Inst%nSpc) == 'TOLU' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'ETBENZ'
                 Missing  = .TRUE.
@@ -1075,7 +1108,7 @@ CONTAINS
           ENDIF
 
           ! --> BPINE and CARENE are lumped into MTPA
-          IF ( SpcNames(nSpc) == 'MTPA' ) THEN
+          IF ( Inst%SpcNames(Inst%nSpc) == 'MTPA' ) THEN
              IF ( N_LUMPED == 0 ) THEN
                 SpcName  = 'BPINE'
                 Missing  = .TRUE.
@@ -1109,9 +1142,6 @@ CONTAINS
 !    ExtState%FRAC_OF_PBL%DoUse = .TRUE. 
 !==============================================================================
 
-    ! Enable module
-    ExtState%FINN = .TRUE.
-
     ! Cleanup
     IF ( ALLOCATED(EMFAC_IN        )) DEALLOCATE( EMFAC_IN       )
     IF ( ALLOCATED(NMOC_RATIO_IN   )) DEALLOCATE( NMOC_RATIO_IN  )
@@ -1121,6 +1151,7 @@ CONTAINS
     IF ( ALLOCATED(tSpcScal        )) DEALLOCATE( tSpcScal       )
  
     ! Return w/ success
+    Inst => NULL()
     CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
  
   END SUBROUTINE HCOX_FINN_Init
@@ -1138,7 +1169,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_FINN_FINAL()
+  SUBROUTINE HCOX_FINN_FINAL( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
 !
 ! !REVISION HISTORY:
 !  02 Jan 2013 - J. Mao & J. Fisher - Initial version, based on GFED3
@@ -1151,23 +1186,210 @@ CONTAINS
     ! HCOX_FINN_FINAL begins here!
     !=================================================================
 
-    ! Free pointers
-    IF ( ASSOCIATED ( VEGTYP1 ) ) DEALLOCATE ( VEGTYP1 ) 
-    IF ( ASSOCIATED ( VEGTYP2 ) ) DEALLOCATE ( VEGTYP2 ) 
-    IF ( ASSOCIATED ( VEGTYP3 ) ) DEALLOCATE ( VEGTYP3 ) 
-    IF ( ASSOCIATED ( VEGTYP4 ) ) DEALLOCATE ( VEGTYP4 ) 
-    IF ( ASSOCIATED ( VEGTYP5 ) ) DEALLOCATE ( VEGTYP5 ) 
-    IF ( ASSOCIATED ( VEGTYP9 ) ) DEALLOCATE ( VEGTYP9 ) 
-
-    ! Cleanup module arrays
-    IF ( ALLOCATED( FINN_EMFAC     )) DEALLOCATE( FINN_EMFAC     )
-    IF ( ALLOCATED( FinnIDs        )) DEALLOCATE( FinnIDs        )
-    IF ( ALLOCATED( HcoIDs         )) DEALLOCATE( HcoIDs         )
-    IF ( ALLOCATED( SpcNames       )) DEALLOCATE( SpcNames       )
-    IF ( ALLOCATED( SpcScalFldNme  )) DEALLOCATE( SpcScalFldNme  )
-    IF ( ALLOCATED( SpcScal        )) DEALLOCATE( SpcScal        )
-    IF ( ALLOCATED( FINN_SPEC_NAME )) DEALLOCATE( FINN_SPEC_NAME )
+    CALL InstRemove ( ExtState%FINN )
 
   END SUBROUTINE HCOX_FINN_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+
+    ! Init 
+    PrevInst => NULL()
+    Inst     => NULL()
+    
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+   
+       ! Pop off instance from list
+       IF ( ASSOCIATED(PrevInst) ) THEN
+
+          ! Free pointers
+          IF ( ASSOCIATED( Inst%VEGTYP1 ) ) DEALLOCATE( Inst%VEGTYP1 ) 
+          IF ( ASSOCIATED( Inst%VEGTYP2 ) ) DEALLOCATE( Inst%VEGTYP2 ) 
+          IF ( ASSOCIATED( Inst%VEGTYP3 ) ) DEALLOCATE( Inst%VEGTYP3 ) 
+          IF ( ASSOCIATED( Inst%VEGTYP4 ) ) DEALLOCATE( Inst%VEGTYP4 ) 
+          IF ( ASSOCIATED( Inst%VEGTYP5 ) ) DEALLOCATE( Inst%VEGTYP5 ) 
+          IF ( ASSOCIATED( Inst%VEGTYP9 ) ) DEALLOCATE( Inst%VEGTYP9 ) 
+      
+          ! Cleanup module arrays
+          IF ( ASSOCIATED( Inst%FINN_EMFAC     )) DEALLOCATE( Inst%FINN_EMFAC     )
+          IF ( ASSOCIATED( Inst%FinnIDs        )) DEALLOCATE( Inst%FinnIDs        )
+          IF ( ASSOCIATED( Inst%HcoIDs         )) DEALLOCATE( Inst%HcoIDs         )
+          IF ( ASSOCIATED( Inst%SpcNames       )) DEALLOCATE( Inst%SpcNames       )
+          IF ( ASSOCIATED( Inst%SpcScalFldNme  )) DEALLOCATE( Inst%SpcScalFldNme  )
+          IF ( ASSOCIATED( Inst%SpcScal        )) DEALLOCATE( Inst%SpcScal        )
+          IF ( ASSOCIATED( Inst%FINN_SPEC_NAME )) DEALLOCATE( Inst%FINN_SPEC_NAME )
+      
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_FINN_Mod
