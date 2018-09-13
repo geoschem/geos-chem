@@ -42,10 +42,11 @@ CONTAINS
 !\\
 !\\
 ! !INTERFACE:
-  SUBROUTINE SeaSurface_Iodide(am_I_Root,Iodide_Conc,Input_Opt)
+  SUBROUTINE SeaSurface_Iodide(am_I_Root,State_Met,Input_Opt)
 
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
     USE m_netcdf_io_open
     USE m_netcdf_io_read
     USE m_netcdf_io_readattr
@@ -55,10 +56,11 @@ CONTAINS
 
 #   include "netcdf.inc"
 
-    LOGICAL, INTENT(IN)        :: am_I_Root
-    !INTEGER, INTENT(IN)        :: Month
-    TYPE(OptInput), INTENT(IN) :: Input_Opt
-    REAL(kind=f8), POINTER, INTENT(OUT) :: Iodide_Conc
+    LOGICAL, INTENT(IN)           :: am_I_Root
+    !INTEGER, INTENT(IN)          :: Month
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+    TYPE(MetState), INTENT(INOUT) :: State_Met
+    !REAL(kind=f8), POINTER, INTENT(OUT) :: Iodide_Conc(IIPAR,JJPAR,1:12)
     
     !local variables
     INTEGER                    :: IIodide,JIodide,ITime,fID, &
@@ -83,7 +85,7 @@ CONTAINS
     REAL(kind=f8), DIMENSION(:), ALLOCATABLE :: lonedge, latedge
 
     !initialise
-    Iodide_Conc = 0.0_f8
+    !Iodide_Conc = 0.0_f8
     nc_path = TRIM(Input_Opt%IodideFile)
 
     IIodide = 2880
@@ -219,6 +221,7 @@ CONTAINS
     !$OMP PRIVATE( xedge_e,  yedge_n,   SumIodide,IG                 ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO Month = 1, 12
+       print*, 'averaging iodide for month ', Month 
        DO J = 1, JJPAR
           DO I = 1, IIPAR
 
@@ -277,12 +280,13 @@ CONTAINS
                 END DO
              ENDDO
 
-             Iodide_Conc(I,J,Month) = SumIodide/REAL(SumBoxs,f8)
+             State_Met%Iodide_Conc(I,J,Month) = SumIodide/REAL(SumBoxs,f8)
 
           END DO
        END DO
     END DO
     !$OMP END PARALLEL DO
+    print*, 'Completed averaging for Iodide'
 
     IF ( ALLOCATED( Lon   ) ) DEALLOCATE( Lon   )
     IF ( ALLOCATED( Lat   ) ) DEALLOCATE( Lat   )

@@ -78,7 +78,7 @@
       USE DEPO_MERCURY_MOD      ! Deposition for offline Hg simulation
       USE DRYDEP_MOD            ! For dry deposition
       USE WETSCAV_MOD           ! For wet deposition (rainout & washout)
-
+      USE Sea_Surface_Mod       ! temporary measure for sea surface iodide
       !-----------------------------------------------------------------
       ! GEOS-Chem diagnostics modules
       !-----------------------------------------------------------------
@@ -815,6 +815,9 @@
       CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
+      !read in the sea surface iodide map
+      CALL SeaSurface_Iodide(am_I_Root,State_Met,Input_Opt)
+      
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)
       CALL Init_Mixing( am_I_Root, Input_Opt,  State_Met,

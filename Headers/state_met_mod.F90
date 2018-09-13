@@ -336,6 +336,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
+    !USE Sea_Surface_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1195,7 +1196,6 @@ CONTAINS
     !=======================================================================
     ! Allocate 3-D Arrays
     !=======================================================================
-    Iodide_Conc   (:,:,:)
 
     !-------------------------
     ! Sea surface iodide
@@ -1204,11 +1204,9 @@ CONTAINS
     !CALL GC_CheckVar( 'State_Met%', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AD = 0.0_fp
-    IF (Input_Opt%IodideNETCDF .EQ. .TRUE.) THEN
-    
-    END IF
+    !CALL SeaSurface_Iodide(am_I_Root,State_Met%Iodide_Conc)
     !CALL Register_MetField( am_I_Root, 'AD', State_Met%AD, &
-                            State_Met, RC )
+    !                        State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
