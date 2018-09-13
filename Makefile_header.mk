@@ -381,6 +381,10 @@ else
  COMPILER_VERSION :=$(word 4, $(COMPILER_VERSION_LONG))
 endif
 
+# Major version number of the compiler
+# e.g. for gfortran 8.2.0, this would be "8"
+COMPILER_MAJOR_VERSION   :=$(word 1,$(subst ., ,$(COMPILER_VERSION)))
+
 #------------------------------------------------------------------------------
 # Special flags for enabling experimental or development code
 #------------------------------------------------------------------------------
@@ -1297,7 +1301,8 @@ ifeq ($(COMPILER_FAMILY),Intel)
   # NOTE: ifort 18 and higher users -qopenmp instead of -openmp
   REGEXP             :=(^[Yy]|^[Yy][Ee][Ss])
   ifeq ($(shell [[ "$(OMP)" =~ $(REGEXP) ]] && echo true),true)
-    ifeq ($(shell [[ "$(COMPILER_VERSION)" =~ 18. ]] && echo true),true)
+     REGEXP          :=^1[8-9]|^2|^3|^4|^5|^6|^7|^8|^9
+     ifeq ($(shell [[ "$(COMPILER_MAJOR_VERSION)" =~ $(REGEXP) ]] && echo true),true)
       FFLAGS         += -qopenmp
     else
       FFLAGS         += -openmp
