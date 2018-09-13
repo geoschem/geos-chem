@@ -1767,10 +1767,12 @@ CONTAINS
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
                 ELSE
-                   IF ( LUCX .and. am_I_Root ) THEN
+                   IF ( am_I_Root ) THEN
+                    IF ( LUCX ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
-                   ELSE
+                    ELSE
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
+                    ENDIF
                    ENDIF
                 ENDIF
 
