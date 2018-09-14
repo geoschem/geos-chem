@@ -155,7 +155,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Integers
     INTEGER            :: LLTROP
 #endif
@@ -185,7 +185,7 @@ CONTAINS
     ! (bmy, 12/3/12)
     !-----------------------------------------------------------------------
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     LLTROP = 40
     ! 132 layers
     IF ( value_LM==132) LLTROP = 80
@@ -205,7 +205,7 @@ CONTAINS
                         value_IM_WORLD = value_IM_WORLD,  &
                         value_JM_WORLD = value_JM_WORLD,  &
                         value_LM_WORLD = value_LM_WORLD,  &
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                         value_LLTROP   = LLTROP,          &
                         value_LLSTRAT  = value_LLSTRAT )
 #else

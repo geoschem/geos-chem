@@ -92,7 +92,7 @@ MODULE State_Chm_Mod
      CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      ! For drydep
      REAL(fp),          POINTER :: DryDepRa2m       (:,:)     ! 2m  aerodynamic resistance
      REAL(fp),          POINTER :: DryDepRa10m      (:,:)     ! 10m aerodynamic resistance
@@ -704,7 +704,7 @@ CONTAINS
     State_Chm%Species = 0.0_fp
     CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     !=======================================================================
     ! Allocate and initialize aerodynamic resistance fields 
     !======================================================================= 
@@ -1547,7 +1547,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Aerodynamic resistance
     IF ( ASSOCIATED(State_Chm%DryDepRa2m ) ) DEALLOCATE(State_Chm%DryDepRa2m )
     IF ( ASSOCIATED(State_Chm%DryDepRa10m) ) DEALLOCATE(State_Chm%DryDepRa10m)

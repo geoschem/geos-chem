@@ -418,7 +418,7 @@
          RETURN
       ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Need to archive PM2.5 in diagnostics state?
       Archive_PM25    = ASSOCIATED( State_Diag%PM25    )
       Archive_PM25su  = ASSOCIATED( State_Diag%PM25su  )
@@ -1209,7 +1209,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE UCX_MOD,        ONLY : GET_STRAT_OPT
       USE UCX_MOD,        ONLY : NDENS_AER
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD21
 #endif
@@ -1406,7 +1406,7 @@
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
       ! For diagnostics
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       INTEGER             :: IOUT, IISOPAOD, IAERAQVOL
 #endif
 #if defined( NC_DIAG )
@@ -1455,7 +1455,7 @@
       WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
       WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Define certain bpch ND21 diagnostic indexes
          IISOPAOD  = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 1
@@ -1995,7 +1995,7 @@
             ! Skip stratospheric aerosols
             IF ((IIWV.EQ.1).and.(ISTRAT.le.0)) THEN
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
                !----------------------------------------------------
                ! ND21 bpch diagnostics computed here:
                !  #7  Hygroscopic growth of SO4                [unitless]
@@ -2093,7 +2093,7 @@
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
                !----------------------------------------------------
                ! ND21 bpch diagnostics computed here:
                !  #59  Aqueous aerosol volume ( (RADIUS*AREA)/3 )
@@ -2140,7 +2140,7 @@
             ! Index for combination of aerosol type and RH
             N = NRHAER + ISTRAT
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
             ! For ND21
             IOUT = 5 + 2*NRHAER + 3*(NDUST+NRHAER) + (ISTRAT-1)*3
 #endif
@@ -2186,7 +2186,7 @@
                   WERADIUS(I,J,L,NDUST+N) = RAER 
                ENDIF
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
                IF ( Input_Opt%ND21.GT.0.AND.L.LE.Input_Opt%LD21 ) THEN
 
                   !----------------------------------------------------
@@ -2216,14 +2216,14 @@
                ! Netcdf diagnostics computed here:
                !  Strat aerosol liquid surface area
                !  Polar strat cloud surface area
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                IF ( Archive_AerSurfAreaSLA .and. ISTRAT==1 ) THEN
 #else
                IF ( Archive_AerSurfAreaSLA ) THEN
 #endif
                   State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
                ENDIF
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                IF ( Archive_AerSurfAreaPSC .and. ISTRAT==2 ) THEN
 #else
                IF ( Archive_AerSurfAreaPSC ) THEN
@@ -2289,7 +2289,7 @@
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       IF ( Input_Opt%ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )

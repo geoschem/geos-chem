@@ -108,7 +108,7 @@
                                                       !  external grid
 #endif
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       REAL(fp)              :: a132_loc(133), b132_loc(133)
 
 ! GEOS-5 132 levels (from /src/GMAO_Shared/GMAO_hermes/m_set_eta.F90
@@ -803,7 +803,7 @@
 
 #else
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       !-----------------------------------------------------------------
       ! 132 level grid
       !-----------------------------------------------------------------
@@ -864,13 +864,13 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
      
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ENDIF
 #endif
 
 #endif
       
-#if !defined( ESMF_ ) || defined( DISCOVER )
+#if !defined( ESMF_ ) || defined( MODEL_GEOS )
       ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )

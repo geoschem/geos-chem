@@ -42,7 +42,7 @@
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
       PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       PUBLIC  :: mpiComm
 #endif 
 
@@ -148,7 +148,7 @@
 !
 ! !PRIVATE TYPES:
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       INTEGER, SAVE           :: mpiComm
 #endif
       LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
