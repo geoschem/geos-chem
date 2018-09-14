@@ -5691,6 +5691,15 @@ CONTAINS
     HcoID = HCO_GetHcoID( 'Hg0', HcoState )
     IF ( HcoID > 0 ) THEN
 
+        Cat   = -1
+        ExtNr = GetExtNr( HcoState%Config%ExtList, 'GFED' )
+        IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'FINN' )
+        IF ( ExtNr <= 0 ) THEN
+           ExtNr = 0
+           Cat   = CATEGORY_BIOMASS
+        ENDIF
+
+
        ! Create diagnostic container
        DiagnName = 'BIOMASS_HG0'
        CALL Diagn_Create( am_I_Root,                                         & 

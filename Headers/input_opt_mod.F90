@@ -267,10 +267,8 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND17,             LD17
      INTEGER                     :: ND18,             LD18
      INTEGER                     :: ND19,             LD19
-     INTEGER                     :: ND20,             LD20
      INTEGER                     :: ND21,             LD21
      INTEGER                     :: ND22,             LD22
-     INTEGER                     :: ND23,             LD23
      INTEGER                     :: ND24,             LD24
      INTEGER                     :: ND25,             LD25
      INTEGER                     :: ND26,             LD26
@@ -287,7 +285,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND37,             LD37
      INTEGER                     :: ND38,             LD38
      INTEGER                     :: ND39,             LD39
-     INTEGER                     :: ND40,             LD40
      INTEGER                     :: ND41,             LD41
      INTEGER                     :: ND42,             LD42
      INTEGER                     :: ND43,             LD43
@@ -295,10 +292,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND45,             LD45
      INTEGER                     :: ND46,             LD46
      INTEGER                     :: ND47,             LD47
-     INTEGER                     :: ND48,             LD48
-     INTEGER                     :: ND49,             LD49
-     INTEGER                     :: ND50,             LD50
-     INTEGER                     :: ND51,             LD51
      INTEGER                     :: ND52,             LD52
      INTEGER                     :: ND53,             LD53
      INTEGER                     :: ND54,             LD54
@@ -310,7 +303,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND60,             LD60
      INTEGER                     :: ND61,             LD61
      INTEGER                     :: ND62,             LD62
-     INTEGER                     :: ND63,             LD63
      INTEGER                     :: ND64,             LD64
      INTEGER                     :: ND66,             LD66
      INTEGER                     :: ND67,             LD67
@@ -946,10 +938,8 @@ CONTAINS
     Input_Opt%ND17                   = 0
     Input_Opt%ND18                   = 0
     Input_Opt%ND19                   = 0
-    Input_Opt%ND20                   = 0
     Input_Opt%ND21                   = 0
     Input_Opt%ND22                   = 0
-    Input_Opt%ND23                   = 0
     Input_Opt%ND24                   = 0
     Input_Opt%ND25                   = 0
     Input_Opt%ND26                   = 0
@@ -966,7 +956,6 @@ CONTAINS
     Input_Opt%ND37                   = 0
     Input_Opt%ND38                   = 0
     Input_Opt%ND39                   = 0
-    Input_Opt%ND40                   = 0
     Input_Opt%ND41                   = 0
     Input_Opt%ND42                   = 0
     Input_Opt%ND43                   = 0
@@ -974,10 +963,6 @@ CONTAINS
     Input_Opt%ND45                   = 0
     Input_Opt%ND46                   = 0
     Input_Opt%ND47                   = 0
-    Input_Opt%ND48                   = 0
-    Input_Opt%ND49                   = 0
-    Input_Opt%ND50                   = 0
-    Input_Opt%ND51                   = 0
     Input_Opt%ND52                   = 0
     Input_Opt%ND53                   = 0
     Input_Opt%ND54                   = 0
@@ -989,7 +974,6 @@ CONTAINS
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
     Input_Opt%ND62                   = 0
-    Input_Opt%ND63                   = 0
     Input_Opt%ND64                   = 0
     Input_Opt%ND65                   = 0
     Input_Opt%ND66                   = 0
@@ -1019,10 +1003,8 @@ CONTAINS
     Input_Opt%LD17                   = 0
     Input_Opt%LD18                   = 0
     Input_Opt%LD19                   = 0
-    Input_Opt%LD20                   = 0
     Input_Opt%LD21                   = 0
     Input_Opt%LD22                   = 0
-    Input_Opt%LD23                   = 0
     Input_Opt%LD24                   = 0
     Input_Opt%LD25                   = 0
     Input_Opt%LD26                   = 0
@@ -1039,7 +1021,6 @@ CONTAINS
     Input_Opt%LD37                   = 0
     Input_Opt%LD38                   = 0
     Input_Opt%LD39                   = 0
-    Input_Opt%LD40                   = 0
     Input_Opt%LD41                   = 0
     Input_Opt%LD42                   = 0
     Input_Opt%LD43                   = 0
@@ -1047,10 +1028,6 @@ CONTAINS
     Input_Opt%LD45                   = 0
     Input_Opt%LD46                   = 0
     Input_Opt%LD47                   = 0
-    Input_Opt%LD48                   = 0
-    Input_Opt%LD49                   = 0
-    Input_Opt%LD50                   = 0
-    Input_Opt%LD51                   = 0
     Input_Opt%LD52                   = 0
     Input_Opt%LD53                   = 0
     Input_Opt%LD54                   = 0
@@ -1062,7 +1039,6 @@ CONTAINS
     Input_Opt%LD60                   = 0
     Input_Opt%LD61                   = 0
     Input_Opt%LD62                   = 0
-    Input_Opt%LD63                   = 0
     Input_Opt%LD64                   = 0
     Input_Opt%LD65                   = 0
     Input_Opt%LD66                   = 0

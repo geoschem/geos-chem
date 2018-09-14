@@ -960,11 +960,10 @@
                ! #16: HgBr + Br2 
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,1)
-     &              / NCHEMSTEP
  
             ELSE IF ( N == 17 ) THEN
 
@@ -972,11 +971,10 @@
                ! #16: HgBr + BrBrO
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,2)
-     &              / NCHEMSTEP
  
             ELSE IF ( N == 18 ) THEN
 
@@ -984,11 +982,10 @@
                ! #16: HgBr + BrHO2
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,3)
-     &              / NCHEMSTEP
  
             ELSE IF ( N == 19 ) THEN
 
@@ -996,11 +993,10 @@
                ! #16: HgBr + BrNO2
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,4)
-     &              / NCHEMSTEP
  
             ELSE IF ( N == 20 ) THEN
 
@@ -1008,11 +1004,10 @@
                ! #16: HgBr + BrClO
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,5)
-     &              / NCHEMSTEP
  
             ELSE IF ( N == 21 ) THEN
 
@@ -1020,11 +1015,10 @@
                ! #16: HgBr + BrOH
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
-               UNIT              = 'ppbv'
+               UNIT              = 'kg'
                LMAX              = LD03
                NN                = N
                ARRAY(:,:,1:LMAX) = AD03_Hg2_Br_Y(:,:,1:LMAX,6)
-     &              / NCHEMSTEP
  
             ELSE
 
