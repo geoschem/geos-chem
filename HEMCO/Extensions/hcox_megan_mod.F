@@ -4150,7 +4150,7 @@
       Ptr2D => NULL()
       Inst  => NULL()
 
-      ! Create AeroCom instance for this simulation
+      ! Create instance for this simulation
       CALL InstCreate ( ExtNr, ExtState%Megan, Inst, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 
@@ -6487,6 +6487,24 @@
       !=================================================================
       ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
       !=================================================================
+
+!      !!! testing only
+!      if(am_I_Root) then
+!       write(*,*) 'ISOP emissions instance ',ExtState%Megan
+!       write(*,*) 'A MGN ',ExtState%Megan,Inst%IDTISOP,SUM(FLUXISOP)
+!       write(*,*) 'B MGN ',ExtState%Megan,SUM(Inst%LAI_PREVDAY)
+!       write(*,*) 'C MGN ',ExtState%Megan,SUM(Inst%T_LAST24H)
+!       write(*,*) 'D MGN ',ExtState%Megan,SUM(Inst%T_LASTXDAYS)
+!       write(*,*) 'E MGN ',ExtState%Megan,SUM(Inst%PARDR_LASTXDAYS)
+!       write(*,*) 'F MGN ',ExtState%Megan,SUM(Inst%PARDF_LASTXDAYS)
+!       write(*,*) 'G MGN ',ExtState%Megan,SUM(ExtState%T2M%Arr%Val)
+!       write(*,*) 'H MGN ',ExtState%Megan,SUM(ExtState%SUNCOS%Arr%Val)
+!       write(*,*) 'I MGN ',ExtState%Megan,SUM(ExtState%PARDR%Arr%Val)
+!       write(*,*) 'J MGN ',ExtState%Megan,SUM(ExtState%PARDF%Arr%Val)
+!       write(*,*) 'K MGN ',ExtState%Megan,SUM(ExtState%LAI%Arr%Val)
+!       write(*,*) 'L MGN ',ExtState%Megan,SUM(ExtState%GWETROOT%Arr%Val)
+!       write(*,*) 'M MGN ',ExtState%Megan,SUM(ExtState%SZAFACT%Arr%Val)
+!      endif
 
       ! ----------------------------------------------------------------
       ! ISOPRENE
@@ -9337,6 +9355,8 @@
       ! Verbose mode
       IF ( am_I_Root ) THEN
          MSG = 'Use MEGAN biogenic emissions (extension module)'
+         CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
+         WRITE(MSG,*) ' - This is instance ',ExtState%Megan
          CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
          MSG = ' - Use the following species:'
          CALL HCO_MSG(HcoState%Config%Err,MSG )
