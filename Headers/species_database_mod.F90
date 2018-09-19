@@ -168,6 +168,7 @@ CONTAINS
 !                              (E. Marais)
 !  27 Nov 2017 - E. Lundgren - Add SALA, SALC, OCPO/OCPI, BCPO/BCPI, and SO4
 !                              as hygroscopic growth species for cloud diags
+!  14 Sep 2018 - C. Keller   - Now get species info from Spc_Info.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1687,7 +1688,8 @@ CONTAINS
                               Is_Wetdep     = F
                               Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.90e1X_f8 * To_M_atm
+                              !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
+                              Henry_K0      = 3.90e-1_f8 * To_M_atm
                               Henry_CR      = 8400.0_f8
 #endif
 
@@ -2917,8 +2919,8 @@ CONTAINS
                               Is_Wetdep     = F
                               DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.9e-2_f8 * To_M_atm
-                              Henry_CR      = _f8
+                              Henry_K0      = 2.9e-2_fp * To_M_atm
+                              Henry_CR      = 0.0_f8
 #else
                               DD_Hstar_old  = 3.60_fp
 #endif
