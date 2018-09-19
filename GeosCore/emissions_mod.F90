@@ -139,10 +139,6 @@ CONTAINS
     USE BROMOCARB_MOD,      ONLY : SET_CH3BR
     USE CARBON_MOD,         ONLY : EMISSCARBON
     USE CO2_MOD,            ONLY : EMISSCO2
-#if defined( NC_DIAG )
-    USE CMN_Size_Mod
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-#endif
     USE ErrCode_Mod
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
@@ -205,19 +201,6 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-#if defined( NC_DIAG )
-    ! Budget diagnostics
-    CHARACTER(LEN=63)             :: OrigUnit
-    REAL(fp)                      :: DT_Emis
-    REAL(fp), POINTER             :: ptr2d(:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassFull (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassTrop (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassPBL  (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassFull   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassTrop   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassPBL    (:,:,:)
-#endif
-
     !=================================================================
     ! EMISSIONS_RUN begins here!
     !=================================================================
@@ -241,67 +224,6 @@ CONTAINS
 
     ! Exit if Phase 1
     IF ( Phase == 1 ) RETURN
-
-#if defined( NC_DIAG )
-    !=======================================================================
-    ! Get initial column masses for budget diagnostics
-    !=======================================================================
-    IF ( State_Diag%Archive_BudgetEmissions ) THEN
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Full column
-       IF ( State_Diag%Archive_BudgetEmissionsFull ) THEN
-          ALLOCATE( initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassFull = 0.0_fp
-          ptr2d => initialMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetEmissionsTrop ) THEN
-          ALLOCATE( initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassTrop = 0.0_fp
-          ptr2d => initialMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetEmissionsPBL ) THEN
-          ALLOCATE( initialMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassPBL = 0.0_fp
-          ptr2d => initialMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-
-       ! Error trapping
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Emissions budget diagnostics error 1', RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-#endif
 
     ! Call carbon emissions module to make sure that sesquiterpene
     ! emissions calculated in HEMCO (SESQ) are passed to the internal
@@ -449,78 +371,6 @@ CONTAINS
        endif
  
     ENDIF
-
-#if defined( NC_DIAG )
-    !=======================================================================
-    ! Compute budget diagnostics [kg/m2/s]
-    !=======================================================================
-    IF ( State_Diag%Archive_BudgetEmissions ) THEN
-
-       ! Emissions timestep [s]
-       DT_Emis = Get_Ts_Emis()
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-       
-       ! Full column
-       IF ( State_Diag%Archive_BudgetEmissionsFull ) THEN
-          ALLOCATE( finalMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassFull = 0.0_fp
-          ptr2d => finalMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetEmissionsFull =    &
-                         ( finalMassFull - initialMassFull ) / DT_Emis
-          DEALLOCATE( initialMassFull, STAT=RC )
-          DEALLOCATE( finalMassFull, STAT=RC )
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetEmissionsTrop ) THEN
-          ALLOCATE( finalMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassTrop = 0.0_fp
-          ptr2d => finalMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetEmissionsTrop =   &
-                         ( finalMassTrop - initialMassTrop ) / DT_Emis
-          DEALLOCATE( initialMassTrop, STAT=RC )
-          DEALLOCATE( finalMassTrop, STAT=RC )
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetEmissionsPBL ) THEN
-          ALLOCATE( finalMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassPBL = 0.0_fp
-          ptr2d => finalMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetEmissionsPBL =   &            
-                         ( finalMassPBL - initialMassPBL ) / DT_Emis
-          DEALLOCATE( initialMassPBL, STAT=RC )
-          DEALLOCATE( finalMassPBL, STAT=RC )
-       ENDIF
-
-       ! Error trapping
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Emissions budget diagnostics error 2', RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-    ENDIF
-#endif
    
    END SUBROUTINE EMISSIONS_RUN
 !EOC

@@ -314,9 +314,6 @@
 ! !USES:
 !
       USE ErrCode_Mod
-#if defined( NC_DIAG )
-      USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-#endif
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
@@ -459,19 +456,6 @@
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
 
-#if defined( NC_DIAG )
-      ! Budget diagnostics
-      CHARACTER(LEN=63)  :: OrigUnit
-      REAL(fp)           :: DT_Chem
-      REAL(fp), POINTER  :: ptr2d(:,:,:)
-      REAL(fp), TARGET   :: initialMassFull (IIPAR,JJPAR,NUMDEP)
-      REAL(fp), TARGET   :: initialMassTrop (IIPAR,JJPAR,NUMDEP)
-      REAL(fp), TARGET   :: initialMassPBL  (IIPAR,JJPAR,NUMDEP)
-      REAL(fp), TARGET   :: finalMassFull   (IIPAR,JJPAR,NUMDEP)
-      REAL(fp), TARGET   :: finalMassTrop   (IIPAR,JJPAR,NUMDEP)
-      REAL(fp), TARGET   :: finalMassPBL    (IIPAR,JJPAR,NUMDEP)
-#endif
-
       !=================================================================
       ! DO_DRYDEP begins here!
       !=================================================================
@@ -484,66 +468,6 @@
       ErrMsg  = ''
       ThisLoc = 
      &   ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F)'      
-
-#if defined( NC_DIAG )
-      !=======================================================================
-      ! Get initial column masses for budget diagnostics
-      !=======================================================================
-      IF ( State_Diag%Archive_BudgetDryDep ) THEN
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Full column
-         IF ( State_Diag%Archive_BudgetDryDepFull ) THEN
-            initialMassFull = 0.0_fp  
-            ptr2d => initialMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetDryDepTrop ) THEN
-            initialMassTrop = 0.0_fp
-            ptr2d => initialMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetDryDepPBL ) THEN
-            initialMassPBL = 0.0_fp
-            ptr2d => initialMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-
-         ! Error trapping
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Drydep budget diagnostics error 1'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-#endif
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
@@ -719,71 +643,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-#if defined( NC_DIAG )
-      !=======================================================================
-      ! Compute budget diagnostics [kg/m2/s]
-      !=======================================================================
-      IF ( State_Diag%Archive_BudgetDryDep ) THEN
-
-         ! Chemistry timestep [s]
-         DT_Chem = Get_Ts_Chem()
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Full column
-         IF ( State_Diag%Archive_BudgetDryDepFull ) THEN
-            finalMassFull = 0.0_fp  
-            ptr2d => finalMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetDryDepFull =                
-     &                   ( finalMassFull - initialMassFull ) / DT_Chem
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetDryDepTrop ) THEN
-            finalMassTrop = 0.0_fp
-            ptr2d => finalMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetDryDepTrop =                
-     &                   ( finalMassTrop - initialMassTrop ) / DT_Chem
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetDryDepPBL ) THEN
-            finalMassPBL = 0.0_fp
-            ptr2d => finalMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_DryDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetDryDepPBL =                
-     &                   ( finalMassPBL - initialMassPBL ) / DT_Chem
-         ENDIF
-
-         ! Error trapping
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Drydep budget diagnostics error 2'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
-      ENDIF
-#endif
 
       !### Debug
       IF ( LPRT .and. am_I_Root ) THEN

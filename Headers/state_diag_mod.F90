@@ -60,15 +60,12 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_SpeciesConc
 
      ! Budget diagnostics
-     REAL(f4),  POINTER :: BudgetEmissionsFull      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetEmissionsTrop      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetEmissionsPBL       (:,:,:) 
+     REAL(f4),  POINTER :: BudgetEmisDepFull        (:,:,:) 
+     REAL(f4),  POINTER :: BudgetEmisDepTrop        (:,:,:) 
+     REAL(f4),  POINTER :: BudgetEmisDepPBL         (:,:,:) 
      REAL(f4),  POINTER :: BudgetTransportFull      (:,:,:) 
      REAL(f4),  POINTER :: BudgetTransportTrop      (:,:,:) 
      REAL(f4),  POINTER :: BudgetTransportPBL       (:,:,:) 
-     REAL(f4),  POINTER :: BudgetDryDepFull         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetDryDepTrop         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetDryDepPBL          (:,:,:) 
      REAL(f4),  POINTER :: BudgetMixingFull         (:,:,:) 
      REAL(f4),  POINTER :: BudgetMixingTrop         (:,:,:) 
      REAL(f4),  POINTER :: BudgetMixingPBL          (:,:,:) 
@@ -81,18 +78,16 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: BudgetWetDepFull         (:,:,:) 
      REAL(f4),  POINTER :: BudgetWetDepTrop         (:,:,:) 
      REAL(f4),  POINTER :: BudgetWetDepPBL          (:,:,:) 
-     LOGICAL :: Archive_BudgetEmissions
-     LOGICAL :: Archive_BudgetEmissionsFull  
-     LOGICAL :: Archive_BudgetEmissionsTrop  
-     LOGICAL :: Archive_BudgetEmissionsPBL   
+     REAL(f8),  POINTER :: BudgetMass1              (:,:,:,:) 
+     REAL(f8),  POINTER :: BudgetMass2              (:,:,:,:) 
+     LOGICAL :: Archive_BudgetEmisDep
+     LOGICAL :: Archive_BudgetEmisDepFull  
+     LOGICAL :: Archive_BudgetEmisDepTrop  
+     LOGICAL :: Archive_BudgetEmisDepPBL   
      LOGICAL :: Archive_BudgetTransport  
      LOGICAL :: Archive_BudgetTransportFull  
      LOGICAL :: Archive_BudgetTransportTrop  
      LOGICAL :: Archive_BudgetTransportPBL   
-     LOGICAL :: Archive_BudgetDryDep     
-     LOGICAL :: Archive_BudgetDryDepFull     
-     LOGICAL :: Archive_BudgetDryDepTrop     
-     LOGICAL :: Archive_BudgetDryDepPBL      
      LOGICAL :: Archive_BudgetMixing     
      LOGICAL :: Archive_BudgetMixingFull     
      LOGICAL :: Archive_BudgetMixingTrop     
@@ -109,6 +104,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_BudgetWetDepFull     
      LOGICAL :: Archive_BudgetWetDepTrop     
      LOGICAL :: Archive_BudgetWetDepPBL      
+     LOGICAL :: Archive_Budget
 
      ! Dry deposition
      REAL(f4),  POINTER :: DryDepChm       (:,:,:  ) ! Drydep flux in chemistry
@@ -508,16 +504,12 @@ CONTAINS
     ! Free pointers and set logicals
     State_Diag%SpeciesConc                => NULL()
     State_Diag%Archive_SpeciesConc        = .FALSE.
-
-    State_Diag%BudgetEmissionsFull        => NULL()          
-    State_Diag%BudgetEmissionsTrop        => NULL()
-    State_Diag%BudgetEmissionsPBL         => NULL()
+    State_Diag%BudgetEmisDepFull          => NULL()          
+    State_Diag%BudgetEmisDepTrop          => NULL()
+    State_Diag%BudgetEmisDepPBL           => NULL()
     State_Diag%BudgetTransportFull        => NULL()
     State_Diag%BudgetTransportTrop        => NULL()
     State_Diag%BudgetTransportPBL         => NULL()
-    State_Diag%BudgetDryDepFull           => NULL()
-    State_Diag%BudgetDryDepTrop           => NULL()
-    State_Diag%BudgetDryDepPBL            => NULL()
     State_Diag%BudgetMixingFull           => NULL()
     State_Diag%BudgetMixingTrop           => NULL()
     State_Diag%BudgetMixingPBL            => NULL()
@@ -530,18 +522,16 @@ CONTAINS
     State_Diag%BudgetWetDepFull           => NULL()
     State_Diag%BudgetWetDepTrop           => NULL()
     State_Diag%BudgetWetDepPBL            => NULL()          
-    State_Diag%Archive_BudgetEmissions       = .FALSE.          
-    State_Diag%Archive_BudgetEmissionsFull   = .FALSE.          
-    State_Diag%Archive_BudgetEmissionsTrop   = .FALSE.
-    State_Diag%Archive_BudgetEmissionsPBL    = .FALSE.
+    State_Diag%BudgetMass1                => NULL()          
+    State_Diag%BudgetMass2                => NULL()          
+    State_Diag%Archive_BudgetEmisDep         = .FALSE.          
+    State_Diag%Archive_BudgetEmisDepFull     = .FALSE.          
+    State_Diag%Archive_BudgetEmisDepTrop     = .FALSE.
+    State_Diag%Archive_BudgetEmisDepPBL      = .FALSE.
     State_Diag%Archive_BudgetTransport       = .FALSE.
     State_Diag%Archive_BudgetTransportFull   = .FALSE.
     State_Diag%Archive_BudgetTransportTrop   = .FALSE.
     State_Diag%Archive_BudgetTransportPBL    = .FALSE.
-    State_Diag%Archive_BudgetDryDep          = .FALSE.
-    State_Diag%Archive_BudgetDryDepFull      = .FALSE.
-    State_Diag%Archive_BudgetDryDepTrop      = .FALSE.
-    State_Diag%Archive_BudgetDryDepPBL       = .FALSE.
     State_Diag%Archive_BudgetMixing          = .FALSE.
     State_Diag%Archive_BudgetMixingFull      = .FALSE.
     State_Diag%Archive_BudgetMixingTrop      = .FALSE.
@@ -558,6 +548,7 @@ CONTAINS
     State_Diag%Archive_BudgetWetDepFull      = .FALSE.
     State_Diag%Archive_BudgetWetDepTrop      = .FALSE.
     State_Diag%Archive_BudgetWetDepPBL       = .FALSE.  
+    State_Diag%Archive_Budget                = .FALSE.  
 
     State_Diag%DryDep                     => NULL()
     State_Diag%DryDepChm                  => NULL()
@@ -811,61 +802,61 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetEmissionsFull'
-    diagID  = 'BudgetEmissionsFull'
+    arrayID = 'State_Diag%BudgetEmisDepFull'
+    diagID  = 'BudgetEmisDepFull'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmissionsFull( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDepFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmissionsFull = 0.0_f4
-       State_Diag%Archive_BudgetEmissionsFull = .TRUE.
+       State_Diag%BudgetEmisDepFull = 0.0_f4
+       State_Diag%Archive_BudgetEmisDepFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
-                                State_Diag%BudgetEmissionsFull, &
+                                State_Diag%BudgetEmisDepFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! Trop-only emissions
-    arrayID = 'State_Diag%BudgetEmissionsTrop'
-    diagID  = 'BudgetEmissionsTrop'
+    arrayID = 'State_Diag%BudgetEmisDepTrop'
+    diagID  = 'BudgetEmisDepTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmissionsTrop( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDepTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmissionsTrop = 0.0_f4
-       State_Diag%Archive_BudgetEmissionsTrop = .TRUE.
+       State_Diag%BudgetEmisDepTrop = 0.0_f4
+       State_Diag%Archive_BudgetEmisDepTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
-                                State_Diag%BudgetEmissionsTrop, &
+                                State_Diag%BudgetEmisDepTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! PBL-only emissions
-    arrayID = 'State_Diag%BudgetEmissionsPBL'
-    diagID  = 'BudgetEmissionsPBL'
+    arrayID = 'State_Diag%BudgetEmisDepPBL'
+    diagID  = 'BudgetEmisDepPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmissionsPBL( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDepPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmissionsPBL = 0.0_f4
-       State_Diag%Archive_BudgetEmissionsPBL = .TRUE.
+       State_Diag%BudgetEmisDepPBL = 0.0_f4
+       State_Diag%Archive_BudgetEmisDepPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,             &
-                                State_Diag%BudgetEmissionsPBL, &
+                                State_Diag%BudgetEmisDepPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! High-level logical for emissions budget
-    IF ( State_Diag%Archive_BudgetEmissionsFull .OR. &
-         State_Diag%Archive_BudgetEmissionsTrop .OR. &
-         State_Diag%Archive_BudgetEmissionsPBL ) THEN
-       State_Diag%Archive_BudgetEmissions = .TRUE.
+    IF ( State_Diag%Archive_BudgetEmisDepFull .OR. &
+         State_Diag%Archive_BudgetEmisDepTrop .OR. &
+         State_Diag%Archive_BudgetEmisDepPBL ) THEN
+       State_Diag%Archive_BudgetEmisDep = .TRUE.
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -926,66 +917,6 @@ CONTAINS
          State_Diag%Archive_BudgetTransportTrop .OR. &
          State_Diag%Archive_BudgetTransportPBL ) THEN
        State_Diag%Archive_BudgetTransport = .TRUE.
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Budget for dry deposition  (average kg/m2/s across single timestep)
-    !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetDryDepFull'
-    diagID  = 'BudgetDryDepFull'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepFull( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetDryDepFull = 0.0_f4
-       State_Diag%Archive_BudgetDryDepFull = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,           &
-                                State_Diag%BudgetDryDepFull, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! Trop-only dry deposition
-    arrayID = 'State_Diag%BudgetDryDepTrop'
-    diagID  = 'BudgetDryDepTrop'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepTrop( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetDryDepTrop = 0.0_f4
-       State_Diag%Archive_BudgetDryDepTrop = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,           &
-                                State_Diag%BudgetDryDepTrop, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! PBL-only dry deposition
-    arrayID = 'State_Diag%BudgetDryDepPBL'
-    diagID  = 'BudgetDryDepPBL'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    IF ( Found ) THEN
-       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetDryDepPBL( IM, JM, nDryDep ), STAT=RC )
-       CALL GC_CheckVar( arrayID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetDryDepPBL = 0.0_f4
-       State_Diag%Archive_BudgetDryDepPBL = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID,          &
-                                State_Diag%BudgetDryDepPBL, &
-                                State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! High-level logical for dry deposition budget
-    IF ( State_Diag%Archive_BudgetDryDepFull .OR. &
-         State_Diag%Archive_BudgetDryDepTrop .OR. &
-         State_Diag%Archive_BudgetDryDepPBL ) THEN
-       State_Diag%Archive_BudgetDryDep = .TRUE.
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3680,6 +3611,26 @@ CONTAINS
     !=======================================================================
     ! Set high-level logicals for diagnostics
     !=======================================================================
+    State_Diag%Archive_Budget =  &
+            (   State_Diag%Archive_BudgetEmisDepFull       .or.    &
+                State_Diag%Archive_BudgetEmisDepTrop       .or.    &
+                State_Diag%Archive_BudgetEmisDepPBL        .or.    &
+                State_Diag%Archive_BudgetTransportFull     .or.    &
+                State_Diag%Archive_BudgetTransportTrop     .or.    &
+                State_Diag%Archive_BudgetTransportPBL      .or.    &
+                State_Diag%Archive_BudgetMixingFull        .or.    &
+                State_Diag%Archive_BudgetMixingTrop        .or.    &
+                State_Diag%Archive_BudgetMixingPBL         .or.    &
+                State_Diag%Archive_BudgetConvectionFull    .or.    &
+                State_Diag%Archive_BudgetConvectionTrop    .or.    &
+                State_Diag%Archive_BudgetConvectionPBL     .or.    &
+                State_Diag%Archive_BudgetChemistryFull     .or.    &
+                State_Diag%Archive_BudgetChemistryTrop     .or.    &
+                State_Diag%Archive_BudgetChemistryPBL      .or.    &
+                State_Diag%Archive_BudgetWetDepFull        .or.    &
+                State_Diag%Archive_BudgetWetDepTrop        .or.    &
+                State_Diag%Archive_BudgetWetDepPBL                  )
+                                                                     
     State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA    .or.    &
                                    State_Diag%Archive_AerMassBC      .or.    &
                                    State_Diag%Archive_AerMassINDIOL  .or.    &
@@ -3722,6 +3673,16 @@ CONTAINS
                                      State_Diag%Archive_AODPSCWL3    .or. &  
                                      State_Diag%Archive_AerNumDenSLA .or. &  
                                      State_Diag%Archive_AerNumDenPSC       ) 
+
+    !=======================================================================
+    ! Set arrays used to calculate budget diagnostics, if needed
+    !=======================================================================
+    IF ( State_Diag%Archive_Budget ) THEN
+       ! 4th dimension is column region: Full, Trop, PBL respectively
+       ALLOCATE( State_Diag%BudgetMass1( IM, JM, State_Chm%nAdvect,3 ), STAT=RC)
+       ALLOCATE( State_Diag%BudgetMass2( IM, JM, State_Chm%nAdvect,3 ), STAT=RC)
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3789,21 +3750,33 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmissionsFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmissionsFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsFull', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
+       DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmissionsTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmissionsTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsTrop', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetMass2 ) ) THEN
+       DEALLOCATE( State_Diag%BudgetMass2, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetMass2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmissionsPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmissionsPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmissionsPBL', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDepFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDepFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepFull', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDepTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDepTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDepPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDepPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -3822,24 +3795,6 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetDryDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetDryDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetDryDepFull', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetDryDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetDryDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetDryDepTrop', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%BudgetDryDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetDryDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetDryDepPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -6145,7 +6100,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Register_DiagField_R4_4D( am_I_Root, metadataID, Ptr2Data,      &
-                                       State_Chm, State_Diag, RC            )
+                                       State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -6256,7 +6211,7 @@ CONTAINS
        diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
        diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
-       ! ADd field to registry
+       ! Add field to registry
        CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
                                Registry     = State_Diag%Registry,           &
                                State        = State_Diag%State,              &

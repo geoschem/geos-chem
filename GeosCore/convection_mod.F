@@ -106,6 +106,7 @@
 #endif
 #if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+      USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
@@ -235,26 +236,13 @@
       ! Pointers
       REAL(fp), POINTER  :: p_FSOL (:,:,:)
 
-#if defined( NC_DIAG )
-      ! Budget diagnostics
-      CHARACTER(LEN=63)  :: OrigUnit
-      REAL(fp), POINTER  :: ptr2d(:,:,:)
-
-      REAL(fp), TARGET :: initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: initialMassPBL (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassFull  (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassTrop  (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassPBL   (IIPAR,JJPAR,State_Chm%nAdvect)
-#endif
-
       !=================================================================
       ! DO_CONVECT begins here!
       !=================================================================
 
       !-----------------------------------------------------------------
       ! Initialize
-      !-----------------------------------------------------------------
+      !----------------------------------------------------------------
       RC      = GC_SUCCESS
       p_FSOL  => NULL()
       ErrMsg  = ''
@@ -262,60 +250,19 @@
      &   ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
 #if defined( NC_DIAG )
-      !=======================================================================
       ! Get initial column masses for budget diagnostics
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetConvection ) THEN
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Full column
-         IF ( State_Diag%Archive_BudgetConvectionFull ) THEN
-            initialMassFull = 0.0_fp  
-            ptr2d => initialMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetConvectionTrop ) THEN
-            initialMassTrop = 0.0_fp
-            ptr2d => initialMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetConvectionPBL ) THEN
-            initialMassPBL = 0.0_fp
-            ptr2d => initialMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! Error trapping
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetConvectionFull, 
+     &                          State_Diag%Archive_BudgetConvectionTrop, 
+     &                          State_Diag%Archive_BudgetConvectionPBL,  
+     &                          State_Diag%BudgetMass1, 
+     &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Convection budget diagnostics error 1'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
@@ -564,64 +511,33 @@
 #endif
 
 #if defined( NC_DIAG )
-      !=======================================================================
       ! Compute budget diagnostics [kg/m2/s]
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetConvection ) THEN
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Full column
-         IF ( State_Diag%Archive_BudgetConvectionFull ) THEN
-            finalMassFull = 0.0_fp  
-            ptr2d => finalMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetConvectionFull =                
-     &                   ( finalMassFull - initialMassFull ) / DT_Conv
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetConvectionTrop ) THEN
-            finalMassTrop = 0.0_fp
-            ptr2d => finalMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetConvectionTrop =                
-     &                   ( finalMassTrop - initialMassTrop ) / DT_Conv
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetConvectionPBL ) THEN
-            finalMassPBL = 0.0_fp
-            ptr2d => finalMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetConvectionPBL =                
-     &                   ( finalMassPBL - initialMassPBL ) / DT_Conv
-         ENDIF
-
-         ! Error trapping
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetConvectionFull, 
+     &                          State_Diag%Archive_BudgetConvectionTrop, 
+     &                          State_Diag%Archive_BudgetConvectionPBL,  
+     &                          State_Diag%BudgetMass2, 
+     &                          RC )       
+         CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Chm%Map_Advect,
+     &                          DT_Conv,                                
+     &                          State_Diag%Archive_BudgetChemistryFull, 
+     &                          State_Diag%Archive_BudgetChemistryTrop, 
+     &                          State_Diag%Archive_BudgetChemistryPBL,  
+     &                          State_Diag%BudgetChemistryFull,         
+     &                          State_Diag%BudgetChemistryTrop,          
+     &                          State_Diag%BudgetChemistryPBL,          
+     &                          State_Diag%BudgetMass1,          
+     &                          State_Diag%BudgetMass2,          
+     &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Convection budget diagnostics error 2'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
       ENDIF
 #endif
 

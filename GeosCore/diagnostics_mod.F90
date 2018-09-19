@@ -29,6 +29,7 @@ MODULE Diagnostics_mod
   PUBLIC :: Set_Diagnostics_EndofTimestep
   PUBLIC :: Zero_Diagnostics_StartofTimestep
   PUBLIC :: Compute_Column_Mass
+  PUBLIC :: Compute_Budget_Diagnostics
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
@@ -399,35 +400,190 @@ CONTAINS
 ! !IROUTINE: Compute_Column_Mass
 !
 ! !DESCRIPTION: Subroutine Compute\_Column\_Mass calculates the
-!  mass for a given region of the column for use in the calculation of
-!  the budget diagnostics.
+!  initial or final mass for a given region of the column for use in the 
+!  calculation of the budget diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Column_Mass( am_I_Root, State_Met, State_Chm,     &
-                                  Region,    SpcMap,    colMass,   RC ) 
+  SUBROUTINE Compute_Column_Mass( am_I_Root,  Input_Opt,  State_Met,       &
+                                  State_Chm,  SpcMap,     isFull,          &
+                                  isTrop,     isPBL,      colMass,         &
+                                  RC      ) 
 !
 ! !USES:
 !
+    USE Input_Opt_Mod,  Only : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,          INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
-    TYPE(MetState),   INTENT(IN)  :: State_Met       ! Meteorology state object
-    TYPE(ChmState),   INTENT(IN)  :: State_Chm       ! Chemistry state obj
-    CHARACTER(LEN=*), INTENT(IN)  :: Region          ! full, trop, or pbl 
-    INTEGER,          POINTER     :: SpcMap(:)       ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
+    TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state object
+    INTEGER,        POINTER       :: SpcMap(:)        ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: isFull           ! True if full col diag on
+    LOGICAL,        INTENT(IN)    :: isTrop           ! True if trop col diag on
+    LOGICAL,        INTENT(IN)    :: isPBL            ! True if PBL col diag on
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(fp),         POINTER     :: colMass(:,:,:) ! Column mass array [kg/m2]
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm        ! Chemistry state obj
+    REAL(f8),       POINTER       :: colMass(:,:,:,:) ! column masses 
+                                                      ! (I,J,spc,col region)
+                                                      ! 1:full, 2:trop, 3:pbl
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT) :: RC              ! Success or failure?
+    INTEGER,        INTENT(OUT)   :: RC                 ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  28 Aug 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=63)  :: OrigUnit
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER            :: I, J, M, N, numSpc, region
+
+    !====================================================================
+    ! Compute_Column_Mass begins here!
+    !====================================================================
+
+    ! Initialize
+    RC      =  GC_SUCCESS
+    ThisLoc = ' -> Compute_Column_Mass ' // ModLoc
+    numSpc = SIZE(SpcMap)
+
+#if defined( NC_DIAG )
+    ! Convert species units to kg/m2
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
+                            State_Chm,  'kg/m2',   RC,          &
+                            OrigUnit=OrigUnit                  )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Start with all zeros
+    colMass = 0.0_fp
+
+    ! Full column
+    IF ( isFull ) THEN
+       region = 1
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED )  &
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          N = SpcMap(M)
+          colMass(I,J,N,region) =    &
+                  SUM( State_Chm%Species(I,J,:,N) )
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    ! Troposphere
+    IF ( isTrop ) THEN
+       region = 2
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED )  &
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          N = SpcMap(M)
+          colMass(I,J,N,region) =    &
+             SUM( State_Chm%Species(I,J,1:State_Met%TropLev(I,J),N) )
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    ! PBL
+    IF ( isPBL ) THEN
+       region = 3
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED )  &
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          N = SpcMap(M)
+          colMass(I,J,N,region) =    &
+             SUM( State_Chm%Species(I,J,1:State_Met%PBL_TOP_L(I,J),N) )
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+    ! Convert species conc back to original units
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                            State_Chm, OrigUnit,  RC         )
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
+       RETURN
+    ENDIF
+
+#endif
+
+  END SUBROUTINE Compute_Column_Mass
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_Budget_Diagnostics
+!
+! !DESCRIPTION: Subroutine Compute\_Budget\_Diagnostics calculates the
+!  budget diagnostics for a given component by taking the difference of the
+!  final and initial kg/m2 and dividing by the timestep in seconds.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_Budget_Diagnostics( am_I_Root,    SpcMap,     TS,       &
+                                         isFull,       isTrop,     isPBL,    &
+                                         diagFull,     diagTrop,   diagPBL,  & 
+                                         mass_initial, mass_final, RC        ) 
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,  INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+    INTEGER,  POINTER     :: SpcMap(:)       ! Map to species indexes
+    REAL(fp), INTENT(IN)  :: TS              ! timestep [s]
+    LOGICAL,  INTENT(IN)  :: isFull          ! True if full col diag on
+    LOGICAL,  INTENT(IN)  :: isTrop          ! True if trop col diag on
+    LOGICAL,  INTENT(IN)  :: isPBL           ! True if PBL col diag on
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(f4), POINTER     :: diagFull(:,:,:)       ! ptr to full col diag
+    REAL(f4), POINTER     :: diagTrop(:,:,:)       ! ptr to trop col diag 
+    REAL(f4), POINTER     :: diagPBL(:,:,:)        ! ptr to pbl col diag
+    REAL(f8), POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
+    REAL(f8), POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(OUT) :: RC              ! Success or failure?
 !
 ! !REMARKS:
 !  The incoming units must be in kg/m2
@@ -440,89 +596,78 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: I, J, N, numSpc
+    INTEGER            :: I, J, M, N, numSpc, region
 
     !====================================================================
-    ! Compute_Column_Mass begins here!
+    ! Compute_Budget_Diagnostics begins here!
     !====================================================================
 
     ! Initialize
     RC      =  GC_SUCCESS
-    ThisLoc = ' -> Compute_Column_Mass_Array ' // ModLoc
+    ThisLoc = ' -> Compute_Budget_Diagnostics ' // ModLoc
     numSpc = SIZE(SpcMap)
 
-    ! Exit if pointer not associated
-    IF ( .NOT. ASSOCIATED ( colMass ) ) THEN
-       ErrMsg = 'Pointer not associated'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Exit if species units are not kg/m2s
-    IF ( TRIM(State_Chm%Spc_Units) /= 'kg/m2' ) THEN
-       ErrMsg = 'Incorrect units for budget diagnostic calculation'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
+#if defined( NC_DIAG )
     ! Full column
-    IF ( Region == 'full' ) THEN
-
+    IF ( isFull ) THEN
+       region = 1
        !$OMP PARALLEL DO        &
        !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, N )
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-       DO N = 1, numSpc
-          colMass(I,J,N) = SUM( State_Chm%Species(I,J,:,SpcMap(N)) )
+          N  = SpcMap(M)
+          diagFull(I,J,M) =   &
+                ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
        ENDDO
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
+    ENDIF
 
     ! Troposphere
-    ELSE IF ( TRIM(Region) == 'trop' ) THEN
-
+    IF ( isTrop ) THEN
+       region = 2
        !$OMP PARALLEL DO        &
        !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, N )
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-       DO N = 1, numSpc
-          colMass(I,J,N) =    &
-             SUM( State_Chm%Species(I,J,1:State_Met%TropLev(I,J),SpcMap(N)) )
+          N  = SpcMap(M)
+          diagTrop(I,J,M) =   &   
+                ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
        ENDDO
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
+    ENDIF
 
     ! PBL
-    ELSE IF ( TRIM(Region) == 'pbl' ) THEN
-
+    IF ( isPBL ) THEN
+       region = 3
        !$OMP PARALLEL DO        &
        !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, N )
+       !$OMP PRIVATE( I, J, M, N )
+       DO M = 1, numSpc
        DO J = 1, JJPAR
        DO I = 1, IIPAR
-       DO N = 1, numSpc
-          colMass(I,J,N) =    &
-             SUM( State_Chm%Species(I,J,1:State_Met%PBL_TOP_L(I,J),SpcMap(N)) )
+          N  = SpcMap(M)
+          diagPBL(I,J,M) =   &
+               ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
        ENDDO
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
-
-    ELSE 
-       ErrMsg = 'Budget diagnostics not defined for region ' // TRIM(Region)
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
+
+    ! Zero the mass arrays
+    mass_initial = 0.0_fp
+    mass_final   = 0.0_fp
 #endif
 
-  END SUBROUTINE Compute_Column_Mass
+  END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
-
-
 END MODULE Diagnostics_mod

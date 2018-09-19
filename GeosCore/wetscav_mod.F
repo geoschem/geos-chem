@@ -243,11 +243,15 @@
 !
       USE CMN_SIZE_MOD
 #if defined( NC_DIAG )
-      USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-      USE Time_Mod,           ONLY : GET_TS_CHEM ! or use dyn?
+      USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
+      USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+      USE Time_Mod,        ONLY : GET_TS_CHEM
 #endif
       USE ErrCode_Mod
       USE Error_Mod,       ONLY : Debug_MSG
+      USE Error_Mod,       ONLY : Check_Value             ! ewl debugging
+      USE Error_Mod,       ONLY : Print_Global_Species_Kg ! ewl debugging
+      USE Species_Mod,     ONLY : Species                 ! ewl debugging
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,   ONLY : ChmState
@@ -308,17 +312,7 @@
       CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
 
 #if defined( NC_DIAG )
-      ! Budget diagnostics
-      CHARACTER(LEN=63)  :: OrigUnit
       REAL(fp)           :: DT_Chem ! or is wet dep every dyn?
-      REAL(fp), POINTER  :: ptr2d(:,:,:)
-
-      REAL(fp), TARGET :: initialMassFull(IIPAR,JJPAR,State_chm%nAdvect)
-      REAL(fp), TARGET :: initialMassTrop(IIPAR,JJPAR,State_chm%nAdvect)
-      REAL(fp), TARGET :: initialMassPBL (IIPAR,JJPAR,State_chm%nAdvect)
-      REAL(fp), TARGET :: finalMassFull  (IIPAR,JJPAR,State_chm%nAdvect)
-      REAL(fp), TARGET :: finalMassTrop  (IIPAR,JJPAR,State_chm%nAdvect)
-      REAL(fp), TARGET :: finalMassPBL   (IIPAR,JJPAR,State_chm%nAdvect)
 #endif
 
       !=================================================================
@@ -342,62 +336,39 @@
       doPrt = ( LPRT .and. am_I_Root )
 
 #if defined( NC_DIAG )
-      !=======================================================================
+         !! Debugging - check values for inifinite or nan
+         !PRINT *, "Start of wetdep. Checking values..."
+         !DO D = 1, State_Chm%nDryDep
+         !DO L = 1, LLPAR
+         !DO J = 1, JJPAR
+         !DO I = 1, IIPAR
+         !   N =  State_Chm%Map_DryDep(D)
+         !   SpcInfo => State_Chm%SpcData(N)%Info
+         !   ERR_LOC =(/ I, J, L, N /)
+         !   CALL Check_Value( State_Chm%Species(I,J,L,N),
+        !&                     ERR_LOC, SpcInfo%Name,
+        !&                     'test')
+         !ENDDO
+         !ENDDO
+         !ENDDO
+         !ENDDO
+
+         ! Debugging - get global mass
+         IF ( State_Chm%Spc_units == 'kg/kg dry' ) THEN
+            Call Print_Global_Species_Kg( State_Chm, State_Met, 
+     &                                    'wetdep_start' )
+         ENDIF      
+
       ! Get initial column masses for budget diagnostics
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Full column
-         IF ( State_Diag%Archive_BudgetWetDepFull ) THEN
-            initialMassFull = 0.0_fp  
-            ptr2d => initialMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetWetDepTrop ) THEN
-            initialMassTrop = 0.0_fp
-            ptr2d => initialMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetWetDepPBL ) THEN
-            initialMassPBL = 0.0_fp
-            ptr2d => initialMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-
-         ! Error trapping
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Wetdep budget diagnostics error 1'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                             Input_Opt, State_Met, State_Chm, 
+     &                             State_Chm%Map_WetDep,        
+     &                             State_Diag%Archive_BudgetWetDepFull, 
+     &                             State_Diag%Archive_BudgetWetDepTrop, 
+     &                             State_Diag%Archive_BudgetWetDepPBL,  
+     &                             State_Diag%BudgetMass1, 
+     &                             RC )
       ENDIF
 #endif
 
@@ -497,67 +468,35 @@
 #endif
 
 #if defined( NC_DIAG )
-      !=======================================================================
       ! Compute budget diagnostics [kg/m2/s]
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_WetDep,        
+     &                          State_Diag%Archive_BudgetWetDepFull, 
+     &                          State_Diag%Archive_BudgetWetDepTrop, 
+     &                          State_Diag%Archive_BudgetWetDepPBL,  
+     &                          State_Diag%BudgetMass2, 
+     &                          RC ) 
 
-         ! Chemistry timestep [s]
          DT_Chem = Get_Ts_Chem() ! or is it dyn?
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Full column
-         IF ( State_Diag%Archive_BudgetWetDepFull ) THEN
-            finalMassFull = 0.0_fp  
-            ptr2d => finalMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetWetDepFull =                
-     &                   ( finalMassFull - initialMassFull ) / DT_Chem
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetWetDepTrop ) THEN
-            finalMassTrop = 0.0_fp
-            ptr2d => finalMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetWetDepTrop =                
-     &                   ( finalMassTrop - initialMassTrop ) / DT_Chem
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetWetDepPBL ) THEN
-            finalMassPBL = 0.0_fp
-            ptr2d => finalMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_WetDep, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetWetDepPBL =                
-     &                   ( finalMassPBL - initialMassPBL ) / DT_Chem
-         ENDIF
-
-         ! Error trapping
+         CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Chm%Map_WetDep,
+     &                          DT_Chem,                                
+     &                          State_Diag%Archive_BudgetWetDepFull, 
+     &                          State_Diag%Archive_BudgetWetDepTrop, 
+     &                          State_Diag%Archive_BudgetWetDepPBL,  
+     &                          State_Diag%BudgetWetDepFull,         
+     &                          State_Diag%BudgetWetDepTrop,         
+     &                          State_Diag%BudgetWetDepPBL,          
+     &                          State_Diag%BudgetMass1,          
+     &                          State_Diag%BudgetMass2,          
+     &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Wetdep budget diagnostics error 2'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
       ENDIF
 #endif
 

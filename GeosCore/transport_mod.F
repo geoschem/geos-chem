@@ -128,7 +128,8 @@
 !
       USE CMN_SIZE_MOD
 #if defined( NC_DIAG )
-      USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+      USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+      USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
 #endif
       USE ErrCode_Mod
       USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
@@ -140,9 +141,6 @@
       USE TIME_MOD,       ONLY : GET_TS_DYN
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
-#endif
-#if defined( NC_DIAG )
-      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -193,19 +191,6 @@
       REAL(fp)           :: DT_Dyn
 #endif
 
-#if defined( NC_DIAG )
-      ! Budget diagnostics
-      CHARACTER(LEN=63)  :: OrigUnit
-      REAL(fp), POINTER  :: ptr2d(:,:,:)
-
-      REAL(fp), TARGET :: initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: initialMassPBL (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassFull  (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassTrop  (IIPAR,JJPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET :: finalMassPBL   (IIPAR,JJPAR,State_Chm%nAdvect)
-#endif
-
       !=================================================================
       ! DO_TRANSPORT begins here!
       !=================================================================
@@ -217,60 +202,19 @@
      &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
 
 #if defined( NC_DIAG )
-      !=======================================================================
       ! Get initial column masses for budget diagnostics
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetTransport ) THEN
-      
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-            RETURN
-         ENDIF
-
-         ! Full column
-         IF ( State_Diag%Archive_BudgetTransportFull ) THEN
-            initialMassFull = 0.0_fp  
-            ptr2d => initialMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
-            initialMassTrop = 0.0_fp
-            ptr2d => initialMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetTransportPBL ) THEN
-            initialMassPBL = 0.0_fp
-            ptr2d => initialMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-         ENDIF
-
-         ! Error trapping
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetConvectionFull, 
+     &                          State_Diag%Archive_BudgetConvectionTrop, 
+     &                          State_Diag%Archive_BudgetConvectionPBL,  
+     &                          State_Diag%BudgetMass1, 
+     &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Transport budget diagnostics error 1'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
             RETURN
          ENDIF
       ENDIF
@@ -385,64 +329,33 @@
 #endif
 
 #if defined( NC_DIAG )
-      !=======================================================================
       ! Compute budget diagnostics [kg/m2/s]
-      !=======================================================================
       IF ( State_Diag%Archive_BudgetTransport ) THEN
-
-         ! Convert species units to kg/m2
-         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met, 
-     &                           State_Chm,  'kg/m2',  RC,       
-     &                           OrigUnit=OrigUnit )
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Unit conversion error'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      
-         ! Full column
-         IF ( State_Diag%Archive_BudgetTransportFull ) THEN
-            finalMassFull = 0.0_fp  
-            ptr2d => finalMassFull
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 
-     &                         'full', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetTransportFull =                
-     &                   ( finalMassFull - initialMassFull ) / DT_Dyn
-         ENDIF
-      
-         ! Troposphere only
-         IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
-            finalMassTrop = 0.0_fp
-            ptr2d => finalMassTrop
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                        'trop', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetTransportTrop =                
-     &                   ( finalMassTrop - initialMassTrop ) / DT_Dyn
-         ENDIF
-      
-         ! PBL-only
-         IF ( State_Diag%Archive_BudgetTransportPBL ) THEN
-            finalMassPBL = 0.0_fp
-            ptr2d => finalMassPBL
-            CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm,
-     &                          'pbl', State_Chm%Map_Advect, ptr2d, RC )
-            ptr2d => NULL()
-            State_Diag%BudgetTransportPBL =                
-     &                   ( finalMassPBL - initialMassPBL ) / DT_Dyn
-         ENDIF
-
-         ! Error trapping
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
+     &                          State_Diag%BudgetMass2, 
+     &                          RC ) 
+         CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Chm%Map_Advect,
+     &                          DT_Dyn,                                
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
+     &                          State_Diag%BudgetTransportFull,         
+     &                          State_Diag%BudgetTransportTrop,         
+     &                          State_Diag%BudgetTransportPBL,          
+     &                          State_Diag%BudgetMass1,          
+     &                          State_Diag%BudgetMass2,          
+     &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Transport budget diagnostics error 2'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-
-         ! Convert species conc back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                           State_Chm, OrigUnit,  RC         )
       ENDIF
 #endif
 

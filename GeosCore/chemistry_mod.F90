@@ -106,6 +106,7 @@ CONTAINS
     USE CMN_SIZE_MOD
 #if defined( NC_DIAG )
     USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
 #endif
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
@@ -301,17 +302,6 @@ CONTAINS
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
-#if defined( NC_DIAG )
-    ! Budget diagnostics
-    REAL(fp), POINTER             :: ptr2d(:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassFull (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassTrop (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassPBL  (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassFull   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassTrop   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassPBL    (:,:,:)
-#endif
-
     !=======================================================================
     ! DO_CHEMISTRY begins here!
     !=======================================================================
@@ -352,63 +342,19 @@ CONTAINS
     ENDIF
 
 #if defined( NC_DIAG )
-    !=======================================================================
     ! Get initial column masses for budget diagnostics
-    !=======================================================================
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Full column
-       IF ( State_Diag%Archive_BudgetChemistryFull ) THEN
-
-          ALLOCATE( initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassFull = 0.0_fp
-          ptr2d => initialMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
-          ALLOCATE( initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassTrop = 0.0_fp
-          ptr2d => initialMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetChemistryPBL ) THEN
-          ALLOCATE( initialMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassPBL = 0.0_fp
-          ptr2d => initialMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-
-       ! Error trapping
+       CALL Compute_Column_Mass( am_I_Root,                              & 
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetChemistryFull, &
+                                 State_Diag%Archive_BudgetChemistryTrop, &
+                                 State_Diag%Archive_BudgetChemistryPBL,  &
+                                 State_Diag%BudgetMass1,                 &
+                                 RC ) 
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Chemistry budget diagnostics error 1'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
@@ -1154,70 +1100,29 @@ CONTAINS
     ! Compute budget diagnostics [kg/m2/s]
     !=======================================================================
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-       
-       ! Full column
-       IF ( State_Diag%Archive_BudgetChemistryFull ) THEN
-          ALLOCATE( finalMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassFull = 0.0_fp
-          ptr2d => finalMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetChemistryFull =    &
-                         ( finalMassFull - initialMassFull ) / DT_Chem
-          DEALLOCATE( initialMassFull, STAT=RC )
-          DEALLOCATE( finalMassFull, STAT=RC )
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetChemistryTrop ) THEN
-          ALLOCATE( finalMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassTrop = 0.0_fp
-          ptr2d => finalMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetChemistryTrop =   &
-                         ( finalMassTrop - initialMassTrop ) / DT_Chem
-          DEALLOCATE( initialMassTrop, STAT=RC )
-          DEALLOCATE( finalMassTrop, STAT=RC )
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetChemistryPBL ) THEN
-          ALLOCATE( finalMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassPBL = 0.0_fp
-          ptr2d => finalMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetChemistryPBL =   &            
-                         ( finalMassPBL - initialMassPBL ) / DT_Chem
-          DEALLOCATE( initialMassPBL, STAT=RC )
-          DEALLOCATE( finalMassPBL, STAT=RC )
-       ENDIF
-
-       ! Error trapping
+       CALL Compute_Column_Mass( am_I_Root,                              &
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetChemistryFull, &
+                                 State_Diag%Archive_BudgetChemistryTrop, &
+                                 State_Diag%Archive_BudgetChemistryPBL,  &
+                                 State_Diag%BudgetMass2,                 &
+                                 RC )       
+       CALL Compute_Budget_Diagnostics( am_I_Root,                           &
+                                     State_Chm%Map_Advect,                   &
+                                     DT_Chem,                                &
+                                     State_Diag%Archive_BudgetChemistryFull, &
+                                     State_Diag%Archive_BudgetChemistryTrop, &
+                                     State_Diag%Archive_BudgetChemistryPBL,  &
+                                     State_Diag%BudgetChemistryFull,         &
+                                     State_Diag%BudgetChemistryTrop,         &
+                                     State_Diag%BudgetChemistryPBL,          &
+                                     State_Diag%BudgetMass1,                 &
+                                     State_Diag%BudgetMass2,                 &
+                                     RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Chemistry budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-   
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF

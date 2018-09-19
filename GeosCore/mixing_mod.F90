@@ -185,6 +185,7 @@ CONTAINS
 #if defined( NC_DIAG )
     USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
 #endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -193,8 +194,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_MOd,     ONLY : DgnState
 #if defined( NC_DIAG )
-    USE Time_Mod,           ONLY : Get_Ts_Dyn
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE Time_Mod,           ONLY : Get_Ts_Dyn ! use this for budget?
 #endif
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
@@ -235,18 +235,8 @@ CONTAINS
     ! Scalars
     LOGICAL            :: OnlyAbovePBL
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
 #if defined( NC_DIAG )
-    ! Budget diagnostics
-    CHARACTER(LEN=63)             :: OrigUnit
-    REAL(fp)                      :: DT_Dyn
-    REAL(fp), POINTER             :: ptr2d(:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassFull (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassTrop (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: initialMassPBL  (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassFull   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassTrop   (:,:,:)
-    REAL(fp), ALLOCATABLE, TARGET :: finalMassPBL    (:,:,:)
+    REAL(fp)           :: DT_Dyn
 #endif
 
     !=======================================================================
@@ -259,75 +249,8 @@ CONTAINS
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
 
 #if defined( NC_DIAG )
-    !-------------------------------------------------
-    ! Get initial column masses for budget diagnostics
-    !-------------------------------------------------
-    IF ( State_Diag%Archive_BudgetMixing ) THEN
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Full column
-       IF ( State_Diag%Archive_BudgetMixingFull ) THEN
-          ALLOCATE( initialMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassFull = 0.0_fp
-          ptr2d => initialMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetMixingTrop ) THEN
-          ALLOCATE( initialMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassTrop = 0.0_fp
-          ptr2d => initialMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
-          ALLOCATE( initialMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          initialMassPBL = 0.0_fp
-          ptr2d => initialMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-       ENDIF
-
-       ! Error trapping
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 1'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! Initialize the diagnostic array for the History Component.  This will 
-    ! prevent leftover values from being carried over to this timestep.
-    ! (For example, if on the last iteration, the PBL height was higher than
-    ! it is now, then we will have stored drydep fluxes up to that height,
-    ! so we need to zero these out.)
-    IF ( State_Diag%Archive_DryDepMix .or.  &
-         State_Diag%Archive_DryDep        ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
+    ! Dynamics timestep [s]
+    DT_Dyn = Get_Ts_Dyn() ! use this?
 #endif
 
     !-----------------------------------------------------------------------
@@ -340,6 +263,35 @@ CONTAINS
     ! fluxes within the PBL have already been applied. 
     ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
+
+#if defined( NC_DIAG )
+       ! Get initial column masses for budget diagnostics
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+          CALL Compute_Column_Mass( am_I_Root,                              & 
+                                    Input_Opt, State_Met, State_Chm,        &
+                                    State_Chm%Map_Advect,                   &
+                                    State_Diag%Archive_BudgetMixingFull, &
+                                    State_Diag%Archive_BudgetMixingTrop, &
+                                    State_Diag%Archive_BudgetMixingPBL,  &
+                                    State_Diag%BudgetMass1,              &
+                                    RC ) 
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF       
+
+       ! Initialize the diagnostic array for the History Component.  This will 
+       ! prevent leftover values from being carried over to this timestep.
+       ! (For example, if on the last iteration, the PBL height was higher than
+       ! it is now, then we will have stored drydep fluxes up to that height,
+       ! so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or.  &
+            State_Diag%Archive_DryDep        ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+#endif
 
        ! Non-local mixing
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
@@ -354,6 +306,37 @@ CONTAINS
 
        ! Fluxes in PBL have been applied (non-local PBL mixing)
        OnlyAbovePBL = .TRUE.
+
+#if defined( NC_DIAG )
+     ! Compute budget diagnostics [kg/m2/s]
+     IF ( State_Diag%Archive_BudgetMixing ) THEN
+       CALL Compute_Column_Mass( am_I_Root,                              &
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetMixingFull,    &
+                                 State_Diag%Archive_BudgetMixingTrop,    &
+                                 State_Diag%Archive_BudgetMixingPBL,     &
+                                 State_Diag%BudgetMass2,                 &
+                                 RC )    
+       CALL Compute_Budget_Diagnostics( am_I_Root,                        &
+                                     State_Chm%Map_Advect,                &
+                                     DT_Dyn,                              &
+                                     State_Diag%Archive_BudgetMixingFull, &
+                                     State_Diag%Archive_BudgetMixingTrop, &
+                                     State_Diag%Archive_BudgetMixingPBL,  &
+                                     State_Diag%BudgetMixingFull,         &
+                                     State_Diag%BudgetMixingTrop,         &
+                                     State_Diag%BudgetMixingPBL,          &
+                                     State_Diag%BudgetMass1,              &
+                                     State_Diag%BudgetMass2,              &
+                                     RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
 
     ELSE
 
@@ -390,6 +373,35 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
+#if defined( NC_DIAG )
+       ! Get initial column masses for budget diagnostics
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+          CALL Compute_Column_Mass( am_I_Root,                           & 
+                                    Input_Opt, State_Met, State_Chm,     &
+                                    State_Chm%Map_Advect,                &
+                                    State_Diag%Archive_BudgetMixingFull, &
+                                    State_Diag%Archive_BudgetMixingTrop, &
+                                    State_Diag%Archive_BudgetMixingPBL,  &
+                                    State_Diag%BudgetMass1,              & 
+                                    RC ) 
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 1 (full PBL mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+          
+       ! Initialize the diagnostic array for the History Component. This 
+       ! will prevent leftover values from being carried over to this 
+       ! timestep. (For example, if on the last iteration, the PBL height 
+       ! was higher than it is now, then we will have stored drydep fluxes 
+       ! up to that height, so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or.  &
+            State_Diag%Archive_DryDep        ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+#endif
+
        ! Full PBL mixing
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
                         State_Met, State_Chm,       State_Diag, RC          )
@@ -400,80 +412,39 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-    ENDIF
 
 #if defined( NC_DIAG )
-    !-------------------------------------
-    ! Compute budget diagnostics [kg/m2/s]
-    !-------------------------------------
-    IF ( State_Diag%Archive_BudgetMixing ) THEN
-
-       ! Dynamic timestep [s]
-       DT_Dyn = Get_Ts_Dyn()
-
-       ! Convert species units to kg/m2
-       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                               State_Chm,  'kg/m2',   RC,          &
-                               OrigUnit=OrigUnit                  )
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
-          RETURN
+       ! Compute budget diagnostics [kg/m2/s]
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+          CALL Compute_Column_Mass( am_I_Root,                           &
+                                    Input_Opt, State_Met, State_Chm,     &
+                                    State_Chm%Map_Advect,                &
+                                    State_Diag%Archive_BudgetMixingFull, &
+                                    State_Diag%Archive_BudgetMixingTrop, &
+                                    State_Diag%Archive_BudgetMixingPBL,  &
+                                    State_Diag%BudgetMass2,              &
+                                    RC )    
+          CALL Compute_Budget_Diagnostics( am_I_Root,                        &
+                                        State_Chm%Map_Advect,                &
+                                        DT_Dyn,                              &
+                                        State_Diag%Archive_BudgetMixingFull, &
+                                        State_Diag%Archive_BudgetMixingTrop, &
+                                        State_Diag%Archive_BudgetMixingPBL,  &
+                                        State_Diag%BudgetMixingFull,         &
+                                        State_Diag%BudgetMixingTrop,         &
+                                        State_Diag%BudgetMixingPBL,          &
+                                        State_Diag%BudgetMass1,              &
+                                        State_Diag%BudgetMass2,              &
+                                        RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 2 (full PBL mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
        ENDIF
-       
-       ! Full column
-       IF ( State_Diag%Archive_BudgetMixingFull ) THEN
-          ALLOCATE( finalMassFull(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassFull = 0.0_fp
-          ptr2d => finalMassFull
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'full', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetMixingFull =    &
-                         ( finalMassFull - initialMassFull ) / DT_Dyn
-          DEALLOCATE( initialMassFull, STAT=RC )
-          DEALLOCATE( finalMassFull, STAT=RC )
-       ENDIF
-    
-       ! Troposphere only
-       IF ( State_Diag%Archive_BudgetMixingTrop ) THEN
-          ALLOCATE( finalMassTrop(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassTrop = 0.0_fp
-          ptr2d => finalMassTrop
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'trop', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetMixingTrop =   &
-                         ( finalMassTrop - initialMassTrop ) / DT_Dyn
-          DEALLOCATE( initialMassTrop, STAT=RC )
-          DEALLOCATE( finalMassTrop, STAT=RC )
-       ENDIF
-    
-       ! PBL-only
-       IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
-          ALLOCATE( finalMassPBL(IIPAR,JJPAR,State_Chm%nAdvect), STAT=RC )
-          finalMassPBL = 0.0_fp
-          ptr2d => finalMassPBL
-          CALL Compute_Column_Mass( am_I_Root, State_Met, State_Chm, 'pbl', &
-                                    State_Chm%Map_Advect, ptr2d, RC )
-          ptr2d => NULL()
-          State_Diag%BudgetMixingPBL =   &            
-                         ( finalMassPBL - initialMassPBL ) / DT_Dyn
-          DEALLOCATE( initialMassPBL, STAT=RC )
-          DEALLOCATE( finalMassPBL, STAT=RC )
-       ENDIF
-
-       ! Error trapping
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 2'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-       ! Convert species conc back to original units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                               State_Chm, OrigUnit,  RC         )
-    ENDIF
 #endif
+
+    ENDIF
 
   END SUBROUTINE DO_MIXING 
 !EOC
@@ -517,6 +488,10 @@ CONTAINS
 #endif
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
+#endif
+#if defined( NC_DIAG )
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -566,6 +541,7 @@ CONTAINS
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
+!  19 Sep 2018 - E. Lundgren - Calculate emis/dep budget diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -606,12 +582,21 @@ CONTAINS
     LOGICAL                 :: ITS_A_CH4_SIM
     REAL(fp)                :: total_ch4_pre_soil_absorp(IIPAR,JJPAR,LLPAR)
 
+#if defined( NC_DIAG )
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+#endif
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
 
     ! Assume success
     RC = GC_SUCCESS
+
+#if defined( NC_DIAG )
+    ErrMsg  = ''
+    ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
+#endif
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
@@ -692,6 +677,25 @@ CONTAINS
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'FLUX', RC )
+#endif
+
+#if defined( NC_DIAG )
+    ! Get initial column masses for budget diagnostics
+    IF ( State_Diag%Archive_BudgetEmisDep ) THEN
+       CALL Compute_Column_Mass( am_I_Root,                            & 
+                                 Input_Opt, State_Met, State_Chm,      &
+                                 State_Chm%Map_Advect,                 &
+                                 State_Diag%Archive_BudgetEmisDepFull, &
+                                 State_Diag%Archive_BudgetEmisDepTrop, &
+                                 State_Diag%Archive_BudgetEmisDepPBL,  &
+                                 State_Diag%BudgetMass1,               &
+                                 RC ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emis/Dep budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 #endif
 
     !-----------------------------------------------------------------------
@@ -1106,7 +1110,38 @@ CONTAINS
                       State_Chm, 'FLUX', TS, RC )
 #endif
 
-    ! Convert State_Chm%species back to original units
+#if defined( NC_DIAG )
+    ! Compute budget diagnostics [kg/m2/s]
+    IF ( State_Diag%Archive_BudgetEmisDep ) THEN
+       CALL Compute_Column_Mass( am_I_Root,                              &
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetEmisDepFull,   &
+                                 State_Diag%Archive_BudgetEmisDepTrop,   &
+                                 State_Diag%Archive_BudgetEmisDepPBL,    &
+                                 State_Diag%BudgetMass2,                 &
+                                 RC )  
+       CALL Compute_Budget_Diagnostics( am_I_Root,                         &
+                                     State_Chm%Map_Advect,                 &
+                                     TS,                                   &
+                                     State_Diag%Archive_BudgetEmisDepFull, &
+                                     State_Diag%Archive_BudgetEmisDepTrop, &
+                                     State_Diag%Archive_BudgetEmisDepPBL,  &
+                                     State_Diag%BudgetEmisDepFull,         &
+                                     State_Diag%BudgetEmisDepTrop,         &
+                                     State_Diag%BudgetEmisDepPBL,          &
+                                     State_Diag%BudgetMass1,               &
+                                     State_Diag%BudgetMass2,               &
+                                     RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emis/Dep budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
+    ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                             OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
