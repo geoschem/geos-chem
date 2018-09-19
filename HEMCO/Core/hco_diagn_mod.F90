@@ -376,7 +376,7 @@ CONTAINS
                      OptValChar=DiagnPrefix, FOUND=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) THEN
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
        DiagnPrefix = 'HEMCO_Diagnostics.$YYYY$MM$DD$HH$MN.nc'
 #else
        DiagnPrefix = 'HEMCO_diagnostics'
@@ -436,7 +436,7 @@ CONTAINS
     deltaYMD = 99999999
     deltaHMS = 999999
 #endif
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
     DiagnPrefix = 'HEMCO_restart.$YYYY$MM$DD$HH$MN.nc'
 #else
     DiagnPrefix = 'HEMCO_restart'
@@ -469,7 +469,7 @@ CONTAINS
     deltaYMD = -1
     deltaHMS = -1
 #endif
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
     DiagnPrefix = 'HEMCO_manual.$YYYY$MM$DD$HH$MN.nc'
 #else
     DiagnPrefix = 'HEMCO_manual'

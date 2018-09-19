@@ -510,7 +510,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      LOGICAL                     :: haveImpRst   = .FALSE.
      LOGICAL                     :: AlwaysSetH2O = .TRUE.
      LOGICAL                     :: UseOnlineVUD = .FALSE.
@@ -1279,7 +1279,7 @@ CONTAINS
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 !    Input_Opt%haveImpRst             = .FALSE.
 !    Input_Opt%AlwaysSetH2O           = .FALSE.
 !    Input_Opt%LLFASTJX               = -999
@@ -1643,7 +1643,7 @@ CONTAINS
        DEALLOCATE( Input_Opt%LINOZ_TPARM )
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( Input_Opt%RxnRconst_IDs ) ) THEN
        DEALLOCATE( Input_Opt%RxnRconst_IDs )
     ENDIF

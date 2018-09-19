@@ -322,7 +322,7 @@ CONTAINS
     LOGICAL            :: LUCX
     LOGICAL            :: LCYCLE
     LOGICAL            :: ISBR2
-#if defined( DISCOVER ) 
+#if defined( MODEL_GEOS ) 
     LOGICAL            :: SKIP  
 #endif
 
@@ -362,7 +362,7 @@ CONTAINS
     AD                   => NULL()
     T                    => NULL()
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Skip strat chem if chemistry is over entire vertical domain
     SKIP = .FALSE.
     IF ( LLCHEM == LLPAR ) THEN
@@ -933,7 +933,7 @@ CONTAINS
 
     ENDIF
    
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! End of SKIP loop
     ENDIF ! SKIP 
 #endif

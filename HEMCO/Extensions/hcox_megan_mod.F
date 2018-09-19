@@ -3,7 +3,7 @@
 ! standard in GEOS-Chem (?). Updating to the new version should be as easy
 ! as using the code above.
 !##############################################################################
-#if !defined ( DISCOVER )
+#if !defined( MODEL_GEOS )
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------

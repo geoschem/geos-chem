@@ -5121,7 +5121,7 @@
       ! Use vertical updraft velocity from State_Met
       ! Convert hPa/s to m/s here
       !=================================================================
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       IF ( Input_Opt%UseOnlineVUD ) THEN
          IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
             IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 

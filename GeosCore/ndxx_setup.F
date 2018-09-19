@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD
@@ -491,7 +491,7 @@
          ENDIF
       ENDIF
 #endif
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !=================================================================
       ! ND21: Optical depths and cloud fractions [unitless]
       !       --> uses AD21 array (allocatable) 

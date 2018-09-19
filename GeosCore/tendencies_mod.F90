@@ -686,7 +686,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if !defined(ESMF_) && defined( DISCOVER )
+#if !defined(ESMF_) && defined( MODEL_GEOS )
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
 

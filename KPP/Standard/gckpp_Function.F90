@@ -45,7 +45,7 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
 #else
 SUBROUTINE Fun ( V, F, RCT, Vdot )
@@ -60,7 +60,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
 ! Vdot - Time derivative of variable species concentrations
   REAL(kind=dp) :: Vdot(NVAR)
  
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
   REAL(dp), optional :: Aout(NREACT)
 #endif
 
@@ -791,7 +791,7 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(724) = RCT(724)*V(162)
   A(725) = RCT(725)*V(119)
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 ! Aout
   if(present(Aout)) Aout(:) = A(:)
 #endif

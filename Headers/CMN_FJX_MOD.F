@@ -103,7 +103,7 @@
 
       ! N_  = no. of levels in Mie scattering arrays
       !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       !!!INTEGER, PARAMETER ::  N_    = 601
       !!!INTEGER, PARAMETER ::  N_    = 1201
       INTEGER            :: N_
@@ -135,7 +135,7 @@
 
       ! ATAU: heating rate (factor increase from one layer to the next)
       REAL(fp), PARAMETER  :: ATAU   = 1.120e+0_fp
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       !REAL(fp), PARAMETER  :: ATAU   = 1.180e+0_fp
 #endif
 
@@ -370,7 +370,7 @@
       JXL2_  = 2*JXL_+2 ! Max # levels in the basic Fast-JX grid (mid-level)
 
       
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! N_  = no. of levels in Mie scattering arrays
       IF ( Input_Opt%LLFASTJX > 0 ) THEN
          N_ = Input_Opt%LLFASTJX

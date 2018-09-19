@@ -477,7 +477,7 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
      &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
@@ -843,7 +843,7 @@
 !\\
 ! !INTERFACE:
 !
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
@@ -1138,7 +1138,7 @@
       REAL(fp)          :: SUNCOS_FP
       REAL(fp)          :: CFRAC_FP
 
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Archive Ra?
       REAL(fp)          :: RA2M,  Z0OBK2M
       REAL(fp)          :: RA10M, Z0OBK10M
@@ -1181,7 +1181,7 @@
       ! Size of drycoeff (ckeller, 05/19/14)
       NN = SIZE(DRYCOEFF)
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Logical flag for Ra (ckeller, 12/29/17)
       State_Chm%DryDepRa2m  = 0.0_fp
       State_Chm%DryDepRa10m = 0.0_fp
@@ -1260,7 +1260,7 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 !$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
 #endif
 #if defined( TOMAS )
@@ -1729,7 +1729,7 @@
 !==============================================================================
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
 !            ! Set CASTNET height at 10m (krt, 11/2017)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
             Z0OBK2M  = MAX(Z0OBK,  2e+0_fp/OBK(I,J) )
             Z0OBK10M = MAX(Z0OBK, 10e+0_fp/OBK(I,J) )
 #else
@@ -1789,7 +1789,7 @@
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
                   RA    = 0.e+0_f8
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   !RAKT  = 0.e+0_f8
                   RA2M  = 0.e+0_f8
                   RA10M = 0.e+0_f8
@@ -1799,7 +1799,7 @@
 !*... zero (ckeller, 3/15/16)
                ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                   RA = 0.e+0_f8
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   !RAKT  = 0.e+0_f8
                   RA2M  = 0.e+0_f8
                   RA10M = 0.e+0_f8
@@ -1814,7 +1814,7 @@
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * 
      &                 LOG(DUMMY3/DUMMY4)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 !*... correct ozone to 10m for diagnostic (krt, 11/2017)
                   !DUMMY2KT=(1.e+0_f8 - 9e+0_f8*Z0OBKKT)**0.5e+0_f8
                   !DUMMY4KT=ABS((DUMMY2KT-1.e+0_f8)/(DUMMY2KT+1.e+0_f8))
@@ -1836,7 +1836,7 @@
 !*...moderately stable conditions (z/zMO <1); compute Ra as described above
                   RA = (1e+0_f8/CKUSTR) * 
      &            (.74e+0_f8*LOG(CORR1/Z0OBK) + 4.7e+0_f8*(CORR1-Z0OBK))
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &            !(.74_f8*LOG(CORR1/Z0OBKKT)+4.7_f8*(CORR1-Z0OBKKT))
                   RA2M = (1e+0_f8/CKUSTR) *
      &            (0.74_f8*LOG(Z0OBK2M/Z0OBK)+4.7_f8*(Z0OBK2M-Z0OBK))
@@ -1847,7 +1847,7 @@
                ELSEIF(LRGERA(I,J)) THEN
 !*... very stable conditions
                   RA    = 1.e+04_f8
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   !RAKT = 1.e+04_f8
                   RA2M  = 1.e+04_f8
                   RA10M = 1.e+04_f8
@@ -1876,7 +1876,7 @@
 !                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
 !     &                 LOG(DUMMY3/DUMMY4KT)
 !==============================================================================
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   ! 2M
                   DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK2M)**0.5e+0_f8
                   DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
@@ -1898,7 +1898,7 @@
 !                  RAKT = (1D0/CKUSTR) *
 !     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
 !==============================================================================
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (1.e+0_f8*LOG(Z0OBK2M/Z0OBK)+5.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
@@ -1915,7 +1915,7 @@
 !                  RAKT = (1D0/CKUSTR) *
 !     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
 !==============================================================================
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   RA2M = (1D0/CKUSTR) *
      &          (5.e+0_f8*LOG(Z0OBK2M/Z0OBK)+1.e+0_f8*(Z0OBK2M-Z0OBK))
                   RA10M = (1D0/CKUSTR) *
@@ -1931,7 +1931,7 @@
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
 !            RAKT = MIN(RAKT,1.e+4_f8)
 !==============================================================================
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
             RA2M   = MIN(RA2M,  1.e+4_f8)
             RA10M  = MIN(RA10M, 1.e+4_f8)
 #endif
@@ -1942,7 +1942,7 @@
                RA = 0.0e+0_f8
             ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
             ! Adjust 2M Ra if needed
             IF ( RA2M  < 0.e+0_f8 ) RA2M  = 0.e+0_f8
             IF ( RA10M < 0.e+0_f8 ) RA10M = 0.e+0_f8
@@ -1985,7 +1985,7 @@
             DO 230 K = 1,NUMDEP 
                IF ( LDEP(K) ) THEN
                   RA     = 1.0D4
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                   RA2M   = 1.0D4
                   RA10M  = 1.0D4
 #endif
@@ -2006,7 +2006,7 @@
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 !---------- Eventually archive aerodynamic resistance. 
 !---------- Convert s m-1 to s cm-1. 
 !---------- Ra is set to an arbitrary large value of 1.0e4
@@ -2084,7 +2084,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Pass Monin Obukhov diagnostics
       IF ( ASSOCIATED ( State_Diag%MoninObukhov ) ) THEN
          State_Diag%MoninObukhov(:,:) = OBK(:,:)

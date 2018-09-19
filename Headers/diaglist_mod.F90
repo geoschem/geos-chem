@@ -368,7 +368,7 @@ CONTAINS
           ENDIF
        ENDIF
 
-#if !defined ( DISCOVER )  
+#if !defined( MODEL_GEOS )  
        !====================================================================
        ! Add some extra error checks for collections that are in the 
        ! collection name list (and therefore will be archived)
@@ -571,7 +571,7 @@ CONTAINS
        ! Skip line if GIGCchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE

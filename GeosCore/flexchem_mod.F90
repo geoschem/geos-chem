@@ -51,7 +51,7 @@ MODULE FlexChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2, id_DHPCARP
   INTEGER               :: id_DIBOO,id_ETO2, id_HC5OO, id_IEPOXOO
@@ -66,7 +66,7 @@ MODULE FlexChem_Mod
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
   LOGICAL               :: Do_ND43
   LOGICAL               :: Archive_OHconcAfterchem
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
   LOGICAL               :: Archive_O3concAfterchem
   LOGICAL               :: Archive_RO2concAfterchem
 #endif
@@ -132,7 +132,7 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     USE GcKPP_Util,           ONLY : Get_OHreactivity
 #endif
     USE GC_GRID_MOD,          ONLY : GET_YMID
@@ -249,7 +249,7 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     REAL(f4)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
     REAL(f4)               :: GLOB_JVAL  (IIPAR,JJPAR,LLPAR,JVN_             )
 #else
@@ -266,7 +266,7 @@ CONTAINS
     ! For testing only, may be removed later (mps, 4/26/16)
     LOGICAL                :: DO_HETCHEM
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! OH reactivity
     LOGICAL                :: DoOHreact
     REAL(fp)               :: OHreact
@@ -314,7 +314,7 @@ CONTAINS
     IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
     IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     GLOB_RCONST = 0.0_f4
     GLOB_JVAL   = 0.0_f4
    
@@ -550,7 +550,7 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -656,7 +656,7 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     !$OMP PRIVATE  ( Vloc,     Aout, OHreact                                )&
 #endif
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
@@ -747,7 +747,7 @@ CONTAINS
              ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
              PHOTOL(N) = ZPJ(L,N,I,J)
              
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
              ! Archive in local array
              GLOB_JVAL(I,J,L,N) = PHOTOL(N)
 #endif
@@ -928,7 +928,7 @@ CONTAINS
        ! Update the array of rate constants
        CALL Update_RCONST( )
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        ! Archive 
        CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
        IF ( Input_Opt%NN_RxnRates > 0 ) THEN
@@ -979,7 +979,7 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1021,7 +1021,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN 
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
@@ -1196,7 +1196,7 @@ CONTAINS
        ENDIF
 #endif
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        !==============================================================
        ! Write out OH reactivity
        ! The OH reactivity is defined here as the inverse of its life-
@@ -1333,7 +1333,7 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Archive all needed reaction rates in state_diag
     IF ( Input_Opt%NN_RxnRconst > 0 ) THEN
        DO N = 1, Input_Opt%NN_RxnRconst
@@ -1440,7 +1440,7 @@ CONTAINS
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
     IF ( Archive_OHconcAfterChem  ) State_Diag%OHconcAfterChem  = 0.0_f4
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( Archive_O3concAfterChem  ) State_Diag%O3concAfterChem  = 0.0_f4
     IF ( Archive_RO2concAfterChem ) State_Diag%RO2concAfterChem = 0.0_f4
 #endif
@@ -1480,7 +1480,7 @@ CONTAINS
             IF ( Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
             IF ( Archive_O3concAfterChem ) THEN
                State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
             ENDIF
@@ -1739,7 +1739,7 @@ CONTAINS
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           ) 
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! ckeller
     id_O3                    = Ind_( 'O3'           ) 
     id_A3O2                  = Ind_( 'A3O2'         ) 
@@ -1781,7 +1781,7 @@ CONTAINS
     ! Are the relevant netCDF diagnostics turned on?
     Archive_OHconcAfterChem  = ASSOCIATED( State_Diag%OHconcAfterChem  )
     Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     Archive_RO2concAfterChem = ASSOCIATED( State_Diag%RO2concAfterChem )
     Archive_O3concAfterChem  = ASSOCIATED( State_Diag%O3concAfterChem  )
 #endif
@@ -1819,7 +1819,7 @@ CONTAINS
     Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                  .or.            &  
                                     Archive_OHconcAfterChem  .or.            &
                                     Archive_HO2concAfterChem .or.            &
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                                     Archive_O3concAfterChem  .or.            &
                                     Archive_RO2concAfterChem .or.            &
 #endif
