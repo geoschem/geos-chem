@@ -4614,21 +4614,21 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISSIONSPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for emissions'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
