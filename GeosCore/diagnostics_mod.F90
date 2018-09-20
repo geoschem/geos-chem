@@ -25,7 +25,6 @@ MODULE Diagnostics_mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Init_Diagnostics_Mod
   PUBLIC :: Set_Diagnostics_EndofTimestep
   PUBLIC :: Zero_Diagnostics_StartofTimestep
   PUBLIC :: Compute_Column_Mass
@@ -38,10 +37,8 @@ MODULE Diagnostics_mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-#if defined( NC_DIAG )
-  ! Strings
-  CHARACTER(LEN=255) :: ModLoc
-#endif
+    CHARACTER(LEN=255), PARAMETER :: &
+         ModLoc = '(in module GeosCore/diagnostics_mod.F90)'
 !
 ! !REVISION HISTORY:
 !  01 Feb 2018 - E. Lundgren - Initial version
@@ -49,58 +46,6 @@ MODULE Diagnostics_mod
 !------------------------------------------------------------------------------
 !BOC
 CONTAINS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Init_Diagnostics_Mod
-!
-! !DESCRIPTION:
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Init_Diagnostics_Mod ( am_I_Root, State_Diag, RC )
-!
-! !USES:
-!
-    USE State_Diag_Mod, ONLY : DgnState
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,         INTENT(IN)  :: am_I_Root
-    TYPE(DgnState),  INTENT(IN)  :: State_Diag     ! Diagnostics state obj
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,         INTENT(OUT) :: RC
-!
-! !REVISION HISTORY:
-!  01 Feb 2018 - E. Lundgren - initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-#if defined( NC_DIAG )
-    CHARACTER(LEN=255)      :: ErrMsg, thisLoc
-
-    !=======================================================================
-    ! Init_Diagnostics_Mod begins here
-    !=======================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ModLoc  = '(in module GeosCore/diagnostics_mod.F90)'
-    ThisLoc = ' -> at Init_Diagnostics_mod ' // ModLoc
-
-#endif
-
-  END SUBROUTINE Init_Diagnostics_Mod
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -450,6 +395,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     INTEGER            :: I, J, M, N, numSpc, region
@@ -463,7 +409,6 @@ CONTAINS
     ThisLoc = ' -> Compute_Column_Mass ' // ModLoc
     numSpc = SIZE(SpcMap)
 
-#if defined( NC_DIAG )
     ! Convert species units to kg/m2
     CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
                             State_Chm,  'kg/m2',   RC,          &
@@ -596,6 +541,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( NC_DIAG )
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     INTEGER            :: I, J, M, N, numSpc, region
 
@@ -608,7 +554,6 @@ CONTAINS
     ThisLoc = ' -> Compute_Budget_Diagnostics ' // ModLoc
     numSpc = SIZE(SpcMap)
 
-#if defined( NC_DIAG )
     ! Full column
     IF ( isFull ) THEN
        region = 1
