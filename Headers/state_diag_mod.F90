@@ -4745,21 +4745,21 @@ CONTAINS
                                 'for wet deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
+       IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for wet deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
+       IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for wet deposition '
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'ADV'
+       IF ( isTagged  ) TagId = 'WET'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species, from chemistry'

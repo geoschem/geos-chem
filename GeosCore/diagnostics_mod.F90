@@ -419,7 +419,7 @@ CONTAINS
     ENDIF
 
     ! Start with all zeros
-    colMass = 0.0_fp
+    colMass = 0.0_f8
 
     ! Full column
     IF ( isFull ) THEN
@@ -438,7 +438,7 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
-
+    
     ! Troposphere
     IF ( isTrop ) THEN
        region = 2
@@ -456,7 +456,7 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
-
+    
     ! PBL
     IF ( isPBL ) THEN
        region = 3
@@ -609,8 +609,8 @@ CONTAINS
     ENDIF
 
     ! Zero the mass arrays
-    mass_initial = 0.0_fp
-    mass_final   = 0.0_fp
+    mass_initial = 0.0_f8
+    mass_final   = 0.0_f8
 #endif
 
   END SUBROUTINE Compute_Budget_Diagnostics

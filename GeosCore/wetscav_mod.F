@@ -245,13 +245,9 @@
 #if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
-      USE Time_Mod,        ONLY : GET_TS_CHEM
 #endif
       USE ErrCode_Mod
       USE Error_Mod,       ONLY : Debug_MSG
-      USE Error_Mod,       ONLY : Check_Value             ! ewl debugging
-      USE Error_Mod,       ONLY : Print_Global_Species_Kg ! ewl debugging
-      USE Species_Mod,     ONLY : Species                 ! ewl debugging
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,   ONLY : ChmState
@@ -312,7 +308,7 @@
       CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
 
 #if defined( NC_DIAG )
-      REAL(fp)           :: DT_Chem ! or is wet dep every dyn?
+      REAL(fp)                :: DT_Dyn
 #endif
 
       !=================================================================
@@ -336,29 +332,6 @@
       doPrt = ( LPRT .and. am_I_Root )
 
 #if defined( NC_DIAG )
-         !! Debugging - check values for inifinite or nan
-         !PRINT *, "Start of wetdep. Checking values..."
-         !DO D = 1, State_Chm%nDryDep
-         !DO L = 1, LLPAR
-         !DO J = 1, JJPAR
-         !DO I = 1, IIPAR
-         !   N =  State_Chm%Map_DryDep(D)
-         !   SpcInfo => State_Chm%SpcData(N)%Info
-         !   ERR_LOC =(/ I, J, L, N /)
-         !   CALL Check_Value( State_Chm%Species(I,J,L,N),
-        !&                     ERR_LOC, SpcInfo%Name,
-        !&                     'test')
-         !ENDDO
-         !ENDDO
-         !ENDDO
-         !ENDDO
-
-         ! Debugging - get global mass
-         IF ( State_Chm%Spc_units == 'kg/kg dry' ) THEN
-            Call Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                    'wetdep_start' )
-         ENDIF      
-
       ! Get initial column masses for budget diagnostics
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
          CALL Compute_Column_Mass( am_I_Root, 
@@ -478,11 +451,10 @@
      &                          State_Diag%Archive_BudgetWetDepPBL,  
      &                          State_Diag%BudgetMass2, 
      &                          RC ) 
-
-         DT_Chem = Get_Ts_Chem() ! or is it dyn?
+         DT_Dyn = Get_Ts_Dyn()
          CALL Compute_Budget_Diagnostics( am_I_Root, 
      &                          State_Chm%Map_WetDep,
-     &                          DT_Chem,                                
+     &                          DT_Dyn,                                
      &                          State_Diag%Archive_BudgetWetDepFull, 
      &                          State_Diag%Archive_BudgetWetDepTrop, 
      &                          State_Diag%Archive_BudgetWetDepPBL,  
