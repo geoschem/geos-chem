@@ -1679,10 +1679,12 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
-!  05 Mar 2014 - R. Yantosca - Use correct filenames for use w/ ESMF
-!  27 Sep 2017 - M. Sulprizio- Define species IDs for ND22 diagnostic
-!  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
-!  29 Dec 2017 - C. Keller   - Print mapping on root CPU only
+!  05 Mar 2014 - R. Yantosca   - Use correct filenames for use w/ ESMF
+!  27 Sep 2017 - M. Sulprizio  - Define species IDs for ND22 diagnostic
+!  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
+!  29 Dec 2017 - C. Keller     - Print mapping on root CPU only
+!  19 Sep 2018 - M. Sulprizio  - Read .dat files from data directories instead
+!                                of run directories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1695,6 +1697,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
        ! Strings
       CHARACTER(LEN=6)   :: TITLEJXX(JVN_)
+      CHARACTER(LEN=255) :: DATA_DIR
       CHARACTER(LEN=255) :: FILENAME
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -1738,10 +1741,13 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Get a free LUN
       JXUNIT = findFreeLUN()
 
+      ! Define data directory for FAST-JX input
+      DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR )//'FAST_JX/v2018-09/'
+
       !=====================================================================
       ! Read in fast-J X-sections (spectral data)
       !=====================================================================
-      FILENAME = 'FJX_spec.dat'
+      FILENAME = TRIM( DATA_DIR ) // 'FJX_spec.dat'
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -1765,7 +1771,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       !=====================================================================
       ! Read in 5-wavelength scattering data
       !=====================================================================
-      FILENAME = 'jv_spec_mie.dat'
+      FILENAME = TRIM( DATA_DIR ) // 'jv_spec_mie.dat'
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -1804,7 +1810,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       ! Read in photolysis rates used in chemistry code and mapping onto 
       ! FJX J's CTM call:  read in J-values names and link to fast-JX names
       !=====================================================================
-      FILENAME = 'FJX_j2j.dat'
+      FILENAME = TRIM( DATA_DIR ) // 'FJX_j2j.dat'
 
       ! Echo info
       IF ( am_I_Root ) THEN
@@ -2351,19 +2357,22 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 !  04 Aug 2015 - M. Long       - Removed ".rc" file specifier. Not necessary.
 !  03 Jan 2018 - M. Sulprizio  - Replace UCX CPP switch with Input_Opt%LUCX
 !  23 Mar 2018 - E. Lundgren   - Pass Input_Opt to Calc_AOD
+!  19 Sep 2018 - M. Sulprizio  - Read .dat files from data directories instead
+!                                of run directories
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES
 !
-      INTEGER           :: I, J, K, N
-      INTEGER           :: IOS
-      CHARACTER*30      :: SPECFIL(6)
-      CHARACTER*30      :: SPECFIL_UCX(8)
-      CHARACTER(LEN=30) :: THISFILE
+      INTEGER            :: I, J, K, N
+      INTEGER            :: IOS
+      CHARACTER*30       :: SPECFIL(6)
+      CHARACTER*30       :: SPECFIL_UCX(8)
+      CHARACTER(LEN=255) :: DATA_DIR
+      CHARACTER(LEN=255) :: THISFILE
            
-      LOGICAL           :: LBRC
+      LOGICAL            :: LBRC
 
       CHARACTER*78 TITLE0
 
@@ -2374,6 +2383,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
       ! Copy fields from Input_Opt
       LBRC = Input_Opt%LBRC
             
+      ! Define data directory for FAST-JX input
+      DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR )//'FAST_JX/v2018-09/'
+
       ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
       DATA SPECFIL /"so4.dat","soot.dat","org.dat",
      &              "ssa.dat","ssc.dat", "dust.dat"/
@@ -2399,9 +2411,9 @@ c---TROP-QUICK  (must scale solar flux for W=5)
 
        ! Choose different set of input files for UCX and tropchem simulations
        IF ( Input_Opt%LUCX) THEN
-          THISFILE = SPECFIL_UCX(k)
+          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL_UCX(k) )
        ELSE
-          THISFILE = SPECFIL(k)
+          THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
        ENDIF
 
        ! open file
