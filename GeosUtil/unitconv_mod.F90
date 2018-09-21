@@ -208,7 +208,12 @@ CONTAINS
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( TRIM(OutUnit) == TRIM(InUnit) ) RETURN
+    IF ( TRIM(OutUnit) == TRIM(InUnit) ) THEN
+#if defined( USE_TIMERS )
+       CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
+       RETURN
+ENDIF
 
     ! Convert based on input and output units
     SELECT CASE ( TRIM(InUnit) )
