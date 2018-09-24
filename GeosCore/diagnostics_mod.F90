@@ -520,9 +520,9 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(f4), POINTER     :: diagFull(:,:,:)       ! ptr to full col diag
-    REAL(f4), POINTER     :: diagTrop(:,:,:)       ! ptr to trop col diag 
-    REAL(f4), POINTER     :: diagPBL(:,:,:)        ! ptr to pbl col diag
+    REAL(f4), TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
+    REAL(f4), TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag 
+    REAL(f4), TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
     REAL(f8), POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
     REAL(f8), POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
 !
@@ -542,73 +542,107 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
 #if defined( NC_DIAG )
+    INTEGER            :: I, J, M, N, R, numSpc, numRegions
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: I, J, M, N, numSpc, region
+    LOGICAL            :: setDiag
+    REAL(f4), POINTER  :: ptr3d(:,:,:)
+
+    
 
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
     !====================================================================
 
     ! Initialize
-    RC      =  GC_SUCCESS
-    ThisLoc = ' -> Compute_Budget_Diagnostics ' // ModLoc
-    numSpc = SIZE(SpcMap)
+    RC         =  GC_SUCCESS
+    ThisLoc    = ' -> Compute_Budget_Diagnostics ' // ModLoc
+    numSpc     = SIZE(SpcMap)
+    numRegions = 3
+    ptr3d      => NULL()
 
-    ! Full column
-    IF ( isFull ) THEN
-       region = 1
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          N  = SpcMap(M)
-          diagFull(I,J,M) =   &
-                ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+    ! Loop over regions and only set diagnostic for those that are on
+    DO R = 1, numRegions
+       setDiag = .FALSE.    
+       SELECT CASE ( R )
+          CASE ( 1 )
+             ptr3d => diagFull
+             setDiag = isFull
+          CASE ( 2 )
+             ptr3d => diagTrop
+             setDiag = isTrop
+          CASE ( 3 )
+             ptr3d => diagPBL
+             setDiag = isPBL 
+          CASE DEFAULT
+             ErrMsg = 'Region not defined for budget diagnostics'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+       END SELECT
 
-    ! Troposphere
-    IF ( isTrop ) THEN
-       region = 2
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          N  = SpcMap(M)
-          diagTrop(I,J,M) =   &   
-                ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+       IF ( setDiag ) THEN
+          !$OMP PARALLEL DO        &
+          !$OMP DEFAULT( SHARED )  &
+          !$OMP PRIVATE( I, J, M, N )
+          DO M = 1, numSpc
+          DO J = 1, JJPAR
+          DO I = 1, IIPAR
+             N  = SpcMap(M)
+             ptr3d(I,J,M) =   &
+                   ( mass_final(I,J,N,R) - mass_initial(I,J,N,R) ) / TS
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+       ENDIF
 
-    ! PBL
-    IF ( isPBL ) THEN
-       region = 3
-       !$OMP PARALLEL DO        &
-       !$OMP DEFAULT( SHARED )  &
-       !$OMP PRIVATE( I, J, M, N )
-       DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          N  = SpcMap(M)
-          diagPBL(I,J,M) =   &
-               ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-    ENDIF
+       ! Free pointer
+       ptr3d => NULL()
 
-    ! Zero the mass arrays
+    ENDDO
+       
+
+    !! Full column
+    !IF ( isFull ) THEN
+    !   region = 1
+    !ENDIF
+    !
+    !! Troposphere
+    !IF ( isTrop ) THEN
+    !   region = 2
+    !   !$OMP PARALLEL DO        &
+    !   !$OMP DEFAULT( SHARED )  &
+    !   !$OMP PRIVATE( I, J, M, N )
+    !   DO M = 1, numSpc
+    !   DO J = 1, JJPAR
+    !   DO I = 1, IIPAR
+    !      N  = SpcMap(M)
+    !      diagTrop(I,J,M) =   &   
+    !            ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
+    !   ENDDO
+    !   ENDDO
+    !   ENDDO
+    !   !$OMP END PARALLEL DO
+    !ENDIF
+    !
+    !! PBL
+    !IF ( isPBL ) THEN
+    !   region = 3
+    !   !$OMP PARALLEL DO        &
+    !   !$OMP DEFAULT( SHARED )  &
+    !   !$OMP PRIVATE( I, J, M, N )
+    !   DO M = 1, numSpc
+    !   DO J = 1, JJPAR
+    !   DO I = 1, IIPAR
+    !      N  = SpcMap(M)
+    !      diagPBL(I,J,M) =   &
+    !           ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
+    !   ENDDO
+    !   ENDDO
+    !   ENDDO
+    !   !$OMP END PARALLEL DO
+    !ENDIF
+
+    ! Zero the mass arrays now that diagnostics are set
     mass_initial = 0.0_f8
     mass_final   = 0.0_f8
 #endif

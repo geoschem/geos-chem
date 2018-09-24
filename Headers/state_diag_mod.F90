@@ -4616,21 +4616,23 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
-                                'for emissions'
+                                'for emissions and dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
-                                'change in column for emissions'
+                                'change in column for emissions and '  // &
+                                'dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
-                                ' in column for emissions'
+                                'in column for emissions and dry '    // &
+                                'deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
@@ -5841,6 +5843,14 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+       
+       ! Check that number of tags is consistent with array size
+       IF ( nTags /=  SIZE(Ptr2Data,2) ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; number of tags is inconsistent with array size'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Register each tagged name as a separate diagnostic
        DO N = 1, nTags   
@@ -6011,6 +6021,14 @@ CONTAINS
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
                 '; Abnormal exit from routine "Get_TagInfo", could not '  // &
                 'get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Check that number of tags is consistent with array size
+       IF ( nTags /=  SIZE(Ptr2Data,3) ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; number of tags is inconsistent with array size'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -6189,6 +6207,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Check that number of tags is consistent with array size
+    IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+             '; number of tags is inconsistent with array size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     !-----------------------------------------------------------------------
     ! Register each tagged name as a separate diagnostic
     !-----------------------------------------------------------------------
@@ -6334,6 +6360,14 @@ CONTAINS
           ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
                 '; Abnormal exit from routine "Get_TagInfo", could not '  // &
                 'get nTags!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Check that number of tags is consistent with array size
+       IF ( nTags /=  SIZE(Ptr2Data,3) ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+                '; number of tags is inconsistent with array size'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -6506,6 +6540,14 @@ CONTAINS
        ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )                  // &
                 '; Abnormal exit from routine "Get_TagInfo", could not '  // &
                 'get nTags!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Check that number of tags is consistent with array size
+    IF ( nTags /=  SIZE(Ptr2Data,4) ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID )               // &
+             '; number of tags is inconsistent with array size'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
