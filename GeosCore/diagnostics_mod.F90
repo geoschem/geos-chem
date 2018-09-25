@@ -520,9 +520,9 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(f4), TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
-    REAL(f4), TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag 
-    REAL(f4), TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
+    REAL(f8), TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
+    REAL(f8), TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag 
+    REAL(f8), TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
     REAL(f8), POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
     REAL(f8), POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
 !
@@ -545,7 +545,7 @@ CONTAINS
     INTEGER            :: I, J, M, N, R, numSpc, numRegions
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     LOGICAL            :: setDiag
-    REAL(f4), POINTER  :: ptr3d(:,:,:)
+    REAL(f8), POINTER  :: ptr3d(:,:,:)
 
     
 
@@ -600,48 +600,6 @@ CONTAINS
 
     ENDDO
        
-
-    !! Full column
-    !IF ( isFull ) THEN
-    !   region = 1
-    !ENDIF
-    !
-    !! Troposphere
-    !IF ( isTrop ) THEN
-    !   region = 2
-    !   !$OMP PARALLEL DO        &
-    !   !$OMP DEFAULT( SHARED )  &
-    !   !$OMP PRIVATE( I, J, M, N )
-    !   DO M = 1, numSpc
-    !   DO J = 1, JJPAR
-    !   DO I = 1, IIPAR
-    !      N  = SpcMap(M)
-    !      diagTrop(I,J,M) =   &   
-    !            ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
-    !   ENDDO
-    !   ENDDO
-    !   ENDDO
-    !   !$OMP END PARALLEL DO
-    !ENDIF
-    !
-    !! PBL
-    !IF ( isPBL ) THEN
-    !   region = 3
-    !   !$OMP PARALLEL DO        &
-    !   !$OMP DEFAULT( SHARED )  &
-    !   !$OMP PRIVATE( I, J, M, N )
-    !   DO M = 1, numSpc
-    !   DO J = 1, JJPAR
-    !   DO I = 1, IIPAR
-    !      N  = SpcMap(M)
-    !      diagPBL(I,J,M) =   &
-    !           ( mass_final(I,J,N,region) - mass_initial(I,J,N,region) ) / TS
-    !   ENDDO
-    !   ENDDO
-    !   ENDDO
-    !   !$OMP END PARALLEL DO
-    !ENDIF
-
     ! Zero the mass arrays now that diagnostics are set
     mass_initial = 0.0_f8
     mass_final   = 0.0_f8

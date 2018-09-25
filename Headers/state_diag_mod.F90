@@ -60,24 +60,24 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_SpeciesConc
 
      ! Budget diagnostics
-     REAL(f4),  POINTER :: BudgetEmisDepFull        (:,:,:) 
-     REAL(f4),  POINTER :: BudgetEmisDepTrop        (:,:,:) 
-     REAL(f4),  POINTER :: BudgetEmisDepPBL         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetTransportFull      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetTransportTrop      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetTransportPBL       (:,:,:) 
-     REAL(f4),  POINTER :: BudgetMixingFull         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetMixingTrop         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetMixingPBL          (:,:,:) 
-     REAL(f4),  POINTER :: BudgetConvectionFull     (:,:,:) 
-     REAL(f4),  POINTER :: BudgetConvectionTrop     (:,:,:) 
-     REAL(f4),  POINTER :: BudgetConvectionPBL      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetChemistryFull      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetChemistryTrop      (:,:,:) 
-     REAL(f4),  POINTER :: BudgetChemistryPBL       (:,:,:) 
-     REAL(f4),  POINTER :: BudgetWetDepFull         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetWetDepTrop         (:,:,:) 
-     REAL(f4),  POINTER :: BudgetWetDepPBL          (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDepFull        (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDepTrop        (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDepPBL         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetTransportFull      (:,:,:) 
+     REAL(f8),  POINTER :: BudgetTransportTrop      (:,:,:) 
+     REAL(f8),  POINTER :: BudgetTransportPBL       (:,:,:) 
+     REAL(f8),  POINTER :: BudgetMixingFull         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetMixingTrop         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetMixingPBL          (:,:,:) 
+     REAL(f8),  POINTER :: BudgetConvectionFull     (:,:,:) 
+     REAL(f8),  POINTER :: BudgetConvectionTrop     (:,:,:) 
+     REAL(f8),  POINTER :: BudgetConvectionPBL      (:,:,:) 
+     REAL(f8),  POINTER :: BudgetChemistryFull      (:,:,:) 
+     REAL(f8),  POINTER :: BudgetChemistryTrop      (:,:,:) 
+     REAL(f8),  POINTER :: BudgetChemistryPBL       (:,:,:) 
+     REAL(f8),  POINTER :: BudgetWetDepFull         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetWetDepTrop         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetWetDepPBL          (:,:,:) 
      REAL(f8),  POINTER :: BudgetMass1              (:,:,:,:) 
      REAL(f8),  POINTER :: BudgetMass2              (:,:,:,:) 
      LOGICAL :: Archive_BudgetEmisDep
@@ -393,12 +393,9 @@ MODULE State_Diag_Mod
 !
   INTERFACE Register_DiagField
      MODULE PROCEDURE Register_DiagField_R4_2D
-     ! real(fp) and real(8) 2D not implemented
      MODULE PROCEDURE Register_DiagField_R4_3D
-     MODULE PROCEDURE Register_DiagField_Rfp_3D
-     ! real(8) 3D not implemented
      MODULE PROCEDURE Register_DiagField_R4_4D
-     ! real(fp) 4D not implemented
+     MODULE PROCEDURE Register_DiagField_R8_3D
      MODULE PROCEDURE Register_DiagField_R8_4D
   END INTERFACE Register_DiagField
 !
@@ -810,7 +807,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetEmisDepFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepFull = 0.0_f4
+       State_Diag%BudgetEmisDepFull = 0.0_f8
        State_Diag%Archive_BudgetEmisDepFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetEmisDepFull, &
@@ -827,7 +824,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetEmisDepTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepTrop = 0.0_f4
+       State_Diag%BudgetEmisDepTrop = 0.0_f8
        State_Diag%Archive_BudgetEmisDepTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetEmisDepTrop, &
@@ -844,7 +841,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetEmisDepPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepPBL = 0.0_f4
+       State_Diag%BudgetEmisDepPBL = 0.0_f8
        State_Diag%Archive_BudgetEmisDepPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetEmisDepPBL, &
@@ -870,7 +867,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetTransportFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportFull = 0.0_f4
+       State_Diag%BudgetTransportFull = 0.0_f8
        State_Diag%Archive_BudgetTransportFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetTransportFull, &
@@ -887,7 +884,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetTransportTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportTrop = 0.0_f4
+       State_Diag%BudgetTransportTrop = 0.0_f8
        State_Diag%Archive_BudgetTransportTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetTransportTrop, &
@@ -904,7 +901,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetTransportPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetTransportPBL = 0.0_f4
+       State_Diag%BudgetTransportPBL = 0.0_f8
        State_Diag%Archive_BudgetTransportPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetTransportPBL, &
@@ -930,7 +927,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetMixingFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingFull = 0.0_f4
+       State_Diag%BudgetMixingFull = 0.0_f8
        State_Diag%Archive_BudgetMixingFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetMixingFull, &
@@ -947,7 +944,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetMixingTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingTrop = 0.0_f4
+       State_Diag%BudgetMixingTrop = 0.0_f8
        State_Diag%Archive_BudgetMixingTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetMixingTrop, &
@@ -964,7 +961,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetMixingPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetMixingPBL = 0.0_f4
+       State_Diag%BudgetMixingPBL = 0.0_f8
        State_Diag%Archive_BudgetMixingPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,          &
                                 State_Diag%BudgetMixingPBL, &
@@ -990,7 +987,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetConvectionFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionFull = 0.0_f4
+       State_Diag%BudgetConvectionFull = 0.0_f8
        State_Diag%Archive_BudgetConvectionFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,               &
                                 State_Diag%BudgetConvectionFull, &
@@ -1007,7 +1004,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetConvectionTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionTrop = 0.0_f4
+       State_Diag%BudgetConvectionTrop = 0.0_f8
        State_Diag%Archive_BudgetConvectionTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,               &
                                 State_Diag%BudgetConvectionTrop, &
@@ -1024,7 +1021,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetConvectionPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetConvectionPBL = 0.0_f4
+       State_Diag%BudgetConvectionPBL = 0.0_f8
        State_Diag%Archive_BudgetConvectionPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetConvectionPBL, &
@@ -1050,7 +1047,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetChemistryFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryFull = 0.0_f4
+       State_Diag%BudgetChemistryFull = 0.0_f8
        State_Diag%Archive_BudgetChemistryFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetChemistryFull, &
@@ -1067,7 +1064,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetChemistryTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryTrop = 0.0_f4
+       State_Diag%BudgetChemistryTrop = 0.0_f8
        State_Diag%Archive_BudgetChemistryTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
                                 State_Diag%BudgetChemistryTrop, &
@@ -1084,7 +1081,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetChemistryPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetChemistryPBL = 0.0_f4
+       State_Diag%BudgetChemistryPBL = 0.0_f8
        State_Diag%Archive_BudgetChemistryPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,             &
                                 State_Diag%BudgetChemistryPBL, &
@@ -1110,7 +1107,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetWetDepFull( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepFull = 0.0_f4
+       State_Diag%BudgetWetDepFull = 0.0_f8
        State_Diag%Archive_BudgetWetDepFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetWetDepFull, &
@@ -1127,7 +1124,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetWetDepTrop( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepTrop = 0.0_f4
+       State_Diag%BudgetWetDepTrop = 0.0_f8
        State_Diag%Archive_BudgetWetDepTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,           &
                                 State_Diag%BudgetWetDepTrop, &
@@ -1144,7 +1141,7 @@ CONTAINS
        ALLOCATE( State_Diag%BudgetWetDepPBL( IM, JM, nWetDep ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetWetDepPBL = 0.0_f4
+       State_Diag%BudgetWetDepPBL = 0.0_f8
        State_Diag%Archive_BudgetWetDepPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,          &
                                 State_Diag%BudgetWetDepPBL, &
@@ -6266,16 +6263,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Register_DiagField_Rfp_3D
+! !IROUTINE: Register_DiagField_R8_3D
 !
-! !DESCRIPTION: Registers a 3-dimensional, 4-byte real field of State\_Diag,
+! !DESCRIPTION: Registers a 3-dimensional, 8-byte real field of State\_Diag,
 !  so that we can include it in the netCDF diagnostic output archive.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Register_DiagField_Rfp_3D( am_I_Root, metadataID, Ptr2Data,     &
-                                        State_Chm, State_Diag, RC           )
+  SUBROUTINE Register_DiagField_R8_3D( am_I_Root, metadataID, Ptr2Data,      &
+                                       State_Chm, State_Diag, RC            )
 !
 ! !USES:
 !
@@ -6285,7 +6282,7 @@ CONTAINS
 !
     LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
     CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! Name
-    REAL(fp),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
+    REAL(f8),          POINTER       :: Ptr2Data(:,:,:) ! pointer to data
     TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
     TYPE(DgnState),    INTENT(INOUT) :: State_Diag      ! Obj for diag state
 !
@@ -6296,7 +6293,7 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  03 Nov 2017 - R. Yantosca - Initial version
+!  20 Sep 2017 - E. Lundgren - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6305,9 +6302,9 @@ CONTAINS
 !   
     CHARACTER(LEN=512)     :: ErrMsg
     CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
-    CHARACTER(LEN=255)     :: desc, units, tagId, tagName
+    CHARACTER(LEN=255)     :: desc, units, tagID, tagName
     CHARACTER(LEN=255)     :: diagName, diagDesc
-    INTEGER                :: N, nTags, rank, type, vloc
+    INTEGER                :: N, nTags, rank, type,  vloc
     LOGICAL                :: Found, onEdges
 
     !-----------------------------------------------------------------------
@@ -6315,14 +6312,16 @@ CONTAINS
     !-----------------------------------------------------------------------
     RC      = GC_SUCCESS
     ThisLoc = ' -> at Register_DiagField_R4_3D (in Headers/state_diag_mod.F90)'
-    ErrMsg  = ''
+    ErrMsg  = '' 
     ErrMsg_reg = 'Error encountered while registering State_Diag%'
 
+    !-----------------------------------------------------------------------
     ! Get metadata for this diagnostic
+    !-----------------------------------------------------------------------
     CALL Get_Metadata_State_Diag( am_I_Root,   metadataID,  Found,  RC,      &
                                   desc=desc,   units=units, rank=rank,       &
                                   type=type,   vloc=vloc,                    &
-                                  tagId=tagId                               )
+                                  tagID=tagID                               )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -6338,8 +6337,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Check that metadata dimensions consistent with data pointer
     !-----------------------------------------------------------------------
-    IF ( ( ( tagId == '' ) .AND. ( rank /= 3 ) )  &
-         .OR. ( ( tagId /= '' ) .AND. ( rank /= 2 ) ) ) THEN
+    IF ( ( ( tagID == '' ) .AND. ( rank /= 3 ) )                             &
+         .OR. ( ( tagID /= '' ) .AND. ( rank /= 2 ) ) ) THEN
        ErrMsg = 'Data dims and metadata rank do not match for '           // &
                 TRIM(metadataID)
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6349,7 +6348,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Special handling if there are tags
     !-----------------------------------------------------------------------
-    IF ( tagId /= '' ) THEN
+    IF ( tagID /= '' ) THEN
 
        ! Get the number of tags
        CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,             &
@@ -6373,16 +6372,16 @@ CONTAINS
        ENDIF
 
        ! Register each tagged name as a separate diagnostic
-       DO N = 1, nTags
+       DO N = 1, nTags 
 
           ! Get the tag name
-          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC,          &
+          CALL Get_TagInfo( am_I_Root, tagId, State_Chm, Found, RC, &
                             N=N, tagName=tagName )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId ) //            &
-                      ' where tagID is ' // TRIM( tagID      ) //            &
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( metaDataId )            // &
+                      ' where tagID is ' // TRIM( tagID      )            // &
                       '; Abnormal exit from routine "Get_TagInfo"!'       
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -6390,7 +6389,7 @@ CONTAINS
 
           ! Add the tag name to the diagnostic name and description
           diagName = TRIM( metadataID ) // '_' // TRIM( tagName )
-          diagDesc = TRIM( Desc ) // ' ' // TRIM( tagName )
+          diagDesc = TRIM( Desc       ) // ' ' // TRIM( tagName )
 
           ! Add field to registry
           CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
@@ -6400,7 +6399,7 @@ CONTAINS
                                   Description  = diagDesc,                   &
                                   Units        = units,                      &
                                   OnLevelEdges = onEdges,                    &
-                                  Data2d       = Ptr2Data(:,:,N),            &
+                                  Data2d_8     = Ptr2Data(:,:,N),            &
                                   RC           = RC                         )
 
           ! Trap potential errors
@@ -6427,7 +6426,7 @@ CONTAINS
                                Description  = desc,                          &
                                Units        = units,                         &
                                OnLevelEdges = onEdges,                       &
-                               Data3d       = Ptr2Data,                      &
+                               Data3d_8     = Ptr2Data,                      &
                                RC           = RC                            )
 
        ! Trap potential errors
@@ -6441,7 +6440,7 @@ CONTAINS
 
     ENDIF
 
-  END SUBROUTINE Register_DiagField_Rfp_3D
+  END SUBROUTINE Register_DiagField_R8_3D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
