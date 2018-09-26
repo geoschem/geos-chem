@@ -1593,9 +1593,6 @@
 !-----------------------------------------------------------------------------
 
             ! Call the appropriate version of TPCORE
-            ! NOTE: Tracer concentration units are converted locally
-            ! within transport to [kg/kg total air] for advection 
-            ! (ewl, 9/18/15)
             IF ( LTRAN ) THEN 
                CALL Do_Transport( am_I_Root, Input_Opt,  State_Met,
      &                            State_Chm, State_Diag, RC         )
@@ -1611,6 +1608,7 @@
                   CALL Debug_Msg( '### MAIN: a DO_TRANSPORT' )
                ENDIF
             ENDIF
+
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1698,7 +1696,7 @@
             ! Increment emission counter
             CALL Set_Ct_Emis( INCREMENT=.TRUE. )
 #endif
-     
+
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================

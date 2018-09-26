@@ -1087,7 +1087,7 @@ ENDIF
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
-    ! ConvertSpc_KgKgDry_to_Kg begins here!
+    ! ConvertSpc_VVDry_to_Kg begins here!
     !====================================================================
 
     ! Assume success

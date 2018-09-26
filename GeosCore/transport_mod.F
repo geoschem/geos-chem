@@ -202,14 +202,17 @@
      &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
 
 #if defined( NC_DIAG )
-      ! Get initial column masses for budget diagnostics
+      !----------------------------------------------------------
+      ! Transport (advection) budget diagnostics - Part 1 of 2
+      !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetTransport ) THEN
+         ! Get initial column masses
          CALL Compute_Column_Mass( am_I_Root, 
      &                          Input_Opt, State_Met, State_Chm, 
      &                          State_Chm%Map_Advect,        
-     &                          State_Diag%Archive_BudgetConvectionFull, 
-     &                          State_Diag%Archive_BudgetConvectionTrop, 
-     &                          State_Diag%Archive_BudgetConvectionPBL,  
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
      &                          State_Diag%BudgetMass1, 
      &                          RC )
          IF ( RC /= GC_SUCCESS ) THEN
@@ -329,8 +332,11 @@
 #endif
 
 #if defined( NC_DIAG )
-      ! Compute budget diagnostics [kg/m2/s]
+      !----------------------------------------------------------
+      ! Transport (advection) budget diagnostics - Part 2 of 2
+      !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetTransport ) THEN
+         ! Get final column masses and compute diagnostics
          CALL Compute_Column_Mass( am_I_Root, 
      &                          Input_Opt, State_Met, State_Chm, 
      &                          State_Chm%Map_Advect,        

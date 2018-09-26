@@ -2857,6 +2857,12 @@ contains
     USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( NC_DIAG )
+    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
+    USE Time_Mod,           ONLY : Get_Ts_Dyn
+#endif
 
     IMPLICIT NONE
 !
@@ -2896,6 +2902,7 @@ contains
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !   7 Nov 2017 - R. Yantosca - Now send error condition back to top level
+!  26 Sep 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2911,6 +2918,10 @@ contains
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+#if defined( NC_DIAG )
+    REAL(fp)           :: DT_Dyn
+#endif
 
     !=======================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2958,6 +2969,36 @@ contains
     ! Do mixing of species in the PBL (if necessary)
     !-----------------------------------------------------------------------
     IF ( DO_VDIFF ) THEN
+
+#if defined( NC_DIAG )
+       !------------------------------------------------------
+       ! Non-local PBL mixing budget diagnostics - Part 1 of 2
+       ! 
+       ! WARNING: The mixing budget diagnostic includes the application
+       ! of species tendencies (emissions fluxes and dry deposition
+       ! rates) below the PBL when using non-local PBL mixing. This is
+       ! done for all species with defined emissions / dry deposition
+       ! rates, including dust. These tendencies below the PBL are 
+       ! therefore not included in the emissions/dry deposition budget 
+       ! diagnostics when using non-local PBL mixing. (ewl, 9/26/18)
+       !------------------------------------------------------
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+          ! Get initial column masses
+          CALL Compute_Column_Mass( am_I_Root,                              & 
+                                    Input_Opt, State_Met, State_Chm,        &
+                                    State_Chm%Map_Advect,                   &
+                                    State_Diag%Archive_BudgetMixingFull, &
+                                    State_Diag%Archive_BudgetMixingTrop, &
+                                    State_Diag%Archive_BudgetMixingPBL,  &
+                                    State_Diag%BudgetMass1,              &
+                                    RC ) 
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF       
+#endif
 
        !----------------------------------------
        ! Unit conversion #1
@@ -3033,6 +3074,44 @@ contains
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+#if defined( NC_DIAG )
+       !------------------------------------------------------
+       ! Non-local PBL mixing budget diagnostics - Part 2 of 2
+       !------------------------------------------------------
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+          ! Get dynamics timestep [s]
+          DT_Dyn = Get_Ts_Dyn()
+
+          ! Get final column masses and compute diagnostics
+          CALL Compute_Column_Mass( am_I_Root,                              &
+                                    Input_Opt, State_Met, State_Chm,        &
+                                    State_Chm%Map_Advect,                   &
+                                    State_Diag%Archive_BudgetMixingFull,    &
+                                    State_Diag%Archive_BudgetMixingTrop,    &
+                                    State_Diag%Archive_BudgetMixingPBL,     &
+                                    State_Diag%BudgetMass2,                 &
+                                    RC )    
+          CALL Compute_Budget_Diagnostics( am_I_Root,                       &
+                                       State_Chm%Map_Advect,                &
+                                       DT_Dyn,                              &
+                                       State_Diag%Archive_BudgetMixingFull, &
+                                       State_Diag%Archive_BudgetMixingTrop, &
+                                       State_Diag%Archive_BudgetMixingPBL,  &
+                                       State_Diag%BudgetMixingFull,         &
+                                       State_Diag%BudgetMixingTrop,         &
+                                       State_Diag%BudgetMixingPBL,          &
+                                       State_Diag%BudgetMass1,              &
+                                       State_Diag%BudgetMass2,              &
+                                       RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
 
     ENDIF
 

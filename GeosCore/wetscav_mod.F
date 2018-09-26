@@ -332,8 +332,11 @@
       doPrt = ( LPRT .and. am_I_Root )
 
 #if defined( NC_DIAG )
-      ! Get initial column masses for budget diagnostics
+      !----------------------------------------------------------
+      ! Wet deposition budget diagnostics - Part 1 of 2
+      !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
+         ! Get initial column masses
          CALL Compute_Column_Mass( am_I_Root, 
      &                             Input_Opt, State_Met, State_Chm, 
      &                             State_Chm%Map_WetDep,        
@@ -441,8 +444,11 @@
 #endif
 
 #if defined( NC_DIAG )
-      ! Compute budget diagnostics [kg/m2/s]
+      !----------------------------------------------------------
+      ! Wet deposition budget diagnostics - Part 2 of 2
+      !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
+         ! Get final masses and compute diagnostics
          CALL Compute_Column_Mass( am_I_Root, 
      &                          Input_Opt, State_Met, State_Chm, 
      &                          State_Chm%Map_WetDep,        

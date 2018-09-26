@@ -90,7 +90,6 @@ CONTAINS
 !                              populate PBL quantities w/ the initial met
 !  09 Mar 2017 - C. Keller   - Do not call COMPUTE_PBL_HEIGHT in ESMF env.
 !   6 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  28 aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -182,20 +181,12 @@ CONTAINS
 !
 ! !USES:
 !
-#if defined( NC_DIAG )
-    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
-#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : DO_PBL_MIX
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_MOd,     ONLY : DgnState
-#if defined( NC_DIAG )
-    USE Time_Mod,           ONLY : Get_Ts_Dyn ! use this for budget?
-#endif
     USE VDIFF_MOD,          ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
@@ -235,23 +226,15 @@ CONTAINS
     ! Scalars
     LOGICAL            :: OnlyAbovePBL
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-#if defined( NC_DIAG )
-    REAL(fp)           :: DT_Dyn
-#endif
 
     !=======================================================================
     ! DO_MIXING begins here!
     !=======================================================================
 
-    ! Initialz3
+    ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
-
-#if defined( NC_DIAG )
-    ! Dynamics timestep [s]
-    DT_Dyn = Get_Ts_Dyn() ! use this?
-#endif
 
     !-----------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
@@ -265,23 +248,6 @@ CONTAINS
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
 
 #if defined( NC_DIAG )
-       ! Get initial column masses for budget diagnostics
-       IF ( State_Diag%Archive_BudgetMixing ) THEN
-          CALL Compute_Column_Mass( am_I_Root,                              & 
-                                    Input_Opt, State_Met, State_Chm,        &
-                                    State_Chm%Map_Advect,                   &
-                                    State_Diag%Archive_BudgetMixingFull, &
-                                    State_Diag%Archive_BudgetMixingTrop, &
-                                    State_Diag%Archive_BudgetMixingPBL,  &
-                                    State_Diag%BudgetMass1,              &
-                                    RC ) 
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF       
-
        ! Initialize the diagnostic array for the History Component.  This will 
        ! prevent leftover values from being carried over to this timestep.
        ! (For example, if on the last iteration, the PBL height was higher than
@@ -306,37 +272,6 @@ CONTAINS
 
        ! Fluxes in PBL have been applied (non-local PBL mixing)
        OnlyAbovePBL = .TRUE.
-
-#if defined( NC_DIAG )
-     ! Compute budget diagnostics [kg/m2/s]
-     IF ( State_Diag%Archive_BudgetMixing ) THEN
-       CALL Compute_Column_Mass( am_I_Root,                              &
-                                 Input_Opt, State_Met, State_Chm,        &
-                                 State_Chm%Map_Advect,                   &
-                                 State_Diag%Archive_BudgetMixingFull,    &
-                                 State_Diag%Archive_BudgetMixingTrop,    &
-                                 State_Diag%Archive_BudgetMixingPBL,     &
-                                 State_Diag%BudgetMass2,                 &
-                                 RC )    
-       CALL Compute_Budget_Diagnostics( am_I_Root,                        &
-                                     State_Chm%Map_Advect,                &
-                                     DT_Dyn,                              &
-                                     State_Diag%Archive_BudgetMixingFull, &
-                                     State_Diag%Archive_BudgetMixingTrop, &
-                                     State_Diag%Archive_BudgetMixingPBL,  &
-                                     State_Diag%BudgetMixingFull,         &
-                                     State_Diag%BudgetMixingTrop,         &
-                                     State_Diag%BudgetMixingPBL,          &
-                                     State_Diag%BudgetMass1,              &
-                                     State_Diag%BudgetMass2,              &
-                                     RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-#endif
 
     ELSE
 
@@ -374,23 +309,6 @@ CONTAINS
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
 #if defined( NC_DIAG )
-       ! Get initial column masses for budget diagnostics
-       IF ( State_Diag%Archive_BudgetMixing ) THEN
-          CALL Compute_Column_Mass( am_I_Root,                           & 
-                                    Input_Opt, State_Met, State_Chm,     &
-                                    State_Chm%Map_Advect,                &
-                                    State_Diag%Archive_BudgetMixingFull, &
-                                    State_Diag%Archive_BudgetMixingTrop, &
-                                    State_Diag%Archive_BudgetMixingPBL,  &
-                                    State_Diag%BudgetMass1,              & 
-                                    RC ) 
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Mixing budget diagnostics error 1 (full PBL mixing)'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-          
        ! Initialize the diagnostic array for the History Component. This 
        ! will prevent leftover values from being carried over to this 
        ! timestep. (For example, if on the last iteration, the PBL height 
@@ -412,37 +330,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-#if defined( NC_DIAG )
-       ! Compute budget diagnostics [kg/m2/s]
-       IF ( State_Diag%Archive_BudgetMixing ) THEN
-          CALL Compute_Column_Mass( am_I_Root,                           &
-                                    Input_Opt, State_Met, State_Chm,     &
-                                    State_Chm%Map_Advect,                &
-                                    State_Diag%Archive_BudgetMixingFull, &
-                                    State_Diag%Archive_BudgetMixingTrop, &
-                                    State_Diag%Archive_BudgetMixingPBL,  &
-                                    State_Diag%BudgetMass2,              &
-                                    RC )    
-          CALL Compute_Budget_Diagnostics( am_I_Root,                        &
-                                        State_Chm%Map_Advect,                &
-                                        DT_Dyn,                              &
-                                        State_Diag%Archive_BudgetMixingFull, &
-                                        State_Diag%Archive_BudgetMixingTrop, &
-                                        State_Diag%Archive_BudgetMixingPBL,  &
-                                        State_Diag%BudgetMixingFull,         &
-                                        State_Diag%BudgetMixingTrop,         &
-                                        State_Diag%BudgetMixingPBL,          &
-                                        State_Diag%BudgetMass1,              &
-                                        State_Diag%BudgetMass2,              &
-                                        RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Mixing budget diagnostics error 2 (full PBL mixing)'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-#endif
 
     ENDIF
 
@@ -541,7 +428,7 @@ CONTAINS
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
-!  19 Sep 2018 - E. Lundgren - Calculate emis/dep budget diagnostic
+!  19 Sep 2018 - E. Lundgren - Implement emis/drydep budget diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -626,6 +513,28 @@ CONTAINS
        RETURN
     ENDIF 
 
+#if defined( NC_DIAG )
+    !----------------------------------------------------------
+    ! Emissions/dry deposition budget diagnostics - Part 1 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+       ! Get initial column masses
+       CALL Compute_Column_Mass( am_I_Root,                               & 
+                                 Input_Opt, State_Met, State_Chm,         &
+                                 State_Chm%Map_Advect,                    &
+                                 State_Diag%Archive_BudgetEmisDryDepFull, &
+                                 State_Diag%Archive_BudgetEmisDryDepTrop, &
+                                 State_Diag%Archive_BudgetEmisDryDepPBL,  &
+                                 State_Diag%BudgetMass1,                  &
+                                 RC ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
        TS = DT
@@ -677,25 +586,6 @@ CONTAINS
     ! Archive concentrations for tendencies (ckeller, 7/15/2015) 
     CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, &
                       State_Chm, 'FLUX', RC )
-#endif
-
-#if defined( NC_DIAG )
-    ! Get initial column masses for budget diagnostics
-    IF ( State_Diag%Archive_BudgetEmisDep ) THEN
-       CALL Compute_Column_Mass( am_I_Root,                            & 
-                                 Input_Opt, State_Met, State_Chm,      &
-                                 State_Chm%Map_Advect,                 &
-                                 State_Diag%Archive_BudgetEmisDepFull, &
-                                 State_Diag%Archive_BudgetEmisDepTrop, &
-                                 State_Diag%Archive_BudgetEmisDepPBL,  &
-                                 State_Diag%BudgetMass1,               &
-                                 RC ) 
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emis/Dep budget diagnostics error 1'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
 #endif
 
     !-----------------------------------------------------------------------
@@ -1111,30 +1001,33 @@ CONTAINS
 #endif
 
 #if defined( NC_DIAG )
-    ! Compute budget diagnostics [kg/m2/s]
-    IF ( State_Diag%Archive_BudgetEmisDep ) THEN
-       CALL Compute_Column_Mass( am_I_Root,                              &
-                                 Input_Opt, State_Met, State_Chm,        &
-                                 State_Chm%Map_Advect,                   &
-                                 State_Diag%Archive_BudgetEmisDepFull,   &
-                                 State_Diag%Archive_BudgetEmisDepTrop,   &
-                                 State_Diag%Archive_BudgetEmisDepPBL,    &
-                                 State_Diag%BudgetMass2,                 &
+    !----------------------------------------------------------
+    ! Emissions/dry deposition budget diagnostics - Part 2 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+       ! Get final column masses and compute diagnostics
+       CALL Compute_Column_Mass( am_I_Root,                                 &
+                                 Input_Opt, State_Met, State_Chm,           &
+                                 State_Chm%Map_Advect,                      &
+                                 State_Diag%Archive_BudgetEmisDryDepFull,   &
+                                 State_Diag%Archive_BudgetEmisDryDepTrop,   &
+                                 State_Diag%Archive_BudgetEmisDryDepPBL,    &
+                                 State_Diag%BudgetMass2,                    &
                                  RC )  
-       CALL Compute_Budget_Diagnostics( am_I_Root,                         &
-                                     State_Chm%Map_Advect,                 &
-                                     TS,                                   &
-                                     State_Diag%Archive_BudgetEmisDepFull, &
-                                     State_Diag%Archive_BudgetEmisDepTrop, &
-                                     State_Diag%Archive_BudgetEmisDepPBL,  &
-                                     State_Diag%BudgetEmisDepFull,         &
-                                     State_Diag%BudgetEmisDepTrop,         &
-                                     State_Diag%BudgetEmisDepPBL,          &
-                                     State_Diag%BudgetMass1,               &
-                                     State_Diag%BudgetMass2,               &
+       CALL Compute_Budget_Diagnostics( am_I_Root,                            &
+                                     State_Chm%Map_Advect,                    &
+                                     TS,                                      &
+                                     State_Diag%Archive_BudgetEmisDryDepFull, &
+                                     State_Diag%Archive_BudgetEmisDryDepTrop, &
+                                     State_Diag%Archive_BudgetEmisDryDepPBL,  &
+                                     State_Diag%BudgetEmisDryDepFull,         &
+                                     State_Diag%BudgetEmisDryDepTrop,         &
+                                     State_Diag%BudgetEmisDryDepPBL,          &
+                                     State_Diag%BudgetMass1,                  &
+                                     State_Diag%BudgetMass2,                  &
                                      RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Emis/Dep budget diagnostics error 2'
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

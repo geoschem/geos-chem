@@ -342,8 +342,11 @@ CONTAINS
     ENDIF
 
 #if defined( NC_DIAG )
-    ! Get initial column masses for budget diagnostics
+    !----------------------------------------------------------
+    ! Chemistry budget diagnostics - Part 1 of 2
+    !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
+       ! Get initial column masses
        CALL Compute_Column_Mass( am_I_Root,                              & 
                                  Input_Opt, State_Met, State_Chm,        &
                                  State_Chm%Map_Advect,                   &
@@ -1096,10 +1099,11 @@ CONTAINS
 #endif
 
 #if defined( NC_DIAG )
-    !=======================================================================
-    ! Compute budget diagnostics [kg/m2/s]
-    !=======================================================================
+    !----------------------------------------------------------
+    ! Chemistry budget diagnostics - Part 2 of 2
+    !----------------------------------------------------------
     IF ( State_Diag%Archive_BudgetChemistry ) THEN
+       ! Get final column masses and compute diagnostics
        CALL Compute_Column_Mass( am_I_Root,                              &
                                  Input_Opt, State_Met, State_Chm,        &
                                  State_Chm%Map_Advect,                   &

@@ -410,6 +410,11 @@ CONTAINS
     numSpc = SIZE(SpcMap)
 
     ! Convert species units to kg/m2
+    ! NOTE: If you wish to output different units, e.g. kg/s instead of 
+    ! kg/m2/s to reduce roundoff errors, update the unit string passed 
+    ! in the unit conversion in the unit conversion subroutine below.
+    ! Also update the budget diagnostic units metadata in state_diag_mod.F90
+    ! within subroutine Get_Metadata_State_Diag (ewl, 9/26/18)
     CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
                             State_Chm,  'kg/m2',   RC,          &
                             OrigUnit=OrigUnit                  )
@@ -531,7 +536,6 @@ CONTAINS
     INTEGER,  INTENT(OUT) :: RC              ! Success or failure?
 !
 ! !REMARKS:
-!  The incoming units must be in kg/m2
 !
 ! !REVISION HISTORY: 
 !  28 Aug 2018 - E. Lundgren - Initial version
@@ -546,8 +550,6 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     LOGICAL            :: setDiag
     REAL(f8), POINTER  :: ptr3d(:,:,:)
-
-    
 
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
@@ -579,6 +581,16 @@ CONTAINS
              RETURN
        END SELECT
 
+       ! Compute diagnostics as [kg/m2/s] by taking dividing the mass
+       ! difference by component dt in seconds
+       !
+       ! NOTE: if changing the definition of budget diagnostics below be sure
+       ! to also update the budget diagnostic metadata in state_diag_mod.F90
+       ! within subroutine Get_Metadata_State_Diag. If you wish to output 
+       ! different units, e.g. kg/s instead of kg/m2/s to reduce roundoff
+       ! errors, update the metadata and also the unit string in the unit 
+       ! conversion call above in subroutine Compute_Column_Mass. 
+       ! (ewl, 9/26/18)
        IF ( setDiag ) THEN
           !$OMP PARALLEL DO        &
           !$OMP DEFAULT( SHARED )  &

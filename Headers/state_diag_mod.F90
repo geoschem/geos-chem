@@ -60,9 +60,9 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_SpeciesConc
 
      ! Budget diagnostics
-     REAL(f8),  POINTER :: BudgetEmisDepFull        (:,:,:) 
-     REAL(f8),  POINTER :: BudgetEmisDepTrop        (:,:,:) 
-     REAL(f8),  POINTER :: BudgetEmisDepPBL         (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDryDepFull     (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDryDepTrop     (:,:,:) 
+     REAL(f8),  POINTER :: BudgetEmisDryDepPBL      (:,:,:) 
      REAL(f8),  POINTER :: BudgetTransportFull      (:,:,:) 
      REAL(f8),  POINTER :: BudgetTransportTrop      (:,:,:) 
      REAL(f8),  POINTER :: BudgetTransportPBL       (:,:,:) 
@@ -80,10 +80,10 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: BudgetWetDepPBL          (:,:,:) 
      REAL(f8),  POINTER :: BudgetMass1              (:,:,:,:) 
      REAL(f8),  POINTER :: BudgetMass2              (:,:,:,:) 
-     LOGICAL :: Archive_BudgetEmisDep
-     LOGICAL :: Archive_BudgetEmisDepFull  
-     LOGICAL :: Archive_BudgetEmisDepTrop  
-     LOGICAL :: Archive_BudgetEmisDepPBL   
+     LOGICAL :: Archive_BudgetEmisDryDep
+     LOGICAL :: Archive_BudgetEmisDryDepFull  
+     LOGICAL :: Archive_BudgetEmisDryDepTrop  
+     LOGICAL :: Archive_BudgetEmisDryDepPBL   
      LOGICAL :: Archive_BudgetTransport  
      LOGICAL :: Archive_BudgetTransportFull  
      LOGICAL :: Archive_BudgetTransportTrop  
@@ -501,9 +501,9 @@ CONTAINS
     ! Free pointers and set logicals
     State_Diag%SpeciesConc                => NULL()
     State_Diag%Archive_SpeciesConc        = .FALSE.
-    State_Diag%BudgetEmisDepFull          => NULL()          
-    State_Diag%BudgetEmisDepTrop          => NULL()
-    State_Diag%BudgetEmisDepPBL           => NULL()
+    State_Diag%BudgetEmisDryDepFull       => NULL()          
+    State_Diag%BudgetEmisDryDepTrop       => NULL()
+    State_Diag%BudgetEmisDryDepPBL        => NULL()
     State_Diag%BudgetTransportFull        => NULL()
     State_Diag%BudgetTransportTrop        => NULL()
     State_Diag%BudgetTransportPBL         => NULL()
@@ -521,10 +521,10 @@ CONTAINS
     State_Diag%BudgetWetDepPBL            => NULL()          
     State_Diag%BudgetMass1                => NULL()          
     State_Diag%BudgetMass2                => NULL()          
-    State_Diag%Archive_BudgetEmisDep         = .FALSE.          
-    State_Diag%Archive_BudgetEmisDepFull     = .FALSE.          
-    State_Diag%Archive_BudgetEmisDepTrop     = .FALSE.
-    State_Diag%Archive_BudgetEmisDepPBL      = .FALSE.
+    State_Diag%Archive_BudgetEmisDryDep      = .FALSE.          
+    State_Diag%Archive_BudgetEmisDryDepFull  = .FALSE.          
+    State_Diag%Archive_BudgetEmisDryDepTrop  = .FALSE.
+    State_Diag%Archive_BudgetEmisDryDepPBL   = .FALSE.
     State_Diag%Archive_BudgetTransport       = .FALSE.
     State_Diag%Archive_BudgetTransportFull   = .FALSE.
     State_Diag%Archive_BudgetTransportTrop   = .FALSE.
@@ -799,61 +799,61 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
-    arrayID = 'State_Diag%BudgetEmisDepFull'
-    diagID  = 'BudgetEmisDepFull'
+    arrayID = 'State_Diag%BudgetEmisDryDepFull'
+    diagID  = 'BudgetEmisDryDepFull'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDepFull( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDryDepFull( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepFull = 0.0_f8
-       State_Diag%Archive_BudgetEmisDepFull = .TRUE.
+       State_Diag%BudgetEmisDryDepFull = 0.0_f8
+       State_Diag%Archive_BudgetEmisDryDepFull = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
-                                State_Diag%BudgetEmisDepFull, &
+                                State_Diag%BudgetEmisDryDepFull, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! Trop-only emissions
-    arrayID = 'State_Diag%BudgetEmisDepTrop'
-    diagID  = 'BudgetEmisDepTrop'
+    arrayID = 'State_Diag%BudgetEmisDryDepTrop'
+    diagID  = 'BudgetEmisDryDepTrop'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDepTrop( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDryDepTrop( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepTrop = 0.0_f8
-       State_Diag%Archive_BudgetEmisDepTrop = .TRUE.
+       State_Diag%BudgetEmisDryDepTrop = 0.0_f8
+       State_Diag%Archive_BudgetEmisDryDepTrop = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,              &
-                                State_Diag%BudgetEmisDepTrop, &
+                                State_Diag%BudgetEmisDryDepTrop, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! PBL-only emissions
-    arrayID = 'State_Diag%BudgetEmisDepPBL'
-    diagID  = 'BudgetEmisDepPBL'
+    arrayID = 'State_Diag%BudgetEmisDryDepPBL'
+    diagID  = 'BudgetEmisDryDepPBL'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%BudgetEmisDepPBL( IM, JM, nAdvect ), STAT=RC )
+       ALLOCATE( State_Diag%BudgetEmisDryDepPBL( IM, JM, nAdvect ), STAT=RC )
        CALL GC_CheckVar( arrayID, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%BudgetEmisDepPBL = 0.0_f8
-       State_Diag%Archive_BudgetEmisDepPBL = .TRUE.
+       State_Diag%BudgetEmisDryDepPBL = 0.0_f8
+       State_Diag%Archive_BudgetEmisDryDepPBL = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID,             &
-                                State_Diag%BudgetEmisDepPBL, &
+                                State_Diag%BudgetEmisDryDepPBL, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     ! High-level logical for emissions budget
-    IF ( State_Diag%Archive_BudgetEmisDepFull .OR. &
-         State_Diag%Archive_BudgetEmisDepTrop .OR. &
-         State_Diag%Archive_BudgetEmisDepPBL ) THEN
-       State_Diag%Archive_BudgetEmisDep = .TRUE.
+    IF ( State_Diag%Archive_BudgetEmisDryDepFull .OR. &
+         State_Diag%Archive_BudgetEmisDryDepTrop .OR. &
+         State_Diag%Archive_BudgetEmisDryDepPBL ) THEN
+       State_Diag%Archive_BudgetEmisDryDep = .TRUE.
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -3609,9 +3609,9 @@ CONTAINS
     ! Set high-level logicals for diagnostics
     !=======================================================================
     State_Diag%Archive_Budget =  &
-            (   State_Diag%Archive_BudgetEmisDepFull       .or.    &
-                State_Diag%Archive_BudgetEmisDepTrop       .or.    &
-                State_Diag%Archive_BudgetEmisDepPBL        .or.    &
+            (   State_Diag%Archive_BudgetEmisDryDepFull    .or.    &
+                State_Diag%Archive_BudgetEmisDryDepTrop    .or.    &
+                State_Diag%Archive_BudgetEmisDryDepPBL     .or.    &
                 State_Diag%Archive_BudgetTransportFull     .or.    &
                 State_Diag%Archive_BudgetTransportTrop     .or.    &
                 State_Diag%Archive_BudgetTransportPBL      .or.    &
@@ -3759,21 +3759,21 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDepFull ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDepFull, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepFull', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepFull ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDryDepFull, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDepTrop ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDepTrop, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepTrop', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepTrop ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDryDepTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%BudgetEmisDepPBL ) ) THEN
-       DEALLOCATE( State_Diag%BudgetEmisDepPBL, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%BudgetEmisDepPBL', 2, RC )
+    IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepPBL ) ) THEN
+       DEALLOCATE( State_Diag%BudgetEmisDryDepPBL, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -4611,14 +4611,14 @@ CONTAINS
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isType    ) Type  = KINDVAL_F8
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPFULL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for emissions and dry deposition'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPTROP' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPTROP' ) THEN
        IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                 'change in column for emissions and '  // &
                                 'dry deposition'
@@ -4626,7 +4626,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDEPPBL' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 'in column for emissions and dry '    // &
                                 'deposition'
