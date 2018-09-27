@@ -409,14 +409,15 @@ CONTAINS
     ThisLoc = ' -> Compute_Column_Mass ' // ModLoc
     numSpc = SIZE(SpcMap)
 
-    ! Convert species units to kg/m2
-    ! NOTE: If you wish to output different units, e.g. kg/s instead of 
-    ! kg/m2/s to reduce roundoff errors, update the unit string passed 
-    ! in the unit conversion in the unit conversion subroutine below.
-    ! Also update the budget diagnostic units metadata in state_diag_mod.F90
-    ! within subroutine Get_Metadata_State_Diag (ewl, 9/26/18)
+    ! Convert species units to kg
+    ! NOTE: If you wish to output different units, e.g. kg/m2/s instead of 
+    ! kg/s, update the unit string passed in the conversion subroutine below.
+    ! Removing the per seconds would not be done here, but in the subroutine
+    ! that follows to compute the budget diagnostic. Also update the budget 
+    ! diagnostic units metadata in state_diag_mod.F90 within subroutine 
+    ! Get_Metadata_State_Diag (ewl, 9/26/18)
     CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                            State_Chm,  'kg/m2',   RC,          &
+                            State_Chm,  'kg',      RC,          &
                             OrigUnit=OrigUnit                  )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
@@ -501,7 +502,8 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine Compute\_Budget\_Diagnostics calculates the
 !  budget diagnostics for a given component by taking the difference of the
-!  final and initial kg/m2 and dividing by the timestep in seconds.
+!  final and initial kg per grid cell and dividing by the timestep in seconds
+!  to get kg/s.
 !\\
 !\\
 ! !INTERFACE:
@@ -581,16 +583,15 @@ CONTAINS
              RETURN
        END SELECT
 
-       ! Compute diagnostics as [kg/m2/s] by taking dividing the mass
+       ! Compute diagnostics as [kg/s] by taking dividing the mass
        ! difference by component dt in seconds
        !
        ! NOTE: if changing the definition of budget diagnostics below be sure
        ! to also update the budget diagnostic metadata in state_diag_mod.F90
        ! within subroutine Get_Metadata_State_Diag. If you wish to output 
-       ! different units, e.g. kg/s instead of kg/m2/s to reduce roundoff
-       ! errors, update the metadata and also the unit string in the unit 
-       ! conversion call above in subroutine Compute_Column_Mass. 
-       ! (ewl, 9/26/18)
+       ! different units, e.g. kg/m2/s instead of kg/s, update the metadata 
+       ! and also the unit string in the unit conversion call above in subroutine 
+       ! Compute_Column_Mass. (ewl, 9/26/18)
        IF ( setDiag ) THEN
           !$OMP PARALLEL DO        &
           !$OMP DEFAULT( SHARED )  &
