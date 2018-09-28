@@ -161,6 +161,9 @@
 #  09 Aug 2016 - M. Sulprizio- Remove diag_pl_mod and add diag20_mod
 #  13 Jul 2017 - E. Lundgren - Remove passive_species_mod.F90
 #  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+#  23 Aug 2018 - H.P. Lin    - If NO_EXE is set (i.e. EXE_NEEDED=0) for coupled
+#                              model driving G-C do not build "geos" but instead
+#                              "libGeosCore.a"
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -212,7 +215,7 @@ MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
 MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
 # Library file
-LIBRARY :=libcore.a
+LIBRARY :=libGeosCore.a
 
 ###############################################################################
 ###                                                                         ###
@@ -228,7 +231,9 @@ all:                                               # Build libraries
 ifeq ($(UNAME),Darwin)
 	ranlib -c ../lib/*
 endif
+ifeq ($(EXE_NEEDED),1)
 	@$(MAKE) exe
+endif
 
 tomas:
 	@$(MAKE) TOMAS=yes lib                     # TOMAS, 30 bins (default)
@@ -265,9 +270,14 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
-	@$(MAKE) libcore			  
+	@$(MAKE) libcore
 
 libcore: $(OBJECTS)                                # Build code in GeosCore/
+ifeq ($(EXE_NEEDED),1)
+	$(AR) crs $(LIBRARY) $(OBJECTS)
+	mv $(LIBRARY) $(LIB) # ...build a libGeosCore.a for use instead
+endif
+
 
 libgigc:
 ifeq ($(wildcard $(FVDIR)/fvdycore.install),)
@@ -464,7 +474,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tagged_o3_mod.o         tomas_mod.o            \
-                              flexchem_mod.o
+                              flexchem_mod.o          diagnostics_mod.o
 
 cleanup.o                   : cleanup.F                                      \
                               aerosol_mod.o                                  \
@@ -502,7 +512,7 @@ convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
                               fvdas_convect_mod.o     wetscav_mod.o          \
                               mercury_mod.o           tendencies_mod.o       \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o
 
 dao_mod.o                   : dao_mod.F
 
@@ -564,14 +574,13 @@ diag_mod.o                  : diag_mod.F
 
 diag_oh_mod.o               : diag_oh_mod.F
 
-diagnostics_mod.o           : diagnostics_mod.F90                            \
-                              aerosol_mod.o           carbon_mod.o
+diagnostics_mod.o           : diagnostics_mod.F90
 
 drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     diagnostics_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
@@ -582,7 +591,8 @@ emissions_mod.o             : emissions_mod.F90                              \
                               co2_mod.o               global_ch4_mod.o       \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
-                              ucx_mod.o               sfcvmr_mod.o
+                              ucx_mod.o               sfcvmr_mod.o           \
+                              diagnostics_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o
@@ -706,7 +716,7 @@ main.o                      : main.F                                         \
                               wetscav_mod.o           diag_mod.o             \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
-                              gc_classic_version.H
+                              aerosol_mod.o           gc_classic_version.H
 
 mapping_mod.o               : mapping_mod.F90                              
 
@@ -722,7 +732,7 @@ merra2_read_mod.o           : merra2_read_mod.F90                            \
                               dao_mod.o               diag_mod.o
 
 mixing_mod.o                : mixing_mod.F90                                 \
-                              dao_mod.o                                      \
+                              dao_mod.o               diagnostics_mod.o      \
                               diag_mod.o              drydep_mod.o           \
                               hcoi_gc_main_mod.o      get_ndep_mod.o         \
                               pbl_mix_mod.o           tendencies_mod.o       \
@@ -744,6 +754,16 @@ ocean_mercury_mod.o         : ocean_mercury_mod.F                            \
                               dao_mod.o               depo_mercury_mod.o     \
                               diag03_mod.o            toms_mod.o             \
                               hco_interface_mod.o
+##############################################################################
+# NOTE: For some reason gfortran 8.x.x throws an internal compiler error
+# in this routine.  The error does not happen when optimization is turned
+# off.  For now, lower the optimization level to get around this issue.
+# The ocean mercury module might eventually be replaced later on.
+#   -- Bob Yantosca, 17 Aug 2018
+ifeq ($(IS_GNU_8),1)
+	$(F90) -c -O1 $<
+endif
+##############################################################################
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
@@ -834,7 +854,8 @@ transport_mod.o             : transport_mod.F                                \
                               diag_mod.o              dao_mod.o              \
                               pjc_pfix_mod.o          tpcore_bc_mod.o        \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
-                              tendencies_mod.o        pjc_pfix_window_mod.o
+                              tendencies_mod.o        pjc_pfix_window_mod.o  \
+                              diagnostics_mod.o
 
 ucx_mod.o                   : ucx_mod.F                                      \
                               fast_jx_mod.o           global_ch4_mod.o       \
@@ -860,7 +881,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tendencies_mod.o        hco_interface_mod.o    \
-                              tomas_mod.o
+                              tomas_mod.o             diagnostics_mod.o
 
 ###############################################################################
 ###                                                                         ###

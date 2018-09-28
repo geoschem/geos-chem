@@ -424,18 +424,6 @@ CONTAINS
        RETURN
     ENDIF
     
-#if defined( NC_DIAG )
-    !=======================================================================
-    ! Initialize the diagnostics module where several diags are set
-    !=======================================================================
-    CALL Init_Diagnostics_Mod( am_I_Root, State_Diag, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_Diagnostics_Mod"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
   END SUBROUTINE GC_Init_StateObj
 !EOC
 !------------------------------------------------------------------------------

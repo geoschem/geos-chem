@@ -135,6 +135,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE GEOS_TIMERS_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -180,6 +181,10 @@ CONTAINS
     ! Convert_Spc_Units begins here!
     !====================================================================
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
     ! Assume success
     RC =  GC_SUCCESS
 
@@ -203,7 +208,12 @@ CONTAINS
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( TRIM(OutUnit) == TRIM(InUnit) ) RETURN
+    IF ( TRIM(OutUnit) == TRIM(InUnit) ) THEN
+#if defined( USE_TIMERS )
+       CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
+       RETURN
+ENDIF
 
     ! Convert based on input and output units
     SELECT CASE ( TRIM(InUnit) )
@@ -305,6 +315,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( ErrMsg_RC, RC, LOC )
     ENDIF
+
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
 
   END SUBROUTINE Convert_Spc_Units
 !EOC
@@ -1073,7 +1087,7 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
-    ! ConvertSpc_KgKgDry_to_Kg begins here!
+    ! ConvertSpc_VVDry_to_Kg begins here!
     !====================================================================
 
     ! Assume success

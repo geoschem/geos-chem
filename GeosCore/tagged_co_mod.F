@@ -145,9 +145,6 @@
       REAL(f4), POINTER     :: PCO_NMVOC  (:,:,:) => NULL() ! NMVOC P(CO)
       REAL(f4), POINTER     :: SFC_CH4    (:,:  ) => NULL() ! Global sfc CH4
 
-      ! Diagnostic flags
-      LOGICAL               :: Archive_Loss
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -406,7 +403,7 @@
 
       ! Zero diagnostic archival arrays to make sure that we don't have any
       ! leftover values from the last timestep near the top of the chemgrid
-      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( State_Diag%Archive_Loss ) State_Diag%Loss = 0.0_f4
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -1006,7 +1003,7 @@
                   !
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
-                  IF ( Archive_Loss ) THEN
+                  IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( CORATE 
      &                                        *   Spc(I,J,L,N) 
      &                                        *   STTCO        )
@@ -1147,7 +1144,7 @@
                   !-----------------------------------------------------
 
                   ! Units: [kg/s]
-                  IF ( Archive_Loss ) THEN
+                  IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( KRATE       
      &                                        *   OH_MOLEC_CM3 
      &                                        *   Spc(I,J,L,N) 
@@ -1230,7 +1227,7 @@
          !==============================================================
 
          ! Units: [kg/s]
-         IF ( Archive_Loss ) THEN
+         IF ( State_Diag%Archive_Loss ) THEN
             State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
          ENDIF   
 #endif
@@ -1570,9 +1567,6 @@
       CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp
-
-      ! Test if netCDF diagnostics have been activated
-      Archive_Loss = ASSOCIATED( State_Diag%Loss )
 
       END SUBROUTINE INIT_TAGGED_CO
 !EOC

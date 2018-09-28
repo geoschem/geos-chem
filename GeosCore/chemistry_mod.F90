@@ -95,48 +95,52 @@ CONTAINS
 !
 ! !USES:
 !
-    USE AEROSOL_MOD,    ONLY : AEROSOL_CONC
-    USE AEROSOL_MOD,    ONLY : RDAER
-    USE AEROSOL_MOD,    ONLY : SOILDUST
-    USE C2H6_MOD,       ONLY : CHEMC2H6
-    USE CARBON_MOD,     ONLY : CHEMCARBON
+    USE AEROSOL_MOD,     ONLY : AEROSOL_CONC
+    USE AEROSOL_MOD,     ONLY : RDAER
+    USE AEROSOL_MOD,     ONLY : SOILDUST
+    USE C2H6_MOD,        ONLY : CHEMC2H6
+    USE CARBON_MOD,      ONLY : CHEMCARBON
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD  
 #endif
     USE CMN_SIZE_MOD
-    USE DUST_MOD,       ONLY : CHEMDUST
-    USE DUST_MOD,       ONLY : RDUST_ONLINE
-    USE ErrCode_Mod
-    USE ERROR_MOD
-    USE FlexChem_Mod,   ONLY : Do_FlexChem
-    USE GLOBAL_CH4_MOD, ONLY : CHEMCH4
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE ISOROPIAII_MOD, ONLY : DO_ISOROPIAII
-    USE MERCURY_MOD,    ONLY : CHEMMERCURY
-    USE POPS_MOD,       ONLY : CHEMPOPS
-    USE RnPbBe_MOD,     ONLY : CHEMRnPbBe
-    USE RPMARES_MOD,    ONLY : DO_RPMARES
-    USE SEASALT_MOD,    ONLY : CHEMSEASALT
-    USE SULFATE_MOD,    ONLY : CHEMSULFATE
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Chm_Mod,  ONLY : Ind_
-    USE State_Diag_Mod, ONLY : DgnState
-    USE State_Met_Mod,  ONLY : MetState
-    USE STRAT_CHEM_MOD, ONLY : DO_STRAT_CHEM
-    USE TAGGED_CO_MOD,  ONLY : CHEM_TAGGED_CO
-    USE TAGGED_O3_MOD,  ONLY : CHEM_TAGGED_O3
-    USE TIME_MOD,       ONLY : GET_ELAPSED_SEC
-    USE TIME_MOD,       ONLY : GET_TS_CHEM
-#if defined( USE_TEND )
-    USE TENDENCIES_MOD
+#if defined( NC_DIAG )
+    USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
 #endif
-#if defined( TOMAS )
-    USE TOMAS_MOD,      ONLY : DO_TOMAS  !(win, 7/14/09)
-#endif
-    USE UCX_MOD,        ONLY : CALC_STRAT_AER
-    USE UCX_MOD,        ONLY : READ_PSC_FILE
-    USE UCX_MOD,        ONLY : WRITE_STATE_PSC
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE DUST_MOD,        ONLY : CHEMDUST
+    USE DUST_MOD,        ONLY : RDUST_ONLINE
+    USE ErrCode_Mod      
+    USE ERROR_MOD        
+    USE FlexChem_Mod,    ONLY : Do_FlexChem
+    USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
+    USE MERCURY_MOD,     ONLY : CHEMMERCURY
+    USE POPS_MOD,        ONLY : CHEMPOPS
+    USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
+    USE RPMARES_MOD,     ONLY : DO_RPMARES
+    USE SEASALT_MOD,     ONLY : CHEMSEASALT
+    USE SULFATE_MOD,     ONLY : CHEMSULFATE
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Chm_Mod,   ONLY : Ind_
+    USE State_Diag_Mod,  ONLY : DgnState
+    USE State_Met_Mod,   ONLY : MetState
+    USE STRAT_CHEM_MOD,  ONLY : DO_STRAT_CHEM
+    USE TAGGED_CO_MOD,   ONLY : CHEM_TAGGED_CO
+    USE TAGGED_O3_MOD,   ONLY : CHEM_TAGGED_O3
+    USE TIME_MOD,        ONLY : GET_ELAPSED_SEC
+    USE TIME_MOD,        ONLY : GET_TS_CHEM
+#if defined( USE_TEND )  
+    USE TENDENCIES_MOD   
+#endif                   
+#if defined( TOMAS )     
+    USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
+#endif                   
+    USE UCX_MOD,         ONLY : CALC_STRAT_AER
+    USE UCX_MOD,         ONLY : READ_PSC_FILE
+    USE UCX_MOD,         ONLY : WRITE_STATE_PSC
+    USE UnitConv_Mod,    ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -252,6 +256,7 @@ CONTAINS
 !  03 Jan 2018 - M. Sulprizio- Replace UCX CPP switch with Input_Opt%LUCX
 !  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
 !                              match new timestep unit of seconds
+!  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -286,8 +291,8 @@ CONTAINS
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
-#if defined( USE_TEND )
-    REAL(fp)           :: DT_TEND
+#if defined( USE_TEND ) || defined( NC_DIAG )
+    REAL(fp)           :: DT_Chem
 #endif
 
     ! SAVEd scalars
@@ -336,16 +341,27 @@ CONTAINS
        id_NK1  = Ind_('NK1' )
     ENDIF
 
-    !-----------------------------------------------------------------------
-    !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! DO_CHEMISTRY is passed species concentration in 
-    ! units of kg/kg and must be converted to kg at the start of the
-    ! routine. Units are then converted back to kg/kg at the end. To work
-    ! in an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-    ! will need to be updated to convert State_Chm%Species from [v/v]
-    ! to [kg/kg dry air]. (ewl, 8/13/15)
-    !-----------------------------------------------------------------------
+#if defined( NC_DIAG )
+    !----------------------------------------------------------
+    ! Chemistry budget diagnostics - Part 1 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetChemistry ) THEN
+       ! Get initial column masses
+       CALL Compute_Column_Mass( am_I_Root,                              & 
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetChemistryFull, &
+                                 State_Diag%Archive_BudgetChemistryTrop, &
+                                 State_Diag%Archive_BudgetChemistryPBL,  &
+                                 State_Diag%BudgetMass1,                 &
+                                 RC ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Chemistry budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
 
 #if defined( USE_TEND )
     !=======================================================================
@@ -355,29 +371,21 @@ CONTAINS
                       State_Chm, 'CHEM', RC                                 )
 #endif
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
-#endif
-
+    !=======================================================================
     ! Convert species units to [kg] for chemistry (ewl, 8/12/15)
+    !=======================================================================
     CALL Convert_Spc_Units( am_I_Root,        Input_Opt, State_Met,          &
                             State_Chm,        'kg',      RC,                 &
                             OrigUnit=OrigUnit                               )
-
-    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> kg)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_End( "=> Unit conversions", RC )
-#endif
-
-    !-------------------------------------------------
+    !=======================================================================
     ! If LCHEM=T then call the chemistry subroutines
-    !-------------------------------------------------
+    !=======================================================================
     IF ( LCHEM ) THEN
 
        !====================================================================
@@ -1057,54 +1065,70 @@ CONTAINS
 
     ENDIF
      
-    !-----------------------------------------------------------------------
-    !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! DO_CHEMISTRY is passed species concentration in units of 
-    ! kg/kg and is converted to kg at the start of the routine.
-    ! Units are then converted back to kg/kg at the end. To work in
-    ! an ESMF environment, GIGC_Do_Chem (in ESMF/gigc_chemdr.F90)
-    ! will need to be updated to convert State_Chm%Species from [kg]
-    ! to [kg/kg dry air] at the end (not [v/v]). (ewl, 8/13/15)
-    !-----------------------------------------------------------------------
-
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
-#endif
-
+    !=======================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
+    !=======================================================================
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,                 &
                             State_Chm, OrigUnit,  RC                        )
-
-    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error (kg to kg/kg dry)'
+       ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
-#if defined( USE_TIMERS )
-    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#if defined( USE_TEND ) || defined( NC_DIAG )
+    ! Chemistry timestep [s]
+    DT_Chem = Get_Ts_Chem()
 #endif
 
 #if defined( USE_TEND )
     !=======================================================================
-    ! Calculate tendencies and write to diagnostics 
-    ! (ckeller,7/15/2015)
+    ! Calculate tendencies and write to diagnostics (ckeller,7/15/2015)
     !=======================================================================
-
-    ! Chemistry timestep [s]
-    DT_TEND = GET_TS_CHEM()
 
     ! Compute tendencies
     CALL Tend_Stage2( am_I_Root, Input_Opt, State_Met,                       &
-                      State_Chm, 'CHEM',    DT_TEND,   RC                   ) 
+                      State_Chm, 'CHEM',    DT_Chem,   RC                   ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in ""!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+#endif
+
+#if defined( NC_DIAG )
+    !----------------------------------------------------------
+    ! Chemistry budget diagnostics - Part 2 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetChemistry ) THEN
+       ! Get final column masses and compute diagnostics
+       CALL Compute_Column_Mass( am_I_Root,                              &
+                                 Input_Opt, State_Met, State_Chm,        &
+                                 State_Chm%Map_Advect,                   &
+                                 State_Diag%Archive_BudgetChemistryFull, &
+                                 State_Diag%Archive_BudgetChemistryTrop, &
+                                 State_Diag%Archive_BudgetChemistryPBL,  &
+                                 State_Diag%BudgetMass2,                 &
+                                 RC )       
+       CALL Compute_Budget_Diagnostics( am_I_Root,                           &
+                                     State_Chm%Map_Advect,                   &
+                                     DT_Chem,                                &
+                                     State_Diag%Archive_BudgetChemistryFull, &
+                                     State_Diag%Archive_BudgetChemistryTrop, &
+                                     State_Diag%Archive_BudgetChemistryPBL,  &
+                                     State_Diag%BudgetChemistryFull,         &
+                                     State_Diag%BudgetChemistryTrop,         &
+                                     State_Diag%BudgetChemistryPBL,          &
+                                     State_Diag%BudgetMass1,                 &
+                                     State_Diag%BudgetMass2,                 &
+                                     RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Chemistry budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 #endif
 

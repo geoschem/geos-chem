@@ -146,9 +146,6 @@
       ! Species ID flags
       INTEGER                      :: id_O3Strat
 
-      ! Diagnostic flags
-      LOGICAL                      :: Archive_Loss
-      LOGICAL                      :: Archive_Prod
 !
 ! !DEFINED PARAMETERS:
 ! 
@@ -533,8 +530,8 @@
 
       ! Zero diagnostic archival arrays to make sure that we don't have any
       ! leftover values from the last timestep near the top of the chemgrid
-      IF ( Archive_Loss ) State_Diag%Loss = 0.0_f4
-      IF ( Archive_Prod ) State_Diag%Prod = 0.0_f4
+      IF ( State_Diag%Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( State_Diag%Archive_Prod ) State_Diag%Prod = 0.0_f4
 
       !=================================================================
       ! Get production and loss frequencies from HEMCO. The target
@@ -654,7 +651,7 @@
             !===========================================================
 
             ! Production of tagged O3 species [kg/s]
-            IF ( Archive_Prod ) THEN
+            IF ( State_Diag%Archive_Prod ) THEN
                IF ( PP(I,J,L,N) > 0e+0_fp ) THEN
                   State_Diag%Prod(I,J,L,N) = P24H(I,J,L) 
      &                                     * BOXVL / TS_EMIS
@@ -662,7 +659,7 @@
             ENDIF
 
             ! Loss of tagged O3 species [kg/s]
-            IF ( Archive_Loss ) THEN
+            IF ( State_Diag%Archive_Loss ) THEN
                State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) 
      &                                  * BOXVL        / TS_EMIS
             ENDIF
@@ -771,10 +768,6 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-
-      ! Test if netCDF diagnostics have been activated
-      Archive_Loss = ASSOCIATED( State_Diag%Loss )
-      Archive_Prod = ASSOCIATED( State_Diag%Prod )
 
       END SUBROUTINE INIT_TAGGED_O3
 !EOC

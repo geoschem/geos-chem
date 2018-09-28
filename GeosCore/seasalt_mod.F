@@ -140,9 +140,6 @@
       INTEGER               :: id_SALC
       INTEGER               :: id_SS1
 
-      ! Diagnostic flags
-      LOGICAL               :: Archive_DryDepChm
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -762,7 +759,8 @@
          ! NOTE: Eventually think about converting this
          ! diagnostic to more standard units [kg/m2/s]
          !-----------------------------------------------------------
-         IF ( Archive_DryDepChm ) THEN
+         IF ( State_Diag%Archive_DryDepChm .OR.
+     &        State_Diag%Archive_DryDep        ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -1110,10 +1108,6 @@
 
       ! Return if we have already allocated arrays
       IF ( IS_INIT ) RETURN
-
-      ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm ) .OR. 
-     &                    ASSOCIATED( State_Diag%DryDep    )
 
       ! Define species indices
       id_MOPI = Ind_('MOPI')

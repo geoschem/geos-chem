@@ -802,7 +802,7 @@
 !
       ! Scalars
       INTEGER            :: N, C
-#if defined(  ESMF_ ) 
+#if defined( ESMF_ ) || defined( MODEL_ )
       INTEGER            :: H,       M,       S
       REAL(f4)           :: init_UTC
 #endif
@@ -3315,36 +3315,6 @@
          RETURN
       ENDIF
 
-      !=================================================================
-      ! Error checks
-      !=================================================================
-
-      IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
-         IF ( Input_Opt%LNLPBL .and. am_I_Root ) THEN
-
-            WRITE( 6,* ) '' 
-            WRITE( 6,* ) 'It has been noted in GEOS-Chem v11-01 and'
-            WRITE( 6,* ) ' later that VDIFF (the non-local mixing'
-            WRITE( 6,* ) ' option) does not strictly conserve mass.'
-            WRITE( 6,* ) ' This will be more of a problem for long-'
-            WRITE( 6,* ) ' lived species like CH4 and CO2. Therefore,'
-            WRITE( 6,* ) ' if you are using the CH4 or CO2 specialty'
-            WRITE( 6,* ) ' simulations, we recommend to use the full'
-            WRITE( 6,* ) ' TURBDAY mixing by setting the non-local PBL'
-            WRITE( 6,* ) ' switch to F.'
-            WRITE( 6,* ) ''
-            WRITE( 6,* ) 'You may remove this trap at your own peril,'
-            WRITE( 6,* ) ' by commenting out the call to GC_ERROR in'
-            WRITE( 6,* ) ' GeosCore/input_mod.F. '
-            WRITE( 6,* ) ''
-            WRITE( 6,* ) 'See this GEOS-Chem wiki page for details:'
-            WRITE( 6,* ) ' wiki.geos-chem.org/Boundary_layer_mixing'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-
-         ENDIF
-      ENDIF
-
       ! Return success
       RC = GC_SUCCESS
 
@@ -3869,14 +3839,14 @@
       INTEGER            :: ND01x, ND02x, ND03x, ND04x, ND05x, ND06x
       INTEGER            :: ND07x, ND08x, ND09x, ND10x, ND11x, ND12x
       INTEGER            :: ND13x, ND14x, ND15x, ND16x, ND17x, ND18x
-      INTEGER            :: ND19x, ND20x, ND21x, ND22x, ND23x, ND24x
+      INTEGER            :: ND19x, ND21x, ND22x, ND24x
       INTEGER            :: ND25x, ND26x, ND27x, ND28x, ND29x, ND30x
       INTEGER            :: ND31x, ND32x, ND33x, ND34x, ND35x, ND36x
-      INTEGER            :: ND37x, ND38x, ND39x, ND40x, ND41x, ND42x
-      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x, ND48x
-      INTEGER            :: ND49x, ND50x, ND51x, ND52x, ND53x, ND54x
+      INTEGER            :: ND37x, ND38x, ND39x, ND41x, ND42x
+      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x
+      INTEGER            :: ND52x, ND53x, ND54x
       INTEGER            :: ND55x, ND56x, ND57x, ND58x, ND59x, ND60x
-      INTEGER            :: ND61x, ND62x, ND63x, ND64x, ND65x, ND66x
+      INTEGER            :: ND61x, ND62x, ND64x, ND66x
       INTEGER            :: ND67x, ND68x, ND69x, ND70x, ND71x, ND72x
       INTEGER            :: ND73x, HR1_JVx, HR2_JVx, HR1_OHx, HR2_OHx
       INTEGER            :: HR1_OTHx, HR2_OTHx

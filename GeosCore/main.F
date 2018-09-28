@@ -1,5 +1,13 @@
 !BOC
-#if !defined(ESMF_)
+#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( MODEL_ )
+      !-----------------------------------------------------------------
+      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
+      !        %%%% GEOS-Chem Coupled with External Models %%%%
+      !
+      ! When GEOS-Chem is connected to an external model or in GCHP,
+      ! the GEOS-Chem classic main.F should not be built.
+      !-----------------------------------------------------------------
+#else
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -54,6 +62,7 @@
       !-----------------------------------------------------------------
       ! GEOS-Chem chemistry modules
       !-----------------------------------------------------------------
+      USE AEROSOL_MOD,  ONLY : Set_AerMass_Diagnostic
       USE CARBON_MOD            ! For SOA simulation
       USE CHEMISTRY_MOD         ! Driver routines for chemistry
       USE MERCURY_MOD           ! For offline Hg simulation (driver)
@@ -1081,7 +1090,8 @@
 
          ! Run HEMCO Phase 1
          CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met, 
-     &                       State_Chm, TimeForEmis, 1,         RC )
+     &                       State_Chm, State_Diag,  TimeForEmis, 
+     &                       1,         RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1583,9 +1593,6 @@
 !-----------------------------------------------------------------------------
 
             ! Call the appropriate version of TPCORE
-            ! NOTE: Tracer concentration units are converted locally
-            ! within transport to [kg/kg total air] for advection 
-            ! (ewl, 9/18/15)
             IF ( LTRAN ) THEN 
                CALL Do_Transport( am_I_Root, Input_Opt,  State_Met,
      &                            State_Chm, State_Diag, RC         )
@@ -1601,6 +1608,7 @@
                   CALL Debug_Msg( '### MAIN: a DO_TRANSPORT' )
                ENDIF
             ENDIF
+
 
             ! Initialize wet scavenging and wetdep fields after
             ! the airmass quantities are reset after transport
@@ -1688,7 +1696,7 @@
             ! Increment emission counter
             CALL Set_Ct_Emis( INCREMENT=.TRUE. )
 #endif
-     
+
             !===========================================================
             !         ***** D R Y   D E P O S I T I O N *****
             !===========================================================
@@ -1738,7 +1746,8 @@
             ! in phase 1 at the beginning of the time step. 
             ! (ckeller, 4/1/15)
             CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met, 
-     &                          State_Chm, TimeForEmis, 2,         RC )
+     &                          State_Chm, State_Diag,  TimeForEmis, 
+     &                          2,         RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2062,6 +2071,20 @@
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in ' // 
      &               '"Set_Diagnostics_EndOfTimestep"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+         ! Archive aerosol mass and PM2.5 diagnostics
+         IF ( State_Diag%Archive_AerMass ) THEN
+            CALL Set_AerMass_Diagnostic( am_I_Root,  Input_Opt,  
+     &                                   State_Met,  State_Chm, 
+     &                                   State_Diag, RC         )
+         ENDIF
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in ' // 
+     &               '"Set_AerMass_Diagnostic"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 

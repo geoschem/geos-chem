@@ -127,6 +127,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( NC_DIAG )
+      USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+      USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
+#endif
       USE ErrCode_Mod
       USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -172,6 +176,7 @@
 !  19 Jul 2016 - R. Yantosca - Now bracket DO_TEND calls with #ifdef USE_TEND
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  27 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,11 +185,11 @@
 !
       ! Scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      REAL(fp)           :: DT
-
-      ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
+#if defined ( USE_TEND ) || defined ( NC_DIAG )
+      REAL(fp)           :: DT_Dyn
+#endif
 
       !=================================================================
       ! DO_TRANSPORT begins here!
@@ -195,6 +200,28 @@
       ErrMsg  = ''
       ThisLoc = 
      &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
+
+#if defined( NC_DIAG )
+      !----------------------------------------------------------
+      ! Transport (advection) budget diagnostics - Part 1 of 2
+      !----------------------------------------------------------
+      IF ( State_Diag%Archive_BudgetTransport ) THEN
+         ! Get initial column masses
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
+     &                          State_Diag%BudgetMass1, 
+     &                          RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Transport budget diagnostics error 1'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      ENDIF
+#endif
 
       ! First-time initialization
       IF ( FIRST ) THEN 
@@ -283,20 +310,58 @@
 
       ENDIF
 
+#if defined ( USE_TEND ) || defined ( NC_DIAG )
+      ! Dynamic timestep [s]
+      DT_Dyn = GET_TS_DYN()
+#endif
+
 #if defined( USE_TEND )
       !=================================================================
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      DT = GET_TS_DYN()
       CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'ADV', DT, RC )
+     &                  State_Chm, 'ADV', DT_Dyn, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Tend_Stage2"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
+      ENDIF
+#endif
+
+#if defined( NC_DIAG )
+      !----------------------------------------------------------
+      ! Transport (advection) budget diagnostics - Part 2 of 2
+      !----------------------------------------------------------
+      IF ( State_Diag%Archive_BudgetTransport ) THEN
+         ! Get final column masses and compute diagnostics
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_Advect,        
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
+     &                          State_Diag%BudgetMass2, 
+     &                          RC ) 
+         CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Chm%Map_Advect,
+     &                          DT_Dyn,                                
+     &                          State_Diag%Archive_BudgetTransportFull, 
+     &                          State_Diag%Archive_BudgetTransportTrop, 
+     &                          State_Diag%Archive_BudgetTransportPBL,  
+     &                          State_Diag%BudgetTransportFull,         
+     &                          State_Diag%BudgetTransportTrop,         
+     &                          State_Diag%BudgetTransportPBL,          
+     &                          State_Diag%BudgetMass1,          
+     &                          State_Diag%BudgetMass2,          
+     &                          RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Transport budget diagnostics error 2'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 #endif
 

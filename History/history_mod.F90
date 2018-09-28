@@ -1618,6 +1618,7 @@ CONTAINS
 
     ! Pointer arrays
     REAL(fp),            POINTER :: Ptr2d  (:,:  )
+    REAL(f8),            POINTER :: Ptr2d_8(:,:  )
     REAL(f4),            POINTER :: Ptr2d_4(:,:  )
     INTEGER,             POINTER :: Ptr2d_I(:,:  )
     REAL(fp),            POINTER :: Ptr3d  (:,:,:)
@@ -1641,6 +1642,7 @@ CONTAINS
     StateMetUC  = State_Met%State // '_'   ! State_Met%State is uppercase
     StateChmUC  = State_Chm%State // '_'   ! State_Chm%State is uppercase
     Ptr2d       => NULL()
+    Ptr2d_8     => NULL()
     Ptr2d_4     => NULL()
     Ptr2d_I     => NULL()
     Ptr3d       => NULL()
@@ -1724,8 +1726,11 @@ CONTAINS
                              Rank         = Rank,                            &
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
-                             Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr2d        = Ptr2d,                           &
+                             Ptr3d        = Ptr3d,                           &
+                             Ptr2d_8      = Ptr2d_8,                         &
                              Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
                              Ptr2d_I      = Ptr2d_I,                         &
                              Ptr3d_I      = Ptr3d_I,                         &
@@ -1773,6 +1778,7 @@ CONTAINS
                           Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
                           Source_2d      = Ptr2d,                            &
+                          Source_2d_8    = Ptr2d_8,                          &
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
                           Source_3d      = Ptr3d,                            &
@@ -1891,6 +1897,7 @@ CONTAINS
 
     ! Free pointers
     Ptr2d   => NULL()
+    Ptr2d_8 => NULL()
     Ptr2d_4 => NULL()
     Ptr2d_I => NULL()
     Ptr3d   => NULL()

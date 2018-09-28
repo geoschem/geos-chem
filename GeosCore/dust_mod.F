@@ -84,17 +84,6 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( NC_DIAG )
-      ! Diagnostic flags
-      LOGICAL               :: Archive_DryDepChm
-      LOGICAL               :: Archive_AerSurfAreaDust
-      LOGICAL               :: Archive_AOD
-      LOGICAL               :: Archive_AODDust
-      LOGICAL               :: Archive_AODDustWL1
-      LOGICAL               :: Archive_AODDustWL2
-      LOGICAL               :: Archive_AODDustWL3
-#endif
-
       ! Species ID flags
       INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
       INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4  
@@ -936,7 +925,8 @@
 #endif
 
 #if defined( NC_DIAG )
-               IF ( Archive_DryDepChm ) THEN
+               IF ( State_Diag%Archive_DryDepChm .OR.
+     &              State_Diag%Archive_DryDep        ) THEN
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   ! Dry deposition flux loss [molec/cm2/s]
@@ -1377,7 +1367,7 @@
       ENDIF
 #endif
 #if defined( NC_DIAG )
-      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+      IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD = 0.0_fp
@@ -1424,13 +1414,13 @@
             !---------------------------------------------------
             ! Set size-resolved dust optical depth diagnostic
             !---------------------------------------------------
-            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+            IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
                State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
             ENDIF
-            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+            IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
                State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
             ENDIF
-            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+            IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
                State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
             ENDIF
 
@@ -1445,7 +1435,7 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ARCHIVE_AODDust ) THEN
+         IF ( State_Diag%Archive_AODDust ) THEN
 !$OMP PARALLEL DO
 
 !$OMP+DEFAULT( SHARED )
@@ -1463,7 +1453,7 @@
       ENDIF
 
       ! Archive total dust surface area (sum across all bins)
-      IF ( Archive_AerSurfAreaDust ) THEN
+      IF ( State_Diag%Archive_AerSurfAreaDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1986,7 +1976,7 @@
       ENDIF
 #endif
 #if defined( NC_DIAG )
-      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+      IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD = 0.0_fp
@@ -2030,13 +2020,13 @@
             !---------------------------------------------------
             ! Set size-resolved dust optical depth diagnostic
             !---------------------------------------------------
-            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+            IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
                State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
             ENDIF
-            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+            IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
                State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
             ENDIF
-            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+            IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
                State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
             ENDIF
 
@@ -2050,7 +2040,7 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ARCHIVE_AODDust ) THEN
+         IF ( State_Diag%Archive_AODDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2069,7 +2059,7 @@
       !------------------------------------------------------
       ! Archive total dust surface area (sum across all bins)
       !------------------------------------------------------
-      IF ( Archive_AerSurfAreaDust ) THEN
+      IF ( State_Diag%Archive_AerSurfAreaDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2678,21 +2668,6 @@
       ! Initialize
       RC                 =  GC_SUCCESS
       SpcInfo            => NULL()
-
-#if defined( NC_DIAG )
-      ! Are certain diagnostics turned on?
-      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm ) .OR.
-     &                          ASSOCIATED( State_Diag%DryDep )
-      Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
-      Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
-      Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
-      Archive_AODDustWL2      = ASSOCIATED( State_Diag%AODDustWL2 )
-      Archive_AODDustWL3      = ASSOCIATED( State_Diag%AODDustWL3 )
-      Archive_AOD             = Archive_AODDust 
-     &                     .OR. Archive_AODDustWL1 
-     &                     .OR. Archive_AODDustWL2 
-     &                     .OR. Archive_AODDustWL3
-#endif
 
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
