@@ -499,20 +499,6 @@ CONTAINS
     ! Initialize pointer
     SpcInfo           => NULL()
 
-    ! DO_TEND previously operated in units of kg. The species arrays are in
-    ! v/v for mixing, hence needed to convert before and after.
-    ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
-    ! remove area-dependency (ewl, 9/30/15)
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                            'kg/m2', RC, OrigUnit=OrigUnit )
-
-    ! Trap potential error
-    IF ( RC /= GC_SUCCESS ) THEN
-       MSG = 'Unit conversion error!'
-       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
-       RETURN
-    ENDIF 
-
 #if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
@@ -534,6 +520,20 @@ CONTAINS
        ENDIF
     ENDIF
 #endif
+
+    ! DO_TEND previously operated in units of kg. The species arrays are in
+    ! v/v for mixing, hence needed to convert before and after.
+    ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to 
+    ! remove area-dependency (ewl, 9/30/15)
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            'kg/m2', RC, OrigUnit=OrigUnit )
+
+    ! Trap potential error
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF 
 
     ! Get time step [s]
     IF ( PRESENT(DT) ) THEN
@@ -1000,6 +1000,15 @@ CONTAINS
                       State_Chm, 'FLUX', TS, RC )
 #endif
 
+    ! Convert State_Chm%Species back to original units
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            OrigUnit, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       MSG = 'Unit conversion error!'
+       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
+       RETURN
+    ENDIF  
+
 #if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
@@ -1033,15 +1042,6 @@ CONTAINS
        ENDIF
     ENDIF
 #endif
-
-    ! Convert State_Chm%Species back to original units
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                            OrigUnit, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       MSG = 'Unit conversion error!'
-       CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
-       RETURN
-    ENDIF  
 
   END SUBROUTINE DO_TEND 
 !EOC
