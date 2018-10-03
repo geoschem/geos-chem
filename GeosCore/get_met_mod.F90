@@ -47,7 +47,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_2D( Q, v_name )
+  SUBROUTINE Get_Met_2D( Q, v_name, t_index )
 !
 ! !USES:
 !
@@ -59,18 +59,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN) :: v_name      ! netCDF variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,INTENT(OUT)            :: Q(IIPAR,JJPAR)     ! Temporary data arrray
+    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR) ! Temporary
+                                                             ! data array
 !
 ! !REVISION HISTORY:
-!  04 Mar 2016 - J.W.Zhuang - Initial version
+!  04 Mar 2016 - J.W.Zhuang  - Initial version
+!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -78,6 +77,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     ! Scalars
+    INTEGER :: T
     LOGICAL :: FND
     LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
@@ -95,8 +95,16 @@ CONTAINS
     ! Nullify pointer
     Ptr2D => NULL()
 
+    ! Define time index to use
+    IF ( PRESENT(t_index) ) THEN
+       T = t_index
+    ELSE
+       T = 1
+    ENDIF
+
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr2D, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr2D, RC, TIDX=T, &
+                     FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -124,7 +132,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3D( Q, v_name )
+  SUBROUTINE Get_Met_3D( Q, v_name, t_index )
 !
 ! !USES:
 !
@@ -136,18 +144,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN) :: v_name      ! netCDF variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,INTENT(OUT)            :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
+    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR,LLPAR) ! Temporary
+                                                                   ! data array
 !
 ! !REVISION HISTORY:
-!  04 Mar 2016 - J.W.Zhuang - Initial version
+!  04 Mar 2016 - J.W.Zhuang  - Initial version
+!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -155,6 +162,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     ! Scalars
+    INTEGER :: T
     LOGICAL :: FND
     LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
@@ -172,8 +180,16 @@ CONTAINS
     ! Nullify pointer
     Ptr3D => NULL()
 
+    ! Define time index to use
+    IF ( PRESENT(t_index) ) THEN
+       T = t_index
+    ELSE
+       T = 1
+    ENDIF
+    
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
+                     FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
@@ -201,7 +217,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Get_Met_3De( Q, v_name )
+  SUBROUTINE Get_Met_3De( Q, v_name, t_index )
 !
 ! !USES:
 !
@@ -213,18 +229,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*),INTENT(IN) :: v_name      ! netCDF variable name
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-
+    CHARACTER(LEN=*),INTENT(IN)            :: v_name    ! netCDF variable name
+    INTEGER,         INTENT(IN), OPTIONAL  :: t_index   ! Time index (default=1)
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL*4,INTENT(OUT)            :: Q(IIPAR,JJPAR,LLPAR+1)     ! Temporary data arrray
+    REAL*4,          INTENT(OUT)           :: Q(IIPAR,JJPAR,LLPAR+1)! Temporary
+                                                                    ! data array
 !
 ! !REVISION HISTORY:
-!  04 Mar 2016 - J.W.Zhuang - Initial version
+!  04 Mar 2016 - J.W.Zhuang  - Initial version
+!  03 Oct 2018 - M. Sulprizio- Add time index as input argument
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,6 +247,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !   
     ! Scalars
+    INTEGER :: T
     LOGICAL :: FND
     LOGICAL :: am_I_Root   ! Are we on the root CPU?
     INTEGER :: RC          ! Success or failure?
@@ -249,8 +265,16 @@ CONTAINS
     ! Nullify pointer
     Ptr3D => NULL()
 
+    ! Define time index to use
+    IF ( PRESENT(t_index) ) THEN
+       T = t_index
+    ELSE
+       T = 1
+    ENDIF
+
     ! Get the pointer to the data in the HEMCO data structure
-    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, FOUND=FND )
+    CALL HCO_GetPtr( am_I_Root, HcoState, v_name, Ptr3D, RC, TIDX=T, &
+                     FOUND=FND )
 
       ! Stop with error message
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
