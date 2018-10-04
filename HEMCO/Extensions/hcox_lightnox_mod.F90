@@ -459,6 +459,7 @@ CONTAINS
           CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
     ENDIF
 
     ! Eventually get OTD-LIS local redistribution factors from HEMCO.

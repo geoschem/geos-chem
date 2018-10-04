@@ -2270,11 +2270,7 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if  defined( GEOS_FP ) || defined( MERRA2 )
-
-    PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GISS ) && defined( MODELE )
+#if defined( GISS ) && defined( MODELE )
 
     ! For Model E, assuming 3,3,7 and 475 Tg N a-1
     PO3_vmr = 4.84610e-14 !/ 2e+0_fp
@@ -2293,6 +2289,10 @@ CONTAINS
        ! LGM CLIMAP STE was 3% higher
        PO3_vmr = PO3_vmr * 1.0285232e+0_fp
     endif
+
+#else
+
+    PO3_vmr = 5.14e-14_fp   
 
 #endif
 
