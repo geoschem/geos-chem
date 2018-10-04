@@ -496,6 +496,11 @@ CONTAINS
     ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
     nAdvect           = State_Chm%nAdvect
 
+    ! Is the drydep flux from mixing diagnostic turned on or if
+    ! total drydep flux which requires the contribution from mixing
+    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
+                        ASSOCIATED( State_Diag%DryDep )
+
     ! Initialize pointer
     SpcInfo           => NULL()
 

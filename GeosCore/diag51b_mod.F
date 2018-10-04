@@ -1968,6 +1968,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET

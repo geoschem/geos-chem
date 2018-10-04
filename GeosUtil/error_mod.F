@@ -42,6 +42,9 @@
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
       PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
+#if defined( DISCOVER )
+      PUBLIC  :: mpiComm
+#endif 
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -137,12 +140,16 @@
 !                              obsolete tracer_mod.F
 !  16 Sep 2016 - E. Lundgren - Add routine to print global species mass to log
 !  26 Jun 2017 - R. Yantosca - Moved GC_ERROR to Headers/errcode_mod.F90
+!  15 Jun 2018 - E. Lundgren - Add code for use in GEOS-5 only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 
+#if defined( DISCOVER )
+      INTEGER, SAVE           :: mpiComm
+#endif
       LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
       TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
 

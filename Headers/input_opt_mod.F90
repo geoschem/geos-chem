@@ -193,7 +193,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
-     INTEGER                     :: LLSTRAT
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -503,8 +502,24 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! Fields for interface to GEOS-5 GCM
      !----------------------------------------
+#if defined( DISCOVER )
+     LOGICAL                     :: haveImpRst   = .FALSE.
+     LOGICAL                     :: AlwaysSetH2O = .TRUE.
+     LOGICAL                     :: UseOnlineVUD = .FALSE.
+     INTEGER                     :: LLFASTJX     = 601
+     INTEGER                     :: NN_RxnRates             ! # of diagnosed reaction rates
+     INTEGER, POINTER            :: RxnRates_IDs(:)         ! Reaction rate numbers to be diagnosed
+     INTEGER                     :: NN_RxnRconst            ! # of diagnosed reaction rates
+     INTEGER, POINTER            :: RxnRconst_IDs(:)        ! Reaction rate numbers to be diagnosed
+     INTEGER                     :: NN_Jvals                ! # of diagnosed Jvalues 
+     INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
+     INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
+     LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
+     LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
+#else
      LOGICAL                     :: haveImpRst
-     LOGICAL                     :: AlwaysSetH2O 
+     LOGICAL                     :: AlwaysSetH2O
+#endif
 
      !----------------------------------------
      ! Fields for LINOZ strat chem
@@ -594,6 +609,8 @@ MODULE Input_Opt_Mod
 !  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
 !  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
 !  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
+!  30 Aug 2018 - C. Keller   - Remove LLSTRAT. Only used in GEOS-5, obtained
+!                              from gridded comp module directly.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -853,7 +870,6 @@ CONTAINS
     Input_Opt%USE_ONLINE_O3          = .FALSE.
     Input_Opt%USE_O3_FROM_MET        = .FALSE.
     Input_Opt%USE_TOMS_O3            = .FALSE.
-    Input_Opt%LLSTRAT                = -999
 
     !----------------------------------------
     ! RADIATION MENU fields
@@ -1239,8 +1255,20 @@ CONTAINS
     !----------------------------------------
     ! Fields for interface to GEOS-5 GCM
     !----------------------------------------
+#if defined( DISCOVER )
+!    Input_Opt%haveImpRst             = .FALSE.
+!    Input_Opt%AlwaysSetH2O           = .FALSE.
+!    Input_Opt%LLFASTJX               = -999
+    Input_Opt%NN_RxnRates            = -999
+    Input_Opt%RxnRates_IDs          => NULL()
+    Input_Opt%NN_RxnRconst           = -999
+    Input_Opt%RxnRconst_IDs         => NULL()
+    Input_Opt%NN_Jvals               = -999
+    Input_Opt%Jval_IDs              => NULL()
+#else
     Input_Opt%haveImpRst             = .FALSE.
     Input_Opt%AlwaysSetH2O           = .FALSE.
+#endif
 
     !----------------------------------------
     ! Fields for LINOZ strat chem
@@ -1590,6 +1618,16 @@ CONTAINS
     IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
        DEALLOCATE( Input_Opt%LINOZ_TPARM )
     ENDIF
+
+#if defined( DISCOVER )
+    IF ( ASSOCIATED( Input_Opt%RxnRconst_IDs ) ) THEN
+       DEALLOCATE( Input_Opt%RxnRconst_IDs )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%RxnRates_IDs ) ) THEN
+       DEALLOCATE( Input_Opt%RxnRates_IDs )
+    ENDIF
+#endif
 
   END SUBROUTINE Cleanup_Input_Opt
 !EOC

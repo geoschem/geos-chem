@@ -990,7 +990,7 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( DISCOVER )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
@@ -1256,7 +1256,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( DISCOVER )
       !=================================================================
       ! ND21 Diagnostic: 
       !
@@ -1269,7 +1269,7 @@
       ! Tracers #38-44: Dust SSA for each size bin
       ! Tracers #45-51: Dust ASYM for each size bin
       !==============================================================
-      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
+      IF ( Input_Opt%ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
 !#############################################################################
 !### Prior to 4/6/15
@@ -1294,7 +1294,7 @@
             ! equivalent to getting 21-27 in the loop for W = 1
             ! etc for W = 2 and W=3 (fills OD dust bins 1-7 for each lambda)
 
-            DO L = 1, LD21
+            DO L = 1, Input_Opt%LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
@@ -1499,7 +1499,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( DISCOVER )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_DIAG_MOD
@@ -1879,7 +1879,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( DISCOVER )
       !==============================================================
       ! ND21 Diagnostic: 
       !

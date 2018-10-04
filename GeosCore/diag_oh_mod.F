@@ -45,16 +45,16 @@
       LOGICAL               :: DO_SAVE_OH
 
       ! Arrays 
-      REAL(f8), ALLOCATABLE :: OH_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: AIR_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: OH_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: OHCH4_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_MASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_EMIS(:,:,:)
+      REAL(f8), ALLOCATABLE, PUBLIC :: OH_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE, PUBLIC :: AIR_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE         :: OH_LOSS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: OHCH4_LOSS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_MASS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_TROPMASS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_EMIS(:,:,:)
       
       ! Species ID flags (formerly in tracerid_mod.F)
-      INTEGER               :: id_OH
+      INTEGER                       :: id_OH
 
       CONTAINS
 !EOC
@@ -424,6 +424,7 @@
 
       ! Initialize
       DO_SAVE_OH = .FALSE.
+      RC = GC_SUCCESS
          
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN

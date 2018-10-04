@@ -7970,6 +7970,9 @@
       ! INIT_GAMAP begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       ! Save from arguments to module variables
       DFILE = Input_Opt%GAMAP_DIAGINFO
       TFILE = Input_Opt%GAMAP_TRACERINFO
