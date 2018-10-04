@@ -3498,11 +3498,7 @@ c---  phase fn SLEG are weighted by OD and OD*SSA, respectively.
 c---Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
 C       additonal levels at top of clouds (now uses log spacing)
 C-----------------------------------------------------------------------
-#if defined( DISCOVER )
       call EXTRAL(Input_Opt,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
-#else
-      call EXTRAL(OD600,L1_,L2EDGE,N_,JXTRA)
-#endif
 C-----------------------------------------------------------------------
 
 c---set surface reflectance

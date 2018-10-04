@@ -481,21 +481,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-#if defined ( DISCOVER )
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
      &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            )
-#else
-      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,     TC0,       SUNCOS_MID,
-     &             F0,         HSTAR,     XMW,        AIROSOL,           
-     &             USTAR,      CZ1,       OBK,        CFRAC,     
-     &             ZH,         LSNOW,     DVEL,       AZO,              
-     &             RHB,        PRESSU,    W10,        RC            )
-#endif
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -847,21 +838,12 @@
 !\\
 ! !INTERFACE:
 !
-#if defined ( DISCOVER )
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          )
-#else
-      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,     TEMP,      SUNCOS,
-     &                   F0,         HSTAR,     XMW,       AIROSOL,
-     &                   USTAR,      CZ1,       OBK,       CFRAC,
-     &                   ZH,         LSNOW,     DVEL,      ZO,
-     &                   RHB,        PRESSU,    W10,       RC          )
-#endif
 !
 ! !USES:
 !

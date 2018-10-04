@@ -1529,8 +1529,8 @@
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
             ENDIF
-            CALL SET_CH4( am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, RC )
+            CALL SET_CH4( am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC )
          ENDIF
 
          !==============================================================

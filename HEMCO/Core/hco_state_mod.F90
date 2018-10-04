@@ -691,7 +691,6 @@ CONTAINS
 !
     INTEGER             :: I,      AS
     CHARACTER(LEN=255)  :: MSG,    LOC
-    CHARACTER(LEN=255)  :: MyName
     CHARACTER(LEN=2047) :: SpcStr, SUBSTR(255)
     CHARACTER(LEN=2047) :: TmpStr
 
@@ -716,8 +715,10 @@ CONTAINS
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
+#if defined( DISCOVER )
     SpcNames(:) = ''
     HcoIDs(:)   = -1
+#endif
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR(HcoState%Config%Err,'HcoIDs allocation error', RC, THISLOC=LOC)
        RETURN

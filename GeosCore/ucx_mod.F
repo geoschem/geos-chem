@@ -601,15 +601,10 @@
          kgN2O = Spc(I,J,L,id_N2O)
 
          ! Get local concentrations in molec/cm3
-#if defined( DISCOVER )
          ! Ignore the data for atomic N - not well defined for
          ! non-chemgrid boxes, and in any case the molar mass
          ! may not be present or correctly defined
          OLD_N   = 0.0_fp 
-#else
-         OLD_N   = Spc(I,J,L,id_N) * 
-     &    (AIRMW / State_Chm%SpcData(id_N)%Info%emMW_g) * XAIR
-#endif
          OLD_NO   = Spc(I,J,L,id_NO) * 
      &    (AIRMW / State_Chm%SpcData(id_NO)%Info%emMW_g) * XAIR
          OLD_NO2   = Spc(I,J,L,id_NO2) * 
@@ -748,18 +743,11 @@
          EndIf ! DayFrac < 0
 
          ! Convert to kg
-#if defined( DISCOVER )
          ! Now add all N to NO to get around problems caused by
          ! using negative molar mass for N (SDE 2018-03-19)
          NEW_N  = 0.0e+0_fp
          NEW_NO = localNOx*(fracN+fracNO) / (AIRMW/
      &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
-#else
-         NEW_N   = localNOx*fracN  /(AIRMW/
-     &                State_Chm%SpcData(id_N  )%Info%emMW_g * XAIR)
-         NEW_NO  = localNOx*fracNO /(AIRMW/
-     &                State_Chm%SpcData(id_NO )%Info%emMW_g * XAIR)
-#endif
          NEW_NO2 = localNOx*fracNO2/(AIRMW/
      &                State_Chm%SpcData(id_NO2)%Info%emMW_g * XAIR)
          NEW_NO3 = localNOx*fracNO3/(AIRMW/
@@ -1219,9 +1207,7 @@
 !      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
 !      ! may become initialized to zero because the simulation year is not
 !      ! yet know during initialization (ckeller, 1/20/16).
-#if defined( DISCOVER )
-!      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
-#else
+#if !defined( DISCOVER )
       IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 #endif
 
@@ -1241,7 +1227,7 @@
              WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
      &          'Using Montreal reference year', (TARGYEAR)
 #else
-              WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
+             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
      &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
 #endif
             CALL DEBUG_MSG( OUTMSG )
@@ -1305,7 +1291,6 @@
              ENDDO
              ENDDO
           ENDIF
-       ENDDO
        ENDDO
 #endif
 !$OMP END PARALLEL DO

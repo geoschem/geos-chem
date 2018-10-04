@@ -250,6 +250,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: AerMassSOAMG    (:,:,:  ) ! SOAMG [ug/m3]
      REAL(f4),  POINTER :: AerMassTSOA     (:,:,:  ) ! Terpene SOA [ug/m3]
      REAL(f4),  POINTER :: BetaNO          (:,:,:  ) ! Beta NO [ug C/m3]
+     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
      REAL(f4),  POINTER :: TotalOA         (:,:,:  ) ! Sum of all OA [ug/m3]
      REAL(f4),  POINTER :: TotalOC         (:,:,:  ) ! Sum of all OC [ug/m3]
      REAL(f4),  POINTER :: TotalBiogenicOA (:,:,:  ) ! Sum of biog OC [ug/m3]
@@ -286,7 +287,6 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: PM25du          (:,:,:  ) ! PM25 dust
      REAL(f4),  POINTER :: PM25ss          (:,:,:  ) ! PM25 sea salt
      REAL(f4),  POINTER :: PM25soa         (:,:,:  ) ! PM25 SOA
-     LOGICAL :: Archive_PM25   
      LOGICAL :: Archive_PM25ni 
      LOGICAL :: Archive_PM25su 
      LOGICAL :: Archive_PM25oc 
@@ -1905,12 +1905,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-#if defined ( DISCOVER )
-          ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), &
-                    STAT=RC )
-#else
           ALLOCATE( State_Diag%RxnRates( IM, JM, LM, nSpecies ), STAT=RC )
-#endif
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RxnRates = 0.0_f4
@@ -1918,6 +1913,9 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+#else
+       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), &
+                 STAT=RC )
 #endif
 
        !--------------------------------------------------------------------
@@ -4507,13 +4505,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%O3concAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF 
-#endif
 
     IF ( ASSOCIATED( State_Diag%RO2concAfterChem ) ) THEN
        DEALLOCATE( State_Diag%RO2concAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RO2concAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF 
+#endif
 
     IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
        DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC  )

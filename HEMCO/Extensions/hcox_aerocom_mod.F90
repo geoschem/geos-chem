@@ -340,7 +340,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%VolcSource = Str
 
-    !!!Print*, Inst%VolcSource
+#if !defined( DISCOVER )
+    Print*, Inst%VolcSource
+#endif
 
     ! See if eruptive and degassing hierarchies are given
     Inst%CatErupt = 51

@@ -251,7 +251,15 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
+#if !defined( DISCOVER )
     IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
+! Prior to 1/22/18:
+! Don't exit here, go down to the IF statement below to get an error message.
+! (bmy, 1/22/18)
+!    IF ( RC /= HCO_SUCCESS ) RETURN
+!----------------------------------------------------------------------------
+#endif
 
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
@@ -3704,6 +3712,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  08 Aug 2018 - C. Keller: Added check for range/exact dataon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3716,6 +3725,7 @@ CONTAINS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
+    INTEGER            :: cYr,    cMt,    cDy,    cHr 
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:)
@@ -3774,7 +3784,6 @@ CONTAINS
 
     ! Get the preferred times, i.e. the preferred year, month, day, 
     ! or hour (as specified in the configuration file).
-    ! Needed below
     CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
                                prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3827,7 +3836,7 @@ CONTAINS
           IDX1 = 1
           IDX2 = N
 
-       ELSE 
+       ELSE
           ! Currently, data read directly from the configuration file can only
           ! represent one time dimension, i.e. it can only be yearly, monthly,
           ! daily (or hourly data, but this is read all at the same time). 
@@ -3903,13 +3912,15 @@ CONTAINS
           RETURN
        ENDIF
   
-       ! ---------------------------------------------------------------- 
-       ! Check for range/exact flag 
-       ! ----------------------------------------------------------------
+       ! Check for range/exact flag
+       ! If range is given, the preferred Yr/Mt/Dy/Hr will be negative
+       ! if we are outside the desired range.
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
           IF ( prefYr == -1 .OR. prefMt == -1 .OR. prefDy == -1 ) IDX1 = -1
-          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 ) IDX1 = -1 
+          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 )     IDX1 = -1 
 
+       ! If flag is exact, the preferred date must be equal to the current
+       ! simulation date. 
        ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
           IF ( Lct%Dct%Dta%ncYrs(1) > 0 ) THEN
              IF ( prefYr < Lct%Dct%Dta%ncYrs(1) .OR. &
@@ -3929,17 +3940,22 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! IDX1 becomes -1 for data that is outside of the valid range
+       ! (and no time cycling enabled). In this case, make sure that
+       ! scale factor is set to zero.
        IF ( IDX1 < 0 ) THEN
           IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
              FileArr(1,1,1,:) = 0.0_hp
              MSG = 'Base field outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#if defined( DISCOVER )
           ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
              FileArr(1,1,1,:) = 0.0_hp
              MSG = 'Mask outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#endif
           ELSE
              FileArr(1,1,1,:) = 1.0_hp
              MSG = 'Scale factor outside of range - set to one: ' // &

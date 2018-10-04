@@ -16,12 +16,12 @@
 ! utilities.
 !\\
 !\\
-! !INTERFACE: 
+! !INTERFACE
 !
 MODULE HCOX_Iodine_Mod
 !
 ! !USES:
-! 
+!
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
   USE HCO_State_Mod,  ONLY : HCO_State
@@ -98,10 +98,11 @@ CONTAINS
 ! !REMARKS:
 !  References:
 !  ============================================================================
-!  (1 ) Sherwen et al. 2015
-!  (2 ) Carpenter et al. 2013
-!  (3 ) Chance et al. 2014
-!  (4 ) Macdonal et al. 2014
+!  (1) Carpenter et al. 2013, https://doi.org/10.1038/ngeo1687
+!  (2) Chance et al. 2014, https://doi.org/10.1039/c4em00139g
+!  (3) Macdonal et al. 2014, https://doi.org/10.5194/acp-14-5841-2014
+!  (4) Sherwen et al. 2016a, https://doi.org/10.5194/acp-16-1161-2016
+!  (5) Sherwen et al. 2016b, https://doi.org/10.5194/acp-16-12239-2016
 !
 ! !REVISION HISTORY: 
 !  15 Mar 2013 - T. Sherwen - Initial implementation (v9-3-01)
@@ -133,7 +134,8 @@ CONTAINS
     IF ( .NOT. ExtState%Inorg_Iodine ) RETURN
 
     ! Enter 
-    CALL HCO_ENTER ( HcoState%Config%Err, 'HCOX_Iodine_Run (hcox_iodine_mod.F90)', RC ) 
+    CALL HCO_ENTER ( HcoState%Config%Err,   &
+                     'HCOX_Iodine_Run (hcox_iodine_mod.F90)', RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Exit status
@@ -162,7 +164,7 @@ CONTAINS
        W10M = SQRT( ExtState%U10M%Arr%Val(I,J)**2 &
                   + ExtState%V10M%Arr%Val(I,J)**2 ) 
 
-       ! limit W10M to a minimium of 5 m/s to avoid overestimation of fluxes                                                               
+       ! limit W10M to a minimium of 5 m/s to avoid overestimation of fluxes
        ! from CARPENTER et al. (2013) (per. comm.)
        IF ( W10M .LE. 5d0  ) THEN
            W10M   =  5d0
@@ -173,11 +175,13 @@ CONTAINS
        ! Sea surface temperature in Kelvin 
        SST = ExtState%TSKIN%Arr%Val(I,J) 
 
+#if defined( DISCOVER )
        ! Empirical SST scaling factor (jaegle 5/11/11)
 !       SCALE = 0.329d0 + 0.0904d0*SST - &
 !               0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
+#endif
 
-!       ! SST dependence of iodide - Chance et al. 2014, in press
+!       ! SST dependence of iodide - Chance et al. 2014
 !       IODIDE = ( (0.225d0 * ( (SST)**2d0) )  + 19d0 )  / 1d9
 !       ! SST dependence of iodide - Macdonald et al. 2014
        IODIDE = 1.46d6 * EXP( (-9134d0/SST) )
@@ -188,11 +192,13 @@ CONTAINS
                * HcoState%Phys%AIRMW / 48.0_dp &
                * 1.e9_dp
 
+#if defined( DISCOVER )
        ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
        !SCALE = 1.0d0
 
        ! Eventually apply wind scaling factor. 
 !       SCALE = SCALE * WindScale
+#endif
 
        ! If I2 & emitting, use parameterisation from
        ! Carpenter et al (2013) to give emissions in nmol m-2 d-1.
@@ -201,15 +207,15 @@ CONTAINS
            EMIS_I2 = ( O3_CONC * (IODIDE**1.3d0) * &
                ( ( 1.74d9 - ( 6.54d8*LOG( W10M ) )   ) )/ &
                      24d0/60d0/60d0/1d9*MWT_I2 )
-!
+
           ! If parametsation results in negative ( W10 too high )
           ! flux set to zero
           IF ( EMIS_I2 .LT. 0d0 ) THEN
              EMIS_I2 = 0d0
           ENDIF
-!
+
        ENDIF
-!                                                                                                                                                 
+
        IF ( CalcHOI ) THEN
        ! If HOI & emitting, use parameterisation from
        ! Carpenter et al (2013) to give emissions in nmol m-2 d-1.
@@ -325,7 +331,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2013 - T. Sherwen - Initial implementation (v9-3-01)
-!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_mod
+!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from 
+!                             hcox_seasalt_mod
 !  11 Oct 2017 - R. Yantosca - Fixed typo in comment character (# instead of !)
 !  27 Nov 2017 - C. Keller   - Now output messages to HEMCO logfile
 !EOP
@@ -350,7 +357,8 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
  
     ! Enter 
-    CALL HCO_ENTER ( HcoState%Config%Err, 'HCOX_iodine_Init (hcox_iodine_mod.F90)', RC )
+    CALL HCO_ENTER ( HcoState%Config%Err,   &
+                     'HCOX_iodine_Init (hcox_iodine_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! ---------------------------------------------------------------------- 
@@ -360,10 +368,12 @@ CONTAINS
     ! Read settings specified in configuration file
     ! Note: the specified strings have to match those in 
     !       the config. file!
-    CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit I2', OptValBool=CalcI2, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit I2',   &
+                     OptValBool=CalcI2, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit HOI', OptValBool=CalcHOI, RC=RC )
+    CALL GetExtOpt ( HcoState%Config, ExtNr, 'Emit HOI',  &
+                     OptValBool=CalcHOI, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set minimum length and update if CalcI2/CalcHOI==True
@@ -447,7 +457,8 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  15 Mar 2013 - T. Sherwen - Initial implementation (v9-3-01)
-!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from hcox_seasalt_final
+!  15 Jul 2015 - T. Sherwen - Now a HEMCO extension module adapted from 
+!                             hcox_seasalt_final
 !EOP
 !------------------------------------------------------------------------------
 !BOC
