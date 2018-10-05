@@ -187,6 +187,10 @@
 !  05 Oct 2015 - M. Sulprizio- Activate MEGAN ethanol emissions for PAN updates
 !                              from E. Fischer
 !  17 Jul 2017 - C. Keller   - Now normalize LAI by PFTs.
+!  05 Oct 2018 - R. Yantosca - For the standard (non-ESMF) environment, update
+!                              variables from the restart file just once.  In
+!                              the ESMF environment we have to do that on every
+!                              call to get data from the External State object.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -511,25 +515,73 @@
       FLUXSOAP   = 0.0_hp
       FLUXSOAS   = 0.0_hp
 
-      !IF ( FIRST ) THEN
+#if defined( ESMF_ ) || defined( MODEL_GEOS ) 
+
+      !----------------------------------------------------------------
+      ! %%%%% ESMF environment: execute these on every call  %%%%%
+      ! %%%%% because this will fill from the External State %%%%%
+      !----------------------------------------------------------------
+
+      ! Generate annual emission factors for MEGAN inventory
+      CALL CALC_AEF( am_I_Root, HcoState, ExtState, Inst, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN 
+         MSG = 'Error encountered in MEGAN routine CALC_AEF!'
+         CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+         RETURN
+      ENDIF
+
+      ! Calculate normalization factor (dbm, 11/2012)
+      CALL CALC_NORM_FAC( am_I_Root, Inst, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN 
+         MSG = 'Error encountered in MEGAN routine CALC_NORM_FAC!'
+         CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+         RETURN
+      ENDIF
+
+      ! Fill restart variables.
+      CALL FILL_RESTART_VARS( am_I_Root, HcoState, ExtState, Inst, RC )
+      IF ( RC /= HCO_SUCCESS ) THEN 
+         MSG = 'Error encountered in MEGAN routine FILL_RESTART_VARS!'
+         CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+         RETURN
+      ENDIF
+
+#else
+
+      !----------------------------------------------------------------
+      ! %%%%% Standard environment: Execute these only once     %%%%%
+      ! %%%%% to avoid constantly overwriting restart variables %%%%%
+      !----------------------------------------------------------------
+      IF ( FIRST ) THEN
+
          ! Generate annual emission factors for MEGAN inventory
          CALL CALC_AEF( am_I_Root, HcoState, ExtState, Inst, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
+         IF ( RC /= HCO_SUCCESS ) THEN 
+            MSG = 'Error encountered in MEGAN routine CALC_AEF!'
+            CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+            RETURN
+         ENDIF
 
          ! Calculate normalization factor (dbm, 11/2012)
          CALL CALC_NORM_FAC( am_I_Root, Inst, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      !ENDIF
+         IF ( RC /= HCO_SUCCESS ) THEN 
+            MSG = 'Error encountered in MEGAN routine CALC_NORM_FAC!'
+            CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+            RETURN
+         ENDIF       
 
-      ! Fill restart variables. This has to be done on the first call
-      ! or after rewinding the clock (in replay simulations). 
-      ! For safety's sake fill it on every call. It doesn't hurt and 
-      ! avoids possible errors in GEOS applications (ckeller, 12/29/17).
-      !IF ( FIRST .OR. HcoClock_Rewind( HcoState%Clock, .TRUE. ) ) THEN
+         ! Fill restart variables
          CALL FILL_RESTART_VARS( am_I_Root, HcoState, 
-     &                           ExtState,  Inst, RC )
-         IF ( RC /= HCO_SUCCESS ) RETURN
-      !ENDIF
+     &                           ExtState,  Inst,     RC )
+         IF ( RC /= HCO_SUCCESS ) THEN 
+            MSG = 'Error encountered in MEGAN routine ' //
+     &            'FILL_RESTART_VARS!'
+            CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+            RETURN
+         ENDIF
+      ENDIF
+
+#endif
 
       ! LAI_PREVDAY is now continuously updated (ckeller, 12/8/15)
 !      ! On a new day, copy previous LAI values to array that holds
@@ -1728,6 +1780,9 @@
 
       ! Cleanup
       Inst => NULL()
+
+      ! Reset first-time flag
+      FIRST = .FALSE.
 
       ! Return w/ success
       CALL HCO_LEAVE( HcoState%Config%Err,RC )

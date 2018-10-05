@@ -521,6 +521,10 @@ CONTAINS
 !                            found).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  20 Jul 2018 - C. Keller   - Return error if duplicate container name
+!  05 Oct 2018 - R. Yantosca - Cycle flag "E" now will read the target file
+!                              only once (e.g. use for restart files).
+!                              Cycle flag "EC" will now continously attempt
+!                              to read/query from the target file.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -846,14 +850,16 @@ CONTAINS
 #endif
 
           ! Set time cycling behaviour. Possible values are: 
-          ! - "C" : cycling --> Default
-          ! - "R" : range
-          ! - "RF": range forced (error if not in range)
-          ! - "E" : exact
-          ! - "EF": exact forced (error if not exist)
-          ! - "I" : interpolate 
-          ! - "A" : average
-          ! - "RA": range, average outside 
+          ! - "C"  : cycling --> Default
+          ! - "R"  : range
+          ! - "RF" : range forced (error if not in range)
+          ! - "E"  : exact (read file once)
+          ! - "EF" : exact forced (error if not exist, read/query once)
+          ! - "EC" : exact (read/query continuously, e.g. for ESMF interface)
+          ! - "ECF": exact forced (error if not exist, read/query continuously)
+          ! - "I"  : interpolate 
+          ! - "A"  : average
+          ! - "RA" : range, average outside 
           Dta%MustFind  = .FALSE.
           IF ( TRIM(TmCycle) == "R" ) THEN
              Dta%CycleFlag = HCO_CFLAG_RANGE
@@ -862,7 +868,14 @@ CONTAINS
              Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "E" ) THEN
              Dta%CycleFlag = HCO_CFLAG_EXACT
+             Dta%UpdtFlag  = HCO_UFLAG_ONCE
           ELSEIF ( TRIM(TmCycle) == "EF" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+             Dta%UpdtFlag  = HCO_UFLAG_ONCE
+             Dta%MustFind  = .TRUE.
+          ELSEIF ( TRIM(TmCycle) == "EC" ) THEN
+             Dta%CycleFlag = HCO_CFLAG_EXACT
+          ELSEIF ( TRIM(TmCycle) == "ECF" ) THEN
              Dta%CycleFlag = HCO_CFLAG_EXACT
              Dta%MustFind  = .TRUE.
           ELSEIF ( TRIM(TmCycle) == "I" ) THEN

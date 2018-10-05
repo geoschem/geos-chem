@@ -251,12 +251,6 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
-!----------------------------------------------------------------------------
-! Prior to 1/22/18:
-! Don't exit here, go down to the IF statement below to get an error message.
-! (bmy, 1/22/18)
-!    IF ( RC /= HCO_SUCCESS ) RETURN
-!----------------------------------------------------------------------------
 
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
@@ -276,11 +270,11 @@ CONTAINS
 
           ! If MustFind flag is not enabled, ignore this field and return
           ! with a warning.
-          ELSE       
+          ELSE   
              CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
              MSG = 'No valid file found for current simulation time - data '// &
                    'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
-             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1 )
+             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
              CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
              RETURN
           ENDIF
@@ -388,7 +382,7 @@ CONTAINS
              CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
              MSG = 'Simulation time is outside of time range provided for '//&
                   TRIM(Lct%Dct%cName) // ' - field is ignored for the time being!'
-             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1 )
+             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
              DoReturn = .TRUE.
              CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
           ENDIF

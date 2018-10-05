@@ -304,8 +304,6 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
-    USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
-    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
     USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
 !

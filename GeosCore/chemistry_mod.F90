@@ -397,6 +397,9 @@ CONTAINS
              ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
              ! Now call READ_PSC_FILE on every time step to accomodate 
              ! replay simulations in GEOS-5 (ckeller, 5/8/15)
+             !
+             ! NOTE: For GEOS-Chem "Classic" simulations, READ_PSC_FILE
+             ! will only execute on the first timestep. (bmy, 10/5/18)
              !-----------------------------------------------------------
 #if defined( USE_TIMERS )
              CALL GEOS_Timer_Start( "=> Strat chem", RC )
