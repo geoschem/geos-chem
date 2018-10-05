@@ -769,7 +769,7 @@ olson_landmap_mod.o         : olson_landmap_mod.F90                          \
                               mapping_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
-                              tendencies_mod.o                               \
+                              tendencies_mod.o        diagnostics_mod.o      \
                               diag_mod.o              
 
 pjc_pfix_window_mod.o       : pjc_pfix_window_mod.F
