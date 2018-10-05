@@ -141,6 +141,18 @@ MODULE HCO_ExtList_Mod
   CHARACTER(LEN=15),   PARAMETER :: DEF_RES = 'unknown_res'
 #endif
 
+#if defined( NESTED_AS )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'AS'
+#elif defined( NESTED_CH )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'CH'
+#elif defined( NESTED_EU )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'EU'
+#elif defined( NESTED_NA )
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'NA'
+#else
+  CHARACTER(LEN=15),   PARAMETER :: DEF_NEST = 'unknown_nest'
+#endif
+  
   INTERFACE GetExtSpcVal 
      MODULE PROCEDURE GetExtSpcVal_Char
      MODULE PROCEDURE GetExtSpcVal_Int
@@ -1558,13 +1570,19 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_MET_LC
     CALL HCO_AddOpt( am_I_Root, CF, 'met', DUM, CoreNr, RC, VERB=.FALSE. )
-
+    
     ! Year for constant met fields
     CALL GetExtOpt( CF, CoreNr, 'CNYR', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND) DUM = DEF_CN_YR
     CALL HCO_AddOpt( am_I_Root, CF, 'CNYR', DUM, CoreNr, RC, VERB=.FALSE. )
     
+    ! Nested grid token
+    CALL GetExtOpt( CF, CoreNr, 'NEST', OptValChar=DUM, Found=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND) DUM = DEF_NEST
+    CALL HCO_AddOpt( am_I_Root, CF, 'NEST', DUM, CoreNr, RC, VERB=.FALSE. )
+
     ! NetCDF version extension
     CALL GetExtOpt( CF, CoreNr, 'NC', OptValChar=DUM, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN

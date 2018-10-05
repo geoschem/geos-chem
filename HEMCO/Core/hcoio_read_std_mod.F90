@@ -268,7 +268,7 @@ CONTAINS
           ! found
           IF ( Lct%Dct%Dta%MustFind ) THEN
              MSG = 'Cannot find file for current simulation time: ' // &
-                   TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                   TRIM(srcFile) // ' - Cannot get field ' // &
                    TRIM(Lct%Dct%cName) // '. Please check file name ' // &
                    'and time (incl. time range flag) in the config. file'
              CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -287,7 +287,7 @@ CONTAINS
 
        ELSE 
           MSG = 'Cannot find file for current simulation time: ' // &
-                TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                TRIM(srcFile) // ' - Cannot get field ' // &
                 TRIM(Lct%Dct%cName) // '. Please check file name ' // &
                 'and time (incl. time range flag) in the config. file'
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
