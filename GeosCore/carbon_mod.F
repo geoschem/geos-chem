@@ -4649,6 +4649,7 @@ ccc
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Sep 2018 - Pengfei Liu - fixed the bug of missing BB emission
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4668,12 +4669,16 @@ ccc
               scalefactor(:) = ECSCALE30(:)
             CASE (2)
               scalefactor(:) = ECSCALE100(:)
+            CASE (3)
+              scalefactor(:) = ECSCALE100(:)
           END SELECT
         CASE (2)
           SELECT CASE (STYPE)
             CASE (1)
               scalefactor(:) = OCSCALE30(:)
             CASE (2)
+              scalefactor(:) = OCSCALE100(:)
+            CASE (3)
               scalefactor(:) = OCSCALE100(:)
           END SELECT
       END SELECT

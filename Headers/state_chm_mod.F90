@@ -479,7 +479,34 @@ CONTAINS
        ErrMsg = 'Error encountered in "GetNumProdLossSpecies"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
+    ENDIF 
+
+    !########################################################################
+    !### Save species database info to a HEMCO_sa_Spec.rc file for use with
+    !### the HEMCO standalone simulation.  Uncomment this if you need it.
+    !### (bmy, 9/26/18)
+    !###
+    !
+    !! Open file
+    !OPEN( 700, FILE = 'HEMCO_sa_Spec.rc', STATUS = 'UNKNOWN', IOSTAT=RC )
+    !
+    !! Write data
+    !DO N = 1, State_Chm%nAdvect
+    !   WRITE( 700, 700 ) N, State_Chm%SpcData(N)%Info%Name,                  &
+    !                        State_Chm%SpcData(N)%Info%Mw_g,                  &
+    !                        State_Chm%SpcData(N)%Info%EmMw_g,                &
+    !                        State_Chm%SpcData(N)%Info%MolecRatio,            &
+    !                        MAX(State_Chm%SpcData(N)%Info%Henry_K0, 0.0_fp), &
+    !                        MAX(State_Chm%SpcData(N)%Info%Henry_CR, 0.0_fp), &
+    !                        MAX(State_Chm%SpcData(N)%Info%Henry_pKa,0.0_fp)
+    !
+    !   700 FORMAT( i4, 1x, a10, 1x, 2f9.2, f5.1, 2x, es13.6, 2f10.2 )
+    !ENDDO
+    !
+    !! Close file
+    !CLOSE( 700 )
+    !STOP
+    !########################################################################
 
     !=======================================================================
     ! Allocate and initialize mapping vectors to subset species
