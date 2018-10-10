@@ -120,7 +120,6 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Error_Mod,          ONLY : Error_Stop
       USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -211,22 +210,32 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Strings
-      CHARACTER(LEN=255) :: LOC = 'READ_TOMS (GeosCore/toms_mod.F)'
+      ! Strings     
+      CHARACTER(LEN=255) :: ThisLoc 
+      CHARACTER(LEN=255) :: ErrMsg
 
       !=================================================================
       ! READ_TOMS begins here
       !=================================================================
       
+      ! Assume success
+      RC = GC_SUCCESS
+      
       ! Exit if we are not using TOMS overhead O3 columns
       IF ( .not. Input_Opt%USE_TOMS_O3 ) RETURN
+
+      ! Initialize
+      ErrMsg  = ''
+      ThisLoc = ' -> at READ_TOMS (in module GeosCore/toms_mod.F)'
 
       !-----------------------------------------------------------------
       ! Read TOMS O3 columns [dobsons]
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS_O3_COL', TOMS, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS1_O3_COL', LOC )
+         ErrMsg = 'Cannot get pointer to field: TOMS_O3_COL'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !-----------------------------------------------------------------
@@ -234,7 +243,9 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS1_O3_COL', TOMS1, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS1_O3_COL', LOC )
+         ErrMsg = 'Cannot get pointer to field: TOMS1_O3_COL!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !-----------------------------------------------------------------
@@ -242,7 +253,9 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState, 'TOMS2_O3_COL', TOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to TOMS2_O3_COL', LOC )
+         ErrMsg = 'Cannot get pointer to field: TOMS2_O3_COL!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !-----------------------------------------------------------------
@@ -250,7 +263,9 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState, 'DTOMS1_O3_COL', DTOMS1, RC)
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to DTOMS1_O3_COL', LOC )
+         ErrMsg = 'Cannot get pointer to field: DTOMS1_O3_COL'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !-----------------------------------------------------------------
@@ -258,7 +273,9 @@
       !-----------------------------------------------------------------
       CALL HCO_GetPtr( am_I_Root, HcoState,'DTOMS2_O3_COL', DTOMS2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to DTOMS2_O3_COL', LOC )
+         ErrMsg = 'Cannot get pointer to field: DTOMS2_O3_COL!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       END SUBROUTINE READ_TOMS
@@ -492,8 +509,6 @@
 !
       USE CMN_SIZE_MOD  
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -527,16 +542,21 @@
       ! INIT_TOMS begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+      
       ! Allocate arrays
       IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN
          ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )        
-         IF ( RC /= GC_SUCCESS ) CALL ALLOC_ERR( 'TO3_DAILY' )
+         CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          TO3_DAILY = 0.0_fp
       ENDIF
 
       IF ( .not. ALLOCATED( STOMS ) ) THEN
          ALLOCATE( STOMS( IIPAR, JJPAR ), STAT=RC )
-         IF ( RC /= GC_SUCCESS ) CALL ALLOC_ERR( 'STOMS' )
+         CALL GC_CheckVar( 'toms_mod.F:STOMS', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          STOMS = 0e+0_fp
       ENDIF
          
@@ -561,13 +581,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TOMS
+      SUBROUTINE CLEANUP_TOMS( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  14 Jul 2003 - R. Yantosca - Initial version
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
 !  06 Mar 2012 - R. Yantosca - Now deallocate TO3_DAILY
 !  03 Nov 2016 - R. Yantosca - Deallocate and nullify extra fields
+!  10 Oct 2018 - R. Yantosca - Add am_I_Root, RC; Improve error trapping
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -575,9 +608,21 @@
       ! CLEANUP_TOMS begins here!
       !=================================================================
 
-      ! Free arrays
-      IF ( ALLOCATED( TO3_DAILY ) ) DEALLOCATE( TO3_DAILY )
-      IF ( ALLOCATED( STOMS     ) ) DEALLOCATE( STOMS )
+      ! Assume success
+      RC = GC_SUCCESS
+
+      ! Deallocate variables
+      IF ( ALLOCATED( TO3_DAILY ) ) THEN
+         DEALLOCATE( TO3_DAILY, STAT=RC )     
+         CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( STOMS ) ) THEN
+         DEALLOCATE( STOMS, STAT=RC )     
+         CALL GC_CheckVar( 'toms_mod.F:STOMS', 2, RC )
+         RETURN
+      ENDIF
 
       ! Free pointers
       TOMS   => NULL()

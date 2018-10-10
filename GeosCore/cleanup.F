@@ -54,6 +54,7 @@
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
+      USE POPs_Mod,                ONLY : Cleanup_POPs
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
@@ -364,11 +365,19 @@
       Call Cleanup_Set_Global_CH4()
       CALL CLEANUP_SULFATE()
       CALL CLEANUP_STRAT_CHEM()
-      CALL CLEANUP_TAGGED_CO()
 #if !defined( ESMF_ ) && !defined( MODEL_ )
       CALL CLEANUP_TRANSPORT()
 #endif
-      CALL CLEANUP_TOMS()
+
+      ! Cleanup TOMS module
+      CALL CLEANUP_TOMS( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_TOMS"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Cleanup wet scavenging module
       CALL CLEANUP_WETSCAV( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
@@ -391,6 +400,22 @@
 #else
       CALL EXIT_TPCORE()
 #endif
+
+      ! Cleanup Tagged CO code
+      CALL CLEANUP_TAGGED_CO( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Tagged_CO"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Cleanup POPs code
+      CALL Cleanup_POPs( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_POPs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! Call extra cleanup routines, mostly from modules in Headers/
       CALL Cleanup_CMN_O3( am_I_Root, RC )

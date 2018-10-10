@@ -172,7 +172,6 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
@@ -285,6 +284,7 @@
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  18 Jan 2018 - M. Sulprizio- Remove call to GET_GLOBAL_CH4 and obtain monthly
 !                              CH4 concentrations from HEMCO instead
+!  10 Oct 2018 - R. Yantosca - Replace ERROR_STOP with GC_ERROR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,7 +317,8 @@
       CHARACTER(LEN=255)       :: ERR_VAR
       CHARACTER(LEN=255)       :: ERR_MSG
       CHARACTER(LEN=63)        :: DgnName
-      CHARACTER(LEN=255)       :: LOC='CHEM_TAGGED_CO (tagged_co_mod.F)'
+      CHARACTER(LEN=255)       :: ErrMsg
+      CHARACTER(LEN=255)       :: ThisLoc 
 
       ! Arrays
       INTEGER                  :: ERR_LOC(4)
@@ -358,6 +359,8 @@
 
       ! Assume success
       RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = ' -> at CHEM_TAGGED_CO (in GeosCore/tagged_co_mod.F)'
 
       ! Number of advected species
       nAdvect   = State_Chm%nAdvect
@@ -398,7 +401,9 @@
 
       ! Check HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP( 'HcoState not associated!', LOC )
+         ErrMsg = 'HcoState object is not associated!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF 
 
       ! Zero diagnostic archival arrays to make sure that we don't have any
@@ -427,47 +432,59 @@
          
          ! Get a pointer to the OH field from the HEMCO list (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_OH!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Get pointer to strat P(CO) from GMI
          CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                   'GMI_PROD_CO', GMI_PROD_CO, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GMI_PROD_CO', LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GMI_PROD_CO!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Get pointer to strat L(CO) from GMI
          CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                   'GMI_LOSS_CO', GMI_LOSS_CO, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GMI_LOSS_CO', LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GMI_LOSS_CO!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
             
          ! Get pointer to trop P(CO) from CH4 if needed
          IF ( LPCO_CH4 ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                      'PCO_CH4', PCO_CH4, RC )
-            IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to PCO_CH4', LOC )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to PCO_CH4!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
          IF ( LPCO_NMVOC ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                      'PCO_NMVOC', PCO_NMVOC, RC )
-            IF ( RC /= GC_SUCCESS ) THEN
-              CALL ERROR_STOP ( 'Cannot get pointer to PCO_NMVOC', LOC )
+            IF ( RC /= HCO_SUCCESS ) THEN
+               ErrMsg = 'Cannot get pointer to PCO_NMVOC!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
          ! Get pointer to surface CH4 data
          CALL HCO_GetPtr( am_I_Root, HcoState,
      &                    'NOAA_GMD_CH4', SFC_CH4, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to NOAA_GMD_CH4', LOC)
-         ENDIF
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF         
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -499,7 +516,9 @@
             SUMACETCO = SUMACETCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
             SUMACETCO = SUMACETCO * kgs_to_atomsC                 ! atoms C
          ELSE
-            CALL ERROR_STOP( 'ACET not turned on in MEGAN !', LOC )
+            ErrMsg = 'ACET not turned on in the MEGAN!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! SUMISOPCO (convert [kgC/m2/s] to [atoms C])
@@ -509,7 +528,9 @@
             SUMISOPCO = SUMISOPCO * HcoState%Grid%AREA_M2%Val     ! kgC/s
             SUMISOPCO = SUMISOPCO * kgs_to_atomsC                 ! atoms C
          ELSE
-            CALL ERROR_STOP( 'ISOP not turned on in MEGAN !', LOC )
+            ErrMsg = 'ISOP not turned on in MEGAN!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! SUMMONOCO (Total monoterpene = MTPA + LIMO + MTPO)
@@ -518,21 +539,27 @@
             ! kgC/m2/s
             SUMMONOCO = SUM( HcoState%Spc(HcoID)%Emis%Val, 3 )
          ELSE
-            CALL ERROR_STOP( 'MTPA not turned on in Megan_Mono !', LOC )
+            ErrMsg = 'MTPA not turned on in Megan_Mono !'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          HcoId = GetHcoId( 'LIMO' )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
          ELSE
-            CALL ERROR_STOP( 'LIMO not turned on in Megan_Mono !', LOC )
+            ErrMsg = 'LIMO not turned on in Megan_Mono !'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          HcoId = GetHcoId( 'MTPO' )
          IF ( HcoId > 0 ) THEN
             ! kgC/m2/s
             SUMMONOCO = SUMMONOCO + SUM(HcoState%Spc(HcoID)%Emis%Val,3)
          ELSE
-            CALL ERROR_STOP( 'MTPO not turned on in Megan_Mono !', LOC )
+            ErrMsg = 'MTPO not turned on in Megan_Mono !'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          ! SUMMONOCO (convert [kgC/m2/s] to [atoms C])
          SUMMONOCO = SUMMONOCO * HcoState%Grid%AREA_M2%Val ! kgC/s
@@ -1583,8 +1610,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_TAGGED_CO
-! 
+      SUBROUTINE CLEANUP_TAGGED_CO( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+!
 ! !REVISION HISTORY: 
 !  19 Jul 2000 - R. Yantosca - Initial version
 !  (1 ) Added ISOP96, MONO96, CH3OH96 for GEOS-3 (bnd, bmy, 6/14/01)
@@ -1596,16 +1635,43 @@
 !  21 Mar 2016 - R. Yantosca - Remove CO_PRODS, CO_LOSSS
 !  21 Mar 2016 - R. Yantosca - Also nullify GMI_PROD_CO and GMI_LOSS_CO ptrs
 !  28 Jun 2016 - R. Yantosca - Remove EMACET array
+!  10 Oct 2018 - R. Yantosca - Add am_I_Root, RC; improve error trapping
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+      ! Assume success
+      RC = GC_SUCCESS
 
-      ! Deallocate arrays
-      IF ( ALLOCATED( SUMISOPCO  ) ) DEALLOCATE( SUMISOPCO  )
-      IF ( ALLOCATED( SUMMONOCO  ) ) DEALLOCATE( SUMMONOCO  )
-      IF ( ALLOCATED( SUMCH3OHCO ) ) DEALLOCATE( SUMCH3OHCO )
-      IF ( ALLOCATED( SUMACETCO  ) ) DEALLOCATE( SUMACETCO  )
-      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
+      ! Deallocate variables
+      IF ( ALLOCATED( SUMISOPCO ) ) THEN
+         DEALLOCATE( SUMISOPCO, STAT=RC )     
+         CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( SUMMONOCO ) ) THEN
+         DEALLOCATE( SUMMONOCO , STAT=RC )     
+         CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( SUMCH3OHCO ) ) THEN
+         DEALLOCATE( SUMCH3OHCO, STAT=RC )     
+         CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( SUMACETCO ) ) THEN
+         DEALLOCATE( SUMACETCO, STAT=RC )     
+         CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( TCOSZ ) ) THEN
+         DEALLOCATE( TCOSZ, STAT=RC )     
+         CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 2, RC )
+         RETURN
+      ENDIF
 
       ! Free pointers
       GMI_PROD_CO => NULL()

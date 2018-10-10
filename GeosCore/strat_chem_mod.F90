@@ -2056,7 +2056,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
     USE State_Chm_Mod,      ONLY : ChmState

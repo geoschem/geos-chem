@@ -196,6 +196,22 @@ CONTAINS
        RETURN
     ENDIF
 
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    !%%%%  NOTE: Some diagnostics for the POPs simulation do not have   %%%%
+    !%%%%  any species associated with them, and thus need to be        %%%%
+    !%%%%  declared as manual diagnostics.  We need to move the call    %%%%
+    !%%%%  to Diagn_POPs outside of the #ifdef BPCH_DIAG block.         %%%%
+    !%%%%    -- Bob Yantosca (09 Oct 2018)                              %%%%
+    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    CALL Diagn_POPs( am_I_Root, Input_Opt, HcoState, ExtState, RC )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Diagn_POPs"'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
 #if defined( BPCH_DIAG )
 
     !=======================================================================
@@ -254,9 +270,6 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     CALL Diagn_ParaNOx ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
-    CALL Diagn_POPs    ( am_I_Root, Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
 #if defined( TOMAS )
@@ -324,7 +337,7 @@ CONTAINS
                 CASE ( 14 )
                    SpcName = 'C3H8'
                    Unit    = 'kgC/m2/s'
-                CASE ( 15 )
+7                CASE ( 15 )
                    SpcName = 'CH2O'
                    Unit    = 'kg/m2/s'
                 CASE ( 16 )
@@ -4840,18 +4853,27 @@ CONTAINS
     ! Assume success
     RC = HCO_SUCCESS
 
-#if defined( BPCH_DIAG )
-
     ! Exit if the POPs simulation is not selected
     IF ( .not. Input_Opt%ITS_A_POPS_SIM ) RETURN
 
+
+#if defined( NC_DIAG )
+    ! Put a check to make sure that the 
+#endif
+
+#if defined( BPCH_DIAG )
+    ! Exit if ND53 diagnostics aren't turned on
+    IF ( ND53 <= 0 ) RETURN
+#endif
+
     ! Define diagnostics
-    IF ( ExtState%GC_POPs .and. ( ND53 > 0 ) ) THEN
+    IF ( ExtState%GC_POPs ) THEN
 
        ! HEMCO extension # for POPs
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'GC_POPs' )
        IF ( ExtNr <= 0 ) THEN
-          CALL HCO_Error ( 'Cannot find POPs extension', RC, THISLOC=LOC )
+          MSG = 'Cannot find the POPs extension for HEMCO!'
+          CALL HCO_Error( MSG, RC, THISLOC=LOC )
           RETURN      
        ENDIF
 
@@ -4865,20 +4887,26 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'AD53_POPG_SOURCE'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL Diagn_Create( am_I_Root,                                         & 
+                          HcoState  = HcoState,                              &
+                          cName     = TRIM( DiagnName ),                     &
+                          ExtNr     = ExtNr,                                 &
+                          Cat       = -1,                                    &
+                          Hier      = -1,                                    &
+                          HcoID     = HcoID,                                 &
+                          SpaceDim  = 2,                                     &
+                          LevIDx    = -1,                                    &
+                          OutUnit   = 'kg',                                  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,       &
+                          AutoFill  = 1,                                     &
+                          RC        = RC                                    ) 
+
+       ! Trap potential errors
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Could not define POPs diagnostic: '// TRIM( DiagnName )
+          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
 
        !-------------------------------------------
        ! %%%%% OC-phase POP emissions%%%%%
@@ -4890,20 +4918,26 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'AD53_POPPOCPO_SOURCE'
-       CALL Diagn_Create( am_I_Root,                     & 
-                          HcoState  = HcoState,          &
-                          cName     = TRIM( DiagnName ), &
-                          ExtNr     = ExtNr,             &
-                          Cat       = -1,                &
-                          Hier      = -1,                &
-                          HcoID     = HcoID,             &
-                          SpaceDim  = 2,                 &
-                          LevIDx    = -1,                &
-                          OutUnit   = 'kg',              &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                          AutoFill  = 1,                 &
-                          RC        = RC                  ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN 
+       CALL Diagn_Create( am_I_Root,                                         & 
+                          HcoState  = HcoState,                              &
+                          cName     = TRIM( DiagnName ),                     &
+                          ExtNr     = ExtNr,                                 &
+                          Cat       = -1,                                    &
+                          Hier      = -1,                                    &
+                          HcoID     = HcoID,                                 &
+                          SpaceDim  = 2,                                     &
+                          LevIDx    = -1,                                    &
+                          OutUnit   = 'kg',                                  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,       &
+                          AutoFill  = 1,                                     &
+                          RC        = RC                                    ) 
+
+       ! Trap potential errors
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Could not define POPs diagnostic: '// TRIM( DiagnName )
+          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
 
        !-------------------------------------------
        ! %%%%% BC-phase POP emissions %%%%%
@@ -4915,20 +4949,26 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'AD53_POPPBCPO_SOURCE'
-       CALL Diagn_Create( am_I_Root,                   & 
-                          HcoState  = HcoState,        &
-                          cName     = TRIM(DiagnName), &
-                          ExtNr     = ExtNr,           &
-                          Cat       = -1,              &
-                          Hier      = -1,              &
-                          HcoID     = HcoID,           &
-                          SpaceDim  = 2,               &
-                          LevIDx    = -1,              &
-                          OutUnit   = 'kg',            &
-                          COL       = HcoState%Diagn%HcoDiagnIDManual,&
-                          AutoFill  = 1,               &
-                          RC        = RC                ) 
-       IF ( RC /= HCO_SUCCESS ) RETURN
+       CALL Diagn_Create( am_I_Root,                                         &
+                          HcoState  = HcoState,                              &
+                          cName     = TRIM(DiagnName),                       &
+                          ExtNr     = ExtNr,                                 &
+                          Cat       = -1,                                    &
+                          Hier      = -1,                                    &
+                          HcoID     = HcoID,                                 &
+                          SpaceDim  = 2,                                     &
+                          LevIDx    = -1,                                    &
+                          OutUnit   = 'kg',                                  &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,       &
+                          AutoFill  = 1,                                     &
+                          RC        = RC                                    ) 
+
+       ! Trap potential errors
+       IF ( RC /= HCO_SUCCESS ) THEN
+          MSG = 'Could not define POPs diagnostic '// TRIM( DiagnName )
+          CALL HCO_Error( MSG, RC, THISLOC=LOC )
+          RETURN 
+       ENDIF
 
        !-------------------------------------------
        ! %%%%% Manual diagnostics %%%%%
@@ -4964,25 +5004,31 @@ CONTAINS
              DiagnName = 'AD53_LEAFAIR_FUG'
           ENDIF
 
-          CALL Diagn_Create( am_I_Root,                     & 
-                             HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
-                             Hier      = -1,                &
-                             HcoID     = -1,                &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg',              &
-                             OutOper   = 'Mean',            &
-                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  ) 
-          IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Create manual diagnostics
+          CALL Diagn_Create( am_I_Root,                                      & 
+                             HcoState  = HcoState,                           &
+                             cName     = TRIM( DiagnName ),                  &
+                             ExtNr     = ExtNr,                              &
+                             Cat       = -1,                                 &
+                             Hier      = -1,                                 &
+                             HcoID     = -1,                                 &
+                             SpaceDim  = 2,                                  &
+                             LevIDx    = -1,                                 &
+                             OutUnit   = 'kg',                               &
+                             OutOper   = 'Mean',                             &
+                             COL       = HcoState%Diagn%HcoDiagnIDManual,    &
+                             AutoFill  = 1,                                  &
+                             RC        = RC                                 ) 
+
+          ! Trap potential errors
+          IF ( RC /= HCO_SUCCESS ) THEN
+             MSG = 'Could not define POPs diagnostic: '// TRIM( DiagnName )
+             CALL HCO_Error( Msg, RC, THISLOC=LOC )
+             RETURN 
+          ENDIF
        ENDDO
 
     ENDIF
-#endif
 
   END SUBROUTINE Diagn_POPs
 !EOC

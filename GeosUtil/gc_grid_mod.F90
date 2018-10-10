@@ -717,11 +717,19 @@ CONTAINS
     INTEGER            :: I,         J,        L
     INTEGER            :: NI,        NJ,       NL
     REAL(fp)           :: YEDGE_VAL, YSIN_VAL, TMP
-    CHARACTER(LEN=255) :: MSG
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
 
     !======================================================================
     ! SetGridFromCtr begins here! 
     !======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at SetGridFromCtr (in module GeosUtil/gc_grid_mod.F90)'
 
     ! Get array size
     NI = SIZE(XMID,1)
@@ -730,9 +738,9 @@ CONTAINS
 
     ! Horizontal dimensions must agree
     IF ( NX /= NI .OR. NY /= NJ ) THEN
-       WRITE(MSG,*) 'Grid dimension mismatch: ',NX,'/=',NI,' and/or ',NY,'/=',NJ
-       CALL ERROR_STOP ( MSG, 'SetGridFromCtr (grid_mod.F90)' )
-       RC = GC_FAILURE
+       WRITE(ErrMsg,*) 'Grid dimension mismatch: ',NX, '/=',NI,              &
+                       ' and/or ',NY,'/=',NJ
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 

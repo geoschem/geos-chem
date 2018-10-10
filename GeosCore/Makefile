@@ -499,8 +499,8 @@ cleanup.o                   : cleanup.F                                      \
                               uvalbedo_mod.o          tpcore_fvdas_mod.o     \
                               tpcore_window_mod.o     flexchem_mod.o         \
                               toms_mod.o              emissions_mod.o        \
-                              rrtmg_rad_transfer_mod.o                       \
-                              set_global_ch4_mod.o
+                              set_global_ch4_mod.o    pops_mod.o             \
+                              rrtmg_rad_transfer_mod.o
 
 cldice_HBrHOBr_rxn.o        : cldice_HBrHOBr_rxn.F
 

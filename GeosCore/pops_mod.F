@@ -23,8 +23,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC :: CHEMPOPS
-      PUBLIC :: INIT_POPS
+      PUBLIC :: ChemPOPs
+      PUBLIC :: Init_POPs
+      PUBLIC :: Cleanup_POPs
 !
 ! !REMARKS:
 !  POPs Tracers
@@ -121,7 +122,6 @@
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -160,71 +160,86 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! For fields from Input_Opt
-      LOGICAL :: LGTMM
-      LOGICAL :: LNLPBL
-      LOGICAL :: LPRT  
+      ! Scalars
+      LOGICAL            :: prtDebug
 
-      ! For getting concentrations from HEMCO 
+      ! SAVEd scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
-      LOGICAL            :: aIR
-      CHARACTER(LEN=255) :: LOC = 'CHEMPOPS (pops_mod.F)'
+
+      ! Strings
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
 
       !=================================================================
       ! CHEMPOPS begins here!
       !=================================================================
 
-      ! Assume success
-      RC        = GC_SUCCESS
-      
-      ! Get fields from Input_Opt
-      LPRT      = Input_Opt%LPRT
-      LGTMM     = Input_Opt%LGTMM
-      LNLPBL    = Input_Opt%LNLPBL
+      ! Initialize
+      RC       = GC_SUCCESS
+      prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
+      ErrMsg   = ''
+      ThisLoc  = ' -> at ChemPops (in Headers/state_chm_mod.F90)'
 
-      ! If it's a new 6-hr mean, then get the current average 3-D temperature
+      !=================================================================
+      ! Get pointers to fields that are read in by HEMCO.
+      ! These are global concentrations of OH, O3, OC, and BC.
+      !
+      ! NOTE: The HEMCO pointers will update with time, so we only need
+      ! to make this assignment on the first call to CHEMPOPS.
+      !=================================================================
+      IF ( FIRST ) THEN
 
+         ! OC
+         CALL HCO_GetPtr( am_I_root, HcoState, 'GLOBAL_OC', C_OC, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! BC
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_BC', C_BC, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_BC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! OH
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH', OH,   RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! O3
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', O3,   RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_OC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+      ENDIF
+ 
       !=================================================================
       ! Perform chemistry on POPs tracers
       !=================================================================
-      
-      ! am I root? 
-      aIR = am_I_Root
-
-      ! Get global concentrations of OH, O3, OC, and BC from HEMCO
-      IF ( FIRST ) THEN
-
-         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OC', C_OC, RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OC', LOC )
-
-         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_BC', C_BC, RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_BC', LOC )
-
-         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_OH', OH,   RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OH', LOC )
-
-         CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_O3', O3,   RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
-
-         FIRST = .FALSE.
-
-      ENDIF
 
       ! Compute diurnal scaling for OH
-      CALL OHNO3TIME
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
+      CALL OHNO3TIME()
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
 
       !-------------------------
       ! GAS AND PARTICLE PHASE chemistry
       !-------------------------
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
       
       ! Add option for non-local PBL (cdh, 08/27/09)
-      IF ( LNLPBL ) THEN
+      IF ( Input_Opt%LNLPBL ) THEN
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
@@ -345,7 +360,7 @@
 
       ENDIF      
 
-      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
+      IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
    
       END SUBROUTINE CHEMPOPS
 !EOC
@@ -1276,7 +1291,8 @@
          !=================================================================
          ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
          !=================================================================
-         IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
+         IF ( ( ND44 > 0 .OR. Input_Opt%LGTMM ) .AND. 
+     &        ( .NOT. Input_Opt%LNLPBL) ) THEN
          ! Not using LGTMM right now (logical switch for using GTMM soil model)
          ! Also not using non-local PBL mode yet (clf, 1/27/2011)
 
@@ -1361,6 +1377,11 @@
          ENDIF
 #endif
 
+#if defined( NC_DIAG ) 
+
+
+#endif
+
       ENDDO
       ENDDO
       ENDDO
@@ -1443,10 +1464,6 @@
 !
       SUBROUTINE RXN_OX_WITHDEP( OLD_POPG, K_OX, K_DEPG, DT, E_KOX_T,
      &                           NEW_POPG, GROSS_OX, DEP_POPG )
-!
-! USES:
-!
-      USE ERROR_MOD,    ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1537,10 +1554,6 @@
 !
       SUBROUTINE NO_RXN_WITHDEP( OLD_POPP, K_DEPP, DT,
      &                           NEW_POPP, DEP_POPP )
-!
-! !USES:
-!
-      USE ERROR_MOD,    ONLY : ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1669,7 +1682,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME
+      SUBROUTINE OHNO3TIME()
 !
 ! !USES:
 !
@@ -1819,11 +1832,9 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Chm_Mod, ONLY : ChmState
+      USE State_Chm_Mod, ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -1854,9 +1865,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-      ! Scalars
-      INTEGER :: AS 
-      
       !=================================================================
       ! INIT_POPS begins here!
       !=================================================================
@@ -1866,25 +1874,30 @@
       
       !=================================================================
       ! Allocate and initialize arrays
+      ! NOTE: These might have to go into state_chm_mod.F90 eventually
       !=================================================================
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
-      COSZM = 0e+0_fp
+      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pops_mod.F:COSZM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      COSZM = 0.0_fp
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
-      TCOSZ = 0e+0_fp
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pops_mod.F:TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TCOSZ = 0.0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
-      TTDAY = 0e+0_fp
+      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pops_mod.F:TTDAY', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      TTDAY = 0.0_fp
 
       ! Now always allocate ZERO_DVEL.  This is needed because the calls
       ! to CHEM_POPGP have been modified in the CHEMPOPS routine above.
       ! (bmy, 3/10/15)
-      ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
-      ZERO_DVEL = 0e+0_fp
+      ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'pops_mod.F:ZERO_DVEL', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      ZERO_DVEL = 0.0_fp
 
       !=================================================================
       ! Initialize species ID and drydep ID flags
@@ -1918,24 +1931,60 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_POPS
+      SUBROUTINE CLEANUP_POPS( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY: 
 !  20 September 2010 - N.E. Selin - Initial Version
+!  10 Oct 2018 - R. Yantosca - Add am_I_Root, RC; Improve error trapping
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+      ! Assume success
+      RC = GC_SUCCESS
 
-      IF ( ALLOCATED( COSZM      ) ) DEALLOCATE( COSZM      )     
-      IF ( ALLOCATED( TCOSZ      ) ) DEALLOCATE( TCOSZ      )
-      IF ( ALLOCATED( TTDAY      ) ) DEALLOCATE( TTDAY      )
-      IF ( ALLOCATED( ZERO_DVEL  ) ) DEALLOCATE( ZERO_DVEL  )
+      ! Deallocate variables
+      IF ( ALLOCATED( COSZM ) ) THEN
+         DEALLOCATE( COSZM, STAT=RC )     
+         CALL GC_CheckVar( 'pops_mod.F:COSZM', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( TCOSZ ) ) THEN
+         DEALLOCATE( TCOSZ, STAT=RC )
+         CALL GC_CheckVar( 'pops_mod.F:TCOSZ', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( TTDAY  ) ) THEN
+         DEALLOCATE( TTDAY, STAT=RC )
+         CALL GC_CheckVar( 'pops_mod.F:TTDAY', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( ZERO_DVEL ) ) THEN
+         DEALLOCATE( ZERO_DVEL, STAT=RC  )
+         CALL GC_CheckVar( 'pops_mod.F:ZERO_DVEL', 2, RC )
+         RETURN
+      ENDIF
 
       ! Free pointers
-      IF ( ASSOCIATED( C_OC      ) ) C_OC => NULL()
-      IF ( ASSOCIATED( C_BC      ) ) C_BC => NULL()
-      IF ( ASSOCIATED( O3        ) ) O3   => NULL()
-      IF ( ASSOCIATED( OH        ) ) OH   => NULL()
+      IF ( ASSOCIATED( C_OC ) ) C_OC => NULL()
+      IF ( ASSOCIATED( C_BC ) ) C_BC => NULL()
+      IF ( ASSOCIATED( O3   ) ) O3   => NULL()
+      IF ( ASSOCIATED( OH   ) ) OH   => NULL()
 
       END SUBROUTINE CLEANUP_POPS
 !EOC
