@@ -1617,6 +1617,14 @@ CONTAINS
     TYPE(HistItem),      POINTER :: Item
 
     ! Pointer arrays
+    REAL(fp),            POINTER :: Ptr0d
+    REAL(f8),            POINTER :: Ptr0d_8
+    REAL(f4),            POINTER :: Ptr0d_4
+    INTEGER,             POINTER :: Ptr0d_I
+    REAL(fp),            POINTER :: Ptr1d  (:    )
+    REAL(f8),            POINTER :: Ptr1d_8(:    )
+    REAL(f4),            POINTER :: Ptr1d_4(:    )
+    INTEGER,             POINTER :: Ptr1d_I(:    )
     REAL(fp),            POINTER :: Ptr2d  (:,:  )
     REAL(f8),            POINTER :: Ptr2d_8(:,:  )
     REAL(f4),            POINTER :: Ptr2d_4(:,:  )
@@ -1641,6 +1649,14 @@ CONTAINS
     ItemNameUC  = To_UpperCase( ItemName )
     StateMetUC  = State_Met%State // '_'   ! State_Met%State is uppercase
     StateChmUC  = State_Chm%State // '_'   ! State_Chm%State is uppercase
+    Ptr0d       => NULL()
+    Ptr0d_8     => NULL()
+    Ptr0d_4     => NULL()
+    Ptr0d_I     => NULL()
+    Ptr1d       => NULL()
+    Ptr1d_8     => NULL()
+    Ptr1d_4     => NULL()
+    Ptr1d_I     => NULL()
     Ptr2d       => NULL()
     Ptr2d_8     => NULL()
     Ptr2d_4     => NULL()
@@ -1670,8 +1686,22 @@ CONTAINS
                              Rank         = Rank,                            &
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
+                             Ptr2d        = Ptr2d,                           &
                              Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
+                             Ptr2d_8      = Ptr2d_8,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
+                             Ptr2d_I      = Ptr2d_I,                         &
+                             Ptr3d_I      = Ptr3d_I,                         &
                              RC           = RC                                 )
 
        ! Trap potential not found error
@@ -1687,21 +1717,33 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = am_I_Root,                      &
-                             Registry     = State_Met%Registry,             &
-                             State        = State_Met%State,                &
-                             Variable     = ItemName,                       &
-                             Description  = Description,                    &
-                             Dimensions   = Dimensions,                     &
-                             KindVal      = KindVal,                        &
-                             Rank         = Rank,                           &
-                             Units        = Units,                          &
-                             OnLevelEdges = OnLevelEdges,                   &
-                             Ptr2d        = Ptr2d,                          &
-                             Ptr3d        = Ptr3d,                          &
-                             Ptr2d_I      = Ptr2d_I,                        &
-                             Ptr3d_I      = Ptr3d_I,                        &
-                             RC           = RC                                )
+       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+                             Registry     = State_Met%Registry,              &
+                             State        = State_Met%State,                 &
+                             Variable     = ItemName,                        &
+                             Description  = Description,                     &
+                             Dimensions   = Dimensions,                      &
+                             KindVal      = KindVal,                         &
+                             Rank         = Rank,                            &
+                             Units        = Units,                           &
+                             OnLevelEdges = OnLevelEdges,                    &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
+                             Ptr2d        = Ptr2d,                           &
+                             Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
+                             Ptr2d_8      = Ptr2d_8,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
+                             Ptr2d_I      = Ptr2d_I,                         &
+                             Ptr3d_I      = Ptr3d_I,                         &
+                             RC           = RC                                 )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1726,12 +1768,20 @@ CONTAINS
                              Rank         = Rank,                            &
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
                              Ptr2d        = Ptr2d,                           &
                              Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
                              Ptr2d_8      = Ptr2d_8,                         &
                              Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
                              Ptr2d_4      = Ptr2d_4,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
                              Ptr2d_I      = Ptr2d_I,                         &
                              Ptr3d_I      = Ptr3d_I,                         &
                              RC           = RC                                 )
@@ -1777,6 +1827,11 @@ CONTAINS
                           SpaceDim       = Rank,                             &
                           Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
+                          Source_0d_8    = Ptr0d_8,                          &
+                          Source_1d      = Ptr1d,                            &
+                          Source_1d_8    = Ptr1d_8,                          &
+                          Source_1d_4    = Ptr1d_4,                          &
+                          Source_1d_I    = Ptr1d_I,                          &
                           Source_2d      = Ptr2d,                            &
                           Source_2d_8    = Ptr2d_8,                          &
                           Source_2d_4    = Ptr2d_4,                          &
@@ -1896,6 +1951,14 @@ CONTAINS
     Collection%nHistItems = Collection%nHistItems + 1
 
     ! Free pointers
+    Ptr0d   => NULL()
+    Ptr0d_8 => NULL()
+    Ptr0d_4 => NULL()
+    Ptr0d_I => NULL()
+    Ptr1d   => NULL()
+    Ptr1d_8 => NULL()
+    Ptr1d_4 => NULL()
+    Ptr1d_I => NULL()
     Ptr2d   => NULL()
     Ptr2d_8 => NULL()
     Ptr2d_4 => NULL()
