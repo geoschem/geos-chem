@@ -436,7 +436,7 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( HcoClock_First( HcoState%Clock, .TRUE. ) ) THEN
 
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
        ! ckeller, 8/30/18: Always write out diagnostics
        Inst%DoDiagn = .TRUE.
 #else
@@ -1178,7 +1178,7 @@ CONTAINS
     IF ( Inst%DoDiagn ) THEN
        ! Total flash rates
        Arr2D   => DIAGN(:,:,1)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        CALL Diagn_Update( am_I_Root, HcoState,               &
                           cName='LIGHTNING_TOTAL_FLASHRATE', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
@@ -1192,7 +1192,7 @@ CONTAINS
    
        ! Intracloud flash rates 
        Arr2D     => DIAGN(:,:,2)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        CALL Diagn_Update( am_I_Root, HcoState,                    &
                           cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
@@ -1206,7 +1206,7 @@ CONTAINS
    
        ! Cloud to ground flash rates
        Arr2D     => DIAGN(:,:,3)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        CALL Diagn_Update( am_I_Root, HcoState,                     &
                           cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
@@ -1220,7 +1220,7 @@ CONTAINS
 
        ! Cloud top height
        Arr2D     => TOPDIAGN(:,:)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        CALL Diagn_Update( am_I_Root,   HcoState,       &
                           cName='LIGHTNING_CLOUD_TOP', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
@@ -2092,7 +2092,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
     ! flash rates (where available) are used instead of the computed flash
     ! rates. This is off by default.
@@ -2234,7 +2234,7 @@ CONTAINS
     ExtState%CNV_FRC%DoUse = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ExtState%LFR%DoUse     = .TRUE.
 #endif
 

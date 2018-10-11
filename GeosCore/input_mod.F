@@ -5016,7 +5016,7 @@
       Input_Opt%LPRT = ( ND70x > 0 )
 
 #endif
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       Input_Opt%ND21 = ND21x
 #endif
 

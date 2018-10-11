@@ -122,7 +122,7 @@ MODULE State_Diag_Mod
      !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
      !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      ! GEOS-5 only
      REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m 
      REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
@@ -158,7 +158,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_Loss            
      LOGICAL :: Archive_Prod            
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      ! GEOS-5 only
      REAL(f4),  POINTER :: JValIndiv       (:,:,:,:) ! individual J-values
      REAL(f4),  POINTER :: RxnRconst       (:,:,:,:) ! Rxn rate const from KPP
@@ -278,7 +278,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_TotalOC         
      LOGICAL :: Archive_TotalBiogenicOA 
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
      REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
      REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
@@ -602,7 +602,7 @@ CONTAINS
     State_Diag%Archive_DryDepMix          = .FALSE.
     State_Diag%Archive_DryDepVel          = .FALSE.
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     State_Diag%DryDepRa2m                 => NULL()
     State_Diag%DryDepRa10m                => NULL()
     State_Diag%MoninObukhov               => NULL()
@@ -636,7 +636,7 @@ CONTAINS
     State_Diag%Archive_Loss               = .FALSE.
     State_Diag%Archive_Prod               = .FALSE.
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     State_Diag%JValIndiv                  => NULL()
     State_Diag%RxnRconst                  => NULL()
     State_Diag%O3concAfterChem            => NULL()
@@ -751,7 +751,7 @@ CONTAINS
     State_Diag%Archive_TotalOC            = .FALSE.
     State_Diag%Archive_TotalBiogenicOA    = .FALSE. 
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     State_Diag%PM25ni                     => NULL()
     State_Diag%PM25su                     => NULL()
     State_Diag%PM25oc                     => NULL()
@@ -1309,7 +1309,7 @@ CONTAINS
     arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! DryDepVel is needed by some other diagnostics, always use with GEOS-5
     Found = .TRUE.
 #endif
@@ -1325,7 +1325,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     !--------------------------------------------
     ! Aerodynamic resistance @ 2m (ckeller, 11/17/17) 
     !-------------------------------------------- 
@@ -1896,7 +1896,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
-#if !defined( DISCOVER )
+#if !defined( MODEL_GEOS )
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
        !--------------------------------------------------------------------
@@ -2377,7 +2377,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        !--------------------------------------------------------------------
        ! CH4 pseudo-flux 
        !--------------------------------------------------------------------
@@ -2533,7 +2533,7 @@ CONTAINS
        arrayID = 'State_Diag%OHconcAfterChem'
        diagID  = 'OHconcAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
 #endif
        IF ( Found ) THEN
@@ -2549,7 +2549,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        arrayID = 'State_Diag%O3concAfterChem'
        diagID  = 'O3concAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
@@ -3375,7 +3375,7 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        !--------------------------------------------------------------------
        ! PM25 nitrates 
        !--------------------------------------------------------------------
@@ -4277,7 +4277,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
        DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%DryDepRa2m', 2, RC )
@@ -4303,7 +4303,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%JValIndiv ) ) THEN
        DEALLOCATE( State_Diag%JValIndiv, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%JvalIndiv', 2, RC )
@@ -4323,7 +4323,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
        DEALLOCATE( State_Diag%RxnRconst, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%RxnRconst', 2, RC )
@@ -4499,7 +4499,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF 
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%O3concAfterChem ) ) THEN
        DEALLOCATE( State_Diag%O3concAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%O3concAfterChem', 2, RC )
@@ -4789,7 +4789,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%CH4pseudoFlux ) ) THEN
        DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
@@ -4924,7 +4924,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%PM25ni ) ) THEN
        DEALLOCATE( State_Diag%PM25ni, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%PM25ni', 2, RC )
@@ -5284,7 +5284,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA2M' ) THEN
        IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
        IF ( isUnits   ) Units = 's cm-1'
@@ -5509,7 +5509,7 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'O3CONCAFTERCHEM' ) THEN
        IF ( isDesc    ) Desc  = 'O3 concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
@@ -5536,7 +5536,7 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'CH4PSEUDOFLUX' ) THEN
        IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
@@ -5712,7 +5712,7 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, nitrates'
        IF ( isUnits   ) Units = 'ug m-3'

@@ -990,7 +990,7 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
@@ -1256,7 +1256,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !=================================================================
       ! ND21 Diagnostic: 
       !
@@ -1499,7 +1499,7 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_DIAG_MOD
@@ -1879,7 +1879,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG ) || defined( DISCOVER )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !==============================================================
       ! ND21 Diagnostic: 
       !

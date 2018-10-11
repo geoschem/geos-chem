@@ -89,7 +89,7 @@ CONTAINS
 ! !USES:
 !
     USE m_netCDF_io_define
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     USE m_netcdf_io_read
     USE m_netcdf_io_open
     USE Ncdf_Mod,            ONLY : NC_Open
@@ -102,7 +102,7 @@ CONTAINS
     USE Ncdf_Mod,            ONLY : NC_Var_Write
     USE Ncdf_Mod,            ONLY : NC_Get_RefDateTime
     USE CHARPAK_Mod,         ONLY : TRANLC
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     USE HCO_Chartools_Mod,   ONLY : HCO_CharParse
 #endif
     USE HCO_State_Mod,       ONLY : HCO_State
@@ -162,14 +162,14 @@ CONTAINS
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY, P0
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     REAL(sp), POINTER         :: nctime(:)
 #endif
     REAL(dp), POINTER         :: Arr1D(:)
     INTEGER,  POINTER         :: Int1D(:)
     REAL(sp), POINTER         :: Arr3D(:,:,:)
     REAL(sp), POINTER         :: Arr4D(:,:,:,:)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     REAL(sp), POINTER         :: Arr4DOld(:,:,:,:)
     REAL*8,   POINTER         :: timeVec(:)
 #endif
@@ -194,7 +194,7 @@ CONTAINS
     INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs
     LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
     LOGICAL                   :: NoLevDim, DefMode
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     LOGICAL                   :: IsOldFile
 #endif
 
@@ -211,7 +211,7 @@ CONTAINS
     Int1D     => NULL()
     Arr3D     => NULL()
     Arr4D     => NULL()
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     Arr4DOld  => NULL()
     timeVec   => NULL()
     nctime    => NULL()
@@ -339,7 +339,7 @@ CONTAINS
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Add default time stamp if no time tokens are in the file template.
     ! This also ensures backward compatibility.
     IF ( INDEX(TRIM(ncFile),'$') <= 0 ) THEN
@@ -373,7 +373,7 @@ CONTAINS
        CALL HCO_MSG( HcoState%Config%Err, MSG )
     ENDIF
 
-#if !defined( DISCOVER )
+#if !defined( MODEL_GEOS )
     ! Define a variable for the number of levels, which will either be -1 
     ! (if all 2D data) or the number of levels in the grid (for 3D data).
     IF ( NoLevDim ) THEN
@@ -585,7 +585,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Check if file already exists. If so, add new diagnostics to this file
     ! (instead of creating a new one)
     INQUIRE( FILE=ncFile, EXIST=IsOldFile )
@@ -705,7 +705,7 @@ CONTAINS
     ENDIF    
  
     ! Round to 2 digits after comma 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
     TMP          = ANINT( JD_DELTA_RND )
     JD_DELTA_RND = TMP / 100.0_sp
@@ -758,7 +758,7 @@ CONTAINS
     ! Write out grid box areas 
     !-----------------------------------------------------------------
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     IF ( .NOT. IsOldFile ) THEN
        myName = 'AREA'
        myUnit = 'm2'
@@ -793,7 +793,7 @@ CONTAINS
     ! data mode to write variables
     DO I=1,2
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     ! Skip definition mode for existing file
     IF ( I==1 .AND. IsOldFile ) CYCLE
 #endif
@@ -803,7 +803,7 @@ CONTAINS
        CALL NcBegin_Def( fID ) 
        DefMode=.TRUE.
     ELSE
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        IF ( .NOT. IsOldFile ) THEN
           ! Close netCDF define mode
           CALL NcEnd_Def( fID )   
@@ -855,7 +855,7 @@ CONTAINS
           ! Define variables in define mode
           !------------------------------------
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
           ! Write out in single precision
           CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
                TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, &
@@ -892,7 +892,7 @@ CONTAINS
           ! Write variables in data mode
           !------------------------------------
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
           IF ( IsOldFile .AND. ntime > 1 ) THEN
              IF ( ThisDiagn%SpaceDim == 3 ) THEN
                 CALL NC_READ_ARR( fID, TRIM(myName), 1, nlon, 1, nlat, &
@@ -912,7 +912,7 @@ CONTAINS
           ! have no time information!
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
              IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                 Arr4D(:,:,:,ntime) = ThisDiagn%Arr3D%Val
 #else
                 Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
@@ -921,7 +921,7 @@ CONTAINS
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
           ELSE
              IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
                 Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val 
 #else
                 Arr3D(:,:,1) = ThisDiagn%Arr2D%Val

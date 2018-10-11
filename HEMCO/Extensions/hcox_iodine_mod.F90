@@ -175,7 +175,7 @@ CONTAINS
        ! Sea surface temperature in Kelvin 
        SST = ExtState%TSKIN%Arr%Val(I,J) 
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        ! Empirical SST scaling factor (jaegle 5/11/11)
 !       SCALE = 0.329d0 + 0.0904d0*SST - &
 !               0.00717d0*SST**2d0 + 0.000207d0*SST**3d0
@@ -192,7 +192,7 @@ CONTAINS
                * HcoState%Phys%AIRMW / 48.0_dp &
                * 1.e9_dp
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        ! Reset to using original Gong (2003) emissions (jaegle 6/30/11)
        !SCALE = 1.0d0
 

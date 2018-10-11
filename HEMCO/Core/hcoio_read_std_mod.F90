@@ -251,7 +251,7 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
-#if !defined( DISCOVER )
+#if !defined( MODEL_GEOS )
     IF ( RC /= HCO_SUCCESS ) RETURN
 !----------------------------------------------------------------------------
 ! Prior to 1/22/18:
@@ -3949,7 +3949,7 @@ CONTAINS
              MSG = 'Base field outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
           ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
              FileArr(1,1,1,:) = 0.0_hp
              MSG = 'Mask outside of range - set to zero: ' // &

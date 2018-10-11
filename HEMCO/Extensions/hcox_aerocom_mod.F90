@@ -340,7 +340,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%VolcSource = Str
 
-#if !defined( DISCOVER )
+#if !defined( MODEL_GEOS )
     Print*, Inst%VolcSource
 #endif
 
@@ -484,7 +484,7 @@ CONTAINS
        CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
        ! Error trap: skip leap days
        IF ( MM == 2 .AND. DD > 28 ) DD = 28
 #endif

@@ -715,7 +715,7 @@ CONTAINS
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
     SpcNames(:) = ''
     HcoIDs(:)   = -1
 #endif

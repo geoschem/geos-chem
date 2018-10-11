@@ -1129,7 +1129,7 @@
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L
 #endif
 !
@@ -1166,7 +1166,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER              :: I, J, N, N_EMITTED
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       INTEGER              :: PBL_TOP 
 #endif
       REAL(fp)             :: N2O_MULT,OCS_MULT,CFC_MULT,HCFC_MULT
@@ -1176,7 +1176,7 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
       INTEGER              :: CFCYEAR
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       INTEGER              :: TARGYEAR
 #endif
       ! Pointers
@@ -1207,7 +1207,7 @@
 !      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
 !      ! may become initialized to zero because the simulation year is not
 !      ! yet know during initialization (ckeller, 1/20/16).
-#if !defined( DISCOVER )
+#if !defined( MODEL_GEOS )
       IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 #endif
 
@@ -1218,7 +1218,7 @@
           ENDIF
           SFC_MONTH = GET_MONTH()
           IF (LPRT) THEN
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
              IF ( CFCYEAR <= 0 ) THEN
                 TARGYEAR = GET_YEAR()
              ELSE
@@ -1238,13 +1238,13 @@
        ! Loop over emitted species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
 !$OMP+PRIVATE( I, J, N, PBL_TOP, N_EMITTED )
 #else
 !$OMP+PRIVATE( I, J, N, N_EMITTED )
 #endif
 !$OMP+SCHEDULE( DYNAMIC )
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Loop over surface grid boxes
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -1321,7 +1321,7 @@
 !
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       USE TIME_MOD,           ONLY : GET_YEAR
 #endif
 !
@@ -1358,7 +1358,7 @@
       ! Copy fields from INPUT_OPT
       CFCYEAR   = Input_Opt%CFCYEAR
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Get target year. This is either the current year (if CFC year in
       ! input_opt is zero), or the set CFC year plus the offset years 
       ! since simulation start.
@@ -1373,7 +1373,7 @@
       GRID_EMIT = 0e+0_fp
 
       IF (UCXNETCDF) THEN
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
          TARG_YR_NC = TARGYEAR
 #else
          TARG_YR_NC = CFCYEAR+OFFSETYEAR
@@ -1426,7 +1426,7 @@
       ELSE
          ! Read from ASCII
          ! Determine which line needs to be read in
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
          TARG_LINE = (12*(TARGYEAR-1959)) + SFC_MONTH
 #else
          TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
@@ -1456,7 +1456,7 @@
                   ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL(LOCAL_NAME,
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &                         TARGYEAR-1949,N,Input_Opt)
 #else
      &                         CFCYEAR+OFFSETYEAR-1949,N,Input_Opt)
@@ -1630,7 +1630,7 @@
 ! !USES:
 !
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       USE TIME_MOD,           ONLY : GET_YEAR
 #endif
 !
@@ -1655,7 +1655,7 @@
       ! SET_MONTREAL begins here!
       !=================================================================
    
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       YY = Input_Opt%CFCYEAR
       IF ( YY <= 0 ) THEN
          YY = GET_YEAR()
@@ -3854,7 +3854,7 @@
       ! Handle HCl (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       IF (PATMHCL.gt.0.0e+0_fp) THEN
          TMP1 = W_HNO3+0.610e+0_fp*W_H2SO4
          IF ( TMP1 <= 0.0_fp ) THEN
@@ -3984,7 +3984,7 @@
      &      (M_H2SO4+M_HNO3)-5862.0e+0_fp*(1.0e+0_fp/298.15e+0_fp-
      &      1.0e+0_fp/TCENTER))
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
          IF ( M_H2SO4 <= 0.0_fp ) THEN
             TMP1 = 0.0_fp
          ELSE
@@ -4027,7 +4027,7 @@
       ! Now HBr (Luo et al., Vapor pressures of
       ! H2SO4/HNO3/HCl/HBr/H2O solutions to low stratospheric
       ! temperatures, 1995)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       IF (PATMHBr.gt.0.0e+0_fp) THEN
          TMP1 = W_HNO3+0.410e+0_fp*W_H2SO4
          IF ( TMP1 <= 0.0_fp ) THEN
@@ -4135,7 +4135,7 @@
          ! Henry's Law coefficient for HOBr in H2SO4 is 10^6 M/atm.
          ! The molality-based Henry's law constant, H_HOBr, is
          ! therefore:
-#if defined ( DISCOVER )
+#if defined( MODEL_GEOS )
          IF ( M_H2SO4 <= 0.0_fp ) THEN
             H_HOBr = 0.0_fp
          ELSE
@@ -4189,7 +4189,7 @@
       ! Take W_H2O as remainder
       W_H2O = 1.e+0_fp-(W_H2SO4+W_HNO3+W_HCl+W_HOCl+W_HBr+W_HOBr)
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! restrict values to range that prevents invalids (12/29/17)
       IF ( M_H2SO4 < 1.0e-30_fp ) M_H2SO4 = 0.0_fp
       IF ( M_HNO3  < 1.0e-30_fp ) M_HNO3  = 0.0_fp
@@ -6034,14 +6034,14 @@
 #endif
          WRITE( NOON_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &        'UCX_201710/Init2D/Noontime.nc'
 #else
      &        'UCX_201403/Init2D/Noontime.nc'
 #endif
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &        'UCX_201710/Init1D/Montreal.nc'
 #else
      &        'UCX_201403/Init1D/Montreal.nc'
@@ -6060,14 +6060,14 @@
 #endif
          WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &        'UCX_201710/NoonTime/', TRIM(GRIDSPEC)
 #else
      &        'UCX_201403/NoonTime/', TRIM(GRIDSPEC)
 #endif
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
      &      'UCX_201710/Montreal/'
 #else
      &      'UCX_201403/Montreal/'

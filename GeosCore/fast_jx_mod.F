@@ -86,7 +86,7 @@
       INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
       INTEGER :: id_I2O3
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Diagnostics arrays (ckeller, 5/22/18) 
       REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
 #endif
@@ -1397,7 +1397,7 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       INTEGER, PARAMETER  ::  LSPH_ = 200
 #else
       INTEGER, PARAMETER  ::  LSPH_ = 100
@@ -1549,7 +1549,7 @@ c  Lowest level intersected by emergent beam
       INTEGER JTOTL,I,L,L2
       REAL(fp)  TTAU(L2X+1),DTAUJ, ATAU1,ATAULN,ATAUM,ATAUN1
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! ckeller, 5/21/18
       LOGICAL  :: failed
       INTEGER  :: N, NMAX
@@ -1560,7 +1560,7 @@ c  Lowest level intersected by emergent beam
       ! EXTRAL begins here!
       !=================================================================
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! This routine now repeats the extra layer computation with an
       ! increased heating rate (ATAU) if there is an array overfloat.
       ! This is repeated maximum 5 times. The diagnostics arrays
@@ -1595,7 +1595,7 @@ c---        ATAUMN = the smallest OD layer desired
 c---        JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
 c---These are set in CMN_FJX_MOD, and have been tested/optimized
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ATAU1  = ATAULOC - 1.e+0_fp
       ATAULN = log(ATAULOC)
 #else
@@ -1622,7 +1622,7 @@ c---the number of sub-layers + 1
       enddo
 
 c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       failed   = .FALSE.
        JTOTL    = L2X + 2
        do L2 = L2X,1,-1
@@ -1739,7 +1739,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_      
       USE State_Diag_Mod, ONLY : DgnState
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       USE CMN_SIZE_MOD,   ONLY : IIPAR, JJPAR, LLPAR
 #endif
 !
@@ -1969,7 +1969,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
          ENDIF
       ENDDO
 
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
       ! Diagnostics arrays 
       ALLOCATE(EXTRAL_NLEVS(IIPAR,JJPAR))
       ALLOCATE(EXTRAL_NITER(IIPAR,JJPAR))
