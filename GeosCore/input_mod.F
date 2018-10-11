@@ -2217,7 +2217,6 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2255,13 +2254,14 @@
       RC = GC_SUCCESS
 
       ! Location for error messages
-      LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
+      LOC = ' -> at READ_CO_SIM_MENU (in GeosCore/input_mod.f)'
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &         'must be read in first!'
-         CALL ERROR_STOP( MSG, LOC )
+         CALL GC_Error( Msg, RC, Loc )
+         RETURN
       ENDIF
 
       ! Use P(CO) from CH4 from full chemistry simulation?

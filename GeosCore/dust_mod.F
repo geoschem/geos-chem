@@ -122,7 +122,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
@@ -172,20 +171,26 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      LOGICAL       :: LDRYD
-      LOGICAL       :: LDUST
-      LOGICAL       :: LDSTUP
-      LOGICAL       :: prtDebug
+      LOGICAL            :: LDRYD
+      LOGICAL            :: LDUST
+      LOGICAL            :: LDSTUP
+      LOGICAL            :: prtDebug
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! CHEMDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at CHEMDUST (in module GeosCore/dust_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDRYD  = Input_Opt%LDRYD
@@ -207,9 +212,9 @@
      &        MAX( id_DST3, 0 )  + 
      &        MAX( id_DST4, 0 ) == 0 ) THEN 
             IF ( LDUST ) THEN 
-               CALL ERROR_STOP( 
-     &              'LDUST=T but dust species are undefined!',
-     &              'EMISSDUST ("dust_mod.f")' )
+               ErrMsg = 'LDUST=T but dust species are undefined!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -231,6 +236,13 @@
       CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met, State_Chm,
      &                   State_Diag, id_DST1,  id_DST4,   RC         )
    
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN 
+         ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       !-------------------------------------------------------------
       ! Dust settling for acid uptake on dust species
       !
@@ -245,6 +257,12 @@
          CALL DRY_SETTLING( am_I_Root,  Input_Opt, State_Met, State_Chm,
      &                      State_Diag, id_DAL1,   id_DAL4,   RC       )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN 
+            ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
       ! Debug print
@@ -508,7 +526,6 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -571,12 +588,18 @@
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
+
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
      
-      ! Assume success
-      RC        = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at EMISSDUST (in module GeosCore/dust_mod.F)'
 
       ! Initialize
       LDEAD     =  Input_Opt%LDEAD
@@ -589,9 +612,9 @@
          ! Return if dust ID flags are not defined
          IF ( id_DUST1 == 0 ) THEN
             IF ( LDUST ) THEN 
-               CALL ERROR_STOP( 
-     &              'LDUST=T but dust species are undefined!',
-     &              'EMISSDUST ("dust_mod.f")' )
+               ErrMsg = 'LDUST=T but dust species are undefined!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
  
@@ -995,7 +1018,6 @@
       USE DIAG_MOD,           ONLY : AD21
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -1506,7 +1528,6 @@
       USE DIAG_MOD,       ONLY : AD21
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,      ONLY : ERROR_STOP
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
@@ -2603,7 +2624,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : PI, AIRMW
       USE Species_Mod,        ONLY : Species
@@ -2652,11 +2672,15 @@
 ! !LOCAL VARIABLES:
 !
       ! Non-SAVEd scalars
-      INTEGER            :: AS, N
+      INTEGER                :: AS, N
 #if   defined( TOMAS )
-      INTEGER            :: I
-      INTEGER            :: BIN
+      INTEGER                :: I
+      INTEGER                :: BIN
 #endif
+
+      ! Strings
+      CHARACTER(LEN=255)     :: ErrMsg
+      CHARACTER(LEN=255)     :: ThisLoc
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -2666,8 +2690,10 @@
       !=================================================================
 
       ! Initialize
-      RC                 =  GC_SUCCESS
-      SpcInfo            => NULL()
+      RC      =  GC_SUCCESS
+      ErrMsg  =  ''
+      ThisLoc =  '-> at INIT_DUST (in module GeosCore/dust_mod.F)'
+      SpcInfo => NULL()
 
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
@@ -2699,8 +2725,9 @@
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
      &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
-            CALL ERROR_STOP( 'Dust uptake species are undefined!', 
-     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+            ErrMsg = 'Dust uptake species are undefined!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 

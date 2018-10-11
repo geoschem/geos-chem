@@ -39,6 +39,7 @@
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
       USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
+      USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE GEOS_TIMERS_MOD
@@ -332,7 +333,19 @@
          RETURN
       ENDIF
 
-      CALL CLEANUP_GLOBAL_CH4()
+      CALL Cleanup_Global_Br( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Global_Br"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_Global_CH4( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Global_CH4"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       CALL CLEANUP_GRID( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
