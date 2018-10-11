@@ -38,7 +38,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
-      USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE GEOS_TIMERS_MOD
@@ -403,13 +402,6 @@
       CALL Cleanup_CMN_SIZE( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_CMN_SIZE"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      CALL Cleanup_Get_Ndep( am_I_Root, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_Get_Ndep"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF

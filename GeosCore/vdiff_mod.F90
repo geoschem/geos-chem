@@ -2627,7 +2627,7 @@ contains
                   * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
           
-                CALL SOIL_DRYDEP ( I, J, 1, N, soilflux)
+                CALL SOIL_DRYDEP ( I, J, 1, N, soilflux, State_Chm )
              ENDDO
              ENDDO
 	  ENDIF

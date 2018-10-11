@@ -111,11 +111,25 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
+     REAL(fp),          POINTER :: H2O2AfterChem(:,:,:) ! H2O2, SO2 [v/v]
+     REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
+
+     !----------------------------------------------------------------------
+     ! Fields for nitrogen deposition
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: DryDepNitrogen (:,:) ! Dry deposited N
+     REAL(fp),          POINTER :: WetDepNitrogen (:,:) ! Wet deposited N
 
      !----------------------------------------------------------------------
      ! Cloud quantities
      !----------------------------------------------------------------------
      REAL(fp),          POINTER :: pHCloud    (:,:,:  ) ! Cloud pH [-]
+
+     !----------------------------------------------------------------------
+     ! Fields for KPP solver
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: KPPHvalue  (:,:,:  ) ! H-value for Rosenbrock
+                                                        !  solver
 
      !----------------------------------------------------------------------
      ! Fields for UCX mechanism
@@ -216,6 +230,7 @@ MODULE State_Chm_Mod
 !
   INTERFACE Register_ChmField
      MODULE PROCEDURE Register_ChmField_R4_3D
+     MODULE PROCEDURE Register_ChmField_Rfp_2D
      MODULE PROCEDURE Register_ChmField_Rfp_3D
      MODULE PROCEDURE Register_ChmField_Rfp_4D
   END INTERFACE Register_ChmField
@@ -390,6 +405,9 @@ CONTAINS
     State_Chm%AcidPurSav    => NULL()
     State_Chm%BisulSav      => NULL()
 
+    ! Fields for KPP solver
+    State_Chm%KPPHvalue     => NULL()
+
     ! Fields for UCX mechanism
     State_Chm%STATE_PSC     => NULL()
     State_Chm%KHETI_SLA     => NULL()   
@@ -397,6 +415,14 @@ CONTAINS
     ! pH/alkalinity
     State_Chm%pHCloud       => NULL()
     State_Chm%SSAlk         => NULL()
+
+    ! Fields for sulfate chemistry
+    State_Chm%H2O2AfterChem => NULL()
+    State_Chm%SO2AfterChem  => NULL()
+
+    ! Fields for nitrogen deposition
+    State_Chm%DryDepNitrogen=> NULL()
+    State_Chm%WetDepNitrogen=> NULL()
 
     ! Hg species indexing
     N_Hg0_CATS              =  0
@@ -1131,6 +1157,79 @@ CONTAINS
                                State_Chm, RC                               )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 1, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! H2O2AfterChem
+       !------------------------------------------------------------------
+       chmID = 'H2O2AfterChem'
+       ALLOCATE( State_Chm%H2O2AfterChem( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%H2O2AfterChem = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%H2O2AfterChem,    &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! SO2AfterChem
+       !------------------------------------------------------------------
+       chmID = 'SO2AfterChem'
+       ALLOCATE( State_Chm%SO2AfterChem( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO2AfterChem = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO2AfterChem,     &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! DryDepNitrogen
+       !------------------------------------------------------------------
+       chmID = 'DryDepNitrogen'
+       ALLOCATE( State_Chm%DryDepNitrogen( IM, JM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepNitrogen = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepNitrogen,   &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! WetDepNitrogen
+       !------------------------------------------------------------------
+       chmID = 'WetDepNitrogen'
+       ALLOCATE( State_Chm%WetDepNitrogen( IM, JM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetDepNitrogen = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetDepNitrogen,   &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+    ENDIF
+
+    !=======================================================================
+    ! Allocate and initialize fields for KPP solver
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! KPPHvalue
+       !--------------------------------------------------------------------
+       chmID = 'KPPHvalue'
+       ALLOCATE( State_Chm%KPPHvalue( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KPPHvalue', 0, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPPHvalue = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%KPPHvalue,        &
+                               State_Chm, RC                                )
+       CALL GC_CheckVar( 'State_Chm%KPPHvalue', 1, RC )    
+       IF ( RC /= GC_SUCCESS ) RETURN
+
     ENDIF
 
     !=======================================================================
@@ -1571,6 +1670,36 @@ CONTAINS
        DEALLOCATE( State_Chm%SSAlk, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%H2O2AfterChem ) ) THEN
+       DEALLOCATE( State_Chm%H2O2AfterChem, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SO2AfterChem ) ) THEN
+       DEALLOCATE( State_Chm%SO2AfterChem, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%DryDepNitrogen ) ) THEN
+       DEALLOCATE( State_Chm%DryDepNitrogen, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepNitrogen', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%WetDepNitrogen ) ) THEN
+       DEALLOCATE( State_Chm%WetDepNitrogen, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KPPHvalue ) ) THEN
+       DEALLOCATE( State_Chm%KPPHvalue, STAT=RC  )
+       CALL GC_CheckVar( 'State_Chm%KPPHvalue', 2, RC )
+       RETURN
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
@@ -2021,6 +2150,11 @@ CONTAINS
           IF ( isUnits ) Units = 'cm'
           IF ( isRank  ) Rank  = 3
 
+       CASE ( 'KPPHVALUE' )
+          IF ( isDesc  ) Desc  = 'H-value for Rosenbrock solver'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 3
+
        CASE ( 'STATEPSC' )
           IF ( isDesc  ) Desc  = 'Polar stratospheric cloud type (cf Kirner' &
                                 // ' et al 2011, GMD)'
@@ -2147,6 +2281,26 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Correction factor for HOBr removal by SO2'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
+
+       CASE ( 'H2O2AFTERCHEM' )
+          IF ( isDesc  ) Desc  = 'H2O2 after sulfate chemistry'
+          IF ( isUnits ) Units = 'v/v'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'SO2AFTERCHEM' )
+          IF ( isDesc  ) Desc  = 'SO2 after sulfate chemistry'
+          IF ( isUnits ) Units = 'v/v'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'DRYDEPNITROGEN' )
+          IF ( isDesc  ) Desc  = 'Dry deposited nitrogen'
+          IF ( isUnits ) Units = 'molec/cm2/s'
+          IF ( isRank  ) Rank  =  2
+
+       CASE ( 'WETDEPNITROGEN' )
+          IF ( isDesc  ) Desc  = 'Wet deposited nitrogen'
+          IF ( isUnits ) Units = 'molec/cm2/s'
+          IF ( isRank  ) Rank  =  2
 
        CASE DEFAULT
           Found = .False.
@@ -2283,6 +2437,127 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Register_ChmField_R4_3D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Register_ChmField_Rfp_2D
+!
+! !DESCRIPTION: Registers a 2-dimensional, flexible-precision array field
+!  of the State\_Chm object.  This allows the diagnostic modules get a pointer
+!  to the field by searching on the field name.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Register_ChmField_Rfp_2D( am_I_Root, metadataID, Ptr2Data,  &
+                                       State_Chm, RC )
+!
+! !USES:
+!
+    USE Registry_Params_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,           INTENT(IN)    :: am_I_Root       ! Root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)    :: metadataID      ! State_Chm field ID
+    REAL(fp),          POINTER       :: Ptr2Data(:,:)   ! pointer to data
+    TYPE(ChmState),    INTENT(IN)    :: State_Chm       ! Obj for chem state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,           INTENT(OUT)   :: RC              ! Success/failure
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  20 Sep 2017 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!   
+    CHARACTER(LEN=512)     :: ErrMsg
+    CHARACTER(LEN=255)     :: ErrMsg_reg, ThisLoc
+    CHARACTER(LEN=255)     :: desc, units, perSpecies
+    CHARACTER(LEN=255)     :: thisSpcName, thisSpcDesc
+    INTEGER                :: N, rank, type,  vloc
+    LOGICAL                :: found, onEdges
+    TYPE(Species), POINTER :: SpcInfo
+
+    !-----------------------------------------------------------------------   
+    ! Initialize
+    !-----------------------------------------------------------------------   
+    RC      = GC_SUCCESS
+    ThisLoc = ' -> at Register_ChmField_Rfp_2D (in Headers/state_chm_mod.F90)'
+    ErrMsg  = ''
+    ErrMsg_reg = 'Error encountered while registering State_Chm%'
+
+    !-----------------------------------------------------------------------   
+    ! Get metadata
+    !-----------------------------------------------------------------------   
+    CALL Get_Metadata_State_Chm( am_I_Root, metadataID,  Found,  RC,         &
+                                 desc=desc, units=units, rank=rank,          &
+                                 type=type, vloc=vloc, perSpecies=perSpecies )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //                  &
+                '; Abnormal exit from routine "Get_Metadata_State_Chm"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Is the data placed on vertical edges?
+    onEdges = ( vLoc == VLocationEdge )
+    
+    !-----------------------------------------------------------------------   
+    ! If not tied to species then simply register the single field
+    !-----------------------------------------------------------------------   
+    IF ( perSpecies == '' ) THEN
+       
+       ! Check that metadata consistent with data size
+       IF ( rank /= 2 ) THEN
+          ErrMsg = 'Data dims and metadata rank do not match for '           &
+                   // TRIM(metadataID)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Add field to registry
+       CALL Registry_AddField( am_I_Root    = am_I_Root,                     &
+                               Registry     = State_Chm%Registry,            &
+                               State        = State_Chm%State,               &
+                               Variable     = metadataID,                    &
+                               Description  = desc,                          &
+                               Units        = units,                         &
+                               Data2d       = Ptr2Data,                      &
+                               RC           = RC                            )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //               &
+                  '; Abnormal exit from routine "Registry_AddField"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    !-----------------------------------------------------------------------   
+    ! Otherwise exit with error
+    !-----------------------------------------------------------------------   
+    ELSE
+
+       ErrMsg = 'Handling of PerSpecies metadata ' // TRIM(perSpecies) //    &
+                ' is not implemented for this combo of data type and size'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+
+    ENDIF
+
+  END SUBROUTINE Register_ChmField_Rfp_2D
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

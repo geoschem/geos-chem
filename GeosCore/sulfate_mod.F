@@ -2532,8 +2532,6 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE WETSCAV_MOD,        ONLY : H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
 #if defined( BPCH_DIAG ) 
       USE CMN_DIAG_MOD
@@ -2719,6 +2717,8 @@
       REAL(fp), POINTER     :: Spc(:,:,:,:)
       REAL(fp), POINTER     :: pHCloud(:,:,:)
       REAL(fp), POINTER     :: SSAlk(:,:,:,:)
+      REAL(fp), POINTER     :: H2O2s(:,:,:)
+      REAL(fp), POINTER     :: SO2s(:,:,:)
 
       ! For HEMCO update
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2742,6 +2742,8 @@
       Spc         => State_Chm%Species
       pHCloud     => State_Chm%pHCloud
       SSAlk       => State_Chm%SSAlk
+      H2O2s       => State_Chm%H2O2AfterChem
+      SO2s        => State_Chm%SO2AfterChem
 
       ! Reset cloud pH for safety
       pHCloud(:,:,:) = 4.5e+0_fp
@@ -3990,6 +3992,8 @@
       Spc     => NULL()
       pHCloud => NULL()
       SSAlk   => NULL()
+      H2O2s   => NULL()
+      SO2s    => NULL()
 
       END SUBROUTINE CHEM_SO2
 !EOC

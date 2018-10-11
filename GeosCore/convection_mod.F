@@ -121,8 +121,6 @@
       USE TIME_MOD,        ONLY : GET_TS_CONV
       USE UnitConv_Mod     
       USE WETSCAV_MOD,     ONLY : COMPUTE_F
-      USE WETSCAV_MOD,     ONLY : H2O2s
-      USE WETSCAV_MOD,     ONLY : SO2s
 #if defined( USE_TEND )    
       USE TENDENCIES_MOD   
       USE State_Chm_Mod,   ONLY : Ind_
@@ -592,8 +590,6 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
-      USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
-      USE WETSCAV_MOD,        ONLY : SO2s_3D  => SO2s  ! [v/v]
       USE WETSCAV_MOD,        ONLY : WASHOUT
       USE WETSCAV_MOD,        ONLY : LS_K_RAIN
       USE WETSCAV_MOD,        ONLY : LS_F_PRIME
@@ -788,8 +784,8 @@
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
       DELP_DRY => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
       T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
-      H2O2s    => H2O2s_3D          (I,J,:        ) ! H2O2s from sulfate_mod
-      SO2s     => SO2s_3D           (I,J,:        ) ! SO2s from sulfate_mod
+      H2O2s    => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
+      SO2s     => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
       Q        => State_Chm%Species (I,J,:,:      ) ! Chemical species 
                                                     ! [mol/mol dry air]
       SpcInfo  => NULL()                            ! Species database entry

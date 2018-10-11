@@ -43,6 +43,7 @@ MODULE FlexChem_Mod
 !                              us remove arrays in CMN_O3_SIZE_mod.F
 !  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
 !  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
+!  11 Oct 2018 - M. Sulprizio- Move HSAVE_KPP to State_Chm, rename as KPPHvalue
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -63,7 +64,6 @@ MODULE FlexChem_Mod
   
   ! Arrays
   INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(fp), ALLOCATABLE, PUBLIC :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
   REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
   REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
   REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
@@ -884,7 +884,7 @@ CONTAINS
        RCNTRL    = 0.0_fp
 
        ! Starting value for integration time step
-       RCNTRL(3) = HSAVE_KPP(I,J,L)
+       RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
        !=================================================================
        ! Integrate the box forwards
@@ -946,9 +946,9 @@ CONTAINS
        C(NVAR+1:NSPEC) = FIX(:)
 
        ! Save for next integration time step
-       HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-       ! Save rate constants in global array
+       ! Save rate constants in global array (not used)
        GLOB_RCONST(I,J,L,:) = RCONST(:)
 
        !====================================================================
@@ -1597,14 +1597,6 @@ CONTAINS
     ! Allocate arrays
     !=======================================================================
 
-    !-----------------------------------------------------------------------
-    ! For archiving the H value from KPP
-    !-----------------------------------------------------------------------
-    ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-    CALL GC_CheckVar( 'flexchem_mod.F90:HSAVE_KPP', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    HSAVE_KPP = 0.d0
-
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
@@ -1677,12 +1669,6 @@ CONTAINS
 
     ! INitialize
     RC = GC_SUCCESS
-
-    IF ( ALLOCATED( HSave_KPP ) ) THEN
-       DEALLOCATE( HSave_KPP, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:Hsave_Kpp', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
 
     IF ( ALLOCATED( JvCountDay ) ) THEN
        DEALLOCATE( JvCountDay, STAT=RC  )

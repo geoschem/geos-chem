@@ -20,12 +20,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      ! Save H2O2 and SO2 [v/v] for sulfate chemistry
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CLEANUP_WETSCAV
@@ -173,6 +167,8 @@
 !                              and rename routine WETDEP_MERRA to WETDEP (the
 !                              old WETDEP routine for GEOS-5 met was removed)
 !  13 Nov 2017 - R. Yantosca - Added arrays for State_Diag diagnostics
+!  11 Oct 2018 - M. Sulprizio- Move H2O2s and SO2s to State_Chm and rename as
+!                              H2O2AfterChem and SO2AfterChem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -920,6 +916,8 @@
       REAL(fp),      POINTER   :: p_CLDICE
       REAL(fp),      POINTER   :: p_CLDLIQ
       REAL(fp),      POINTER   :: p_T
+      REAL(fp),      POINTER   :: H2O2s(:,:,:)
+      REAL(fp),      POINTER   :: SO2s(:,:,:)
 
       ! Objects
       TYPE(Species), POINTER   :: SpcInfo
@@ -942,8 +940,8 @@
       p_CLDICE   => NULL()
       p_CLDLIQ   => NULL()
       p_T        => NULL()
-
-      ! Get information for this species from the species database
+      H2O2s      => State_Chm%H2O2AfterChem
+      SO2s       => State_Chm%SO2AfterChem
       SpcInfo    => State_Chm%SpcData(N)%Info
 
       ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
@@ -1134,6 +1132,8 @@
       p_CLDICE  => NULL()
       p_CLDLIQ  => NULL()
       p_T       => NULL()
+      H2O2s     => NULL()
+      SO2s      => NULL()
       SpcInfo   => NULL()
 
       END SUBROUTINE COMPUTE_F
@@ -1474,6 +1474,8 @@
       REAL(fp),      POINTER :: p_CLDICE
       REAL(fp),      POINTER :: p_CLDLIQ
       REAL(fp),      POINTER :: p_T
+      REAL(fp),      POINTER :: H2O2s(:,:,:)
+      REAL(fp),      POINTER :: SO2s(:,:,:)
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -1493,6 +1495,8 @@
       p_CLDICE => CLDICE(I,J,L)
       p_CLDLIQ => CLDLIQ(I,J,L)
       p_T      => State_Met%T(I,J,L)
+      H2O2s    => State_Chm%H2O2AfterChem
+      SO2s     => State_Chm%SO2AfterChem
       SpcInfo  => State_Chm%SpcData(N)%Info
 
       !=================================================================
@@ -1571,6 +1575,8 @@
       p_CLDICE => NULL()
       p_CLDLIQ => NULL()
       p_T      => NULL()
+      H2O2s   => NULL()
+      SO2s    => NULL()
       SpcInfo  => NULL()
 
       END SUBROUTINE RAINOUT
@@ -3749,7 +3755,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -4069,7 +4075,9 @@
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L),
      &                 TK,        QDOWN,        DT,
-     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L),
+     &                 TF,        
+     &                 State_Chm%H2O2AfterChem(I,J,L),
+     &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm,    RC           )
 
@@ -4361,7 +4369,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -4644,7 +4652,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -4857,7 +4865,9 @@
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,       QDOWN,        DT,
-     &                 F,         H2O2s(I,J,L), SO2s(I,J,L),
+     &                 F,
+     &                 State_Chm%H2O2AfterChem(I,J,L),
+     &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm,    RC           )
 
@@ -4955,7 +4965,7 @@
          ! Archive wet loss in kg/m2/s (check source code for this routine
          ! - ewl )
 !         IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
 !         ENDIF
 
          !-----------------------------------------------------
@@ -5359,20 +5369,6 @@
       id_H2O2  = Ind_('H2O2' )
 
       !-----------------------------------------------------------------
-      ! Allocate H2O2s and SO2s for wet deposition 
-      ! (regardless of whether wet dep is turned on or not
-      !-----------------------------------------------------------------
-      ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:H2O2s', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      H2O2s = 0.0_fp
- 
-      ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:SO2s', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      SO2s = 0.0_fp
-
-      !-----------------------------------------------------------------
       ! Only allocate arrays if wetdep or convection is turned on
       !-----------------------------------------------------------------
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -5690,7 +5686,7 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
-            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2)
      &            * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
          ENDIF
 
@@ -5700,7 +5696,7 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
-            SO2s = State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2)
      &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
          ENDIF
 
@@ -5767,14 +5763,6 @@
 
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ,     STAT=RC )
       CALL GC_CheckVar( 'wetscav_mod.F:QQ', 2, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s,  STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:H2O2s', 2, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      IF ( ALLOCATED( SO2s   ) ) DEALLOCATE( SO2s,   STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:SO2s', 2, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
       IF ( ALLOCATED( REEVAP ) ) DEALLOCATE( REEVAP, STAT=RC )

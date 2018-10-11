@@ -840,7 +840,7 @@ CONTAINS
        ! Reset the accumulated nitrogen dry and wet deposition to zero. 
        ! Will be re-filled in drydep and wetdep.
        !====================================================================
-       CALL RESET_DEP_N()
+       CALL RESET_DEP_N( State_Chm )
    
        !====================================================================
        ! Emissions are now done for this time step
@@ -1318,8 +1318,6 @@ CONTAINS
 
     ! For SoilNox
     USE Drydep_Mod,     ONLY : DryCoeff
-    USE Get_Ndep_Mod,   ONLY : Dry_TotN
-    USE Get_Ndep_Mod,   ONLY : Wet_TotN
 
 #if defined(ESMF_)
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
@@ -1931,7 +1929,7 @@ CONTAINS
     ! DRY_TOTN
     CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%DRY_TOTN,       &
                     'DRY_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     DRY_TOTN                                               ) 
+                     State_Chm%DryDepNitrogen                               ) 
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1944,7 +1942,7 @@ CONTAINS
     ! WET_TOTN
     CALL ExtDat_Set( am_I_Root,           HcoState, ExtState%WET_TOTN,       &
                     'WET_TOTN_FOR_EMIS',  HMRC,     FIRST,                   &
-                     WET_TOTN                                               ) 
+                     State_Chm%WetDepNitrogen                               ) 
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN

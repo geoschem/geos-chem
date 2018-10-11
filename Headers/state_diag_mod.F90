@@ -790,8 +790,6 @@ CONTAINS
     arrayID = 'State_Diag%Restart'
     diagID  = 'Restart'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
-    Print*, 'Checking for State_Diag%Restart', Found
-    Print*, Diag_List
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%Restart( IM, JM, LM, nSpecies ), STAT=RC )
