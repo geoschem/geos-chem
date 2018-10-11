@@ -1889,13 +1889,11 @@ CONTAINS
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
 #if defined(DISCOVER)
-                              !DD_Hstar_old  = 2.05e+13_fp,                  &
-                              !Henry_K0      = 7.00e+10_f8,                  &
                               DD_Hstar_old  = 2.05e+6_fp,                   &
                               Henry_K0      = 7.10e+15_f8,                  &
 #else
-                              DD_Hstar_old  = 2.05e+6_fp,                   &
-                              Henry_K0      = 7.10e+15_f8,                  &
+                              DD_Hstar_old  = 2.05e+13_fp,                  &
+                              Henry_K0      = 7.00e+10_f8,                  &
 #endif
                               Henry_CR      = 11000.0_f8,                   &
                               WD_RetFactor  = 1.0_fp,                       &
