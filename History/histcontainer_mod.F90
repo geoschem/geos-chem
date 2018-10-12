@@ -1179,7 +1179,7 @@ CONTAINS
        CALL Ymd_Extract( Container%UpdateYmd, Year, Month,  Day    )
        CALL Ymd_Extract( Container%UpdateHms, Hour, Minute, Second )
 
-       ! "FileWrite" interval in seconds
+       ! "Update" interval in seconds
        Container%UpdateIvalSec = ( DBLE( Day    ) * SECONDS_PER_DAY    ) +   &
                                  ( DBLE( Hour   ) * SECONDS_PER_HOUR   ) +   &
                                  ( DBLE( Minute ) * SECONDS_PER_MINUTE ) +   &
@@ -1249,7 +1249,7 @@ CONTAINS
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-    ' -> at HistContainer_FileWriteIvalSet (in History/histcontainer_mod.F90)'
+    ' -> at HistContainer_FileCloseIvalSet (in History/histcontainer_mod.F90)'
 
     !=======================================================================
     ! Compute the interval for the "FileCloseAlarm"
@@ -1300,7 +1300,7 @@ CONTAINS
        CALL Ymd_Extract( Container%FileCloseYmd, Year, Month,  Day    )
        CALL Ymd_Extract( Container%FileCloseHms, Hour, Minute, Second )
 
-       ! "FileWrite" interval in seconds
+       ! "FileClose" interval in seconds
        Container%FileCloseIvalSec = ( DBLE(Day   ) * SECONDS_PER_DAY    ) +  &
                                     ( DBLE(Hour  ) * SECONDS_PER_HOUR   ) +  &
                                     ( DBLE(Minute) * SECONDS_PER_MINUTE ) +  &
