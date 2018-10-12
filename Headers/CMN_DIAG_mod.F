@@ -48,7 +48,7 @@
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=3
-#if defined( MODEL_GEOS )
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER ) || defined( MODEL_GEOS )
       INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
 #endif
