@@ -167,7 +167,7 @@ MODULE HCOX_ParaNOx_MOD
    REAL*4  :: JRATIOlev(nJ)
    REAL*4  :: NOXlev(nNOx)
    REAL*4  :: WSlev(nWS)
- 
+
    ! Look-up tables currently used in GEOS-Chem (likely in v10-01)
    ! Described by Holmes et al. (2014), now includes effects of wind speed
    ! Last two digits in LUT names indicate wind speed in m/s
@@ -1414,7 +1414,8 @@ CONTAINS
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 2
    CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         Inst%FRACNOX_LUT02, Inst%DNOx_LUT02, Inst%OPE_LUT02, Inst%MOE_LUT02, &
-        Inst%Tlev, Inst%JNO2lev, Inst%O3lev, Inst%SEA0lev, Inst%SEA5lev, Inst%JRATIOlev, Inst%NOXlev )
+        Inst%Tlev, Inst%JNO2lev, Inst%O3lev, Inst%SEA0lev, Inst%SEA5lev,     &
+        Inst%JRATIOlev, Inst%NOXlev )
 
    ! Read 6 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 6
@@ -1435,9 +1436,6 @@ CONTAINS
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 18
    CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), & 
         Inst%FRACNOX_LUT18, Inst%DNOx_LUT18, Inst%OPE_LUT18, Inst%MOE_LUT18 )
-
-   ! Wind speed levels correspond to the files that we just read
-   WSlev = (/ 2, 6, 10, 14, 18 /)
 
 !   ! To write into txt-file, uncomment the following lines
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_02ms.txt'
@@ -2824,8 +2822,8 @@ CONTAINS
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
-          IF ( ALLOCATED( Inst%ShipNO) ) DEALLOCATE ( Inst%ShipNO )
-          IF ( ALLOCATED( Inst%SC5   ) ) DEALLOCATE ( Inst%SC5    )
+          IF ( ASSOCIATED( Inst%ShipNO) ) DEALLOCATE ( Inst%ShipNO )
+          IF ( ASSOCIATED( Inst%SC5   ) ) DEALLOCATE ( Inst%SC5    )
 
           IF ( ASSOCIATED( Inst%FRACNOX_LUT02 ) ) DEALLOCATE( Inst%FRACNOX_LUT02 )
           IF ( ASSOCIATED( Inst%FRACNOX_LUT06 ) ) DEALLOCATE( Inst%FRACNOX_LUT06 )

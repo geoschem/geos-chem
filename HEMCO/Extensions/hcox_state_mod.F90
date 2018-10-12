@@ -302,26 +302,26 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set all switches to FALSE
     !-----------------------------------------------------------------------
-    ExtState%Custom         = .FALSE.
+    ExtState%Custom         = -1
     ExtState%DustDead       = -1
     ExtState%DustGinoux     = .FALSE.
     ExtState%DustAlk        = .FALSE.
     ExtState%LightNOx       = -1
-    ExtState%ParaNOx        = .FALSE.
+    ExtState%ParaNOx        = -1
     ExtState%SoilNOx        = -1
     ExtState%Megan          = -1
-    ExtState%SeaFlux        = .FALSE.
-    ExtState%SeaSalt        = .FALSE.
-    ExtState%MarinePOA      = .FALSE.
-    ExtState%GFED           = .FALSE.
-    ExtState%FINN           = .FALSE.
+    ExtState%SeaFlux        = -1
+    ExtState%SeaSalt        = -1
+    ExtState%MarinePOA      = -1
+    ExtState%GFED           = -1
+    ExtState%FINN           = -1
     ExtState%GC_RnPbBe      = .FALSE.
     ExtState%GC_POPs        = .FALSE.
     ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_Jeagle   = .FALSE.
     ExtState%TOMAS_DustDead = -1
     ExtState%AeroCom        = -1
-    ExtState%Inorg_Iodine   = .FALSE.
+    ExtState%Inorg_Iodine   = -1
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module

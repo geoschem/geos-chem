@@ -497,7 +497,7 @@ CONTAINS
     ENDIF
 
     ! Marine organic aerosols
-    IF ( ExtState%MarinePOA ) THEN
+    IF ( ExtState%MarinePOA > 0 ) THEN
        IF ( .not. Input_Opt%LMPOA ) THEN
           ErrMsg = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
