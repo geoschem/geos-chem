@@ -618,7 +618,7 @@
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 14.0e-2_fp
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -1505,11 +1505,6 @@
          ! Calculate cloud parameters for aqueous Hg chemistry                 
          !==============================================================       
 
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-         !---------------------------------------------                        
-         ! GEOS-5/MERRA: Get LWC, FC from met fields                           
-         ! (jaf, bmy, 6/30/10)                                                 
-         !---------------------------------------------                        
          ! Get cloud fraction from met fields                                  
          FC      = State_Met%CLDF(I,J,L)
 
@@ -1524,25 +1519,6 @@
          ! multiplying these quantities by FC AFTER computing the aqueous      
          ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)         
          LWC     = SAFE_DIV( LWC, FC, 0e0_fp )
-
-#else
-         !---------------------------------------------                        
-         ! Otherwise, compute FC, LWC as before                                
-         !---------------------------------------------                        
-
-         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]             
-         FC      = VCLDF(I,J,L)
-         ! Liquid water content in cloudy area of grid box [m3/m3]             
-         ! LWC as returned from the GET_LWC function is the in-cloud liquid    
-         ! water content.  To improve the representation of sulfate chemistry, 
-         ! we use this LWC to compute the aqueous sulfate chemistry.  We then  
-         ! get the appropriate grid-box averaged mass of SO2 and sulfate by    
-         ! multiplying by FC AFTER computing the aqueous sulfur chemistry      
-         ! within the cloud. (lzh, jaf, bmy, 5/27/11)                          
-         LWC = GET_LWC( T )
-
-#endif
-
 
 ! Henry's law constants (M per atm)                                            
          ! Hg(0):                                                              
@@ -5908,17 +5884,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2)
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0e0_fp )
          IS_OCEAN_BOX = ( ( FRAC_O > 0e0_fp                     ) .and. 
      &                    ( State_Met%SEAICE00(I,J)  > 0.5e0_fp ) )
-#else
-         FRAC_L       = State_Met%FRCLND(I,J)
-         FRAC_O       = 1e0_fp - FRAC_L
-         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
-#endif
 
          IF ( (IS_OCEAN_BOX) ) THEN
             !--------------------------------------------------------------

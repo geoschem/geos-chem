@@ -288,9 +288,6 @@
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
-      ! Are certain History diagnostics turned on?
-      LOGICAL                        :: Archive_DryDepVel
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -325,6 +322,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
+      USE Time_Mod,           ONLY : Get_Ts_Chem
       USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -421,6 +419,7 @@
 !  13 Jul 2017 - M. Sulprizio- Add scaling of species drydep relative to HNO3,
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !  05 Oct 2017 - R. Yantosca - Now update State_Diag%DryDepVel diagnostic
+!  27 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -428,8 +427,10 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER       :: I,   J,   L,   D,   N, NDVZ
-      REAL(f8)      :: DVZ, THIK
+      INTEGER            :: I,   J,   L,   D,   N, NDVZ
+      REAL(f8)           :: DVZ, THIK
+      CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
+
 
       ! Arrays
       LOGICAL       :: LSNOW (IIPAR,JJPAR       ) ! Flag for snow/ice on the sfc
@@ -464,6 +465,9 @@
 
       ! Initialize
       SpcInfo => NULL()
+      ErrMsg  = ''
+      ThisLoc = 
+     &   ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F)'      
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
@@ -477,21 +481,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-#if defined( MODEL_GEOS )
       CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
      &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            )
-#else
-      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,     TC0,       SUNCOS_MID,
-     &             F0,         HSTAR,     XMW,        AIROSOL,           
-     &             USTAR,      CZ1,       OBK,        CFRAC,     
-     &             ZH,         LSNOW,     DVEL,       AZO,              
-     &             RHB,        PRESSU,    W10,        RC            )
-#endif
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -637,7 +632,7 @@
 
 #if defined( NC_DIAG )
             ! Archive dry dep velocity [cm/s]
-            IF ( Archive_DryDepVel ) THEN
+            IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
 #endif
@@ -843,21 +838,12 @@
 !\\
 ! !INTERFACE:
 !
-#if defined( MODEL_GEOS )
       SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
      &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
      &                   RHB,       PRESSU,    W10,       RC          )
-#else
-      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,     TEMP,      SUNCOS,
-     &                   F0,         HSTAR,     XMW,       AIROSOL,
-     &                   USTAR,      CZ1,       OBK,       CFRAC,
-     &                   ZH,         LSNOW,     DVEL,      ZO,
-     &                   RHB,        PRESSU,    W10,       RC          )
-#endif
 !
 ! !USES:
 !
@@ -4427,11 +4413,6 @@
       ! sea salt aerosols (jaegle 5/11/11)
       CALL INIT_WEIGHTSS( Input_Opt )
     
-      !===================================================================
-      ! Set logical flags to determine if diagnostics are turned on
-      !===================================================================
-      Archive_DryDepVel      = ASSOCIATED( State_Diag%DryDepVel      )
-
       END SUBROUTINE INIT_DRYDEP
 !EOC
 !------------------------------------------------------------------------------

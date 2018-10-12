@@ -1851,7 +1851,7 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = 0.0_fp
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -2292,11 +2292,7 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if  defined( GEOS_FP ) || defined( MERRA2 )
-
-    PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GISS ) && defined( MODELE )
+#if defined( GISS ) && defined( MODELE )
 
     ! For Model E, assuming 3,3,7 and 475 Tg N a-1
     PO3_vmr = 4.84610e-14 !/ 2e+0_fp
@@ -2315,6 +2311,10 @@ CONTAINS
        ! LGM CLIMAP STE was 3% higher
        PO3_vmr = PO3_vmr * 1.0285232e+0_fp
     endif
+
+#else
+
+    PO3_vmr = 5.14e-14_fp   
 
 #endif
 

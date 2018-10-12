@@ -370,10 +370,6 @@
       INTEGER :: id_LISOPOH, id_LISOPNO3
       INTEGER :: id_SOAS,    id_SOAP
 
-      ! Diagnostic flags
-      LOGICAL :: Archive_ProdBCPIfromBCPO
-      LOGICAL :: Archive_ProdOCPIfromOCPO
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
       !=================================================================
@@ -903,7 +899,7 @@
          !
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !==============================================================
-         IF ( Archive_ProdBCPIfromBCPO ) THEN
+         IF ( State_Diag%Archive_ProdBCPIfromBCPO ) THEN
             State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
          ENDIF
 #endif
@@ -1165,7 +1161,7 @@
          !
          ! NOTE: Consider converting to area-independent units kg/m2/s.
          !=================================================================
-         IF ( Archive_ProdOCPIfromOCPO ) THEN
+         IF ( State_Diag%Archive_ProdOCPIfromOCPO ) THEN
             State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
          ENDIF
 #endif
@@ -3342,6 +3338,11 @@
       ! save for diagnostic purposes (hotp 5/24/10)
       BETANOSAVE(I,J,L) = BETANO
 
+      ! Save to State_Diag for output as netcdf diagnostic (ewl, 8/28/18)
+      IF ( State_Diag%Archive_BetaNO ) THEN
+         State_Diag%BetaNO(I,J,L) = BETANO
+      ENDIF
+
       ! update for new mtp lumping (hotp 5/22/10)
       NMVOC(1) = Spc(I,J,L,id_MTPA)
       NMVOC(2) = Spc(I,J,L,id_LIMO)
@@ -4648,6 +4649,7 @@ ccc
 !
 ! !REVISION HISTORY:
 !  20 Aug 2013 - M. Sulprizio- Added ProTeX headers
+!  12 Sep 2018 - Pengfei Liu - fixed the bug of missing BB emission
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4667,12 +4669,16 @@ ccc
               scalefactor(:) = ECSCALE30(:)
             CASE (2)
               scalefactor(:) = ECSCALE100(:)
+            CASE (3)
+              scalefactor(:) = ECSCALE100(:)
           END SELECT
         CASE (2)
           SELECT CASE (STYPE)
             CASE (1)
               scalefactor(:) = OCSCALE30(:)
             CASE (2)
+              scalefactor(:) = OCSCALE100(:)
+            CASE (3)
               scalefactor(:) = OCSCALE100(:)
           END SELECT
       END SELECT
@@ -7726,12 +7732,6 @@ ccc
       
       ! Assume success
       RC = GC_SUCCESS
-
-      ! Check if netCDF diagnostics are turned on
-      Archive_ProdBCPIfromBCPO = 
-     &     ASSOCIATED( STate_Diag%ProdBCPIfromBCPO )
-      Archive_ProdOCPIfromOCPO = 
-     &     ASSOCIATED( STate_Diag%ProdOCPIfromOCPO )
 
       ! Define species IDs
       id_ASOG1    = IND_('ASOG1'   )

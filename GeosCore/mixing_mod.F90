@@ -36,7 +36,6 @@ MODULE MIXING_MOD
 !
 ! !PRIVATE TYPES:
 !
-  LOGICAL :: Archive_DrydepMix   ! Is the DryDepMix diag turned on?
 
 CONTAINS
 !EOC
@@ -59,14 +58,14 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,      ONLY : ERROR_STOP
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE PBL_MIX_MOD,    ONLY : COMPUTE_PBL_HEIGHT
-    USE PBL_MIX_MOD,    ONLY : DO_PBL_MIX
-    USE State_Met_Mod,  ONLY : MetState
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Diag_Mod, ONLY : DgnState 
-    USE VDIFF_MOD,      ONLY : DO_PBL_MIX_2
+    USE ERROR_MOD,       ONLY : ERROR_STOP
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
+    USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
+    USE State_Met_Mod,   ONLY : MetState
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Diag_Mod,  ONLY : DgnState 
+    USE VDIFF_MOD,       ONLY : DO_PBL_MIX_2
 !
 ! !INPUT PARAMETERS:
 !
@@ -100,7 +99,7 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
-    ! DO_MIXING begins here!
+    ! INIT_MIXING begins here!
     !=======================================================================
 
     ! Assume success
@@ -108,11 +107,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at INIT_MIXING (in module GeosCore/mixing_mod.F90)'
    
-    ! Is the drydep flux from mixing diagnostic turned on or if
-    ! total drydep flux which requires the contribution from mixing
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                        ASSOCIATED( State_Diag%DryDep )
-
     !-----------------------------------------------------------------------
     ! Initialize PBL mixing scheme
     !-----------------------------------------------------------------------
@@ -144,7 +138,7 @@ CONTAINS
 
     ENDIF
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     !-----------------------------------------------------------------------
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height
@@ -153,6 +147,10 @@ CONTAINS
     ! In ESMF mode this routine should not be called during the init
     ! stage: the required met quantities are not yet defined.
     ! (ckeller, 11/23/16)
+    !
+    ! In GC-WRF, which uses the same entry-point as the GEOS-5 GCM, the
+    ! required met quantities are also not defined until GIGC_Chunk_Run,
+    ! so also skip this here (hplin, 8/9/18)
     !-----------------------------------------------------------------------
     CALL COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
 
@@ -233,24 +231,10 @@ CONTAINS
     ! DO_MIXING begins here!
     !=======================================================================
 
-    ! Initialz3
+    ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at DO_MIXING (in module GeosCore/mixing_mod.F90)'
-
-    ! Is the drydep flux from mixing diagnostic turned on or if
-    ! total drydep flux which requires the contribution from mixing
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                        ASSOCIATED( State_Diag%DryDep )
-
-    ! Initialize the diagnostic array for the History Component.  This will 
-    ! prevent leftover values from being carried over to this timestep.
-    ! (For example, if on the last iteration, the PBL height was higher than
-    ! it is now, then we will have stored drydep fluxes up to that height,
-    ! so we need to zero these out.)
-    IF ( Archive_DryDepMix ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
 
     !-----------------------------------------------------------------------
     ! Do non-local PBL mixing. This will apply the species tendencies
@@ -262,6 +246,18 @@ CONTAINS
     ! fluxes within the PBL have already been applied. 
     ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
+
+#if defined( NC_DIAG )
+       ! Initialize the diagnostic array for the History Component.  This will 
+       ! prevent leftover values from being carried over to this timestep.
+       ! (For example, if on the last iteration, the PBL height was higher than
+       ! it is now, then we will have stored drydep fluxes up to that height,
+       ! so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or.  &
+            State_Diag%Archive_DryDep        ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+#endif
 
        ! Non-local mixing
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
@@ -312,6 +308,18 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
+#if defined( NC_DIAG )
+       ! Initialize the diagnostic array for the History Component. This 
+       ! will prevent leftover values from being carried over to this 
+       ! timestep. (For example, if on the last iteration, the PBL height 
+       ! was higher than it is now, then we will have stored drydep fluxes 
+       ! up to that height, so we need to zero these out.)
+       IF ( State_Diag%Archive_DryDepMix .or.  &
+            State_Diag%Archive_DryDep        ) THEN
+          State_Diag%DryDepMix = 0.0_f4
+       ENDIF
+#endif
+
        ! Full PBL mixing
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
                         State_Met, State_Chm,       State_Diag, RC          )
@@ -322,6 +330,7 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
     ENDIF
 
   END SUBROUTINE DO_MIXING 
@@ -366,6 +375,10 @@ CONTAINS
 #endif
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
+#endif
+#if defined( NC_DIAG )
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -415,6 +428,7 @@ CONTAINS
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  10 Oct 2017 - R. Yantosca - Archive drydep fluxes due to mixing for History
+!  19 Sep 2018 - E. Lundgren - Implement emis/drydep budget diagnostic
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -455,12 +469,21 @@ CONTAINS
     LOGICAL                 :: ITS_A_CH4_SIM
     REAL(fp)                :: total_ch4_pre_soil_absorp(IIPAR,JJPAR,LLPAR)
 
+#if defined( NC_DIAG )
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+#endif
+
     !=================================================================
     ! DO_TEND begins here!
     !=================================================================
 
     ! Assume success
     RC = GC_SUCCESS
+
+#if defined( NC_DIAG )
+    ErrMsg  = ''
+    ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
+#endif
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
@@ -473,18 +496,30 @@ CONTAINS
     ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
     nAdvect           = State_Chm%nAdvect
 
-    ! Is the drydep flux from mixing diagnostic turned on or if
-    ! total drydep flux which requires the contribution from mixing
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                        ASSOCIATED( State_Diag%DryDep )
-
     ! Initialize pointer
     SpcInfo           => NULL()
 
-    ! Set DryDepFlux mixing flag inside DO_TEND. The initialization routine
-    ! is not called in ESMF environment (ckeller, 11/29/17).
-    Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-+                       ASSOCIATED( State_Diag%DryDep )
+#if defined( NC_DIAG )
+    !----------------------------------------------------------
+    ! Emissions/dry deposition budget diagnostics - Part 1 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+       ! Get initial column masses
+       CALL Compute_Column_Mass( am_I_Root,                               & 
+                                 Input_Opt, State_Met, State_Chm,         &
+                                 State_Chm%Map_Advect,                    &
+                                 State_Diag%Archive_BudgetEmisDryDepFull, &
+                                 State_Diag%Archive_BudgetEmisDryDepTrop, &
+                                 State_Diag%Archive_BudgetEmisDryDepPBL,  &
+                                 State_Diag%BudgetMass1,                  &
+                                 RC ) 
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -836,7 +871,9 @@ CONTAINS
                    !
                    !    -- Bob Yantosca (yantosca@seas.harvard.edu)
                    !--------------------------------------------------------
-                   IF ( Archive_DryDepMix .and. DryDepID > 0 ) THEN
+                   IF ( ( State_Diag%Archive_DryDepMix .or.        &
+                          State_Diag%Archive_DryDep        ) .and. &
+                          DryDepID > 0 ) THEN
                       State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
 #endif
@@ -963,7 +1000,7 @@ CONTAINS
                       State_Chm, 'FLUX', TS, RC )
 #endif
 
-    ! Convert State_Chm%species back to original units
+    ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                             OrigUnit, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -971,6 +1008,40 @@ CONTAINS
        CALL GC_Error( MSG, RC, 'DO_TEND in mixing_mod.F90' )
        RETURN
     ENDIF  
+
+#if defined( NC_DIAG )
+    !----------------------------------------------------------
+    ! Emissions/dry deposition budget diagnostics - Part 2 of 2
+    !----------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetEmisDryDep ) THEN
+       ! Get final column masses and compute diagnostics
+       CALL Compute_Column_Mass( am_I_Root,                                 &
+                                 Input_Opt, State_Met, State_Chm,           &
+                                 State_Chm%Map_Advect,                      &
+                                 State_Diag%Archive_BudgetEmisDryDepFull,   &
+                                 State_Diag%Archive_BudgetEmisDryDepTrop,   &
+                                 State_Diag%Archive_BudgetEmisDryDepPBL,    &
+                                 State_Diag%BudgetMass2,                    &
+                                 RC )  
+       CALL Compute_Budget_Diagnostics( am_I_Root,                            &
+                                     State_Chm%Map_Advect,                    &
+                                     TS,                                      &
+                                     State_Diag%Archive_BudgetEmisDryDepFull, &
+                                     State_Diag%Archive_BudgetEmisDryDepTrop, &
+                                     State_Diag%Archive_BudgetEmisDryDepPBL,  &
+                                     State_Diag%BudgetEmisDryDepFull,         &
+                                     State_Diag%BudgetEmisDryDepTrop,         &
+                                     State_Diag%BudgetEmisDryDepPBL,          &
+                                     State_Diag%BudgetMass1,                  &
+                                     State_Diag%BudgetMass2,                  &
+                                     RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Emissions/dry deposition budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
 
   END SUBROUTINE DO_TEND 
 !EOC

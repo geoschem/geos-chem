@@ -251,7 +251,6 @@ CONTAINS
     ! ($YYYY), etc., with valid values.
     ! ----------------------------------------------------------------
     CALL SrcFile_Parse ( am_I_Root, HcoState, Lct, srcFile, FOUND, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! If file not found, return w/ error. No error if cycling attribute is 
     ! select to range. In that case, just make sure that array is empty.
@@ -263,7 +262,7 @@ CONTAINS
           ! found
           IF ( Lct%Dct%Dta%MustFind ) THEN
              MSG = 'Cannot find file for current simulation time: ' // &
-                   TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                   TRIM(srcFile) // ' - Cannot get field ' // &
                    TRIM(Lct%Dct%cName) // '. Please check file name ' // &
                    'and time (incl. time range flag) in the config. file'
              CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -271,18 +270,18 @@ CONTAINS
 
           ! If MustFind flag is not enabled, ignore this field and return
           ! with a warning.
-          ELSE       
+          ELSE   
              CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
              MSG = 'No valid file found for current simulation time - data '// &
                    'will be ignored for time being - ' // TRIM(Lct%Dct%cName) 
-             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1 )
+             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
              CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
              RETURN
           ENDIF
 
        ELSE 
           MSG = 'Cannot find file for current simulation time: ' // &
-                TRIM(Lct%Dct%Dta%ncFile) // ' - Cannot get field ' // &
+                TRIM(srcFile) // ' - Cannot get field ' // &
                 TRIM(Lct%Dct%cName) // '. Please check file name ' // &
                 'and time (incl. time range flag) in the config. file'
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
@@ -383,7 +382,7 @@ CONTAINS
              CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE.)
              MSG = 'Simulation time is outside of time range provided for '//&
                   TRIM(Lct%Dct%cName) // ' - field is ignored for the time being!'
-             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1 )
+             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
              DoReturn = .TRUE.
              CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
           ENDIF
@@ -3704,6 +3703,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
+!  08 Aug 2018 - C. Keller: Added check for range/exact dataon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3716,6 +3716,7 @@ CONTAINS
     INTEGER            :: IDX1, IDX2
     INTEGER            :: AreaFlag, TimeFlag, Check
     INTEGER            :: prefYr, prefMt, prefDy, prefHr, prefMn
+    INTEGER            :: cYr,    cMt,    cDy,    cHr 
     REAL(hp)           :: UnitFactor 
     REAL(hp)           :: FileVals(100)
     REAL(hp), POINTER  :: FileArr(:,:,:,:)
@@ -3774,7 +3775,6 @@ CONTAINS
 
     ! Get the preferred times, i.e. the preferred year, month, day, 
     ! or hour (as specified in the configuration file).
-    ! Needed below
     CALL HCO_GetPrefTimeAttr ( am_I_Root, HcoState, Lct, prefYr, &
                                prefMt, prefDy, prefHr, prefMn, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3827,7 +3827,7 @@ CONTAINS
           IDX1 = 1
           IDX2 = N
 
-       ELSE 
+       ELSE
           ! Currently, data read directly from the configuration file can only
           ! represent one time dimension, i.e. it can only be yearly, monthly,
           ! daily (or hourly data, but this is read all at the same time). 
@@ -3903,13 +3903,15 @@ CONTAINS
           RETURN
        ENDIF
   
-       ! ---------------------------------------------------------------- 
-       ! Check for range/exact flag 
-       ! ----------------------------------------------------------------
+       ! Check for range/exact flag
+       ! If range is given, the preferred Yr/Mt/Dy/Hr will be negative
+       ! if we are outside the desired range.
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
           IF ( prefYr == -1 .OR. prefMt == -1 .OR. prefDy == -1 ) IDX1 = -1
-          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 ) IDX1 = -1 
+          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 )     IDX1 = -1 
 
+       ! If flag is exact, the preferred date must be equal to the current
+       ! simulation date. 
        ELSEIF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_EXACT ) THEN
           IF ( Lct%Dct%Dta%ncYrs(1) > 0 ) THEN
              IF ( prefYr < Lct%Dct%Dta%ncYrs(1) .OR. &
@@ -3929,17 +3931,22 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! IDX1 becomes -1 for data that is outside of the valid range
+       ! (and no time cycling enabled). In this case, make sure that
+       ! scale factor is set to zero.
        IF ( IDX1 < 0 ) THEN
           IF ( Lct%Dct%DctType == HCO_DCTTYPE_BASE ) THEN
              FileArr(1,1,1,:) = 0.0_hp
              MSG = 'Base field outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#if defined( MODEL_GEOS )
           ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
              FileArr(1,1,1,:) = 0.0_hp
              MSG = 'Mask outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#endif
           ELSE
              FileArr(1,1,1,:) = 1.0_hp
              MSG = 'Scale factor outside of range - set to one: ' // &

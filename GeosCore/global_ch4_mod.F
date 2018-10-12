@@ -123,7 +123,6 @@
 !
       ! Diagnostic flags
       LOGICAL               :: Do_ND43
-      LOGICAL               :: Archive_OHconcAfterChem
 
       ! Species ID flag
       INTEGER               :: id_CH4
@@ -746,10 +745,10 @@
       ! BOH is in kg/m3 (from HEMCO), convert to molecules/cm3 
       ! (ckeller, 9/16/2014)
       !=================================================================
-      IF ( Do_ND43 .or. Archive_OHconcAfterChem ) THEN
+      IF ( Do_ND43 .or. State_Diag%Archive_OHconcAfterChem ) THEN
 
          ! Zero the diagnostic array for OH to avoid leftover values
-         IF ( Archive_OHconcAfterChem ) THEN
+         IF ( State_Diag%Archive_OHconcAfterChem ) THEN
             State_Diag%OHconcAfterChem = 0.0_f4
          ENDIF
 
@@ -776,7 +775,7 @@
                ! HISTORY (aka netCDF diagnostics)
                ! OH concentration in [molec/cm3] after chemistry
                !--------------------------------------------------------
-               IF ( Archive_OHconcAfterChem ) THEN
+               IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                   State_Diag%OHconcAfterChem(I,J,L) =
      &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
                ENDIF
@@ -1517,9 +1516,6 @@
 
       ! Initialize tropoch4 (counts total decay of CH4 due to OH)
       TROPOCH4 = 0e+0_fp
-
-      ! Set a flag to denote if netCDF diagnostics are activated
-      Archive_OHconcAfterChem = ASSOCIATED( State_Diag%OHconcAfterChem )
 
       ! Set a flag to denote if bpch diagnostics are activated
 #if defined( BPCH_DIAG )

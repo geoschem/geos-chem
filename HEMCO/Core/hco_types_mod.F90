@@ -54,6 +54,7 @@ MODULE HCO_TYPES_MOD
   ! details specifications ('srcTime') in the HEMCO configuration file.
   INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_FROMFILE = 1
   INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ALWAYS   = 2
+  INTEGER, PARAMETER, PUBLIC  :: HCO_UFLAG_ONCE     = 3
 
   ! Data container types. These are used to distinguish between
   ! base emissions, scale factors and masks.
@@ -516,6 +517,7 @@ MODULE HCO_TYPES_MOD
 ! !REVISION HISTORY:
 !  15 Feb 2016 - C. Keller - Initial version (collected from various modules)
 !  12 May 2017 - C. Keller - Added option ScaleEmis 
+!  05 Oct 2018 - R. Yantosca - Added HCO_UFLAG_ONCE parameter
 !EOP
 !------------------------------------------------------------------------------
 !BOC

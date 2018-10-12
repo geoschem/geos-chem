@@ -87,10 +87,6 @@
       ! Exponential terms
       REAL(fp) :: EXP_Rn, EXP_Pb, EXP_Be
 
-      ! Diagnostic flags
-      LOGICAL  :: Archive_PbFromRnDecay
-      LOGICAL  :: Archive_RadDecay
-
       CONTAINS
 !EOC   
 !------------------------------------------------------------------------------
@@ -229,10 +225,6 @@
       !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN 
 
-         ! Determine if netCDF diagnostics have been requested
-         Archive_PbFromRnDecay = ASSOCIATED( State_Diag%PbFromRnDecay )
-         Archive_RadDecay      = ASSOCIATED( State_Diag%RadDecay      )
-
          ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
          Decay     = ln2 / ( RnTau * 24.E+00_fp * 3600.E+00_fp ) 
          EXP_Rn    = EXP( -DTCHEM * Decay        )
@@ -299,7 +291,7 @@
             !-----------------------------------------------------------
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
-            IF ( Archive_RadDecay ) THEN
+            IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,1) = Rn_LOST(I,J,L) / DTCHEM
             ENDIF
 #endif
@@ -352,7 +344,7 @@
             !-----------------------------------------------------------
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
-            IF ( Archive_PbFromRnDecay ) THEN
+            IF ( State_Diag%Archive_PbFromRnDecay ) THEN
                State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb / DTCHEM ) 
             ENDIF
 #endif
@@ -385,7 +377,7 @@
             !-----------------------------------------------------------
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
-            IF ( Archive_RadDecay ) THEN
+            IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
             ENDIF
 #endif
@@ -438,7 +430,7 @@
             !-----------------------------------------------------------
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
-            IF ( Archive_RadDecay ) THEN
+            IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,3) = ( Be_LOST / DTCHEM )
             ENDIF
 #endif

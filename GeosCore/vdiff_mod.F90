@@ -120,7 +120,6 @@ MODULE VDIFF_MOD
 !-----------------------------------------------------------------------
 
   LOGICAL :: Do_ND44           = .FALSE. ! Do ND44 bpch diagnostic
-  LOGICAL :: Archive_DryDepMix = .FALSE. ! Is drydep flux diagnostic turned on?
 !
 ! !REMARKS:
 !  The non-local PBL mixing routine VDIFF modifies the specific humidity,
@@ -149,6 +148,7 @@ MODULE VDIFF_MOD
 !                              remove unused parameters
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with species db MW and phys constant
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  09 Aug 2018 - J. Lin      - Add simple bug fix to ensure mass conservation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -232,6 +232,7 @@ contains
     USE DIAG_MOD,           ONLY : TURBFLUP
 #endif
     USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : IS_SAFE_DIV
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -402,12 +403,18 @@ contains
     real(fp) :: qp0(plonl,plev,pcnst) ! To store initial concentration values
                                     ! (as2)
 
+    real(fp) :: sum_qp0, sum_qp1    ! Jintai Lin 20180809
+
     !=================================================================
     ! vdiff begins here!
     !=================================================================
 
     ! Assume success
     RC = GC_SUCCESS
+
+    ! Initialize
+    sum_qp0  = 0.0_fp
+    sum_qp1  = 0.0_fp
 
     !### Debug
     IF ( LPRT .and. ip < 5 .and. lat < 5 ) &
@@ -743,6 +750,33 @@ contains
     endwhere
 
 !-----------------------------------------------------------------------
+! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
+!   Without this fix, mass is almost but not completed conserved,
+!   which is OK for full chemistry simulations but a big problem
+!   for long lived species such as CH4 and CO2
+!-----------------------------------------------------------------------
+    DO M = 1, pcnst
+    do I = 1, plonl
+
+       ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+       !   including pre-mixing mass and surface flux (emis+drydep)
+       sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
+                 State_Met%AD(I,lat,plev-ntopfl+1:1:-1)) &
+               + dqbot(I,M) * State_Met%AD(I,lat,1)
+
+       ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+       sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
+                 State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+       IF ( IS_SAFE_DIV( sum_qp0, sum_qp1 ) ) THEN
+          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+                                 sum_qp0 / sum_qp1
+       ENDIF
+
+    enddo
+    ENDDO
+
+!-----------------------------------------------------------------------
 ! 	... diffuse sh
 !-----------------------------------------------------------------------
 
@@ -793,6 +827,29 @@ contains
        dqbot = 0e+0_fp
        call qvdiff( pcnst, qmx, dqbot, cch, zeh, &
             termh, qp1, plonl )
+
+!-----------------------------------------------------------------------
+! Simple bug fix to ensure mass conservation - Jintai Lin 20180809
+!   Without this fix, mass is almost but not completed conserved,
+!   which is OK for full chemistry simulations but a big problem
+!   for long lived species such as CH4 and CO2
+!-----------------------------------------------------------------------
+       DO M = 1, pcnst
+       do I = 1, plonl
+
+          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+          sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
+                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+          ! total mass in the PBL (ignoring the v/v -> m/m conversion)
+          sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
+                    State_Met%AD(I,lat,plev-ntopfl+1:1:-1))
+
+          qp1(I,ntopfl:plev,M) = qp1(I,ntopfl:plev,M) * &
+                                 sum_qp0 / sum_qp1
+
+       enddo
+       ENDDO
 
        DO M = 1, pcnst
        DO L = 1, plev 
@@ -1359,7 +1416,6 @@ contains
        do k = ntopfl+1,plev-1
           do i = 1,plonl
              zfq(i,k,m) = (qm1(i,k,m) + cc(i,k)*zfq(i,k-1,m))*term(i,k)
-             
           end do
        end do
     end do
@@ -1367,9 +1423,8 @@ contains
 ! 	... bottom level: (includes  surface fluxes)
 !-----------------------------------------------------------------------
     do i = 1,plonl
-       tmp1d(i) = 1.e+0_fp/(1.e+0_fp + cc(i,plev) - &
-                  cc(i,plev)*ze(i,plev-1))
-       ze(i,plev) = 0.
+       tmp1d(i) = 1.e+0_fp/(1.e+0_fp + cc(i,plev) - cc(i,plev)*ze(i,plev-1))
+       ze(i,plev) = 0.e+0_fp
     end do
     do m = 1,ncnst
        do i = 1,plonl
@@ -2479,7 +2534,9 @@ contains
     ! specialty simulations) are accounted for in species 1..nDrydep,
     ! so we don't need to do any further special handling.
     !=======================================================================
-    if ( Do_ND44 .or. LGTMM .or. LSOILNOX .or. Archive_DryDepMix ) then
+    if ( Do_ND44 .or. LGTMM .or. LSOILNOX .or.  &
+         State_Diag%Archive_DryDepMix     .or.  &
+         State_Diag%Archive_DryDep       ) then
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -2542,9 +2599,10 @@ contains
           !
           !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
-          IF ( Archive_DryDepMix ) THEN
+          IF ( State_Diag%Archive_DryDepMix .OR. &
+               State_Diag%Archive_DryDep ) THEN
              State_Diag%DryDepMix(:,:,ND) = Dflx(:,:,N)               &
-                                            * 1.0e-4_fp                 &
+                                            * 1.0e-4_fp               &
                                             * ( AVO / EmMW_kg  )
           ENDIF
 #endif
@@ -2799,6 +2857,12 @@ contains
     USE State_Diag_Mod,     ONLY : DgnState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined( NC_DIAG )
+    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
+    USE Time_Mod,           ONLY : Get_Ts_Dyn
+#endif
 
     IMPLICIT NONE
 !
@@ -2838,6 +2902,7 @@ contains
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !   7 Nov 2017 - R. Yantosca - Now send error condition back to top level
+!  26 Sep 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2853,6 +2918,10 @@ contains
     ! Strings
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+#if defined( NC_DIAG )
+    REAL(fp)           :: DT_Dyn
+#endif
 
     !=======================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2892,11 +2961,6 @@ contains
        Do_ND44 = ( ND44 > 0 ) 
 #endif
       
-       ! Test if we are archiving the drydep flux (from mixing) diagnostic
-       ! or total drydep flux which requires the contribution from mixing
-       Archive_DryDepMix = ASSOCIATED( State_Diag%DryDepMix ) .OR. &
-                           ASSOCIATED( State_Diag%DryDep    )
-
        ! Reset first-time flag
        FIRST = .FALSE.
     ENDIF
@@ -2905,6 +2969,36 @@ contains
     ! Do mixing of species in the PBL (if necessary)
     !-----------------------------------------------------------------------
     IF ( DO_VDIFF ) THEN
+
+#if defined( NC_DIAG )
+       !------------------------------------------------------
+       ! Non-local PBL mixing budget diagnostics - Part 1 of 2
+       ! 
+       ! WARNING: The mixing budget diagnostic includes the application
+       ! of species tendencies (emissions fluxes and dry deposition
+       ! rates) below the PBL when using non-local PBL mixing. This is
+       ! done for all species with defined emissions / dry deposition
+       ! rates, including dust. These tendencies below the PBL are 
+       ! therefore not included in the emissions/dry deposition budget 
+       ! diagnostics when using non-local PBL mixing. (ewl, 9/26/18)
+       !------------------------------------------------------
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+          ! Get initial column masses
+          CALL Compute_Column_Mass( am_I_Root,                              & 
+                                    Input_Opt, State_Met, State_Chm,        &
+                                    State_Chm%Map_Advect,                   &
+                                    State_Diag%Archive_BudgetMixingFull, &
+                                    State_Diag%Archive_BudgetMixingTrop, &
+                                    State_Diag%Archive_BudgetMixingPBL,  &
+                                    State_Diag%BudgetMass1,              &
+                                    RC ) 
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 1 (non-local mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF       
+#endif
 
        !----------------------------------------
        ! Unit conversion #1
@@ -2980,6 +3074,44 @@ contains
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+#if defined( NC_DIAG )
+       !------------------------------------------------------
+       ! Non-local PBL mixing budget diagnostics - Part 2 of 2
+       !------------------------------------------------------
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+          ! Get dynamics timestep [s]
+          DT_Dyn = Get_Ts_Dyn()
+
+          ! Get final column masses and compute diagnostics
+          CALL Compute_Column_Mass( am_I_Root,                              &
+                                    Input_Opt, State_Met, State_Chm,        &
+                                    State_Chm%Map_Advect,                   &
+                                    State_Diag%Archive_BudgetMixingFull,    &
+                                    State_Diag%Archive_BudgetMixingTrop,    &
+                                    State_Diag%Archive_BudgetMixingPBL,     &
+                                    State_Diag%BudgetMass2,                 &
+                                    RC )    
+          CALL Compute_Budget_Diagnostics( am_I_Root,                       &
+                                       State_Chm%Map_Advect,                &
+                                       DT_Dyn,                              &
+                                       State_Diag%Archive_BudgetMixingFull, &
+                                       State_Diag%Archive_BudgetMixingTrop, &
+                                       State_Diag%Archive_BudgetMixingPBL,  &
+                                       State_Diag%BudgetMixingFull,         &
+                                       State_Diag%BudgetMixingTrop,         &
+                                       State_Diag%BudgetMixingPBL,          &
+                                       State_Diag%BudgetMass1,              &
+                                       State_Diag%BudgetMass2,              &
+                                       RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
 
     ENDIF
 

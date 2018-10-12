@@ -288,15 +288,11 @@
      &                                   HcoState%NY,
      &                                   NBINS) 
 
-!------------------------------------------------------------------------------
-! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
-!
-!      ! AFCID (fine PM2.5) emissions (S. Philip)
-!      ! Array to get emissions flux from HEMCO
-!      REAL(hp), TARGET       :: AFCID_PM25(HcoState%NX,
-!     &                                     HcoState%NY,
-!     &                                     HcoState%NZ)
-!------------------------------------------------------------------------------
+      ! AFCID (fine PM2.5) emissions (S. Philip)
+      ! Array to get emissions flux from HEMCO
+      REAL(hp), TARGET       :: AFCID_PM25(HcoState%NX,
+     &                                     HcoState%NY,
+     &                                     HcoState%NZ)
 
       ! Pointers
       TYPE(MyInst), POINTER  :: Inst
@@ -392,35 +388,32 @@
      &                     Inst%VAI_DST, RC )
          IF ( RC /= HCO_SUCCESS ) RETURN
 
-!------------------------------------------------------------------------------
-! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
-!         !--------------------------------------------------------------
-!         ! Get AFCID emissions fluxes from HEMCO (S. Philip)
-!         !--------------------------------------------------------------
-!
-!         ! Initialize
-!         AFCID_PM25                     = 0.0_hp
-!
-!         ! Update settings in HcoState
-!         HcoState%Options%SpcMin        = Inst%HcoIDs(1)
-!         HcoState%Options%SpcMax        = Inst%HcoIDs(1)
-!         HcoState%Options%CatMin        =  1
-!         HcoState%Options%CatMax        = -1
-!         HcoState%Options%ExtNr         = Inst%ExtNr
-!         HcoState%Options%AutoFillDiagn = .FALSE.
-!         HcoState%Options%FillBuffer    = .TRUE.
-!         HcoState%Buffer3D%Val          => AFCID_PM25
-!    
-!         ! Compute emissions
-!         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
-!         IF ( RC /= HCO_SUCCESS ) RETURN
-!
-!         ! Reset HcoState settings to standard
-!         HcoState%Buffer3D%Val          => NULL()
-!         HcoState%Options%FillBuffer    = .FALSE.
-!         HcoState%Options%ExtNr         = 0
-!         HcoState%Options%AutoFillDiagn = .TRUE.
-!------------------------------------------------------------------------------
+         !--------------------------------------------------------------
+         ! Get AFCID emissions fluxes from HEMCO (S. Philip)
+         !--------------------------------------------------------------
+
+         ! Initialize
+         AFCID_PM25                     = 0.0_hp
+
+         ! Update settings in HcoState
+         HcoState%Options%SpcMin        = Inst%HcoIDs(1)
+         HcoState%Options%SpcMax        = Inst%HcoIDs(1)
+         HcoState%Options%CatMin        =  1
+         HcoState%Options%CatMax        = -1
+         HcoState%Options%ExtNr         = Inst%ExtNr
+         HcoState%Options%AutoFillDiagn = .FALSE.
+         HcoState%Options%FillBuffer    = .TRUE.
+         HcoState%Buffer3D%Val          => AFCID_PM25
+    
+         ! Compute emissions
+         CALL HCO_CalcEmis( am_I_Root, HcoState, .FALSE., RC )
+         IF ( RC /= HCO_SUCCESS ) RETURN
+
+         ! Reset HcoState settings to standard
+         HcoState%Buffer3D%Val          => NULL()
+         HcoState%Options%FillBuffer    = .FALSE.
+         HcoState%Options%ExtNr         = 0
+         HcoState%Options%AutoFillDiagn = .TRUE.
 
 !         FIRST = .FALSE.
       !ENDIF
@@ -549,19 +542,16 @@
                IF ( Inst%HcoIDs(N) > 0 ) THEN
                   FLUX(I,J,N) = ( DSRC(I,N) / AREA_M2 / DTSRCE )
 
-!------------------------------------------------------------------------------
-! NOTE: Postpone AFCID emissions until GEOS-Chem 12.1.0 (bmy, 6/29/18)
-!                  !-----------------------------------------------------
-!                  ! Add AFCID fine PM2.5 dust emissons [kg/m2/s]
-!                  ! to the DST1 species (dust bin #1)
-!                  !
-!                  ! NOTE: AFCID_PM25 is a 3-D array (to get data from
-!                  ! HcoState), but all emissions are in the 1st layer
-!                  !-----------------------------------------------------
-!                  IF ( N == 1 ) THEN
-!                     FLUX(I,J,N) = FLUX(I,J,N) + AFCID_PM25(I,J,1) 
-!                  ENDIF
-!------------------------------------------------------------------------------
+                  !-----------------------------------------------------
+                  ! Add AFCID fine PM2.5 dust emissons [kg/m2/s]
+                  ! to the DST1 species (dust bin #1)
+                  !
+                  ! NOTE: AFCID_PM25 is a 3-D array (to get data from
+                  ! HcoState), but all emissions are in the 1st layer
+                  !-----------------------------------------------------
+                  IF ( N == 1 ) THEN
+                     FLUX(I,J,N) = FLUX(I,J,N) + AFCID_PM25(I,J,1) 
+                  ENDIF
 
                ENDIF
 
