@@ -6961,69 +6961,82 @@
                   FNAME(T,53) = 'Diff flux to vegetation'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 14  )
-                  NAME (T,53) = 'soi/air'
+                  NAME (T,53) = 'soiair'
                   FNAME(T,53) = 'Soil fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 15  )
-                  NAME (T,53) = 'lak/air'
+                  NAME (T,53) = 'lakair'
                   FNAME(T,53) = 'Lake fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 16  )
-                  NAME (T,53) = 'lae/air'
+                  NAME (T,53) = 'laeair'
                   FNAME(T,53) = 'Leaf fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
                CASE( 17  )
                   NAME (T,53) = 'OCPO2G'
                   FNAME(T,53) = 'Gross POPPOCPO lost to gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 18  )
                   NAME (T,53) = 'G2OCPO'
                   FNAME(T,53) = 'Gross POPPOCPO formed from gas'
                   INDEX(T,53) = T - 16+ ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 19  )
                   NAME (T,53) = 'BCPO2G'
                   FNAME(T,53) = 'Gross POPPBCPO lost to gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 20  )
                   NAME (T,53) = 'G2BCPO'
                   FNAME(T,53) = 'Gross POPPBC formed from gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 21  )
                   NAME (T,53) = 'OHoxG'
                   FNAME(T,53) = 'POPG oxidized by OH'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 22  )
                   NAME (T,53) = 'O3oxOCPO'
                   FNAME(T,53) = 'POPOCPO oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 23  )
                   NAME (T,53) = 'O3oxOCPI'
                   FNAME(T,53) = 'POPOCPI oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 24  )
                   NAME (T,53) = 'O3oxBCPO'
                   FNAME(T,53) = 'POPBCPO oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 25  )
                   NAME (T,53) = 'O3oxBCPI'
                   FNAME(T,53) = 'POPBCPI oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 26  )
                   NAME (T,53) = 'NO3xOCPO'
                   FNAME(T,53) = 'POPOCPO oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 27  )
                   NAME (T,53) = 'NO3xOCPI'
                   FNAME(T,53) = 'POPOCPI oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 28  )
                   NAME (T,53) = 'NO3xBCPO'
                   FNAME(T,53) = 'POPBCPO oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 29  )
                   NAME (T,53) = 'NO3xBCPI'
                   FNAME(T,53) = 'POPBCPI oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
             END SELECT
          ENDDO
       ENDIF

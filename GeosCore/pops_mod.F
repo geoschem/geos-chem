@@ -243,10 +243,10 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL, ZERO_DVEL,
+         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL,  ZERO_DVEL,
      &                    ZERO_DVEL, ZERO_DVEL,
-     &                    am_I_Root, Input_Opt, State_Met,
-     &                    State_Chm, RC )
+     &                    am_I_Root, Input_Opt,  State_Met,
+     &                    State_Chm, State_Diag, RC )
          
       ELSE
 
@@ -265,8 +265,8 @@
      &                       DEPSAV(:,:,dd_POPP_OCPI), 
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO >  0 .and. 
@@ -278,8 +278,8 @@
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
@@ -291,8 +291,8 @@
      &                       ZERO_DVEL, 
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
          
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
@@ -304,8 +304,8 @@
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
             
          ELSEIF ( dd_POPG      <= 0 .and.
      &              dd_POPP_OCPO >  0 .and. 
@@ -317,8 +317,8 @@
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 
          ELSEIF ( dd_POPG      <= 0 .and.
      &            dd_POPP_OCPO >  0 .and. 
@@ -330,8 +330,8 @@
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 
          ELSEIF ( dd_POPG      <= 0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
@@ -343,8 +343,8 @@
      &                       ZERO_DVEL,
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
 
          ELSE
 
@@ -354,8 +354,8 @@
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, RC )
+     &                       am_I_Root, Input_Opt,  State_Met,
+     &                       State_Chm, State_Diag, RC )
          ENDIF
 
       ENDIF      
@@ -383,7 +383,7 @@
      &                        V_DEP_P_BCPO, V_DEP_P_BCPI,
      &                        am_I_Root,    Input_Opt,
      &                        State_Met,    State_Chm,
-     7                        RC )
+     7                        State_Diag,   RC )
 !
 ! !USES:
 !
@@ -400,6 +400,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -419,6 +420,7 @@
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -635,6 +637,7 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
 
+      ! Eventually should parallelize this ...
       DO L = 1, LLPAR
       DO J = 1, JJPAR
       DO I = 1, IIPAR
@@ -903,31 +906,74 @@
          ! Sum of differences should equal zero
          SUM_DIFF = MAX(DIFF_G + DIFF_OC + DIFF_BC, SMALLNUM)
 
-         !==============================================================
-         ! ND53 diagnostic: Differences in distribution of gas and
-         ! particle phases between time steps [kg]
-         !==============================================================
 #if defined( BPCH_DIAG )
+         !==============================================================
+         ! %%%%% ND53 (bpch) DIAGNOSTIC %%%%%
+         ! ND53 diagnostic: Differences in distribution of gas and
+         ! particle phases between time steps [kg/s]
+         !==============================================================
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             IF (DIFF_OC .lt. 0) THEN
                AD53_PG_OC_NEG(I,J,L) = AD53_PG_OC_NEG(I,J,L)  + 
-     &                                 DIFF_OC
+     &                                 DIFF_OC / DTCHEM
             ELSE IF (DIFF_OC .eq. 0 .or. DIFF_OC .gt. 0) THEN
                AD53_PG_OC_POS(I,J,L) = AD53_PG_OC_POS(I,J,L)  + 
-     &                                 DIFF_OC
+     &                                 DIFF_OC / DTCHEM
             ENDIF
 
             IF (DIFF_BC .lt. 0) THEN
                AD53_PG_BC_NEG(I,J,L) = AD53_PG_BC_NEG(I,J,L)  + 
-     &                                 DIFF_BC
+     &                                 DIFF_BC / DTCHEM
             ELSE IF (DIFF_BC .eq. 0 .or. DIFF_BC .gt. 0) THEN
                AD53_PG_BC_POS(I,J,L) = AD53_PG_BC_POS(I,J,L)  + 
-     &                                 DIFF_BC
+     &                                 DIFF_BC / DTCHEM
             ENDIF
 
          ENDIF
 #endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! %%%%% HISTORY (netCDF) DIAGNOSTICS %%%%%
+         !
+         ! Prod and loss of total POPPOC and total POPPBC species 
+         ! by gas-phase reactions [kg/s]
+         !==============================================================
+
+         IF ( DIFF_OC < 0.0_fp ) THEN
+
+            ! Loss of POPPOCPO by gas-phase reactions
+            IF ( State_Diag%Archive_LossPOPPOCbyGasPhase ) THEN
+               State_Diag%LossPOPPOCbyGasPhase(I,J,L)   = DIFF_OC/DTCHEM
+            ENDIF
+
+         ELSE
+
+            ! Prod of POPPOCPO by gas-phase reactions
+            IF ( State_Diag%Archive_ProdPOPPOCfromGasPhase ) THEN
+               State_Diag%ProdPOPPOCfromGasPhase(I,J,L) = DIFF_OC/DTCHEM
+            ENDIF
+
+         ENDIF
+
+         IF ( DIFF_BC < 0.0_fp ) THEN
+
+            ! Loss of POPPBCPO by gas-phase reactions
+            IF ( State_Diag%Archive_LossPOPPBCbyGasPhase ) THEN
+               State_Diag%LossPOPPBCbyGasPhase(I,J,L)   = DIFF_BC/DTCHEM
+            ENDIF
+
+         ELSE
+
+            ! Prod of POPPBCPO by gas-phase reactions
+            IF ( State_Diag%Archive_ProdPOPPOCfromGasPhase ) THEN
+               State_Diag%ProdPOPPBCfromGasPhase(I,J,L) = DIFF_BC/DTCHEM
+            ENDIF
+
+         ENDIF
+#endif
+
 
          !==============================================================
          ! HYDROPHOBIC PARTICULATE POPS DECAY TO HYDROPHILIC (clf, 2/12/2012)
@@ -1347,39 +1393,88 @@
          ENDIF
 
          !==============================================================
-         ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg]
+         ! %%%% ND53 (bpch) DIAGNOSTIC %%%%
+         ! ND53 diagnostic: Oxidized POPG (OH-POPG) production [kg/s]
          !==============================================================
          IF ( ND53 > 0 .AND. L <= LD53 ) THEN ! LD53 is max level
 
             ! OH:
             AD53_POPG_OH(I,J,L) = AD53_POPG_OH(I,J,L) + GROSS_OX_OH
+     *                                                / DTCHEM
                
             ! O3:
             AD53_POPP_OCPO_O3(I,J,L) = AD53_POPP_OCPO_O3(I,J,L) +
-     &                                 GROSS_OX_O3_OCPO
+     &                                 GROSS_OX_O3_OCPO / DTCHEM
             AD53_POPP_OCPI_O3(I,J,L) = AD53_POPP_OCPI_O3(I,J,L) +
-     &                                 GROSS_OX_O3_OCPI
+     &                                 GROSS_OX_O3_OCPI / DTCHEM
             AD53_POPP_BCPO_O3(I,J,L) = AD53_POPP_BCPO_O3(I,J,L) +
-     &                                 GROSS_OX_O3_BCPO
+     &                                 GROSS_OX_O3_BCPO / DTCHEM
             AD53_POPP_BCPI_O3(I,J,L) = AD53_POPP_BCPI_O3(I,J,L) +
-     &                                 GROSS_OX_O3_BCPI
+     &                                 GROSS_OX_O3_BCPI / DTCHEM
 
             ! NO3:
             AD53_POPP_OCPO_NO3(I,J,L) = AD53_POPP_OCPO_NO3(I,J,L) +
-     &                                  GROSS_OX_NO3_OCPO
+     &                                  GROSS_OX_NO3_OCPO / DTCHEM
             AD53_POPP_OCPI_NO3(I,J,L) = AD53_POPP_OCPI_NO3(I,J,L) +
-     &                                  GROSS_OX_NO3_OCPI
+     &                                  GROSS_OX_NO3_OCPI / DTCHEM
             AD53_POPP_BCPO_NO3(I,J,L) = AD53_POPP_BCPO_NO3(I,J,L) +
-     &                                  GROSS_OX_NO3_BCPO
+     &                                  GROSS_OX_NO3_BCPO / DTCHEM
             AD53_POPP_BCPI_NO3(I,J,L) = AD53_POPP_BCPI_NO3(I,J,L) +
-     &                                  GROSS_OX_NO3_BCPI
+     &                                  GROSS_OX_NO3_BCPI / DTCHEM
 
          ENDIF
 #endif
 
 #if defined( NC_DIAG ) 
+         !==============================================================
+         ! %%%%% HISTORY (netCDF) DIAGNOSTICS %%%%
+         !
+         ! NOTE: Need to make these diagnostics in kg/s
+         !==============================================================
+         IF ( State_Diag%Archive_ProdPOPGfromOH ) THEN
+            State_Diag%ProdPOPGfromOH(I,J,L)      = GROSS_OX_OH
+     &                                            / DTCHEM
+         ENDIF
 
+         IF ( State_Diag%Archive_ProdPOPPOCPOfromO3 ) THEN 
+            State_Diag%ProdPOPPOCPOfromO3(I,J,L)  = GROSS_OX_O3_OCPO
+     &                                            / DTCHEM
+         ENDIF
 
+         IF ( State_Diag%Archive_ProdPOPPOCPIfromO3 ) THEN 
+            State_Diag%ProdPOPPOCPIfromO3(I,J,L)  = GROSS_OX_O3_OCPI
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPBCPOfromO3 ) THEN 
+            State_Diag%ProdPOPPBCPOfromO3(I,J,L)  = GROSS_OX_O3_BCPO
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPBCPIfromO3 ) THEN 
+            State_Diag%ProdPOPPBCPIfromO3(I,J,L)  = GROSS_OX_O3_BCPI
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPOCPOfromNO3 ) THEN 
+            State_Diag%ProdPOPPOCPOfromNO3(I,J,L) = GROSS_OX_NO3_OCPO
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPOCPIfromNO3 ) THEN 
+            State_Diag%ProdPOPPOCPIfromNO3(I,J,L) = GROSS_OX_NO3_OCPI
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPBCPOfromNO3 ) THEN 
+            State_Diag%ProdPOPPBCPOfromNO3(I,J,L) = GROSS_OX_O3_BCPO
+     &                                            / DTCHEM
+         ENDIF
+
+         IF ( State_Diag%Archive_ProdPOPPBCPIfromNO3 ) THEN 
+            State_Diag%ProdPOPPBCPIfromNO3(I,J,L) = GROSS_OX_NO3_BCPI
+     &                                            / DTCHEM
+         ENDIF
 #endif
 
       ENDDO

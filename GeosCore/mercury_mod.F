@@ -2440,13 +2440,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL           :: LPREINDHG
       LOGICAL           :: LEMIS
 
+      ! Strings
+      CHARACTER(LEN=255)   :: ErrMsg
+      CHARACTER(LEN=255)   :: ThisLoc
+
       !=================================================================
       ! EMISSMERCURY begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GC_SUCCESS
-      
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     & ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.f)'
+
       ! Copy fields from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
@@ -2459,11 +2466,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSIONS_RUN in emissions_mod.F')
+         ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF                         
+      ENDIF 
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -2471,13 +2480,21 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Check that emissions are turned on. Print error message 
          ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
          IF ( .not. LEMIS ) THEN
-            PRINT *, 'ERROR: Hg emissions are need for simulation ' //
+            ErrMsg = 'ERROR: Hg emissions are need for simulation ' //
      &               'but emissions are turned off in input.geos'
-            CALL GEOS_CHEM_STOP
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "MERCURY_READYR"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2496,7 +2513,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
      &                            State_Chm, EHg0_oc,   RC         )
-     &                            
+     &                     
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
+       
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ELSE

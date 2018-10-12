@@ -344,6 +344,32 @@ MODULE State_Diag_Mod
      ! CH4 specialty simulation
  
      ! Persistent Organic Pollutants specialty simulation
+     REAL(f4), POINTER :: LossPOPPOCbyGasPhase  (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPOCfromGasPhase(:,:,:)
+     REAL(f4), POINTER :: LossPOPPBCbyGasPhase  (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPBCfromGasPhase(:,:,:)
+     REAL(f4), POINTER :: ProdPOPGfromOH        (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPOCPOfromO3    (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPOCPIfromO3    (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPBCPIfromO3    (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPBCPOfromO3    (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPOCPOfromNO3   (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPOCPIfromNO3   (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPBCPIfromNO3   (:,:,:)
+     REAL(f4), POINTER :: ProdPOPPBCPOfromNO3   (:,:,:)
+     LOGICAL :: Archive_LossPOPPOCbyGasPhase
+     LOGICAL :: Archive_ProdPOPPOCfromGasPhase
+     LOGICAL :: Archive_LossPOPPBCbyGasPhase
+     LOGICAL :: Archive_ProdPOPPBCfromGasPhase
+     LOGICAL :: Archive_ProdPOPGfromOH
+     LOGICAL :: Archive_ProdPOPPOCPOfromO3
+     LOGICAL :: Archive_ProdPOPPOCPIfromO3
+     LOGICAL :: Archive_ProdPOPPBCPIfromO3
+     LOGICAL :: Archive_ProdPOPPBCPOfromO3
+     LOGICAL :: Archive_ProdPOPPOCPOfromNO3
+     LOGICAL :: Archive_ProdPOPPOCPIfromNO3
+     LOGICAL :: Archive_ProdPOPPBCPIfromNO3
+     LOGICAL :: Archive_ProdPOPPBCPOfromNO3
 
      ! Hg specialty simulation
 
@@ -498,9 +524,13 @@ CONTAINS
     nProd     = State_Chm%nProd
     nWetDep   = State_Chm%nWetDep
 
-    ! Free pointers and set logicals
+    ! %%% Free pointers and set logicals %%%
+
+    ! Species concentration diagnostics
     State_Diag%SpeciesConc                => NULL()
     State_Diag%Archive_SpeciesConc        = .FALSE.
+
+    ! Budget diagnostics
     State_Diag%BudgetEmisDryDepFull       => NULL()          
     State_Diag%BudgetEmisDryDepTrop       => NULL()
     State_Diag%BudgetEmisDryDepPBL        => NULL()
@@ -547,6 +577,7 @@ CONTAINS
     State_Diag%Archive_BudgetWetDepPBL       = .FALSE.  
     State_Diag%Archive_Budget                = .FALSE.  
 
+    ! Drydep diagnostics
     State_Diag%DryDep                     => NULL()
     State_Diag%DryDepChm                  => NULL()
     State_Diag%DryDepMix                  => NULL()
@@ -556,6 +587,7 @@ CONTAINS
     State_Diag%Archive_DryDepMix          = .FALSE.
     State_Diag%Archive_DryDepVel          = .FALSE.
 
+    ! Chemistry, J-value, Prod/Loss diagnostics
     State_Diag%JVal                       => NULL()
     State_Diag%JNoon                      => NULL()
     State_Diag%RxnRates                   => NULL()
@@ -581,6 +613,7 @@ CONTAINS
     State_Diag%Archive_Loss               = .FALSE.
     State_Diag%Archive_Prod               = .FALSE.
 
+    ! Aerosol hygroscopic growth diagnostics
     State_Diag%AerHygGrowth               => NULL()
     State_Diag%AerAqVol                   => NULL()
     State_Diag%AerSurfAreaHyg             => NULL()
@@ -598,6 +631,7 @@ CONTAINS
     State_Diag%Archive_AerNumDenSLA       = .FALSE.
     State_Diag%Archive_AerNumDenPSC       = .FALSE.
 
+    ! Aerosol optical depth diagnostics
     State_Diag%AODDust                     => NULL()
     State_Diag%AODDustWL1                  => NULL()
     State_Diag%AODDustWL2                  => NULL()
@@ -633,6 +667,7 @@ CONTAINS
     State_Diag%Archive_AODPSCWL2           = .FALSE.
     State_Diag%Archive_AODPSCWL3           = .FALSE.
 
+    ! Aerosol mass diagnostics
     State_Diag%AerMassASOA                => NULL()
     State_Diag%AerMassBC                  => NULL()
     State_Diag%AerMassINDIOL              => NULL()
@@ -679,6 +714,7 @@ CONTAINS
     State_Diag%Archive_TotalOC            = .FALSE.
     State_Diag%Archive_TotalBiogenicOA    = .FALSE. 
 
+    ! Transport diagnostics
     State_Diag%AdvFluxZonal               => NULL()
     State_Diag%AdvFluxMerid               => NULL()
     State_Diag%AdvFluxVert                => NULL()
@@ -686,11 +722,13 @@ CONTAINS
     State_Diag%Archive_AdvFluxMerid       = .FALSE.
     State_Diag%Archive_AdvFluxVert        = .FALSE.
 
+    ! PBL mixing diagnostics
     State_Diag%PBLMixFrac                 => NULL()
     State_Diag%PBLFlux                    => NULL()
     State_Diag%Archive_PBLMixFrac         = .FALSE.
     State_Diag%Archive_PBLFlux            = .FALSE.
 
+    ! Convection diagnostics
     State_Diag%CloudConvFlux              => NULL()
     State_Diag%WetLossConvFrac            => NULL()
     State_Diag%WetLossConv                => NULL()
@@ -698,6 +736,7 @@ CONTAINS
     State_Diag%Archive_WetLossConvFrac    = .FALSE.
     State_Diag%Archive_WetLossConv        = .FALSE.
 
+    ! Wetdep diagnostics
     State_Diag%WetLossLS                  => NULL()
     State_Diag%PrecipFracLS               => NULL()
     State_Diag%RainFracLS                 => NULL()
@@ -707,11 +746,13 @@ CONTAINS
     State_Diag%Archive_RainFracLS         = .FALSE.
     State_Diag%Archive_WashFracLS         = .FALSE.
 
+    ! Carbon aerosol diagnostics
     State_Diag%ProdBCPIfromBCPO           => NULL()
     State_Diag%ProdOCPIfromOCPO           => NULL()
     State_Diag%Archive_ProdBCPIfromBCPO   = .FALSE.
     State_Diag%Archive_ProdOCPIfromOCPO   = .FALSE.
 
+    ! Aerosol prod and loss diagnostics
     State_Diag%ProdSO2fromDMSandOH        => NULL() 
     State_Diag%ProdSO2fromDMSandNO3       => NULL() 
     State_Diag%ProdSO2fromDMS             => NULL()   
@@ -747,11 +788,13 @@ CONTAINS
     State_Diag%Archive_ProdSO4fromO3s              = .FALSE.
     State_Diag%Archive_LossHNO3onSeaSalt           = .FALSE. 
 
+    ! Rn-Pb-Be simulation diagnostics
     State_Diag%PbFromRnDecay              => NULL()
     State_Diag%RadDecay                   => NULL()
     State_Diag%Archive_PbFromRnDecay      = .FALSE.
     State_Diag%Archive_RadDecay           = .FALSE.
 
+    ! RRTMG simulation diagnostics
     State_Diag%RadAllSkyLWSurf            => NULL()
     State_Diag%RadAllSkyLWTOA             => NULL()
     State_Diag%RadAllSkySWSurf            => NULL()
@@ -768,6 +811,35 @@ CONTAINS
     State_Diag%Archive_RadClrSkyLWTOA     = .FALSE.
     State_Diag%Archive_RadClrSkySWSurf    = .FALSE.
     State_Diag%Archive_RadClrSkySWTOA     = .FALSE.
+
+    ! POPs simulation diagnostics
+    State_Diag%LossPOPPOCbyGasPhase           => NULL()
+    State_Diag%ProdPOPPOCfromGasPhase         => NULL()
+    State_Diag%LossPOPPBCbyGasPhase           => NULL()
+    State_Diag%ProdPOPPBCfromGasPhase         => NULL()
+    State_Diag%ProdPOPGfromOH                 => NULL()
+    State_Diag%ProdPOPPOCPOfromO3             => NULL()
+    State_Diag%ProdPOPPOCPIfromO3             => NULL()
+    State_Diag%ProdPOPPBCPIfromO3             => NULL()
+    State_Diag%ProdPOPPBCPOfromO3             => NULL()
+    State_Diag%ProdPOPPOCPOfromNO3            => NULL()
+    State_Diag%ProdPOPPOCPIfromNO3            => NULL()
+    State_Diag%ProdPOPPBCPIfromNO3            => NULL()
+    State_Diag%ProdPOPPBCPOfromNO3            => NULL()
+    State_Diag%Archive_LossPOPPOCbyGasPhase   = .FALSE.
+    State_Diag%Archive_ProdPOPPOCfromGasPhase = .FALSE.
+    State_Diag%Archive_LossPOPPBCbyGasPhase   = .FALSE.
+    State_Diag%Archive_ProdPOPPBCfromGasPhase = .FALSE.
+    State_Diag%Archive_ProdPOPGfromOH         = .FALSE.
+    State_Diag%Archive_ProdPOPPOCPOfromO3     = .FALSE.
+    State_Diag%Archive_ProdPOPPOCPIfromO3     = .FALSE.
+    State_Diag%Archive_ProdPOPPBCPIfromO3     = .FALSE.
+    State_Diag%Archive_ProdPOPPBCPOfromO3     = .FALSE.
+    State_Diag%Archive_ProdPOPPOCPOfromNO3    = .FALSE.
+    State_Diag%Archive_ProdPOPPOCPIfromNO3    = .FALSE.
+    State_Diag%Archive_ProdPOPPBCPIfromNO3    = .FALSE.
+    State_Diag%Archive_ProdPOPPBCPOfromNO3    = .FALSE. 
+  
 
 #if defined( NC_DIAG )
 
@@ -3561,6 +3633,276 @@ CONTAINS
 
     ENDIF
 
+    !=======================================================================
+    ! These production and loss diagnostics are only relevant for:
+    !
+    ! THE POPS SPECIALTY SIMULATION
+    !=======================================================================
+    print*, '### state_diag: Input_Opt%ITS_A_POPS_SIM', Input_Opt%Its_A_POPS_Sim
+    call flush(6)
+    IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
+
+       print*,'### ITS A POPS SIM!'
+       call flusH(6)
+
+       !--------------------------------------------------------------------
+       ! Loss of POPPOC by gas phase
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossPOPPOCbyGasPhase'
+       diagID  = 'LossPOPPOCbyGasPhase'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossPOPPOCbyGasPhase(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossPOPPOCbyGasPhase = 0.0_f4
+          State_Diag%Archive_LossPOPPOCbyGasPhase = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossPOPPOCbyGasPhase,          &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPOC from gas phase
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPOCfromGasPhase'
+       diagID  = 'ProdPOPPOCfromGasPhase'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPOCfromGasPhase(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPOCfromGasPhase = 0.0_f4
+          State_Diag%Archive_ProdPOPPOCfromGasPhase = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPOCfromGasPhase,        &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of POPPBC by gas phase
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossPOPPBCbyGasPhase'
+       diagID  = 'LossPOPPBCbyGasPhase'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossPOPPBCbyGasPhase(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossPOPPBCbyGasPhase = 0.0_f4
+          State_Diag%Archive_LossPOPPBCbyGasPhase = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossPOPPBCbyGasPhase,          &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPBC by gas phase
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPBCfromGasPhase'
+       diagID  = 'ProdPOPPBCfromGasPhase'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPBCfromGasPhase(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPBCfromGasPhase = 0.0_f4
+          State_Diag%Archive_ProdPOPPBCfromGasPhase = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPBCfromGasPhase,        &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPG from OH
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPGfromOH'
+       diagID  = 'ProdPOPGfromOH'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPGfromOH(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPGfromOH = 0.0_f4
+          State_Diag%Archive_ProdPOPGfromOH = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPGfromOH,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPOCPO from O3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPOCPOfromO3'
+       diagID  = 'ProdPOPPOCPOfromO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPOCPOfromO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPOCPOfromO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPOCPOfromO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPOCPOfromO3,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPOCPI from O3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPOCPIfromO3'
+       diagID  = 'ProdPOPPOCPIfromO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPOCPIfromO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPOCPIfromO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPOCPIfromO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPOCPIfromO3,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPBCPO from O3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPBCPOfromO3'
+       diagID  = 'ProdPOPPBCPOfromO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPBCPOfromO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPBCPOfromO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPBCPOfromO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPBCPOfromO3,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPBCPI from O3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPBCPIfromO3'
+       diagID  = 'ProdPOPPBCPIfromO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPBCPIfromO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPBCPIfromO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPBCPIfromO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPBCPIfromO3,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPOCPO from NO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPOCPOfromNO3'
+       diagID  = 'ProdPOPPOCPOfromNO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPOCPOfromNO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPOCPOfromNO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPOCPOfromNO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPOCPOfromNO3,           &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPOCPI from NO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPOCPIfromNO3'
+       diagID  = 'ProdPOPPOCPIfromNO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPOCPIfromNO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPOCPIfromNO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPOCPIfromNO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPOCPIfromNO3,           &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPBCPO from NO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPBCPOfromNO3'
+       diagID  = 'ProdPOPPBCPOfromNO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPBCPOfromNO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPBCPOfromNO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPBCPOfromNO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPBCPOfromNO3,           &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of POPPBCPI from NO3
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdPOPPBCPIfromNO3'
+       diagID  = 'ProdPOPPBCPIfromNO3'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdPOPPBCPIfromNO3(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdPOPPBCPIfromNO3 = 0.0_f4
+          State_Diag%Archive_ProdPOPPBCPIfromNO3 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdPOPPBCPIfromNO3,           &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ENDIF
+
+    !=======================================================================
+    ! The production and loss diagnostics are only relevant for:
+    !
+    ! THE Hg and TAGGED Hg SPECIALTY SIMULATIONS
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+    ENDIF
+
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
 
@@ -4480,9 +4822,87 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalBiogenicOA, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
+    IF ( ASSOCIATED( State_Diag%LossPOPPOCbyGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%LossPOPPOCbyGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossPOPPOCbyGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPOCfromGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPOCfromGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCfromGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossPOPPBCbyGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%LossPOPPBCbyGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossPOPPBCbyGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPBCfromGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPBCfromGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCfromGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossPOPPOCbyGasPhase ) ) THEN
+       DEALLOCATE( State_Diag%LossPOPPOCbyGasPhase, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossPOPPOCbyGasPhase', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPGfromOH ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPGfromOH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPGfromOH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPOCPOfromO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPOCPIfromO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPBCPOfromO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPBCPIfromO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromNO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPOCPOfromNO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromNO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromNO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPOCPIfromNO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromNO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromNO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPBCPOfromNO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromNO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromNO3 ) ) THEN
+       DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -5416,6 +5836,72 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Sum of all organic carbon (OA:OC=2.1)'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPOCBYGASPHASE' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of POPPOCPO species by gas-phase reactions'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCFROMGASPHASE' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species by gas-phase reactions'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSPOPPBCBYGASPHASE' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of POPPBCPO species by gas-phase reactions'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCFROMGASPHASE' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species by gas-phase reactions'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPGFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPG species from reaction with OH'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPOFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species from reaction with O3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPIFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPOCPI species from reaction with O3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPOFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species from reaction with O3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPIFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPBCPI species from reaction with O3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPOFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPOCPO species from reaction with NO3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPOCPIFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPOCPI species from reaction with NO3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPOFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPBCPO species from reaction with NO3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPIFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of POPPBCPI species from reaction with NO3'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
     ELSE
        
        !--------------------------------------------------------------------
