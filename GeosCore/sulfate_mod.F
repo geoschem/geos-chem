@@ -3680,7 +3680,6 @@
                   SRo3   = 0.e+0_fp
                   so2_sr = 0.e+0_fp
                ENDIF
-
 	    ELSE
                SR     = 0.0_fp
                SRhobr = 0.0_fp

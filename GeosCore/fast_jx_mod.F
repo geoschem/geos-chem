@@ -86,6 +86,11 @@
       INTEGER :: id_IONO2,  id_I2O2, id_CH3I,   id_CH2I2, id_I2O4
       INTEGER :: id_I2O3
 
+#if defined( MODEL_GEOS )
+      ! Diagnostics arrays (ckeller, 5/22/18) 
+      REAL, ALLOCATABLE, PUBLIC :: EXTRAL_NLEVS(:,:), EXTRAL_NITER(:,:)
+#endif
+
       CONTAINS      
 !EOC
 !------------------------------------------------------------------------------
@@ -1392,7 +1397,11 @@ c---also need to allow for Pressure interpolation if SQQ(J) = 'p'
 !
 ! !LOCAL VARIABLES:
 !
+#if defined( MODEL_GEOS )
+      INTEGER, PARAMETER  ::  LSPH_ = 200
+#else
       INTEGER, PARAMETER  ::  LSPH_ = 100
+#endif
 
 !     RZ      Distance from centre of Earth to each point (cm)
 !     RQ      Square of radius ratios
@@ -1496,16 +1505,19 @@ c  Lowest level intersected by emergent beam
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EXTRAL (DTAUX,L1X,L2X,NX,JXTRA)
+      SUBROUTINE EXTRAL (Input_Opt,DTAUX,L1X,L2X,NX,JXTRA,ILON,ILAT)
 !
 ! !USES:
+      USE Input_Opt_Mod,      ONLY : OptInput
 !
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options 
       INTEGER, INTENT(IN)   ::  L1X,L2X         !index of cloud/aerosol
       integer, intent(in)   ::  NX              !Mie scattering array size
       real(fp),  intent(in) ::  DTAUX(L1X)      !cloud+3aerosol OD in each layer
+      integer, intent(in)   ::  ILON, ILAT      !lon,lat index
 !
 ! !OUTPUT VARIABLES:
 !
@@ -1526,6 +1538,8 @@ c  Lowest level intersected by emergent beam
 ! 
 ! !REVISION HISTORY: 
 !  28 Mar 2013 - S. D. Eastham - Copied from Fast-JX v7.0
+!  21 May 2018 - C. Keller     - Use increasingly less extra levels if max. 
+!                                is reached, added diagnostics.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1535,9 +1549,30 @@ c  Lowest level intersected by emergent beam
       INTEGER JTOTL,I,L,L2
       REAL(fp)  TTAU(L2X+1),DTAUJ, ATAU1,ATAULN,ATAUM,ATAUN1
 
+#if defined( MODEL_GEOS )
+      ! ckeller, 5/21/18
+      LOGICAL  :: failed
+      INTEGER  :: N, NMAX
+      REAL(fp) :: ATAULOC
+#endif
+
       !=================================================================
       ! EXTRAL begins here!
       !=================================================================
+
+#if defined( MODEL_GEOS )
+      ! This routine now repeats the extra layer computation with an
+      ! increased heating rate (ATAU) if there is an array overfloat.
+      ! This is repeated maximum 5 times. The diagnostics arrays
+      ! EXTRAL_NLEVS and EXTRAL_NITER archive the number of extra layers
+      ! and the number of iterations needed to converge to that solution.
+      ! Ideally, NITER is 1 and no adjustments to the heating rate are
+      ! needed (ckeller, 5/22/18). 
+      NMAX = MAX(1,Input_Opt%FJX_EXTRAL_ITERMAX)
+      DO N=1,NMAX
+       ! local heating rate
+       ATAULOC = ATAU + (0.06*(N-1))
+#endif
 
 C---Reinitialize arrays
       TTAU(:)  = 0.e+0_fp
@@ -1560,9 +1595,15 @@ c---        ATAUMN = the smallest OD layer desired
 c---        JTAUMX = maximum number of divisions (i.e., may not get to ATAUMN)
 c---These are set in CMN_FJX_MOD, and have been tested/optimized
 
+#if defined( MODEL_GEOS )
+      ATAU1  = ATAULOC - 1.e+0_fp
+      ATAULN = log(ATAULOC)
+#else
       ATAU1  = ATAU - 1.e+0_fp
       ATAULN = log(ATAU)
+#endif
         TTAU(L2X+1)  = 0.0e+0_fp
+
       do L2 = L2X,1,-1
         L         = (L2+1)/2
         DTAUJ     = 0.5e+0_fp * DTAUX(L)
@@ -1581,10 +1622,42 @@ c---the number of sub-layers + 1
       enddo
 
 c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
-      JTOTL    = L2X + 2
-      do L2 = L2X,1,-1
-        JTOTL  = JTOTL + JXTRA(L2)
-        if (JTOTL .gt. NX/2)  then
+#if defined( MODEL_GEOS )
+      failed   = .FALSE.
+       JTOTL    = L2X + 2
+       do L2 = L2X,1,-1
+         JTOTL  = JTOTL + JXTRA(L2)
+         if (JTOTL .gt. NX/2)  then
+          failed = .TRUE.
+          exit
+        endif
+      enddo
+
+      ! exit loop if not failed 
+      if ( .not. failed ) exit
+      enddo
+
+      ! print error and cut off JXTRAL at lower L if too many levels
+      if ( failed ) then
+          IF ( Input_Opt%FJX_EXTRAL_ERR ) THEN
+             write(6,'(A,2I5,F9.2)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
+          ENDIF
+          do L = L2,1,-1
+            JXTRA(L) = 0
+          enddo
+          !go to 10
+      endif
+      !enddo
+!  10  continue
+
+      ! Fill diagnostics arrays
+      EXTRAL_NLEVS(ILON,ILAT) = SUM(JXTRA(:))
+      EXTRAL_NITER(ILON,ILAT) = N
+#else
+       JTOTL    = L2X + 2
+       do L2 = L2X,1,-1
+         JTOTL  = JTOTL + JXTRA(L2)
+         if (JTOTL .gt. NX/2)  then
           write(6,'(A,2I5,F9.2)') 'N_/L2_/L2-cutoff JXTRA:',NX,L2X,L2
           do L = L2,1,-1
             JXTRA(L) = 0
@@ -1593,6 +1666,7 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
         endif
       enddo
   10  continue
+#endif
 
       END SUBROUTINE EXTRAL
 !EOC
@@ -1665,6 +1739,9 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_      
       USE State_Diag_Mod, ONLY : DgnState
+#if defined( MODEL_GEOS )
+      USE CMN_SIZE_MOD,   ONLY : IIPAR, JJPAR, LLPAR
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1891,6 +1968,14 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
             ENDIF
          ENDIF
       ENDDO
+
+#if defined( MODEL_GEOS )
+      ! Diagnostics arrays 
+      ALLOCATE(EXTRAL_NLEVS(IIPAR,JJPAR))
+      ALLOCATE(EXTRAL_NITER(IIPAR,JJPAR))
+      EXTRAL_NLEVS(:,:) = 0.0
+      EXTRAL_NITER(:,:) = 0.0
+#endif
 
       END SUBROUTINE INIT_FJX
 !EOC
@@ -3412,9 +3497,8 @@ c---when combining with Rayleigh and O2-O3 abs, remember the SSA and
 c---  phase fn SLEG are weighted by OD and OD*SSA, respectively.
 c---Given the aerosol+cloud OD/layer in visible (600 nm) calculate how to add
 C       additonal levels at top of clouds (now uses log spacing)
-
 C-----------------------------------------------------------------------
-      call EXTRAL(OD600,L1_,L2EDGE,N_,JXTRA)
+      call EXTRAL(Input_Opt,OD600,L1_,L2EDGE,N_,JXTRA,ILON,ILAT)
 C-----------------------------------------------------------------------
 
 c---set surface reflectance

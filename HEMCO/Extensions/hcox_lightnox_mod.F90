@@ -386,6 +386,8 @@ CONTAINS
 !  03 Mar 2016 - C. Keller   - Use buoyancy in combination with convective 
 !                              fraction CNV_FRC (ESMF only).
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  30 Aug 2018 - C. Keller   - Use diagnostic names for special diagnostics.
+!                              This makes interface with GEOS easier.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -434,6 +436,10 @@ CONTAINS
     ! ----------------------------------------------------------------
     IF ( HcoClock_First( HcoState%Clock, .TRUE. ) ) THEN
 
+#if defined( MODEL_GEOS )
+       ! ckeller, 8/30/18: Always write out diagnostics
+       Inst%DoDiagn = .TRUE.
+#else
        ! See if we have to write out manual diagnostics. These are all
        ! defined together, so check only for one diagnostics.
        DiagnID = 56001
@@ -446,7 +452,7 @@ CONTAINS
 !          CALL HCO_GetPtr( am_I_Root, HcoState, 'LIGHTNOX_OTDLIS', Inst%OTDLIS, RC )
 !          IF ( RC /= HCO_SUCCESS ) RETURN
 !       ENDIF
-
+#endif
        ! Get scale factor. 
        ! - Try to read from configuration file first.
        CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'OTD-LIS scaling', &
@@ -1171,31 +1177,59 @@ CONTAINS
 
     ! Eventually add individual diagnostics. These go by names!
     IF ( Inst%DoDiagn ) THEN
-       DiagnID =  56001
+       ! Total flash rates
        Arr2D   => DIAGN(:,:,1)
+#if defined( MODEL_GEOS )
+       CALL Diagn_Update( am_I_Root, HcoState,               &
+                          cName='LIGHTNING_TOTAL_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+#else
+       DiagnID =  56001
        CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
                           cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+#endif
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnID =  56002
+       ! Intracloud flash rates 
        Arr2D     => DIAGN(:,:,2)
+#if defined( MODEL_GEOS )
+       CALL Diagn_Update( am_I_Root, HcoState,                    &
+                          cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+#else
+       DiagnID =  56002
        CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
                           cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+#endif
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
-       DiagnID =  56003
+       ! Cloud to ground flash rates
        Arr2D     => DIAGN(:,:,3)
+#if defined( MODEL_GEOS )
+       CALL Diagn_Update( am_I_Root, HcoState,                     &
+                          cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+#else
+       DiagnID =  56003
        CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
                           cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+#endif
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
-       DiagnID =  56004
+       ! Cloud top height
        Arr2D     => TOPDIAGN(:,:)
+#if defined( MODEL_GEOS )
+       CALL Diagn_Update( am_I_Root,   HcoState,       &
+                          cName='LIGHTNING_CLOUD_TOP', &
+                          ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+#else
+       DiagnID =  56004
        CALL Diagn_Update( am_I_Root,   HcoState,      ExtNr=Inst%ExtNr, &
                           cID=DiagnID, Array2D=Arr2D, RC=RC         ) 
+#endif
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
@@ -2059,6 +2093,16 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
 
+#if defined( MODEL_GEOS )
+    ! Check for usage of GEOS-5 lightning flash rates. If on, the GEOS-5
+    ! flash rates (where available) are used instead of the computed flash
+    ! rates. This is off by default.
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'GEOS-5 flash rates', &
+                     OptValBool=Inst%LLFR, FOUND=FOUND, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. FOUND ) Inst%LLFR = .FALSE.
+#endif
+
     ! Get species ID
     CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
@@ -2191,6 +2235,9 @@ CONTAINS
     ExtState%CNV_FRC%DoUse = .TRUE.
     ExtState%ALBD%DoUse    = .TRUE.
     ExtState%WLI%DoUse     = .TRUE.
+#if defined( MODEL_GEOS )
+    ExtState%LFR%DoUse     = .TRUE.
+#endif
 
     ! Only activate BYNCY and LFR if they are needed
     IF ( Inst%LCNVFRC .OR. Inst%LLFR ) ExtState%BYNCY%DoUse = .TRUE.

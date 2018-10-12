@@ -340,7 +340,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%VolcSource = Str
 
+#if !defined( MODEL_GEOS )
     Print*, Inst%VolcSource
+#endif
 
     ! See if eruptive and degassing hierarchies are given
     Inst%CatErupt = 51
@@ -482,6 +484,11 @@ CONTAINS
        CALL HcoClock_Get ( am_I_Root, HcoState%Clock, cYYYY=YYYY, cMM=MM, cDD=DD, RC=RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
+#if defined( MODEL_GEOS )
+       ! Error trap: skip leap days
+       IF ( MM == 2 .AND. DD > 28 ) DD = 28
+#endif
+
        ! OMI-based volcanic SO2 emissions are available for 2005-2012
        ! Use closest year available (mps, 3/28/18)
        IF ( TRIM(Inst%VolcSource) == 'OMI' ) THEN
@@ -493,7 +500,7 @@ CONTAINS
        ThisFile = Inst%FileName
        CALL HCO_CharParse( HcoState%Config, ThisFile, YYYY, MM, DD, 0, 0, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
- 
+
        ! Verbose
        IF ( am_I_Root ) THEN
           MSG = 'AeroCom: reading ' // TRIM(ThisFile)

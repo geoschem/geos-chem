@@ -66,12 +66,12 @@
 !  (2 ) Added COUNT_CHEM to count the chemistry timesteps per day, since some
 !        quantities are only archived after a fullchem call (bmy, 10/25/04)
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
-!  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
+!  (4 ) Now only archive AODs once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (6 ) Now save cloud fractions & grid box heights (bmy, 4/20/05)
-!  (7 ) Remove TRCOFFSET since it's always zero.  Also now get HALFPOLAR for
+!  (7 ) Remove TRCOFFSET since it is always zero.  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids. (bmy, 6/24/05)
-!  (8 ) Bug fix: don't save SLP unless it is allocated (bmy, 8/2/05)
+!  (8 ) Bug fix: do not save SLP unless it is allocated (bmy, 8/2/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Modified INIT_DIAG49 to save out transects (cdh, bmy, 11/30/06)
 !  (11) Now use 3D timestep counter for full chem in the trop (phs, 1/24/07)
@@ -278,7 +278,7 @@
 !        Also now use extra counter COUNT_CHEM to count the number of
 !        chemistry timesteps since NO, NO2, OH, O3 only when a full-chemistry
 !        timestep happens. (bmy, 10/25/04)
-!  (3 ) Only archive AOD's when it is a chem timestep (bmy, 1/14/05)
+!  (3 ) Only archive AODs when it is a chem timestep (bmy, 1/14/05)
 !  (4 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
@@ -286,7 +286,7 @@
 !        cloud fraction as tracer #79 and box height as tracer #93.  Now 
 !        remove references to CLMOSW, CLROSW, and PBL from "dao_mod.f". 
 !        (bmy, 4/20/05)
-!  (6 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (6 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
@@ -294,7 +294,7 @@
 !  (11) IS_CHEM check is not appropriate anymore. Keep COUNT_CHEM3D for 
 !       species known in troposphere only (ccc, 8/12/09)
 !  (12) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
-!        bin's individual AOD (amv, bmy, 12/21/09)
+!        bin individual AOD (amv, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -309,8 +309,8 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg
 !  17 May 2016 - M. Sulprizio- Add IS_CHEM logical for incrementing COUNT_CHEM3D
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
-!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  16 Jun 2016 - K. Yu       - Now define species IDs with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species IDs on the first call
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !  28 Jun 2016 - M. Sulprizio- Replace NPVERT with LLPAR to remove dependence
 !                              on comode_loop_mod.F
@@ -963,11 +963,11 @@
 !  (2 ) Now only archive NO, NO2, OH, O3 on every chemistry timestep (i.e. 
 !        only when fullchem is called).  Also remove reference to FIRST. 
 !        (bmy, 10/25/04)
-!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CT_CHEM since
+!  (3 ) Now divide tracers 82-87 (i.e. various AODs) by GOOD_CT_CHEM since
 !        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction
 !        as tracer #79. (bmy, 4/20/05)
-!  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now zero Q
 !        array with array assignment statement. (phs, 1/24/07)
@@ -1494,6 +1494,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET

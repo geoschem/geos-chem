@@ -321,7 +321,10 @@ CONTAINS
     LOGICAL            :: LPRT
     LOGICAL            :: LUCX
     LOGICAL            :: LCYCLE
-    LOGICAL            :: ISBR2 
+    LOGICAL            :: ISBR2
+#if defined( MODEL_GEOS ) 
+    LOGICAL            :: SKIP  
+#endif
 
     ! Strings
     CHARACTER(LEN=16)  :: STAMP
@@ -358,6 +361,18 @@ CONTAINS
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()
+
+#if defined( MODEL_GEOS )
+    ! Skip strat chem if chemistry is over entire vertical domain
+    SKIP = .FALSE.
+    IF ( LLCHEM == LLPAR ) THEN
+       SKIP = .TRUE.
+       IF ( FIRST .AND. am_I_Root ) THEN
+          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
+       ENDIF 
+    ENDIF
+    IF ( .NOT. SKIP ) THEN
+#endif
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -917,6 +932,11 @@ CONTAINS
        RETURN
 
     ENDIF
+   
+#if defined( MODEL_GEOS )
+    ! End of SKIP loop
+    ENDIF ! SKIP 
+#endif
 
     ! Set first-time flag to false
     FIRST = .FALSE.    

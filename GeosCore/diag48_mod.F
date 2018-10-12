@@ -1045,6 +1045,7 @@
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,             ONLY : ALLOC_ERR, ERROR_STOP
 #endif
 !
@@ -1071,6 +1072,9 @@
       RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Location string
       LOCATION         = 'INIT_DIAG48 ("diag48_mod.f")'

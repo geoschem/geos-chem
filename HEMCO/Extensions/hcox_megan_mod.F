@@ -3579,7 +3579,6 @@
       !-----------------------------------------------------------------
       ! Point to external data 
       !-----------------------------------------------------------------
-
       CALL HCO_EvalFld(am_I_Root, HcoState, 'MEGAN_AEF_ISOP'//TRIM(SFX),
      &                 Inst%AEF_ISOP, RC )
       IF ( RC /= HCO_SUCCESS ) RETURN
@@ -3600,7 +3599,6 @@
 !         CALL HCO_GetPtr( am_I_Root, HcoState, 'MEGAN_AEF_APIN',AEF_APIN, RC )
 !         IF ( RC /= HCO_SUCCESS ) RETURN
 ! <---
-
          CALL HCO_EvalFld( am_I_Root, HcoState, 
      &                    'MEGAN_AEF_BPIN'//TRIM(SFX),
      &                     Inst%AEF_BPIN, RC )
@@ -4124,13 +4122,14 @@
 !                              from file
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
 !  17 Jul 2017 - C. Keller   - Added optional setting NORMLAI
+!  30 Aug 2018 - C. Keller   - Added error trap for wrong config file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                        :: ExtNr
+      INTEGER                        :: ExtNr, iExtNr
       INTEGER                        :: I, nSpc, AS, NX, NY
       INTEGER, ALLOCATABLE           :: HcoIDs(:)
       LOGICAL                        :: FOUND
@@ -4334,6 +4333,52 @@
       Inst%IDTLIMO   = -1 
       Inst%IDTSESQ   = -1
       Inst%ExtNrMono = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
+
+      ! Error trap: previous MEGAN versions had a 3rd option, SOA. This
+      ! Is now merged with Mono. Check here if the HEMCO configuration file
+      ! Still uses the old syntax. In that case stop with an error
+      ! (ckeller, 8/30/18)
+      iExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN_SOA')
+      IF ( iExtNr > 0 ) THEN
+         IF ( am_I_Root ) THEN
+            MSG = 'The HEMCO configuration file uses the old MEGAN' //
+     &            'syntax - Please merge SOA into Mono, e.g.:'
+            CALL HCO_MSG( MSG )
+            MSG = '108     MEGAN             : on    '//
+     &            'ISOP/ACET/PRPE/C2H4/ALD2/EOH/SOAP/SOAS'
+            CALL HCO_MSG( MSG )
+            MSG = '--> Isoprene scaling  :       1.0' 
+            CALL HCO_MSG( MSG )
+            MSG = '--> CO2 inhibition    :       true'
+            CALL HCO_MSG( MSG )
+            MSG = '--> CO2 conc (ppmv)   :       390.0'
+            CALL HCO_MSG( MSG )
+            MSG = '--> Isoprene to SOAP  :       0.015'
+            CALL HCO_MSG( MSG )
+            MSG = '--> Isoprene to SOAS  :       0.015'
+            CALL HCO_MSG( MSG )
+            MSG = '--> Normalize LAI     :       true'
+            CALL HCO_MSG( MSG )
+            MSG='#3% mass yield from isoprene to SOA'
+            CALL HCO_MSG( MSG )
+            MSG='109     MEGAN_Mono      : on    CO/MTPA/MTPO/LIMO/SESQ'
+            CALL HCO_MSG( MSG )
+            MSG='--> Monoterp to SOAP  :       0.050'
+            CALL HCO_MSG( MSG )
+            MSG='--> Monoterp to SOAS  :       0.050'
+            CALL HCO_MSG( MSG )
+            MSG='#10% mass yield from monoterpenes to SOA'
+            CALL HCO_MSG( MSG )
+            MSG='--> Othrterp to SOAP  :       0.050'
+            CALL HCO_MSG( MSG )
+            MSG='--> Othrterp to SOAS  :       0.050'
+            CALL HCO_MSG( MSG )
+         ENDIF
+         MSG = 'Your HEMCO configuration file uses old MEGAN syntax'
+         CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+         RETURN
+      ENDIF
+
       IF ( Inst%ExtNrMono > 0 ) THEN
 
          ! Verbose
@@ -5087,4 +5132,3 @@
       END SUBROUTINE InstRemove
 !EOC
       END MODULE HCOX_MEGAN_MOD
-

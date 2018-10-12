@@ -122,6 +122,16 @@ MODULE State_Diag_Mod
      !REAL(f4),  POINTER :: DryDepRst_RC    (:,:,:  ) ! Total drydep resistance
      !REAL(f4),  POINTER :: DryDepRst_RI    (:,:    ) ! Stomatal resistance
 
+#if defined( MODEL_GEOS )
+     ! GEOS-5 only
+     REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m 
+     REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
+     REAL(f4),  POINTER :: MoninObukhov    (:,:    ) ! MoninObukhov length 
+     LOGICAL :: Archive_DryDepRa2m
+     LOGICAL :: Archive_DryDepRa10m
+     LOGICAL :: Archive_MoninObukhov
+#endif
+
      ! Chemistry
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
@@ -147,6 +157,24 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_O3PconcAfterChem
      LOGICAL :: Archive_Loss            
      LOGICAL :: Archive_Prod            
+
+#if defined( MODEL_GEOS )
+     ! GEOS-5 only
+     REAL(f4),  POINTER :: JValIndiv       (:,:,:,:) ! individual J-values
+     REAL(f4),  POINTER :: RxnRconst       (:,:,:,:) ! Rxn rate const from KPP
+     REAL(f4),  POINTER :: O3concAfterChem (:,:,:  ) ! O3 
+     REAL(f4),  POINTER :: RO2concAfterChem(:,:,:  ) ! RO2
+     REAL(f4),  POINTER :: CH4pseudoFlux   (:,:    ) ! CH4 pseudo-flux
+     REAL(f4),  POINTER :: OHreactivity    (:,:,:  ) ! OH reactivity 
+     REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
+     LOGICAL :: Archive_JValIndiv       
+     LOGICAL :: Archive_RxnRconst       
+     LOGICAL :: Archive_O3concAfterChem 
+     LOGICAL :: Archive_RO2concAfterChem
+     LOGICAL :: Archive_CH4pseudoFlux   
+     LOGICAL :: Archive_OHreactivity    
+     LOGICAL :: Archive_KppError        
+#endif
 
      ! Aerosol characteristics
      REAL(f4),  POINTER :: AerHygGrowth    (:,:,:,:) ! Hydroscopic growth of spc
@@ -249,6 +277,24 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_TotalOA         
      LOGICAL :: Archive_TotalOC         
      LOGICAL :: Archive_TotalBiogenicOA 
+
+#if defined( MODEL_GEOS )
+     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
+     REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
+     REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
+     REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
+     REAL(f4),  POINTER :: PM25bc          (:,:,:  ) ! PM25 BC
+     REAL(f4),  POINTER :: PM25du          (:,:,:  ) ! PM25 dust
+     REAL(f4),  POINTER :: PM25ss          (:,:,:  ) ! PM25 sea salt
+     REAL(f4),  POINTER :: PM25soa         (:,:,:  ) ! PM25 SOA
+     LOGICAL :: Archive_PM25ni 
+     LOGICAL :: Archive_PM25su 
+     LOGICAL :: Archive_PM25oc 
+     LOGICAL :: Archive_PM25bc 
+     LOGICAL :: Archive_PM25du 
+     LOGICAL :: Archive_PM25ss 
+     LOGICAL :: Archive_PM25soa
+#endif
 
      ! Advection
      REAL(f4),  POINTER :: AdvFluxZonal    (:,:,:,:) ! EW Advective Flux
@@ -556,6 +602,15 @@ CONTAINS
     State_Diag%Archive_DryDepMix          = .FALSE.
     State_Diag%Archive_DryDepVel          = .FALSE.
 
+#if defined( MODEL_GEOS )
+    State_Diag%DryDepRa2m                 => NULL()
+    State_Diag%DryDepRa10m                => NULL()
+    State_Diag%MoninObukhov               => NULL()
+    State_Diag%Archive_DryDepRa2m         = .FALSE.
+    State_Diag%Archive_DryDepRa10m        = .FALSE.
+    State_Diag%Archive_MoninObukhov       = .FALSE.
+#endif
+
     State_Diag%JVal                       => NULL()
     State_Diag%JNoon                      => NULL()
     State_Diag%RxnRates                   => NULL()
@@ -580,6 +635,23 @@ CONTAINS
     State_Diag%Archive_O3PconcAfterChem   = .FALSE.
     State_Diag%Archive_Loss               = .FALSE.
     State_Diag%Archive_Prod               = .FALSE.
+
+#if defined( MODEL_GEOS )
+    State_Diag%JValIndiv                  => NULL()
+    State_Diag%RxnRconst                  => NULL()
+    State_Diag%O3concAfterChem            => NULL()
+    State_Diag%RO2concAfterChem           => NULL()
+    State_Diag%CH4pseudoflux              => NULL()
+    State_Diag%OHreactivity               => NULL()
+    State_Diag%KppError                   => NULL()
+    State_Diag%Archive_JValIndiv          = .FALSE.
+    State_Diag%Archive_RxnRconst          = .FALSE.
+    State_Diag%Archive_O3concAfterChem    = .FALSE.
+    State_Diag%Archive_RO2concAfterChem   = .FALSE.
+    State_Diag%Archive_CH4pseudoflux      = .FALSE.
+    State_Diag%Archive_OHreactivity       = .FALSE.
+    State_Diag%Archive_KppError           = .FALSE.
+#endif
 
     State_Diag%AerHygGrowth               => NULL()
     State_Diag%AerAqVol                   => NULL()
@@ -678,6 +750,23 @@ CONTAINS
     State_Diag%Archive_TotalOA            = .FALSE.
     State_Diag%Archive_TotalOC            = .FALSE.
     State_Diag%Archive_TotalBiogenicOA    = .FALSE. 
+
+#if defined( MODEL_GEOS )
+    State_Diag%PM25ni                     => NULL()
+    State_Diag%PM25su                     => NULL()
+    State_Diag%PM25oc                     => NULL()
+    State_Diag%PM25bc                     => NULL()
+    State_Diag%PM25du                     => NULL()
+    State_Diag%PM25ss                     => NULL()
+    State_Diag%PM25soa                    => NULL()
+    State_Diag%Archive_PM25ni             = .FALSE.
+    State_Diag%Archive_PM25su             = .FALSE.
+    State_Diag%Archive_PM25oc             = .FALSE.
+    State_Diag%Archive_PM25bc             = .FALSE.
+    State_Diag%Archive_PM25du             = .FALSE.
+    State_Diag%Archive_PM25ss             = .FALSE.
+    State_Diag%Archive_PM25soa            = .FALSE.
+#endif
 
     State_Diag%AdvFluxZonal               => NULL()
     State_Diag%AdvFluxMerid               => NULL()
@@ -1220,6 +1309,10 @@ CONTAINS
     arrayID = 'State_Diag%DryDepVel'
     diagID  = 'DryDepVel'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+#if defined( MODEL_GEOS )
+    ! DryDepVel is needed by some other diagnostics, always use with GEOS-5
+    Found = .TRUE.
+#endif
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepVel( IM, JM, nDryDep ), STAT=RC )
@@ -1231,6 +1324,68 @@ CONTAINS
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+#if defined( MODEL_GEOS )
+    !--------------------------------------------
+    ! Aerodynamic resistance @ 2m (ckeller, 11/17/17) 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%DryDepRa2m'
+    diagID  = 'DryDepRa2m'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    ! DryDepRa2m is needed by some other diagnostics; always use with GEOS-5
+    Found = .TRUE.
+    IF ( Found ) THEN
+       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepRa2m( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRa2m = 0.0_f4
+       State_Diag%Archive_DryDepRa2m = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa2m, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Aerodynamic resistance @ 10m (ckeller, 11/17/17) 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%DryDepRa10m'
+    diagID  = 'DryDepRa10m'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    ! DryDepRa10m is needed by some other diagnostics; always use with GEOS-5
+    Found = .TRUE.
+    IF ( Found ) THEN
+       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%DryDepRa10m( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRa10m = 0.0_f4
+       State_Diag%Archive_DryDepRa10m = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%DryDepRa10m, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Monin-Obukhov length 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%MoninObukhov'
+    diagID  = 'MoninObukhov'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    ! ckeller hack: always add to make sure that we can compute 2M 
+    ! concentrations
+    IF ( Found ) THEN
+       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%MoninObukhov( IM, JM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MoninObukhov = 0.0_f4
+       State_Diag%Archive_MoninObukhov = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%MoninObukhov, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
 
     !-----------------------------------------------------------------------
     ! Zonal Advective Flux (east positive)
@@ -1741,6 +1896,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
+#if !defined( MODEL_GEOS )
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
        !--------------------------------------------------------------------
@@ -1757,6 +1913,10 @@ CONTAINS
                                    State_Chm, State_Diag, RC                )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+#else
+       ALLOCATE( State_Diag%RxnRates( IM, JM, LM, Input_Opt%NN_RxnRates ), &
+                 STAT=RC )
+#endif
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
@@ -2217,6 +2377,65 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+#if defined( MODEL_GEOS )
+       !--------------------------------------------------------------------
+       ! CH4 pseudo-flux 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%CH4pseudoFlux'
+       diagID  = 'CH4pseudoFlux'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%CH4pseudoFlux( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%CH4pseudoFlux = 0.0_f4
+          State_Diag%Archive_CH4pseudoFlux = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                     &
+                                   State_Diag%CH4pseudoFlux,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! OH reactivity 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%OH_reactivity'
+       diagID  = 'OH_reactivity'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%OHreactivity( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%OHreactivity = 0.0_f4
+          State_Diag%Archive_OHreactivity = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%OHreactivity,                  &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! KPP error flag 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%KppError'
+       diagID  = 'KppError'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%KppError( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%KppError = 0.0_f4
+          State_Diag%Archive_KppError = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%KppError,                      &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+#endif
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -2314,6 +2533,9 @@ CONTAINS
        arrayID = 'State_Diag%OHconcAfterChem'
        diagID  = 'OHconcAfterChem'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+#if defined( MODEL_GEOS )
+       Found = .TRUE. ! Always add - needed for NOx diagnostics in GEOS-5
+#endif
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
           ALLOCATE( State_Diag%OHconcAfterChem( IM, JM, LM ), STAT=RC )
@@ -2326,6 +2548,42 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+
+#if defined( MODEL_GEOS )
+       arrayID = 'State_Diag%O3concAfterChem'
+       diagID  = 'O3concAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       Found = .TRUE. ! Always add - needed for NOx diagnostics
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%O3concAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%O3concAfterChem = 0.0_f4
+          State_Diag%Archive_O3concAfterChem = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%O3concAfterChem,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       arrayID = 'State_Diag%RO2concAfterChem'
+       diagID  = 'RO2concAfterChem'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       Found = .TRUE. ! Always add - needed for NOx diagnostics
+       IF ( Found ) THEN
+          if(am_I_Root) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%RO2concAfterChem( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%RO2concAfterChem = 0.0_f4
+          State_Diag%Archive_RO2concAfterChem = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%RO2concAfterChem,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+#endif
 
     ELSE
        
@@ -3117,6 +3375,134 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+#if defined( MODEL_GEOS )
+       !--------------------------------------------------------------------
+       ! PM25 nitrates 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25ni'
+       diagID  = 'PM25ni'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25ni( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25ni = 0.0_f4
+          State_Diag%Archive_PM25ni = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25ni,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 sulfates 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25su'
+       diagID  = 'PM25su'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25su( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25su = 0.0_f4
+          State_Diag%Archive_PM25su = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25su,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 OC 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25oc'
+       diagID  = 'PM25oc'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25oc( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25oc = 0.0_f4
+          State_Diag%Archive_PM25oc = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25oc,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 BC 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25bc'
+       diagID  = 'PM25bc'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25bc( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25bc = 0.0_f4
+          State_Diag%Archive_PM25bc = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25bc,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 dust 
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25du'
+       diagID  = 'PM25du'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25du( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25du = 0.0_f4
+          State_Diag%Archive_PM25du = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25du,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 sea salt
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25ss'
+       diagID  = 'PM25ss'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25ss( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25ss = 0.0_f4
+          State_Diag%Archive_PM25ss = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25ss,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 SOA  
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%PM25soa'
+       diagID  = 'PM25soa'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%PM25soa( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%PM25soa = 0.0_f4
+          State_Diag%Archive_PM25soa = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID, State_Diag%PM25soa,    &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+#endif
+
        !-------------------------------------------------------------------
        ! Total organic aerosol mass [ug/m3]
        !-------------------------------------------------------------------
@@ -3891,11 +4277,39 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
+       DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%DryDepRa2m', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%DryDepRa10m ) ) THEN
+       DEALLOCATE( State_Diag%DryDepRa10m, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%DryDepRa10m', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%MoninObukhov ) ) THEN
+       DEALLOCATE( State_Diag%MoninObukhov, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%MoninObukhov', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
+
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
        DEALLOCATE( State_Diag%JVal, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%JValIndiv ) ) THEN
+       DEALLOCATE( State_Diag%JValIndiv, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%JvalIndiv', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
 
     IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
        DEALLOCATE( State_Diag%JNoon, STAT=RC  )
@@ -3908,6 +4322,14 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
+       DEALLOCATE( State_Diag%RxnRconst, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%RxnRconst', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
 
     IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
        DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC  )
@@ -4076,6 +4498,20 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF 
+
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%O3concAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%O3concAfterChem, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%O3concAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF 
+
+    IF ( ASSOCIATED( State_Diag%RO2concAfterChem ) ) THEN
+       DEALLOCATE( State_Diag%RO2concAfterChem, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RO2concAfterChem', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF 
+#endif
 
     IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
        DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC  )
@@ -4353,6 +4789,26 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%CH4pseudoFlux ) ) THEN
+       DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
+       DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%OH_reactivity', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
+       DEALLOCATE( State_Diag%KppError, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
+
     IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
        DEALLOCATE( State_Diag%AerMassASOA, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%AerMassASOA', 2, RC )
@@ -4467,6 +4923,50 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+#if defined( MODEL_GEOS )
+    IF ( ASSOCIATED( State_Diag%PM25ni ) ) THEN
+       DEALLOCATE( State_Diag%PM25ni, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25ni', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25su ) ) THEN
+       DEALLOCATE( State_Diag%PM25su, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25su', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25oc ) ) THEN
+       DEALLOCATE( State_Diag%PM25oc, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25oc', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25bc ) ) THEN
+       DEALLOCATE( State_Diag%PM25bc, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25bc', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25ss ) ) THEN
+       DEALLOCATE( State_Diag%PM25ss, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25ss', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25du ) ) THEN
+       DEALLOCATE( State_Diag%PM25du, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25du', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%PM25soa ) ) THEN
+       DEALLOCATE( State_Diag%PM25soa, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%PM25soa', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+#endif
 
     IF ( ASSOCIATED( State_Diag%TotalOA ) ) THEN
        DEALLOCATE( State_Diag%TotalOA, STAT=RC  )
@@ -4784,6 +5284,23 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
+#if defined( MODEL_GEOS )
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA2M' ) THEN
+       IF ( isDesc    ) Desc  = '2 meter aerodynamic resistance'
+       IF ( isUnits   ) Units = 's cm-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPRA10M' ) THEN
+       IF ( isDesc    ) Desc  = '10 meter aerodynamic resistance'
+       IF ( isUnits   ) Units = 's cm-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MONINOBUKHOV' ) THEN
+       IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
+       IF ( isUnits   ) Units = 'm'
+       IF ( isRank    ) Rank  = 2
+#endif
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
        IF ( isDesc    ) Desc  = 'Photolysis rate for species' 
        IF ( isUnits   ) Units = 's-1'
@@ -4992,6 +5509,18 @@ CONTAINS
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
 
+#if defined( MODEL_GEOS )
+    ELSE IF ( TRIM( Name_AllCaps ) == 'O3CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'O3 concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RO2CONCAFTERCHEM' ) THEN
+       IF ( isDesc    ) Desc  = 'Peroxy radical concentration immediately after chemistry'
+       IF ( isUnits   ) Units = 'molec cm-3'
+       IF ( isRank    ) Rank  = 3
+#endif
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'HO2CONCAFTERCHEM' )  THEN
        IF ( isDesc    ) Desc  = 'HO2 concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'mol mol-1'
@@ -5006,6 +5535,23 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'O3P concentration immediately after chemistry'
        IF ( isUnits   ) Units = 'molec cm-3'
        IF ( isRank    ) Rank  = 3
+
+#if defined( MODEL_GEOS )
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CH4PSEUDOFLUX' ) THEN
+       IF ( isDesc    ) Desc  = 'CH4 pseudo-flux balancing chemistry'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'OH_REACTIVITY' ) THEN
+       IF ( isDesc    ) Desc  = 'OH_reactivity'
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
+       IF ( isDesc    ) Desc  = 'KppError'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+#endif
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' ) THEN
        IF ( isDesc    ) Desc  = 'Optical depth for mineral dust'
@@ -5165,6 +5711,43 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
+
+#if defined( MODEL_GEOS )
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, nitrates'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SU' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sulfates'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25OC' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, organic carbon'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25BC' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, black carbon'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25DU' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, dust'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SS' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, sea salt'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SOA' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate matter with radii < 2.5 um, SOA'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+#endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
        IF ( isDesc    ) Desc  = 'Monoterpene and sesqiterpene SOA'

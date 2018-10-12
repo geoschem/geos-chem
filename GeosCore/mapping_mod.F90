@@ -135,6 +135,7 @@ CONTAINS
 
     ! Initialize
     err = 0
+    RC = GC_SUCCESS
 
     ! Define a number of extra boxes to add to FINE_PER_COARSE
     ! in order to prevent out-of-bounds errors

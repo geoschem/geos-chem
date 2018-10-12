@@ -20,7 +20,7 @@
 !
 ! !USES:
 !
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE DIAG_MOD
@@ -490,20 +490,22 @@
      &                       'ndxx_setup.f'  )
          ENDIF
       ENDIF
-
+#endif
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !=================================================================
       ! ND21: Optical depths and cloud fractions [unitless]
       !       --> uses AD21 array (allocatable) 
       !=================================================================
-      IF ( ND21 > 0 ) THEN
-
+      IF ( Input_Opt%ND21 > 0 ) THEN
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
-         LD21 = MIN( ND21, LLPAR )
+         Input_Opt%LD21 = MIN( Input_Opt%ND21, LLCHEM )
 
          ! For regular 
-         ALLOCATE( AD21( IIPAR, JJPAR, LD21, PD21 ), STAT=AS )
+         ALLOCATE( AD21( IIPAR, JJPAR, Input_Opt%LD21, PD21 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD21' )
       ENDIF
+#endif
+#if defined( BPCH_DIAG )
 
       !=================================================================
       ! ND22: J-value diagnostics [s^-1] 
@@ -1150,6 +1152,9 @@
       Input_Opt%LD68  = LD68
       Input_Opt%LD73  = LD73
 #endif
+
+      ! Return w/ success
+      RC = GC_SUCCESS
 
       END SUBROUTINE NDXX_SETUP
 !EOC

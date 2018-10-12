@@ -3684,6 +3684,7 @@ CONTAINS
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE HCO_UNIT_MOD,       ONLY : HCO_Unit_Change
     USE HCO_tIdx_Mod,       ONLY : HCO_GetPrefTimeAttr
+    USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
 !
 ! !INPUT PARAMTERS:
 !
@@ -3702,7 +3703,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  22 Dec 2014 - C. Keller: Initial version
-!  08 Aug 2018 - C. Keller: Added check for range/exact data
+!  08 Aug 2018 - C. Keller: Added check for range/exact dataon
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3901,13 +3902,13 @@ CONTAINS
           CALL HCO_ERROR( HcoState%Config%Err, MSG, RC, THISLOC=LOC )
           RETURN
        ENDIF
-   
+  
        ! Check for range/exact flag
        ! If range is given, the preferred Yr/Mt/Dy/Hr will be negative
        ! if we are outside the desired range.
        IF ( Lct%Dct%Dta%CycleFlag == HCO_CFLAG_RANGE ) THEN
           IF ( prefYr == -1 .OR. prefMt == -1 .OR. prefDy == -1 ) IDX1 = -1
-          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 )     IDX1 = -1       
+          IF ( Lct%Dct%Dta%ncHrs(1) >= 0 .AND. prefHr == -1 )     IDX1 = -1 
 
        ! If flag is exact, the preferred date must be equal to the current
        ! simulation date. 
@@ -3929,7 +3930,7 @@ CONTAINS
                   prefHr > Lct%Dct%Dta%ncHrs(2) ) IDX1 = -1 
           ENDIF
        ENDIF
- 
+
        ! IDX1 becomes -1 for data that is outside of the valid range
        ! (and no time cycling enabled). In this case, make sure that
        ! scale factor is set to zero.
@@ -3939,6 +3940,13 @@ CONTAINS
              MSG = 'Base field outside of range - set to zero: ' // &
                    TRIM(Lct%Dct%cName)
              CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#if defined( MODEL_GEOS )
+          ELSEIF ( Lct%Dct%DctType == HCO_DCTTYPE_MASK ) THEN
+             FileArr(1,1,1,:) = 0.0_hp
+             MSG = 'Mask outside of range - set to zero: ' // &
+                   TRIM(Lct%Dct%cName)
+             CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=1, THISLOC=LOC )
+#endif
           ELSE
              FileArr(1,1,1,:) = 1.0_hp
              MSG = 'Scale factor outside of range - set to one: ' // &

@@ -89,12 +89,22 @@ CONTAINS
 ! !USES:
 !
     USE m_netCDF_io_define
+#if defined( MODEL_GEOS )
+    USE m_netcdf_io_read
+    USE m_netcdf_io_open
+    USE Ncdf_Mod,            ONLY : NC_Open
+    USE Ncdf_Mod,            ONLY : NC_Read_Time
+    USE Ncdf_Mod,            ONLY : NC_Read_Arr
+#endif
     USE Ncdf_Mod,            ONLY : NC_Create
     USE Ncdf_Mod,            ONLY : NC_Close
     USE Ncdf_Mod,            ONLY : NC_Var_Def
     USE Ncdf_Mod,            ONLY : NC_Var_Write
     USE Ncdf_Mod,            ONLY : NC_Get_RefDateTime
     USE CHARPAK_Mod,         ONLY : TRANLC
+#if defined( MODEL_GEOS )
+    USE HCO_Chartools_Mod,   ONLY : HCO_CharParse
+#endif
     USE HCO_State_Mod,       ONLY : HCO_State
     USE JulDay_Mod,          ONLY : JulDay
     USE HCO_EXTLIST_MOD,     ONLY : GetExtOpt, CoreNr
@@ -137,6 +147,8 @@ CONTAINS
 !                              writing. 
 !  17 Feb 2017 - C. Holmes   - Enable netCDF-4 compression
 !  08 Mar 2017 - R. Yantosca - Use unlimited time dimensions for netCDF files
+!  29 Dec 2017 - C. Keller   - Now accept writing multiple time slices into
+!                              same file.
 !  03 Jan 2018 - R. Yantosca - Added more metadata for COARDS compliance.
 !                              Also make TIME a 8-byte var to avoid roundoffs
 !  05 Jan 2018 - R. Yantosca - Now print out all index variables as REAL*8
@@ -150,10 +162,17 @@ CONTAINS
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY, P0
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
+#if defined( MODEL_GEOS )
+    REAL(sp), POINTER         :: nctime(:)
+#endif
     REAL(dp), POINTER         :: Arr1D(:)
     INTEGER,  POINTER         :: Int1D(:)
     REAL(sp), POINTER         :: Arr3D(:,:,:)
     REAL(sp), POINTER         :: Arr4D(:,:,:,:)
+#if defined( MODEL_GEOS )
+    REAL(sp), POINTER         :: Arr4DOld(:,:,:,:)
+    REAL*8,   POINTER         :: timeVec(:)
+#endif
     REAL(hp), POINTER         :: hyam(:)
     REAL(hp), POINTER         :: hybm(:)
     TYPE(DiagnCont), POINTER  :: ThisDiagn
@@ -169,13 +188,16 @@ CONTAINS
     CHARACTER(LEN=63)         :: timeunit
     INTEGER                   :: fId, lonId, latId, levId, TimeId
     INTEGER                   :: VarCt
-    INTEGER                   :: nLon, nLat, nLev, nLevTmp, nTime
+    INTEGER                   :: nLon, nLat, nLev, nLevTmp, nTime 
     INTEGER                   :: Prc,  L
     INTEGER                   :: lymd, lhms 
     INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs
     LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
     LOGICAL                   :: NoLevDim, DefMode
- 
+#if defined( MODEL_GEOS )
+    LOGICAL                   :: IsOldFile
+#endif
+
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_STD (hcoio_write_std_mod.F90)' 
 
     !=================================================================
@@ -189,6 +211,11 @@ CONTAINS
     Int1D     => NULL()
     Arr3D     => NULL()
     Arr4D     => NULL()
+#if defined( MODEL_GEOS )
+    Arr4DOld  => NULL()
+    timeVec   => NULL()
+    nctime    => NULL()
+#endif
     ThisDiagn => NULL()
 
     ! Collection number
@@ -312,6 +339,16 @@ CONTAINS
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
+#if defined( MODEL_GEOS )
+    ! Add default time stamp if no time tokens are in the file template.
+    ! This also ensures backward compatibility.
+    IF ( INDEX(TRIM(ncFile),'$') <= 0 ) THEN
+       ncFile = TRIM(ncFile)//'.$YYYY$MM$DD$HH$MN.nc'
+    ENDIF
+    CALL HCO_CharParse ( HcoState%Config, ncFile, YYYY, MM, DD, h, m, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+#endif
+
     ! Use filename prefix for title, replacing '_' with spaces
     ! NOTE: Prefix can only contain up to two underscores
     indexL = SCAN( Pfx, '_', .FALSE. ) ! Return left-most position
@@ -336,6 +373,7 @@ CONTAINS
        CALL HCO_MSG( HcoState%Config%Err, MSG )
     ENDIF
 
+#if !defined( MODEL_GEOS )
     ! Define a variable for the number of levels, which will either be -1 
     ! (if all 2D data) or the number of levels in the grid (for 3D data).
     IF ( NoLevDim ) THEN
@@ -545,6 +583,73 @@ CONTAINS
        DEALLOCATE( hybm  )
 
     ENDIF
+#endif
+
+#if defined( MODEL_GEOS )
+    ! Check if file already exists. If so, add new diagnostics to this file
+    ! (instead of creating a new one)
+    INQUIRE( FILE=ncFile, EXIST=IsOldFile )
+
+    ! If file exists, open file and get time dimension
+    IF ( IsOldFile ) THEN
+       CALL Ncop_Wr( fID, ncFile )
+       CALL NC_READ_TIME( fID, ntime, timeunit, timeVec, RC=RC )
+
+       ! new file will have one more time dimension
+       ntime = ntime + 1
+
+    ! Create output file
+    ELSE
+       ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
+       ! Now create netCDF file with time dimension as UNLIMITED (bmy, 3/8/17)
+       IF ( NoLevDim ) THEN
+          CALL NC_CREATE( ncFile, title, nLon,  nLat,  -1,     NF_UNLIMITED,  &
+                          fId,    lonId, latId, levId, timeId, VarCt,         &
+                          CREATE_NC4=.TRUE. )
+       ELSE
+          CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,   NF_UNLIMITED,  &
+                          fId,    lonId, latId, levId, timeId, VarCt,         &
+                          CREATE_NC4=.TRUE. )
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Write grid dimensions (incl. time) 
+    !-----------------------------------------------------------------
+    IF ( .NOT. IsOldFile ) THEN
+
+       ! Add longitude 
+       CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
+                         'lon', 'Longitude', 'degrees_east', Prc, VarCt, &
+                         Compress=.True. )
+       ALLOCATE( Arr1D( nLon ) )
+       Arr1D = HcoState%Grid%XMID%Val(:,1)
+       CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
+       DEALLOCATE( Arr1D )
+
+       ! Add latitude
+       CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
+                         'lat', 'Latitude', 'degrees_north', Prc, VarCt, &
+                         Compress=.True. )
+       ALLOCATE( Arr1D( nLat ) )
+       Arr1D = HcoState%Grid%YMID%Val(1,:)
+       CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
+       DEALLOCATE( Arr1D )
+
+       ! Add level 
+       IF ( .NOT. NoLevDim ) THEN
+          CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
+                            'lev', 'GEOS-Chem level', 'unitless', Prc, &
+                            VarCt, Compress=.True. )
+          allocate(Arr1D(nLev))
+          DO I = 1, nLev
+             Arr1D(I) = REAL(I)
+          ENDDO
+          CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Arr1D )
+          deallocate(Arr1D)
+       ENDIF
+    ENDIF
+#endif
 
     !------------------------------------------------------------------------
     ! Write time axis variable ("time") to file
@@ -564,10 +669,12 @@ CONTAINS
     IF ( Found ) THEN
        timeunit = ADJUSTL(TRIM(RefTime))
        CALL TRANLC( timeunit )
-       CALL NC_GET_REFDATETIME( timeunit, refYYYY, refMM, refDD, refh, refm, refs, RC )
+       CALL NC_GET_REFDATETIME( timeunit, refYYYY, refMM, refDD, refh, &
+                                refm, refs, RC )
        refs = 0
        IF ( RC /= HCO_SUCCESS ) RETURN
-       GMT      = REAL(MAX(refh,0),dp) + (REAL(MAX(refm,0),dp)/60.0_dp) + (REAL(MAX(refs,0),dp)/3600.0_dp)
+       GMT      = REAL(MAX(refh,0),dp) + (REAL(MAX(refm,0),dp)/60.0_dp) + &
+                  (REAL(MAX(refs,0),dp)/3600.0_dp)
        THISDAY  = refDD + ( GMT / 24.0_dp )
        JD1985   = JULDAY ( refYYYY, refMM, THISDAY )
 
@@ -581,7 +688,8 @@ CONTAINS
     ! Calculate time value 
     JD_DELTA = (JD1 - JD1985 )
 
-    ! Default is 'days since'. Adjust for 'hours since', 'minutes since', 'seconds since'.
+    ! Default is 'days since'. Adjust for 'hours since', 'minutes since', 
+    ! 'seconds since'.
     IF ( timeunit(1:4) == 'days' ) THEN
        ! all ok
     ELSEIF ( timeunit(1:5) == 'hours' ) THEN
@@ -591,10 +699,34 @@ CONTAINS
     ELSEIF ( timeunit(1:7) == 'seconds' ) THEN
        JD_DELTA = JD_DELTA * 24.0_dp * 3600.0_dp
     ELSE
-       MSG = 'Unrecognized output reference time, will assume `days since`: '//TRIM(timeunit)
+       MSG = 'Unrecognized output reference time, will ' // &
+             'assume `days since`: '//TRIM(timeunit)
        CALL HCO_WARNING( MSG, WARNLEV=2, THISLOC=LOC, RC=RC )
     ENDIF    
  
+    ! Round to 2 digits after comma 
+#if defined( MODEL_GEOS )
+    JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
+    TMP          = ANINT( JD_DELTA_RND )
+    JD_DELTA_RND = TMP / 100.0_sp
+
+    ! Special case where we have an old file but it has the same time stamp: in
+    ! that case simply overwrite the current values
+    IF ( IsOldFile .AND. ntime == 2 ) THEN
+       IF ( timeVec(1) == JD_DELTA_RND ) ntime = 1
+    ENDIF
+    allocate(nctime(ntime))
+    IF ( IsOldFile .AND. ntime > 1 ) nctime(1:ntime-1) = timeVec(:)
+    nctime(ntime) = JD_DELTA_RND
+    IF ( .NOT. IsOldFile ) THEN
+       CALL NC_VAR_DEF ( fId, -1, -1, -1, timeId, &
+                         'time', 'Time', TRIM(timeunit), 4, VarCt,  &
+                         Compress=.True. )
+    ENDIF
+    CALL NC_VAR_WRITE ( fId, 'time', Arr1D=nctime )
+    deallocate(nctime)
+    if ( associated(timeVec) ) deallocate(timeVec)
+#else
     ! Round to 2 digits after comma 
     !JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
     !TMP          = ANINT( JD_DELTA_RND )
@@ -620,11 +752,22 @@ CONTAINS
     Arr1d(1) = JD_DELTA
     CALL NC_Var_Write( fId, 'time', Arr1D=Arr1D )
     DEALLOCATE( Arr1d )
+#endif
 
-    !-----------------------------------------------------------------------
+    !-----------------------------------------------------------------
     ! Write out grid box areas 
-    !-----------------------------------------------------------------------
+    !-----------------------------------------------------------------
 
+#if defined( MODEL_GEOS )
+    IF ( .NOT. IsOldFile ) THEN
+       myName = 'AREA'
+       myUnit = 'm2'
+       CALL NC_VAR_DEF ( fId, lonId, latId, -1, -1, &
+                         TRIM(myName), 'Grid box area', TRIM(myUnit),  &
+                         Prc, VarCt, Compress=.True. )
+       CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr2D=HcoState%Grid%Area_M2%Val )
+    ENDIF
+#else
     ! Define variable
     CALL NC_Var_Def( fId         = fId,                                      &
                      lonId       = lonId,                                    &
@@ -640,21 +783,35 @@ CONTAINS
 
     ! Write data
     CALL NC_Var_Write ( fId, 'AREA', Arr2D=HcoState%Grid%Area_M2%Val )
+#endif
 
-    !-----------------------------------------------------------------------
+    !-----------------------------------------------------------------
     ! Write diagnostics 
-    !-----------------------------------------------------------------------
+    !-----------------------------------------------------------------
 
-    ! Run this section twice, first in define mode for metadata, then in data mode to write variables
+    ! Run this section twice, first in define mode for metadata, then in 
+    ! data mode to write variables
     DO I=1,2
+
+#if defined( MODEL_GEOS )
+    ! Skip definition mode for existing file
+    IF ( I==1 .AND. IsOldFile ) CYCLE
+#endif
 
     IF (I==1) THEN
        ! Open netCDF define mode
        CALL NcBegin_Def( fID ) 
        DefMode=.TRUE.
     ELSE
+#if defined( MODEL_GEOS )
+       IF ( .NOT. IsOldFile ) THEN
+          ! Close netCDF define mode
+          CALL NcEnd_Def( fID )   
+       ENDIF
+#else
        ! Close netCDF define mode
        CALL NcEnd_Def( fID )   
+#endif
        DefMode=.False.
     ENDIF
     
@@ -686,17 +843,32 @@ CONTAINS
 
        ! Error check: this should never happen!
        IF ( levIdTmp > 0 .AND. NoLevDim ) THEN
-          MSG = 'Level dimension undefined but 3D container found: ' // TRIM(myName)
+          MSG = 'Level dimension undefined but 3D container found: ' &
+                // TRIM(myName)
           CALL HCO_ERROR(MSG,RC,THISLOC=LOC)
           RETURN 
        ENDIF
 
        IF (DefMode) THEN
-          
+
           !------------------------------------
           ! Define variables in define mode
           !------------------------------------
 
+#if defined( MODEL_GEOS )
+          ! Write out in single precision
+          CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
+               TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, &
+               DefMode, Compress=.True. )
+
+          ! Additional tracer attributes: long_name and _FillValue
+          CALL NcDef_var_attributes( fID, VarCt, "long_name",        &
+               TRIM(ThisDiagn%long_name) )
+          CALL NcDef_var_attributes( fID, VarCt, "averaging_method", &
+               TRIM(ThisDiagn%AvgName  ) )
+          CALL NcDef_var_attributes( fID, VarCt, "_FillValue",       &
+               FillValue )
+#else
           ! Define variable as single precision
           CALL NC_Var_Def( fId          = fId,                               &
                            lonId        = lonId,                             &
@@ -712,6 +884,7 @@ CONTAINS
                            VarCt        = VarCt,                             & 
                            DefMode      = DefMode,                           &
                            Compress     = .True.                            )
+#endif
 
        ELSE
 
@@ -719,19 +892,42 @@ CONTAINS
           ! Write variables in data mode
           !------------------------------------
 
+#if defined( MODEL_GEOS )
+          IF ( IsOldFile .AND. ntime > 1 ) THEN
+             IF ( ThisDiagn%SpaceDim == 3 ) THEN
+                CALL NC_READ_ARR( fID, TRIM(myName), 1, nlon, 1, nlat, &
+                                  1, nlev, 1, ntime-1, ncArr=Arr4DOld, RC=RC )
+                Arr4D(:,:,:,1:ntime-1) = Arr4DOld(:,:,:,:)
+             ELSE
+                CALL NC_READ_ARR( fID, TRIM(myName), 1, nlon, 1, nlat, &
+                                  -1, -1, 1, ntime-1, ncArr=Arr4DOld, RC=RC )
+                Arr3D(:,:,1:ntime-1) = Arr4DOld(:,:,1,:)
+             ENDIF
+             IF ( ASSOCIATED(Arr4DOld) ) DEALLOCATE(Arr4DOld)
+          ENDIF
+#endif
+
           ! Mirror data and write to file. The mirroring is required in
           ! order to add the time dimension. Otherwise, the data would
           ! have no time information!
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
              IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
+#if defined( MODEL_GEOS )
+                Arr4D(:,:,:,ntime) = ThisDiagn%Arr3D%Val
+#else
                 Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
+#endif
              ENDIF
-             CALL NC_Var_Write( fId, TRIM(myName), Arr4D=Arr4D )
+             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
           ELSE
              IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
-                Arr3D(:,:,1) = ThisDiagn%Arr2D%Val 
+#if defined( MODEL_GEOS )
+                Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val 
+#else
+                Arr3D(:,:,1) = ThisDiagn%Arr2D%Val
+#endif
              ENDIF
-             CALL NC_Var_Write( fId, TRIM(myName), Arr3D=Arr3D )
+             CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
           ENDIF
 
           ! verbose

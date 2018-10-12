@@ -481,12 +481,12 @@
      &             RHB,       PRESSU, W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root,  Input_Opt, State_Met,  State_Chm,     
-     &             RADIAT,     TC0,       SUNCOS_MID,
-     &             F0,         HSTAR,     XMW,        AIROSOL,           
-     &             USTAR,      CZ1,       OBK,        CFRAC,     
-     &             ZH,         LSNOW,     DVEL,       AZO,              
-     &             RHB,        PRESSU,    W10,        RC            )
+      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
+     &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
+     &             F0,        HSTAR,     XMW,        AIROSOL,           
+     &             USTAR,     CZ1,       OBK,        CFRAC,
+     &             ZH,        LSNOW,     DVEL,       AZO,              
+     &             RHB,       PRESSU,    W10,        RC            )
 
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
@@ -838,12 +838,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root,  Input_Opt, State_Met, State_Chm,    
-     &                   RADIAT,     TEMP,      SUNCOS,
-     &                   F0,         HSTAR,     XMW,       AIROSOL,
-     &                   USTAR,      CZ1,       OBK,       CFRAC,
-     &                   ZH,         LSNOW,     DVEL,      ZO,
-     &                   RHB,        PRESSU,    W10,       RC          )
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
+     &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
+     &                   F0,        HSTAR,     XMW,       AIROSOL,     
+     &                   USTAR,     CZ1,       OBK,       CFRAC,           
+     &                   ZH,        LSNOW,     DVEL,      ZO,            
+     &                   RHB,       PRESSU,    W10,       RC          )
 !
 ! !USES:
 !
@@ -854,12 +854,14 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Diag_Mod,     ONLY : DgnState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root      ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
+      TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
 
       REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
       REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
@@ -1122,6 +1124,14 @@
       REAL(fp)          :: SUNCOS_FP
       REAL(fp)          :: CFRAC_FP
 
+#if defined( MODEL_GEOS )
+      ! Archive Ra?
+      REAL(fp)          :: RA2M,  Z0OBK2M
+      REAL(fp)          :: RA10M, Z0OBK10M
+      !LOGICAL           :: WriteRa2m
+      !LOGICAL           :: WriteRa10m
+#endif
+
       ! For the species database
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
@@ -1156,6 +1166,20 @@
 
       ! Size of drycoeff (ckeller, 05/19/14)
       NN = SIZE(DRYCOEFF)
+
+#if defined( MODEL_GEOS )
+      ! Logical flag for Ra (ckeller, 12/29/17)
+      State_Chm%DryDepRa2m  = 0.0_fp
+      State_Chm%DryDepRa10m = 0.0_fp
+      !WriteRa2m = ASSOCIATED ( State_Diag%DryDepRa2m )
+      !IF ( WriteRa2m ) THEN
+      !   State_Diag%DryDepRa2m = 0.0_fp
+      !ENDIF
+      !WriteRa10m = ASSOCIATED ( State_Diag%DryDepRa10m )
+      !IF ( WriteRa10m ) THEN
+      !   State_Diag%DryDepRa10m = 0.0_fp
+      !ENDIF
+#endif
 
 !***********************************************************************       
 !
@@ -1222,6 +1246,9 @@
 !$OMP+PRIVATE( DUMMY1, DUMMY2, DUMMY3, DUMMY4, DAIR,   RB     )
 !$OMP+PRIVATE( C1X,    VK,     I,      J,      IW             )
 !$OMP+PRIVATE( DIAM,   DEN,    XLAI_FP, SUNCOS_FP, CFRAC_FP   )
+#if defined( MODEL_GEOS )
+!$OMP+PRIVATE( RA2M,   Z0OBK2M, RA10M, Z0OBK10M               )
+#endif
 #if defined( TOMAS )
 !$OMP+PRIVATE( BIN                                            )
 #endif
@@ -1688,7 +1715,12 @@
 !==============================================================================
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
 !            ! Set CASTNET height at 10m (krt, 11/2017)
+#if defined( MODEL_GEOS )
+            Z0OBK2M  = MAX(Z0OBK,  2e+0_fp/OBK(I,J) )
+            Z0OBK10M = MAX(Z0OBK, 10e+0_fp/OBK(I,J) )
+#else
 !            Z0OBKKT = 10e+0_fp/OBK(I,J)
+#endif
 !==============================================================================
 
             LRGERA(I,J) = .FALSE.
@@ -1742,12 +1774,22 @@
 !*                                 
                IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
 !*... unstable condition; set RA to zero. (first implemented in V. 3.2)
-                  RA = 0.e+0_f8
+                  RA    = 0.e+0_f8
+#if defined( MODEL_GEOS )
+                  !RAKT  = 0.e+0_f8
+                  RA2M  = 0.e+0_f8
+                  RA10M = 0.e+0_f8
+#endif
 
 !*... error trap: prevent CORR1 or Z0OBK from being zero or close to
 !*... zero (ckeller, 3/15/16)
                ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                   RA = 0.e+0_f8
+#if defined( MODEL_GEOS )
+                  !RAKT  = 0.e+0_f8
+                  RA2M  = 0.e+0_f8
+                  RA10M = 0.e+0_f8
+#endif
 
                ELSEIF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .GE. -1.e+0_f8) 
      &          THEN
@@ -1758,15 +1800,44 @@
                   DUMMY4 = ABS((DUMMY2 - 1.e+0_f8)/(DUMMY2 + 1.e+0_f8))
                   RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * 
      &                 LOG(DUMMY3/DUMMY4)
-                                 
+#if defined( MODEL_GEOS )
+!*... correct ozone to 10m for diagnostic (krt, 11/2017)
+                  !DUMMY2KT=(1.e+0_f8 - 9e+0_f8*Z0OBKKT)**0.5e+0_f8
+                  !DUMMY4KT=ABS((DUMMY2KT-1.e+0_f8)/(DUMMY2KT+1.e+0_f8))
+                  !RAKT = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
+     &            !     LOG(DUMMY3/DUMMY4KT)
+                  ! 2M
+                  DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK2M)**0.5e+0_f8
+                  DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
+                  RA2M   = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
+     &                     LOG(DUMMY3/DUMMY4)
+                  DUMMY1 = (1.e+0_f8 - 9e+0_f8*Z0OBK10M)**0.5e+0_f8
+                  DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
+                  RA10M  = 0.74e+0_f8* (1.e+0_f8/CKUSTR) *
+     &                     LOG(DUMMY3/DUMMY4)
+#endif                       
+          
                ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))
      &          THEN
 !*...moderately stable conditions (z/zMO <1); compute Ra as described above
                   RA = (1e+0_f8/CKUSTR) * 
      &            (.74e+0_f8*LOG(CORR1/Z0OBK) + 4.7e+0_f8*(CORR1-Z0OBK))
+#if defined( MODEL_GEOS )
+     &            !(.74_f8*LOG(CORR1/Z0OBKKT)+4.7_f8*(CORR1-Z0OBKKT))
+                  RA2M = (1e+0_f8/CKUSTR) *
+     &            (0.74_f8*LOG(Z0OBK2M/Z0OBK)+4.7_f8*(Z0OBK2M-Z0OBK))
+                  RA10M = (1e+0_f8/CKUSTR) *
+     &            (0.74_f8*LOG(Z0OBK10M/Z0OBK)+4.7_f8*(Z0OBK10M-Z0OBK))
+#endif
+
                ELSEIF(LRGERA(I,J)) THEN
 !*... very stable conditions
-                  RA = 1.e+04_f8
+                  RA    = 1.e+04_f8
+#if defined( MODEL_GEOS )
+                  !RAKT = 1.e+04_f8
+                  RA2M  = 1.e+04_f8
+                  RA10M = 1.e+04_f8
+#endif
                ENDIF
 !* check that RA is positive; if RA is negative (as occasionally
 !* happened in version 3.1) send a warning message.
@@ -1791,6 +1862,16 @@
 !                  RAKT = 1.e+0_f8 * (1.e+0_f8/CKUSTR) *
 !     &                 LOG(DUMMY3/DUMMY4KT)
 !==============================================================================
+#if defined( MODEL_GEOS )
+                  ! 2M
+                  DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK2M)**0.5e+0_f8
+                  DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
+                  RA2M = 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
+                  ! 10M
+                  DUMMY1 = (1.D0 - 15.e+0_f8*Z0OBK10M)**0.5e+0_f8
+                  DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
+                  RA10M= 1.e+0_f8 * (1.e+0_f8/CKUSTR)*LOG(DUMMY3/DUMMY4)
+#endif
 
                ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) 
      &          THEN
@@ -1803,6 +1884,13 @@
 !                  RAKT = (1D0/CKUSTR) *
 !     &          (1.e+0_f8*LOG(CORR1/Z0OBKKT) + 5.e+0_f8*(CORR1-Z0OBKKT))
 !==============================================================================
+#if defined( MODEL_GEOS )
+                  RA2M = (1D0/CKUSTR) *
+     &          (1.e+0_f8*LOG(Z0OBK2M/Z0OBK)+5.e+0_f8*(Z0OBK2M-Z0OBK))
+                  RA10M = (1D0/CKUSTR) *
+     &          (1.e+0_f8*LOG(Z0OBK10M/Z0OBK)+5.e+0_f8*(Z0OBK10M-Z0OBK))
+#endif
+
                ELSE ! CORR1 .GT. 1.0D0
                   !coef_a=5e+0_f8
                   !coef_b=1.e+0_f8
@@ -1813,6 +1901,13 @@
 !                  RAKT = (1D0/CKUSTR) *
 !     &          (5.e+0_f8*LOG(CORR1/Z0OBKKT) +1.e+0_f8*(CORR1-Z0OBKKT))
 !==============================================================================
+#if defined( MODEL_GEOS )
+                  RA2M = (1D0/CKUSTR) *
+     &          (5.e+0_f8*LOG(Z0OBK2M/Z0OBK)+1.e+0_f8*(Z0OBK2M-Z0OBK))
+                  RA10M = (1D0/CKUSTR) *
+     &          (5.e+0_f8*LOG(Z0OBK10M/z0OBK)+1.e+0_f8*(Z0OBK10M-Z0OBK))
+#endif
+
                ENDIF
 
             ENDIF
@@ -1822,12 +1917,23 @@
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
 !            RAKT = MIN(RAKT,1.e+4_f8)
 !==============================================================================
+#if defined( MODEL_GEOS )
+            RA2M   = MIN(RA2M,  1.e+4_f8)
+            RA10M  = MIN(RA10M, 1.e+4_f8)
+#endif
 
             ! If RA is < 0, set RA = 0 (bmy, 11/12/99)
             IF (RA .LT. 0.e+0_f8) THEN
                WRITE (6,1001) I,J,RA,CZ,ZO(I,J),OBK(I,J)  
                RA = 0.0e+0_f8
             ENDIF
+
+#if defined( MODEL_GEOS )
+            ! Adjust 2M Ra if needed
+            IF ( RA2M  < 0.e+0_f8 ) RA2M  = 0.e+0_f8
+            IF ( RA10M < 0.e+0_f8 ) RA10M = 0.e+0_f8
+#endif
+
 !==============================================================================
 !#if defined ( BPCH_DIAG )
 ! This diagnostic requires some fixes. Comment out for now (mps,3/2/18)
@@ -1865,6 +1971,10 @@
             DO 230 K = 1,NUMDEP 
                IF ( LDEP(K) ) THEN
                   RA     = 1.0D4
+#if defined( MODEL_GEOS )
+                  RA2M   = 1.0D4
+                  RA10M  = 1.0D4
+#endif
                   C1X(K) = RA + RSURFC(K,LDT)
                ENDIF
  230        CONTINUE
@@ -1881,6 +1991,24 @@
                VK(K) = VD(K)
                VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
  400        CONTINUE
+
+#if defined( MODEL_GEOS )
+!---------- Eventually archive aerodynamic resistance. 
+!---------- Convert s m-1 to s cm-1. 
+!---------- Ra is set to an arbitrary large value of 1.0e4
+!---------- in stable conditions. Adjust archived Ra's 
+!---------- downward to avoid excessive surface concentration
+!---------- adjustments when using C'=(1-Ra*vd)*C.
+!---------- (ckeller, 2/2/18)
+            !IF ( RA2M >= 1.0d4 ) RA2M = 0.0
+            State_Chm%DryDepRa2m(I,J) = State_Chm%DryDepRa2m(I,J) +
+     &                                  0.001d0 * DBLE(IUSE(I,J,LDT)) *
+     &                                   ( MAX(0.0d0,RA-RA2M)/100.0d0 )
+            !IF ( RAKT >= 1.0d4 ) RAKT = 0.0
+            State_Chm%DryDepRa10m(I,J) = State_Chm%DryDepRa10m(I,J) +
+     &                                   0.001d0 * DBLE(IUSE(I,J,LDT)) *
+     &                                   ( MAX(0.0d0,RA-RA10M)/100.0d0 )
+#endif
 
  500     CONTINUE
 
@@ -1941,6 +2069,13 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined( MODEL_GEOS )
+      ! Pass Monin Obukhov diagnostics
+      IF ( ASSOCIATED ( State_Diag%MoninObukhov ) ) THEN
+         State_Diag%MoninObukhov(:,:) = OBK(:,:)
+      ENDIF
+#endif
 
       ! Free pointers
       NULLIFY( IREG  )
@@ -2159,6 +2294,9 @@
       !=================================================================
       ! Open and read data from the netCDF file
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Input file for Olson 2001
       nc_file = 'Olson_2001_Drydep_Inputs.nc'

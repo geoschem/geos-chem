@@ -1053,6 +1053,69 @@
      &               * ( 1013.25_fp / PMID(I,J,L) ) 
      &               * ( T(I,J,L)   / 298.0_fp    )
 
+#if defined( MODEL_GEOS )
+         ! PM2.5 sulfates 
+         IF ( State_Diag%Archive_PM25su ) THEN
+            State_Diag%PM25su(I,J,L) = ( SO4(I,J,L) * SIA_GROWTH  )
+     &                               * ( 1013.25_fp / PMID(I,J,L) )
+     &                               * ( T(I,J,L)   / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+
+         ! PM2.5 nitrates 
+         IF ( State_Diag%Archive_PM25ni ) THEN
+            State_Diag%PM25ni(I,J,L) = ( NH4(I,J,L) * SIA_GROWTH
+     &                               +   NIT(I,J,L) * SIA_GROWTH  )
+     &                               * ( 1013.25_fp / PMID(I,J,L) )
+     &                               * ( T(I,J,L)   / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 BC
+         IF ( State_Diag%Archive_PM25bc  ) THEN
+            State_Diag%PM25bc(I,J,L) = ( BCPI(I,J,L) + BCPO(I,J,L) )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) )
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 OC
+         IF ( State_Diag%Archive_PM25oc  ) THEN
+            State_Diag%PM25oc(I,J,L) = ( OCPO(I,J,L)
+     &                               +   OCPI(I,J,L) * ORG_GROWTH  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) )
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 dust
+         IF ( State_Diag%Archive_PM25du  ) THEN
+            State_Diag%PM25du(I,J,L) = ( SOILDUST(I,J,L,1)
+     &                               +   SOILDUST(I,J,L,2)
+     &                               +   SOILDUST(I,J,L,3)
+     &                               +   SOILDUST(I,J,L,4)
+     &                               +   SOILDUST(I,J,L,5) * 0.38  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) )
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 sea salt
+         IF ( State_Diag%Archive_PM25ss  ) THEN
+            State_Diag%PM25ss(I,J,L) = ( SALA(I,J,L) * ORG_GROWTH  )
+     &                               * ( 1013.25_fp  / PMID(I,J,L) )
+     &                               * ( T(I,J,L)    / 298.0_fp    )
+     &                               * 1.0e+9_fp
+         ENDIF
+         ! PM2.5 SOA      
+         IF ( State_Diag%Archive_PM25soa ) THEN
+            State_Diag%PM25soa(I,J,L) = ( TSOA(I,J,L)   * ORG_GROWTH
+     &                                +   ISOA(I,J,L)   * ORG_GROWTH
+     &                                +   ASOA(I,J,L)   * ORG_GROWTH
+     &                                +   SOAS(I,J,L)   * ORG_GROWTH
+     &                                +   ISOAAQ(I,J,L) * ORG_GROWTH  )
+     &                                * ( 1013.25_fp    / PMID(I,J,L) )
+     &                                * ( T(I,J,L)      / 298.0_fp    )
+     &                                * 1.0e+9_fp
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
       ENDDO
@@ -1110,7 +1173,7 @@
       USE TRANSFER_MOD,   ONLY : TRANSFER_3D
       USE UCX_MOD,        ONLY : GET_STRAT_OPT
       USE UCX_MOD,        ONLY : NDENS_AER
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD21
 #endif
@@ -1307,7 +1370,7 @@
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
       ! For diagnostics
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       INTEGER             :: IOUT, IISOPAOD, IAERAQVOL
 #endif
 #if defined( NC_DIAG )
@@ -1356,8 +1419,8 @@
       WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
       WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
 
-#if defined( BPCH_DIAG )
-      IF ( ND21 > 0 ) THEN
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+      IF ( Input_Opt%ND21 > 0 ) THEN
          ! Define certain bpch ND21 diagnostic indexes
          IISOPAOD  = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 1
          IAERAQVOL = 5 + 5*NRHAER + 3*NDUST + 3*NSTRATAER + 2
@@ -1896,7 +1959,7 @@
             ! Skip stratospheric aerosols
             IF ((IIWV.EQ.1).and.(ISTRAT.le.0)) THEN
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
                !----------------------------------------------------
                ! ND21 bpch diagnostics computed here:
                !  #7  Hygroscopic growth of SO4                [unitless]
@@ -1905,7 +1968,8 @@
                !  #16 Hygroscopic growth of Sea Salt (accum)   [unitless]
                !  #19 Hygroscopic growth of Sea Salt (coarse)  [unitless]
                !save increase in AOD resulting from water uptake
-               IF( ND21 > 0 .AND. L <= LD21 .AND.ODSWITCH.EQ.1) THEN
+               IF( Input_Opt%ND21 > 0 .AND. L <= Input_Opt%LD21 
+     &             .AND.ODSWITCH.EQ.1) THEN
                   AD21(I,J,L,7+3*(N-1)) = AD21(I,J,L,7+3*(N-1)) +
      &                                    SCALEOD
                ENDIF
@@ -1993,11 +2057,11 @@
      &                                       DRYAREA )
                ENDIF !Hydrophobic aerosol surface area
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
                !----------------------------------------------------
                ! ND21 bpch diagnostics computed here:
                !  #59  Aqueous aerosol volume ( (RADIUS*AREA)/3 )
-               IF ( ND21 > 0 .AND. N .EQ. 1 ) THEN 
+               IF ( Input_Opt%ND21 > 0 .AND. N .EQ. 1 ) THEN 
                   ! Initialize:
                   TAERVOL = 0d0
 
@@ -2040,7 +2104,7 @@
             ! Index for combination of aerosol type and RH
             N = NRHAER + ISTRAT
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
             ! For ND21
             IOUT = 5 + 2*NRHAER + 3*(NDUST+NRHAER) + (ISTRAT-1)*3
 #endif
@@ -2086,8 +2150,8 @@
                   WERADIUS(I,J,L,NDUST+N) = RAER 
                ENDIF
 
-#if defined( BPCH_DIAG )
-               IF ( ND21 .GT. 0 .AND. L .LE. LD21 ) THEN
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+               IF ( Input_Opt%ND21.GT.0.AND.L.LE.Input_Opt%LD21 ) THEN
 
                   !----------------------------------------------------
                   ! ND21 bpch diagnostics computed here:
@@ -2116,10 +2180,20 @@
                ! Netcdf diagnostics computed here:
                !  Strat aerosol liquid surface area
                !  Polar strat cloud surface area
+#if defined( MODEL_GEOS )
+               IF ( State_Diag%Archive_AerSurfAreaSLA 
+     &              .AND. ISTRAT==1 ) THEN
+#else
                IF ( State_Diag%Archive_AerSurfAreaSLA ) THEN
+#endif
                   State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
                ENDIF
+#if defined( MODEL_GEOS )
+               IF ( State_Diag%Archive_AerSurfAreaPSC 
+     &              .AND. ISTRAT==2 ) THEN
+#else
                IF ( State_Diag%Archive_AerSurfAreaPSC ) THEN
+#endif
                   State_Diag%AerSurfAreaPSC(I,J,L) = SADSTRAT
                ENDIF
 
@@ -2182,8 +2256,8 @@
       ! NOTE: The cloud optical depths are actually recorded at
       !       1000 nm, but vary little with wavelength.
       !==============================================================
-#if defined( BPCH_DIAG )
-      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
+      IF ( Input_Opt%ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N, W, LINTERP, IOUT )
@@ -2218,7 +2292,7 @@
                END SELECT
 
                ! loop over grid boxes
-               DO L = 1, LD21
+               DO L = 1, Input_Opt%LD21
                DO J = 1, JJPAR
                DO I = 1, IIPAR
 
@@ -2272,7 +2346,7 @@
             !  #14 Organic Carbon (hydrophilic) Surface Area [cm2/cm3 ]
             !  #17 Sea Salt (accum) Surface Area             [cm2/cm3 ]
             !  #20 Sea Salt (coarse) Surface Area            [cm2/cm3 ]
-            DO L = 1, LD21
+            DO L = 1, Input_Opt%LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
