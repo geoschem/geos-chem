@@ -157,6 +157,7 @@
       ! TRAC_IDX           : Species index for output
       ! N_EMIT             : Number of species to emit
       ! MAX_EMIT           : Limit on species emission count
+      ! SFC_YEAR           : Current year (for CFC emissions)
       ! SFC_MONTH          : Current month
       ! OFFSETYEAR         : Number of year-ends since simulation start
       ! MONTH_STR_INT      : Current month
@@ -180,6 +181,7 @@
       ! UCX_LATS           : Latitude edges of 2D data (deg)
       ! IDT_EMIT           : IDs of emitted species
       ! GRID_EMIT          : Surface CFC mixing ratios
+      ! SFC_YEAR           : Year (for CFC emissions purposes)
       ! SFC_MONTH          : Month of last read-in
       ! RAD_AER            : Strat. aerosol radius (cm)
       ! KG_AER             : Aerosol mass (kg/box)
@@ -209,6 +211,7 @@
       INTEGER              :: TRAC_IDX
       INTEGER              :: N_EMIT
       INTEGER, PARAMETER   :: MAX_EMIT=50
+      INTEGER              :: SFC_YEAR
       INTEGER              :: SFC_MONTH
       INTEGER              :: OFFSETYEAR
       INTEGER              :: MONTH_STR_INT
@@ -1194,17 +1197,25 @@
 
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
-
-      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
-      ! may become initialized to zero because the simulation year is not
-      ! yet know during initialization (ckeller, 1/20/16).
-      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
+      
+      WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', CFCYEAR,GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
-          IF (GET_MONTH().lt.SFC_MONTH) THEN
-             OFFSETYEAR = OFFSETYEAR + 1
-          ENDIF
+          ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+          ! may become initialized to zero because the simulation year is not
+          ! yet know during initialization (ckeller, 1/20/16).
+          !IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
+          IF (CFCYEAR <= 0) THEN
+             SFC_YEAR = GET_YEAR()
+             OFFSETYEAR = 0
+          ELSE
+             SFC_YEAR = CFCYEAR
+             IF (GET_MONTH().lt.SFC_MONTH) THEN
+                OFFSETYEAR = OFFSETYEAR + 1
+             ENDIF
+          END IF
+
           SFC_MONTH = GET_MONTH()
           IF (LPRT) THEN
              WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
@@ -1300,7 +1311,8 @@
       !=================================================================
 
       ! Copy fields from INPUT_OPT
-      CFCYEAR   = Input_Opt%CFCYEAR
+      !CFCYEAR   = Input_Opt%CFCYEAR
+      CFCYEAR = SFC_YEAR
 
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0e+0_fp
@@ -1573,7 +1585,7 @@
       ! SET_MONTREAL begins here!
       !=================================================================
 
-      YY = Input_Opt%CFCYEAR+OFFSETYEAR
+      YY = SFC_YEAR+OFFSETYEAR
       MM = SFC_MONTH
       GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + SFCMR_GET(TRAC_NAME,YY,MM)
 
