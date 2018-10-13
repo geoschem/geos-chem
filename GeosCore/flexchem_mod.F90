@@ -722,7 +722,9 @@ CONTAINS
        ! This modification was validated by a geosfp_4x5_standard
        ! difference test. (bmy, 1/18/18)
        !====================================================================
-       IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
+       !IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
+       ! Let it go up to 98 degrees (ckeller, 10/10/18)
+       IF ( State_Met%SUNCOSmid(I,J) > -0.13917e+0_fp ) THEN
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
