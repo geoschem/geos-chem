@@ -223,7 +223,7 @@ CONTAINS
     ENDIF
 
     ! Exit if Phase 0 or 1
-    IF ( Phase <= 1 ) RETURN
+    IF ( ( Phase == 1 ) .or. ( Phase == 0 ) ) RETURN
 
     ! Call carbon emissions module to make sure that sesquiterpene
     ! emissions calculated in HEMCO (SESQ) are passed to the internal
