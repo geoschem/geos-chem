@@ -153,7 +153,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBASICEMIS
      LOGICAL                     :: LSETH2O
      INTEGER                     :: CFCYEAR
-     LOGICAL                     :: LFUTURECFC
 
      !----------------------------------------
      ! CO MENU fields
@@ -594,6 +593,7 @@ MODULE Input_Opt_Mod
 !  29 Dec 2017 - C. Keller   - Added LLSTRAT. Used in gc_environment_mod.F90
 !  29 Dec 2017 - C. Keller   - Added AlwaysSetH2O.
 !  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
+!  15 Oct 2018 - E. Lundgren - Remove LFUTURECFC; no longer needed with ucx_mod updates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,7 +813,6 @@ CONTAINS
     Input_Opt%LBASICEMIS             = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
     Input_Opt%CFCYEAR                = 0
-    Input_Opt%LFUTURECFC             = .FALSE.
 
     !----------------------------------------
     ! CO MENU fields

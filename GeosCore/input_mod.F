@@ -2136,9 +2136,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(i4)') Input_Opt%CFCYEAR
 
-      ! Do we apply an offset?
-      Input_Opt%LFUTURECFC = ( Input_Opt%CFCYEAR .gt. 1950 )
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
       IF ( RC /= GC_SUCCESS ) THEN

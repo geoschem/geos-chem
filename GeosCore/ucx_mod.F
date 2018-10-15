@@ -1157,7 +1157,9 @@
 !                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  26 Jun 2017 - R. Yantosca   - GC_ERROR is now contained in errcode_mod.F90
+!  15 Oct 2018 - S. Eastham    - Fix bug in setting CFCYEAR in an ESMF env; now
+!                                use module variable SFC_YEAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1171,7 +1173,6 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      INTEGER              :: CFCYEAR
 
       ! Pointers
       REAL(fp), POINTER     :: Spc (:,:,:,:)
@@ -1185,7 +1186,6 @@
 
       ! Copy fields from INPUT_OPT
       LPRT      = Input_Opt%LPRT
-      CFCYEAR   = Input_Opt%CFCYEAR
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -1198,19 +1198,21 @@
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
       
-      WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', CFCYEAR,GET_YEAR()
+      IF ( LPRT  .AND. am_I_Root ) THEN
+         WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', 
+     &                        Input_Opt%CFCYEAR, GET_YEAR()
+      ENDIF
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
           ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
           ! may become initialized to zero because the simulation year is not
           ! yet know during initialization (ckeller, 1/20/16).
-          !IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
-          IF (CFCYEAR <= 0) THEN
+          IF ( Input_Opt%CFCYEAR <= 1950 ) THEN
              SFC_YEAR = GET_YEAR()
              OFFSETYEAR = 0
           ELSE
-             SFC_YEAR = CFCYEAR
+             SFC_YEAR = Input_Opt%CFCYEAR
              IF (GET_MONTH().lt.SFC_MONTH) THEN
                 OFFSETYEAR = OFFSETYEAR + 1
              ENDIF
@@ -1219,7 +1221,8 @@
           SFC_MONTH = GET_MONTH()
           IF (LPRT) THEN
              WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
-     &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
+     &          'Using Montreal reference year', 
+     &          ( Input_Opt%CFCYEAR + OFFSETYEAR )
              CALL DEBUG_MSG( OUTMSG )
           ENDIF
           CALL READ_SFC( am_I_Root, Input_Opt )
@@ -1303,22 +1306,15 @@
       CHARACTER(LEN=20):: LOCAL_NAME
       INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
-      ! Local variables for quantities from Input_Opt
-      INTEGER          :: CFCYEAR
-
       !=================================================================
       ! READ_SFC begins here!
       !=================================================================
-
-      ! Copy fields from INPUT_OPT
-      !CFCYEAR   = Input_Opt%CFCYEAR
-      CFCYEAR = SFC_YEAR
 
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0e+0_fp
 
       IF (UCXNETCDF) THEN
-         TARG_YR_NC = CFCYEAR+OFFSETYEAR
+         TARG_YR_NC = SFC_YEAR+OFFSETYEAR
          TARG_MO_NC = SFC_MONTH
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
@@ -1367,7 +1363,7 @@
       ELSE
          ! Read from ASCII
          ! Determine which line needs to be read in
-         TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
+         TARG_LINE = (12*(SFC_YEAR+OFFSETYEAR-1959)) + SFC_MONTH
 
          ! Loop over species IDs pegged for emissions
          DO N=1,N_EMIT
@@ -1393,7 +1389,7 @@
                   ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL(LOCAL_NAME,
-     &                         CFCYEAR+OFFSETYEAR-1949,N,Input_Opt)
+     &                         SFC_YEAR+OFFSETYEAR-1949,N,Input_Opt)
                CASE ('OCS')
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = OCS_MR
@@ -5627,7 +5623,6 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
       LOGICAL            :: LUCX
-      LOGICAL            :: LFUTURECFC
       LOGICAL            :: LCH4SBC
       LOGICAL            :: LCFCEMIS
       LOGICAL            :: LCLEMIS
@@ -5645,7 +5640,6 @@
       ! Copy fields from INPUT_OPT
       LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LUCX         = Input_Opt%LUCX
-      LFUTURECFC   = Input_Opt%LFUTURECFC
       LCH4SBC      = Input_Opt%LCH4SBC
       LCFCEMIS     = Input_Opt%LCFCEMIS
       LCLEMIS      = Input_Opt%LCLEMIS
@@ -5834,9 +5828,6 @@
       ! Set "current" month to impossible value
       SFC_MONTH = 0
       OFFSETYEAR = 0
-      IF (.not.LFUTURECFC) THEN
-         Input_Opt%CFCYEAR = GET_YEAR()
-      ENDIF
 
       ! Determine which species are to be emitted
       N_EMIT = 0
