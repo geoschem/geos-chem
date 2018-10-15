@@ -99,8 +99,8 @@ MODULE HCOX_STATE_MOD
      !----------------------------------------------------------------------
      INTEGER                   :: Custom         ! Customizable ext.
      INTEGER                   :: DustDead       ! DEAD dust model
-     LOGICAL                   :: DustGinoux     ! Ginoux dust emissions
-     LOGICAL                   :: DustAlk        ! Dust alkalinity
+     INTEGER                   :: DustGinoux     ! Ginoux dust emissions
+     INTEGER                   :: DustAlk        ! Dust alkalinity
      INTEGER                   :: LightNOx       ! Lightning NOx
      INTEGER                   :: ParaNOx        ! PARANOX ship emissions
      INTEGER                   :: SoilNOx        ! Soil NOx emissions
@@ -110,10 +110,10 @@ MODULE HCOX_STATE_MOD
      INTEGER                   :: MarinePOA      ! Marine organic aerosols
      INTEGER                   :: GFED           ! GFED biomass burning
      INTEGER                   :: FINN           ! FINN biomass burning
-     LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
-     LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
+     INTEGER                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
+     INTEGER                   :: GC_POPs        ! GEOS-Chem POPs simulation
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
-     LOGICAL                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
+     INTEGER                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
      INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      INTEGER                   :: AeroCom        ! AeroCom volcano 
      INTEGER                   :: Inorg_Iodine   ! Oceanic inorganic iodine emissions
