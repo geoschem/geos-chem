@@ -637,6 +637,65 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
 
+#if defined( NC_DIAG )
+      !================================================================
+      ! %%%%% HISTORY (netCDF) diagnostics: %%%%%
+      ! Zero out all diagnostic arrays to avoid leftover values from
+      ! from the last timestep from being archived again (bmy,10/15/18)
+      !================================================================
+      IF ( State_Diag%Archive_LossPOPPOCPObyGasPhase ) THEN
+         State_Diag%LossPOPPOCPObyGasPhase = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPOCPOfromGasPhase ) THEN
+         State_Diag%ProdPOPPOCPOfromGasPhase = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_LossPOPPBCPObyGasPhase ) THEN
+         State_Diag%LossPOPPBCPObyGasPhase = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPBCPOfromGasPhase ) THEN
+         State_Diag%ProdPOPPBCPOfromGasPhase = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPGfromOH ) THEN
+         State_Diag%ProdPOPGfromOH = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPOCPOfromO3 ) THEN 
+         State_Diag%ProdPOPPOCPOfromO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPOCPIfromO3 ) THEN 
+         State_Diag%ProdPOPPOCPIfromO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPBCPOfromO3 ) THEN 
+         State_Diag%ProdPOPPBCPOfromO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPBCPIfromO3 ) THEN 
+         State_Diag%ProdPOPPBCPIfromO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPOCPOfromNO3 ) THEN 
+         State_Diag%ProdPOPPOCPOfromNO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPOCPIfromNO3 ) THEN 
+         State_Diag%ProdPOPPOCPIfromNO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPBCPOfromNO3 ) THEN 
+         State_Diag%ProdPOPPBCPOfromNO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdPOPPBCPIfromNO3 ) THEN 
+         State_Diag%ProdPOPPBCPIfromNO3 = 0.0_f4
+      ENDIF
+#endif
+
       ! Eventually should parallelize this ...
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -944,15 +1003,17 @@
          IF ( DIFF_OC < 0.0_fp ) THEN
 
             ! Loss of POPPOCPO by gas-phase reactions
-            IF ( State_Diag%Archive_LossPOPPOCbyGasPhase ) THEN
-               State_Diag%LossPOPPOCbyGasPhase(I,J,L)   = DIFF_OC/DTCHEM
+            IF ( State_Diag%Archive_LossPOPPOCPObyGasPhase ) THEN
+               State_Diag%LossPOPPOCPObyGasPhase(I,J,L)   = DIFF_OC
+     &                                                    / DTCHEM
             ENDIF
 
          ELSE
 
             ! Prod of POPPOCPO by gas-phase reactions
-            IF ( State_Diag%Archive_ProdPOPPOCfromGasPhase ) THEN
-               State_Diag%ProdPOPPOCfromGasPhase(I,J,L) = DIFF_OC/DTCHEM
+            IF ( State_Diag%Archive_ProdPOPPOCPOfromGasPhase ) THEN
+               State_Diag%ProdPOPPOCPOfromGasPhase(I,J,L) = DIFF_OC
+     &                                                    / DTCHEM
             ENDIF
 
          ENDIF
@@ -960,15 +1021,17 @@
          IF ( DIFF_BC < 0.0_fp ) THEN
 
             ! Loss of POPPBCPO by gas-phase reactions
-            IF ( State_Diag%Archive_LossPOPPBCbyGasPhase ) THEN
-               State_Diag%LossPOPPBCbyGasPhase(I,J,L)   = DIFF_BC/DTCHEM
+            IF ( State_Diag%Archive_LossPOPPBCPObyGasPhase ) THEN
+               State_Diag%LossPOPPBCPObyGasPhase(I,J,L)   = DIFF_BC
+     &                                                    / DTCHEM
             ENDIF
 
          ELSE
 
             ! Prod of POPPBCPO by gas-phase reactions
-            IF ( State_Diag%Archive_ProdPOPPOCfromGasPhase ) THEN
-               State_Diag%ProdPOPPBCfromGasPhase(I,J,L) = DIFF_BC/DTCHEM
+            IF ( State_Diag%Archive_ProdPOPPOCPOfromGasPhase ) THEN
+               State_Diag%ProdPOPPBCPOfromGasPhase(I,J,L) = DIFF_BC
+     &                                                    / DTCHEM
             ENDIF
 
          ENDIF

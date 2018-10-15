@@ -156,7 +156,7 @@
 !   # : Field    : Description                     : Units    : Scale factor
 !  -------------------------------------------------------------------------
 !  (1 ) PG-SRCE  : POP emissions                   : kg/s     : 1
-!  (2 ) PG-PP-$  : Gas phase POP reacted with OH   : kg/s      : 1
+!  (2 ) PG-PP-$  : Gas phase POP reacted with OH   : kg/s     : SCALE
 !                   or partitioned
 ! 
 ! !REVISION HISTORY:
@@ -165,7 +165,10 @@
 !  26 Aug 2014 - M. Sulprizio- Now track POPs emissions through HEMCO and
 !                              write to bpch in diag3.F
 !  17 Dec 2014 - R. Yantosca - Leave time/date variables as 8-byte
-!  11 Oct 2018 - R. Yantosca - Now divide by seconds to get units of kg/s
+!  15 Oct 2018 - R. Yantosca - Data for #17-#29 are now divided by seconds
+!                              in pops_mod.F. Divide by the # of chemistry
+!                              timesteps. This is done to better match the
+!                              netCDF output.  BPCH will be removed soon.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -206,8 +209,6 @@
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
       NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp )
       SECONDS   = ( DIAGe - DIAGb ) * 3600e+0_fp
-
-      print*, '### SCALE: ', Scale
 
       !=================================================================
       ! Write data to the bpch file
