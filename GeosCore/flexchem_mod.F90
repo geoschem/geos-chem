@@ -713,8 +713,14 @@ CONTAINS
        ! J-value diagnostics are defined for all levels in the column.
        ! This modification was validated by a geosfp_4x5_standard
        ! difference test. (bmy, 1/18/18)
+       !
+       ! Update SUNCOSmid threshold from 0 to cos(98 degrees) since
+       ! fast-jx allows for SZA down to 98 degrees. This is important in
+       ! the stratosphere-mesosphere where sunlight still illuminates at 
+       ! high altitudes if the sun is below the horizon at the surface
+       ! (update submitted by E. Fleming (NASA), 10/11/2018)
        !====================================================================
-       IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
+       IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
