@@ -5942,10 +5942,15 @@ MODULE GCKPP_HETRATES
       REAL(fp),       INTENT(OUT) :: CLDFr     ! cloud fraction
 !
 ! !REMARKS:
+!  References:
+!   Heymsfield, A. J., Winker, D., Avery, M., et al. (2014). Relationships between ice water content and volume extinction coefficient from in situ observations for temperatures from 0° to –86°C: implications for spaceborne lidar retrievals. Journal of Applied Meteorology and Climatology, 53(2), 479–505. https://doi.org/10.1175/JAMC-D-13-087.1
+!
+!   Schmitt, C. G., & Heymsfield, A. J. (2005). Total Surface Area Estimates for Individual Ice Particles and Particle Populations. Journal of Applied Meteorology, 44(4), 467–474. https://doi.org/10.1175/JAM2209.1
 !
 ! !REVISION HISTORY:
 !  21 Dec 2016 - S. D. Eastham - Adapted from CLD1K_BrNO3
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  15 Oct 2018 - C.D. Holmes - Corrections for ice radius, volume, surface area
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5961,24 +5966,17 @@ MODULE GCKPP_HETRATES
       ! Ice cloud droplet radius [cm]
       REAL(fp), PARAMETER :: XCLDrIce = 75.e-4_fp
 
-      ! Sticking coefficient
-      REAL(fp), PARAMETER :: alpha = 0.3_fp
+      ! Density of H2O liquid [kg/cm3]
+      REAL(fp), PARAMETER :: dens_h2o = 1.0e-3_fp
 
-      ! Density of H2O [kg/cm3]
-      REAL(fp), PARAMETER :: dens_h2o = 0.001e+0_fp
+      ! Density of H2O ice [kg/cm3]
+      REAL(fp), PARAMETER :: dens_ice = 0.91e-3_fp
 !
 ! !LOCAL VARIABLES:
 !
-      REAL(fp)            :: nu         ! Mean molecular speed
-      REAL(fp)            :: RADIUS     ! Radius of cloud droplet      [cm]
-      REAL(fp)            :: SQM        ! Square root of molec. weight [g/mol]
-      REAL(fp)            :: STK        ! Square root of temperature   [K]
-      REAL(fp)            :: DFKG       ! Gas diffusion coefficient    [cm2/s]
-      REAL(fp)            :: AREA_L     ! Surface area (liquid)        [cm2/cm3]
-      REAL(fp)            :: AREA_I     ! Surface area (ice) )         [cm2/cm3]
-      REAL(fp)            :: Vcl, Vci   ! Volume of the cloud (liq and ice) [cm3]
       LOGICAL             :: IS_LAND, IS_ICE, Is_Warm
-   
+      REAL(fp)            :: alpha,   beta
+
       ! Pointers
       REAL(fp), POINTER   :: AD(:,:,:)
       REAL(fp), POINTER   :: CLDF(:,:,:)
@@ -5995,9 +5993,6 @@ MODULE GCKPP_HETRATES
       FRLAND  => State_Met%FRLAND
       FROCEAN => State_Met%FROCEAN
 
-      ! Fixed for now
-      rIce = xCldrIce
-
       CLDFr = CLDF(I,J,L)
       IF ( CLDFR.le.0.0e+0_fp ) CLDFr = 1.0e-32_fp
 
@@ -6011,81 +6006,31 @@ MODULE GCKPP_HETRATES
          Return
       ENDIF
 
-      ! Is this land?
-      ! LWI=1 and ALBEDO less than 69.5% is a LAND box 
-      IS_LAND = ( NINT( State_Met%LWI(I,J) ) == 1       .and. &
-                     State_Met%ALBD(I,J)  <  0.695e+0_fp )
-
-      ! Is this ice?
-      ! LWI=2 or ALBEDO > 69.5% is ice
-      IS_ICE = ( NINT( State_Met%LWI(I,J) ) == 2       .or. &
-                    State_Met%ALBD(I,J)  >= 0.695e+0_fp )
+      ! Volume of cloud condensate, water or ice [cm3]
+      ! QL is [g/g]
+      VLiq = QL * AD(I,J,L) / dens_h2o
+      VIce = QI * AD(I,J,L) / dens_ice
 
       ! ----------------------------------------------
-      ! Test conditions to see if we want to continue
-      ! with respect to liquid clouds.
+      ! In GC 12.0 and earlier, the liquid water volume was 
+      ! set to zero at temperatures colder than 258K and 
+      ! over land ice (Antarctica & Greenland). That
+      ! was likely legacy code from GEOS-4, which provided
+      ! no information on cloud phase. As of GC 12.0, 
+      ! all met data sources provide explicit liquid and
+      ! ice condensate amounts, so we use those as provided.
+      ! (C.D. Holmes)
       ! ----------------------------------------------
 
-      ! continental or marine clouds only...
-      IF ( (FRLAND (I,J) > 0) .or. (FROCEAN(I,J) > 0) ) THEN
-      ! Above line is to skip over land ice (Greenland and Antartica). This
-      ! should do the same (and also work for GEOS-5, but leave above for now).
-      !IF ( IS_LAND .and. .not. IS_ICE  ) THEN
-         ! do we have clouds? and do we have warm temperatures?
-         Is_Warm = ((CLDF(I,J,L) > 0) .and. (T > 258.0))
-      ELSE
-         Is_Warm = .FALSE.
-      ENDIF
+      !-----------------------------------------------
+      ! Liquid water clouds
+      !
+      ! Droplets are spheres, so
+      ! Surface area = 3 * Volume / Radius
+      !
+      ! Surface area density = Surface area / Grid volume
+      !-----------------------------------------------
 
-      ! ----------------------------------------------
-      !   calculate the surface area of cloud droplets
-      !   in the given grid box, assuming 1 of 2
-      !   conditions:
-      !     a. marine warm cloud
-      !       or
-      !     b. continental warm cloud
-      !
-      !
-      !   * Calculation for area is derived follows,
-      !     assuming that RADIUS is constant:
-      !
-      !                         4/3 (pi) (RADIUS)**3
-      !  1) FC = Vc / Vb = N  -------------------------
-      !                                  Vb
-      !
-      !
-      !       where N      = number of cloud droplets
-      !             RADIUS = radius of cloud droplet
-      !             Vc     = volumn of the cloud
-      !             Vb     = volumn of the box = AIRVOL (in GEOS-Chem)
-      !
-      !
-      !                     Vb
-      !  2) N = FC --------------------
-      !            4/3 (pi) (RADIUS)**3
-      !
-      !
-      !  So the surface area [m2] is calculated as
-      !
-      !  3) total surface A = N * 4 * (pi) * (RADIUS)**2
-      !
-      !                  3*Vb
-      !          = FC ----------
-      !                 RADIUS
-      !
-      !  4) for this routine though we want
-      !     AREA in [cm2/cm3], surface area to volume air:
-      !
-      !                   3
-      !     AREA = FC ---------
-      !                RADIUS (in cm)
-      !
-      !
-      !    or    
-      !                   3 x Vc
-      !     AREA =  -----------------
-      !              AIRVOL x RADIUS      (in cm)
-      ! ----------------------------------------------
       IF ( FRLAND(I,J) > FROCEAN(I,J) ) THEN
          ! Continental cloud droplet radius [cm]
          rLiq = XCLDR_CONT
@@ -6094,20 +6039,47 @@ MODULE GCKPP_HETRATES
          rLiq = XCLDR_MARI
       ENDIF
 
-      ! get the volume of cloud [cm3]
-      ! QL is [g/g]
-      VLiq = QL * AD(I,J,L) / dens_h2o
-      VIce = QI * AD(I,J,L) / dens_h2o
-  
-      ! Only want warm (continental or marine) liquid clouds
-      IF ( .not. Is_Warm ) THEN
-         VLiq = 0.e+0_fp
-      ENDIF
+      ! Surface area density, cm2/cm3
+      ALiq = 3.e+0_fp * (VLiq/VAir) / rLiq 
 
-      ! now calculate the cloud droplet surface area density
-      ! ALiq and AIce are in cm2/cm3
-      ALiq = 3.e+0_fp * (VLiq/VAir) / rLiq ! keep Radius in [cm]
-      AIce = 3.e+0_fp * (VIce/VAir) / rIce ! keep Radius in [cm]
+      !-----------------------------------------------
+      ! Ice water clouds
+      !
+      ! Surface area calculation requires information about
+      ! ice crystal size and shape, which is a function of 
+      ! temperature. Use Heymsfield (2014) empirical relationships
+      ! between temperature, effective radius, surface area
+      ! and ice water content.
+      !
+      ! Schmitt and Heymsfield (2005) found that ice surface area
+      ! is about 9 times its cross-sectional area. 
+      ! For any shape,
+      ! Cross section area = pi * (Effective Radius)^2, so
+      ! Cross section area = 3 * Volume / ( 4 * Effective Radius ).
+      ! 
+      ! Thus, for ice
+      ! Surface area = 9 * Cross section area 
+      !              = 2.25 * 3 * Volume / Effective Radius
+      ! (C.D. Holmes)
+      !-----------------------------------------------
+
+      ! Heymsfield (2014) ice size parameters
+      if (T < 273d0 - 71d0 ) then
+          alpha = 83.3d0
+          beta  = 0.0184d0
+      elseif ( T < 273d0 - 56d0 ) then
+          alpha = 9.1744d4
+          beta = 0.117d0
+      else
+          alpha = 308.4d0
+          beta  = 0.0152d0
+      endif
+
+      ! Effective radius, cm
+      rIce = 0.5e+0_fp * alpha * exp( beta * (T-273.15d0) ) / 1d4
+
+      ! Ice surface area density, cm2/cm3
+      AIce = 3.e+0_fp * (VIce/VAir) / rIce * 2.25e+0_fp
 
       ! Free Pointers
       NULLIFY( AD      )
