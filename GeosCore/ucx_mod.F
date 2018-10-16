@@ -1175,7 +1175,7 @@
       LOGICAL              :: LPRT
 
       ! Pointers
-      REAL(fp), POINTER     :: Spc (:,:,:,:)
+      REAL(fp), POINTER    :: Spc (:,:,:,:)
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -1184,8 +1184,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
-      ! Copy fields from INPUT_OPT
-      LPRT      = Input_Opt%LPRT
+      ! Debugging prints local variable
+      LPRT = Input_Opt%LPRT .AND. am_I_Root
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -1198,61 +1198,61 @@
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
       
-      IF ( LPRT  .AND. am_I_Root ) THEN
+      IF ( LPRT ) THEN
          WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', 
      &                        Input_Opt%CFCYEAR, GET_YEAR()
       ENDIF
 
-       ! If not correct hour block and day read in new fields
-       IF (SFC_MONTH/=GET_MONTH()) THEN
-          ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
-          ! may become initialized to zero because the simulation year is not
-          ! yet know during initialization (ckeller, 1/20/16).
-          IF ( Input_Opt%CFCYEAR <= 1950 ) THEN
-             SFC_YEAR = GET_YEAR()
-             OFFSETYEAR = 0
-          ELSE
-             SFC_YEAR = Input_Opt%CFCYEAR
-             IF (GET_MONTH().lt.SFC_MONTH) THEN
-                OFFSETYEAR = OFFSETYEAR + 1
-             ENDIF
-          END IF
+      ! If not correct hour block and day read in new fields
+      IF (SFC_MONTH/=GET_MONTH()) THEN
+         ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+         ! may become initialized to zero because the simulation year is not
+         ! yet know during initialization (ckeller, 1/20/16).
+         IF ( Input_Opt%CFCYEAR <= 1950 ) THEN
+            SFC_YEAR = GET_YEAR()
+            OFFSETYEAR = 0
+         ELSE
+            SFC_YEAR = Input_Opt%CFCYEAR
+            IF (GET_MONTH().lt.SFC_MONTH) THEN
+               OFFSETYEAR = OFFSETYEAR + 1
+            ENDIF
+         END IF
 
-          SFC_MONTH = GET_MONTH()
-          IF (LPRT) THEN
-             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
-     &          'Using Montreal reference year', 
-     &          ( Input_Opt%CFCYEAR + OFFSETYEAR )
-             CALL DEBUG_MSG( OUTMSG )
-          ENDIF
-          CALL READ_SFC( am_I_Root, Input_Opt )
-       END IF
+         SFC_MONTH = GET_MONTH()
+         IF ( LPRT ) THEN
+            WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
+     &         'Using Montreal reference year', 
+     &         ( SFC_YEAR + OFFSETYEAR )
+            CALL DEBUG_MSG( OUTMSG )
+         ENDIF
+         CALL READ_SFC( am_I_Root, Input_Opt )
+      END IF
   
-       ! Loop over emitted species
+      ! Loop over emitted species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, N, N_EMITTED )
 !$OMP+SCHEDULE( DYNAMIC )
-       DO N = 1, N_EMIT
+      DO N = 1, N_EMIT
 
-          ! Get the species # of the emitted species
-          N_EMITTED = IDT_EMIT(N)
+         ! Get the species # of the emitted species
+         N_EMITTED = IDT_EMIT(N)
 
-          ! Convert units if the species is valied
-          IF ( N_EMITTED /= 0 ) THEN
+         ! Convert units if the species is valied
+         IF ( N_EMITTED /= 0 ) THEN
 
-             ! Loop over surface grmid boxes
-             DO J = 1, JJPAR
-             DO I = 1, IIPAR
+            ! Loop over surface grmid boxes
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
            
-                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
-                Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
+               ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
+               Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
      &                        / ( AIRMW /
      &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
 
-             ENDDO
-             ENDDO
-          ENDIF
+            ENDDO
+            ENDDO
+         ENDIF
       ENDDO
 !$OMP END PARALLEL DO
 
