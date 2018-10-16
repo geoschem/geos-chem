@@ -411,6 +411,8 @@
 !
 ! !USES:
 !     
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
       USE m_netcdf_io_open                         ! netCDF file open
       USE m_netcdf_io_read                         ! netCDF read
       USE m_netcdf_io_readattr                     ! netCDF attribute reads
@@ -485,6 +487,7 @@
       CHARACTER(LEN=63)    :: OrigUnit
 
       ! NetCDF file info
+      LOGICAL              :: FND
       INTEGER              :: fId                ! netCDF file ID
       INTEGER              :: NX, NY, NZ, NT     ! netCDF file dimensions
       CHARACTER(LEN=255)   :: nc_path            ! filename
@@ -638,20 +641,21 @@
             SpcInfo%Is_InRestart = .TRUE.
          ENDIF
 
+         ! Initialize temporary array for this species and point to it
+         Temp3D = 0.0_fp
+         Ptr3D => Temp3D
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), 
+     &                    Ptr3D,     RC,       FOUND=FND )
+
          ! If data is in file, read in as [mol/mol] and convert to 
          ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
          ! either stored in species database (advected species all levels and
          ! non-advected species levels up to LLCHEM) or a small number
          ! (non-advected species levels above LLCHEM) converted to 
          ! [kg/kg dry]
-         IF ( SpcInfo%Is_InRestart ) THEN
-
-            ! Initialize temporary array for this species and point to it
-            Temp3D = 0.0_fp
-            Ptr3D => Temp3D
-
-            ! Read variable from file and store in local array
-            CALL NcRd( Ptr3D, fId, TRIM(v_name), st4d, ct4d )
+         IF ( FND ) THEN
 
             ! Print the min & max of each species as it is read from 
             ! the restart file in mol/mol
