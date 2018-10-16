@@ -5920,7 +5920,7 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN) :: State_Diag  ! Diagnostics State object
 !
