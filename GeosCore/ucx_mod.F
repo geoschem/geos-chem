@@ -158,6 +158,7 @@
       ! TRAC_IDX           : Species index for output
       ! N_EMIT             : Number of species to emit
       ! MAX_EMIT           : Limit on species emission count
+      ! SFC_YEAR           : Current year (for CFC emissions)
       ! SFC_MONTH          : Current month
       ! OFFSETYEAR         : Number of year-ends since simulation start
       ! MONTH_STR_INT      : Current month
@@ -181,6 +182,7 @@
       ! UCX_LATS           : Latitude edges of 2D data (deg)
       ! IDT_EMIT           : IDs of emitted species
       ! GRID_EMIT          : Surface CFC mixing ratios
+      ! SFC_YEAR           : Year (for CFC emissions purposes)
       ! SFC_MONTH          : Month of last read-in
       ! RAD_AER            : Strat. aerosol radius (cm)
       ! KG_AER             : Aerosol mass (kg/box)
@@ -210,6 +212,7 @@
       INTEGER              :: TRAC_IDX
       INTEGER              :: N_EMIT
       INTEGER, PARAMETER   :: MAX_EMIT=50
+      INTEGER              :: SFC_YEAR
       INTEGER              :: SFC_MONTH
       INTEGER              :: OFFSETYEAR
       INTEGER              :: MONTH_STR_INT
@@ -1158,7 +1161,9 @@
 !                                Replace TCVV with spc db MW and phys constant
 !  07 Jul 2016 - E. Lundgren   - Replace tracer pointer with species pointer
 !  11 Aug 2016 - R. Yantosca   - Remove temporary tracer-removal code
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!  26 Jun 2017 - R. Yantosca   - GC_ERROR is now contained in errcode_mod.F90
+!  15 Oct 2018 - S. Eastham    - Fix bug in setting CFCYEAR in an ESMF env; now
+!                                use module variable SFC_YEAR
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1175,12 +1180,12 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-      INTEGER              :: CFCYEAR
 #if defined( MODEL_GEOS )
       INTEGER              :: TARGYEAR
 #endif
+
       ! Pointers
-      REAL(fp), POINTER     :: Spc (:,:,:,:)
+      REAL(fp), POINTER    :: Spc (:,:,:,:)
 
       !=================================================================
       ! EMISS_BASIC begins here!
@@ -1189,9 +1194,8 @@
       ! Assume success
       RC = GC_SUCCESS
 
-      ! Copy fields from INPUT_OPT
-      LPRT      = Input_Opt%LPRT
-      CFCYEAR   = Input_Opt%CFCYEAR
+      ! Debugging prints local variable
+      LPRT = Input_Opt%LPRT .AND. am_I_Root
 
       ! Check that species units are in kg/kg dry air (ewl, 9/10/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
@@ -1203,13 +1207,17 @@
 
       ! Initialize GEOS-Chem species array [kg/kg dry]
       Spc => State_Chm%Species
+      
+      IF ( LPRT ) THEN
+         WRITE(*,'(a,2(x,I5))') ' CALLING EMISS_BASIC ', 
+     &                        Input_Opt%CFCYEAR, GET_YEAR()
+      ENDIF
 
+#if defined( MODEL_GEOS )
 !      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
 !      ! may become initialized to zero because the simulation year is not
 !      ! yet know during initialization (ckeller, 1/20/16).
-#if !defined( MODEL_GEOS )
-      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
-#endif
+!      IF ( CFCYEAR <= 0 ) CFCYEAR = GET_YEAR()
 
        ! If not correct hour block and day read in new fields
        IF (SFC_MONTH/=GET_MONTH()) THEN
@@ -1218,24 +1226,45 @@
           ENDIF
           SFC_MONTH = GET_MONTH()
           IF (LPRT) THEN
-#if defined( MODEL_GEOS )
-             IF ( CFCYEAR <= 0 ) THEN
+             IF ( Input_Opt%CFCYEAR <= 0 ) THEN
                 TARGYEAR = GET_YEAR()
              ELSE
-                TARGYEAR = CFCYEAR+OFFSETYEAR
+                TARGYEAR = Input_Opt%CFCYEAR+OFFSETYEAR
              ENDIF
              WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
      &          'Using Montreal reference year', (TARGYEAR)
-#else
-             WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
-     &          'Using Montreal reference year', (CFCYEAR+OFFSETYEAR)
-#endif
             CALL DEBUG_MSG( OUTMSG )
           ENDIF
           CALL READ_SFC( am_I_Root, Input_Opt )
        END IF
-  
-       ! Loop over emitted species
+#else
+      ! If not correct hour block and day read in new fields
+      IF (SFC_MONTH/=GET_MONTH()) THEN
+         ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
+         ! may become initialized to zero because the simulation year is not
+         ! yet know during initialization (ckeller, 1/20/16).
+         IF ( Input_Opt%CFCYEAR <= 1950 ) THEN
+            SFC_YEAR = GET_YEAR()
+            OFFSETYEAR = 0
+         ELSE
+            SFC_YEAR = Input_Opt%CFCYEAR
+            IF (GET_MONTH().lt.SFC_MONTH) THEN
+               OFFSETYEAR = OFFSETYEAR + 1
+            ENDIF
+         END IF
+
+         SFC_MONTH = GET_MONTH()
+         IF ( LPRT ) THEN
+            WRITE(OUTMSG,'(a,a,1x,I4)') ' ### UCX: ',
+     &         'Using Montreal reference year', 
+     &         ( SFC_YEAR + OFFSETYEAR )
+            CALL DEBUG_MSG( OUTMSG )
+         ENDIF
+         CALL READ_SFC( am_I_Root, Input_Opt )
+      END IF
+#endif  
+
+      ! Loop over emitted species
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 #if defined( MODEL_GEOS )
@@ -1271,20 +1300,20 @@
       ENDDO
       ENDDO
 #else
-       DO N = 1, N_EMIT
+      DO N = 1, N_EMIT
 
-          ! Get the species # of the emitted species
-          N_EMITTED = IDT_EMIT(N)
+         ! Get the species # of the emitted species
+         N_EMITTED = IDT_EMIT(N)
 
-          ! Convert units if the species is valied
-          IF ( N_EMITTED /= 0 ) THEN
+         ! Convert units if the species is valied
+         IF ( N_EMITTED /= 0 ) THEN
 
-             ! Loop over surface grmid boxes
-             DO J = 1, JJPAR
-             DO I = 1, IIPAR
+            ! Loop over surface grmid boxes
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
            
-                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
-                Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
+               ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
+               Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
      &                        / ( AIRMW /
      &                        State_Chm%SpcData(N_EMITTED)%Info%emMW_g ) 
 
@@ -1348,24 +1377,23 @@
       CHARACTER(LEN=20):: LOCAL_NAME
       INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
+#if defined( MODEL_GEOS )
       ! Local variables for quantities from Input_Opt
-      INTEGER          :: TARGYEAR, CFCYEAR
+      INTEGER          :: TARGYEAR
+#endif
 
       !=================================================================
       ! READ_SFC begins here!
       !=================================================================
 
-      ! Copy fields from INPUT_OPT
-      CFCYEAR   = Input_Opt%CFCYEAR
-
 #if defined( MODEL_GEOS )
       ! Get target year. This is either the current year (if CFC year in
       ! input_opt is zero), or the set CFC year plus the offset years 
       ! since simulation start.
-      IF ( CFCYEAR <= 0 ) THEN
+      IF ( Input_Opt%CFCYEAR <= 0 ) THEN
          TARGYEAR = GET_YEAR()
       ELSE
-         TARGYEAR = CFCYEAR+OFFSETYEAR
+         TARGYEAR = Input_Opt%CFCYEAR+OFFSETYEAR
       ENDIF
 #endif
 
@@ -1376,7 +1404,7 @@
 #if defined( MODEL_GEOS )
          TARG_YR_NC = TARGYEAR
 #else
-         TARG_YR_NC = CFCYEAR+OFFSETYEAR
+         TARG_YR_NC = SFC_YEAR+OFFSETYEAR
 #endif 
          TARG_MO_NC = SFC_MONTH
          DO N=1,N_EMIT
@@ -1429,7 +1457,7 @@
 #if defined( MODEL_GEOS )
          TARG_LINE = (12*(TARGYEAR-1959)) + SFC_MONTH
 #else
-         TARG_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + SFC_MONTH
+         TARG_LINE = (12*(SFC_YEAR+OFFSETYEAR-1959)) + SFC_MONTH
 #endif
 
          ! Loop over species IDs pegged for emissions
@@ -1459,7 +1487,7 @@
 #if defined( MODEL_GEOS )
      &                         TARGYEAR-1949,N,Input_Opt)
 #else
-     &                         CFCYEAR+OFFSETYEAR-1949,N,Input_Opt)
+     &                         SFC_YEAR+OFFSETYEAR-1949,N,Input_Opt)
 #endif
                CASE ('OCS')
                   ! Simple boundary condition
@@ -1653,8 +1681,7 @@
 
       !=================================================================
       ! SET_MONTREAL begins here!
-      !=================================================================
-   
+      !=================================================================   
 #if defined( MODEL_GEOS )
       YY = Input_Opt%CFCYEAR
       IF ( YY <= 0 ) THEN
@@ -1662,11 +1689,11 @@
       ELSE
          YY = Input_Opt%CFCYEAR+OFFSETYEAR
       ENDIF
+#else
+      YY = SFC_YEAR+OFFSETYEAR
+#endif
       MM = SFC_MONTH
       GRID_EMIT(:,:,N) = GRID_EMIT(:,:,N) + SFCMR_GET(TRAC_NAME,YY,MM)
-#else
-      YY = Input_Opt%CFCYEAR+OFFSETYEAR
-#endif
 
       ! Return to calling routine
       END SUBROUTINE SET_MONTREAL
@@ -5923,7 +5950,6 @@
       ! Local variables for quantities from Input_Opt
       LOGICAL            :: LPRT
       LOGICAL            :: LUCX
-      LOGICAL            :: LFUTURECFC
       LOGICAL            :: LCH4SBC
       LOGICAL            :: LCFCEMIS
       LOGICAL            :: LCLEMIS
@@ -5941,7 +5967,6 @@
       ! Copy fields from INPUT_OPT
       LPRT         = ( Input_Opt%LPRT .and. am_I_Root )
       LUCX         = Input_Opt%LUCX
-      LFUTURECFC   = Input_Opt%LFUTURECFC
       LCH4SBC      = Input_Opt%LCH4SBC
       LCFCEMIS     = Input_Opt%LCFCEMIS
       LCLEMIS      = Input_Opt%LCLEMIS
@@ -6146,9 +6171,6 @@
       ! Set "current" month to impossible value
       SFC_MONTH = 0
       OFFSETYEAR = 0
-      IF (.not.LFUTURECFC) THEN
-         Input_Opt%CFCYEAR = GET_YEAR()
-      ENDIF
 
       ! Determine which species are to be emitted
       N_EMIT = 0

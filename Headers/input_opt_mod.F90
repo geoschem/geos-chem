@@ -151,7 +151,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBASICEMIS
      LOGICAL                     :: LSETH2O
      INTEGER                     :: CFCYEAR
-     LOGICAL                     :: LFUTURECFC
 
      !----------------------------------------
      ! CO MENU fields
@@ -609,6 +608,7 @@ MODULE Input_Opt_Mod
 !  04 Apr 2018 - E. Lundgren - Remove MAX_PASV; use # from input.geos instead
 !  30 Aug 2018 - C. Keller   - Remove LLSTRAT. Only used in GEOS-5, obtained
 !                              from gridded comp module directly.
+!  15 Oct 2018 - E. Lundgren - Remove LFUTURECFC; no longer needed with ucx_mod updates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -826,7 +826,6 @@ CONTAINS
     Input_Opt%LBASICEMIS             = .FALSE.
     Input_Opt%LSETH2O                = .FALSE.
     Input_Opt%CFCYEAR                = 0
-    Input_Opt%LFUTURECFC             = .FALSE.
 
     !----------------------------------------
     ! CO MENU fields
