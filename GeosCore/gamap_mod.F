@@ -6901,7 +6901,6 @@
          DO T = 1, PD53
 
             ! Define quantities
-            UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
             MWT  (T,53) = Input_Opt%POP_XMW
             SCALE(T,53) = 1e0
@@ -6909,69 +6908,85 @@
             ! Get name, long-name, index, and new units
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,53) = 'POPT'
+                  NAME (T,53) = 'POPT_em'
                   FNAME(T,53) = 'POP total emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 2  )
-                  NAME (T,53) = 'OCPO em'
+                  NAME (T,53) = 'OCPO_em'
                   FNAME(T,53) = 'POPPOCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 3  )
-                  NAME (T,53) = 'BCPO em'
+                  NAME (T,53) = 'BCPO_em'
                   FNAME(T,53) = 'POPPBCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 4  )
-                  NAME (T,53) = 'G em'
+                  NAME (T,53) = 'POPG_em'
                   FNAME(T,53) = 'POPG emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 5  )
-                  NAME (T,53) = 'kgGsoil'
+                  NAME (T,53) = 'POPGsoil'
                   FNAME(T,53) = '2nd em from soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 6  )
-                  NAME (T,53) = 'kgGlake'
+                  NAME (T,53) = 'POPGlake'
                   FNAME(T,53) = '2nd em from lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 7  )
-                  NAME (T,53) = 'kgGleaf'
+                  NAME (T,53) = 'POPGleaf'
                   FNAME(T,53) = '2nd em from leaves'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 8  )
                   NAME (T,53) = 'soi2air'
                   FNAME(T,53) = 'Diff flux from soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 9  )
                   NAME (T,53) = 'air2soi'
                   FNAME(T,53) = 'Diff flux to soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 10  )
                   NAME (T,53) = 'lak2air'
                   FNAME(T,53) = 'Diff flux from lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 11  )
                   NAME (T,53) = 'air2lak'
                   FNAME(T,53) = 'Diff flux to lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 12  )
                   NAME (T,53) = 'lea2air'
                   FNAME(T,53) = 'Diff flux from vegetation'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 13  )
                   NAME (T,53) = 'air2lea'
                   FNAME(T,53) = 'Diff flux to vegetation'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 14  )
                   NAME (T,53) = 'soiair'
                   FNAME(T,53) = 'Soil fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 15  )
                   NAME (T,53) = 'lakair'
                   FNAME(T,53) = 'Lake fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 16  )
-                  NAME (T,53) = 'laeair'
+                  NAME (T,53) = 'leaair'
                   FNAME(T,53) = 'Leaf fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 17  )
                   NAME (T,53) = 'OCPO2G'
                   FNAME(T,53) = 'Gross POPPOCPO lost to gas'

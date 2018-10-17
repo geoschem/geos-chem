@@ -591,7 +591,7 @@ emissions_mod.o             : emissions_mod.F90                              \
                               hcoi_gc_main_mod.o      mercury_mod.o          \
                               sulfate_mod.o           tomas_mod.o            \
                               ucx_mod.o               sfcvmr_mod.o           \
-                              diagnostics_mod.o
+                              diagnostics_mod.o       pops_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
 	                      tpcore_bc_mod.o         dao_mod.o
@@ -662,9 +662,7 @@ hcoi_gc_diagn_mod.o         : hcoi_gc_diagn_mod.F90                          \
                               hcoi_gc_diagn_include.H                        \
                               hco_interface_mod.o                            \
                               diag_mod.o              diag53_mod.o           \
-                              diag56_mod.o            
-
-
+                              diag56_mod.o 
 
 hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               get_ndep_mod.o          drydep_mod.o           \

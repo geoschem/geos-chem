@@ -23,6 +23,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+      PUBLIC :: GetPopsDiagsFromHemco
       PUBLIC :: ChemPOPs
       PUBLIC :: Init_POPs
       PUBLIC :: Cleanup_POPs
@@ -105,6 +106,407 @@
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: GetPOPsDiagsfromHemco
+!
+! !DESCRIPTION: Copies manually-archived diagnostic values for the POPs
+!  specialty simulation from the HEMCO state object into the relevant fields 
+!  of the State_Diag object.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE GetPopsDiagsFromHemco( am_I_Root,  Input_Opt, 
+     &                                  State_Diag, RC         )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE HCO_Interface_Mod,  ONLY : GetHcoDiagn
+      USE HCO_Interface_Mod,  ONLY : HcoState
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Diag_Mod,     ONLY : DgnState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine should be called from EMISSIONS_RUN.  It does not add any
+!  emissions for the POPS simulation per se.  But because several POPs
+!  diagnostics are archived via HEMCO, we need to copy information out
+!  of the HEMCO state and into the relevant fields of State_Diag.
+!
+! !REVISION HISTORY:
+!  15 Oct 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+#if defined( NC_DIAG )
+      ! Strings
+      CHARACTER(LEN=63)  :: DgnName
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
+
+      ! Pointers
+      REAL(f4), POINTER  :: Ptr2D(:,:)
+#endif
+
+      !=================================================================
+      ! GetPopsDiagsFromHemco begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+#if defined( NC_DIAG )
+      ErrMsg  = ''
+      ThisLoc =
+     & '-> at GetPopsDiagsFromHemco (in module GeosCore/pops_mod.F)'
+
+      !=================================================================
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Get pointers to the POPs diagnostics that are tracked by HEMCO
+      ! and then attach them to fields of the State_Diag array.
+      !
+      ! NOTE: The diagnostic names (which start with GCPOPS) have
+      ! to match those in HEMCO/Extensions/hcox_gc_POPS_mod.F90.
+      !=================================================================
+      
+      !-----------------------------------------------------------------
+      ! Primary POPPOCPO emissions
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPPOCPO ) THEN
+
+         ! Get pointer from HEMCO diagnostics
+         DgnName = 'GCPOPS_POPPOCPO_SOURCE'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPPOCPO = Ptr2D
+
+         ! Free Pointer
+         Ptr2D => NULL()
+      ENDIF
+         
+      !-----------------------------------------------------------------
+      ! Primary POPPBCPO emissions
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPPBCPO ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_POPPBCPO_SOURCE'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPPBCPO = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Primary POPG emissions
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPG ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_POPG_SOURCE'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPG = Ptr2D
+         
+         ! Free Pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Secondary POPG emissions from soil
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPGfromSoil ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_POPG_SOIL'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPGfromSoil = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Secondary POPG emissions from lakes
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPGfromLake ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_POPG_LAKE'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPGfromLake = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Secondary POPG emissions from leaves
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisPOPGfromLeaf ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_POPG_LEAF'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%EmisPOPGfromLeaf= Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Positive POPG soil flux (from soil to air)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromSoilToAir ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_SOIL2AIR'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromSoilToAir = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Negative POPG soil flux (from air to soil)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromAirToSoil ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_AIR2SOIL'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromAirToSoil = Ptr2D
+         
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Positive POPG lake flux (from lake to air)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromLakeToAir ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_LAKE2AIR'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromLakeToAir = Ptr2D
+         
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Negative POPG lake flux (from air to soil)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromAirToLake ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_AIR2LAKE'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+      
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromAirToLake = Ptr2D
+         
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Positive POPG leaf flux (from leaves to air)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromLeafToAir ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_LEAF2AIR'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromLeafToAir = Ptr2D
+        
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Negative POPG leaf flux (from air to leaves)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxPOPGfromAirToLeaf ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_AIR2LEAF'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FluxPOPGfromAirToLeaf = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Fugacity ratio: soil/air
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FugacitySoilToAir ) THEN
+         
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_SOILAIR_FUG'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FugacitySoilToAir = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Fugacity ratio: lake/air
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FugacityLakeToAir ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_LAKEAIR_FUG'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FugacityLakeToAir = Ptr2D
+
+         ! Free pointer
+         Ptr2D => NULL()
+      ENDIF
+
+      !-----------------------------------------------------------------
+      ! Fugacity ratio: leaf/air
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FugacityLeafToAir ) THEN
+
+         ! Get pointer from HEMCO
+         DgnName = 'GCPOPS_LEAFAIR_FUG'
+         CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field: ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Copy into State_Diag
+         State_Diag%FugacityLeafToAir = Ptr2D
+
+         ! Free pointer
+         Ptr2D   => NULL()
+      ENDIF
+#endif
+
+      END SUBROUTINE GetPopsDiagsFromHemco
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE:  chempops
 !
 ! !DESCRIPTION: Subroutine CHEMPOPS is the driver routine for POPs chemistry 
@@ -121,8 +523,9 @@
       USE CMN_SIZE_MOD
       USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE Error_Mod,          ONLY : DEBUG_MSG
+      USE HCO_Interface_Mod,  ONLY : GetHcoDiagn
+      USE HCO_Interface_Mod,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
@@ -178,7 +581,7 @@
       RC       = GC_SUCCESS
       prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
       ErrMsg   = ''
-      ThisLoc  = ' -> at ChemPops (in Headers/state_chm_mod.F90)'
+      ThisLoc  = ' -> at ChemPops (in module Headers/state_chm_mod.F90)'
 
       !=================================================================
       ! Get pointers to fields that are read in by HEMCO.
@@ -224,7 +627,7 @@
          ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
- 
+
       !=================================================================
       ! Perform chemistry on POPs tracers
       !=================================================================
@@ -639,7 +1042,8 @@
 
 #if defined( NC_DIAG )
       !================================================================
-      ! %%%%% HISTORY (netCDF) diagnostics: %%%%%
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
       ! Zero out all diagnostic arrays to avoid leftover values from
       ! from the last timestep from being archived again (bmy,10/15/18)
       !================================================================
@@ -994,7 +1398,7 @@
 
 #if defined( NC_DIAG )
          !==============================================================
-         ! %%%%% HISTORY (netCDF) DIAGNOSTICS %%%%%
+         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
          ! Prod and loss of total POPPOC and total POPPBC species 
          ! by gas-phase reactions [kg/s]
