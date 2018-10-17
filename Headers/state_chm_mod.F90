@@ -116,6 +116,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
      REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
      REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
+     REAL(fp),          POINTER :: AeroH2O    (:,:,:,:) ! Aerosol water [cm3/cm3]
      REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
      REAL(fp),          POINTER :: H2O2AfterChem(:,:,:) ! H2O2, SO2 [v/v]
      REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
@@ -242,6 +243,7 @@ MODULE State_Chm_Mod
 !                              shared pointers (e.g. species info) until last
 !  01 Nov 2018 - M. Sulprizio- Add SNOW_HG_* and Hg*aq arrays for saving out
 !                              to the Restart collection
+!  23 Aug 2018 - C.D. Holmes - Add aerosol H2O variable
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -415,7 +417,8 @@ CONTAINS
     State_Chm%AeroRadi      => NULL()
     State_Chm%WetAeroArea   => NULL()
     State_Chm%WetAeroRadi   => NULL()
-    
+    State_Chm%AeroH2O       => NULL()
+
     ! Isoprene SOA
     State_Chm%pHSav         => NULL()
     State_Chm%HplusSav      => NULL()
@@ -1032,6 +1035,60 @@ CONTAINS
           CALL Register_ChmField( am_I_Root, chmID, State_Chm%WetAeroRadi,   &
                                   State_Chm, RC,    Ncat=N )
           CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 1, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
+
+       !--------------------------------------------------------------------
+       ! AeroH2O
+       !--------------------------------------------------------------------
+       ALLOCATE( State_Chm%AeroH2O( IM, JM, LM, State_Chm%nAero ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroH2O', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroH2O = 0.0_fp
+
+       ! Loop over all entries to register each category individually
+       DO N = 1, State_Chm%nAero
+
+          ! Define identifying string
+          SELECT CASE( N )
+             CASE( 1  )
+                chmID = 'AeroH2OMDUST1'
+             CASE( 2  )
+                chmID = 'AeroH2OMDUST2'
+             CASE( 3  )
+                chmID = 'AeroH2OMDUST3'
+             CASE( 4  )
+                chmID = 'AeroH2OMDUST4'
+             CASE( 5  )
+                chmID = 'AeroH2OMDUST5'
+             CASE( 6  )
+                chmID = 'AeroH2OMDUST6'
+             CASE( 7  )
+                chmID = 'AeroH2OMDUST7'
+             CASE( 8  )
+                chmID = 'AeroH2OSULF'
+             CASE( 9  )
+                chmID = 'AeroH2OBC'
+             CASE( 10 )
+                chmID = 'AeroH2OOC'
+             CASE( 11 )
+                chmID = 'AeroH2OSSA'
+             CASE( 12 )
+                chmID = 'AeroH2OSSC'
+             CASE( 13 )
+                chmID = 'AeroH2OBGSULF'
+             CASE( 14 )
+                chmID = 'AeroH2OICEI'
+             CASE DEFAULT
+                ErrMsg = 'State_Chm%nAero exceeds the number of defined'     &
+                         // ' aerosol H2O categories'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+          END SELECT
+
+          CALL Register_ChmField( am_I_Root, chmID, State_Chm%AeroH2O,   &
+                                  State_Chm, RC,    Ncat=N )
+          CALL GC_CheckVar( 'State_Chm%AeroH2O', 1, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDDO
 
@@ -1781,12 +1838,18 @@ CONTAINS
        State_Chm%WetAeroRadi => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%AeroH2O ) ) THEN
+       DEALLOCATE( State_Chm%AeroH2O, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%AeroH2O', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroH2O => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%phSav ) ) THEN
        DEALLOCATE( State_Chm%phSav, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%phSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%pHSav => NULL()
-
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HplusSav ) ) THEN
@@ -2404,6 +2467,79 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'Wet aerosol radius for irregular ice cloud' &
                                 // ' (Mischenko)'
           IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST1' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.15 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST2' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.25 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST3' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.4 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST4' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (0.8 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST5' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (1.5 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST6' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (2.5 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OMDUST7' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for mineral dust (4.0 um)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OSULF' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for tropospheric sulfate'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OBC' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for black carbon'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OOC' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for organic carbon'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OSSA' )
+          IF ( isDesc  ) Desc= 'Aerosol H2O content for sea salt,' &
+                               // ' accumulation mode'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OSSC' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for sea salt, coarse mode'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OBGSULF' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for background' &
+                                // ' stratospheric sulfate'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
+          IF ( isRank  ) Rank  = 3
+
+       CASE ( 'AEROH2OICEI' )
+          IF ( isDesc  ) Desc  = 'Aerosol H2O content for irregular ice cloud' &
+                                // ' (Mischenko)'
+          IF ( isUnits ) Units = 'cm3(H2O)/cm3(air)'
           IF ( isRank  ) Rank  = 3
 
        CASE ( 'KPPHVALUE' )

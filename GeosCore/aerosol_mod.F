@@ -2044,6 +2044,11 @@
                WTAREA(I,J,L,N+NDUST)   = TAREA(I,J,L,N+NDUST)
                WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)     
 
+               ! Save aerosol water content. Assume that the increase in volume
+               ! equals the volume of pure water added, m3(H2O)/m3(air) 
+               State_Chm%AeroH2O(I,J,L,N+NDUST) =
+     &              WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)     
+
                !include hydrophobic BC and OC
                !stored separate to hydrophillic in RT variables
                IF ((N.eq.2).or.(N.eq.3)) THEN

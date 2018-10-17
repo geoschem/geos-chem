@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp.map
-! Time                 : Thu Jul 19 13:05:49 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Wed Oct 17 17:13:48 2018
+! Working directory    : /net/home_stu/cdholmes/test/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -40,7 +40,7 @@ REORDER  - ON
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 6 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 645 
+  INTEGER, PARAMETER :: NREACT = 646 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
@@ -141,4 +141,3 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
 SUBROUTINE Update_RCONST ( )
 SUBROUTINE Update_PHOTO ( )
 SUBROUTINE GetMass ( CL, Mass )
-SUBROUTINE ComputeFamilies ( V, FAM )

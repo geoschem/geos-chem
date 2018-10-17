@@ -232,6 +232,8 @@
       ! Wyser [1998]. (jpp, 6/15/2011)
 
       ! a. B = equation 14 in Wyser [1998]
+      ! CDH: The Wyser formula assumes iwc in g/m3, but g/cm3 is used here,
+      ! so the log10 term is incorrect.
       b_param = -2.e+0_f8 + 1.e-3_f8 * (273.e+0_f8 - T(I,J,L))**
      &   (1.5e0_f8) * log10(iwc/50.e+0_f8)
 

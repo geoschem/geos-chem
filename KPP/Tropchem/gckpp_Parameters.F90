@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Parameters.f90
-! Time                 : Thu Jul 19 13:05:49 2018
-! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/Tropchem
+! Time                 : Wed Oct 17 17:13:48 2018
+! Working directory    : /net/home_stu/cdholmes/test/KPP/Tropchem
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -42,7 +42,7 @@ MODULE gckpp_Parameters
 ! NFIX - Number of Fixed species
   INTEGER, PARAMETER :: NFIX = 6 
 ! NREACT - Number of reactions
-  INTEGER, PARAMETER :: NREACT = 645 
+  INTEGER, PARAMETER :: NREACT = 646 
 ! NVARST - Starting of variables in conc. vect.
   INTEGER, PARAMETER :: NVARST = 1 
 ! NFIXST - Starting of fixed in conc. vect.
