@@ -107,13 +107,16 @@ CONTAINS
     ! Scalars
     INTEGER             :: I, J, L, PBL_TOP
     CHARACTER(LEN=63)   :: OrigUnit
-    CHARACTER(LEN=255)  :: LOC='SET_CH4 (set_global_ch4_mod.F90)'
     REAL(fp)            :: CH4
 #if defined( MODEL_GEOS )
     INTEGER             :: DT
     REAL(fp)            :: dCH4, MWCH4
     LOGICAL             :: PseudoFlux
 #endif
+
+    ! Strings
+    CHARACTER(LEN=255)  :: ErrMsg
+    CHARACTER(LEN=255)  :: ThisLoc
 
     ! SAVEd variables
     LOGICAL, SAVE       :: FIRST = .TRUE.
@@ -124,7 +127,9 @@ CONTAINS
     !=================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at SET_CH4 (in module GeosCore/set_global_ch4_mod.F90)'
 
     ! Skip unless we are doing a fullchem simulation
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -139,7 +144,9 @@ CONTAINS
        ! Get pointer to surface CH4 data
        CALL HCO_GetPtr( am_I_Root, HcoState, 'NOAA_GMD_CH4', SFC_CH4, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          CALL ERROR_STOP ( 'Cannot get pointer to NOAA_GMD_CH4', LOC)
+          ErrMsg = 'Cannot get pointer to NOAA_GMD_CH4!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
 
        ! Reset first-time flag
@@ -151,8 +158,11 @@ CONTAINS
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                             State_Chm, 'v/v dry', RC, &
                             OrigUnit=OrigUnit )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, 'Start of SET_GLOBAL_CH4')
+       ErrMsg = 'Unit conversion error at start of "SET_CH4"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -214,8 +224,11 @@ CONTAINS
     ! Convert species back to original unit
     CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
                             State_Chm, OrigUnit, RC )
+
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error('Unit conversion error', RC, 'End of SET_GLOBAL_CH4')
+       ErrMsg = 'Unit conversion error at end of "SET_CH4"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 

@@ -488,6 +488,13 @@
      &             ZH,        LSNOW,     DVEL,       AZO,              
      &             RHB,       PRESSU,    W10,        RC            )
 
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in call to "DEPVEL!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
@@ -1136,7 +1143,12 @@
       INTEGER                :: SpcId
       TYPE(Species), POINTER :: SpcInfo
 
-
+      ! Strings
+      CHARACTER(LEN=255)  :: ThisLoc
+      CHARACTER(LEN=512)  :: ErrMsg
+!
+! !DEFINED PARAMETERS:
+!      
       ! Small number
       REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
 
@@ -1145,13 +1157,16 @@
       !=================================================================
 
       ! Assume success
-      RC                =  GC_SUCCESS
+      RC      =  GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at DEPVEL (in module GeosCore/drydep_mod.F)'
 
       ! Error check: PBL_DRYDEP must not be used together with non-local
       ! PBL mixing. 
       IF ( Input_Opt%LNLPBL .AND. Input_Opt%PBL_DRYDEP ) THEN 
-         CALL ERROR_STOP( 'PBL_DRYDEP must be disabled for LNLPBL', 
-     &                    'DEPVEL (drydep_mod.F)')
+         ErrMsg = 'PBL_DRYDEP must be disabled if LNLPBL=T!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Initialize pointers
@@ -1226,8 +1241,9 @@
          CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
      &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP('CALL AERO_DIADEN',
-     &                      'DEPVEL in drydep_mod.F')
+            ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 #endif

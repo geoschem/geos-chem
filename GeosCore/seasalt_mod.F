@@ -407,6 +407,8 @@
       INTEGER                  :: ID
       LOGICAL, SAVE            :: FIRST = .TRUE.
       REAL(f8)                 :: RHO, RHO1
+      CHARACTER(LEN=255)       :: ErrMsg
+      CHARACTER(LEN=255)       :: ThisLoc
 !
 ! !DEFINED PARAMETERS:
 !      
@@ -443,7 +445,10 @@
 
       ! Initialize
       RC       = GC_SUCCESS
-      prtDebug = ( Input_Opt%LPRT .and. am_I_Root                      )
+      prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
+      ErrMsg   = ''
+      ThisLoc  = 
+     &  ' -> at WET_SETTLING (in module GeosCore/seasalt_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       SALA_REDGE_um = Input_Opt%SALA_REDGE_um 
@@ -479,9 +484,11 @@
       NR = INT( ( ( SALC_REDGE_um(2) - SALA_REDGE_um(1) ) / DR ) 
      &                  + 0.5e+0_fp )
 
-      ! Error check
+      ! Trap potential errors
       IF ( NR > NR_MAX ) THEN
-        CALL ERROR_STOP( 'Too many bins!', 'SRCSALT (seasalt_mod.f)')
+         ErrMsg = 'Too many bins!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       !=================================================================

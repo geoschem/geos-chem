@@ -416,7 +416,6 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
@@ -510,14 +509,17 @@
       REAL(fp),        POINTER :: Spc(:,:,:,:)
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEM_TAGGED_O3 (tagged_o3_mod.F)'
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! CHEM_TAGGED_O3 begins here!
       !=================================================================
 
-      ! Assume success
+      ! Initialize
       RC        =  GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = ' -> at CHEM_TAGGED_O3 (in GeosCore/tagged_o3_mod.F)'
 
       ! Number of advected species
       nAdvect   =  State_Chm%nAdvect
@@ -545,18 +547,28 @@
       !=================================================================
       IF ( FIRST ) THEN
 
-         IF ( .NOT. ASSOCIATED(HcoState) ) 
-     &      CALL ERROR_STOP ( 'Cannot get HcoState', LOC )
+         ! Make sure the HEMCO State object has been first allocated
+         IF ( .NOT. ASSOCIATED(HcoState) ) THEN
+            ErrMsg = 'The HcoState object is not allocated!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
          ! Get pointer to O3 production
-         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to O3_PROD', LOC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'O3_PROD', P24H, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to O3_PROD!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
          ! Get pointer to O3 loss
-         CALL HCO_GetPtr ( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
-         IF ( RC /= GC_SUCCESS ) 
-     &      CALL ERROR_STOP ( 'Cannot get pointer to O3_LOSS', LOC )
+         CALL HCO_GetPtr( am_I_Root, HcoState, 'O3_LOSS', L24H, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to O3_LOSS!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
          ! Get emissions timestep (seconds)
          TS_EMIS = HcoState%TS_EMIS

@@ -58,7 +58,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,       ONLY : ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PBL_MIX_MOD,     ONLY : COMPUTE_PBL_HEIGHT
     USE PBL_MIX_MOD,     ONLY : DO_PBL_MIX
@@ -356,7 +355,7 @@ CONTAINS
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP, SAFE_DIV
+    USE ERROR_MOD,          ONLY : SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE HCO_INTERFACE_MOD,  ONLY : GetHcoVal, GetHcoDiagn
     USE Input_Opt_Mod,      ONLY : OptInput

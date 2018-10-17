@@ -376,8 +376,8 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -573,7 +573,8 @@
       REAL(fp), POINTER  :: T(:,:,:)
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
 !
 ! !DEFINED PARAMETERS:
 !
@@ -634,6 +635,8 @@
 
       ! Assume success
       RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = ' -> at ChemMercury (in GeosCore/mercury_mod.F)'
 
       ! Copy values from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
@@ -680,25 +683,37 @@
          !-----------------------------------------------------------
          ! Some oxidants always required:
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_trop',
-     &        OH_trop, RC)
+     &                    OH_trop,   RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ('Cannot get pointer to GLOBAL_OH_trop',LOC)
+            ErrMsg = 'Cannot get pointer to GLOBAL_OH_trop!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_strat',
-     &        OH_strat, RC)
+     &                    OH_strat,  RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ('Cannot get pointerto GLOBAL_OH_strat',LOC)
+            ErrMsg = 'Cannot get pointer to GLOBAL_OH_strat!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', 
-     &        O3,  RC )
+     &                    O3,        RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+            ErrMsg = 'Cannot get pointer to GLOBAL_O3!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Br and BrO not directly from HEMCO
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_BR!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
          !-----------------------------------------------------------
 
@@ -708,39 +723,49 @@
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
      &           HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO2',LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO', 
      &           HEM_NO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_trop',
      &           HEM_HO2_trop, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_HO2_trop', 
-     &              LOC )
+               ErrMsg = 'Cannot get pointer to GLOBAL_HO2_trop!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_strat',
      &           HEM_HO2_strat, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer GLOBAL_HO2_strat', 
-     &              LOC )
+               ErrMsg = 'Cannot get pointer to GLOBAL_HO2_strat!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_ClO',
      &           HEM_CLO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_ClO', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_ClO!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_Cl',
      &           HEM_CL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_Cl', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -750,7 +775,9 @@
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HOCl', 
      &           HEM_HOCL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_HOCl',LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_HOCl!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -759,13 +786,17 @@
          IF ( LRED_JNO2 ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState, 'JNO2', JNO2,  RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
+               ErrMsg = 'Cannot get pointer to JNO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_OA',
      &        HEM_OA, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OA', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_OA!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -2409,13 +2440,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL           :: LPREINDHG
       LOGICAL           :: LEMIS
 
+      ! Strings
+      CHARACTER(LEN=255)   :: ErrMsg
+      CHARACTER(LEN=255)   :: ThisLoc
+
       !=================================================================
       ! EMISSMERCURY begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GC_SUCCESS
-      
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     & ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.f)'
+
       ! Copy fields from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
@@ -2428,11 +2466,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSIONS_RUN in emissions_mod.F')
+         ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF                         
+      ENDIF 
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -2440,13 +2480,21 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Check that emissions are turned on. Print error message 
          ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
          IF ( .not. LEMIS ) THEN
-            PRINT *, 'ERROR: Hg emissions are need for simulation ' //
+            ErrMsg = 'ERROR: Hg emissions are need for simulation ' //
      &               'but emissions are turned off in input.geos'
-            CALL GEOS_CHEM_STOP
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "MERCURY_READYR"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2465,7 +2513,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
          CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
      &                            State_Chm, EHg0_oc,   RC         )
-     &                            
+     &                     
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
+       
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ELSE
@@ -2694,7 +2749,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3465,7 +3519,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3675,7 +3728,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DIAG03_MOD,         ONLY : AD03, ND03
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3882,7 +3934,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
@@ -3949,23 +4000,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(f4),        POINTER :: Ptr2D(:,:)
 
       ! Strings
-      CHARACTER(LEN=255)       :: MSG
-      CHARACTER(LEN=255)       :: LOC = 'MERCURY_READYR (mercury_mod.F)'
+      CHARACTER(LEN=255)       :: ThisLoc
+      CHARACTER(LEN=512)       :: ErrMsg
 
       !=================================================================
       ! MERCURY_READYR begins here! 
       !=================================================================
 
       ! Assume success
-      RC             = GC_SUCCESS
+      RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = '-> at MERCURY_READYR (in GeosCore/mercury_mod.F)'
 
       ! Initialize pointers
-      Ptr2D          => NULL()  
+      Ptr2D     => NULL()  
 
       ! Copy values from Input_Opt
-      LDYNOCEAN      = Input_Opt%LDYNOCEAN 
-      LPREINDHG      = Input_Opt%LPREINDHG
-      LSPLIT         = Input_Opt%LSPLIT
+      LDYNOCEAN = Input_Opt%LDYNOCEAN 
+      LPREINDHG = Input_Opt%LPREINDHG
+      LSPLIT    = Input_Opt%LSPLIT
 
       !=================================================================
       ! Anthropogenic Emissions
@@ -3993,8 +4046,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ! Get HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not associated!', LOC )
-      ENDIF 
+         ErrMsg = 'HcoState not associated!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! No anthropogenic emissions in preindustrial simulation
       IF ( LPREINDHG ) THEN
@@ -4012,14 +4067,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Anthropogenic emissions
          DgnName = 'HG0_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg0_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
          ! Artisanal emissions
          DgnName = 'HG0_ARTISANAL'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg0_am =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
@@ -4031,7 +4094,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Anthropogenic emissions
          DgnName = 'HG2_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg2_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
       ENDIF
@@ -4039,14 +4106,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Natural emissions
       DgnName = 'HG0_NATURAL'
       CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
       EHg0_geo =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
       Ptr2D    => NULL()
 
       ! Soil distribution 
       CALL HCO_GetPtr( am_I_Root, HcoState, 'HG0_SOILDIST', Ptr2D, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
+         ErrMsg = 'Could not get pointer to HEMCO field HG0_SOILDIST!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
@@ -4549,8 +4622,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP, SAFE_DIV
-      USE TIME_MOD,  ONLY : GET_LOCALTIME
+      USE ERROR_MOD,     ONLY : SAFE_DIV
+      USE TIME_MOD,      ONLY : GET_LOCALTIME
       USE State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
@@ -4643,7 +4716,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP, SAFE_DIV
+      USE ERROR_MOD,     ONLY : SAFE_DIV
       USE State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
@@ -5632,7 +5705,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -5668,7 +5740,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)            :: E_plant
 
       ! Strings
-      CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
+      CHARACTER(LEN=255)  :: ThisLoc
+      CHARACTER(LEN=512)  :: ErrMsg
 
       ! Pointers
       REAL(f4), POINTER   :: E_ELEC_Hg2(:,:)
@@ -5682,15 +5755,19 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !=================================================================
 
       ! Initialize
+      RC         =  GC_SUCCESS
+      ErrMsg     =  ''
+      ThisLoc    =  ' -> at DO_RED_INPLUME (in GeosCore/mercury_mod.F)'
       E_ELEC_Hg2 => NULL()
 
-      
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 
-     &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
+         ErrMsg = 
+     &     'Cannot get pointer to HEMCO field CFPP_NEI2005_Hg2!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Do the reduction
@@ -5733,7 +5810,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
@@ -5762,7 +5838,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-      CHARACTER(LEN=255) :: LOC = 'OFFLINEOCEAN_READMO (mercury_mod.F)'
 
 ! 
 ! !REVISION HISTORY: 
@@ -5815,21 +5890,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! For values from Input_Opt
       LOGICAL                 :: LDYNOCEAN 
 
+      ! Characters
+      CHARACTER(LEN=255)      :: ThisLoc
+      CHARACTER(LEN=512)      :: ErrMsg
 
       !=================================================================
       ! OFFLINEOCEAN_READMO begins here! 
       !=================================================================
 
-      ! Assume success
-      RC             = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at OFFLINEOCEAN_READMO (in GeosCore/mercury_mod.F)'
 
+      ! Get month
       THISMONTH = GET_MONTH()      
-
-      M = THISMONTH
+      M         = THISMONTH
 
       ! Days in each month (will use later) 9/16/15 hmh
       DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
-
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! read monthly ocean evasion  !
@@ -5840,7 +5919,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OCEAN', 
      &                    OCEAN_CONC,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OCEAN', LOC)
+            ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_OCEAN!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
       ENDIF
@@ -6057,7 +6138,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -6103,7 +6183,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                :: LHALOGENCHEM
       INTEGER                :: nAdvect
       INTEGER                :: AS, N
-      CHARACTER(LEN=255)     :: LOCATION
+
+      ! Strings
+      CHARACTER(LEN=255)     :: ThisLoc
+      CHARACTER(LEN=512)     :: ErrMsg
 
       ! Pointers
       TYPE(Species), POINTER :: SpcInfo
@@ -6126,8 +6209,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       nAdvect        = State_Chm%nAdvect          ! # of Hg advected species
 
-      ! Location string for ERROR_STOP
-      LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+      ! Location string for error messages
+      ErrMsg   = ''
+      ThisLoc  = '-> at DEFINE_TAGGED_Hg (in GeosCore/mercury_mod.f)'
 
       ! Store the # of tagged Hg categories in a module variable
       N_Hg_CATS   = State_Chm%N_Hg_CATS
@@ -6218,298 +6302,367 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
+      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:COSZM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       COSZM = 0e+0_fp
 
-      ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_an' )
+      ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_an = 0e+0_fp
 
-      ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_am' )
+      ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_am', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_am = 0e+0_fp
 
-      ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_an' )
+      ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg2_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg2_an = 0e+0_fp
 
-      ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_an' )
+      ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHgP_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHgP_an = 0e+0_fp
 
-      ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
+      ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_oc', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_oc = 0e+0_fp
 
-      ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
+      ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_dist', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_dist = 0e+0_fp
 
-      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
+      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_Geo', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_geo = 0e+0_fp
 
-      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
+      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_bb', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_bb = 0e+0_fp
 
-      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_snow' )
+      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_snow', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_snow = 0e+0_fp
 
       ! Allocate the following if tagged Hg simulation
       IF ( LSPLIT ) THEN
 
          ! Tagged Hg0 arrays (eds 8/31/10)
-         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
+         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_can = 0e+0_fp
 
-         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
+         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_usa = 0e+0_fp
 
-         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
+         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_cam = 0e+0_fp
 
-         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
+         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sam = 0e+0_fp
 
-         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
+         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_waf = 0e+0_fp
 
-         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
+         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eaf = 0e+0_fp
 
-         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
+         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_saf = 0e+0_fp
 
-         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
+         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_naf = 0e+0_fp
 
-         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
+         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eur = 0e+0_fp
 
-         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
+         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eeu = 0e+0_fp
 
-         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
+         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_mde = 0e+0_fp
 
-         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
+         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sov = 0e+0_fp
 
-         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
+         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sas = 0e+0_fp
 
-         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
+         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eas = 0e+0_fp
 
-         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
+         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sea = 0e+0_fp
 
-         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
+         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_jpn = 0e+0_fp
 
-         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
+         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_oce = 0e+0_fp
 
          ! Tagged Hg2 arrays (eds 8/31/10)
-         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
+         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_can = 0e+0_fp
 
-         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
+         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_usa = 0e+0_fp
 
-         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
+         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_cam = 0e+0_fp
 
-         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
+         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sam = 0e+0_fp
 
-         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
+         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_waf = 0e+0_fp
 
-         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
+         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eaf = 0e+0_fp
 
-         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
+         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_saf = 0e+0_fp
 
-         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
+         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_naf = 0e+0_fp
 
-         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
+         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eur = 0e+0_fp
 
-         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
+         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eeu = 0e+0_fp
 
-         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
+         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_mde = 0e+0_fp
 
-         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
+         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sov = 0e+0_fp
 
-         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
+         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sas = 0e+0_fp
 
-         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
+         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:Hg2_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eas = 0e+0_fp
 
-         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
+         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sea = 0e+0_fp
 
-         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
+         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_jpn = 0e+0_fp
 
-         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
+         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_oce = 0e+0_fp
 
          ! Tagged HgP arrays (eds 8/31/10)
-         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
+         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_can = 0e+0_fp
 
-         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
+         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_usa = 0e+0_fp
 
-         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
+         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_cam = 0e+0_fp
 
-         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
+         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sam = 0e+0_fp
 
-         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
+         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_waf = 0e+0_fp
 
-         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
+         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eaf = 0e+0_fp
 
-         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
+         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_saf = 0e+0_fp
 
-         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
+         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_naf = 0e+0_fp
 
-         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
+         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eur = 0e+0_fp
 
-         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
+         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eeu = 0e+0_fp
 
-         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
+         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_mde = 0e+0_fp
 
-         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
+         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sov = 0e+0_fp
 
-         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
+         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sas = 0e+0_fp
 
-         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
+         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eas = 0e+0_fp
 
-         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
+         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sea = 0e+0_fp
 
-         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
+         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_jpn = 0e+0_fp
 
-         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
+         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_oce = 0e+0_fp
 
       ENDIF
 
       IF ( LGTMM ) THEN
 
-         ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm' )
+         ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_gtm', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_gtm = 0e+0_fp
 
       ELSE
 
-         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_ln' )
+         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_ln', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_ln = 0e+0_fp
 
-         ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_vg' )
+         ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_vg', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_vg = 0e+0_fp
 
-         ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_so' )
+         ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_so', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_so = 0e+0_fp
 
       ENDIF
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
+      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:TTDAY', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0e+0_fp
  
       ! Allocate ZERO_DVEL if we use non-local PBL mixing or
       ! if drydep is turned off 
       IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
-         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
+         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:ZERO_DVEL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          ZERO_DVEL = 0e+0_fp
       ENDIF
 
-      ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
+      ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:HG2_SEASALT_LOSSRATE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
       !=================================================================
@@ -6518,23 +6671,27 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LSPLIT ) THEN
 
          ! Species indices for tagged anthro regions
-         ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg0' )
+         ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_Hg0', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg0 = 0e+0_fp
 
-         ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg2' )
+         ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_Hg2', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg2 = 0e+0_fp
 
-         ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_HgP' )
+         ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_HgP', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_HgP = 0e+0_fp
 
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:HG_EMIS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       HG_EMIS = 0e+0_fp
 
       !=================================================================
@@ -6621,7 +6778,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD,         ONLY : ERROR_STOP
+      USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD, ONLY : HcoState
       USE HCO_ExtList_Mod,   ONLY : GetExtOpt
@@ -6656,7 +6813,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL :: FOUND
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+      RC      = HCO_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at SET_OPTIONS_FROM_HEMCO (in GeosCore/mercury_mod.F)'
 
       !-----------------------------------------------------------------
       ! Set the value of chemistry flags depending on whether or not
@@ -6665,7 +6831,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2',  
      &                OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
+         ErrMsg = 'LRED_JNO2 not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LRED_JNO2 = .FALSE.
@@ -6674,7 +6842,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM',  
      &                OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LHALOGENCHEM', LOC )
+         ErrMsg = 'LHALOGENCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LHALOGENCHEM = .TRUE.
@@ -6683,7 +6853,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
      &                OptValBool=LHGAQCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LHGAQCHEM', LOC )
+         ErrMsg = 'LHGAQCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LHGAQCHEM = .FALSE.
@@ -6692,7 +6864,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LBRCHEM',  
      &                OptValBool=LBRCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBRCHEM', LOC )
+         ErrMsg = 'LBRCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LBRCHEM = .FALSE.
@@ -6701,7 +6875,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LBROCHEM',  
      &                OptValBool=LBROCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBROCHEM', LOC )
+         ErrMsg = 'LBROCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LBROCHEM = .FALSE.
@@ -6710,7 +6886,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LOHO3CHEM',  
      &                OptValBool=LOHO3CHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LOHO3CHEM', LOC )
+         ErrMsg = 'LOHO3CHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LOHO3CHEM = .FALSE.
@@ -6725,7 +6903,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'BrOx_GC', 
      &                OptValBool=LGC, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
+         ErrMsg = 'BrOx_GC not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LGC = .FALSE.
@@ -6747,7 +6927,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'NEI2005',  
      &                OptValBool=LNEI2005, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
+         ErrMsg = 'NEI2005 not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LNEI2005 = .FALSE.
@@ -6760,7 +6942,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LRED_INPLUME',  
      &                OptValBool=LInPlume, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
+         ErrMsg = 'LRED_INPLUME not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LInPlume = .FALSE.

@@ -344,17 +344,22 @@
 
       ! For spatially and seasonally varying OM/OC
       CHARACTER(LEN=255)  :: FIELDNAME
-      CHARACTER(LEN=1023) :: MSG
       INTEGER             :: MONTH
       LOGICAL             :: FND
       REAL(f4), POINTER   :: OMOC(:,:) => NULL()
+
+      ! For errors
+      CHARACTER(LEN=255)  :: ThisLoc
+      CHARACTER(LEN=1023) :: ErrMsg
 
       !=================================================================
       ! AEROSOL_CONC begins here!
       !=================================================================
 
       ! Assume success
-      RC     = GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at AEROSOL_CONC (in module GeosCore/aerosol_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LCARB   = Input_Opt%LCARB
@@ -394,9 +399,11 @@
       ! Convert species to [kg] for this routine
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'Start of AEROSOL_CONC in aerosol_mod.F')
+         ErrMsg = 'Unit conversion error at start of AEROSOL_CONC!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
 
@@ -427,11 +434,13 @@
          ENDIF
          CALL HCO_GetPtr( am_I_Root, HcoState, FIELDNAME, OMOC, RC,
      &                    FOUND=FND )
+
+         ! Trap potential errors
          IF ( RC /= HCO_SUCCESS .OR. .NOT. FND ) THEN
-            MSG = 'Cannot find seasonal OM/OC field ' //
+            ErrMsg= 'Cannot find seasonal OM/OC field ' //
      &             TRIM(FIELDNAME) // '. Please add a corresponding ' //
      &            'entry to the HEMCO configuration file.'
-            CALL ERROR_STOP (TRIM(MSG),'AEROSOL_CONC (aerosol_mod.F90)')
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
 

@@ -154,7 +154,6 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE DIAG04_MOD,         ONLY : AD04, ND04
       USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
       USE HCO_INTERFACE_MOD,  ONLY : HcoState

@@ -1535,11 +1535,22 @@
 
          ! Prescribe methane surface concentrations throughout PBL
          IF ( ITS_A_FULLCHEM_SIM .and. id_CH4 > 0 ) THEN
+
+            ! Debug print
             IF ( prtDebug ) THEN 
                CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
             ENDIF
+            
+            ! Set CH4 concentrations
             CALL SET_CH4( am_I_Root, Input_Opt,  State_Met,
      &                    State_Chm, State_Diag, RC )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in call to "SET_CH4"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
          ENDIF
 
          !==============================================================

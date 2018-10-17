@@ -2524,7 +2524,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE State_Chm_Mod,      ONLY : ChmState
@@ -2723,7 +2722,8 @@
       ! For HEMCO update
       LOGICAL, SAVE         :: FIRST = .TRUE.
 
-      CHARACTER(LEN=255), PARAMETER :: LOC = 'CHEM_SO2 (sulfate_mod.F)'
+      CHARACTER(LEN=255)    :: ErrMsg
+      CHARACTER(LEN=255)    :: ThisLoc
 
       !=================================================================
       ! CHEM_SO2 begins here!
@@ -2732,6 +2732,9 @@
 
       ! Assume success
       RC          = GC_SUCCESS
+      ErrMsg      = ''
+      ThisLoc     = 
+     & ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -2766,14 +2769,24 @@
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
+
+         ! Trap potential errors
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_FINE!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
+
+         ! Trap potential errors
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          
          ! Adjust first flag
          FIRST = .FALSE.
@@ -3249,11 +3262,7 @@
                      ! oxidation state during the nighttime
                      FeIII = Fe_d * 0.9e+0_fp
                   ENDIF
-               ELSE
-                  !--------------------
-                  ! Invalid simulation
-                  !--------------------
-                  CALL ERROR_STOP( 'Invalid NSRCX !','CHEM_SO2')
+
                ENDIF
 
                ! Assume that dissolved Mn is in Mn(II) oxidation state all of
@@ -5746,10 +5755,6 @@
 !
       SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
 !
-! !USES:
-!
-!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP !ERROR_STOP
-!
 ! !INPUT PARAMETERS: 
 !
       INTEGER           :: NR
@@ -7097,8 +7102,8 @@
      $                             PBL_TOP, IS_LOCAL )
 !
 ! !USES:
-!                 
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+!
+!###      USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -7212,6 +7217,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7266,13 +7273,6 @@
 
          ENDIF
 
-      ELSE
-
-         !---------------------
-         ! Invalid simulation
-         !---------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
-
       ENDIF
 
       END FUNCTION GET_OH
@@ -7326,6 +7326,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7418,13 +7420,6 @@
          ! Make sure NO3 is not negative
          NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0e+0_fp )
 
-      ELSE
-
-         !--------------------
-         ! Invalid simulation
-         !--------------------
-         CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
-
       ENDIF
 
       END FUNCTION GET_NO3
@@ -7475,6 +7470,8 @@
 !                              CMN_GTCM_MOD to get XNUMOLAIR.
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7514,13 +7511,6 @@
          ELSE
             O3_VV = 0e+0_fp
          ENDIF
-
-      ELSE
-
-         !--------------------
-         ! Invalid simulation
-         !--------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
 
       ENDIF
 
@@ -8079,6 +8069,16 @@
       ErrMsg   = ''
       ThisLoc  = 
      & ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F)'
+
+      !=================================================================
+      ! Error check
+      !=================================================================
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. 
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         ErrMsg = 'Invalid simulation for sulfate_mod!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       !=================================================================
       ! Allocate arrays

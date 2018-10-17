@@ -144,6 +144,7 @@ CONTAINS
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
 #if defined( NC_DIAG )
+    USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
     USE Precision_Mod
 #endif
     USE State_Met_Mod,      ONLY : MetState
@@ -192,6 +193,8 @@ CONTAINS
 !  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
 !  22 Jan 2018 - R. Yantosca - Return error code to calling program
 !  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
+!  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
+!                              diags for the POPS simulation into State_Diag
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -317,6 +320,23 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+#if defined( NC_DIAG )
+    ! For the POPS simulation, copy values from several HEMCO-based manual 
+    ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state 
+    ! object into the State_Diag object.  This will allow us to save these
+    ! fields to netCDF output via HISTORY. (bmy, 10/15/18)
+    IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
+       CALL GetPopsDiagsFromHemco( am_I_Root, Input_Opt, State_Diag, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "GetPopsDiagsFromHemco"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN

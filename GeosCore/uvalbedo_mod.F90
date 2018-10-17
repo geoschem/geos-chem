@@ -71,7 +71,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Error_Mod,          ONLY : Error_Stop
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -106,12 +105,18 @@ CONTAINS
     ! Pointers
     REAL(f4), POINTER :: Ptr2D(:,:)
 
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
     !=======================================================================
     ! READ_UVALBEDO begins here!
     !=======================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Get_UValbedo (in GeosCore/uvalbedo_mod.F90)'
 
     ! Skip unless we are doing a fullchem or aerosol-only simulation
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) .and. &
@@ -125,10 +130,11 @@ CONTAINS
     ! Get the pointer to the UV albedo data in the HEMCO data structure
     CALL HCO_GetPtr( am_I_Root, HcoState, 'UV_ALBEDO', Ptr2D, RC, FOUND=FND )
 
-      ! Stop with error message
+    ! Trap potential errors
     IF ( RC /= GC_SUCCESS .or. ( .not. FND ) ) THEN
-       CALL ERROR_STOP ( 'Could not find UV_ALBEDO in HEMCO data list!', & 
-                         'READ_UVALBEDO (uvalbedo_mod.F90)' )
+       ErrMsg = 'Could not find UV_ALBEDO in HEMCO data list!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN       
     ENDIF
 
     ! Add to State_Met
