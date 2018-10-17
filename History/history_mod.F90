@@ -1205,12 +1205,8 @@ CONTAINS
                                      EndTimeStamp   = EndTimeStamp,          &
                                      RC             = RC                    )
 
-#if defined( DEBUG )
-          ! Debug output
-          CALL HistContainer_Print( am_I_Root       = am_I_Root,             &
-                                    Container      = Container,              &
-                                    RC             = RC                    )
-#endif
+          ! Update CollectionFileName
+          CollectionFileName(C) = TRIM( Container%FileName )
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
