@@ -4584,16 +4584,15 @@
       !-------------------------------------
       IF ( ND04 > 0 ) THEN
          
-         ! Number of tracers
-         ! Increased from 6 to 10. (rnassar, 30/08/10)
-!         NTRAC(04) = 6
-         NTRAC(04) = 10
+         ! NOTE: Most CO2 emissions are now tracked
+         ! via HEMCO diagnostics (bmy, 10/18/18)
+         NTRAC(04) = 1
 
          ! Loop over tracers: CO2-SRCE
          DO T = 1, NTRAC(04)
 
             ! Define quantities
-            UNIT (T,04) = 'atoms C/cm2/s'
+            UNIT (T,04) = 'molec/cm2/s'
             INDEX(T,04) = T + ( SPACING * 40 )
             MOLC (T,04) = 1
             MWT  (T,04) = 12e-3  ! hard-coded MW
@@ -4603,38 +4602,8 @@
             ! Names updated (rnassar, 30/08/10)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,04) = 'CO2ff'
-                  FNAME(T,04) = 'CO2 fossil fuel emiss'
-               CASE( 2  )
-!                  NAME (T,04) = 'CO2ocn'
-!                  FNAME(T,04) = 'CO2 ocean exchange'
-                  NAME (T,04) = 'CO2oc'
-                  FNAME(T,04) = 'CO2 ocean emissions'
-               CASE( 3  )
-                  NAME (T,04) = 'CO2bal'
-                  FNAME(T,04) = 'CO2 balanced biosphere'
-               CASE( 4  )
-                  NAME (T,04) = 'CO2bb'
-                  FNAME(T,04) = 'CO2 biomass burning emiss'
-               CASE( 5  )
-                  NAME (T,04) = 'CO2bf'
-                  FNAME(T,04) = 'CO2 biofuel emission'
-               CASE( 6  )
-!                  NAME (T,04) = 'CO2net'
-                  NAME (T,04) = 'CO2nte'
-                  FNAME(T,04) = 'CO2 net terr exchange'
-               CASE( 7  )
-                  NAME (T,04) = 'CO2shp'
-                  FNAME(T,04) = 'CO2 ship emissions'
-               CASE( 8  )
-                  NAME (T,04) = 'CO2pln'
-                  FNAME(T,04) = 'CO2 aircraft emissions'
-               CASE( 9  )
                   NAME (T,04) = 'CO2che'
                   FNAME(T,04) = 'CO2 chemical oxidation'
-               CASE( 10  )
-                  NAME (T,04) = 'CO2sur'
-                  FNAME(T,04) = 'CO2 chem surf correction'
                CASE DEFAULT
                   ! Nothing
             END SELECT

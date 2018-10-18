@@ -147,20 +147,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,  State_Met, 
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE DIAG04_MOD,         ONLY : AD04, ND04
-      USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
+#if defined( BPCH_DIAG )
+      USE DIAG04_MOD,         ONLY : ND04
+      USE DIAG04_MOD,         ONLY : AD04_chem
+#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -171,8 +174,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -306,6 +309,8 @@
          ! Point to chemical species array [kg/kg dry air]
          Spc => State_Chm%Species
 
+         ! %%% NOTE: This might be able to be done just in init %%%
+         ! %%% as the HEMCO pointer will evolve in time %%%%%%%%%%%
          ! Get a pointer to the CO2 production from CO oxidation
          ! This is now listed in the NON-EMISSIONS DATA section of
          ! the HEMCO configuration file. (bmy, 4/17/15)
@@ -327,17 +332,36 @@
          DO I = 1, IIPAR
 
             ! Production is in [kg/m3], convert to [molec/cm2/s]
-            E_CO2 = CO2_COPROD(I,J,L)
-     &            / CM3PERM3
-     &            * XNUMOL_CO2
-     &            / DTSRCE
-     &            * 100 !per area (cm2) instead of per volume (cm3)
+            E_CO2 = CO2_COPROD(I,J,L)                        ! kg/m3
+     &            / CM3PERM3                                 ! => kg/cm3
+     &            * XNUMOL_CO2                               ! => molec/cm3
+     &            / DTSRCE                                   ! => molec/cm3/s
+     &            * 100                                      ! => molec/cm2/s
 
-	    ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] 
-            !Unit change in v10 
+#if defined( BPCH_DIAG )
+            !==========================================================
+            ! %%%%% ND04 (bpch) DIAGNOSTICS %%%%%
+            ! 
+            ! Save production of CO2 from CO oxidation [molec/cm2/s]
+            !==========================================================
             IF ( ND04 > 0 ) THEN
                AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
             ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !==========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            ! 
+            ! Save production of CO2 from CO oxidation [kg/m2/s]
+            !==========================================================
+            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
+               State_Diag%ProdCO2fromCO(I,J,L) = E_CO2       ! molec/cm2/s 
+     &                                         / XNUMOL_CO2  ! => kg/cm2/s
+     &                                         * 1e4_fp      ! => kg/m2/s
+
+            ENDIF
+#endif
 
             ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
             ! (ewl, 9/11/15)
@@ -347,11 +371,11 @@
      &                - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
 
             ! Add to Species #1: Total CO2 [kg/kg]
-            Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
+            Spc(I,J,L,1) = Spc(I,J,L,1) + E_CO2
 
             ! Add to Species #10: Chemical Source of CO2 [kg/kg]
-            IF (nAdvect > 9) THEN
-               Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
+            IF ( nAdvect > 9 ) THEN
+               Spc(I,J,L,10) = Spc(I,J,L,10) + E_CO2
             ENDIF
 		
          ENDDO

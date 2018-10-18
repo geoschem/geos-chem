@@ -195,6 +195,7 @@ CONTAINS
 !  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !  15 Oct 2018 - R. Yantosca - Now call GetPopsDiagsFromHemco to copy manual
 !                              diags for the POPS simulation into State_Diag
+!  18 Oct 2018 - R. Yantosca - Now pass State_Diag to EmissCO2 for nc diags
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -265,11 +266,14 @@ CONTAINS
     ENDIF
 #endif
 
-    ! For CO2 simulation, emissions are not added to STT in mixing_mod.F90 
-    ! because the HEMCO CO2 species are not GEOS-Chem tracers. The emissions
-    ! thus need to be added explicitly, which is done in EMISSCO2.
+    ! For the CO2 simulation, we manually add the chemical production of CO2
+    ! from CO oxidation (which is listed as a non-chemical source in HEMCO)
+    ! to State_Chm%Species.  This is done in EmissCO2.  All other CO2 emissions
+    ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
+    ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL EmissCO2( am_I_Root, Input_Opt,  State_Met,                      &
+                      State_Chm, State_Diag, RC                             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
