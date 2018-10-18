@@ -472,8 +472,10 @@ CONTAINS
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY, 'BYNCY', __RC__ )
 
+#if defined( MODEL_GEOS )
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%LFR, 'LFR', __RC__ )
+#endif
 
       ! Return success
       RC = HCO_SUCCESS 
