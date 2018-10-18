@@ -26,6 +26,7 @@ MODULE Species_Database_Mod
 !
   PUBLIC  :: Init_Species_Database
   PUBLIC  :: Cleanup_Species_Database
+  PUBLIC  :: Spc_Info
 
 #if defined ( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
   !-----------------------------------------------------------------
@@ -167,6 +168,7 @@ CONTAINS
 !                              (E. Marais)
 !  27 Nov 2017 - E. Lundgren - Add SALA, SALC, OCPO/OCPI, BCPO/BCPI, and SO4
 !                              as hygroscopic growth species for cloud diags
+!  14 Sep 2018 - C. Keller   - Now get species info from Spc_Info.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -177,11 +179,6 @@ CONTAINS
     INTEGER             :: C,      N,   P,       nSpecies
     REAL(fp)            :: Radius, KOA, MW_g,    BackgroundVV, HStar
     REAL(f8)            :: K0,     CR
-
-    ! Arrays
-    REAL(fp)            :: DvzMinVal(2)
-    REAL(fp)            :: KcScale(3)
-    REAL(fp)            :: RainEff(3)
 
     ! Strings
     CHARACTER(LEN=31)   :: NameAllCaps
@@ -199,13 +196,43 @@ CONTAINS
     LOGICAL             :: prtDebug
 
     ! For passive species
-    LOGICAL             :: IsPassive
+!    LOGICAL             :: IsPassive
+
+    ! Species information
+    REAL(fp)               :: EmMW_g           ! Emissions mol. wt [g]
+    REAL(fp)               :: MolecRatio       ! Molec ratio
+    REAL(f8)               :: Henry_K0         ! Henry's law K0 [M/atm]
+    REAL(f8)               :: Henry_CR         ! Henry's law CR [K]
+    REAL(f8)               :: Henry_PKA        ! Henry's law pKa [1]
+    REAL(fp)               :: Density          ! Density [kg/m3]
+    LOGICAL                :: DD_AeroDryDep    ! Use AERO_SFCRSII?
+    LOGICAL                :: DD_DustDryDep    ! Use DUST_SFCRSII?
+    REAL(fp)               :: DD_DvzAerSnow    ! Vd for aerosols
+    REAL(fp)               :: DD_DvzMinVal(2)  ! Min Vd for aerosols
+    REAL(fp)               :: DD_F0            ! Drydep reactivity [1]
+    REAL(fp)               :: DD_KOA           ! Drydep KOA parameter
+    REAL(fp)               :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
+    LOGICAL                :: MP_SizeResAer    ! Size resolved aerosol?
+    LOGICAL                :: MP_SizeResNum    ! Size resolved aer #?
+    REAL(fp)               :: WD_RetFactor     ! Wetdep retention factor
+    LOGICAL                :: WD_LiqAndGas     ! Liquid and gas phases?
+    REAL(fp)               :: WD_ConvFacI2G    ! Factor for ice/gas ratio
+    REAL(fp)               :: WD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp)               :: WD_KcScaleFac(3) ! Factor to multiply Kc
+    REAL(fp)               :: WD_RainoutEff(3) ! Rainout efficiency
+    LOGICAL                :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL                :: Is_Drydep        ! Is it dry deposited?
+    LOGICAL                :: Is_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL                :: Is_HygroGrowth   ! Is hygroscopic growth?
+    LOGICAL                :: Is_Photolysis    ! Is it photolysis spc?
+    LOGICAL                :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL                :: Is_InRestart     ! Is it in restart file?
+    LOGICAL                :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL                :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL                :: Is_HgP           ! Denotes HgP species
 !
 ! !DEFINED PARAMETERS
 !
-    LOGICAL,  PARAMETER :: T        = .TRUE.         ! Yes
-    LOGICAL,  PARAMETER :: F        = .FALSE.        ! No
-    REAL(f8), PARAMETER :: To_M_atm = 9.86923e-3_f8  ! mol/m3/Pa -> M/atm
 
     !=======================================================================
     ! Init_Species_Database begins here!
@@ -244,8 +271,334 @@ CONTAINS
        NameAllCaps = TRIM( Species_Names(N) )
        CALL TranUc( NameAllCaps )
 
-       ! Test for species name
-       SELECT CASE( TRIM ( NameAllCaps ) )
+       ! Get species info, now write into local variable
+       CALL Spc_Info( am_I_Root       = am_I_Root,         &
+                      iName           = TRIM(NameAllCaps), &
+                      Input_Opt       = Input_Opt,         &
+                      KppSpcId        = KppSpcId(N),       &
+                      oFullName       = FullName,          &
+                      oFormula        = Formula,           &
+                      oMW_g           = MW_g,              & 
+                      oEmMW_g         = EmMW_g,         &
+                      oMolecRatio     = MolecRatio,     &
+                      oBackgroundVV   = BackgroundVV,   &
+                      oHenry_K0       = Henry_K0,       &
+                      oHenry_CR       = Henry_CR,       &
+                      oHenry_PKA      = Henry_PKA,      &
+                      oDensity        = Density,        &
+                      oRadius         = Radius,         &
+                      oDD_AeroDryDep  = DD_AeroDryDep,  &
+                      oDD_DustDryDep  = DD_DustDryDep,  &
+                      oDD_DvzAerSnow  = DD_DvzAerSnow,  &
+                      oDD_DvzMinVal   = DD_DvzMinVal,   &
+                      oDD_F0          = DD_F0,          &
+                      oDD_KOA         = DD_KOA,         &
+                      oDD_Hstar_Old   = DD_Hstar_Old,   &
+                      oMP_SizeResAer  = MP_SizeResAer,  &
+                      oMP_SizeResNum  = MP_SizeResNum,  &
+                      oWD_RetFactor   = WD_RetFactor,   &
+                      oWD_LiqAndGas   = WD_LiqAndGas,   &
+                      oWD_ConvFacI2G  = WD_ConvFacI2G,  &
+                      oWD_AerScavEff  = WD_AerScavEff,  &
+                      oWD_KcScaleFac  = WD_KcScaleFac,  &
+                      oWD_RainoutEff  = WD_RainoutEff,  &
+                      oWD_CoarseAer   = WD_CoarseAer,   &
+                      oIs_Drydep      = Is_Drydep,      & 
+                      oIs_Gas         = Is_Gas,         &
+                      oIs_HygroGrowth = Is_HygroGrowth, &
+                      oIs_Photolysis  = Is_Photolysis,  &
+                      oIs_Wetdep      = Is_Wetdep,      &
+                      oIs_InRestart   = Is_InRestart,   &
+                      oIs_Hg0         = Is_Hg0,         &
+                      oIs_Hg2         = Is_Hg2,         &  
+                      oIs_HgP         = Is_HgP,         &
+                      RC              = RC               )  
+       ! Error
+       IF ( RC /= GC_SUCCESS ) THEN
+          PRINT*, '### Could not get species info!',TRIM(NameAllCaps)
+          CALL EXIT( -999 )
+       ENDIF
+
+       ! Create species
+       IF ( EmMW_g == MISSING_MW ) THEN
+          EmMW_g = MW_g
+       ENDIF
+       Name = TRIM(Species_Names(N))
+       ! Handle exceptions
+       IF ( TRIM(Name) == 'POx' ) Name = 'POX'
+       IF ( TRIM(Name) == 'LOx' ) Name = 'LOX'
+       IF ( TRIM(FullName) == '' ) FullName = TRIM(Name) 
+       CALL Spc_Create( am_I_Root      = am_I_Root,       &
+                        ThisSpc        = SpcData(N)%Info, &
+                        ModelID        = N,               &
+                        KppSpcId       = KppSpcId(N),     & 
+                        KppVarId       = KppVarId(N),     & 
+                        KppFixId       = KppFixId(N),     &
+                        Name           = TRIM(Name),      & 
+                        FullName       = FullName,        &
+                        Formula        = Formula,         &
+                        MW_g           = MW_g,            & 
+                        EmMW_g         = EmMW_g,          &
+                        MolecRatio     = MolecRatio,      &
+                        BackgroundVV   = BackgroundVV,    &
+                        Henry_K0       = Henry_K0,        &
+                        Henry_CR       = Henry_CR,        &
+                        Henry_PKA      = Henry_PKA,       &
+                        Density        = Density,         &
+                        Radius         = Radius,          &
+                        DD_AeroDryDep  = DD_AeroDryDep,   & 
+                        DD_DustDryDep  = DD_DustDryDep,   & 
+                        DD_DvzAerSnow  = DD_DvzAerSnow,   &
+                        DD_DvzMinVal   = DD_DvzMinVal,    &
+                        DD_F0          = DD_F0,           &
+                        DD_KOA         = DD_KOA,          &
+                        DD_Hstar_Old   = DD_Hstar_Old,    &
+                        MP_SizeResAer  = MP_SizeResAer,   &
+                        MP_SizeResNum  = MP_SizeResNum,   &
+                        WD_RetFactor   = WD_RetFactor,    &
+                        WD_LiqAndGas   = WD_LiqAndGas,    &
+                        WD_ConvFacI2G  = WD_ConvFacI2G,   &
+                        WD_AerScavEff  = WD_AerScavEff,   &
+                        WD_KcScaleFac  = WD_KcScaleFac,   &
+                        WD_RainoutEff  = WD_RainoutEff,   &
+                        WD_CoarseAer   = WD_CoarseAer,    &
+                        Is_Advected    = Is_Advected,     & 
+                        Is_Drydep      = Is_Drydep,       & 
+                        Is_Gas         = Is_Gas,          &
+                        Is_HygroGrowth = Is_HygroGrowth,  &
+                        Is_Photolysis  = Is_Photolysis,   &
+                        Is_Wetdep      = Is_Wetdep,       &
+                        Is_InRestart   = Is_InRestart,    &
+                        Is_Hg0         = Is_Hg0,          &
+                        Is_Hg2         = Is_Hg2,          &  
+                        Is_HgP         = Is_HgP,          &
+                        RC             = RC                )  
+       ! Error
+       IF ( RC /= GC_SUCCESS ) THEN
+          PRINT*, '### Could not initialize species vector!',TRIM(NameAllCaps)
+          CALL EXIT( -999 )
+       ENDIF
+
+       ! Print info about each species
+       ! testing only
+       CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
+       IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
+
+    ENDDO
+
+    ! Deallocate temporary work arrays
+    CALL Cleanup_Work_Arrays()
+
+  END SUBROUTINE Init_Species_Database
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Spc_Info
+!
+! !DESCRIPTION: Routine Spc\_Info is a helper function that returns the
+!  properties of a species. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,       &
+                       KppSpcId,        oFullName,      oFormula,        &
+                       oMW_g,           oEmMW_g,        oMolecRatio,     &
+                       oBackgroundVV,   oHenry_K0,      oHenry_CR,       &
+                       oHenry_PKA,      oDensity,       oRadius,         &
+                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,  &
+                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,         &
+                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,  &
+                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,  &
+                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,  &
+                       oWD_CoarseAer,                                    &
+                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth, &
+                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,   &
+                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,         &
+                       Found,           Underscores,    RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,           ONLY : OptInput
+    USE SPECIES_MOD,             ONLY : MISSING_INT,   MISSING,    MISSING_R8
+    USE SPECIES_MOD,             ONLY : ZERO, ZERO_R8, MISSING_MW, MISSING_VV
+!
+! !INPUT PARAMETERS:
+! 
+    LOGICAL,           INTENT(IN)  :: am_I_Root        ! Are we on the root CPU?
+    CHARACTER(LEN=*),  INTENT(IN)  :: iName            ! Short name of species
+    TYPE(OptInput),    OPTIONAL    :: Input_Opt        ! Input Options object
+    INTEGER,           INTENT(IN)  :: KppSpcId         ! KPP ID 
+!
+! !OUTPUT PARAMETERS:
+! 
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oFullName         ! Long name of species
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oFormula          ! Chemical formula
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oMW_g             ! Molecular weight [g]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oEmMW_g           ! Emissions mol. wt [g]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oMolecRatio       ! Molec ratio
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oBackgroundVV     ! Background conc [v/v]
+    REAL(f8),INTENT(OUT), OPTIONAL    :: oHenry_K0         ! Henry's law K0 [M/atm]
+    REAL(f8),INTENT(OUT), OPTIONAL    :: oHenry_CR         ! Henry's law CR [K]
+    REAL(f8),INTENT(OUT), OPTIONAL    :: oHenry_PKA        ! Henry's law pKa [1]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDensity          ! Density [kg/m3]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oRadius           ! Radius [m]
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oDD_AeroDryDep    ! Use AERO_SFCRSII?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oDD_DustDryDep    ! Use DUST_SFCRSII?
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDD_DvzAerSnow    ! Vd for aerosols
+                                                      !  on snow/ice [cm/s]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDD_DvzMinVal(2)  ! Min Vd for aerosols
+                                                      !  (cf GOCART) [cm/s]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDD_F0            ! Drydep reactivity [1]
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDD_KOA           ! Drydep KOA parameter
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oDD_Hstar_Old     ! HSTAR, drydep [M/atm]
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oMP_SizeResAer    ! Size resolved aerosol?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oMP_SizeResNum    ! Size resolved aer #?
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_RetFactor     ! Wetdep retention factor
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oWD_LiqAndGas     ! Liquid and gas phases?
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_ConvFacI2G    ! Factor for ice/gas ratio
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_KcScaleFac(3) ! Factor to multiply Kc
+                                                           !  rate in F_AEROSOL
+    REAL(fp),INTENT(OUT), OPTIONAL    :: oWD_RainoutEff(3) ! Rainout efficiency
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oWD_CoarseAer     ! Coarse aerosol?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Drydep        ! Is it dry deposited?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HygroGrowth   ! Is hygroscopic growth?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Photolysis    ! Is it photolysis spc?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Wetdep        ! Is it wet deposited?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_InRestart     ! Is it in restart file?
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg0           ! Denotes Hg0 species
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg2           ! Denotes Hg2 species
+    LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HgP           ! Denotes HgP species
+    INTEGER, INTENT(OUT)              :: RC                ! Return code
+    LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present, 
+                                                           ! no error if not found 
+    LOGICAL, INTENT(IN),  OPTIONAL    :: Underscores       ! Replace blanks with underscores 
+! 
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
+!                              info can be queried independently.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! local species information
+    CHARACTER(LEN=31)      :: Name
+    CHARACTER(LEN=80)      :: FullName
+    CHARACTER(LEN=80)      :: Formula
+    REAL(fp)               :: MW_g             ! Molecular weight [g]
+    REAL(fp)               :: EmMW_g           ! Emissions mol. wt [g]
+    REAL(fp)               :: MolecRatio       ! Molec ratio
+    REAL(fp)               :: BackgroundVV     ! Background conc [v/v]
+    REAL(f8)               :: Henry_K0         ! Henry's law K0 [M/atm]
+    REAL(f8)               :: Henry_CR         ! Henry's law CR [K]
+    REAL(f8)               :: Henry_PKA        ! Henry's law pKa [1]
+    REAL(fp)               :: Density          ! Density [kg/m3]
+    REAL(fp)               :: Radius           ! Radius [m]
+    LOGICAL                :: DD_AeroDryDep    ! Use AERO_SFCRSII?
+    LOGICAL                :: DD_DustDryDep    ! Use DUST_SFCRSII?
+    REAL(fp)               :: DD_DvzAerSnow    ! Vd for aerosols
+    REAL(fp)               :: DD_DvzMinVal(2)  ! Min Vd for aerosols
+    REAL(fp)               :: DD_F0            ! Drydep reactivity [1]
+    REAL(fp)               :: DD_KOA           ! Drydep KOA parameter
+    REAL(fp)               :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
+    LOGICAL                :: MP_SizeResAer    ! Size resolved aerosol?
+    LOGICAL                :: MP_SizeResNum    ! Size resolved aer #?
+    REAL(fp)               :: WD_RetFactor     ! Wetdep retention factor
+    LOGICAL                :: WD_LiqAndGas     ! Liquid and gas phases?
+    REAL(fp)               :: WD_ConvFacI2G    ! Factor for ice/gas ratio
+    REAL(fp)               :: WD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp)               :: WD_KcScaleFac(3) ! Factor to multiply Kc
+    REAL(fp)               :: WD_RainoutEff(3) ! Rainout efficiency
+    LOGICAL                :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL                :: Is_Advected      ! Is it advected?
+    LOGICAL                :: Is_Drydep        ! Is it dry deposited?
+    LOGICAL                :: Is_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL                :: Is_HygroGrowth   ! Is hygroscopic growth?
+    LOGICAL                :: Is_Photolysis    ! Is it photolysis spc?
+    LOGICAL                :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL                :: Is_InRestart     ! Is it in restart file?
+    LOGICAL                :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL                :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL                :: Is_HgP           ! Denotes HgP species
+
+    ! Scalars
+    REAL(f8)            :: K0,  CR
+    REAL(fp)            :: KOA, HStar
+    INTEGER             :: P, IDX, CNT
+    LOGICAL             :: IsPassive
+    LOGICAL             :: Uscore    
+
+    ! Arrays
+    REAL(fp)            :: DvzMinVal(2)
+    REAL(fp)            :: KcScale(3)
+    REAL(fp)            :: RainEff(3)
+
+    ! Local parameter
+    LOGICAL,  PARAMETER :: T        = .TRUE.         ! Yes
+    LOGICAL,  PARAMETER :: F        = .FALSE.        ! No
+    REAL(f8), PARAMETER :: To_M_atm = 9.86923e-3_f8  ! mol/m3/Pa -> M/atm
+
+    !=====================================================================
+    ! Spc_Info begins here!
+    !=====================================================================
+
+    ! Default values
+    FullName         = ''
+    Formula          = ''
+    MW_g             = MISSING_MW
+    EmMW_g           = MISSING_MW
+    MolecRatio       = 1.0e+0_fp
+    Radius           = MISSING
+    Density          = MISSING
+    DD_AeroDryDep    = .FALSE.
+    DD_DustDryDep    = .FALSE.
+    DD_F0            = MISSING
+    DD_DvzAerSnow    = MISSING
+    DD_DvzMinVal(:)  = MISSING
+    DD_KOA           = MISSING
+    DD_Hstar_Old     = MISSING
+    Henry_K0         = MISSING_R8 
+    Henry_CR         = MISSING_R8
+    Henry_PKA        = MISSING_R8
+    WD_RetFactor     = MISSING
+    WD_LiqAndGas     = .FALSE.
+    WD_ConvFacI2G    = MISSING
+    WD_AerScavEff    = MISSING
+    WD_KcScaleFac(:) = MISSING
+    WD_RainOutEff(:) = MISSING
+    Is_Drydep        = .FALSE.
+    Is_Gas           = .FALSE.
+    Is_HygroGrowth   = .FALSE.
+    Is_Photolysis    = .FALSE.
+    Is_Wetdep        = .FALSE.
+    BackgroundVV     = MISSING_VV
+    Is_InRestart     = .FALSE.
+    WD_CoarseAer     = .FALSE.
+    MP_SizeResAer    = .FALSE.
+    MP_SizeResNum    = .FALSE.
+    Is_Hg0           = .FALSE.
+    Is_Hg2           = .FALSE.
+    Is_HgP           = .FALSE.
+
+    Uscore = .FALSE.
+    IF ( PRESENT(Underscores) ) Uscore = Underscores
+    IF ( PRESENT(Found      ) ) Found = .TRUE.
+
+    ! Make sure its all caps
+    Name = TRIM(iName)
+    CALL TranUc( Name )
+
+    ! Test for species name
+    SELECT CASE( TRIM ( Name ) )
 
           !==================================================================
           ! Species for the various "full-chemistry" mechanisms
@@ -258,109 +611,74 @@ CONTAINS
           !==================================================================
 
           CASE( 'ACET' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Acetone',                    &
-                              Formula       = 'CH3C(O)CH3',                 &
-                              MW_g          = 58.08_fp,                     &
-                              EmMW_g        = 12.00_fp,                     &
-                              MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Acetone'
+                              Formula       = 'CH3C(O)CH3'
+                              MW_g          = 58.08_fp
+                              EmMW_g        = 12.00_fp
+                              MolecRatio    = 3.0_fp
+                              Is_Advected   = Is_Advected
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.7e-1_f8 * To_M_atm,         &
-                              Henry_CR      = 5500.0_f8,                    &
+                              Henry_K0      = 2.7e-1_f8 * To_M_atm
+                              Henry_CR      = 5500.0_f8
 #else
-                              DD_Hstar_Old  = 1e5_fp,                       &
-                              Henry_K0      = 2.7e+1_f8,                    &
-                              Henry_CR      = 5300.0_f8,                    &
+                              DD_Hstar_Old  = 1e5_fp
+                              Henry_K0      = 2.7e+1_f8
+                              Henry_CR      = 5300.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'ACTA' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Acetic acid',                &
-                              Formula       = 'CH3C(O)OH',                  &
-                              MW_g          = 60.00_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_Old  = 4.1e+3_fp,                    &
-                              Henry_K0      = 4.1e+3_f8,                    &
-                              Henry_CR      = 6300.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Acetic acid'
+                              Formula       = 'CH3C(O)OH'
+                              MW_g          = 60.00_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_Old  = 4.1e+3_fp
+                              Henry_K0      = 4.1e+3_f8
+                              Henry_CR      = 6300.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
 
           CASE( 'ALD2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Acetaldehyde',               &
-                              Formula       = 'CH3CHO',                     &
-                              MW_g          = 44.05_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Acetaldehyde'
+                              Formula       = 'CH3CHO'
+                              MW_g          = 44.05_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 2.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e-01_f8 * To_M_atm,       &
-                              Henry_CR      = 5900.0_f8,                    &
+                              Henry_K0      = 1.30e-01_f8 * To_M_atm
+                              Henry_CR      = 5900.0_f8
 #else
-                              DD_Hstar_old  = 1.1e+1_fp,                    &
-                              Henry_K0      = 1.1e+1_f8,                    &
-                              Henry_CR      = 6300.0_f8,                    &
+                              DD_Hstar_Old  = 1.1e+1_fp
+                              Henry_K0      = 1.1e+1_f8
+                              Henry_CR      = 6300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ALK4' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Lumped >= C4 Alkanes',       &
-                              Formula       = '',                           &
-                              MW_g          = 58.12_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 4.3_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              FullName      = 'Lumped >= C4 Alkanes'
+                              Formula       = ''
+                              MW_g          = 58.12_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 4.3_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.20e-5_f8 * To_M_atm,        &
-                              Henry_CR      = 3100.0_f8,                    &
+                              Henry_K0      = 1.20e-5_f8 * To_M_atm
+                              Henry_CR      = 3100.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'ASOA1', 'ASOA2', 'ASOA3', 'ASOAN' )
              FullName = 'Lumped non-volatile aerosol products of light aromatics + IVOCs'
@@ -373,55 +691,35 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'ASOG1', 'ASOG2', 'ASOG3' )
              FullName = 'Lumped non-volatile gas products of light aromatics + IVOCs'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.00e+5_f8,                   &
-                              Henry_CR      = 6039.0_f8,                    &
+                              Henry_K0      = 1.00e+5_f8
+                              Henry_CR      = 6039.0_f8
 #else
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
-                              Henry_K0      = 1.00e+5_f8,                   &
-                              Henry_CR      = 6039.0_f8,                    &
+                              DD_Hstar_Old  = 1.00e+5_fp
+                              Henry_K0      = 1.00e+5_f8
+                              Henry_CR      = 6039.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'BCPI' )
              FullName = 'Hydrophilic black carbon aerosol'
@@ -433,30 +731,20 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 1800.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= T
+                              Density       = 1800.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'BCPO' )
              Fullname = 'Hydrophobic black carbon aerosol'
@@ -469,464 +757,256 @@ CONTAINS
              ! BCPO is considered to be IN.
              RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= F,                            &
-                              Density       = 1800.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= F
+                              Density       = 1800.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'BENZ' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Benzene',                    &
-                              Formula       = 'C6H6',                       &
-                              MW_g          = 78.11_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 6.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Benzene'
+                              Formula       = 'C6H6'
+                              MW_g          = 78.11_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 6.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'BR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'Br',                         &
-                              FullName      = 'Atomic bromine',             &
-                              Formula       = 'Br',                         &
-                              MW_g          = 80.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              FullName      = 'Atomic bromine'
+                              Formula       = 'Br'
+                              MW_g          = 80.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.40e-4_f8 * To_M_atm,        &
-                              Henry_CR      = 1800.0_f8,                    &
+                              Henry_K0      = 3.40e-4_f8 * To_M_atm
+                              Henry_CR      = 1800.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'BR2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'Br2',                        &
-                              FullName      = 'Molecular Bromine',          &
-                              Formula       = 'Br2',                        &
-                              MW_g          = 160.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Molecular Bromine'
+                              Formula       = 'Br2'
+                              MW_g          = 160.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.20e-3_f8 * To_M_atm,        &
-                              Henry_CR      = 4400.0_f8,                    &
+                              Henry_K0      = 7.20e-3_f8 * To_M_atm
+                              Henry_CR      = 4400.0_f8
 #else
-                              DD_Hstar_old  = 7.60e-1_fp,                   &
-                              Henry_K0      = 7.60e-1_f8,                   &
-                              Henry_CR      = 3720.0_f8,                    &
+                              DD_Hstar_Old  = 7.60e-1_fp
+                              Henry_K0      = 7.60e-1_f8
+                              Henry_CR      = 3720.0_f8
 #endif
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'BRCL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrCl',                       &
-                              FullName      = 'Bromine chloride',           &
-                              Formula       = 'BrCl',                       &
-                              MW_g          = 115.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Bromine chloride'
+                              Formula       = 'BrCl'
+                              MW_g          = 115.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'BRNO2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrNO2',                      &
-                              FullName      = 'Nitryl bromide',             &
-                              Formula       = 'BrNO2',                      &
-                              MW_g          = 126.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Nitryl bromide'
+                              Formula       = 'BrNO2'
+                              MW_g          = 126.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'BRNO3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrNO3',                      &
-                              FullName      = 'Bromine nitrate',            &
-                              Formula       = 'BrNO3',                      &
-                              MW_g          = 142.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+20_fp,                  &
-                              RC            = RC )
+                              FullName      = 'Bromine nitrate'
+                              Formula       = 'BrNO3'
+                              MW_g          = 142.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 1.00e+20_fp
 
           CASE( 'BRO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrO',                        &
-                              FullName      = 'Bromine monoxide',           &
-                              Formula       = 'BrO',                        &
-                              MW_g          = 96.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Bromine monoxide'
+                              Formula       = 'BrO'
+                              MW_g          = 96.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'C2H6' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ethane',                     &
-                              Formula       = 'C2H6',                       &
-                              MW_g          = 30.07_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Ethane'
+                              Formula       = 'C2H6'
+                              MW_g          = 30.07_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 2.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.90e+5_f8 * To_M_atm,        &
-                              Henry_CR      = 2400.0_f8,                    &
+                              Henry_K0      = 1.90e+5_f8 * To_M_atm
+                              Henry_CR      = 2400.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'C3H8' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Propane',                    &
-                              Formula       = 'C3H8',                       &
-                              MW_g          = 44.1_fp,                      &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              FullName      = 'Propane'
+                              Formula       = 'C3H8'
+                              MW_g          = 44.1_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 3.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.50e-5_f8 * To_M_atm,        &
-                              Henry_CR      = 2700.0_f8,                    &
+                              Henry_K0      = 1.50e-5_f8 * To_M_atm
+                              Henry_CR      = 2700.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'CCL4' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CCl4',                       &
-                              FullName      = 'Carbon tetrachloride',       &
-                              Formula       = 'CCl4',                       &
-                              MW_g          = 152.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Carbon tetrachloride'
+                              Formula       = 'CCl4'
+                              MW_g          = 152.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CFC11' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'CFC-11',                     &
-                              Formula       = 'CCl3F',                      &
-                              MW_g          = 137.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'CFC-11'
+                              Formula       = 'CCl3F'
+                              MW_g          = 137.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CFC12' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'CFC-12',                     &
-                              Formula       = 'CCl2F2',                     &
-                              MW_g          = 121.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'CFC-12'
+                              Formula       = 'CCl2F2'
+                              MW_g          = 121.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CFC113' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'CFC-113',                    &
-                              Formula       = 'C2Cl3F3',                    &
-                              MW_g          = 187.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'CFC-113'
+                              Formula       = 'C2Cl3F3'
+                              MW_g          = 187.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CFC114' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'CFC-114',                    &
-                              Formula       = 'C2Cl2F4',                    &
-                              MW_g          = 187.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'CFC-114'
+                              Formula       = 'C2Cl2F4'
+                              MW_g          = 187.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CFC115' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'CFC-115',                    &
-                              Formula       = 'C2ClF5',                     &
-                              MW_g          = 187.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'CFC-115'
+                              Formula       = 'C2ClF5'
+                              MW_g          = 187.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH2BR2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH2Br2',                     &
-                              FullName      = 'Dibromomethane',             &
-                              Formula       = 'CH2Br2',                     &
-                              MW_g          = 174.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Dibromomethane'
+                              Formula       = 'CH2Br2'
+                              MW_g          = 174.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH2O', 'HCHO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH2O',                       &
-                              FullName      = 'Formaldehyde',               &
-                              Formula       = 'CH2O',                       &
-                              MW_g          = 30.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Formaldehyde'
+                              Formula       = 'CH2O'
+                              MW_g          = 30.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.2e+1_f8 * To_M_atm,         &
-                              Henry_CR      = 6800.0_f8,                    &
+                              Henry_K0      = 3.2e+1_f8 * To_M_atm
+                              Henry_CR      = 6800.0_f8
 #else
-                              DD_Hstar_old  = 3.0e+3_fp,                    &
-                              Henry_K0      = 3.0e+3_f8,                    &
-                              Henry_CR      = 7200.0_f8,                    &
+                              DD_Hstar_Old  = 3.0e+3_fp
+                              Henry_K0      = 3.0e+3_f8
+                              Henry_CR      = 7200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'CH3BR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH3Br',                      &
-                              FullName      = 'Methyl bromide',             &
-                              Formula       = 'CH3Br',                      &
-                              MW_g          = 95.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Methyl bromide'
+                              Formula       = 'CH3Br'
+                              MW_g          = 95.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CHCL3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CHCl3',                      &
-                              FullName      = 'Chloroform',                 &
-                              Formula       = 'CHCl3',                      &
-                              MW_g          = 119.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chloroform'
+                              Formula       = 'CHCl3'
+                              MW_g          = 119.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH2CL2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH2Cl2',                     &
-                              FullName      = 'Dichloromethane',            &
-                              Formula       = 'CH2Cl2',                     &
-                              MW_g          = 85.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Dichloromethane'
+                              Formula       = 'CH2Cl2'
+                              MW_g          = 85.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH3CL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH3Cl',                      &
-                              FullName      = 'Chloromethane',              &
-                              Formula       = 'CH3Cl',                      &
-                              MW_g          = 50.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chloromethane'
+                              Formula       = 'CH3Cl'
+                              MW_g          = 50.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH3CCL3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH3CCl3',                    &
-                              FullName      = 'Methyl chloroform',          &
-                              Formula       = 'CH3CCl3',                    &
-                              MW_g          = 133.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Methyl chloroform'
+                              Formula       = 'CH3CCl3'
+                              MW_g          = 133.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           ! Now include both total and tagged CH4 species (mps, 6/21/17)
           ! All of these have identical properties except for the names
@@ -934,401 +1014,236 @@ CONTAINS
                 'CH4_LDF', 'CH4_WST', 'CH4_RIC', 'CH4_OTA', 'CH4_BBN', &
                 'CH4_WTL', 'CH4_SEE', 'CH4_LAK', 'CH4_TER', 'CH4_SAB' )
 
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CH4_OIL' )
-                   Name     = 'CH4_oil'
                    FullName = 'CH4 from oil emissions'
                 CASE( 'CH4_GAS' )
-                   Name     = 'CH4_oil'
                    FullName = 'CH4 from gas emissions'
                 CASE( 'CH4_COL' )
-                   Name     = 'CH4_col'
                    FullName = 'CH4 from coal mining emissions'
                 CASE( 'CH4_LIV' )
-                   Name     = 'CH4_liv'
                    FullName = 'CH4 from livestock emissions'
                 CASE( 'CH4_LDF' )
-                   Name     = 'CH4_ldf'
                    FullName = 'CH4 from landfill emissions'
                 CASE( 'CH4_WST' )
-                   Name     = 'CH4_wst'
                    FullName = 'CH4 from waste emissions'
                 CASE( 'CH4_RIC' )
-                   Name     = 'CH4_ric'
                    FullName = 'CH4 from rice emissions'
                 CASE( 'CH4_OTA' )
-                   Name     = 'CH4_ota'
                    FullName = 'CH4 from other anthropogenic emissions'
                 CASE( 'CH4_BBN' )
-                   Name     = 'CH4_bbn'
                    FullName = 'CH4 from biomass burning emissions'
                 CASE( 'CH4_WTL' )
-                   Name     = 'CH4_wtl'
                    FullName = 'CH4 from wetland emissions'
                 CASE( 'CH4_SEE' )
-                   Name     = 'CH4_see'
                    FullName = 'CH4 from geological seep emissions'
                 CASE( 'CH4_LAK' )
-                   Name     = 'CH4_lak'
                    FullName = 'CH4 from lake emissions'
                 CASE( 'CH4_TER' )
-                   Name     = 'CH4_ter'
                    FullName = 'CH4 from termite emissions'
                 CASE( 'CH4_SAB' )
-                   Name     = 'CH4_sab'
                    FullName = 'CH4 from soil absorption emissions'
                 CASE DEFAULT
-                   Name     = 'CH4'
                    FullName = 'Methane'
              END SELECT
 
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CH4' )
                    BackgroundVV = 1.7e-06_fp
                 CASE DEFAULT
                    BackgroundVV = MISSING_VV
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'CH4',                        &
-                              MW_g          = 16.0_fp,                      &
-                              BackgroundVV  = BackgroundVV,                 &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              Formula       = 'CH4'
+                              MW_g          = 16.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'CHBR3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CHBr3',                      &
-                              FullName      = 'Bromoform',                  &
-                              Formula       = 'CHBr3',                      &
-                              MW_g          = 253.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Bromoform'
+                              Formula       = 'CHBr3'
+                              MW_g          = 253.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'Cl',                         &
-                              FullName      = 'Atomic chlorine',            &
-                              Formula       = 'Cl',                         &
-                              MW_g          = 35.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Atomic chlorine'
+                              Formula       = 'Cl'
+                              MW_g          = 35.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'CL2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'Cl2',                        &
-                              FullName      = 'Molecular chlorine',         &
-                              Formula       = 'Cl2',                        &
-                              MW_g          = 71.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Molecular chlorine'
+                              Formula       = 'Cl2'
+                              MW_g          = 71.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CL2O2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'Cl2O2',                      &
-                              FullName      = 'Dichlorine dioxide',         &
-                              Formula       = 'Cl2O2',                      &
-                              MW_g          = 103.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Dichlorine dioxide'
+                              Formula       = 'Cl2O2'
+                              MW_g          = 103.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CLNO2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'ClNO2',                      &
-                              FullName      = 'Nitryl chloride',            &
-                              Formula       = 'ClNO2',                      &
-                              MW_g          = 81.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Nitryl chloride'
+                              Formula       = 'ClNO2'
+                              MW_g          = 81.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
           CASE( 'CLNO3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'ClNO3',                      &
-                              FullName      = 'Chlorine nitrate',           &
-                              Formula       = 'ClNO3',                      &
-                              MW_g          = 97.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+20_fp,                  &
-                              RC            = RC )
+                              FullName      = 'Chlorine nitrate'
+                              Formula       = 'ClNO3'
+                              MW_g          = 97.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.00e+20_fp
 
           CASE( 'CLO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'ClO',                        &
-                              FullName      = 'Chlorine monoxide',          &
-                              Formula       = 'ClO',                        &
-                              MW_g          = 51.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chlorine monoxide'
+                              Formula       = 'ClO'
+                              MW_g          = 51.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CLOO' )
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'ClOO',                       &
-                              FullName      = 'Chlorine dioxide',           &
-                              Formula       = 'ClOO',                       &
-                              MW_g          = 67.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chlorine dioxide'
+                              Formula       = 'ClOO'
+                              MW_g          = 67.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
-          CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',           &
-                'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU',          &
-                'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP',          &
+          CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',  &
+                'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU', &
+                'COBBNA', 'COBBOTH', 'COCH4',  'COBIOF', 'COISOP', &
                 'COMONO', 'COMEOH',  'COACET', 'CONMVOC'            )
 
-             ! Set Name and LongName for the various CO species
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CO'     )
-                   Name     = 'CO'
                    FullName = 'Carbon monoxide'
                 CASE( 'COUS'   )
-                   Name     = 'COus'
                    FullName = 'Anthropogenic + biofuel CO emitted over the USA'
                 CASE( 'COEUR'  )
-                   Name     = 'COeur'
                    FullName = 'Anthropogenic + biofuel CO emitted over Europe'
                 CASE( 'COASIA' )
-                   Name     = 'COasia'
                    FullName = 'Anthropogenic + biofuel CO emitted over Asia'
                 CASE( 'COOTH'  )
-                   Name     = 'COoth'
                    FullName = 'Anthropogenic + biofuel CO emitted everywhere else'
                 CASE( 'COBBAM' )
-                   Name     = 'CObbam'
                    FullName = 'Biomass burning CO emitted over South America'
                 CASE( 'COBBAF' )
-                   Name     = 'CObbaf'
                    FullName = 'Biomass burning CO emitted over Africa'
                 CASE( 'COBBAS' )
-                   Name     = 'CObbas'
                    FullName = 'Biomass burning CO emitted over Asia'
                 CASE( 'COBBOC' )
-                   Name     = 'CObboc'
                    FullName = 'Biomass burning CO emitted over Oceania'
                 CASE( 'COBBEU' )
-                   Name     = 'CObbeu'
                    FullName = 'Biomass burning CO emitted over Europe'
                 CASE( 'COBBOTH' )
-                   Name     = 'CObboth'
                    FullName = 'Biomass burning CO emitted everywhere else'
                 CASE( 'COCH4'  )
-                   Name     = 'COch4'
                    FullName = 'CO produced from methane oxidation'
                 CASE( 'COBIOF' )
-                   Name     = 'CObiof'
                    FullName = 'CO produced from biofuels (whole world)'
                 CASE( 'CONMVOC' )
-                   Name     = 'COnmvoc'
                    FullName = 'CO produced from NMVOC oxidation'
                 CASE( 'COISOP' )
-                   Name     = 'COisop'
                    FullName = 'CO produced from isoprene oxidation'
                 CASE( 'COMONO' )
-                   Name     = 'COmono'
                    FullName = 'CO produced from monterpenes oxidation'
                 CASE( 'COMEOH' )
-                   Name     = 'COmeoh'
                    FullName = 'CO produced from methanol oxidation'
                 CASE( 'COACET' )
-                   Name     = 'COacet'
                    FullName = 'CO produced from acetone oxidation'
              END SELECT
 
              ! Set special default background for CO
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CO'     )
                    BackgroundVV = 1.0e-07_fp
                 CASE DEFAULT
                    BackgroundVV = MISSING_VV
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'CO',                         &
-                              MW_g          = 28.0_fp,                      &
-                              BackgroundVV  = BackgroundVV,                 &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              Formula       = 'CO'
+                              MW_g          = 28.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 9.70e-6_f8 * To_M_atm,        &
-                              Henry_CR      = 1300.0_f8,                    &
+                              Henry_K0      = 9.70e-6_f8 * To_M_atm
+                              Henry_CR      = 1300.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'DHDC' )
              FullName = 'Dihydroxyperoxide dicarbonyl'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H8O6',                     &
-                              MW_g          = 164.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              Formula       = 'C5H8O6'
+                              MW_g          = 164.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'DHDN' )
              ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'C5 dihydroxydinitrate',      &
-                              Formula       = 'C5H10O8N2',                  &
-                              MW_g          = 226.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_Old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'C5 dihydroxydinitrate'
+                              Formula       = 'C5H10O8N2'
+                              MW_g          = 226.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_Old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'DHPCARP' )
              FullName = 'Dihydroxy a-formyl peroxy radical'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H9O7',                     &
-                              MW_g          = 181.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'C5H9O7'
+                              MW_g          = 181.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'DMS' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Dimethyl sulfide',           &
-                              Formula       = '(CH3)2S',                    &
-                              MW_g          = 62.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Henry_K0      = 4.80e-1_f8,                   &
-                              Henry_CR      = 3100.0_f8,                    &
-                              RC            = RC )
+                              FullName      = 'Dimethyl sulfide'
+                              Formula       = '(CH3)2S'
+                              MW_g          = 62.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Henry_K0      = 4.80e-1_f8
+                              Henry_CR      = 3100.0_f8
 
           CASE( 'DST1', 'DSTAL1', 'NITD1', 'SO4D1' )
 
              ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
+             SELECT CASE( Name )
                 CASE( 'DST1' )
                    FullName = 'Dust aerosol, Reff = 0.7 microns'
                 CASE( 'DSTAL1' )
@@ -1346,34 +1261,24 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 29.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2500.0_fp,                    &
-                              Radius        = 7.3e-7_fp,                    &
-                              DD_DustDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 29.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2500.0_fp
+                              Radius        = 7.3e-7_fp
+                              DD_DustDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'DST2', 'DSTAL2', 'NITD2', 'SO4D2' )
 
              ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
+             SELECT CASE( Name )
                 CASE( 'DST2' )
                    FullName = 'Dust aerosol, Reff = 1.4 microns'
                 CASE( 'DSTAL2' )
@@ -1391,35 +1296,25 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 29.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2650.0_fp,                    &
-                              Radius        = 1.4e-6_fp,                    &
-                              DD_DustDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 29.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2650.0_fp
+                              Radius        = 1.4e-6_fp
+                              DD_DustDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'DST3', 'DSTAL3', 'NITD3', 'SO4D3' )
 
              ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
+             SELECT CASE( Name )
                 CASE( 'DST3' )
                    FullName = 'Dust aerosol, Reff = 2.4 microns'
                 CASE( 'DSTAL3' )
@@ -1437,36 +1332,26 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 29.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2650.0_fp,                    &
-                              Radius        = 2.4e-6_fp,                    &
-                              DD_DustDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 29.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2650.0_fp
+                              Radius        = 2.4e-6_fp
+                              DD_DustDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
 
           CASE( 'DST4', 'DSTAL4', 'NITD4', 'SO4D4' )
 
              ! These have identical properties except for the names
-             SELECT CASE( NameAllCaps )
+             SELECT CASE( Name )
                 CASE( 'DST4' )
                    FullName = 'Dust aerosol, Reff = 4.5 microns'
                 CASE( 'DSTAL4' )
@@ -1474,7 +1359,6 @@ CONTAINS
                 CASE( 'NITD4' )
                    FullName = 'Nitrate on dust, Reff = 4.5 microns'
                 CASE( 'SO4D4' )
-                   Name     = 'Sulfate on dust, Reff = 4.5 microns'
              END SELECT
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
@@ -1484,461 +1368,279 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 29.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2650.0_fp,                    &
-                              Radius        = 4.50e-6_fp,                   &
-                              DD_DustDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 29.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2650.0_fp
+                              Radius        = 4.50e-6_fp
+                              DD_DustDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'EOH' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ethanol',                    &
-                              Formula       = 'C2H5OH',                     &
-                              MW_g          = 46.07_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 2.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.9e+2_fp,                    &
-                              Henry_K0      = 1.9e+2_f8,                    &
-                              Henry_CR      = 6600.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Ethanol'
+                              Formula       = 'C2H5OH'
+                              MW_g          = 46.07_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 2.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.9e+2_fp
+                              Henry_K0      = 1.9e+2_f8
+                              Henry_CR      = 6600.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ETHLN' )
              ! ETHLN uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ethanol nitrate',            &
-                              Formula       = 'CHOCH2ONO2',                 &
-                              MW_g          = 105.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Ethanol nitrate'
+                              Formula       = 'CHOCH2ONO2'
+                              MW_g          = 105.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
 
           CASE( 'GLYC' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Glycoaldehyde',              &
-                              Formula       = 'HOCH2CHO',                   &
-                              MW_g          = 60.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Glycoaldehyde'
+                              Formula       = 'HOCH2CHO'
+                              MW_g          = 60.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.10e+2_f8 * To_M_atm,        &
-                              Henry_CR      = 4600.0_f8,                    &
+                              Henry_K0      = 4.10e+2_f8 * To_M_atm
+                              Henry_CR      = 4600.0_f8
 #else
-                              DD_Hstar_old  = 4.10e+4_fp,                   &
-                              Henry_K0      = 4.10e+4_f8,                   &
-                              Henry_CR      = 4600.0_f8,                    &
+                              DD_Hstar_old  = 4.10e+4_fp
+                              Henry_K0      = 4.10e+4_f8
+                              Henry_CR      = 4600.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'GLYX' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Glyoxal',                    &
-                              Formula       = 'CHOCHO',                     &
-                              MW_g          = 58.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 3.6e+5_fp,                    &
-                              Henry_K0      = 3.6e+5_f8,                    &
-                              Henry_CR      = 7200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Glyoxal'
+                              Formula       = 'CHOCHO'
+                              MW_g          = 58.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 3.6e+5_fp
+                              Henry_K0      = 3.6e+5_f8
+                              Henry_CR      = 7200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'H1211' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Halon 1211, Freon 12B1',     &
-                              Formula       = 'CBrClF2',                    &
-                              MW_g          = 165.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Halon 1211, Freon 12B1'
+                              Formula       = 'CBrClF2'
+                              MW_g          = 165.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'H1301' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Halon 1301, Freon 13B1',     &
-                              Formula       = 'CBrF3',                      &
-                              MW_g          = 149.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Halon 1301, Freon 13B1'
+                              Formula       = 'CBrF3'
+                              MW_g          = 149.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'H2402' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              FullName      = 'Halon 2402',                 &
-                              Formula       = 'C2Br2F4',                    &
-                              MW_g          = 260.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Halon 2402'
+                              Formula       = 'C2Br2F4'
+                              MW_g          = 260.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'H2O' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Water vapor',                &
-                              Formula       = 'H2O',                        &
-                              MW_g          = 18.0_fp,                      &
-                              BackgroundVV  = 1.839e-02_fp,                 &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Water vapor'
+                              Formula       = 'H2O'
+                              MW_g          = 18.0_fp
+                              BackgroundVV  = 1.839e-02_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'H2O2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Hydrogen peroxide',          &
-                              Formula       = 'H2O2',                       &
-                              MW_g          = 34.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Hydrogen peroxide'
+                              Formula       = 'H2O2'
+                              MW_g          = 34.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.93e+5_f8 * To_M_atm,        &
-                              Henry_CR      = 6600.0_f8,                    &
-                              Henry_pKa     = 11.6_f8,                      &
+                              Henry_K0      = 4.93e+5_f8 * To_M_atm
+                              Henry_CR      = 6600.0_f8
+                              Henry_pKa     = 11.6_f8
 #else
-                              DD_Hstar_old  = 5.00e+7_fp,                   &
-                              Henry_K0      = 8.30e+4_f8,                   &
-                              Henry_CR      = 7400.0_f8,                    &
+                              DD_Hstar_old  = 5.00e+7_fp
+                              Henry_K0      = 8.30e+4_f8
+                              Henry_CR      = 7400.0_f8
 #endif
-                              WD_RetFactor  = 5e-2_fp,                      &
-                              WD_LiqAndGas  = T,                            &
-                              WD_ConvFacI2G = 4.36564e-1_fp,                &
-                              RC            = RC )
+                              WD_RetFactor  = 5e-2_fp
+                              WD_LiqAndGas  = T
+                              WD_ConvFacI2G = 4.36564e-1_fp
 
           CASE( 'HAC' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Hydroxyacetone',             &
-                              Formula       = 'HOCH2C(O)CH3',               &
-                              MW_g          = 74.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Hydroxyacetone'
+                              Formula       = 'HOCH2C(O)CH3'
+                              MW_g          = 74.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.70e+1_f8 * To_M_atm,        &
-                              Henry_CR      = 0.0_f8,                       &
+                              Henry_K0      = 7.70e+1_f8 * To_M_atm
+                              Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 1.40e+6_fp,                   &
-                              Henry_K0      = 1.40e+6_f8,                   &
-                              Henry_CR      = 7200.0_f8,                    &
+                              DD_Hstar_old  = 1.40e+6_fp
+                              Henry_K0      = 1.40e+6_f8
+                              Henry_CR      = 7200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HBR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HBr',                        &
-                              FullName      = 'Hypobromic acid',            &
-                              Formula       = 'HBr',                        &
-                              MW_g          = 81.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Hypobromic acid'
+                              Formula       = 'HBr'
+                              MW_g          = 81.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.40e-1_f8 * To_M_atm,        &
-                              Henry_CR      = 370.0_f8,                     &
+                              Henry_K0      = 2.40e-1_f8 * To_M_atm
+                              Henry_CR      = 370.0_f8
 #else
-                              DD_Hstar_old  = 7.10e+15_fp,                  &
-                              Henry_K0      = 7.10e+13_f8,                  &
-                              Henry_CR      = 10200.0_f8,                   &
+                              DD_Hstar_old  = 7.10e+15_fp
+                              Henry_K0      = 7.10e+13_f8
+                              Henry_CR      = 10200.0_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'HC187' )
              FullName = 'Epoxide oxidation product m/z 187-189'
 
              ! HC187 uses the same DD_F0 and DD_Hstar_old values as HNO3,
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 187.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              Formula       = ''
+                              MW_g          = 187.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
-                              Henry_CR      = 3400.0_f8,                    &
+                              Henry_K0      = 2.10e-2_f8 * To_M_atm
+                              Henry_CR      = 3400.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp,                   &
+                              DD_Hstar_old  = 1.0e+14_fp
 #endif
-                              RC            = RC )
 
           CASE( 'HCFC123' )
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'HCFC-123, Freon 123',        &
-                              Formula       = 'C2HCl2F3',                   &
-                              MW_g          = 117.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'HCFC-123, Freon 123'
+                              Formula       = 'C2HCl2F3'
+                              MW_g          = 117.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HCFC141B' )
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HCFC141b',                   &
-                              FullName      = 'HCFC-141b, Freon 141b',      &
-                              Formula       = 'C(CH3)Cl2F',                 &
-                              MW_g          = 117.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'HCFC-141b, Freon 141b'
+                              Formula       = 'C(CH3)Cl2F'
+                              MW_g          = 117.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HCFC142B' )
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HCFC142b',                   &
-                              FullName      = 'HCFC-142b, Freon 142b',      &
-                              Formula       = 'C(CH3)ClF2',                 &
-                              MW_g          = 117.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'HCFC-142b, Freon 142b'
+                              Formula       = 'C(CH3)ClF2'
+                              MW_g          = 117.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HCFC22' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'HCFC-22, Freon 22',          &
-                              Formula       = 'CHClF2',                     &
-                              MW_g          = 86.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'HCFC-22, Freon 22'
+                              Formula       = 'CHClF2'
+                              MW_g          = 86.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HCL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HCl',                        &
-                              FullName      = 'Hydrochloric acid',          &
-                              Formula       = 'HCl',                        &
-                              MW_g          = 36.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-#if defined(DISCOVER)
-                              DD_Hstar_old  = 2.05e+6_fp,                   &
-                              Henry_K0      = 7.10e+15_f8,                  &
+                              FullName      = 'Hydrochloric acid'
+                              Formula       = 'HCl'
+                              MW_g          = 36.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+#if defined( MODEL_GEOS )
+                              DD_Hstar_old  = 2.05e+6_fp
+                              Henry_K0      = 7.10e+15_f8
 #else
-                              DD_Hstar_old  = 2.05e+13_fp,                  &
-                              Henry_K0      = 7.00e+10_f8,                  &
+                              DD_Hstar_old  = 2.05e+13_fp
+                              Henry_K0      = 7.00e+10_f8
 #endif
-                              Henry_CR      = 11000.0_f8,                   &
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              Henry_CR      = 11000.0_f8
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'HCOOH' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Formic acid',                &
-                              Formula       = 'HCOOH',                      &
-                              MW_g          = 46.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 8.90e+3_fp,                   &
-                              Henry_K0      = 8.90e+3_f8,                   &
-                              Henry_CR      = 6100.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Formic acid'
+                              Formula       = 'HCOOH'
+                              MW_g          = 46.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 8.90e+3_fp
+                              Henry_K0      = 8.90e+3_f8
+                              Henry_CR      = 6100.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HNO2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrous acid',               &
-                              Formula       = 'HNO2',                       &
-                              MW_g          = 47.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Nitrous acid'
+                              Formula       = 'HNO2'
+                              MW_g          = 47.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HNO3' )
 
@@ -1953,270 +1655,171 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitric acid',                &
-                              Formula       = 'HNO3',                       &
-                              MW_g          = 63.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Nitric acid'
+                              Formula       = 'HNO3'
+                              MW_g          = 63.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e+3_f8 * To_M_atm,        &
-                              Henry_CR      = 8700.0_f8,                    &
+                              Henry_K0      = 2.10e+3_f8 * To_M_atm
+                              Henry_CR      = 8700.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp,                   &
-                              Henry_K0      = 8.3e+4_f8,                    &
-                              Henry_CR      = 7400.0_f8,                    &
+                              DD_Hstar_old  = 1.0e+14_fp
+                              Henry_K0      = 8.3e+4_f8
+                              Henry_CR      = 7400.0_f8
 #endif
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'HNO4' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxynitric acid',          &
-                              Formula       = 'HNO4',                       &
-                              MW_g          = 79.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Peroxynitric acid'
+                              Formula       = 'HNO4'
+                              MW_g          = 79.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.90e1X_f8 * To_M_atm,        &
-                              Henry_CR      = 8400.0_f8,                    &
+                              !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
+                              Henry_K0      = 3.90e-1_f8 * To_M_atm
+                              Henry_CR      = 8400.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'HOBR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HOBr',                       &
-                              FullName      = 'Hypobromous acid',           &
-                              Formula       = 'HOBr',                       &
-                              MW_g          = 97.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Hypobromous acid'
+                              Formula       = 'HOBr'
+                              MW_g          = 97.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e+0_f8 * To_M_atm,        &
-                              Henry_CR      = 4000.0_f8,                    &
+                              Henry_K0      = 1.30e+0_f8 * To_M_atm
+                              Henry_CR      = 4000.0_f8
 #else
-                              DD_Hstar_old  = 6.10e+3_fp,                   &
-                              Henry_K0      = 6.10e+3_f8,                   &
-                              Henry_CR      = 6014.0_f8,                    &
+                              DD_Hstar_old  = 6.10e+3_fp
+                              Henry_K0      = 6.10e+3_f8
+                              Henry_CR      = 6014.0_f8
 #endif
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'HOCL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'HOCl',                       &
-                              FullName      = 'Hypochlorous acid',          &
-                              Formula       = 'HOCl',                       &
-                              MW_g          = 52.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 6.50e+2_fp,                   &
-                              Henry_K0      = 6.50e+2_f8,                   &
-                              Henry_CR      = 5900.0_f8,                    &
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              FullName      = 'Hypochlorous acid'
+                              Formula       = 'HOCl'
+                              MW_g          = 52.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 6.50e+2_fp
+                              Henry_K0      = 6.50e+2_f8
+                              Henry_CR      = 5900.0_f8
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'HONIT' )
              FullName = '2nd gen monoterpene organic nitrate'
 
              ! HONIT uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 215.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.69e+13_f8,                  &
-                              Henry_CR      = 5487.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 215.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.69e+13_f8
+                              Henry_CR      = 5487.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HPALD' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Hydroperoxyaldehydes',       &
-                              Formula       = 'C5H8O3',                     &
-                              MW_g          = 116.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 4.0e+4_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Hydroperoxyaldehydes'
+                              Formula       = 'C5H8O3'
+                              MW_g          = 116.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 4.0e+4_fp
 
           CASE( 'HPC52O2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'HOC52O2',                    &
-                              Formula       = 'OOCC(C(C=O)O)(O[O])C',       &
-                              MW_g          = 165.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'HOC52O2'
+                              Formula       = 'OOCC(C(C=O)O)(O[O])C'
+                              MW_g          = 165.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'IEPOXA' )
              FullName = 'trans-Beta isoprene epoxydiol'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 8.00e+7_fp,                   &
-                              Henry_K0      = 8.00e+7_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 8.00e+7_fp
+                              Henry_K0      = 8.00e+7_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IEPOXB' )
              FullName = 'cis-Beta isoprene epoxydiol'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 8.00e+7_fp,                   &
-                              Henry_K0      = 8.00e+7_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 8.00e+7_fp
+                              Henry_K0      = 8.00e+7_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IEPOXD' )
              FullName = 'Delta isoprene epoxydiol'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 8.00e+7_fp,                   &
-                              Henry_K0      = 8.00e+7_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 8.00e+7_fp
+                              Henry_K0      = 8.00e+7_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IMAE' )
              FullName = 'C4 epoxide from oxidation of MPAN (PMN)'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C4H6O3',                     &
-                              MW_g          = 102.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = FullName
+                              Formula       = 'C4H6O3'
+                              MW_g          = 102.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
                               ! DD_Hstar based on Pye et al. (2013)
-                              DD_Hstar_old  = 1.20e+5_fp,                   &
-                              Henry_K0      = 1.20e+5_f8,                   &
-                              Henry_CR      = 7200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              DD_Hstar_old  = 1.20e+5_fp
+                              Henry_K0      = 1.20e+5_f8
+                              Henry_CR      = 7200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'INDIOL' )
              FullName = 'Generic aerosol-phase organonitrate hydrolysis product'
@@ -2229,27 +1832,17 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 102.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 102.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'IONITA' )
              FullName = 'Aer-phase organic nitrate from isoprene precursors'
@@ -2262,27 +1855,17 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 14.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 14.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'IPMN' )
              FullName = 'Peroxymethacroyl nitrate (PMN) from isoprene oxidation'
@@ -2290,53 +1873,34 @@ CONTAINS
              ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'CH2=C(CH3)C(O)OONO2',        &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              Formula       = 'CH2=C(CH3)C(O)OONO2'
+                              MW_g          = 147.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
+                              Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 3.60_fp,                      &
+                              DD_Hstar_old  = 3.60_fp
 #endif
-                              RC            = RC )
 
           CASE( 'ISN1' )
              ! ISN1 uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nighttime isoprene nitrate', &
-                              Formula       = 'C5H8NO4',                    &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Nighttime isoprene nitrate'
+                              Formula       = 'C5H8NO4'
+                              MW_g          = 147.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISN1OA' )
              FullName      = 'Aer-phase 2nd-gen hydroxynitrates from ISOP+NO3'
@@ -2349,51 +1913,31 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 226.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 226.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'ISN1OG' )
              FullName      = 'Gas-phase 2nd-gen hydroxynitrates from ISOP+NO3'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 226.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.30e+4_fp,                   &
-                              Henry_K0      = 2.30e+4_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 226.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.30e+4_fp
+                              Henry_K0      = 2.30e+4_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
              FullName = 'Lumped semivolatile aer products of isoprene oxidation'
@@ -2406,174 +1950,108 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'ISOG1', 'ISOG2', 'ISOG3' )
              FullName = 'Lumped semivolatile gas products of isoprene oxidation'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
-                              Henry_K0      = 1.00e+5_f8,                   &
-                              Henry_CR      = 6039.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.00e+5_fp
+                              Henry_K0      = 1.00e+5_f8
+                              Henry_CR      = 6039.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Isoprene',                   &
-                              Formula       = 'CH2=C(CH3)CH=CH2',           &
-                              MW_g          = 68.12_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 5e+0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              FullName      = 'Isoprene'
+                              Formula       = 'CH2=C(CH3)CH=CH2'
+                              MW_g          = 68.12_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 5e+0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.40e-4_f8 * To_M_atm,        &
-                              Henry_CR      = 4400.0_f8,                    &
+                              Henry_K0      = 3.40e-4_f8 * To_M_atm
+                              Henry_CR      = 4400.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'ISOPNB' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Isoprene nitrate Beta',      &
-                              Formula       = 'C5H9NO4',                    &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Isoprene nitrate Beta'
+                              Formula       = 'C5H9NO4'
+                              MW_g          = 147.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+                              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOPND'  )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Isoprene nitrate Delta',     &
-                              Formula       = 'C5H9NO4',                    &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Isoprene nitrate Delta'
+                              Formula       = 'C5H9NO4'
+                              MW_g          = 147.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+                              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LIMO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Limonene',                   &
-                              Formula       = 'C10H16',                     &
-                              MW_g          = 136.23_fp,                    &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 7.00e-2_fp,                   &
-                              Henry_K0      = 7.00e-2_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Limonene'
+                              Formula       = 'C10H16'
+                              MW_g          = 136.23_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 7.00e-2_fp
+                              Henry_K0      = 7.00e-2_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LVOC' )
              FullName = 'Gas-phase low-volatility non-IEPOX product of RIP ox'
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H14O5',                    &
-                              MW_g          = 154.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+8_fp,                   &
-                              Henry_K0      = 1.00e+8_f8,                   &
-                              Henry_CR      = 7200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = 'C5H14O5'
+                              MW_g          = 154.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 1.00e+8_fp
+                              Henry_K0      = 1.00e+8_f8
+                              Henry_CR      = 7200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LVOCOA' )
              FullName = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
@@ -2586,179 +2064,115 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'C5H14O5',                    &
-                              MW_g          = 154.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = 'C5H14O5'
+                              MW_g          = 154.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'MACR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methacrolein',               &
-                              Formula       = 'CH2=C(CH3)CHO',              &
-                              MW_g          = 70.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Methacrolein'
+                              Formula       = 'CH2=C(CH3)CHO'
+                              MW_g          = 70.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.8e-2_f8 * To_M_atm,         &
-                              Henry_CR      = 4300.0_f8,                    &
+                              Henry_K0      = 4.8e-2_f8 * To_M_atm
+                              Henry_CR      = 4300.0_f8
 #else
-                              DD_Hstar_old  = 6.5e+0_fp,                    &
+                              DD_Hstar_old  = 6.5e+0_fp
 #endif
-                              RC            = RC )
 
           CASE( 'MACRN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrate from MACR',          &
-                              Formula       = 'HOCH2C(ONO2)(CH3)CHO',       &
-                              MW_g          = 149.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Nitrate from MACR'
+                              Formula       = 'HOCH2C(ONO2)(CH3)CHO'
+                              MW_g          = 149.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+                              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MAP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxyacetic acid',          &
-                              Formula       = 'CH3C(O)OOH',                 &
-                              MW_g          = 76.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Peroxyacetic acid'
+                              Formula       = 'CH3C(O)OOH'
+                              MW_g          = 76.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 8.30e+0_f8 * To_M_atm,        &
-                              Henry_CR      = 5300.0_f8,                    &
+                              Henry_K0      = 8.30e+0_f8 * To_M_atm
+                              Henry_CR      = 5300.0_f8
 #else
-                              DD_Hstar_old  = 8.40e+2_fp,                   &
-                              Henry_K0      = 8.40e+2_f8,                   &
-                              Henry_CR      = 5300.0_f8,                    &
+                              DD_Hstar_old  = 8.40e+2_fp
+                              Henry_K0      = 8.40e+2_f8
+                              Henry_CR      = 5300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MEK' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methyl Ethyl Ketone',        &
-                              Formula       = 'RC(O)R',                     &
-                              MW_g          = 72.11_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 4.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Methyl Ethyl Ketone'
+                              Formula       = 'RC(O)R'
+                              MW_g          = 72.11_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 4.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.90e+02_f8 * To_M_atm,       &
-                              Henry_CR      = 5700.0_f8,                    &
+                              Henry_K0      = 2.90e+02_f8 * To_M_atm
+                              Henry_CR      = 5700.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'MGLY' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methylglyoxal',              &
-                              Formula       = 'CH3COCHO',                   &
-                              MW_g          = 72.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 3.7e+3_fp,                    &
-                              Henry_K0      = 3.7e+3_f8,                    &
-                              Henry_CR      = 7500.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Methylglyoxal'
+                              Formula       = 'CH3COCHO'
+                              MW_g          = 72.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 3.7e+3_fp
+                              Henry_K0      = 3.7e+3_f8
+                              Henry_CR      = 7500.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MOBA' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = '5C acid from isoprene',      &
-                              Formula       = 'HOC(=O)C(CH3)=CHCHO',        &
-                              MW_g          = 114.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
+                              FullName      = '5C acid from isoprene'
+                              Formula       = 'HOC(=O)C(CH3)=CHCHO'
+                              MW_g          = 114.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.27e+2_f8 * To_M_atm,        &
-                              Henry_CR      = 6300.0_f8,                    &
+                              Henry_K0      = 2.27e+2_f8 * To_M_atm
+                              Henry_CR      = 6300.0_f8
 #else
-                              Henry_K0      = 2.30e+4_f8,                   &
-                              Henry_CR      = 6300.0_f8,                    &
+                              Henry_K0      = 2.30e+4_f8
+                              Henry_CR      = 6300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MONITA' )
              FullName = 'Aer-phase organic nitrate from monoterpene precursors'
@@ -2771,81 +2185,52 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 14.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 14.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'MONITS' )
              FullName = 'Saturated 1st gen monoterpene organic nitrate'
 
              ! MONITS uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 215.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 215.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 1.70e+4_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MONITU' )
              FullName = 'Unsaturated 1st gen monoterpene organic nitrate'
 
              ! MONITU uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 215.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 1.70e+4_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 215.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 1.70e+4_f8
+                              Henry_CR      = 9200.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MOPI', 'MOPO' )
 
@@ -2854,7 +2239,7 @@ CONTAINS
 
              ! These have mostly identical properties
              ! Turn off rainout for hydrophobic OC, for all temperatures.
-             SELECT CASE( NameAllCaps )
+             SELECT CASE( Name )
 
                 CASE( 'MOPI' )
                    FullName = 'Hydrophilic marine organic carbon aerosol'
@@ -2877,74 +2262,46 @@ CONTAINS
 
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 1300.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 1300.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'MP', 'CH3OOH' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'MP',                         &
-                              FullName      = 'Methyl hydro peroxide',      &
-                              Formula       = 'CH3OOH',                     &
-                              MW_g          = 48.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Methyl hydro peroxide'
+                              Formula       = 'CH3OOH'
+                              MW_g          = 48.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2,90e+0_f8 * To_M_atm,        &
-                              Henry_CR      = 5200.0_f8,                    &
+                              Henry_K0      = 2.90e+0_f8 * To_M_atm
+                              Henry_CR      = 5200.0_f8
 #else
-                              Henry_K0      = 3.10e+2_f8,                   &
-                              Henry_CR      = 5200.0_f8,                    &
+                              Henry_K0      = 3.10e+2_f8
+                              Henry_CR      = 5200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MPN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methyl peroxy nitrate',      &
-                              Formula       = 'CH3O2NO2',                   &
-                              MW_g          = 93.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Methyl peroxy nitrate'
+                              Formula       = 'CH3O2NO2'
+                              MW_g          = 93.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'MSA' )
 
@@ -2961,196 +2318,123 @@ CONTAINS
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methyl sulfonic acid',       &
-                              Formula       = 'CH4SO3',                     &
-                              MW_g          = 96.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Methyl sulfonic acid'
+                              Formula       = 'CH4SO3'
+                              MW_g          = 96.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'MTPA' )
              FullName = 'a-pinene, b-pinene, sabinene, carene'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 136.23_fp,                    &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 4.90e-2_fp,                   &
-                              Henry_K0      = 4.90e-2_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 136.23_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 4.90e-2_fp
+                              Henry_K0      = 4.90e-2_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MTPO' )
              FullName = 'Terpinene, terpinolene, myrcene, ocimene, other monoterpenes'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 136.23_fp,                    &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 4.90e-2_fp,                   &
-                              Henry_K0      = 4.90e-2_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 136.23_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 4.90e-2_fp
+                              Henry_K0      = 4.90e-2_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MVK' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methyl vinyl ketone',        &
-                              Formula       = 'CH2=CHC(=O)CH3',             &
-                              MW_g          = 70.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Methyl vinyl ketone'
+                              Formula       = 'CH2=CHC(=O)CH3'
+                              MW_g          = 70.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.6e-1_f8 * To_M_atm,         &
-                              Henry_CR      = 4800.0_f8,                    &
+                              Henry_K0      = 2.6e-1_f8 * To_M_atm
+                              Henry_CR      = 4800.0_f8
 #else
-                              DD_Hstar_old  = 4.4e+1_fp,                    &
+                              DD_Hstar_old  = 4.4e+1_fp
 #endif
-                              RC            = RC )
 
           CASE( 'MVKN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrate from MVK',           &
-                              Formula       = 'HOCH2CH(ONO2)C(=O)CH3',      &
-                              MW_g          = 149.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Nitrate from MVK'
+                              Formula       = 'HOCH2CH(ONO2)C(=O)CH3'
+                              MW_g          = 149.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm,        &
+                              Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp,                   &
-                              Henry_K0      = 2.00e+6_f8,                   &
-                              Henry_CR      = 9200.0_f8,                    &
+                              DD_Hstar_old  = 2.00e+6_fp
+                              Henry_K0      = 2.00e+6_f8
+                              Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'N2O' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrous oxide',              &
-                              Formula       = 'N2O',                        &
-                              MW_g          = 44.0_fp,                      &
-                              BackgroundVV  = 3.0e-07_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Nitrous oxide'
+                              Formula       = 'N2O'
+                              MW_g          = 44.0_fp
+                              BackgroundVV  = 3.0e-07_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'N2O5' )
 
              ! N2O5 uses the same DD_F0 and DD_Hstar_old values as HNO3,
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Dinitrogen pentoxide',       &
-                              Formula       = 'N2O5',                       &
-                              MW_g          = 108.0_fp,                     &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Dinitrogen pentoxide'
+                              Formula       = 'N2O5'
+                              MW_g          = 108.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
-                              Henry_CR      = 3400.0_f8,                    &
+                              Henry_K0      = 2.10e-2_f8 * To_M_atm
+                              Henry_CR      = 3400.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp,                   &
+                              DD_Hstar_old  = 1.0e+14_fp
 #endif
-                              RC            = RC )
 
 
           CASE( 'NAP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Naphtalene/IVOC surrogate',  &
-                              Formula       = 'C10H8',                      &
-                              MW_g          = 128.17_fp,                    &
-                              EmMw_g        = 12.0_fp,                      &
-                              MolecRatio    = 10.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Naphtalene/IVOC surrogate'
+                              Formula       = 'C10H8'
+                              MW_g          = 128.17_fp
+                              EmMw_g        = 12.0_fp
+                              MolecRatio    = 10.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'NH3' )
 
@@ -3160,35 +2444,26 @@ CONTAINS
              ! Minimum Vd over land     : 0.3 cm/s
              DvzMinVal = (/ 0.2_fp, 0.3_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ammonia',                    &
-                              Formula       = 'NH3',                        &
-                              MW_g          = 17.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Ammonia'
+                              Formula       = 'NH3'
+                              MW_g          = 17.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 5.90e-1_f8 * To_M_atm,        &
-                              Henry_CR      = 4200.0_f8,                    &
+                              Henry_K0      = 5.90e-1_f8 * To_M_atm
+                              Henry_CR      = 4200.0_f8
 #else
-                              DD_Hstar_old  = 2.0e+4_fp,                    &
-                              Henry_K0      = 3.30e+6_f8,                   &
-                              Henry_CR      = 4100.0_f8,                    &
+                              DD_Hstar_old  = 2.0e+4_fp
+                              Henry_K0      = 3.30e+6_f8
+                              Henry_CR      = 4100.0_f8
 #endif
-                              WD_RetFactor  = 5.0e-2_fp,                    &
-                              WD_LiqAndGas  = T,                            &
-                              WD_ConvFacI2G = 6.17395e-1_fp,                &
-                              RC            = RC )
+                              WD_RetFactor  = 5.0e-2_fp
+                              WD_LiqAndGas  = T
+                              WD_ConvFacI2G = 6.17395e-1_fp
 
           CASE( 'NH4' )
 
@@ -3205,28 +2480,19 @@ CONTAINS
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ammonium',                   &
-                              Formula       = 'NH4',                        &
-                              MW_g          = 18.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Ammonium'
+                              Formula       = 'NH4'
+                              MW_g          = 18.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'NIT' )
 
@@ -3242,29 +2508,19 @@ CONTAINS
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
-
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Inorganic nitrates',         &
-                              Formula       = '',                           &
-                              MW_g          = 62.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Inorganic nitrates'
+                              Formula       = ''
+                              MW_g          = 62.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'NITS' )
 
@@ -3284,8 +2540,18 @@ CONTAINS
              !    all processes.  (15 Dec 2015)
 
              Fullname = 'Inorganic nitrates on surface of seasalt aerosol'
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -3294,102 +2560,65 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'NITs',                       &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 31.4_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 31.4_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'NO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrogen oxide',             &
-                              Formula       = 'NO',                         &
-                              MW_g          = 30.0_fp,                      &
-                              BackgroundVV  = 4.0e-13_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Nitrogen oxide'
+                              Formula       = 'NO'
+                              MW_g          = 30.0_fp
+                              BackgroundVV  = 4.0e-13_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )                                          
-                              Henry_K0      = 1.90e-5_f8 * To_M_atm,        &
-                              Henry_CR      = 1600.0_f8,                    &
+                              Henry_K0      = 1.90e-5_f8 * To_M_atm
+                              Henry_CR      = 1600.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'NO2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrogen dioxide',           &
-                              Formula       = 'NO2',                        &
-                              MW_g          = 46.0_fp,                      &
-                              BackgroundVV  = 4.0e-13_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.1_fp,                       &
+                              FullName      = 'Nitrogen dioxide'
+                              Formula       = 'NO2'
+                              MW_g          = 46.0_fp
+                              BackgroundVV  = 4.0e-13_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.1_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.20e-4_f8 * To_M_atm,        &
-                              Henry_CR      = 2400.0_f8,                    &
+                              Henry_K0      = 1.20e-4_f8 * To_M_atm
+                              Henry_CR      = 2400.0_f8
 #else
-                              DD_Hstar_old  = 1.00e-2_fp,                   &
+                              DD_Hstar_old  = 1.00e-2_fp
 #endif
-                              RC            = RC )
 
           CASE( 'NO3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrate radical',            &
-                              Formula       = 'NO3',                        &
-                              MW_g          = 62.0_fp,                      &
-                              BackgroundVV  = 4.0e-15_fp,                   &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Nitrate radical'
+                              Formula       = 'NO3'
+                              MW_g          = 62.0_fp
+                              BackgroundVV  = 4.0e-15_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.80e-4_f8 * To_M_atm,        &
-                              Henry_CR      = 1900.0_f8,                    &
+                              Henry_K0      = 3.80e-4_f8 * To_M_atm
+                              Henry_CR      = 1900.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'NPMN' )
              FullName = 'Non-isoprene peroxymethacroyl nitrate (PMN)'
@@ -3397,27 +2626,17 @@ CONTAINS
              ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'CH2=C(CH3)C(O)OONO2 ',       &
-                              MW_g          = 147.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              Formula       = 'CH2=C(CH3)C(O)OONO2 '
+                              MW_g          = 147.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.70e-2_f8 * To_M_atm,        &
+                              Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 3.60_fp,                      &
+                              DD_Hstar_old  = 3.60_fp
 #endif
-                              RC            = RC )
 
           CASE( 'O3',     'O3STRAT', 'O3UT',   'O3MT',   'O3ROW',           &
                 'O3PCBL', 'O3NABL',  'O3ATBL', 'O3EUBL', 'O3AFBL',          &
@@ -3425,99 +2644,66 @@ CONTAINS
 
              ! Now include both total and tagged ozone species (bmy, 10/5/15)
              ! All of these have identical properties except for the names
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'O3' )
                    FullName ='Ozone'
-                   Name     = 'O3'
                 CASE ( 'O3STRAT', 'O3STRT' )
                    FullName = 'Ozone produced in the stratosphere'
-                   Name     = 'O3Strat'
                 CASE( 'O3UT' )
                    FullName = 'Ozone produced in the upper tropopshere'
-                   Name     = 'O3UT'
                 CASE( 'O3MT' )
                    FullName = 'Ozone produced in the middle troposphere'
-                   Name     = 'O3MT'
                 CASE( 'O3ROW' )
                    FullName = 'Ozone produced in the rest of the world'
-                   Name     = 'O3ROW'
                 CASE( 'O3PCBL' )
                    FullName = 'Ozone produced in the Pacific Ocean boundary layer'
-                   Name     = 'O3PcBL'
                 CASE( 'O3NABL' )
                    FullName = 'Ozone produced in the North American boundary layer'
-                   Name     = 'O3NaBL'
                 CASE( 'O3ATBL' )
                    FullName = 'Ozone produced in the Atlantic Ocean boundary layer'
-                   Name     = 'O3AtBL'
                 CASE( 'O3EUBL' )
                    FullName = 'Ozone produced in the European boundary layer'
-                   Name     = 'O3EuBL'
                 CASE( 'O3AFBL' )
                    FullName = 'Ozone produced in the African boundary layer'
-                   Name     = 'O3AfBL'
                 CASE( 'O3ASBL' )
                    FullName = 'Ozone produced in the Asian boundary layer'
-                   Name     = 'O3AsBl'
                 CASE( 'O3INIT' )
                    FullName = 'Ozone from the initial condition'
-                   Name     = 'O3Init'
                 CASE( 'O3USA' )
                    FullName = 'Ozone produced over the United States in PBL'
-                   Name     = 'O3USA'
              END SELECT
 
              ! Set special default background for O3
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'O3' )
                    BackgroundVV = 2.0e-08_fp
                 CASE DEFAULT
                    BackgroundVV = MISSING_VV
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'O3',                         &
-                              MW_g          = 48.0_fp,                      &
-                              BackgroundVV  = BackgroundVV,                 &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              Formula       = 'O3'
+                              MW_g          = 48.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.90e-05_f8 * To_M_atm,       &
-                              Henry_CR      = 1600.0_f8,                    &
+                              Henry_K0      = 1.90e-05_f8 * To_M_atm
+                              Henry_CR      = 1600.0_f8
 #else
-                              DD_Hstar_old  = 1.0e-2_fp,                    &
+                              DD_Hstar_old  = 1.0e-2_fp
 #endif
-                              RC            = RC )
 
           CASE( 'OCLO' )
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'OClO',                       &
-                              FullName      = 'Chlorine dioxide',           &
-                              Formula       = 'OClO',                       &
-                              MW_g          = 67.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chlorine dioxide'
+                              Formula       = 'OClO'
+                              MW_g          = 67.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'OCPI' )
              FullName = 'Hydrophilic organic carbon aerosol'
@@ -3529,30 +2715,20 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 1300.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= T
+                              Density       = 1300.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'OCPO' )
              Fullname = 'Hydrophobic organic carbon aerosol'
@@ -3563,49 +2739,30 @@ CONTAINS
              KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
              RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= F,                            &
-                              Density       = 1300.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= F
+                              Density       = 1300.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'OCS' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Carbonyl sulfide',           &
-                              Formula       = 'COS',                        &
-                              MW_g          = 60.0_fp,                      &
-                              BackgroundVV  = 9.0e-15_fp,                   &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Carbonyl sulfide'
+                              Formula       = 'COS'
+                              MW_g          = 60.0_fp
+                              BackgroundVV  = 9.0e-15_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'OPOA1', 'OPOA2' )
              FullName = 'Lumped aerosol product of SVOC oxidation'
@@ -3618,79 +2775,50 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'OPOG1', 'OPOG2' )
              FullName = 'Lumped gas product of SVOC oxidation'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
-                              Henry_K0      = 1.00e+5_f8,                   &
-                              Henry_CR      = 6039.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.00e+5_fp
+                              Henry_K0      = 1.00e+5_f8
+                              Henry_CR      = 6039.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PAN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxyacetyl nitrate',       &
-                              Formula       = 'CH3C(O)OONO2',               &
-                              MW_g          = 121.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0e+0_fp,                    &
+                              FullName      = 'Peroxyacetyl nitrate'
+                              Formula       = 'CH3C(O)OONO2'
+                              MW_g          = 121.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0e+0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.90e+02_f8 * To_M_atm,       &
-                              Henry_CR      = 5700.0_f8,                    &
+                              Henry_K0      = 2.90e+02_f8 * To_M_atm
+                              Henry_CR      = 5700.0_f8
 #else
-                              DD_Hstar_old  = 3.60e+0_fp,                   &
+                              DD_Hstar_old  = 3.60e+0_fp
 #endif
-                              RC            = RC )
 
           CASE( 'PFE' )
 
@@ -3701,26 +2829,17 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'pFe',                        &
-                              FullName      = 'Anthropogenic iron',         &
-                              Formula       = 'Fe',                         &
-                              MW_g          = 55.85_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0e+0_fp,                    &
-                              DD_Hstar_old  = 0.0e+0_fp,                    &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Anthropogenic iron'
+                              Formula       = 'Fe'
+                              MW_g          = 55.85_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0e+0_fp
+                              DD_Hstar_old  = 0.0e+0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'POA1' )
 
@@ -3730,31 +2849,22 @@ CONTAINS
              KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
              RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      ='Lumped aerosol primary SVOCs',&
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 1300.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      ='Lumped aerosol primary SVOCs'
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= T
+                              Density       = 1300.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'POA2' )
 
@@ -3764,261 +2874,180 @@ CONTAINS
              KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
              RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      ='Lumped aerosol primary SVOCs',&
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 1300.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      ='Lumped aerosol primary SVOCs'
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 1300.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'POG1', 'POG2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Lumped gas primary SVOCs',   &
-                              Formula       = '',                           &
-                              MW_g          = 12.01_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 9.50e+0_fp,                   &
-                              Henry_K0      = 9.50e+0_f8,                   &
-                              Henry_CR      = 4700.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'Lumped gas primary SVOCs'
+                              Formula       = ''
+                              MW_g          = 12.01_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 9.50e+0_fp
+                              Henry_K0      = 9.50e+0_f8
+                              Henry_CR      = 4700.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PPN' )
              ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
              FullName = 'Lumped peroxypropionyl nitrate'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = 'CH3CH2C(O)OONO2', &
-                              MW_g          = 135.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              Formula       = 'CH3CH2C(O)OONO2'
+                              MW_g          = 135.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.9e-2_f8 * To_M_atm,         &
-                              Henry_CR      = _f8,                          &
+                              Henry_K0      = 2.9e-2_fp * To_M_atm
+                              Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 3.60_fp,                      &
+                              DD_Hstar_old  = 3.60_fp
 #endif
-                              RC            = RC )
 
           CASE( 'PRPE' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Lumped >= C3 alkenes',       &
-                              Formula       = 'C3H6',                       &
-                              MW_g          = 42.08_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 3.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              FullName      = 'Lumped >= C3 alkenes'
+                              Formula       = 'C3H6'
+                              MW_g          = 42.08_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 3.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.3e-5_f8 * To_M_atm,         &
-                              Henry_CR      = 3400.0_f8,                    &
+                              Henry_K0      = 7.3e-5_f8 * To_M_atm
+                              Henry_CR      = 3400.0_f8
 #endif
-                              RC            = RC )
 
           CASE( 'PROPNN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Propanone nitrate',          &
-                              Formula       = 'CH3C(=O)CH2ONO2',            &
-                              MW_g          = 119.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Propanone nitrate'
+                              Formula       = 'CH3C(=O)CH2ONO2'
+                              MW_g          = 119.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.93e+3_f8 * To_M_atm,        &
-                              Henry_CR      = 0.0_f8,                       &
+                              Henry_K0      = 4.93e+3_f8 * To_M_atm
+                              Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 5.00e+5_fp,                   &
-                              Henry_K0      = 5.00e+5_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
+                              DD_Hstar_old  = 5.00e+5_fp
+                              Henry_K0      = 5.00e+5_f8
+                              Henry_CR      = 0.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'R4N2' )
              ! Now drydep is like other alkyl nitrates (Ito et al., 2007)
              ! (eam, 2014)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Lumped alkyl nitrate',       &
-                              Formula       = 'RO2NO',                      &
-                              MW_g          = 119.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
+                              FullName      = 'Lumped alkyl nitrate'
+                              Formula       = 'RO2NO'
+                              MW_g          = 119.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.0e-2_f8 * To_M_atm,         &
-                              Henry_CR      = 5800.0_f8,                    &
+                              Henry_K0      = 1.0e-2_f8 * To_M_atm
+                              Henry_CR      = 5800.0_f8
 #else
-                              DD_Hstar_old  = 1.70e+4_fp,                   &
+                              DD_Hstar_old  = 1.70e+4_fp
 #endif
-                              RC            = RC )
 
 
           CASE( 'RCHO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Lumped aldehyde >= C3',      &
-                              Formula       = 'CH3CH2CHO',                  &
-                              MW_g          = 58.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
+                              FullName      = 'Lumped aldehyde >= C3'
+                              Formula       = 'CH3CH2CHO'
+                              MW_g          = 58.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 9.5e-2_f8 * To_M_atm,         &
-                              Henry_CR      = 6200.0_f8,                    &
+                              Henry_K0      = 9.5e-2_f8 * To_M_atm
+                              Henry_CR      = 6200.0_f8
 #else
-                              Henry_K0      = 4.20e+3_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
+                              Henry_K0      = 4.20e+3_f8
+                              Henry_CR      = 0.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPA' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = '1,2-ISOPOOH',                &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 1.70e+6_fp,                   &
-                              Henry_K0      = 1.70e+6_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = '1,2-ISOPOOH'
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 1.70e+6_fp
+                              Henry_K0      = 1.70e+6_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPB' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = '4,3-ISOPOOH',                &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 1.70e+6_fp,                   &
-                              Henry_K0      = 1.70e+6_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = '4,3-ISOPOOH'
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 1.70e+6_fp
+                              Henry_K0      = 1.70e+6_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPD' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'd(1,4 and 4,1)-ISOPOOH',     &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 1.0_fp,                       &
-                              DD_Hstar_old  = 1.70e+6_fp,                   &
-                              Henry_K0      = 1.70e+6_f8,                   &
-                              Henry_CR      = 0.0_f8,                       &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = 'd(1,4 and 4,1)-ISOPOOH'
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 1.0_fp
+                              DD_Hstar_old  = 1.70e+6_fp
+                              Henry_K0      = 1.70e+6_f8
+                              Henry_CR      = 0.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'SALA' )
              FullName = 'Accumulation mode sea salt aerosol'
-             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -4027,35 +3056,35 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = Fullname,                     &
-                              Formula       = '',                           &
-                              MW_g          = 31.4_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 31.4_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SALC' )
              FullName = 'Coarse mode sea salt aerosol'
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -4064,31 +3093,22 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = Fullname,                     &
-                              Formula       = '',                           &
-                              MW_g          = 31.4_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = Fullname
+                              Formula       = ''
+                              MW_g          = 31.4_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HygroGrowth= T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SO2' )
 
@@ -4109,33 +3129,24 @@ CONTAINS
              ! Minimum Vd over land     : 0.3 cm/s
              DvzMinVal = (/ 0.2_fp, 0.3_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Sulfur dioxide',             &
-                              Formula       = 'SO2',                        &
-                              MW_g          = 64.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Sulfur dioxide'
+                              Formula       = 'SO2'
+                              MW_g          = 64.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e-2_f8 * To_M_atm,        &
-                              Henry_CR      = 2900.0_f8,                    &
+                              Henry_K0      = 1.30e-2_f8 * To_M_atm
+                              Henry_CR      = 2900.0_f8
 #else
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
+                              DD_Hstar_old  = 1.00e+5_fp
 #endif
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SO4' )
 
@@ -4152,31 +3163,22 @@ CONTAINS
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'SO4',                        &
-                              FullName      = 'Sulfate',                    &
-                              Formula       = 'SO4',                        &
-                              MW_g          = 96.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              Is_HygroGrowth= T,                            &
-                              Density       = 1700.0_fp,                    &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Sulfate'
+                              Formula       = 'SO4'
+                              MW_g          = 96.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              Is_HygroGrowth= T
+                              Density       = 1700.0_fp
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SO4S' )
 
@@ -4196,8 +3198,18 @@ CONTAINS
              !    all processes.  (15 Dec 2015)
              !
              Fullname = 'Sulfate on surface of seasalt aerosol'
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -4206,29 +3218,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'SO4s',                       &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 31.4_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              Formula       = ''
+                              MW_g          = 31.4_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SOAIE' )
 
@@ -4240,27 +3242,18 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Aerosol-phase IEPOX',        &
-                              Formula       = 'C5H10O3',                    &
-                              MW_g          = 118.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Aerosol-phase IEPOX'
+                              Formula       = 'C5H10O3'
+                              MW_g          = 118.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SOAGX' )
 
@@ -4272,27 +3265,18 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Aerosol-phase glyoxal',      &
-                              Formula       = 'C2H2O2',                     &
-                              MW_g          = 58.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Aerosol-phase glyoxal'
+                              Formula       = 'C2H2O2'
+                              MW_g          = 58.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SOAME' )
 
@@ -4304,27 +3288,18 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Aerosol-phase IMAE',         &
-                              Formula       = 'C4H6O3',                     &
-                              MW_g          = 102.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Aerosol-phase IMAE'
+                              Formula       = 'C4H6O3'
+                              MW_g          = 102.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SOAMG' )
 
@@ -4336,48 +3311,30 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Aerosol-phase methylglyoxal',&
-                              Formula       = 'C3H4O2',                     &
-                              MW_g          = 72.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Aerosol-phase methylglyoxal'
+                              Formula       = 'C3H4O2'
+                              MW_g          = 72.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SOAP' )
              FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'SOAS' )
              FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
@@ -4391,46 +3348,28 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'TOLU' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Toluene',                    &
-                              Formula       = 'C7H8',                       &
-                              MW_g          = 92.14_fp,                     &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 7.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Toluene'
+                              Formula       = 'C7H8'
+                              MW_g          = 92.14_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 7.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3' )
              FullName = 'Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation'
@@ -4443,504 +3382,326 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 0.8_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 0.8_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'TSOG0', 'TSOG1', 'TSOG2', 'TSOG3' )
              FullName = 'Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation'
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 150.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
-                              Henry_K0      = 1.00e+5_f8,                   &
-                              Henry_CR      = 6039.0_f8,                    &
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 150.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.00e+5_fp
+                              Henry_K0      = 1.00e+5_f8
+                              Henry_CR      = 6039.0_f8
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'XYLE' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Xylene',                     &
-                              Formula       = 'C8H10',                      &
-                              MW_g          = 106.16_fp,                    &
-                              EmMW_g        = 12.0_fp,                      &
-                              MolecRatio    = 8.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Xylene'
+                              Formula       = 'C8H10'
+                              MW_g          = 106.16_fp
+                              EmMW_g        = 12.0_fp
+                              MolecRatio    = 8.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           !==================================================================
           ! Species for simulations including iodine
           !==================================================================
 
           CASE( 'CH3I' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Methyl iodide',              &
-                              Formula       = 'CH3I',                       &
-                              MW_g          = 142.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              Henry_K0      = 2.0e-3_f8 * To_M_atm,         &
-                              Henry_CR      = 3.6e+3_f8,                    &
-                              RC            = RC )
+                              FullName      = 'Methyl iodide'
+                              Formula       = 'CH3I'
+                              MW_g          = 142.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              Henry_K0      = 2.0e-3_f8 * To_M_atm
+                              Henry_CR      = 3.6e+3_f8
 
           CASE( 'CH2I2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Diiodomethane',              &
-                              Formula       = 'CH2I2',                      &
-                              MW_g          = 268.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Diiodomethane'
+                              Formula       = 'CH2I2'
+                              MW_g          = 268.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH2ICL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH2ICl',                     &
-                              FullName      = 'Chloroiodomethane',          &
-                              Formula       = 'CH2ICl',                     &
-                              MW_g          = 167.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Chloroiodomethane'
+                              Formula       = 'CH2ICl'
+                              MW_g          = 167.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'CH2IBR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'CH2IBr',                     &
-                              FullName      = 'Bromoiodomethane',           &
-                              Formula       = 'CH2IBr',                     &
-                              MW_g          = 221.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Bromoiodomethane'
+                              Formula       = 'CH2IBr'
+                              MW_g          = 221.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HOI' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Hypoiodous acid',            &
-                              Formula       = 'HOI',                        &
-                              MW_g          = 144.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Hypoiodous acid'
+                              Formula       = 'HOI'
+                              MW_g          = 144.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.54e+4_f8,                   &
-                              Henry_K0      = 1.54e+4_f8,                   &
-                              Henry_CR      = 8.371e+3_f8,                  &
+                              DD_Hstar_old  = 1.54e+4_f8
+                              Henry_K0      = 1.54e+4_f8
+                              Henry_CR      = 8.371e+3_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'I2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Molecular iodine',           &
-                              Formula       = 'I2',                         &
-                              MW_g          = 254.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Molecular iodine'
+                              Formula       = 'I2'
+                              MW_g          = 254.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.70e+0_fp,                   &
-                              Henry_K0      = 2.7e+0_f8,                    &
-                              Henry_CR      = 7.5074e+3_f8,                 &
+                              DD_Hstar_old  = 2.70e+0_fp
+                              Henry_K0      = 2.7e+0_f8
+                              Henry_CR      = 7.5074e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'IBR' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'IBr',                        &
-                              FullName      = 'Iodine monobromide',         &
-                              Formula       = 'IBr',                        &
-                              MW_g          = 207.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Iodine monobromide'
+                              Formula       = 'IBr'
+                              MW_g          = 207.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.43e+1_fp,                   &
-                              Henry_K0      = 2.4e+1_f8,                    &
-                              Henry_CR      = 4.9167e+3_f8,                 &
+                              DD_Hstar_old  = 2.43e+1_fp
+                              Henry_K0      = 2.4e+1_f8
+                              Henry_CR      = 4.9167e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'ICL' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'ICl',                        &
-                              FullName      = 'Iodine monochloride',        &
-                              Formula       = 'ICl',                        &
-                              MW_g          = 162.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Iodine monochloride'
+                              Formula       = 'ICl'
+                              MW_g          = 162.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.11e+2_f8,                   &
-                              Henry_K0      = 1.11e+2_f8,                   &
-                              Henry_CR      = 2.1055e+3_f8,                 &
+                              DD_Hstar_old  = 1.11e+2_f8
+                              Henry_K0      = 1.11e+2_f8
+                              Henry_CR      = 2.1055e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'I' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Atomic iodine',              &
-                              Formula       = 'I',                          &
-                              MW_g          = 127.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Atomic iodine'
+                              Formula       = 'I'
+                              MW_g          = 127.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'IO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Iodine monoxide',            &
-                              Formula       = 'IO',                         &
-                              MW_g          = 143.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Iodine monoxide'
+                              Formula       = 'IO'
+                              MW_g          = 143.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HI' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Hydrogen iodide',            &
-                              MW_g          = 128.0_fp,                     &
-                              Formula       = 'HI',                         &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Hydrogen iodide'
+                              MW_g          = 128.0_fp
+                              Formula       = 'HI'
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.35e+16_fp,                  &
-                              Henry_K0      = 7.43e+13_f8,                  &
-                              Henry_CR      = 3.1872e+3_f8,                 &
+                              DD_Hstar_old  = 2.35e+16_fp
+                              Henry_K0      = 7.43e+13_f8
+                              Henry_CR      = 3.1872e+3_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'OIO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Iodine dioxide',             &
-                              Formula       = 'OIO',                        &
-                              MW_g          = 159.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Iodine dioxide'
+                              Formula       = 'OIO'
+                              MW_g          = 159.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'INO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitrosyl iodide',            &
-                              Formula       = 'INO',                        &
-                              MW_g          = 157.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Nitrosyl iodide'
+                              Formula       = 'INO'
+                              MW_g          = 157.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'IONO' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Nitryl iodide',              &
-                              Formula       = 'IONO',                       &
-                              MW_g          = 173.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Nitryl iodide'
+                              Formula       = 'IONO'
+                              MW_g          = 173.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 3.0e-1_f8,                    &
-                              Henry_K0      = 3.0e-1_f8,                    &
-                              Henry_CR      = 7.2404e+3_f8,                 &
+                              DD_Hstar_old  = 3.0e-1_f8
+                              Henry_K0      = 3.0e-1_f8
+                              Henry_CR      = 7.2404e+3_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp,                    &
-                              RC            = RC )
+                              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IONO2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Iodine nitrate',             &
-                              Formula       = 'IONO2',                      &
-                              MW_g          = 189.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Iodine nitrate'
+                              Formula       = 'IONO2'
+                              MW_g          = 189.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8,                   &
-                              Henry_K0      = 1.0e+20_f8,                   &
-                              Henry_CR      = 3.98e+3_f8,                   &
+                              DD_Hstar_old  = 1.0e+20_f8
+                              Henry_K0      = 1.0e+20_f8
+                              Henry_CR      = 3.98e+3_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Diiodine dioxide',           &
-                              Formula       = 'I2O2',                       &
-                              MW_g          = 286.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Diiodine dioxide'
+                              Formula       = 'I2O2'
+                              MW_g          = 286.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8,                   &
-                              Henry_K0      = 1.0e+20_f8,                   &
-                              Henry_CR      = 1.89e+4_f8,                   &
+                              DD_Hstar_old  = 1.0e+20_f8
+                              Henry_K0      = 1.0e+20_f8
+                              Henry_CR      = 1.89e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O3' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Diiodine trioxide',          &
-                              Formula       = 'I2O3',                       &
-                              MW_g          = 302.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Diiodine trioxide'
+                              Formula       = 'I2O3'
+                              MW_g          = 302.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8,                   &
-                              Henry_K0      = 1.0e+20_f8,                   &
-                              Henry_CR      = 1.34e+4_f8,                   &
+                              DD_Hstar_old  = 1.0e+20_f8
+                              Henry_K0      = 1.0e+20_f8
+                              Henry_CR      = 1.34e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O4' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Diiodine tetraoxide',        &
-                              Formula       = 'I2O4',                       &
-                              MW_g          = 318.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Photolysis = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = 'Diiodine tetraoxide'
+                              Formula       = 'I2O4'
+                              MW_g          = 318.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Photolysis = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm,        &
-                              Henry_CR      = -1.0e+0_f8,                   &
+                              Henry_K0      = -1.0e+0_f8 * To_M_atm
+                              Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8,                   &
-                              Henry_K0      = 1.0e+20_f8,                   &
-                              Henry_CR      = 1.34e+4_f8,                   &
+                              DD_Hstar_old  = 1.0e+20_f8
+                              Henry_K0      = 1.0e+20_f8
+                              Henry_CR      = 1.34e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'BRSALA' )
-             ! Mimic SALA
-             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                ! Mimic SALA
+                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -4949,34 +3710,35 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrSALA',                     &
-                              FullName      = 'Fine sea salt bromine',      &
-                              Formula       = 'Br',                         &
-                              MW_g          = 80.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Fine sea salt bromine'
+                              Formula       = 'Br'
+                              MW_g          = 80.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'BRSALC' )
-             ! Mimic SALC
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                ! Mimic SALC
+                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -4984,35 +3746,36 @@ CONTAINS
 
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'BrSALC',                     &
-                              FullName      = 'Coarse sea salt bromine',    &
-                              Formula       = 'Br',                         &
-                              MW_g          = 80.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Coarse sea salt bromine'
+                              Formula       = 'Br'
+                              MW_g          = 80.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'ISALA' )
-             ! Mimic SALA
-             Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                          Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                ! Mimic SALA
+                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
+                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -5021,34 +3784,35 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Fine sea salt iodine',       &
-                              Formula       = 'I',                          &
-                              MW_g          = 127.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Fine sea salt iodine'
+                              Formula       = 'I'
+                              MW_g          = 127.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'ISALC' )
-             ! Mimic SALC
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             IF ( Present(oRadius) ) THEN
+                IF ( .NOT. Present(Input_Opt) ) THEN
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, * ) 'Error getting radius for species ',TRIM(Name)
+                   WRITE( 6, * ) 'Input_Opt is missing!'
+                   WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                   RC = -1
+                   RETURN
+                ENDIF
+                ! Mimic SALC
+                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+             ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
@@ -5056,30 +3820,21 @@ CONTAINS
 
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Coarse sea salt iodine',     &
-                              Formula       = 'I',                          &
-                              MW_g          = 127.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Coarse sea salt iodine'
+                              Formula       = 'I'
+                              MW_g          = 127.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Density       = 2200.0_fp
+                              Radius        = Radius
+                              DD_AeroDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_CoarseAer  = T
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'AERI' )
              ! Mimic SO4 (AERI is essentiall iodine dissolved in aerosol)
@@ -5095,46 +3850,31 @@ CONTAINS
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'iodine on aerosol',          &
-                              Formula       = 'I',                          &
-                              MW_g          = 127.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DvzMinVal  = DvzMinVal,                    &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'iodine on aerosol'
+                              Formula       = 'I'
+                              MW_g          = 127.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DvzMinVal  = DvzMinVal
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_Old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the Rn-Pb-Be specialty simulation
           !==================================================================
 
           CASE( 'RN', '222RN', 'RN222' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = 'Rn',                         &
-                              FullName      = 'Radon-222 isotope',          &
-                              Formula       = 'Rn',                         &
-                              MW_g          = 222.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = 'Radon-222 isotope'
+                              Formula       = 'Rn'
+                              MW_g          = 222.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
           CASE( 'PB', '210PB', 'PB210' )
 
@@ -5145,24 +3885,18 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = 'Pb',                         &
-                              FullName      = 'Lead-210 isotope',           &
-                              Formula       = 'Pb',                         &
-                              MW_g          = 210.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Lead-210 isotope'
+                              Formula       = 'Pb'
+                              MW_g          = 210.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'BE', '7BE', 'BE7' )
 
@@ -5173,24 +3907,18 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = 'Be7',                        &
-                              FullName      = 'Beryllium-7 isotope',        &
-                              Formula       = 'Be',                         &
-                              MW_g          = 7.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_HStar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Beryllium-7 isotope'
+                              Formula       = 'Be'
+                              MW_g          = 7.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_HStar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the Hg specialty simulation
@@ -5204,111 +3932,76 @@ CONTAINS
                 'HG0_ARC', 'HG0_ANT', 'HG0_OCN', 'HG0_STR'   )
 
              ! Standardize tagged Hg0 species names
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'HG0'     )
-                   Name     = 'Hg0'
                    FullName = 'Elemental mercury'
                 CASE( 'HG0_CAN' )
-                   Name     = 'Hg0_can'
                    FullName = 'Elemental mercury from Canada'
                 CASE( 'HG0_USA' )
-                   Name     = 'Hg0_usa'
                    FullName = 'Elemental mercury from USA'
                 CASE( 'HG0_CAM' )
-                   Name     = 'Hg0_cam'
                    FullName = 'Elemental mercury from Central America'
                 CASE( 'HG0_SAM' )
-                   Name     = 'Hg0_sam'
                    FullName = 'Elemental mercury from South America'
                 CASE( 'HG0_WAF' )
-                   Name     = 'Hg0_waf'
                    FullName = 'Elemental mercury from West Africa'
                 CASE( 'HG0_EAF' )
-                   Name     = 'Hg0_eaf'
                    FullName = 'Elemental mercury from East Africa'
                 CASE( 'HG0_SAF' )
-                   Name     = 'Hg0_saf'
                    FullName = 'Elemental mercury from South Africa'
                 CASE( 'HG0_NAF' )
-                   Name     = 'Hg0_naf'
                    FullName = 'Elemental mercury from North Africa'
                 CASE( 'HG0_EUR' )
-                   Name     = 'Hg0_eur'
                    FullName = 'Elemental mercury from OECD Europe'
                 CASE( 'HG0_EEU' )
-                   Name     = 'Hg0_eeu'
                    FullName = 'Elemental mercury from Eastern Europe'
                 CASE( 'HG0_MDE' )
-                   Name     = 'Hg0_mde'
                    FullName = 'Elemental mercury from Middle East'
                 CASE( 'HG0_SOV' )
-                   Name     = 'Hg0_sov'
                    FullName = 'Elemental mercury from former USSR'
                 CASE( 'HG0_SAS' )
-                   Name     = 'Hg0_sas'
                    FullName = 'Elemental mercury from South Asia'
                 CASE( 'HG0_EAS' )
-                   Name     = 'Hg0_eas'
                    FullName = 'Elemental mercury from East Asia'
                 CASE( 'HG0_SEA' )
-                   Name     = 'Hg0_sea'
                    FullName = 'Elemental mercury from Southeast Asia'
                 CASE( 'HG0_JPN' )
-                   Name     = 'Hg0_jpn'
                    FullName = 'Elemental mercury from Japan'
                 CASE( 'HG0_OCE' )
-                   Name     = 'Hg0_oce'
                    FullName = 'Elemental mercury from Oceania'
                 CASE( 'HG0_SO'  )
-                   Name     = 'Hg0_so'
                    FullName = 'Elemental mercury from Organic Soil'
                 CASE( 'HG0_BB'  )
-                   Name     = 'Hg0_bb'
                    FullName = 'Elemental mercury from Biomass Burning'
                 CASE( 'HG0_GEO' )
-                   Name     = 'Hg0_geo'
                    FullName = 'Elemental mercury from Geogenic Sources'
                 CASE( 'HG0_ATL' )
-                   Name     = 'Hg0_atl'
                    FullName = 'Elemental mercury from Midatlantic Subsurface Water'
                 CASE( 'HG0_NAT' )
-                   Name     = 'Hg0_nat'
                    FullName = 'Elemental mercury from N. Atlantic Subsurface Water'
                 CASE( 'HG0_SAT' )
-                   Name     = 'Hg0_sat'
                    FullName = 'Elemental mercury from S. Atlantic Subsurface Water'
                 CASE( 'HG0_NPA' )
-                   Name     = 'Hg0_npa'
                    FullName = 'Elemental mercury from N. Pacific Subsurface Water'
                 CASE( 'HG0_ARC' )
-                   Name     = 'Hg0_arc'
                    FullName = 'Elemental mercury from Arctic Subsurface Water'
                 CASE( 'HG0_ANT' )
-                   Name     = 'Hg0_ant'
                    FullName = 'Elemental mercury from Antarctic Subsurface Water'
                 CASE( 'HG0_OCN' )
-                   Name     = 'Hg0_ocn'
                    FullName = 'Elemental mercury from Indo-Pacific Subsurface Water'
                 CASE( 'HG0_STR' )
-                   Name     = 'Hg0_str'
                    FullName = 'Elemental mercury from Stratosphere'
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'Hg',                         &
-                              MW_g          = 201.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Hg0        = T,                            &
-                              DD_F0         = 1.0e-5_fp,                    &
-                              DD_Hstar_old  = 0.11_fp,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'Hg'
+                              MW_g          = 201.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = F
+                              Is_Hg0        = T
+                              DD_F0         = 1.0e-5_fp
+                              DD_Hstar_old  = 0.11_fp
 
           CASE( 'HG2',     'HG2_CAN', 'HG2_USA', 'HG2_CAM', 'HG2_SAM',      &
                 'HG2_WAF', 'HG2_EAF', 'HG2_SAF', 'HG2_NAF', 'HG2_EUR',      &
@@ -5318,119 +4011,84 @@ CONTAINS
                 'HG2_ARC', 'HG2_ANT', 'HG2_OCN', 'HG2_STR'   )
 
              ! Standardize tagged Hg0 species names
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'HG2'     )
-                   Name     = 'Hg2'
                    FullName = 'Divalent mercury'
                 CASE( 'HG2_CAN' )
-                   Name     = 'Hg2_can'
                    FullName = 'Divalent mercury from Canada'
                 CASE( 'HG2_USA' )
-                   Name     = 'Hg2_usa'
                    FullName = 'Divalent mercury from USA'
                 CASE( 'HG2_CAM' )
-                   Name     = 'Hg2_cam'
                    FullName = 'Divalent mercury from Central America'
                 CASE( 'HG2_SAM' )
-                   Name     = 'Hg2_sam'
                    FullName = 'Divalent mercury from South America'
                 CASE( 'HG2_WAF' )
-                   Name     = 'Hg2_waf'
                    FullName = 'Divalent mercury from West Africa'
                 CASE( 'HG2_EAF' )
-                   Name     = 'Hg2_eaf'
                    FullName = 'Divalent mercury from East Africa'
                 CASE( 'HG2_SAF' )
-                   Name     = 'Hg2_saf'
                    FullName = 'Divalent mercury from South Africa'
                 CASE( 'HG2_NAF' )
-                   Name     = 'Hg2_naf'
                    FullName = 'Divalent mercury from North Africa'
                 CASE( 'HG2_EUR' )
-                   Name     = 'Hg2_eur'
                    FullName = 'Divalent mercury from OECD Europe'
                 CASE( 'HG2_EEU' )
-                   Name     = 'Hg2_eeu'
                    FullName = 'Divalent mercury from Eastern Europe'
                 CASE( 'HG2_MDE' )
-                   Name     = 'Hg2_mde'
                    FullName = 'Divalent mercury from Middle East'
                 CASE( 'HG2_SOV' )
-                   Name     = 'Hg2_sov'
                    FullName = 'Divalent mercury from former USSR'
                 CASE( 'HG2_SAS' )
-                   Name     = 'Hg2_sas'
                    FullName = 'Divalent mercury from South Asia'
                 CASE( 'HG2_EAS' )
-                   Name     = 'Hg2_eas'
                    FullName = 'Divalent mercury from East Asia'
                 CASE( 'HG2_SEA' )
-                   Name     = 'Hg2_sea'
                    FullName = 'Divalent mercury from Southeast Asia'
                 CASE( 'HG2_JPN' )
-                   Name     = 'Hg2_jpn'
                    FullName = 'Divalent mercury from Japan'
                 CASE( 'HG2_OCE' )
-                   Name     = 'Hg2_oce'
                    FullName = 'Divalent mercury from Oceania'
                 CASE( 'HG2_SO'  )
-                   Name     = 'Hg2_so'
                    FullName = 'Divalent mercury from Organic Soil'
                 CASE( 'HG2_BB'  )
-                   Name     = 'Hg2_bb'
                    FullName = 'Divalent mercury from Biomass Burning'
                 CASE( 'HG2_GEO' )
-                   Name     = 'Hg2_geo'
                    FullName = 'Divalent mercury from Geogenic Sources'
                 CASE( 'HG2_ATL' )
-                   Name     = 'Hg2_atl'
                    FullName = 'Divalent mercury from Midatlantic Subsurface Water'
                 CASE( 'HG2_NAT' )
-                   Name     = 'Hg2_nat'
                    FullName = 'Divalent mercury from N. Atlantic Subsurface Water'
                 CASE( 'HG2_SAT' )
-                   Name     = 'Hg2_sat'
                    FullName = 'Divalent mercury from S. Atlantic Subsurface Water'
                 CASE( 'HG2_NPA' )
-                   Name     = 'Hg2_npa'
                    FullName = 'Divalent mercury from N. Pacific Subsurface Water'
                 CASE( 'HG2_ARC' )
-                   Name     = 'Hg2_arc'
                    FullName = 'Divalent mercury from Arctic Subsurface Water'
                 CASE( 'HG2_ANT' )
-                   Name     = 'Hg2_ant'
                    FullName = 'Divalent mercury from Antarctic Subsurface Water'
                 CASE( 'HG2_OCN' )
-                   Name     = 'Hg2_ocn'
                    FullName = 'Divalent mercury from Indo-Pacific Subsurface Water'
                 CASE( 'HG2_STR' )
-                   Name     = 'Hg2_str'
                    FullName = 'Divalent mercury from Stratosphere'
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'Hg',                         &
-                              MW_g          = 201.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_Hg2        = T,                            &
-                              DD_F0         = 0.0_fp,                       &
+                              FullName      = FullName
+                              Formula       = 'Hg'
+                              MW_g          = 201.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_Hg2        = T
+                              DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.40e+4_f8 * To_M_atm,        &
-                              Henry_CR      = 5300.0_f8,                    &
+                              Henry_K0      = 1.40e+4_f8 * To_M_atm
+                              Henry_CR      = 5300.0_f8
 #else
-                              DD_Hstar_old  = 1.00e+14_fp,                  &
-                              Henry_K0      = 1.40e+6_f8,                   &
-                              Henry_CR      = 8400.0_f8,                    &
+                              DD_Hstar_old  = 1.00e+14_fp
+                              Henry_K0      = 1.40e+6_f8
+                              Henry_CR      = 8400.0_f8
 #endif
-                              WD_RetFactor  = 1.0_fp,                       &
-                              RC            = RC )
+                              WD_RetFactor  = 1.0_fp
 
           CASE( 'HGP',     'HGP_CAN', 'HGP_USA', 'HGP_CAM', 'HGP_SAM',      &
                 'HGP_WAF', 'HGP_EAF', 'HGP_SAF', 'HGP_NAF', 'HGP_EUR',      &
@@ -5440,93 +4098,64 @@ CONTAINS
                 'HGP_ARC', 'HGP_ANT', 'HGP_OCN', 'HGP_STR' )
 
              ! Standardize tagged HgP species names
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                  CASE( 'HGP'     )
-                   Name     = 'HgP'
                    FullName = 'Particulate mercury'
                 CASE( 'HGP_CAN' )
-                   Name     = 'HgP_can'
                    FullName = 'Particulate mercury from Canada'
                 CASE( 'HGP_USA' )
-                   Name     = 'HgP_usa'
                    FullName = 'Particulate mercury from USA'
                 CASE( 'HGP_CAM' )
-                   Name     = 'HgP_cam'
                    FullName = 'Particulate mercury from Central America'
                 CASE( 'HGP_SAM' )
-                   Name     = 'HgP_sam'
                    FullName = 'Particulate mercury from South America'
                 CASE( 'HGP_WAF' )
-                   Name     = 'HgP_waf'
                    FullName = 'Particulate mercury from West Africa'
                 CASE( 'HGP_EAF' )
-                   Name     = 'HgP_eaf'
                    FullName = 'Particulate mercury from East Africa'
                 CASE( 'HGP_SAF' )
-                   Name     = 'HgP_saf'
                    FullName = 'Particulate mercury from South Africa'
                 CASE( 'HGP_NAF' )
-                   Name     = 'HgP_naf'
                    FullName = 'Particulate mercury from North Africa'
                 CASE( 'HGP_EUR' )
-                   Name     = 'HgP_eur'
                    FullName = 'Particulate mercury from OECD Europe'
                 CASE( 'HGP_EEU' )
-                   Name     = 'HgP_eeu'
                    FullName = 'Particulate mercury from Eastern Europe'
                 CASE( 'HGP_MDE' )
-                   Name     = 'HgP_mde'
                    FullName = 'Particulate mercury from Middle East'
                 CASE( 'HGP_SOV' )
-                   Name     = 'HgP_sov'
                    FullName = 'Particulate mercury from former USSR'
                 CASE( 'HGP_SAS' )
-                   Name     = 'HgP_sas'
                    FullName = 'Particulate mercury from South Asia'
                 CASE( 'HGP_EAS' )
-                   Name     = 'HgP_eas'
                    FullName = 'Particulate mercury from East Asia'
                 CASE( 'HGP_SEA' )
-                   Name     = 'HgP_sea'
                    FullName = 'Particulate mercury from Southeast Asia'
                 CASE( 'HGP_JPN' )
-                   Name     = 'HgP_jpn'
                    FullName = 'Particulate mercury from Japan'
                 CASE( 'HGP_OCE' )
-                   Name     = 'HgP_oce'
                    FullName = 'Particulate mercury from Oceania'
                 CASE( 'HGP_SO'  )
-                   Name     = 'HgP_so'
                    FullName = 'Particulate mercury from Organic Soil'
                 CASE( 'HGP_BB'  )
-                   Name     = 'HgP_bb'
                    FullName = 'Particulate mercury from Biomass Burning'
                 CASE( 'HGP_GEO' )
-                   Name     = 'HgP_geo'
                    FullName = 'Particulate mercury from Geogenic Sources'
                 CASE( 'HGP_ATL' )
-                   Name     = 'HgP_atl'
                    FullName = 'Particulate mercury from Midatlantic Subsurface Water'
                 CASE( 'HGP_NAT' )
-                   Name     = 'HgP_nat'
                    FullName = 'Particulate mercury from N. Atlantic Subsurface Water'
                 CASE( 'HGP_SAT' )
-                   Name     = 'HgP_sat'
                    FullName = 'Particulate mercury from S. Atlantic Subsurface Water'
                 CASE( 'HGP_NPA' )
-                   Name     = 'HgP_npa'
                    FullName = 'Particulate mercury from N. Pacific Subsurface Water'
                 CASE( 'HGP_ARC' )
-                   Name     = 'HgP_arc'
                    FullName = 'Particulate mercury from Arctic Subsurface Water'
                 CASE( 'HGP_ANT' )
-                   Name     = 'HgP_ant'
                    FullName = 'Particulate mercury from Antarctic Subsurface Water'
                 CASE( 'HGP_OCN' )
-                   Name     = 'HgP_ocn'
                    FullName = 'Particulate mercury from Indo-Pacific Subsurface Water'
                 CASE( 'HGP_STR' )
-                   Name     = 'HgP_str'
                    FullName = 'Particulate mercury from Stratosphere'
              END SELECT
 
@@ -5564,25 +4193,19 @@ CONTAINS
              KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
              RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'Hg',                         &
-                              MW_g          = 201.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Is_HgP        = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'Hg'
+                              MW_g          = 201.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              Is_HgP        = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the POPs specialty simulation
@@ -5641,6 +4264,14 @@ CONTAINS
              ! For BENZO[a]PYRENE, HSTAR = 1.32d3 and del_H = -5.65d3
              !  (HSTAR from Ma et al and Del_H the same as pyrene for now)
              !----------------------------------------------------------------
+             IF ( .NOT. Present(Input_Opt) ) THEN
+                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                WRITE( 6, * ) 'Error getting info for species ',TRIM(Name)
+                WRITE( 6, * ) 'Input_Opt is missing!'
+                WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                RC = -1
+                RETURN
+             ENDIF
 
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
                 CASE( 'PHE' )
@@ -5669,26 +4300,29 @@ CONTAINS
                    CR       = 43.0_f8     / 8.32e-3_f8
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = Formula,                      &
-                              MW_g          = MW_g,                         &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = Hstar,                        &
-                              DD_KOA        = KOA,                          &
-                              Henry_K0      = K0,                           &
-                              Henry_CR      = CR,                           &
-                              WD_RetFactor  = 0.0_fp,                       &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = Formula
+                              MW_g          = MW_g
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = Hstar
+                              DD_KOA        = KOA
+                              Henry_K0      = K0
+                              Henry_CR      = CR
+                              WD_RetFactor  = 0.0_fp
 
           CASE( 'POPPBCPO', 'POPPOCPO' )
+             IF ( .NOT. Present(Input_Opt) ) THEN
+                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                WRITE( 6, * ) 'Error getting info for species ',TRIM(Name)
+                WRITE( 6, * ) 'Input_Opt is missing!'
+                WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                RC = -1
+                RETURN
+             ENDIF
+
 
              ! These have identical properties except for the mol weights ...
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
@@ -5707,7 +4341,7 @@ CONTAINS
              END SELECT
 
              ! ... and the names and rainout efficiencies.
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
 
                 CASE( 'POPPBCPO' )
                    FullName = TRIM( FullName ) // ' hydrophobic black carbon'
@@ -5733,26 +4367,29 @@ CONTAINS
 
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = Formula,                      &
-                              MW_g          = MW_g,                         &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = Formula
+                              MW_g          = MW_g
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'POPPBCPI', 'POPPOCPI' )
+
+             IF ( .NOT. Present(Input_Opt) ) THEN
+                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                WRITE( 6, * ) 'Error getting info for species ',TRIM(Name)
+                WRITE( 6, * ) 'Input_Opt is missing!'
+                WRITE( 6, * ) 'In module Headers/species_database_mod.F90!'
+                RC = -1
+                RETURN
+             ENDIF
 
              ! These have identical properties except for the mol weights ...
              SELECT CASE( TRIM( Input_Opt%POP_TYPE ) )
@@ -5771,7 +4408,7 @@ CONTAINS
              END SELECT
 
              ! ... and the names
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'POPPBCPI' )
                    FullName = TRIM( FullName ) // ' hydrophilic black carbon'
                    Formula  = ''
@@ -5787,24 +4424,18 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = Formula,                      &
-                              MW_g          = MW_g,                         &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = Formula
+                              MW_g          = MW_g
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the CO2 specialty simulation
@@ -5816,66 +4447,46 @@ CONTAINS
              ! These all have identical properties except for the names
              ! Add TOMAS bin number to full name
 
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CO2FF' )
-                   Name     = 'CO2ff'
                    FullName = 'Carbon dioxide from fossil fuel emissions'
                 CASE( 'CO2OC' )
-                   Name     = 'CO2oc'
                    FullName = 'Carbon dioxide from ocean emissions'
                 CASE( 'CO2BAL' )
-                   Name     = 'CO2bal'
                    FullName = 'Carbon dioxide from balanced biosphere'
                 CASE( 'CO2BB' )
-                   Name     = 'CO2bb'
                    FullName = 'Carbon dioxide  from biomass burning emissions'
                 CASE( 'CO2BF' )
-                   Name     = 'CO2bf'
                    FullName = 'Carbon dioxide  from biofuel emissions'
                 CASE( 'CO2NTE' )
-                   Name     = 'CO2nte'
                    FullName = 'Carbon dioxide from net terrestrial exchange'
                 CASE( 'CO2SE' )
-                   Name     = 'CO2se'
                    FullName = 'Carbon dioxide from ship emissions'
                 CASE( 'CO2AV' )
-                   Name     = 'CO2av'
                    FullName = 'Carbon dioxide from aviation emissions'
                 CASE( 'CO2CH' )
-                   Name     = 'CO2ch'
                    FullName = 'Carbon dioxide from chemical sources'
                 CASE( 'CO2CORR' )
-                   Name     = 'CO2corr'
                    FullName = 'Carbon dioxide chemical source surface correction'
                 CASE DEFAULT
-                   Name     = 'CO2'
                    FullName = 'Carbon dioxide'
              END SELECT
 
              ! Set special default background for CO2
-             SELECT CASE( TRIM( NameAllCaps ) )
+             SELECT CASE( TRIM( Name ) )
                 CASE( 'CO2' )
                    BackgroundVV = 3.55e-04_fp
                 CASE DEFAULT
                    BackgroundVV = MISSING_VV
              END SELECT
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = Name,                         &
-                              FullName      = FullName,                     &
-                              Formula       = 'CO2',                        &
-                              MW_g          = 44.0_fp,                      &
-                              BackgroundVV  = BackgroundVV,                 &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = 'CO2'
+                              MW_g          = 44.0_fp
+                              BackgroundVV  = BackgroundVV
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
 
 #if defined( TOMAS )
           !==================================================================
@@ -5891,11 +4502,11 @@ CONTAINS
 
              ! Add TOMAS bin number to full name
              FullName = 'Aerosol water, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -5905,42 +4516,36 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 18.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 18.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
-          CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5',            &
-                'DUST6',  'DUST7',  'DUST8',  'DUST9',  'DUST10',           &
-                'DUST11', 'DUST12', 'DUST13', 'DUST14', 'DUST15',           &
-                'DUST16', 'DUST17', 'DUST18', 'DUST19', 'DUST20',           &
-                'DUST21', 'DUST22', 'DUST23', 'DUST24', 'DUST25',           &
-                'DUST26', 'DUST27', 'DUST28', 'DUST29', 'DUST30',           &
-                'DUST31', 'DUST32', 'DUST33', 'DUST34', 'DUST35',           &
+          CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5', &
+                'DUST6',  'DUST7',  'DUST8',  'DUST9',  'DUST10',&
+                'DUST11', 'DUST12', 'DUST13', 'DUST14', 'DUST15',&
+                'DUST16', 'DUST17', 'DUST18', 'DUST19', 'DUST20',&
+                'DUST21', 'DUST22', 'DUST23', 'DUST24', 'DUST25',&
+                'DUST26', 'DUST27', 'DUST28', 'DUST29', 'DUST30',&
+                'DUST31', 'DUST32', 'DUST33', 'DUST34', 'DUST35',&
                 'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
 
              ! Add TOMAS bin number to full name
              FullName = 'Mineral dust, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -5950,42 +4555,36 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 100.0_fp,                     &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 100.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
-          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',            &
-                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10',           &
-                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15',           &
-                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20',           &
-                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25',           &
-                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30',           &
-                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35',           &
+          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5'
+                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10'
+                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15'
+                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20'
+                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25'
+                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30'
+                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35'
                 'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
 
              ! Add TOMAS bin number to full name
              FullName = 'Hydrophilic elemental carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -5995,42 +4594,36 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
-          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5',            &
-                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10',           &
-                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15',           &
-                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20',           &
-                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25',           &
-                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30',           &
-                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35',           &
+          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5'
+                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10'
+                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15'
+                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20'
+                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25'
+                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30'
+                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35'
                 'ECOB36', 'ECOB37', 'ECOB38', 'ECOB39', 'ECOB40'  )
 
              ! Add TOMAS bin number to full name
              FullName = 'Hydrophobic elemental carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6040,25 +4633,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'H2SO4' )
 
@@ -6073,25 +4660,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Sulfuric acid',              &
-                              Formula       = 'H2SO4',                      &
-                              MW_g          = 98.0_fp,                      &
-                              MolecRatio    = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 1.00e+5_fp,                   &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = 'Sulfuric acid'
+                              Formula       = 'H2SO4'
+                              MW_g          = 98.0_fp
+                              MolecRatio    = 1.0_fp
+                              Is_Gas        = T
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 1.00e+5_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'NK1',  'NK2',  'NK3',  'NK4',  'NK5',  'NK6',  'NK7',      &
                 'NK8',  'NK9',  'NK10', 'NK11', 'NK12', 'NK13', 'NK14',     &
@@ -6102,11 +4683,11 @@ CONTAINS
 
              ! Add TOMAS bin number to full name
              FullName = 'Aerosol number, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6116,46 +4697,37 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 1.0_fp,                       &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_DustDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResNum = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 1.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = T
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_DustDryDep = T
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResNum = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
-          CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',            &
-                'OCIL6',  'OCIL7',  'OCIL8',  'OCIL9',  'OCIL10',           &
-                'OCIL11', 'OCIL12', 'OCIL13', 'OCIL14', 'OCIL15',           &
-                'OCIL16', 'OCIL17', 'OCIL18', 'OCIL19', 'OCIL20',           &
-                'OCIL21', 'OCIL22', 'OCIL23', 'OCIL24', 'OCIL25',           &
-                'OCIL26', 'OCIL27', 'OCIL28', 'OCIL29', 'OCIL30',           &
-                'OCIL31', 'OCIL32', 'OCIL33', 'OCIL34', 'OCIL35',           &
+          CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',&
+                'OCIL6',  'OCIL7',  'OCIL8',  'OCIL9',  'OCIL10',&
+                'OCIL11', 'OCIL12', 'OCIL13', 'OCIL14', 'OCIL15',&
+                'OCIL16', 'OCIL17', 'OCIL18', 'OCIL19', 'OCIL20',&
+                'OCIL21', 'OCIL22', 'OCIL23', 'OCIL24', 'OCIL25',&
+                'OCIL26', 'OCIL27', 'OCIL28', 'OCIL29', 'OCIL30',&
+                'OCIL31', 'OCIL32', 'OCIL33', 'OCIL34', 'OCIL35',&
                 'OCIL36', 'OCIL37', 'OCIL38', 'OCIL39', 'OCIL40'  )
 
              ! Add TOMAS bin number to full name
              FullName = 'Hydrophilic organic carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6165,42 +4737,36 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
-          CASE( 'OCOB1',  'OCOB2',  'OCOB3',  'OCOB4',  'OCOB5',            &
-                'OCOB6',  'OCOB7',  'OCOB8',  'OCOB9',  'OCOB10',           &
-                'OCOB11', 'OCOB12', 'OCOB13', 'OCOB14', 'OCOB15',           &
-                'OCOB16', 'OCOB17', 'OCOB18', 'OCOB19', 'OCOB20',           &
-                'OCOB21', 'OCOB22', 'OCOB23', 'OCOB24', 'OCOB25',           &
-                'OCOB26', 'OCOB27', 'OCOB28', 'OCOB29', 'OCOB30',           &
-                'OCOB31', 'OCOB32', 'OCOB33', 'OCOB34', 'OCOB35',           &
+          CASE( 'OCOB1',  'OCOB2',  'OCOB3',  'OCOB4',  'OCOB5',&
+                'OCOB6',  'OCOB7',  'OCOB8',  'OCOB9',  'OCOB10',&
+                'OCOB11', 'OCOB12', 'OCOB13', 'OCOB14', 'OCOB15',&
+                'OCOB16', 'OCOB17', 'OCOB18', 'OCOB19', 'OCOB20',&
+                'OCOB21', 'OCOB22', 'OCOB23', 'OCOB24', 'OCOB25',&
+                'OCOB26', 'OCOB27', 'OCOB28', 'OCOB29', 'OCOB30',&
+                'OCOB31', 'OCOB32', 'OCOB33', 'OCOB34', 'OCOB35',&
                 'OCOB36', 'OCOB37', 'OCOB38', 'OCOB39', 'OCOB40'  )
 
              ! Add TOMAS bin number to full name
              FullName = 'Hydrophobic organic carbon, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6210,25 +4776,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 12.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 12.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SF1',  'SF2',  'SF3',  'SF4',  'SF5',  'SF6',  'SF7',      &
                 'SF8',  'SF9',  'SF10', 'SF11', 'SF12', 'SF13', 'SF14',     &
@@ -6239,11 +4799,11 @@ CONTAINS
 
              ! Add TOMAS bin number to full name
              FullName = 'Sulfate aerosol, size bin ='
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6253,25 +4813,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 96.0_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 96.0_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
           CASE( 'SS1',  'SS2',  'SS3',  'SS4',  'SS5',  'SS6',  'SS7',      &
                 'SS8',  'SS9',  'SS10', 'SS11', 'SS12', 'SS13', 'SS14',     &
@@ -6282,11 +4836,11 @@ CONTAINS
 
              ! Add TOMAS bin number to full name
              FullName = 'Sea salt aerosol, size bin = '
-             C        = LEN_TRIM( NameAllCaps )
+             C        = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // NameAllCaps(C-1:C)
+                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -6296,25 +4850,19 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              Name          = NameAllCaps,                  &
-                              FullName      = FullName,                     &
-                              Formula       = '',                           &
-                              MW_g          = 58.5_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = T,                            &
-                              DD_DvzAerSnow = 0.03_fp,                      &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 0.0_fp,                       &
-                              MP_SizeResAer = T,                            &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+                              FullName      = FullName
+                              Formula       = ''
+                              MW_g          = 58.5_fp
+                              Is_Gas        = F
+                              Is_Drydep     = F
+                              Is_Wetdep     = T
+                              DD_DvzAerSnow = 0.03_fp
+                              DD_F0         = 0.0_fp
+                              DD_Hstar_old  = 0.0_fp
+                              MP_SizeResAer = T
+                              WD_AerScavEff = 1.0_fp
+                              WD_KcScaleFac = KcScale
+                              WD_RainoutEff = RainEff
 
 #endif
 
@@ -6323,396 +4871,189 @@ CONTAINS
           !==================================================================
 
           CASE( 'O2' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              BackgroundVV  = 2.095e-01_fp,                 &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Molecular oxygen',           &
-                              Formula       = 'O2',                         &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              BackgroundVV  = 2.095e-01_fp
+                              FullName      = 'Molecular oxygen'
+                              Formula       = 'O2'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'INPN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from INO2',         &
-                              Formula       = 'O2NOCH2C(OOH)(CH3)CH=CH2',   &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from INO2'
+                              Formula       = 'O2NOCH2C(OOH)(CH3)CH=CH2'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'PRPN' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from PRN1',         &
-                              Formula       = 'O2NOCH2CH(OOH)CH3',          &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from PRN1'
+                              Formula       = 'O2NOCH2CH(OOH)CH3'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'ETP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Ethylhydroperoxide',         &
-                              Formula       = 'CH3CH2OOH ',                 &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Ethylhydroperoxide'
+                              Formula       = 'CH3CH2OOH '
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'RA3P' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from A3O2',         &
-                              Formula       = 'CH3CH2CH2OOH',               &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from A3O2'
+                              Formula       = 'CH3CH2CH2OOH'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'RB3P' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from B3O2',         &
-                              Formula       = 'CH3CH(OOH)CH3',              &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from B3O2'
+                              Formula       = 'CH3CH(OOH)CH3'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'R4P' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from R4O2',         &
-                              Formula       = 'CH3CH2CH2CH2OOH',            &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from R4O2'
+                              Formula       = 'CH3CH2CH2CH2OOH'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'PP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from PO2',          &
-                              Formula       = 'HOCH2CH(OOH)CH3',            &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from PO2'
+                              Formula       = 'HOCH2CH(OOH)CH3'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'RP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from RCO3',         &
-                              Formula       = 'CH3CH2C(O)OOH',              &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from RCO3'
+                              Formula       = 'CH3CH2C(O)OOH'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'IAP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from IAO2',         &
-                              Formula       = 'HOCH2C(CH3)(OOH)CH(OH)CHO',  &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from IAO2'
+                              Formula       = 'HOCH2C(CH3)(OOH)CH(OH)CHO'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'ISNP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              FullName      = 'Isoprene nitrate',           &
-                              Formula       = 'HOCH2C(OOH)(CH3)CH(ONO2)CH2OH',&
-                              Name          = NameAllCaps,                  &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Isoprene nitrate'
+                              Formula       = 'HOCH2C(OOH)(CH3)CH(ONO2)CH2OH'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'VRP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from VRO2',         &
-                              Formula       = 'HOCH2CH(OOH)C(O)CH3',        &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from VRO2'
+                              Formula       = 'HOCH2CH(OOH)C(O)CH3'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'MRP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from MRO2',         &
-                              Formula       = 'HOCH2C(OOH)(CH3)CHO ',       &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from MRO2'
+                              Formula       = 'HOCH2C(OOH)(CH3)CHO '
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'MAOP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from MAO3',         &
-                              Formula       = 'CH2=C(CH3)C(O)OOH',          &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from MAO3'
+                              Formula       = 'CH2=C(CH3)C(O)OOH'
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'ATOOH' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'ATO2 peroxide',              &
-                              Formula       = 'CH3C(O)CH2OOH ',             &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'ATO2 peroxide'
+                              Formula       = 'CH3C(O)CH2OOH '
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'PIP' )
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = NameAllCaps,                  &
-                              FullName      = 'Peroxide from MTPA',         &
-                              Formula       = '',                           &
-                              Is_Advected   = F,                            &
-                              Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
-                              Is_Photolysis = T,                            &
-                              RC            = RC )
+                              FullName      = 'Peroxide from MTPA'
+                              Formula       = ''
+                              Is_Gas        = T
+                              Is_Drydep     = F
+                              Is_Wetdep     = F
+                              Is_Photolysis = T
 
           CASE( 'HO2' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Hydroperoxyl radical',    &
-                                 Formula       = 'HO2',                     &
-                                 BackgroundVV  = 4.0e-15_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Hydroperoxyl radical'
+                                 Formula       = 'HO2'
+                                 BackgroundVV  = 4.0e-15_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'MO2' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Methylperoxy radical',    &
-                                 Formula       = 'CH3O2',                   &
-                                 BackgroundVV  = 4.0e-15_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Methylperoxy radical'
+                                 Formula       = 'CH3O2'
+                                 BackgroundVV  = 4.0e-15_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'OH' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Hydroxyl radical',        &
-                                 Formula       = 'OH',                      &
-                                 BackgroundVV  = 4.0e-15_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Hydroxyl radical'
+                                 Formula       = 'OH'
+                                 BackgroundVV  = 4.0e-15_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'H2' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Molecular hydrogen',      &
-                                 Formula       = 'H2',                      &
-                                 BackgroundVV  = 5.0e-07_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Molecular hydrogen'
+                                 Formula       = 'H2'
+                                 BackgroundVV  = 5.0e-07_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'N' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Atomic nitrogen',         &
-                                 Formula       = 'N',                       &
-                                 BackgroundVV  = 4.0e-20_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Atomic nitrogen'
+                                 Formula       = 'N'
+                                 BackgroundVV  = 4.0e-20_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'N2' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Molecular nitrogen',      &
-                                 Formula       = 'N2',                       &
-                                 BackgroundVV  = 7.808e-1_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Molecular nitrogen'
+                                 Formula       = 'N2'
+                                 BackgroundVV  = 7.808e-1_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           CASE( 'O1D' )
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 FullName      = 'Excited atomic oxygen (1D)',&
-                                 Formula       = 'O(1D)',                   &
-                                 BackgroundVV  = 1.0e-15_fp,                &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 FullName      = 'Excited atomic oxygen (1D)'
+                                 Formula       = 'O(1D)'
+                                 BackgroundVV  = 1.0e-15_fp
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
           !==================================================================
           ! Special handling for species not found in the list above
@@ -6721,20 +5062,23 @@ CONTAINS
 
              ! Check if passive species
              IsPassive = .FALSE.
-             MW_g = 0.0_fp
-             BackgroundVV = 0.0_fp
-             IF ( Input_Opt%NPASSIVE > 0 ) THEN
+             !MW_g = 0.0_fp
+             !BackgroundVV = 0.0_fp
 
-                ! Loop over all passive species
-                DO P = 1, Input_Opt%NPASSIVE
-                   IF ( TRIM(NameAllCaps) ==    &
-                        TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
-                      IsPassive = .TRUE.
-                      BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
-                      MW_g   = Input_Opt%PASSIVE_MW(P)
-                      EXIT
-                   ENDIF
-                ENDDO
+             IF ( Present(Input_Opt) ) THEN
+                IF ( Input_Opt%NPASSIVE > 0 ) THEN
+   
+                   ! Loop over all passive species
+                   DO P = 1, Input_Opt%NPASSIVE
+                      IF ( TRIM(Name) ==    &
+                           TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
+                         IsPassive = .TRUE.
+                         BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
+                         MW_g   = Input_Opt%PASSIVE_MW(P)
+                         EXIT
+                      ENDIF
+                   ENDDO
+                ENDIF
              ENDIF
 
              !---------------------------------------------------------------
@@ -6752,73 +5096,98 @@ CONTAINS
              IF ( IsPassive ) THEN
 
                 ! Define passive species
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 Name          = NameAllCaps,               &
-                                 MW_g          = MW_g,                      &
-                                 BackgroundVV  = BackgroundVV,              &
-                                 Is_Advected   = T,                         &
-                                 Is_Gas        = F,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 Is_Photolysis = F,                         &
-                                 RC            = RC )
+                                 MW_g          = MW_g
+                                 BackgroundVV  = BackgroundVV
+                                 Is_Gas        = F
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
+                                 Is_Photolysis = F
 
              ! Test if this is a non-advected chemical species
-             ELSEIF ( KppSpcId(N) > 0 ) THEN
+             ELSEIF ( KppSpcId > 0 ) THEN
 
                 !------------------------------------------------------------
                 ! If this is a non-advected KPP chemical species, then just
                 ! create a basic default entry in the species database
                 !------------------------------------------------------------
-                CALL Spc_Create( am_I_Root     = am_I_Root,                 &
-                                 ThisSpc       = SpcData(N)%Info,           &
-                                 ModelID       = N,                         &
-                                 KppSpcId      = KppSpcId(N),               &
-                                 KppVarId      = KppVarId(N),               &
-                                 KppFixId      = KppFixId(N),               &
-                                 Name          = NameAllCaps,               &
-                                 Is_Advected   = F,                         &
-                                 Is_Gas        = T,                         &
-                                 Is_Drydep     = F,                         &
-                                 Is_Wetdep     = F,                         &
-                                 RC            = RC )
+                                 Is_Gas        = T
+                                 Is_Drydep     = F
+                                 Is_Wetdep     = F
 
              ELSE
 
-                !------------------------------------------------------------
-                ! If this species i not found, the exit with error!
-                ! create a default entry in the species database
-                !------------------------------------------------------------
-                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                WRITE( 6, 100 ) TRIM( NameAllCaps )
-                WRITE( 6, 110 )
-                WRITE( 6, 120 )
-100             FORMAT( 'Species ', a, ' not found in the database!'       )
-110             FORMAT( 'Please add the information to the CASE statement' )
-120             FORMAT( 'in module Headers/species_database_mod.F90!'      )
-                RC = -1
-                RETURN
+                IF ( Present(Found) ) THEN
+                   Found = .FALSE.
+                ELSE
+                   !------------------------------------------------------------
+                   ! If this species i not found, the exit with error!
+                   ! create a default entry in the species database
+                   !------------------------------------------------------------
+                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                   WRITE( 6, 100 ) TRIM( Name )
+                   WRITE( 6, 110 )
+                   WRITE( 6, 120 )
+100                FORMAT( 'Species ', a, ' not found in the database!'       )
+110                FORMAT( 'Please add the information to the CASE statement' )
+120                FORMAT( 'in module Headers/species_database_mod.F90!'      )
+                   RC = -1
+                   RETURN
+                ENDIF
              ENDIF
 
-       END SELECT
+    END SELECT
 
-       ! Error
-       IF ( RC /= GC_SUCCESS ) THEN
-          PRINT*, '### Could not initialize species vector!'
-          CALL EXIT( -999 )
+    ! Pass args
+    IF ( PRESENT(oFullName) ) THEN
+       oFullName = FullName
+       IF ( Uscore ) THEN
+          CNT = 0
+          IDX = INDEX(TRIM(oFullName),' ')
+          DO WHILE ( IDX > 0 ) 
+             CNT = CNT + 1
+             IF ( CNT > 100 ) EXIT
+             oFullName(IDX:IDX) = '_'
+             IDX = INDEX(TRIM(oFullName),' ')
+          END DO
        ENDIF
+    ENDIF
+    IF ( PRESENT(oFormula) ) oFormula = Formula
+    IF ( PRESENT(oMW_g)    ) oMW_g    = MW_g
+    IF ( PRESENT(oEmMW_g)  ) oEmMW_g  = EmMW_g
+    IF ( PRESENT(oMolecRatio) ) oMolecRatio = MolecRatio
+    IF ( PRESENT(oRadius    ) ) oRadius = Radius
+    IF ( PRESENT(oDensity   ) ) oDensity = Density
+    IF ( PRESENT(oDD_AeroDryDep) ) oDD_AeroDryDep = DD_AeroDryDep
+    IF ( PRESENT(oDD_DustDryDep) ) oDD_DustDryDep = DD_DustDryDep
+    IF ( PRESENT(oDD_F0) ) oDD_F0 = DD_F0
+    IF ( PRESENT(oDD_DvzAerSnow) ) oDD_DvzAerSnow = DD_DvzAerSnow
+    IF ( PRESENT(oDD_DvzMinVal) ) oDD_DvzMinVal(:) = DD_DvzMinVal(:)
+    IF ( PRESENT(oDD_KOA) ) oDD_KOA = DD_KOA
+    IF ( PRESENT(oDD_Hstar_Old) ) oDD_Hstar_Old = DD_Hstar_Old
+    IF ( PRESENT(oHenry_K0) ) oHenry_K0 = Henry_K0
+    IF ( PRESENT(oHenry_CR) ) oHenry_CR = Henry_CR
+    IF ( PRESENT(oHenry_PKa) ) oHenry_PKa = Henry_PKa
+    IF ( PRESENT(oWD_RetFactor) ) oWD_RetFactor = WD_RetFactor
+    IF ( PRESENT(oWD_LiqAndGas) ) oWD_LiqAndGas = WD_LiqAndGas
+    IF ( PRESENT(oWD_ConvFacI2G) ) oWD_ConvFacI2G = WD_ConvFacI2G
+    IF ( PRESENT(oWD_AerScavEff) ) oWD_AerScavEff = WD_AerScavEff
+    IF ( PRESENT(oWD_KcScaleFac) ) oWD_KcScaleFac(:) = WD_KcScaleFac(:)
+    IF ( PRESENT(oWD_RainoutEff) ) oWD_RainoutEff(:) = WD_RainoutEff(:)
+    IF ( PRESENT(oIs_DryDep) ) oIs_DryDep = Is_DryDep
+    IF ( PRESENT(oIs_Gas) ) oIs_Gas = Is_Gas
+    IF ( PRESENT(oIs_HygroGrowth) ) oIs_HygroGrowth = Is_HygroGrowth
+    IF ( PRESENT(oIs_Photolysis) ) oIs_Photolysis = Is_Photolysis
+    IF ( PRESENT(oIs_WetDep) ) oIs_WetDep = Is_WetDep
+    IF ( PRESENT(oBackgroundVV) ) oBackgroundVV = BackgroundVV
+    IF ( PRESENT(oIs_InRestart) ) oIs_InRestart = Is_InRestart
+    IF ( PRESENT(oWD_CoarseAer) ) oWD_CoarseAer = WD_CoarseAer
+    IF ( PRESENT(oMP_SizeResAer) ) oMP_SizeResAer = MP_SizeResAer
+    IF ( PRESENT(oMP_SizeResNum) ) oMP_SizeResNum = MP_SizeResNum
+    IF ( PRESENT(oIs_Hg0) ) oIs_Hg0 = Is_Hg0
+    IF ( PRESENT(oIs_Hg2) ) oIs_Hg2 = Is_Hg2
+    IF ( PRESENT(oIs_HgP) ) oIs_HgP = Is_HgP
 
-       ! Print info about each species
-       IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
-
-    ENDDO
-
-    ! Deallocate temporary work arrays
-    CALL Cleanup_Work_Arrays()
-
-  END SUBROUTINE Init_Species_Database
+  END SUBROUTINE Spc_Info 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

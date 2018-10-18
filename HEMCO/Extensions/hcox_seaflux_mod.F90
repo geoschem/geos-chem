@@ -99,6 +99,7 @@ MODULE HCOX_SeaFlux_Mod
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
 !  10 Mar 2017 - M. Sulprizio- Add fix for acetone parameterization of Schmidt
 !                              number - use SCWPAR = 3 instead of 1
+!  11 Sep 2018 - C. Keller   - Added instances wrapper
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -113,10 +114,18 @@ MODULE HCOX_SeaFlux_Mod
      INTEGER            :: SCWPAR       ! Schmidt # parameterization type
   END TYPE OcSpec
 
-  ! Variables carrying information about ocean species 
-  INTEGER               :: ExtNr
-  INTEGER               :: nOcSpc            ! # of ocean species
-  TYPE(OcSpec), POINTER :: OcSpecs(:)
+  TYPE :: MyInst
+   ! Tracer IDs 
+   INTEGER                :: Instance
+   ! Variables carrying information about ocean species 
+   INTEGER                :: ExtNr
+   INTEGER                :: nOcSpc            ! # of ocean species
+   TYPE(OcSpec), POINTER  :: OcSpecs(:)
+   TYPE(MyInst), POINTER  :: NextInst => NULL()
+  END TYPE MyInst
+
+  ! Pointer to instances
+  TYPE(MyInst), POINTER   :: AllInst => NULL()
 
 CONTAINS
 !EOC
@@ -162,16 +171,17 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: OcID, HcoID
-    REAL(hp), TARGET   :: SOURCE(HcoState%NX,HcoState%NY) 
-    REAL(hp), TARGET   :: SINK  (HcoState%NX,HcoState%NY)
-    REAL(hp), TARGET   :: SeaConc(HcoState%NX,HcoState%NY)
-    CHARACTER(LEN=255) :: ContName
-    CHARACTER(LEN=255) :: MSG
-    LOGICAL            :: VERBOSE
+    TYPE(MyInst), POINTER :: Inst
+    INTEGER               :: OcID, HcoID
+    REAL(hp), TARGET      :: SOURCE(HcoState%NX,HcoState%NY) 
+    REAL(hp), TARGET      :: SINK  (HcoState%NX,HcoState%NY)
+    REAL(hp), TARGET      :: SeaConc(HcoState%NX,HcoState%NY)
+    CHARACTER(LEN=255)    :: ContName
+    CHARACTER(LEN=255)    :: MSG
+    LOGICAL               :: VERBOSE
 
     ! Pointers
-    REAL(hp), POINTER  :: Arr2D(:,:)
+    REAL(hp), POINTER     :: Arr2D(:,:)
 
     !=================================================================
     ! HCOX_SeaFlux_Run begins here!
@@ -182,7 +192,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Return if extension disabled 
-    IF ( .NOT. ExtState%SeaFlux ) RETURN
+    IF ( ExtState%SeaFlux <= 0 ) RETURN
 
     ! Verbose?
     verbose = HCO_IsVerb(HcoState%Config%Err,1) 
@@ -190,15 +200,24 @@ CONTAINS
     ! Nullify
     Arr2D => NULL()
 
+    ! Get instance
+    Inst => NULL()
+    CALL InstGet ( ExtState%SeaFlux, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find SeaFlux instance Nr. ', ExtState%SeaFlux
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
+
     ! ---------------------------------------------------------------
     ! Calculate emissions
     ! ---------------------------------------------------------------
 
     ! Loop over all model species 
-    DO OcID = 1, nOcSpc
+    DO OcID = 1, Inst%nOcSpc
 
        ! Get HEMCO species ID 
-       HcoID = OcSpecs(OcID)%HcoID
+       HcoID = Inst%OcSpecs(OcID)%HcoID
 
        ! Skip this species if it has no corresponding HEMCO and/or
        ! model species 
@@ -210,26 +229,26 @@ CONTAINS
                'Calculate air-sea flux for HEMCO species', HcoID
           CALL HCO_MSG(HcoState%Config%Err,MSG)
           WRITE(MSG,*) 'Module species name: ', &
-                        TRIM(OcSpecs(OcID)%OcSpcName)
+                        TRIM(Inst%OcSpecs(OcID)%OcSpcName)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
 
        ! Get seawater concentration of given compound (from HEMCO core).
-       ContName = TRIM(OcSpecs(OcID)%OcDataName)
+       ContName = TRIM(Inst%OcSpecs(OcID)%OcDataName)
        CALL HCO_EvalFld ( am_I_Root, HcoState, ContName, SeaConc, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Calculate oceanic source (kg/m2/s) as well as the deposition 
        ! velocity (1/s).
-       CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, &
-                           SOURCE,    SINK,     SeaConc,   &
-                           OcID,      HcoID,    RC          )
+       CALL Calc_SeaFlux ( am_I_Root, HcoState, ExtState, Inst, &
+                           SOURCE,    SINK,     SeaConc,        &
+                           OcID,      HcoID,    RC               )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Set flux in HEMCO object [kg/m2/s]
-       CALL HCO_EmisAdd ( am_I_Root, HcoState, SOURCE, HcoID, RC, ExtNr=ExtNr )
+       CALL HCO_EmisAdd ( am_I_Root, HcoState, SOURCE, HcoID, RC, ExtNr=Inst%ExtNr )
        IF ( RC /= HCO_SUCCESS ) THEN
-          MSG = 'HCO_EmisAdd error: ' // TRIM(OcSpecs(OcID)%OcSpcName)
+          MSG = 'HCO_EmisAdd error: ' // TRIM(Inst%OcSpecs(OcID)%OcSpcName)
           CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
           RETURN 
        ENDIF
@@ -252,6 +271,9 @@ CONTAINS
                           RC      = RC               ) 
        Arr2D => NULL() 
     ENDDO !SpcID
+
+    ! Cleanup
+    Inst => NULL()
 
     ! Leave w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
@@ -278,8 +300,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Calc_SeaFlux( am_I_Root, HcoState, ExtState, & 
-                           SOURCE,    SINK,     SeaConc,   &
-                           OcID,      HcoID,    RC          )
+                           Inst,      SOURCE,   SINK,     &
+                           SeaConc,   OcID,     HcoID, RC  )
 !
 ! !USES:
 ! 
@@ -295,6 +317,7 @@ CONTAINS
     INTEGER,         INTENT(IN   ) :: HcoID               ! HEMCO species ID
     TYPE(HCO_State), POINTER       :: HcoState            ! Output obj
     TYPE(Ext_State), POINTER       :: ExtState     
+    TYPE(MyInst),    POINTER       :: Inst         
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -380,10 +403,10 @@ CONTAINS
     MW      = HcoState%Spc(HcoID)%MW_g
 
     ! Liquid molar volume at boiling point [cm3/mol]
-    VB      = OcSpecs(OcID)%LiqVol
+    VB      = Inst%OcSpecs(OcID)%LiqVol
 
     ! Get parameterization type for Schmidt number in water 
-    SCW     = OcSpecs(OcID)%SCWPAR
+    SCW     = Inst%OcSpecs(OcID)%SCWPAR
 
     ! Model surface layer
     L       = 1
@@ -640,7 +663,8 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER                        :: I, J, nSpc
+    TYPE(MyInst), POINTER          :: Inst 
+    INTEGER                        :: ExtNr, I, J, nSpc
     CHARACTER(LEN=255)             :: NAME_OC, MSG, ERR
 
     ! Arrays
@@ -660,6 +684,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     ERR = 'nOcSpc too low!'
 
+    ! Create instance for this simulation
+    CALL InstCreate ( ExtNr, ExtState%SeaFlux, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create SeaFlux instance', RC )
+       RETURN
+    ENDIF
+
     ! Verbose mode
     IF ( am_I_Root ) THEN
        MSG = 'Use air-sea flux emissions (extension module)'
@@ -673,16 +704,16 @@ CONTAINS
     ! ---------------------------------------------------------------------- 
     
     ! # of species for which air-sea exchange will be calculated
-    nOcSpc = 4
+    Inst%nOcSpc = 4
 
     ! Initialize vector w/ species information
-    ALLOCATE ( OcSpecs(nOcSpc) ) 
-    DO I = 1, nOcSpc
-       OcSpecs(I)%HcoID      = -1
-       OcSpecs(I)%OcSpcName  = ''
-       OcSpecs(I)%OcDataName = ''
-       OcSpecs(I)%LiqVol     = 0d0
-       OcSpecs(I)%SCWPAR     = 1
+    ALLOCATE ( Inst%OcSpecs(Inst%nOcSpc) ) 
+    DO I = 1, Inst%nOcSpc
+       Inst%OcSpecs(I)%HcoID      = -1
+       Inst%OcSpecs(I)%OcSpcName  = ''
+       Inst%OcSpecs(I)%OcDataName = ''
+       Inst%OcSpecs(I)%LiqVol     = 0d0
+       Inst%OcSpecs(I)%SCWPAR     = 1
     ENDDO
 
     ! Counter
@@ -693,60 +724,60 @@ CONTAINS
     ! ----------------------------------------------------------------------
 
     I = I + 1
-    IF ( I > nOcSpc ) THEN
+    IF ( I > Inst%nOcSpc ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
-    OcSpecs(I)%OcSpcName  = 'CH3I'
-    OcSpecs(I)%OcDataName = 'CH3I_SEAWATER'
-    OcSpecs(I)%LiqVol     = 1d0*7d0 + 3d0*7d0 + 1d0*38.5d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 1 ! Schmidt number following Johnson, 2010
+    Inst%OcSpecs(I)%OcSpcName  = 'CH3I'
+    Inst%OcSpecs(I)%OcDataName = 'CH3I_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 1d0*7d0 + 3d0*7d0 + 1d0*38.5d0 ! Johnson, 2010
+    Inst%OcSpecs(I)%SCWPAR     = 1 ! Schmidt number following Johnson, 2010
 
     ! ----------------------------------------------------------------------
     ! DMS:
     ! ----------------------------------------------------------------------
 
     I = I + 1
-    IF ( I > nOcSpc ) THEN
+    IF ( I > Inst%nOcSpc ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
-    OcSpecs(I)%OcSpcName  = 'DMS'
-    OcSpecs(I)%OcDataName = 'DMS_SEAWATER'
-    OcSpecs(I)%LiqVol     = 2d0*7d0 + 6d0*7d0 + 1d0*21.0d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 2 ! Schmidt number following Saltzman et al., 1993
+    Inst%OcSpecs(I)%OcSpcName  = 'DMS'
+    Inst%OcSpecs(I)%OcDataName = 'DMS_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 2d0*7d0 + 6d0*7d0 + 1d0*21.0d0 ! Johnson, 2010
+    Inst%OcSpecs(I)%SCWPAR     = 2 ! Schmidt number following Saltzman et al., 1993
 
     ! ----------------------------------------------------------------------
     ! Acetone:
     ! ----------------------------------------------------------------------
 
     I = I + 1
-    IF ( I > nOcSpc ) THEN
+    IF ( I > Inst%nOcSpc ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, ERR, RC )
        RETURN
     ENDIF
 
-    OcSpecs(I)%OcSpcName  = 'ACET'
-    OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
-    OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 3 ! Schmidt number of acetone
+    Inst%OcSpecs(I)%OcSpcName  = 'ACET'
+    Inst%OcSpecs(I)%OcDataName = 'ACET_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 3d0*7d0 + 6d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    Inst%OcSpecs(I)%SCWPAR     = 3 ! Schmidt number of acetone
 
     ! ----------------------------------------------------------------------
     ! Acetaldehyde:
     ! ----------------------------------------------------------------------
 
     I = I + 1
-    IF ( I > nOcSpc ) THEN
+    IF ( I > Inst%nOcSpc ) THEN
        CALL HCO_ERROR ( ERR, RC )
        RETURN
     ENDIF
 
-    OcSpecs(I)%OcSpcName  = 'ALD2'
-    OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
-    OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
-    OcSpecs(I)%SCWPAR     = 4 ! Schmidt number of acetaldehyde
+    Inst%OcSpecs(I)%OcSpcName  = 'ALD2'
+    Inst%OcSpecs(I)%OcDataName = 'ALD2_SEAWATER'
+    Inst%OcSpecs(I)%LiqVol     = 2d0*7d0 + 4d0*7d0 + 1d0*7d0 + 1d0*7d0 ! Johnson, 2010
+    Inst%OcSpecs(I)%SCWPAR     = 4 ! Schmidt number of acetaldehyde
 
     ! ----------------------------------------------------------------------
     ! Match module species with species assigned to this module in config.
@@ -758,28 +789,28 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set information in module variables
-    DO I = 1, nOcSpc 
+    DO I = 1, Inst%nOcSpc 
 
        ! Append ocean tag '__OC' to this species name to make sure
        ! that we will also register non-tagged species.
-       NAME_OC = TRIM(OcSpecs(I)%OcSpcName) // '__OC'
+       NAME_OC = TRIM(Inst%OcSpecs(I)%OcSpcName) // '__OC'
 
        DO J = 1, nSpc
 
           ! Compare model species names against defined module species. 
           ! Also accept species names without the tag __OC, e.g.
           ! 'ACET' only instead of 'ACET__OC'. 
-          IF ( TRIM(SpcNames(J)) == TRIM(OcSpecs(I)%OcSpcName) .OR. &
+          IF ( TRIM(SpcNames(J)) == TRIM(Inst%OcSpecs(I)%OcSpcName) .OR. &
                TRIM(SpcNames(J)) == TRIM(NAME_OC)              ) THEN
-             OcSpecs(I)%HcoID = HcoIDs(J)
+             Inst%OcSpecs(I)%HcoID = HcoIDs(J)
              EXIT
           ENDIF
        ENDDO !J
 
        ! verbose
-       IF ( OcSpecs(I)%HcoID > 0 .AND. am_I_Root ) THEN
+       IF ( Inst%OcSpecs(I)%HcoID > 0 .AND. am_I_Root ) THEN
           WRITE(MSG,*) '   - ', &
-               TRIM(OcSpecs(I)%OcSpcName), OcSpecs(I)%HcoID
+               TRIM(Inst%OcSpecs(I)%OcSpcName), Inst%OcSpecs(I)%HcoID
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDIF
     ENDDO !I
@@ -796,7 +827,7 @@ CONTAINS
 !    ExtState%FRCLND%DoUse      = .TRUE.
     
     ! Enable extensions
-    ExtState%SeaFlux = .TRUE.
+    !ExtState%SeaFlux = .TRUE.
 
     ! Return w/ success
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  )
@@ -818,7 +849,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_SeaFlux_Final()
+  SUBROUTINE HCOX_SeaFlux_Final( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
 !
 ! !REVISION HISTORY:
 !  16 Apr 2013 - C. Keller - Initial version
@@ -829,10 +864,197 @@ CONTAINS
     !=================================================================
     ! HCOX_SeaFlux_Final begins here!
     !=================================================================
+    CALL InstRemove( ExtState%SeaFlux )
 
-    IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
+    !IF ( ASSOCIATED( OcSpecs )) DEALLOCATE( OcSpecs ) 
 
   END SUBROUTINE HCOX_SeaFlux_Final
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+
+    ! Init 
+    PrevInst => NULL()
+    Inst     => NULL()
+    
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+   
+       ! Pop off instance from list
+       IF ( ASSOCIATED(PrevInst) ) THEN
+          IF ( ASSOCIATED( Inst%OcSpecs )) DEALLOCATE( Inst%OcSpecs ) 
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_SeaFlux_Mod
 !EOM

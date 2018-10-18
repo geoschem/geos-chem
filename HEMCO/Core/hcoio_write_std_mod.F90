@@ -89,22 +89,18 @@ CONTAINS
 ! !USES:
 !
     USE m_netCDF_io_define
-#if defined( MODEL_GEOS )
     USE m_netcdf_io_read
     USE m_netcdf_io_open
     USE Ncdf_Mod,            ONLY : NC_Open
     USE Ncdf_Mod,            ONLY : NC_Read_Time
     USE Ncdf_Mod,            ONLY : NC_Read_Arr
-#endif
     USE Ncdf_Mod,            ONLY : NC_Create
     USE Ncdf_Mod,            ONLY : NC_Close
     USE Ncdf_Mod,            ONLY : NC_Var_Def
     USE Ncdf_Mod,            ONLY : NC_Var_Write
     USE Ncdf_Mod,            ONLY : NC_Get_RefDateTime
     USE CHARPAK_Mod,         ONLY : TRANLC
-#if defined( MODEL_GEOS )
     USE HCO_Chartools_Mod,   ONLY : HCO_CharParse
-#endif
     USE HCO_State_Mod,       ONLY : HCO_State
     USE JulDay_Mod,          ONLY : JulDay
     USE HCO_EXTLIST_MOD,     ONLY : GetExtOpt, CoreNr
@@ -162,17 +158,13 @@ CONTAINS
     REAL(dp)                  :: GMT, JD1, JD1985, JD_DELTA, THISDAY, P0
     REAL(sp)                  :: TMP, JD_DELTA_RND
     INTEGER                   :: YYYY, MM, DD, h, m, s
-#if defined( MODEL_GEOS )
     REAL(sp), POINTER         :: nctime(:)
-#endif
     REAL(dp), POINTER         :: Arr1D(:)
     INTEGER,  POINTER         :: Int1D(:)
     REAL(sp), POINTER         :: Arr3D(:,:,:)
     REAL(sp), POINTER         :: Arr4D(:,:,:,:)
-#if defined( MODEL_GEOS )
     REAL(sp), POINTER         :: Arr4DOld(:,:,:,:)
     REAL*8,   POINTER         :: timeVec(:)
-#endif
     REAL(hp), POINTER         :: hyam(:)
     REAL(hp), POINTER         :: hybm(:)
     TYPE(DiagnCont), POINTER  :: ThisDiagn
@@ -194,9 +186,7 @@ CONTAINS
     INTEGER                   :: refYYYY, refMM, refDD, refh, refm, refs
     LOGICAL                   :: EOI, DoWrite, PrevTime, FOUND
     LOGICAL                   :: NoLevDim, DefMode
-#if defined( MODEL_GEOS )
     LOGICAL                   :: IsOldFile
-#endif
 
     CHARACTER(LEN=255), PARAMETER :: LOC = 'HCOIO_WRITE_STD (hcoio_write_std_mod.F90)' 
 
@@ -211,11 +201,9 @@ CONTAINS
     Int1D     => NULL()
     Arr3D     => NULL()
     Arr4D     => NULL()
-#if defined( MODEL_GEOS )
     Arr4DOld  => NULL()
     timeVec   => NULL()
     nctime    => NULL()
-#endif
     ThisDiagn => NULL()
 
     ! Collection number
@@ -339,15 +327,14 @@ CONTAINS
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
-#if defined( MODEL_GEOS )
-    ! Add default time stamp if no time tokens are in the file template.
-    ! This also ensures backward compatibility.
-    IF ( INDEX(TRIM(ncFile),'$') <= 0 ) THEN
-       ncFile = TRIM(ncFile)//'.$YYYY$MM$DD$HH$MN.nc'
-    ENDIF
-    CALL HCO_CharParse ( HcoState%Config, ncFile, YYYY, MM, DD, h, m, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-#endif
+    !! Add default time stamp if no time tokens are in the file template.
+    !! This also ensures backward compatibility.
+    ! This inadvertently timestamps the filename twice in GC classic
+    !IF ( INDEX(TRIM(ncFile),'$') <= 0 ) THEN
+    !   ncFile = TRIM(ncFile)//'.$YYYY$MM$DD$HH$MN.nc'
+    !ENDIF
+    !CALL HCO_CharParse ( HcoState%Config, ncFile, YYYY, MM, DD, h, m, RC )
+    !IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Use filename prefix for title, replacing '_' with spaces
     ! NOTE: Prefix can only contain up to two underscores
@@ -373,219 +360,6 @@ CONTAINS
        CALL HCO_MSG( HcoState%Config%Err, MSG )
     ENDIF
 
-#if !defined( MODEL_GEOS )
-    ! Define a variable for the number of levels, which will either be -1 
-    ! (if all 2D data) or the number of levels in the grid (for 3D data).
-    IF ( NoLevDim ) THEN
-       nLevTmp = -1
-    ELSE
-       nLevTmp = nLev
-    ENDIF
-
-    ! Define extra metadata for global attributes
-    Reference = 'http://wiki.geos-chem.org/The_HEMCO_Users_Guide'
-    Contact   = 'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
-
-    ! Create output file
-    ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
-    ! Now create netCDF file with time dimension as UNLIMITED (bmy, 3/8/17)
-    CALL NC_Create( NcFile       = NcFile,                                   &
-                    Title        = Title,                                    &
-                    Reference    = Reference,                                &
-                    Contact      = Contact,                                  &
-                    nLon         = nLon,                                     &
-                    nLat         = nLat,                                     &
-                    nLev         = nLevTmp,                                  &
-                    nTime        = NF_UNLIMITED,                             &
-                    fId          = fId,                                      &
-                    lonId        = lonId,                                    &
-                    latId        = latId,                                    &
-                    levId        = levId,                                    &
-                    timeId       = timeId,                                   &
-                    VarCt        = VarCt,                                    &
-                    CREATE_NC4   =.TRUE.                                    )
-
-    !------------------------------------------------------------------------
-    ! Write longitude axis variable ("lon") to file
-    !------------------------------------------------------------------------ 
-
-    ! Define variable
-    CALL NC_Var_Def( fId         = fId,                                      &
-                     lonId       = lonId,                                    &
-                     latId       = -1,                                       &
-                     levId       = -1,                                       &
-                     timeId      = -1,                                       &
-                     VarName     = 'lon',                                    &
-                     VarLongName = 'Longitude',                              &
-                     VarUnit     = 'degrees_east',                           &
-                     Axis        = 'X',                                      &
-                     DataType    = dp,                                        &
-                     VarCt       = VarCt,                                    & 
-                     Compress    = .TRUE.                                   )
-
-    ! Write data
-    ALLOCATE( Arr1D( nLon ) )
-    Arr1D = HcoState%Grid%XMID%Val(:,1)
-    CALL NC_Var_Write( fId, 'lon', Arr1D=Arr1D )
-    DEALLOCATE( Arr1D )
-    
-    !------------------------------------------------------------------------
-    ! Write latitude axis variable ("lat") to file
-    !------------------------------------------------------------------------ 
-
-    ! Define variable
-    CALL NC_Var_Def( fId         = fId,                                      &
-                     lonId       = -1,                                       &
-                     latId       = latId,                                    &
-                     levId       = -1,                                       &
-                     timeId      = -1,                                       &
-                     VarName     = 'lat',                                    &
-                     VarLongName = 'Latitude',                               &
-                     VarUnit     = 'degrees_north',                          &
-                     Axis        = 'Y',                                      &
-                     DataType    = dp,                                       &
-                     VarCt       = VarCt,                                    & 
-                     Compress    = .TRUE.                                   )
-
-    ! Write data
-    ALLOCATE( Arr1D( nLat ) )
-    Arr1D = HcoState%Grid%YMID%Val(1,:)
-    CALL NC_Var_Write( fId, 'lat', Arr1D=Arr1D )
-    DEALLOCATE( Arr1D )
-
-    !------------------------------------------------------------------------
-    ! Write vertical grid parameters to file (if necessary)
-    !------------------------------------------------------------------------ 
-    IF ( .NOT. NoLevDim ) THEN
-
-       ! Reference pressure [Pa]
-       P0 = 1.0e+05_dp
-
-       ! Allocate vertical coordinate arrays
-       ALLOCATE( Arr1D( nLev ) )
-       ALLOCATE( hyam ( nLev ) )
-       ALLOCATE( hybm ( nLev ) )
-
-       ! Construct vertical level coordinates
-       DO L = 1, nLev
-
-          ! A parameter at grid midpoints
-          hyam(L)  = ( HcoState%Grid%zGrid%Ap(L)                             &
-                   +   HcoState%Grid%zGrid%Ap(L+1) ) * 0.5_dp
-
-          ! B parameter at grid midpoints
-          hybm(L)  = ( HcoState%Grid%zGrid%Bp(L)                             &
-                   +   HcoState%Grid%zGrid%Bp(L+1) ) * 0.5_dp
-
-          ! Vertical level coordinate
-          Arr1d(L) = ( hyam(L) / P0 ) + hybm(L)
-
-       ENDDO
-
-       !---------------------------------------------------------------------
-       ! Write level axis variable ("lev") to file
-       !--------------------------------------------------------------------- 
-
-       ! Define extra metadata for calls to NC_Var_Def
-       myLName = 'hybrid level at midpoints ((A/P0)+B)'
-       mySName = 'atmosphere_hybrid_sigma_pressure_coordinate'
-       myFTerm = 'a: hyai b: hybi p0: P0 ps: PS'
-
-       ! Define variable
-       CALL NC_Var_Def( fId          = fId,                                  &
-                        lonId        = -1,                                   &
-                        latId        = -1,                                   &
-                        levId        = levId,                                &
-                        timeId       = -1,                                   &
-                        VarName      = 'lev',                                &
-                        VarLongName  = MyLName,                              &
-                        StandardName = MySName,                              &
-                        FormulaTerms = myFTerm,                              &
-                        VarUnit      = 'level',                              &
-                        Axis         = 'Z',                                  &
-                        Positive     = 'up',                                 &
-                        DataType     = dp,                                   &
-                        VarCt        = VarCt,                                & 
-                        Compress     = .TRUE.                               )
-
-       ! Write data
-       CALL NC_Var_Write( fId, 'lev', Arr1D=Arr1D )
-
-       !---------------------------------------------------------------------
-       ! Write hybrid A coordinate ("hyam") to file
-       !--------------------------------------------------------------------- 
-
-       ! Define extra metadata for calls to NC_Var_Def
-       myLName = 'hybrid A coefficient at layer midpoints'
-
-       ! Define variable
-       CALL NC_Var_Def( fId          = fId,                                  &
-                        lonId        = -1,                                   &
-                        latId        = -1,                                   &
-                        levId        = levId,                                &
-                        timeId       = -1,                                   &
-                        VarName      = 'hyam',                               &
-                        VarLongName  = MyLName,                              &
-                        VarUnit      = 'Pa',                                 &
-                        DataType     = dp,                                   &
-                        VarCt        = VarCt,                                & 
-                        Compress     = .TRUE.                               )
-
-       ! Write data
-       CALL NC_Var_Write ( fId, 'hyam', Arr1D=hyam )
-
-       !---------------------------------------------------------------------
-       ! Write hybrid B coordinate ("hybm") to file
-       !--------------------------------------------------------------------- 
-
-       ! Define extra metadata for calls to NC_Var_Def
-       myLName = 'hybrid B coefficient at layer midpoints'
-
-       ! Define variable
-       CALL NC_Var_Def( fId          = fId,                                  &
-                        lonId        = -1,                                   &
-                        latId        = -1,                                   &
-                        levId        = levId,                                &
-                        timeId       = -1,                                   &
-                        VarName      = 'hybm',                               &
-                        VarLongName  = MyLName,                              &
-                        VarUnit      = '1',                                  &
-                        DataType     = dp,                                   &
-                        VarCt        = VarCt,                                & 
-                        Compress     = .TRUE.                               )
-
-       ! Write data
-       CALL NC_Var_Write( fId, 'hybm', Arr1D=hybm )
-
-       !-----------------------------------------------------------------------
-       ! Write out reference pressure (P0) to file
-       !-----------------------------------------------------------------------
-
-       ! Define variable
-       CALL NC_Var_Def( fId         = fId,                                   &
-                        lonId       = -1,                                    &
-                        latId       = -1,                                    &
-                        levId       = -1,                                    &
-                        timeId      = -1,                                    &
-                        VarName     = 'P0',                                  &
-                        VarLongName = 'Reference pressure',                  &
-                        VarUnit     = 'Pa',                                  &
-                        DataType    = dp,                                    &
-                        VarCt       = VarCt,                                 & 
-                        Compress    = .TRUE.                                )
-
-       ! Write data
-       CALL NC_Var_Write( fId, 'P0', P0 )
-
-       ! Deallocate arrays
-       DEALLOCATE( Arr1d )
-       DEALLOCATE( hyam  )
-       DEALLOCATE( hybm  )
-
-    ENDIF
-#endif
-
-#if defined( MODEL_GEOS )
     ! Check if file already exists. If so, add new diagnostics to this file
     ! (instead of creating a new one)
     INQUIRE( FILE=ncFile, EXIST=IsOldFile )
@@ -600,17 +374,38 @@ CONTAINS
 
     ! Create output file
     ELSE
+
+       ! Define a variable for the number of levels, which will either be -1 
+       ! (if all 2D data) or the number of levels in the grid (for 3D data).
+       IF ( NoLevDim ) THEN
+          nLevTmp = -1
+       ELSE
+          nLevTmp = nLev
+       ENDIF
+       
+       ! Define extra metadata for global attributes
+       Reference = 'http://wiki.geos-chem.org/The_HEMCO_Users_Guide'
+       Contact   = 'GEOS-Chem Support Team (geos-chem-support@as.harvard.edu)'
+       
+       ! Create output file
        ! Pass CREATE_NC4 to make file format netCDF-4 (mps, 3/3/16)
        ! Now create netCDF file with time dimension as UNLIMITED (bmy, 3/8/17)
-       IF ( NoLevDim ) THEN
-          CALL NC_CREATE( ncFile, title, nLon,  nLat,  -1,     NF_UNLIMITED,  &
-                          fId,    lonId, latId, levId, timeId, VarCt,         &
-                          CREATE_NC4=.TRUE. )
-       ELSE
-          CALL NC_CREATE( ncFile, title, nLon,  nLat,  nLev,   NF_UNLIMITED,  &
-                          fId,    lonId, latId, levId, timeId, VarCt,         &
-                          CREATE_NC4=.TRUE. )
-       ENDIF
+       CALL NC_Create( NcFile       = NcFile,                            &
+                       Title        = Title,                             &
+                       Reference    = Reference,                         &
+                       Contact      = Contact,                           &
+                       nLon         = nLon,                              &
+                       nLat         = nLat,                              &
+                       nLev         = nLevTmp,                           &
+                       nTime        = NF_UNLIMITED,                      &
+                       fId          = fId,                               &
+                       lonId        = lonId,                             &
+                       latId        = latId,                             &
+                       levId        = levId,                             &
+                       timeId       = timeId,                            &
+                       VarCt        = VarCt,                             &
+                       CREATE_NC4   =.TRUE.                             )
+
     ENDIF
 
     !-----------------------------------------------------------------
@@ -618,38 +413,144 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( .NOT. IsOldFile ) THEN
 
-       ! Add longitude 
-       CALL NC_VAR_DEF ( fId, lonId, -1, -1, -1, &
-                         'lon', 'Longitude', 'degrees_east', Prc, VarCt, &
-                         Compress=.True. )
+       ! Write longitude axis variable ("lon") to file   
+       CALL NC_Var_Def( fId         = fId,                                &
+                        lonId       = lonId,                              &
+                        latId       = -1,                                 &
+                        levId       = -1,                                 &
+                        timeId      = -1,                                 &
+                        VarName     = 'lon',                              &
+                        VarLongName = 'Longitude',                        &
+                        VarUnit     = 'degrees_east',                     &
+                        Axis        = 'X',                                &
+                        DataType    = dp,                                 &
+                        VarCt       = VarCt,                              & 
+                        Compress    = .TRUE.                             )
        ALLOCATE( Arr1D( nLon ) )
        Arr1D = HcoState%Grid%XMID%Val(:,1)
-       CALL NC_VAR_WRITE ( fId, 'lon', Arr1D=Arr1D )
+       CALL NC_Var_Write( fId, 'lon', Arr1D=Arr1D )
        DEALLOCATE( Arr1D )
-
-       ! Add latitude
-       CALL NC_VAR_DEF ( fId, -1, latId, -1, -1, &
-                         'lat', 'Latitude', 'degrees_north', Prc, VarCt, &
-                         Compress=.True. )
+       
+       ! Write latitude axis variable ("lat") to file    
+       CALL NC_Var_Def( fId         = fId,                              &
+                        lonId       = -1,                               &
+                        latId       = latId,                            &
+                        levId       = -1,                               &
+                        timeId      = -1,                               &
+                        VarName     = 'lat',                            &
+                        VarLongName = 'Latitude',                       &
+                        VarUnit     = 'degrees_north',                  &
+                        Axis        = 'Y',                              &
+                        DataType    = dp,                               &
+                        VarCt       = VarCt,                            & 
+                        Compress    = .TRUE.                           )
        ALLOCATE( Arr1D( nLat ) )
        Arr1D = HcoState%Grid%YMID%Val(1,:)
-       CALL NC_VAR_WRITE ( fId, 'lat', Arr1D=Arr1D )
+       CALL NC_Var_Write( fId, 'lat', Arr1D=Arr1D )
        DEALLOCATE( Arr1D )
-
-       ! Add level 
+       
+       ! Write vertical grid parameters to file (if necessary)
        IF ( .NOT. NoLevDim ) THEN
-          CALL NC_VAR_DEF ( fId, -1, levId, -1, -1, &
-                            'lev', 'GEOS-Chem level', 'unitless', Prc, &
-                            VarCt, Compress=.True. )
-          allocate(Arr1D(nLev))
-          DO I = 1, nLev
-             Arr1D(I) = REAL(I)
+       
+          ! Reference pressure [Pa]
+          P0 = 1.0e+05_dp
+       
+          ! Allocate vertical coordinate arrays
+          ALLOCATE( Arr1D( nLev ) )
+          ALLOCATE( hyam ( nLev ) )
+          ALLOCATE( hybm ( nLev ) )
+       
+          ! Construct vertical level coordinates
+          DO L = 1, nLev
+       
+             ! A parameter at grid midpoints
+             hyam(L)  = ( HcoState%Grid%zGrid%Ap(L)                         &
+                      +   HcoState%Grid%zGrid%Ap(L+1) ) * 0.5_dp
+       
+             ! B parameter at grid midpoints
+             hybm(L)  = ( HcoState%Grid%zGrid%Bp(L)                         &
+                      +   HcoState%Grid%zGrid%Bp(L+1) ) * 0.5_dp
+       
+             ! Vertical level coordinate
+             Arr1d(L) = ( hyam(L) / P0 ) + hybm(L)
+       
           ENDDO
-          CALL NC_VAR_WRITE ( fId, 'lev', Arr1D=Arr1D )
-          deallocate(Arr1D)
+       
+          ! Write level axis variable ("lev") to file
+          ! Define extra metadata for calls to NC_Var_Def
+          myLName = 'hybrid level at midpoints ((A/P0)+B)'
+          mySName = 'atmosphere_hybrid_sigma_pressure_coordinate'
+          myFTerm = 'a: hyai b: hybi p0: P0 ps: PS'
+          CALL NC_Var_Def( fId          = fId,                            &
+                           lonId        = -1,                             &
+                           latId        = -1,                             &
+                           levId        = levId,                          &
+                           timeId       = -1,                             &
+                           VarName      = 'lev',                          &
+                           VarLongName  = MyLName,                        &
+                           StandardName = MySName,                        &
+                           FormulaTerms = myFTerm,                        &
+                           VarUnit      = 'level',                        &
+                           Axis         = 'Z',                            &
+                           Positive     = 'up',                           &
+                           DataType     = dp,                             &
+                           VarCt        = VarCt,                          & 
+                           Compress     = .TRUE.                         )
+          CALL NC_Var_Write( fId, 'lev', Arr1D=Arr1D )
+       
+          ! Write hybrid A coordinate ("hyam") to file
+          ! Define extra metadata for calls to NC_Var_Def
+          myLName = 'hybrid A coefficient at layer midpoints'
+          CALL NC_Var_Def( fId          = fId,                            &
+                           lonId        = -1,                             &
+                           latId        = -1,                             &
+                           levId        = levId,                          &
+                           timeId       = -1,                             &
+                           VarName      = 'hyam',                         &
+                           VarLongName  = MyLName,                        &
+                           VarUnit      = 'Pa',                           &
+                           DataType     = dp,                             &
+                           VarCt        = VarCt,                          & 
+                           Compress     = .TRUE.                         )
+          CALL NC_Var_Write ( fId, 'hyam', Arr1D=hyam )
+       
+          ! Write hybrid B coordinate ("hybm") to file
+          ! Define extra metadata for calls to NC_Var_Def
+          myLName = 'hybrid B coefficient at layer midpoints'
+          CALL NC_Var_Def( fId          = fId,                           &
+                           lonId        = -1,                            &
+                           latId        = -1,                            &
+                           levId        = levId,                         &
+                           timeId       = -1,                            &
+                           VarName      = 'hybm',                        &
+                           VarLongName  = MyLName,                       &
+                           VarUnit      = '1',                           &
+                           DataType     = dp,                            &
+                           VarCt        = VarCt,                         & 
+                           Compress     = .TRUE.                        )
+          CALL NC_Var_Write( fId, 'hybm', Arr1D=hybm )
+       
+          ! Write out reference pressure (P0) to file
+          CALL NC_Var_Def( fId         = fId,                             &
+                           lonId       = -1,                              &
+                           latId       = -1,                              &
+                           levId       = -1,                              &
+                           timeId      = -1,                              &
+                           VarName     = 'P0',                            &
+                           VarLongName = 'Reference pressure',            &
+                           VarUnit     = 'Pa',                            &
+                           DataType    = dp,                              &
+                           VarCt       = VarCt,                           & 
+                           Compress    = .TRUE.                          )
+          CALL NC_Var_Write( fId, 'P0', P0 )
+       
+          ! Deallocate arrays
+          DEALLOCATE( Arr1d )
+          DEALLOCATE( hyam  )
+          DEALLOCATE( hybm  )
+       
        ENDIF
     ENDIF
-#endif
 
     !------------------------------------------------------------------------
     ! Write time axis variable ("time") to file
@@ -705,85 +606,62 @@ CONTAINS
     ENDIF    
  
     ! Round to 2 digits after comma 
-#if defined( MODEL_GEOS )
-    JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
-    TMP          = ANINT( JD_DELTA_RND )
-    JD_DELTA_RND = TMP / 100.0_sp
-
-    ! Special case where we have an old file but it has the same time stamp: in
-    ! that case simply overwrite the current values
-    IF ( IsOldFile .AND. ntime == 2 ) THEN
-       IF ( timeVec(1) == JD_DELTA_RND ) ntime = 1
-    ENDIF
-    allocate(nctime(ntime))
-    IF ( IsOldFile .AND. ntime > 1 ) nctime(1:ntime-1) = timeVec(:)
-    nctime(ntime) = JD_DELTA_RND
-    IF ( .NOT. IsOldFile ) THEN
-       CALL NC_VAR_DEF ( fId, -1, -1, -1, timeId, &
-                         'time', 'Time', TRIM(timeunit), 4, VarCt,  &
-                         Compress=.True. )
-    ENDIF
-    CALL NC_VAR_WRITE ( fId, 'time', Arr1D=nctime )
-    deallocate(nctime)
-    if ( associated(timeVec) ) deallocate(timeVec)
-#else
-    ! Round to 2 digits after comma 
+    ! Comment out code for single precision rounded time (ewl, 10/18/18)
     !JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
     !TMP          = ANINT( JD_DELTA_RND )
     !JD_DELTA_RND = TMP / 100.0_sp
 
-    ! Define variable
-    CALL NC_Var_Def( fId         = fId,                                      &
-                     lonId       = -1,                                       &
-                     latId       = -1,                                       &
-                     levId       = -1,                                       &
-                     timeId      = timeId,                                   &
-                     VarName     = 'time',                                   &
-                     VarLongName = 'Time',                                   &
-                     VarUnit     = TimeUnit,                                 &
-                     Axis        = 'T',                                      &
-                     Calendar    = 'gregorian',                              &
-                     DataType    = 8,                                        &
-                     VarCt       = VarCt,                                    & 
-                     Compress    = .TRUE.                                   )
-
-    ! Write data
-    ALLOCATE( Arr1D(1) ) 
-    Arr1d(1) = JD_DELTA
-    CALL NC_Var_Write( fId, 'time', Arr1D=Arr1D )
-    DEALLOCATE( Arr1d )
-#endif
+    ! Special case where we have an old file but it has the same time stamp: in
+    ! that case simply overwrite the current values
+    ! Comment out code for single precision rounded time (ewl, 10/18/18)
+    !IF ( IsOldFile .AND. ntime == 2 .AND. timeVec(1) == JD_DELTA_RND ) THEN
+    IF ( IsOldFile .AND. ntime == 2 .AND. timeVec(1) == JD_DELTA ) THEN
+       ntime = 1
+    ENDIF
+    ALLOCATE( nctime(ntime) )
+    IF ( IsOldFile .AND. ntime > 1 ) THEN
+       nctime(1:ntime-1) = timeVec(:)
+    ENDIF
+    ! Comment out code for single precision rounded time (10/18/18)
+    !nctime(ntime) = JD_DELTA_RND
+    nctime(ntime) = JD_DELTA
+    IF ( .NOT. IsOldFile ) THEN
+       CALL NC_Var_Def( fId         = fId,                                &
+                        lonId       = -1,                                 &
+                        latId       = -1,                                 &
+                        levId       = -1,                                 &
+                        timeId      = timeId,                             &
+                        VarName     = 'time',                             &
+                        VarLongName = 'Time',                             &
+                        VarUnit     = TimeUnit,                           &
+                        Axis        = 'T',                                &
+                        Calendar    = 'gregorian',                        &
+                        DataType    = 8,                                  &
+                        VarCt       = VarCt,                              & 
+                        Compress    = .TRUE.                             )
+    ENDIF
+    CALL NC_VAR_WRITE( fId, 'time', Arr1D=nctime )
+    DEALLOCATE( nctime )
+    IF ( ASSOCIATED(timeVec) ) DEALLOCATE( timeVec )
 
     !-----------------------------------------------------------------
     ! Write out grid box areas 
     !-----------------------------------------------------------------
 
-#if defined( MODEL_GEOS )
     IF ( .NOT. IsOldFile ) THEN
-       myName = 'AREA'
-       myUnit = 'm2'
-       CALL NC_VAR_DEF ( fId, lonId, latId, -1, -1, &
-                         TRIM(myName), 'Grid box area', TRIM(myUnit),  &
-                         Prc, VarCt, Compress=.True. )
-       CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr2D=HcoState%Grid%Area_M2%Val )
+       CALL NC_Var_Def( fId         = fId,                                &
+                        lonId       = lonId,                              &
+                        latId       = latId,                              &
+                        levId       = -1,                                 &
+                        timeId      = -1,                                 &
+                        VarName     = 'AREA',                             &
+                        VarLongName = 'Grid box area',                    &
+                        VarUnit     = 'm2',                               &
+                        DataType    = Prc,                                &
+                        VarCt       = VarCt,                              & 
+                        Compress    = .TRUE.                             )
+       CALL NC_Var_Write ( fId, 'AREA', Arr2D=HcoState%Grid%Area_M2%Val )
     ENDIF
-#else
-    ! Define variable
-    CALL NC_Var_Def( fId         = fId,                                      &
-                     lonId       = lonId,                                    &
-                     latId       = latId,                                    &
-                     levId       = -1,                                       &
-                     timeId      = -1,                                       &
-                     VarName     = 'AREA',                                   &
-                     VarLongName = 'Grid box area',                          &
-                     VarUnit     = 'm2',                                     &
-                     DataType    = Prc,                                      &
-                     VarCt       = VarCt,                                    & 
-                     Compress    = .TRUE.                                   )
-
-    ! Write data
-    CALL NC_Var_Write ( fId, 'AREA', Arr2D=HcoState%Grid%Area_M2%Val )
-#endif
 
     !-----------------------------------------------------------------
     ! Write diagnostics 
@@ -793,25 +671,18 @@ CONTAINS
     ! data mode to write variables
     DO I=1,2
 
-#if defined( MODEL_GEOS )
     ! Skip definition mode for existing file
     IF ( I==1 .AND. IsOldFile ) CYCLE
-#endif
 
     IF (I==1) THEN
        ! Open netCDF define mode
        CALL NcBegin_Def( fID ) 
        DefMode=.TRUE.
     ELSE
-#if defined( MODEL_GEOS )
        IF ( .NOT. IsOldFile ) THEN
           ! Close netCDF define mode
           CALL NcEnd_Def( fID )   
        ENDIF
-#else
-       ! Close netCDF define mode
-       CALL NcEnd_Def( fID )   
-#endif
        DefMode=.False.
     ENDIF
     
@@ -855,36 +726,21 @@ CONTAINS
           ! Define variables in define mode
           !------------------------------------
 
-#if defined( MODEL_GEOS )
-          ! Write out in single precision
-          CALL NC_VAR_DEF ( fId, lonId, latId, levIdTmp, timeId, &
-               TRIM(myName), TRIM(myName), TRIM(myUnit), SP, VarCt, &
-               DefMode, Compress=.True. )
-
-          ! Additional tracer attributes: long_name and _FillValue
-          CALL NcDef_var_attributes( fID, VarCt, "long_name",        &
-               TRIM(ThisDiagn%long_name) )
-          CALL NcDef_var_attributes( fID, VarCt, "averaging_method", &
-               TRIM(ThisDiagn%AvgName  ) )
-          CALL NcDef_var_attributes( fID, VarCt, "_FillValue",       &
-               FillValue )
-#else
           ! Define variable as single precision
           CALL NC_Var_Def( fId          = fId,                               &
                            lonId        = lonId,                             &
                            latId        = latId,                             &
                            levId        = levIdTmp,                          &
                            timeId       = timeId,                            &
-                           VarName      = myName,                            &
+                           VarName      = TRIM(myName),                      &
                            VarLongName  = ThisDiagn%long_name,               &
-                           VarUnit      = myUnit,                            &
+                           VarUnit      = TRIM(myUnit),                      &
                            AvgMethod    = ThisDiagn%AvgName,                 &
                            MissingValue = FillValue,                         &
                            DataType     = sp,                                &
                            VarCt        = VarCt,                             & 
                            DefMode      = DefMode,                           &
                            Compress     = .True.                            )
-#endif
 
        ELSE
 
@@ -892,7 +748,6 @@ CONTAINS
           ! Write variables in data mode
           !------------------------------------
 
-#if defined( MODEL_GEOS )
           IF ( IsOldFile .AND. ntime > 1 ) THEN
              IF ( ThisDiagn%SpaceDim == 3 ) THEN
                 CALL NC_READ_ARR( fID, TRIM(myName), 1, nlon, 1, nlat, &
@@ -905,27 +760,18 @@ CONTAINS
              ENDIF
              IF ( ASSOCIATED(Arr4DOld) ) DEALLOCATE(Arr4DOld)
           ENDIF
-#endif
 
           ! Mirror data and write to file. The mirroring is required in
           ! order to add the time dimension. Otherwise, the data would
           ! have no time information!
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
              IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
-#if defined( MODEL_GEOS )
                 Arr4D(:,:,:,ntime) = ThisDiagn%Arr3D%Val
-#else
-                Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
-#endif
              ENDIF
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
           ELSE
              IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
-#if defined( MODEL_GEOS )
                 Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val 
-#else
-                Arr3D(:,:,1) = ThisDiagn%Arr2D%Val
-#endif
              ENDIF
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
           ENDIF

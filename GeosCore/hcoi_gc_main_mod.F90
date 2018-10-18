@@ -465,7 +465,7 @@ CONTAINS
     Input_Opt%LSOILNOX      = ( ExtState%SoilNOx > 0 )
 
     ! Ginoux dust emissions
-    IF ( ExtState%DustGinoux ) THEN
+    IF ( ExtState%DustGinoux > 0 ) THEN
        IF ( .not. Input_Opt%LDUST ) THEN
           ErrMsg = 'DustGinoux is on in HEMCO but LDUST=F in input.geos!'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
@@ -487,7 +487,7 @@ CONTAINS
     ENDIF
 
     ! Dust alkalinity
-    IF ( ExtState%DustAlk ) THEN
+    IF ( ExtState%DustAlk > 0 ) THEN
        IF ( .not. Input_Opt%LDSTUP ) THEN
           ErrMsg = 'DustAlk is on in HEMCO but LDSTUP=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
@@ -497,7 +497,7 @@ CONTAINS
     ENDIF
 
     ! Marine organic aerosols
-    IF ( ExtState%MarinePOA ) THEN
+    IF ( ExtState%MarinePOA > 0 ) THEN
        IF ( .not. Input_Opt%LMPOA ) THEN
           ErrMsg = 'MarinePOA is on in HEMCO but LMPOA=F in input.geos'
           CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
@@ -509,7 +509,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Set constants for POPs simulation
     !-----------------------------------------------------------------------
-    IF ( ExtState%GC_POPs ) THEN
+    IF ( ExtState%GC_POPs > 0 ) THEN
        ExtState%POP_DEL_H   = Input_Opt%POP_DEL_H
        ExtState%POP_KOA     = Input_Opt%POP_KOA
        ExtState%POP_KBC     = Input_Opt%POP_KBC

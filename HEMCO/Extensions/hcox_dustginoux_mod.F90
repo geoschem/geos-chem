@@ -204,7 +204,7 @@ CONTAINS
     !=======================================================================
 
     ! Return if extension is disabled 
-    IF ( .NOT. ExtState%DustGinoux ) RETURN
+    IF ( ExtState%DustGinoux < 0 ) RETURN
 
     ! Enter
     CALL HCO_ENTER(HcoState%Config%Err,'HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)

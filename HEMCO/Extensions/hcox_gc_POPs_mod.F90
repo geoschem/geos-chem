@@ -249,7 +249,7 @@ CONTAINS
     !=======================================================================
 
     ! Return if extension not turned on
-    IF ( .NOT. ExtState%GC_POPs ) RETURN
+    IF ( ExtState%GC_POPs < 0 ) RETURN
 
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GC_POPs_Run (hcox_gc_POPs_mod.F90)', RC )

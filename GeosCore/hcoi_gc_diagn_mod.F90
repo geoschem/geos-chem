@@ -581,7 +581,7 @@ CONTAINS
     IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) RETURN
 
     ! Define diagnostics
-    IF ( ExtState%GC_RnPbBe .and. ( ND01 > 0 ) ) THEN
+    IF ( ( ExtState%GC_RnPbBe > 0 ) .and. ( ND01 > 0 ) ) THEN
 
        ! HEMCO extension # for Rn-Pb-Be
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'GC_Rn-Pb-Be' )
@@ -1040,7 +1040,7 @@ CONTAINS
     ENDIF
 
     ! Define diagnostics
-    IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ExtState%SeaSalt ) THEN
+    IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ( ExtState%SeaSalt > 0 ) ) THEN
 
        ! Get HEMCO extension # for SeaSalt
        ExtNrSS = GetExtNr( HcoState%Config%ExtList, 'SeaSalt' )
@@ -4875,7 +4875,7 @@ CONTAINS
 #endif
 
     ! Define diagnostics
-    IF ( ExtState%GC_POPs ) THEN
+    IF ( ExtState%GC_POPs > 0 ) THEN
 
        ! HEMCO extension # for POPs
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'GC_POPs' )

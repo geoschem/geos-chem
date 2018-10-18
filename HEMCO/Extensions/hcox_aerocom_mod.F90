@@ -178,10 +178,8 @@ CONTAINS
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Run (hcox_aerocom_mod.F90)', RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Nullify
-    Inst => NULL()
-
     ! Get instance
+    Inst => NULL()
     CALL InstGet ( ExtState%AeroCom, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN 
        WRITE(MSG,*) 'Cannot find AeroCom instance Nr. ', ExtState%AeroCom
@@ -266,7 +264,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MyInst), POINTER          :: Inst => NULL()
+    TYPE(MyInst), POINTER          :: Inst 
     REAL(sp)                       :: ValSp
     INTEGER                        :: ExtNr, N, Dum
     LOGICAL                        :: FOUND
@@ -286,6 +284,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Create AeroCom instance for this simulation
+    Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%AeroCom, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
