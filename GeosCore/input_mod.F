@@ -4605,10 +4605,6 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1), * ) ND58x
-      IF ( .not. Input_Opt%LEMIS ) ND58x = 0
-#if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 58, ND58x, SUBSTRS(2:N), N-1, PD58 )
-#endif
 
       !--------------------------
       ! ND59: TOMAS aerosol emiss
@@ -4859,7 +4855,6 @@
       ND55                         = ND55x
       ND56                         = ND56x
       ND57                         = ND57x
-      ND58                         = ND58x
       ND59                         = ND59x
       ND60                         = ND60x
       ND61                         = ND61x
@@ -4923,7 +4918,6 @@
       Input_Opt%ND55               = ND55x
       Input_Opt%ND56               = ND56x
       Input_Opt%ND57               = ND57x
-      Input_Opt%ND58               = ND58x
       Input_Opt%ND59               = ND59x
       Input_Opt%ND60               = ND60x
       Input_Opt%ND61               = ND61x

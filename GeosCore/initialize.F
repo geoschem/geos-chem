@@ -208,7 +208,6 @@
          IF ( ND54 > 0 ) AD54     = 0e0
          IF ( ND55 > 0 ) AD55     = 0e0      ! netcdf MET diag group
          IF ( ND57 > 0 ) AD57     = 0e0      ! netcdf MET diag group
-         IF ( ND58 > 0 ) AD58     = 0e0
          IF ( ND60 > 0 ) AD60     = 0e0
          IF ( ND64 > 0 ) AD64     = 0e0
          IF ( ND65 > 0 ) AD65     = 0e0

@@ -287,8 +287,11 @@ CONTAINS
     ! This will get the individual CH4 emission terms (gas, coal, wetlands, 
     ! ...) and write them into the individual emissions arrays defined in
     ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
-    ! call to EMISSCH4 is for backwards consistency, in particular for the
-    ! ND58 diagnostics.
+    ! call to EMISSCH4 is for backwards consistency.  This is especially
+    ! needed to do the analytical inversions.  NOTE: The CH4 manual 
+    ! diagnostics are no longer used to force-feed the ND58 bpch diagnostics
+    ! becasue we now archive the exact same quantities to the HEMCO
+    ! diagnostics output. (bmy, mps, 10/19/18)
     IF ( Input_Opt%ITS_A_CH4_SIM .OR.            &
        ( id_CH4 > 0 .and. Input_Opt%LCH4EMIS ) ) THEN
        CALL EmissCh4( am_I_Root, Input_Opt, State_Met, RC )

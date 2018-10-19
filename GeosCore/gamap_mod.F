@@ -1662,16 +1662,6 @@
       OFFSET(N)   = SPACING * 57
 
       N           = N + 1
-      CATEGORY(N) = 'CH4-EMIS'
-      DESCRIPT(N) = 'CH4 Emissions'
-      OFFSET(N)   = SPACING * 50
-
-      N           = N + 1
-      CATEGORY(N) = 'WET-FRAC'
-      DESCRIPT(N) = 'Wetland Fraction'
-      OFFSET(N)   = SPACING * 51
-
-      N           = N + 1
       CATEGORY(N) = 'SHIP-$$$'
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
@@ -7133,77 +7123,6 @@
          SCALE(T,57) = 1e0
       ENDIF
 
-      !-------------------------------------
-      ! CH4 Emissions
-      !-------------------------------------
-      IF ( ND58 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(58) = 15
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(58)
-
-            ! Get name and long name for each tracer
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,58) = 'CH4_TOT'
-                  FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
-               CASE( 2 )
-                  NAME (T,58) = 'CH4_OIL'
-                  FNAME(T,58) = 'CH4 Emissions oil'
-               CASE( 3 )
-                  NAME (T,58) = 'CH4_GAS'
-                  FNAME(T,58) = 'CH4 Emissions gas'
-               CASE( 4 )
-                  NAME (T,58) = 'CH4_COL'
-                  FNAME(T,58) = 'CH4 Emissions coal'
-               CASE( 5 )
-                  NAME (T,58) = 'CH4_LIV'
-                  FNAME(T,58) = 'CH4 Emissions livestock'
-               CASE( 6 )
-                  NAME (T,58) = 'CH4_LDF'
-                  FNAME(T,58) = 'CH4 Emissions landfills'
-               CASE( 7 )
-                  NAME (T,58) = 'CH4_WST'
-                  FNAME(T,58) = 'CH4 Emissions wastewater'
-               CASE( 8 )
-                  NAME (T,58) = 'CH4_RIC'
-                  FNAME(T,58) = 'CH4 Emissions rice'
-               CASE( 9 )
-                  NAME (T,58) = 'CH4_OTA'
-                  FNAME(T,58) = 'CH4 Emissions other anthro'
-               CASE( 10 )
-                  NAME (T,58) = 'CH4_BBN'
-                  FNAME(T,58) = 'CH4 Emissions bioburn'
-               CASE( 11 )
-                  NAME (T,58) = 'CH4_WTL'
-                  FNAME(T,58) = 'CH4 Emissions wetlands'
-               CASE( 12 )
-                  NAME (T,58) = 'CH4_SEE'
-                  FNAME(T,58) = 'CH4 Emissions seeps'
-               CASE( 13 )
-                  NAME (T,58) = 'CH4_LAK'
-                  FNAME(T,58) = 'CH4 Emissions lakes'
-               CASE( 14 )
-                  NAME (T,58) = 'CH4_TER'
-                  FNAME(T,58) = 'CH4 Emissions termites'
-               CASE( 15 )
-                  NAME (T,58) = 'CH4_SAB'
-                  FNAME(T,58) = 'CH4 Emissions soil abs'
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            UNIT (T,58) = 'kg'
-            INDEX(T,58) = T + ( SPACING * 50 )
-            MOLC (T,58) = 1
-            MWT  (T,58) = 1.6e-3
-            SCALE(T,58) = 1e0
-         ENDDO
-      ENDIF
-
 #if   defined( TOMAS )
 
       !-------------------------------------
@@ -7268,29 +7187,9 @@
             SCALE(T,61) = 1e0
          ENDDO
       ENDIF
-
-#else
-
-      !-------------------------------------      
-      ! Wetland Fraction (ND60)
-      !-------------------------------------      
-      IF ( ND60 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(60) = 1
-         T         = 1
-
-         NAME (T,60) = 'WETFRAC'
-         FNAME(T,60) = 'Wetland Fraction'
-         INDEX(T,60) = T + ( SPACING * 51 )
-         MOLC (T,60) = 0 
-         MWT  (T,60) = 0e0
-         SCALE(T,60) = 1e0
-         UNIT(T,60)  = 'unitless'
-      ENDIF
-
 #endif
 #endif
+
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
       !-------------------------------------      
