@@ -378,8 +378,8 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! Radon / Lead / Beryllium specialty simulation
-     REAL(f4),  POINTER :: PbFromRnDecay   (:,:,:  ) ! Pb emitted from Rn decay
-     REAL(f4),  POINTER :: RadDecay        (:,:,:,:) ! Radioactive decay
+     REAL(f4),  POINTER :: PbFromRnDecay(:,:,:  ) ! Pb emitted from Rn decay
+     REAL(f4),  POINTER :: RadDecay     (:,:,:,:) ! Radioactive decay
      LOGICAL :: Archive_PbFromRnDecay
      LOGICAL :: Archive_RadDecay
 
@@ -390,7 +390,13 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdCO2fromCO
 
      ! CH4 specialty simulation
- 
+     REAL(f4), POINTER :: LossCH4byClinTrop(:,:,:)
+     REAL(f4), POINTER :: LossCH4byOHinTrop(:,:,:)
+     REAL(f4), POINTER :: LossCH4inStrat   (:,:,:)
+     LOGICAL :: Archive_LossCH4byClinTrop
+     LOGICAL :: Archive_LossCH4byOHinTrop
+     LOGICAL :: Archive_LossCH4inStrat
+
      ! Persistent Organic Pollutants (POPS) specialty simulation
      REAL(f4), POINTER :: EmisPOPG                (:,:  )
      REAL(f4), POINTER :: EmisPOPPOCPO            (:,:  )
@@ -994,6 +1000,14 @@ CONTAINS
     ! CO2 specialtiy simulation diagnostics
     State_Diag%ProdCO2fromCO                    => NULL()
     State_Diag%Archive_ProdCO2fromCO            = .FALSE.
+
+    ! CH4 specialtiy simulation diagnostics
+    State_Diag%LossCH4byClinTrop                => NULL()
+    State_Diag%LossCH4byOHinTrop                => NULL()
+    State_Diag%LossCH4inStrat                   => NULL()
+    State_Diag%Archive_LossCH4byClinTrop        = .FALSE.
+    State_Diag%Archive_LossCH4byOHinTrop        = .FALSE.
+    State_Diag%Archive_LossCH4inStrat           = .FALSE.
     
 #if defined( NC_DIAG )
 
@@ -4635,8 +4649,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
        !--------------------------------------------------------------------
-       arrayID = 'State_Diag%ProdCO2fromCO'      
-       diagID  = 'ProdCO2fromCO'      
+       arrayID = 'State_Diag%ProdCO2fromCO'
+       diagID  = 'ProdCO2fromCO'
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
@@ -4650,6 +4664,72 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+    ENDIF
+
+    !=======================================================================
+    ! These diagnostics are only relevant for:
+    !
+    ! THE CH4 SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Loss of CH4 by Cl in troposphere
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossCH4byClinTrop'
+       diagID  = 'LossCH4byClinTrop'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossCH4byClinTrop(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossCH4byClinTrop = 0.0_f4
+          State_Diag%Archive_LossCH4byClinTrop = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossCH4byClinTrop,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of CH4 by OH in troposphere
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossCH4byOHinTrop'
+       diagID  = 'LossCH4byOHinTrop'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossCH4byOHinTrop(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossCH4byOHinTrop = 0.0_f4
+          State_Diag%Archive_LossCH4byOHinTrop = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossCH4byOHinTrop,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of CH4 in the stratosphere
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%LossCH4inStrat' 
+       diagID  = 'LossCH4inStrat'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%LossCH4inStrat(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%LossCH4inStrat = 0.0_f4
+          State_Diag%Archive_LossCH4inStrat = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%LossCH4inStrat,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
     ENDIF
 
     !=======================================================================
@@ -5775,6 +5855,18 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%ProdCO2fromCO ) ) THEN
        DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ProdCO2fromCO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossCH4byOHinTrop ) ) THEN
+       DEALLOCATE( State_Diag%LossCH4byOHinTrop, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossCH4inStrat ) ) THEN
+       DEALLOCATE( State_Diag%LossCH4inStrat, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -6935,6 +7027,21 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCO2FROMCO' ) THEN
        IF ( isDesc    ) Desc  = 'Prod of CO2 from CO oxidation'
        IF ( isUnits   ) Units = 'kg m-2 s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4BYCLINTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of CH4 by reaction with Cl in troposphere'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4BYOHINTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of CH4 by reaction with OH in troposphere'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSCH4INSTRAT' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of CH4 in the stratosphere'
+       IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE

@@ -5284,49 +5284,6 @@
      &               IIPAR,     JJPAR,     LD57,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
-!
-!******************************************************************************
-!  ND58: CH4 Emission Diagnostics
-!
-!   #  : Field   : Description                 : Units     : Scale Factor
-!  ---------------------------------------------------------------------------
-!  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-OIL  : CH4 Emissions oil           : kg        : 1
-!  (3 ) CH4-GAS  : CH4 Emissions gas           : kg        : 1
-!  (4 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (5 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (6 ) CH4-LDF  : CH4 Emissions landfills     : kg        : 1
-!  (7 ) CH4-WST  : CH4 Emissions wastewater    : kg        : 1
-!  (8 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (9 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (10) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (11) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (12) CH4-SEE  : CH4 Emissions seeps         : kg        : 1
-!  (13) CH4-LAK  : CH4 Emissions lakes         : kg        : 1
-!  (14) CH4-TER  : CH4 Emissions termites      : kg        : 1
-!  (15) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!******************************************************************************
-
-      IF ( ND58 > 0 ) THEN
-         CATEGORY = 'CH4-EMIS'
-
-         DO M = 1, TMAX(58)
-            N  = TINDEX(58,M)
-            IF ( N > PD58 ) CYCLE
-            NN = N
-
-            UNIT = 'kg'
-
-            ARRAY(:,:,1) = AD58(:,:,N)
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
-      ENDIF
-
 #if   defined( TOMAS )
 !
 !*****************************************************************************
@@ -5737,33 +5694,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
          ENDDO
       ENDIF
-#else  
-! ND60 s used for wetland fraction in non-tomas sim diagnostics
-!
-!******************************************************************************
-!  ND60: Wetland fraction
-!
-!   # : Field    : Description                     : Units    : Scale factor
-!  --------------------------------------------------------------------------
-!  (1 ) WET-FRAC : WETLAND FRACTION                : unitless : 1
-!******************************************************************************
-!
-
-      IF ( ND60 > 0 ) THEN
-
-         UNIT = 'unitless'
-         CATEGORY     = 'WET-FRAC'
-         ARRAY(:,:,1) = AD60(:,:)
-         N            = 1
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-      ENDIF
-
 #endif
 !
 !*****************************************************************************

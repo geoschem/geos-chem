@@ -294,7 +294,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: ND55,             LD55
      INTEGER                     :: ND56,             LD56
      INTEGER                     :: ND57,             LD57
-     INTEGER                     :: ND58,             LD58
      INTEGER                     :: ND59,             LD59
      INTEGER                     :: ND60,             LD60
      INTEGER                     :: ND61,             LD61
@@ -980,7 +979,6 @@ CONTAINS
     Input_Opt%ND55                   = 0
     Input_Opt%ND56                   = 0
     Input_Opt%ND57                   = 0
-    Input_Opt%ND58                   = 0
     Input_Opt%ND59                   = 0
     Input_Opt%ND60                   = 0
     Input_Opt%ND61                   = 0
@@ -1045,7 +1043,6 @@ CONTAINS
     Input_Opt%LD55                   = 0
     Input_Opt%LD56                   = 0
     Input_Opt%LD57                   = 0
-    Input_Opt%LD58                   = 0
     Input_Opt%LD59                   = 0
     Input_Opt%LD60                   = 0
     Input_Opt%LD61                   = 0
