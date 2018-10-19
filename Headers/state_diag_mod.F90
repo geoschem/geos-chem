@@ -385,7 +385,9 @@ MODULE State_Diag_Mod
 
      ! TOMAS aerosol microphysics specialty simulation
  
-     ! CO2 specialty simulationf
+     ! CO2 specialty simulation
+     REAL(f4), POINTER :: ProdCO2fromCO(:,:,:)
+     LOGICAL :: Archive_ProdCO2fromCO
 
      ! CH4 specialty simulation
  
@@ -989,6 +991,10 @@ CONTAINS
     State_Diag%Archive_ProdPOPPBCPIfromNO3      = .FALSE.
     State_Diag%Archive_ProdPOPPBCPOfromNO3      = .FALSE. 
 
+    ! CO2 specialtiy simulation diagnostics
+    State_Diag%ProdCO2fromCO                    => NULL()
+    State_Diag%Archive_ProdCO2fromCO            = .FALSE.
+    
 #if defined( NC_DIAG )
 
     ! Write header
@@ -4079,7 +4085,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! These production and loss diagnostics are only relevant for:
+    ! These diagnostics are only relevant for:
     !
     ! THE PERSISTENT ORGANIC POLLUTANTS (POPS) SPECIALTY SIMULATION
     !=======================================================================
@@ -4617,6 +4623,33 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+    ENDIF
+
+    !=======================================================================
+    ! The production and loss diagnostics are only relevant for:
+    !
+    ! THE CO2 SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Prod of CO2 from CO oxidation
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdCO2fromCO'      
+       diagID  = 'ProdCO2fromCO'      
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdCO2fromCO(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdCO2fromCO = 0.0_f4
+          State_Diag%Archive_ProdCO2fromCO = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdCO2fromCO,                 &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
     ENDIF
 
     !=======================================================================
@@ -5736,6 +5769,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromNO3 ) ) THEN
        DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromNO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ProdCO2fromCO ) ) THEN
+       DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ProdCO2fromCO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -6891,6 +6930,11 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODPOPPBCPIFROMNO3' ) THEN
        IF ( isDesc    ) Desc  = 'Prod of POPPBCPI species from reaction with NO3'
        IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCO2FROMCO' ) THEN
+       IF ( isDesc    ) Desc  = 'Prod of CO2 from CO oxidation'
+       IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  =  3
 
     ELSE
