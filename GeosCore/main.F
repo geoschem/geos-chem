@@ -1548,8 +1548,7 @@
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error encountered in call to "SET_CH4"!'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
+               CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
 
