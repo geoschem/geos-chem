@@ -148,6 +148,8 @@ CONTAINS
 !  03 Jan 2018 - R. Yantosca - Added more metadata for COARDS compliance.
 !                              Also make TIME a 8-byte var to avoid roundoffs
 !  05 Jan 2018 - R. Yantosca - Now print out all index variables as REAL*8
+!  19 Oct 2018 - E. Lundgren - Disable writing multiple time slices to file
+!                              until move of restart write from HEMCO to HISTORY
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -298,6 +300,12 @@ CONTAINS
     nLev  = HcoState%NZ
     nTime = 1 
 
+    ! Disable multiple time slice update since causes an issue writing 
+    ! restart files. Re-enable when restart files are written via HISTORY
+    ! rather than HEMCO by deleting the forcing of IsOldFile below. 
+    ! (ewl, 10/19/18)
+    IsOldFile = .FALSE.
+
     ! Initialize mirror variables
     allocate(Arr4D(nlon,nlat,nlev,ntime))
     allocate(Arr3D(nlon,nlat,ntime))
@@ -327,9 +335,10 @@ CONTAINS
     ENDIF
     ncFile = TRIM(Pfx)//'.'//Yrs//Mts//Dys//hrs//mns//'.nc'
 
-    !! Add default time stamp if no time tokens are in the file template.
-    !! This also ensures backward compatibility.
-    ! This inadvertently timestamps the filename twice in GC classic
+    ! Multiple time slice update. Comment out for now since it causes
+    ! timestamping the filename twice (ewl, 10/19/18)
+    ! Add default time stamp if no time tokens are in the file template.
+    ! This also ensures backward compatibility.
     !IF ( INDEX(TRIM(ncFile),'$') <= 0 ) THEN
     !   ncFile = TRIM(ncFile)//'.$YYYY$MM$DD$HH$MN.nc'
     !ENDIF
@@ -374,7 +383,7 @@ CONTAINS
 
     ! Create output file
     ELSE
-
+ 
        ! Define a variable for the number of levels, which will either be -1 
        ! (if all 2D data) or the number of levels in the grid (for 3D data).
        IF ( NoLevDim ) THEN
@@ -604,27 +613,22 @@ CONTAINS
              'assume `days since`: '//TRIM(timeunit)
        CALL HCO_WARNING( MSG, WARNLEV=2, THISLOC=LOC, RC=RC )
     ENDIF    
- 
-    ! Round to 2 digits after comma 
-    ! Comment out code for single precision rounded time (ewl, 10/18/18)
-    !JD_DELTA_RND = REAL(JD_DELTA,sp) * 100.0_sp
-    !TMP          = ANINT( JD_DELTA_RND )
-    !JD_DELTA_RND = TMP / 100.0_sp
 
     ! Special case where we have an old file but it has the same time stamp: in
     ! that case simply overwrite the current values
     ! Comment out code for single precision rounded time (ewl, 10/18/18)
     !IF ( IsOldFile .AND. ntime == 2 .AND. timeVec(1) == JD_DELTA_RND ) THEN
-    IF ( IsOldFile .AND. ntime == 2 .AND. timeVec(1) == JD_DELTA ) THEN
-       ntime = 1
+    IF ( IsOldFile .AND. ntime == 2 ) THEN
+       IF ( timeVec(1) == JD_DELTA ) THEN
+          ntime = 1
+       ENDIF
     ENDIF
     ALLOCATE( nctime(ntime) )
     IF ( IsOldFile .AND. ntime > 1 ) THEN
        nctime(1:ntime-1) = timeVec(:)
     ENDIF
-    ! Comment out code for single precision rounded time (10/18/18)
-    !nctime(ntime) = JD_DELTA_RND
     nctime(ntime) = JD_DELTA
+    
     IF ( .NOT. IsOldFile ) THEN
        CALL NC_Var_Def( fId         = fId,                                &
                         lonId       = -1,                                 &
@@ -679,10 +683,10 @@ CONTAINS
        CALL NcBegin_Def( fID ) 
        DefMode=.TRUE.
     ELSE
-       IF ( .NOT. IsOldFile ) THEN
+!       IF ( .NOT. IsOldFile ) THEN
           ! Close netCDF define mode
           CALL NcEnd_Def( fID )   
-       ENDIF
+!       ENDIF
        DefMode=.False.
     ENDIF
     
@@ -767,11 +771,13 @@ CONTAINS
           IF ( ThisDiagn%SpaceDim == 3 ) THEN
              IF ( ASSOCIATED(ThisDiagn%Arr3D) ) THEN
                 Arr4D(:,:,:,ntime) = ThisDiagn%Arr3D%Val
+                Arr4D(:,:,:,1) = ThisDiagn%Arr3D%Val
              ENDIF
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr4D=Arr4D )
           ELSE
              IF ( ASSOCIATED(ThisDiagn%Arr2D) ) THEN
                 Arr3D(:,:,ntime) = ThisDiagn%Arr2D%Val 
+                Arr3D(:,:,1) = ThisDiagn%Arr2D%Val
              ENDIF
              CALL NC_VAR_WRITE ( fId, TRIM(myName), Arr3D=Arr3D )
           ENDIF
