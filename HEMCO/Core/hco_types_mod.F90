@@ -98,6 +98,15 @@ MODULE HCO_TYPES_MOD
   END TYPE HcoSpc
 
   !=========================================================================
+  ! ModSpc: Derived type for model species
+  !=========================================================================
+  TYPE :: ModSpc
+     INTEGER                 :: HcoID      ! HEMCO species ID
+     INTEGER                 :: ModID      ! Model species ID
+     CHARACTER(LEN= 31)      :: SpcName    ! species names
+  END TYPE ModSpc
+  
+  !=========================================================================
   ! HcoOpt: Derived type for HEMCO run options
   !=========================================================================
   TYPE :: HcoOpt
@@ -432,6 +441,8 @@ MODULE HCO_TYPES_MOD
      TYPE(ListCont),     POINTER  :: ConfigList     => NULL()
      TYPE(Ext),          POINTER  :: ExtList        => NULL()
      TYPE(HcoErr),       POINTER  :: Err            => NULL()
+     TYPE(ModSpc),       POINTER  :: ModelSpc(:)
+     INTEGER                      :: nModelSpc
      LOGICAL                      :: ConfigFileRead = .FALSE.
   END TYPE ConfigObj
 
@@ -515,9 +526,12 @@ MODULE HCO_TYPES_MOD
   END TYPE DiagnBundle
 !                                                                             
 ! !REVISION HISTORY:
-!  15 Feb 2016 - C. Keller - Initial version (collected from various modules)
-!  12 May 2017 - C. Keller - Added option ScaleEmis 
+!  15 Feb 2016 - C. Keller   - Initial version (collected from various modules)
+!  12 May 2017 - C. Keller   - Added option ScaleEmis 
 !  05 Oct 2018 - R. Yantosca - Added HCO_UFLAG_ONCE parameter
+!  23 Oct 2018 - M. Sulprizio- Added derived type for external model species
+!                              to ConfigObj to facilitate reading GEOS-Chem
+!                              restart file via HEMCO.
 !EOP
 !------------------------------------------------------------------------------
 !BOC

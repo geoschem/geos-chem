@@ -152,6 +152,7 @@ CONTAINS
     USE CMN_SIZE_Mod,       ONLY : NDSTBIN
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
@@ -164,7 +165,7 @@ CONTAINS
 
     ! HEMCO routines 
     USE HCO_Types_Mod,      ONLY : ConfigObj
-    USE HCO_Config_Mod,     ONLY : Config_ReadFile
+    USE HCO_Config_Mod,     ONLY : Config_ReadFile, ConfigInit
     USE HCO_State_Mod,      ONLY : HcoState_Init
     USE HCO_Driver_Mod,     ONLY : HCO_Init
     USE HCOI_GC_Diagn_Mod,  ONLY : HCOI_GC_Diagn_Init
@@ -204,6 +205,7 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: LSTRAT,  FOUND
     INTEGER                   :: nHcoSpc, HMRC
+    INTEGER                   :: N
 
     ! Strings
     CHARACTER(LEN=255)        :: OptName, ThisLoc, Instr
@@ -211,7 +213,8 @@ CONTAINS
 
     ! Pointers
     TYPE(ConfigObj), POINTER  :: iHcoConfig => NULL()
-
+    TYPE(Species),   POINTER  :: SpcInfo
+    
     !=======================================================================
     ! HCOI_GC_INIT begins here!
     !=======================================================================
@@ -249,6 +252,30 @@ CONTAINS
 
     ! If HcoConfig is provided
     IF ( PRESENT( HcoConfig ) ) iHcoConfig => HcoConfig
+
+    !---------------------------------------
+    ! Initialize HEMCO config object
+    !---------------------------------------
+    CALL ConfigInit ( iHcoConfig, HMRC, State_Chm%nSpecies )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ConfigInit"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+    ENDIF
+    
+    ! Pass GEOS-Chem species information to HEMCO config object to
+    ! facilitate reading GEOS-Chem restart file via HEMCO
+    iHcoConfig%nModelSpc = State_Chm%nSpecies
+    DO N = 1, State_Chm%nSpecies
+       ! Get info for this species from the species database
+       SpcInfo => State_Chm%SpcData(N)%Info
+
+       ! Model ID and species name 
+       iHcoConfig%ModelSpc(N)%ModID      = SpcInfo%ModelID
+       iHcoConfig%ModelSpc(N)%SpcName    = TRIM( SpcInfo%Name )
+    ENDDO
 
     !---------------------------------------
     ! Phase 1: read settings and switches
@@ -351,7 +378,7 @@ CONTAINS
     ! (names, molecular weights, etc.) of the HEMCO species.
     !-----------------------------------------------------------------------
     CALL SetHcoSpecies ( am_I_Root, Input_Opt, State_Chm,                    &
-                         HcoState,  nHcoSpc, 2, HMRC                        )
+                         HcoState,  nHcoSpc,   2,         HMRC              )
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
