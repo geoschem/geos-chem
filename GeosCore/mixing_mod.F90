@@ -247,11 +247,15 @@ CONTAINS
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
 
 #if defined( NC_DIAG )
+       !--------------------------------------------------------------------
+       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+       !
        ! Initialize the diagnostic array for the History Component.  This will 
        ! prevent leftover values from being carried over to this timestep.
        ! (For example, if on the last iteration, the PBL height was higher than
        ! it is now, then we will have stored drydep fluxes up to that height,
        ! so we need to zero these out.)
+       !--------------------------------------------------------------------
        IF ( State_Diag%Archive_DryDepMix .or.  &
             State_Diag%Archive_DryDep        ) THEN
           State_Diag%DryDepMix = 0.0_f4

@@ -583,6 +583,21 @@
       ErrMsg   = ''
       ThisLoc  = ' -> at ChemPops (in module Headers/state_chm_mod.F90)'
 
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Because we need to sum the drydep from all levels in the PBL
+      ! into State_Diag%DryDepChm, we need to zero it at the start
+      ! of this routine.  This will avoid data from the last timestep
+      ! from being accumulated in the averaging. (bmy, 10/23/18)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_DryDepChm   .or.
+     &     State_Diag%Archive_DryDep    ) THEN
+         State_Diag%DryDepChm = 0.0_f4
+      ENDIF
+#endif
+
       !=================================================================
       ! Get pointers to fields that are read in by HEMCO.
       ! These are global concentrations of OH, O3, OC, and BC.
@@ -793,19 +808,20 @@
       USE CMN_SIZE_MOD
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD
-      USE DIAG_MOD,           ONLY : AD44
+      USE DIAG_MOD,       ONLY : AD44
       USE DIAG53_MOD
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Diag_Mod,     ONLY : DgnState
-      USE State_Met_Mod,      ONLY : MetState
-      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE ERROR_MOD,      ONLY : DEBUG_MSG
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE GC_GRID_MOD,    ONLY : GET_AREA_CM2
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Met_Mod,  ONLY : MetState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1010,12 +1026,14 @@
       ! For fields from Input_Opt
       LOGICAL             :: LNLPBL
       LOGICAL             :: LGTMM
+      LOGICAL             :: Archive_Drydep
 
       ! For SAFE_DIV
       REAL(fp)            :: DENOM
 
       ! Pointers
-      REAL(fp), POINTER   :: Spc(:,:,:,:)
+      REAL(fp),      POINTER :: Spc(:,:,:,:)
+      TYPE(Species), POINTER :: ThisSpc
 
       !=================================================================
       ! CHEM_POPGP begins here!
@@ -1035,10 +1053,14 @@
       LGTMM     = Input_Opt%LGTMM
 
       ! Point to the chemical species array [kg]
-      Spc => State_Chm%Species
+      Spc       => State_Chm%Species
+      
+      ! Pointer for the species database object
+      ThisSpc   => NULL()
 
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
+     
 
 #if defined( NC_DIAG )
       !================================================================
@@ -1047,6 +1069,10 @@
       ! Zero out all diagnostic arrays to avoid leftover values from
       ! from the last timestep from being archived again (bmy,10/15/18)
       !================================================================
+
+      !----------------------------------------------------------------
+      ! Initialize State_Diag fields for prod/loss diagnostics
+      !----------------------------------------------------------------
       IF ( State_Diag%Archive_LossPOPPOCPObyGasPhase ) THEN
          State_Diag%LossPOPPOCPObyGasPhase = 0.0_f4
       ENDIF
@@ -1098,6 +1124,12 @@
       IF ( State_Diag%Archive_ProdPOPPBCPIfromNO3 ) THEN 
          State_Diag%ProdPOPPBCPIfromNO3 = 0.0_f4
       ENDIF
+
+      !----------------------------------------------------------------
+      ! Determine if we need to save drydep to netCDF
+      !----------------------------------------------------------------
+      Archive_Drydep = ( State_Diag%Archive_DryDepChm .or.
+     &                   State_Diag%Archive_DryDep         )
 #endif
 
       ! Eventually should parallelize this ...
@@ -1801,13 +1833,17 @@
          ENDIF
 
 #if defined( BPCH_DIAG )
-         !=================================================================
-         ! ND44 diagnostic: drydep flux of POPG and POPP [molec/cm2/s]
-         !=================================================================
-         IF ( ( ND44 > 0 .OR. Input_Opt%LGTMM ) .AND. 
-     &        ( .NOT. Input_Opt%LNLPBL) ) THEN
-         ! Not using LGTMM right now (logical switch for using GTMM soil model)
+         !==============================================================
+         ! %%%%% ND44 (bpch) DIAGNOSTIC %%%%%
+         !
+         ! Drydep flux of POPG and POPP [molec/cm2/s]
          ! Also not using non-local PBL mode yet (clf, 1/27/2011)
+         !
+         ! NOTE: Only archive drydep within the PBL (bmy, 10/23/18)
+         !==============================================================
+         IF ( ( ND44 > 0               )   .and. 
+     &        ( .not. Input_Opt%LNLPBL )   .and.
+     &        ( F_PBL > 0.0_fp         ) ) THEN
 
             ! Grid box surface area [cm2]
             AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -1894,9 +1930,137 @@
 
 #if defined( NC_DIAG ) 
          !==============================================================
-         ! %%%%% HISTORY (netCDF) DIAGNOSTICS %%%%
+         ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%
          !
-         ! NOTE: Need to make these diagnostics in kg/s
+         ! If we are using full PBL mixing, then archive dry dep flux 
+         ! due to chemistry and the total dry dep flux [molec/cm2/s]
+         !
+         ! NOTE: Only archive drydep within the PBL (bmy, 10/23/18)
+         ! ALSO NOTE: Need to sum contributions from all layers
+         ! into the State_Diag%DryDepChm array.  
+         !==============================================================
+         IF ( ( Archive_Drydep         )  .and. 
+     &        ( .not. Input_Opt%LNLPBL )  .and. 
+     &        ( F_PBL > 0.0_fp         ) ) THEN
+
+            ! Grid box surface area [cm2]
+            AREA_CM2 = GET_AREA_CM2( I, J, L )
+
+            !----------------------------------
+            ! Save drydep flux for POPG
+            !----------------------------------
+            IF ( id_POPG > 0 ) THEN
+               
+               ! Point to POPG entry in the species database
+               ThisSpc => State_Chm%SpcData(id_POPG)%Info
+
+               ! Amt of POPG lost to drydep [molec/cm2/s]           
+               DEP_DRY_FLXG = DEP_POPG_DRY 
+     &                      * AVO 
+     &                      / ( 1.e-3_fp * ThisSpc%EmMW_g )
+     &                      / ( AREA_CM2 * DTCHEM         )
+
+               ! Save into State_Diag%DryDepChm
+               State_Diag%DryDepChm(I,J,id_POPG) =
+     &         State_Diag%DryDepChm(I,J,id_POPG) + DEP_DRY_FLXG 
+
+               ! Free pointer
+               ThisSpc => NULL()
+            ENDIF
+
+            !----------------------------------
+            ! Save drydep flux for POPPOCPO
+            !----------------------------------
+            IF ( id_POPPOCPO > 0 ) THEN
+
+               ! Point to POPPOCPO entry in the species database
+               ThisSpc => State_Chm%SpcData(id_POPPOCPO)%Info
+
+               ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
+               DEP_DRY_FLXP_OCPO = DEP_POPP_OCPO_DRY 
+     &                           * AVO 
+     &                           / ( 1.e-3_fp * ThisSpc%EmMW_g ) 
+     &                           / ( AREA_CM2 * DTCHEM         )        
+
+               ! Save into State_Diag%DryDepChm
+               State_Diag%DryDepChm(I,J,id_POPPOCPO) = 
+     &         State_Diag%DryDepChm(I,J,id_POPPOCPO) + DEP_DRY_FLXP_OCPO 
+
+               ! Free pointer
+               ThisSpc => NULL()
+            ENDIF
+
+            !----------------------------------
+            ! Save drydep flux for POPPOCPI
+            !----------------------------------
+            IF ( id_POPPOCPI > 0 ) THEN
+
+               ! Point to POPPOCPO entry in the species database
+               ThisSpc => State_Chm%SpcData(id_POPPOCPI)%Info
+
+               ! Amt of POPPOCPO lost to drydep [molec/cm2/s]
+               DEP_DRY_FLXP_OCPI = DEP_POPP_OCPI_DRY 
+     &                           * AVO 
+     &                           / ( 1.e-3_fp * ThisSpc%EmMW_g ) 
+     &                           / ( AREA_CM2 * DTCHEM         )        
+
+               ! Save into State_Diag%DryDepChm
+               State_Diag%DryDepChm(I,J,id_POPPOCPI) =
+     &         State_Diag%DryDepChm(I,J,id_POPPOCPI) + DEP_DRY_FLXP_OCPI
+
+               ! Free pointer
+               ThisSpc => NULL()
+            ENDIF
+
+            !----------------------------------
+            ! Save drydep flux for POPPBCPO
+            !----------------------------------
+            IF ( id_POPPBCPO > 0 ) THEN
+
+               ! Point to POPPOCPO entry in the species database
+               ThisSpc => State_Chm%SpcData(id_POPPBCPO)%Info
+
+               ! Amt of POPPBCPO lost to drydep [molec/cm2/s]
+               DEP_DRY_FLXP_BCPO = DEP_POPP_BCPO_DRY 
+     &                           * AVO 
+     &                           / ( 1.e-3_fp * ThisSpc%EmMW_g ) 
+     &                           / ( AREA_CM2 * DTCHEM         )        
+
+               ! Save into State_Diag%DryDepChm
+               State_Diag%DryDepChm(I,J,id_POPPBCPO) =
+     &         State_Diag%DryDepChm(I,J,id_POPPBCPO) + DEP_DRY_FLXP_BCPO 
+
+               ! Free pointer
+               ThisSpc => NULL()
+            ENDIF
+
+            !----------------------------------
+            ! Save drydep flux for POPPBCPI
+            !----------------------------------
+            IF ( id_POPPBCPI > 0 ) THEN
+
+               ! Point to POPPOCPO entry in the species database
+               ThisSpc => State_Chm%SpcData(id_POPPBCPI)%Info
+
+               ! Amt of POPPBCPI lost to drydep [molec/cm2/s]
+               DEP_DRY_FLXP_BCPI = DEP_POPP_BCPI_DRY 
+     &                           * AVO 
+     &                           / ( 1.e-3_fp * ThisSpc%EmMW_g ) 
+     &                           / ( AREA_CM2 * DTCHEM         )        
+
+               ! Save into State_Diag%DryDepChm
+               State_Diag%DryDepChm(I,J,id_POPPBCPI) =
+     &         State_Diag%DryDepChm(I,J,id_POPPBCPI) + DEP_DRY_FLXP_BCPI 
+
+               ! Free pointer
+               ThisSpc => NULL()
+            ENDIF
+         ENDIF
+
+         !==============================================================
+         ! %%%%% HISTORY (netCDF) DIAGNOSTICS %%%%%
+         !
+         ! POPs prod/loss diagnostics [kg/s]
          !==============================================================
          IF ( State_Diag%Archive_ProdPOPGfromOH ) THEN
             State_Diag%ProdPOPGfromOH(I,J,L)      = GROSS_OX_OH
