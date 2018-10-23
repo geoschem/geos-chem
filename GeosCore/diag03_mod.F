@@ -858,7 +858,7 @@
             ELSE IF ( N == 7 ) THEN
 
                !--------------------------------
-               ! #6: Prod of Hg(II) from rxn w/BrY 
+               ! #7: Prod of Hg(II) from rxn w/BrY 
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -869,7 +869,7 @@
             ELSE IF ( N == 8 ) THEN
 
                !--------------------------------
-               ! #6: Prod of Hg(II) from rxn w/ClY
+               ! #8: Prod of Hg(II) from rxn w/ClY
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -880,7 +880,7 @@
             ELSE IF ( N == 9 ) THEN
 
                !--------------------------------
-               ! #7: Br concentration
+               ! #9: Br concentration
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'molec/cm3'
@@ -891,7 +891,7 @@
             ELSE IF ( N == 10 ) THEN
 
                !--------------------------------
-               ! #8: BrO concentration
+               ! #10: BrO concentration
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'molec/cm3'
@@ -902,7 +902,7 @@
             ELSE IF ( N == 11 ) THEN
 
                !--------------------------------
-               ! #9: Reactive particulate mercury
+               ! #11: Reactive particulate mercury
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'pptv'
@@ -913,7 +913,7 @@
             ELSE IF ( N == 12 ) THEN
 
                !--------------------------------
-               ! #10: Reactive gaseous mercury
+               ! #12: Reactive gaseous mercury
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'pptv'
@@ -968,7 +968,7 @@
             ELSE IF ( N == 17 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + BrBrO
+               ! #17: HgBr + BrBrO
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -979,7 +979,7 @@
             ELSE IF ( N == 18 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + BrHO2
+               ! #18: HgBr + BrHO2
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -990,7 +990,7 @@
             ELSE IF ( N == 19 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + BrNO2
+               ! #19: HgBr + BrNO2
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -1001,7 +1001,7 @@
             ELSE IF ( N == 20 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + BrClO
+               ! #20: HgBr + BrClO
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'
@@ -1012,7 +1012,7 @@
             ELSE IF ( N == 21 ) THEN
 
                !--------------------------------
-               ! #16: HgBr + BrOH
+               ! #21: HgBr + BrOH
                !--------------------------------
                CATEGORY          = 'PL-HG2-$'
                UNIT              = 'kg'

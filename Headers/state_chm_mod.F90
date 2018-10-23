@@ -94,8 +94,8 @@ MODULE State_Chm_Mod
 
 #if defined( MODEL_GEOS )
      ! For drydep
-     REAL(fp),          POINTER :: DryDepRa2m       (:,:)     ! 2m  aerodynamic resistance
-     REAL(fp),          POINTER :: DryDepRa10m      (:,:)     ! 10m aerodynamic resistance
+     REAL(fp),          POINTER :: DryDepRa2m (:,:    ) ! 2m  aerodynamic resistance
+     REAL(fp),          POINTER :: DryDepRa10m(:,:    ) ! 10m aerodynamic resistance
 #endif
 
      !----------------------------------------------------------------------
@@ -1304,7 +1304,6 @@ CONTAINS
           State_Chm%Hg_Cat_Name(C) =  ThisSpc%Name(4:7)
           ThisSpc                  => NULL()
        ENDDO
-       
     ENDIF
    
     !=======================================================================

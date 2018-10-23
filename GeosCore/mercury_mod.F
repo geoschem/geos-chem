@@ -359,15 +359,14 @@
 !
 !LL      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE DAO_MOD,            ONLY : IS_ICE
       USE DAO_MOD,            ONLY : IS_LAND
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_BRY,  AD03_Hg2_CLY
@@ -375,6 +374,7 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
+#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
@@ -669,6 +669,69 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( NC_DIAG )
+      !=================================================================
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Zero the relevant fields of State_Diag to prevent data from
+      ! the last timestep from being introduced into the averaging
+      !=================================================================
+      IF ( State_Diag%Archive_ConcBr ) THEN
+         State_Diag%ConcBr = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ConcBrO ) THEN
+         State_Diag%ConcBrO = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+         State_Diag%ProdHg2fromBr = 0.0_f4
+      ENDIF
+      
+      IF ( State_Diag%Archive_ProdHg2fromBrY ) THEN
+         State_Diag%ProdHg2fromBrY = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromClY ) THEN
+         State_Diag%ProdHg2FromClY = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+         State_Diag%ProdHg2fromHg0 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromOH ) THEN
+         State_Diag%ProdHg2fromOH = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromO3 ) THEN
+         State_Diag%ProdHg2fromO3 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBr2 ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBr2 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBrBrO = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrClO ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBrClO = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBrHO2 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBrNO2 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
+         State_Diag%ProdHg2fromHgBrPlusBrOH = 0.0_f4
+      ENDIF
+#endif
 
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
@@ -822,6 +885,8 @@
 
       ! Partition Hg(II) between gas and aerosol
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
+
+      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: before do loop' )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1345,7 +1410,9 @@
 
 #if defined( BPCH_DIAG )
             !=================================================================
-            ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
+            ! %%%%% ND44 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Dry deposition flux of Hg(II) in molec/cm2/s
             !=================================================================
             IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
 
@@ -1380,43 +1447,69 @@
      &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
 
             ENDIF
-#endif
 
             !==============================================================
-            ! ND03 diagnostic: Hg(II) production [kg]
+            ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Hg(II) production
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
                ! Store chemistry diagnostics only for total species
-               IF ( Hg0_Id_List(N) == ID_HG_TOT) THEN
+               IF ( Hg2_Id_List(N) == ID_Hg_TOT) THEN
 
                   ! Net oxidation [kg]
                   NET_OX = GROSS_OX - GROSS_RED
 
+                  ! Production of Hg2 from Hg0 [kg]
                   AD03_Hg2_Hg0(I,J,L,N)  = AD03_Hg2_Hg0(I,J,L,N) 
      &                                     + NET_OX
+
+                  ! Production of Hg2 from Br [kg]
                   AD03_Hg2_Br(I,J,L,N)   = AD03_Hg2_Br(I,J,L,N)   
      &                                     + GROSS_OX_BR 
+
+                  ! Production of Hg2 from OH [kg]
                   AD03_Hg2_OH(I,J,L,N)   = AD03_Hg2_OH(I,J,L,N)   
      &                                     + GROSS_OX_OH
+
+                  ! Production of Hg2 from O3 [kg]
                   AD03_Hg2_O3(I,J,L,N)   = AD03_Hg2_O3(I,J,L,N)   
      &                                     + GROSS_OX_O3
+
+                  ! Production of Hg2 from BrY [kg]
                   AD03_Hg2_BRY(I,J,L,N)  = AD03_Hg2_BRY(I,J,L,N)  
      &                                     + GROSS_OX_BRY
+
+                  ! Production of Hg2 from ClY [kg]
                   AD03_Hg2_CLY(I,J,L,N)  = AD03_Hg2_CLY(I,J,L,N) 
      &                                     + GROSS_OX_CLY
+
+                  ! Production of Hg2 from Br2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,1) = AD03_Hg2_Br_Y(I,J,L,1)
      &                                     + GROSS_OX_BR2
+
+                  ! Production of Hg2 from BrBrO [kg]
                   AD03_Hg2_Br_Y(I,J,L,2) = AD03_Hg2_Br_Y(I,J,L,2)
      &                                     + GROSS_OX_BRBRO
+
+                  ! Production of Hg2 from BrHO2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,3) = AD03_Hg2_Br_Y(I,J,L,3)
      &                                     + GROSS_OX_BRHO2
+
+                  ! Production of Hg2 from BrNO2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,4) = AD03_Hg2_Br_Y(I,J,L,4)
      &                                     + GROSS_OX_BRNO2
+
+                  ! Production of Hg2 from BrClO [kg]
                   AD03_Hg2_Br_Y(I,J,L,5) = AD03_Hg2_Br_Y(I,J,L,5)
      &                                     + GROSS_OX_BRCLO
+
+                  ! Production of Hg2 from BrOH [kg]
                   AD03_Hg2_Br_Y(I,J,L,6) = AD03_Hg2_Br_Y(I,J,L,6)
      &                                     + GROSS_OX_BROH
+
+                  ! Concentrations of Br and BrO [molec/cm3]
                   AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
                   AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
 
@@ -1430,8 +1523,101 @@
                   AD03_Hg2_SSR(I,J,N) = AD03_Hg2_SSR(I,J,N) + K_SALT
                ENDIF
                
-            ENDIF               
+            ENDIF  
+#endif
 
+#if defined( NC_DIAG ) 
+            !===========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Hg(II) production
+            !===========================================================
+            IF ( Hg2_Id_List(N) == ID_Hg_TOT ) THEN
+
+               ! Net oxidation [kg]
+               NET_OX = GROSS_OX - GROSS_RED
+
+               ! Production of Hg2 from Br [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+                  State_Diag%ProdHg2fromBr(I,J,L,N) =
+     &               GROSS_OX_BR / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from BrY [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromBrY ) THEN
+                  State_Diag%ProdHg2fromBrY(I,J,L,N) =
+     &               GROSS_OX_BRY / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from ClY [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromClY ) THEN
+                  State_Diag%ProdHg2FromClY(I,J,L,N) =
+     &               GROSS_OX_CLY / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from Hg0 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+                  State_Diag%ProdHg2fromHg0(I,J,L,N) =
+     &               NET_OX / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from O3 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromO3 ) THEN
+                  State_Diag%ProdHg2fromO3(I,J,L,N) =
+     &               GROSS_OX_O3 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from OH [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromOH ) THEN
+                  State_Diag%ProdHg2fromOH(I,J,L,N) =
+     &               GROSS_OX_OH / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + Br2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBr2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBr2(I,J,L,N) =
+     &               GROSS_OX_BR2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrBrO [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrBrO(I,J,L,N) = 
+     &               GROSS_OX_BRBRO / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrClO [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrClO ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrClO(I,J,L,N) =
+     &               GROSS_OX_BRCLO / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrHO2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrHO2(I,J,L,N) = 
+     &               GROSS_OX_BRHO2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrNO2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrNO2(I,J,L,N) = 
+     &               GROSS_OX_BRNO2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrOH [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrOH(I,J,L,N) = 
+     &               GROSS_OX_BROH / DTCHEM
+               ENDIF
+
+               !%%% NOTE: Do these get updated for each Hg category
+               !%%% or for the total?  Ask Colin Thackray.
+               ! Concentrations of Br and BrO [molec/cm3]
+               !AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
+               !AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
+
+            ENDIF
+
+#endif
          ENDDO
 
       ENDDO
@@ -3425,6 +3611,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
          ENDDO
         
+#if defined( BPCH_DIAG )
          !==============================================================
          ! ND03 diagnostic: Total Hg(0) emissions [kg]
          ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
@@ -3492,6 +3679,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
             
          ENDIF
+#endif
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3517,7 +3705,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
@@ -3693,12 +3883,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
             
+#if defined( BPCH_DIAG )
             !-------------------------------
             ! ND03 diag: Anthro Hg(II) [kg]
             !-------------------------------
             IF ( ND03 > 0 ) THEN
                AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
             ENDIF
+#endif
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -3726,7 +3918,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
@@ -3900,13 +4094,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
 
+#if defined( BPCH_DIAG )
             !----------------------------
             ! ND03 diag: Anthro HgP [kg]
             !----------------------------
             IF ( ND03 > 0 ) THEN
                AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
             ENDIF
-         
+#endif
          ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
@@ -4820,7 +5015,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
+#endif
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
@@ -5100,16 +5297,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             BR_PPTV  = BR_PPTV  + Br_POLAR
             BrO_PPTV = BrO_PPTV + BrO_POLAR
 
+#if defined( BPCH_DIAG )
             !==============================================================
             ! ND03 diagnostic: Polar Bromine [pptv]
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
-
-                  AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
-                  AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
-                  AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
-
+               AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
+               AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
+               AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
             ENDIF ! ND03
+#endif
 
          ENDIF ! Month
 
@@ -5815,7 +6012,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
+#endif
       ! adding hmh 5/17/16
       USE DAO_MOD,            ONLY : IS_WATER 
       USE CMN_SIZE_MOD             ! Size parameters
@@ -6091,13 +6290,15 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! debug 2x2.5 diagnostic?
                FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
-               
+
+#if defined( BPCH_DIAG )
                IF ( ND03 > 0 ) THEN
                   AD03(I,J,16,NN) = AD03(I,J,16,NN) 
      &                 + FUP(I,J,NN) * DTSRCE
                   AD03(I,J,17,NN) = AD03(I,J,17,NN) 
      &                 + FDOWN(I,J,NN) *DTSRCE
                ENDIF
+#endif
             ENDDO
 
          ELSE
