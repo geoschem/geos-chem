@@ -669,22 +669,6 @@
          FIRST = .FALSE.
       ENDIF
 
-#if defined( NC_DIAG )
-      !=================================================================
-      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-      !
-      ! Zero the relevant fields of State_Diag to prevent data from
-      ! the last timestep from being introduced into the averaging
-      !=================================================================
-      IF ( State_Diag%Archive_ConcBr ) THEN
-         State_Diag%ConcBr = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ConcBrO ) THEN
-         State_Diag%ConcBrO = 0.0_f4
-      ENDIF
-#endif
-
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -953,9 +937,9 @@
          !-------------------------------------------------
 
          ! Concentrations of oxidants, molec/cm3
-         C_O3        = GET_O3(   I, J, L,        State_Met )
-         C_OH        = GET_OH(   I, J, L,        State_Met )
-         C_BR        = GET_BR(   I, J, L, C_BRO, State_Met )
+         C_O3        = GET_O3( I, J, L,        State_Met             )
+         C_OH        = GET_OH( I, J, L,        State_Met             )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Met, State_Diag )
 
          IF ( LHALOGENCHEM ) THEN
             C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
@@ -1591,6 +1575,20 @@
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
                   State_Diag%ProdHg2fromHgBrPlusBrOH(I,J,L) = 
      &               GROSS_OX_BROH / DTCHEM
+               ENDIF
+
+               ! Loss Hg2 by sea salt aerosol
+               ! NOTE: Sum contributions from PBL into the diagnostic
+               IF ( State_Diag%Archive_LossHg2bySeaSalt ) THEN
+                  State_Diag%LossHg2bySeaSalt(I,J,L) = 
+     &               DEP_HG2G_SALT / DTCHEM
+               ENDIF
+
+               ! Sea-salt loss rate diagnostic [/s]
+               IF ( L == 1 ) THEN
+                  IF ( State_Diag%Archive_LossRateHg2bySeaSalt ) THEN
+                     State_Diag%LossRateHg2bySeaSalt(I,J) = K_SALT
+                  ENDIF
                ENDIF
 
             ENDIF
@@ -4984,7 +4982,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met )
+      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met, State_Diag )
      &   RESULT( BR_MOLEC_CM3 )
 !
 ! !USES:
@@ -5001,6 +4999,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
@@ -5008,15 +5007,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: I              ! Longitude index
-      INTEGER,        INTENT(IN)  :: J              ! Latitude index
-      INTEGER,        INTENT(IN)  :: L              ! Level index
-      REAL(fp),       INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I            ! Longitude index
+      INTEGER,        INTENT(IN)    :: J            ! Latitude index
+      INTEGER,        INTENT(IN)    :: L              ! Level index
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag
+!
+! OUTPUT PARAMETERS:
+!
+      REAL(fp),       INTENT(OUT)   :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                    :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
+      REAL(fp)                      :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2006 - C. Holmes   - Initial version
@@ -5276,7 +5282,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
 #if defined( BPCH_DIAG )
             !==============================================================
-            ! ND03 diagnostic: Polar Bromine [pptv]
+            ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Polar Br [pptv]; Polar Br [pptv]; Polar O3 [ppbv]
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
                AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
@@ -5285,6 +5293,24 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF ! ND03
 #endif
 
+#if defined( NC_DIAG )
+            !==============================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            ! 
+            ! Polar Br [pptv]; Polar Br [pptv]; Polar O3 [ppbv]
+            !==============================================================
+            IF ( State_Diag%Archive_PolarConcBr ) THEN
+               State_Diag%PolarConcBr(I,J,L) = Br_Polar
+            ENDIF
+
+            IF ( State_Diag%Archive_PolarConcBrO ) THEN
+               State_Diag%PolarConcBr(I,J,L) = BrO_Polar
+            ENDIF
+
+            IF ( State_Diag%Archive_PolarConcO3 ) THEN
+               State_Diag%PolarConcO3(I,J,L) = O3_Polar_PPB
+            ENDIF
+#endif
          ENDIF ! Month
 
       ENDIF ! Polar BrO criteria

@@ -458,7 +458,7 @@ MODULE State_Diag_Mod
      ! Hg specialty simulation
      REAL(f4), POINTER :: ConcBr                  (:,:,:)
      REAL(f4), POINTER :: ConcBrO                 (:,:,:)
-     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:  )
+     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:,:)
      REAL(f4), POINTER :: LossRateHg2bySeaSalt    (:,:  )
      REAL(f4), POINTER :: PolarConcBr             (:,:,:)
      REAL(f4), POINTER :: PolarConcBrO            (:,:,:)
@@ -4929,7 +4929,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossHg2bySeaSalt = 0.0_f4
@@ -7636,7 +7636,7 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSHG2BYSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss of Hg2 by reaction with sea salt aerosols'
        IF ( isUnits   ) Units = 'kg s-1'
-       IF ( isRank    ) Rank  =  2
+       IF ( isRank    ) Rank  =  3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSRATEHG2BYSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss rate of Hg2 by reaction with sea salt aerosols'
