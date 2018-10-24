@@ -7420,10 +7420,10 @@
                   UNIT(T,67) = 'W/m2'
                CASE( 3  )
                   NAME(T,67) = 'PREACC'
-                  UNIT(T,67) = 'W/m2'
+                  UNIT(T,67) = 'mm/day'
                CASE( 4  )
                   NAME(T,67) = 'PRECON'
-                  UNIT(T,67) = 'W/m2'
+                  UNIT(T,67) = 'mm/day'
                CASE( 5  )
                   NAME(T,67) = 'TS'
                   UNIT(T,67) = 'K'

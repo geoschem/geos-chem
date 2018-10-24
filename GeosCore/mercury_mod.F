@@ -683,54 +683,6 @@
       IF ( State_Diag%Archive_ConcBrO ) THEN
          State_Diag%ConcBrO = 0.0_f4
       ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
-         State_Diag%ProdHg2fromBr = 0.0_f4
-      ENDIF
-      
-      IF ( State_Diag%Archive_ProdHg2fromBrY ) THEN
-         State_Diag%ProdHg2fromBrY = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromClY ) THEN
-         State_Diag%ProdHg2FromClY = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
-         State_Diag%ProdHg2fromHg0 = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromOH ) THEN
-         State_Diag%ProdHg2fromOH = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromO3 ) THEN
-         State_Diag%ProdHg2fromO3 = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBr2 ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBr2 = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBrBrO = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrClO ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBrClO = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBrHO2 = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBrNO2 = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
-         State_Diag%ProdHg2fromHgBrPlusBrOH = 0.0_f4
-      ENDIF
 #endif
 
       !=================================================================
@@ -1452,11 +1404,26 @@
             ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
             !
             ! Hg(II) production
+            ! Concentration of Br and BrO
+            ! Loss of Hg2 by seasalt
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
                ! Store chemistry diagnostics only for total species
-               IF ( Hg2_Id_List(N) == ID_Hg_TOT) THEN
+               !--------------------------------------------------------------
+               ! Prior to 10/24/18:
+               ! According to Colin Thackray, these are Hg2 diagnostics,
+               ! that should only get updated once per timestep, for the
+               ! total Hg2 species (i.e. category N==1).  Therefore, these
+               ! diagnostics will not archive the tagged Hg2 species.
+               !
+               ! Also, the IF ( Hg0_Id_List(N) == ID_Hg_TOT ) is confusing,
+               ! but in essence it is just testing if N ==1.  Therefore we
+               ! have replaced that with IF ( N==1 ) which is much clearer
+               ! to the reader. (bmy, 10/24/18)
+               !IF ( Hg0_Id_List(N) == ID_Hg_TOT) THEN
+               !--------------------------------------------------------------
+               IF ( N == 1 ) THEN
 
                   ! Net oxidation [kg]
                   NET_OX = GROSS_OX - GROSS_RED
@@ -1531,92 +1498,102 @@
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
             ! Hg(II) production
+            ! Concentration of Br and BrO
+            ! Loss of Hg2 by seasalt
+            ! 
+            ! Accorrding to Colin Thackray, these are Hg2 diagnostics,
+            ! that should only get updated once per timestep, for the
+            ! total Hg2 species (i.e. category N==1).  Therefore, these
+            ! diagnostics will not archive the tagged Hg2 species.
             !===========================================================
-            IF ( Hg2_Id_List(N) == ID_Hg_TOT ) THEN
+            IF ( N == 1 ) THEN
 
                ! Net oxidation [kg]
                NET_OX = GROSS_OX - GROSS_RED
 
+               ! Concentrations of Br [molec/cm3]
+               IF ( State_Diag%Archive_ConcBr ) THEN
+                  State_Diag%ConcBr(I,J,L) = C_Br
+               ENDIF
+
+               ! Concentrations of BrO [molec/cm3]
+               IF ( State_Diag%Archive_ConcBrO) THEN
+                  State_Diag%ConcBrO(I,J,L) = C_BrO
+               ENDIF
+
                ! Production of Hg2 from Br [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
-                  State_Diag%ProdHg2fromBr(I,J,L,N) =
+                  State_Diag%ProdHg2fromBr(I,J,L) = 
      &               GROSS_OX_BR / DTCHEM
                ENDIF
 
                ! Production of Hg2 from BrY [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromBrY ) THEN
-                  State_Diag%ProdHg2fromBrY(I,J,L,N) =
+                  State_Diag%ProdHg2fromBrY(I,J,L) =
      &               GROSS_OX_BRY / DTCHEM
                ENDIF
 
                ! Production of Hg2 from ClY [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromClY ) THEN
-                  State_Diag%ProdHg2FromClY(I,J,L,N) =
+                  State_Diag%ProdHg2FromClY(I,J,L) =
      &               GROSS_OX_CLY / DTCHEM
                ENDIF
 
                ! Production of Hg2 from Hg0 [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
-                  State_Diag%ProdHg2fromHg0(I,J,L,N) =
+                  State_Diag%ProdHg2fromHg0(I,J,L) =
      &               NET_OX / DTCHEM
                ENDIF
 
                ! Production of Hg2 from O3 [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromO3 ) THEN
-                  State_Diag%ProdHg2fromO3(I,J,L,N) =
+                  State_Diag%ProdHg2fromO3(I,J,L) =
      &               GROSS_OX_O3 / DTCHEM
                ENDIF
 
                ! Production of Hg2 from OH [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromOH ) THEN
-                  State_Diag%ProdHg2fromOH(I,J,L,N) =
+                  State_Diag%ProdHg2fromOH(I,J,L) =
      &               GROSS_OX_OH / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + Br2 [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBr2 ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBr2(I,J,L,N) =
+                  State_Diag%ProdHg2fromHgBrPlusBr2(I,J,L) =
      &               GROSS_OX_BR2 / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + BrBrO [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBrBrO(I,J,L,N) = 
+                  State_Diag%ProdHg2fromHgBrPlusBrBrO(I,J,L) = 
      &               GROSS_OX_BRBRO / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + BrClO [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrClO ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBrClO(I,J,L,N) =
+                  State_Diag%ProdHg2fromHgBrPlusBrClO(I,J,L) =
      &               GROSS_OX_BRCLO / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + BrHO2 [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBrHO2(I,J,L,N) = 
+                  State_Diag%ProdHg2fromHgBrPlusBrHO2(I,J,L) = 
      &               GROSS_OX_BRHO2 / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + BrNO2 [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBrNO2(I,J,L,N) = 
+                  State_Diag%ProdHg2fromHgBrPlusBrNO2(I,J,L) = 
      &               GROSS_OX_BRNO2 / DTCHEM
                ENDIF
 
                ! Production of Hg2 from HgBr + BrOH [kg/s]
                IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
-                  State_Diag%ProdHg2fromHgBrPlusBrOH(I,J,L,N) = 
+                  State_Diag%ProdHg2fromHgBrPlusBrOH(I,J,L) = 
      &               GROSS_OX_BROH / DTCHEM
                ENDIF
 
-               !%%% NOTE: Do these get updated for each Hg category
-               !%%% or for the total?  Ask Colin Thackray.
-               ! Concentrations of Br and BrO [molec/cm3]
-               !AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
-               !AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
-
             ENDIF
-
 #endif
          ENDDO
 

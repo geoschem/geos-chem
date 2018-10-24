@@ -456,27 +456,27 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdPOPPBCPOfromNO3
 
      ! Hg specialty simulation
-     REAL(f4), POINTER :: ConcBr                  (:,:,:  )    
-     REAL(f4), POINTER :: ConcBrO                 (:,:,:  )
-     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:,:  )
-     REAL(f4), POINTER :: LossRateHg2bySeaSalt    (:,:,:  )
-     REAL(f4), POINTER :: PolarConcBr             (:,:,:  )
-     REAL(f4), POINTER :: PolarConcBrO            (:,:,:  )
-     REAL(f4), POINTER :: PolarConcO3             (:,:,:  )
-     REAL(f4), POINTER :: ProdHg2fromBr           (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromBrY          (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromClY          (:,:,:,:) 
-     REAL(f4), POINTER :: ProdHg2fromHg0          (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBr2  (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrOH (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromOH           (:,:,:,:)
-     REAL(f4), POINTER :: ProdHg2fromO3           (:,:,:,:)
-     REAL(f4), POINTER :: ReactiveParticulateHg   (:,:,:  )
-     REAL(f4), POINTER :: ReactiveGaseousHg       (:,:,:  )
+     REAL(f4), POINTER :: ConcBr                  (:,:,:)
+     REAL(f4), POINTER :: ConcBrO                 (:,:,:)
+     REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:  )
+     REAL(f4), POINTER :: LossRateHg2bySeaSalt    (:,:  )
+     REAL(f4), POINTER :: PolarConcBr             (:,:,:)
+     REAL(f4), POINTER :: PolarConcBrO            (:,:,:)
+     REAL(f4), POINTER :: PolarConcO3             (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromBr           (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromBrY          (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromClY          (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHg0          (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBr2  (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrBrO(:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrClO(:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrHO2(:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrNO2(:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrOH (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromOH           (:,:,:)
+     REAL(f4), POINTER :: ProdHg2fromO3           (:,:,:)
+     REAL(f4), POINTER :: ReactiveParticulateHg   (:,:,:)
+     REAL(f4), POINTER :: ReactiveGaseousHg       (:,:,:)
      LOGICAL :: Archive_ConcBr
      LOGICAL :: Archive_ConcBrO
      LOGICAL :: Archive_LossHg2bySeaSalt
@@ -618,7 +618,7 @@ CONTAINS
     INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth, nHg2
+    INTEGER                :: nHygGrth
     LOGICAL                :: EOF,      Found,   Found2
 
     !=======================================================================
@@ -644,7 +644,6 @@ CONTAINS
     nSpecies  = State_Chm%nSpecies
     nAdvect   = State_Chm%nAdvect
     nDryDep   = State_Chm%nDryDep
-    nHg2      = State_Chm%N_Hg_Cats
     nHygGrth  = State_Chm%nHygGrth
     nKppSpc   = State_Chm%nKppSpc
     nLoss     = State_Chm%nLoss
@@ -4930,7 +4929,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%LossHg2bySeaSalt( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossHg2bySeaSalt = 0.0_f4
@@ -4949,7 +4948,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%LossRateHg2bySeaSalt( IM, JM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%LossRateHg2bySeaSalt( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%LossRateHg2bySeaSalt = 0.0_f4
@@ -4968,7 +4967,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromBr( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromBr( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromBr = 0.0_f4
@@ -4987,7 +4986,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromBrY( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromBrY( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromBrY = 0.0_f4
@@ -5006,7 +5005,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromClY( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromClY( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromClY = 0.0_f4
@@ -5025,7 +5024,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHg0( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromHg0( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHg0 = 0.0_f4
@@ -5044,8 +5043,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2( IM, JM, LM, nHg2 ),   &
-                    STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromHgBrPlusBr2 = 0.0_f4
@@ -5064,7 +5062,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO( IM, JM, LM, nHg2 ), &
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO( IM, JM, LM ),       &
                     STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5084,7 +5082,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO( IM, JM, LM, nHg2 ), &
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO( IM, JM, LM ),       &
                     STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5104,7 +5102,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2( IM, JM, LM, nHg2 ), &
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2( IM, JM, LM ),       &
                     STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5124,7 +5122,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2( IM, JM, LM, nHg2 ), &
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2( IM, JM, LM ),       &
                     STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5144,7 +5142,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH( IM, JM, LM, nHg2 ),  &
+          ALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH( IM, JM, LM ),        &
                     STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
@@ -5164,7 +5162,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromO3( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromO3( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromO3 = 0.0_f4
@@ -5183,7 +5181,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%ProdHg2fromOH( IM, JM, LM, nHg2 ), STAT=RC )
+          ALLOCATE( State_Diag%ProdHg2fromOH( IM, JM, LM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%ProdHg2fromOH = 0.0_f4
@@ -5198,6 +5196,7 @@ CONTAINS
 
     ! Format statement
 20  FORMAT( 1x, a32, ' is registered as: ', a )
+
     !-----------------------------------------------------------------
     ! TODO:
     ! 1. Hydroscopic growth - (:,:,:,N) where N is one of five hygro spc
@@ -7638,13 +7637,11 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Loss of Hg2 by reaction with sea salt aerosols'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSRATEHG2BYSEASALT' ) THEN
        IF ( isDesc    ) Desc  = 'Loss rate of Hg2 by reaction with sea salt aerosols'
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  =  2
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'POLARCONCBR' ) THEN
        IF ( isDesc    ) Desc  = 'Br concentration in polar regions'
@@ -7665,73 +7662,61 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Production of Hg2 from Br'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMBRY' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from BrY'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMCLY' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from ClY'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHG0' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from Hg0'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBR2' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + Br2 reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBRBRO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + BrBrO reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBRCLO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + ClO reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBROH' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + BrOH reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBRHO2' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + BrHO2 reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMHGBRPLUSBRNO2' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from HgBr + BrNO2 reaction'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMO3' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from O3'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODHG2FROMOH' ) THEN
        IF ( isDesc    ) Desc  = 'Production of Hg2 from OH'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
-       IF ( isTagged  ) TagId = 'HG2'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'REACTIVEPARTICULATEHG' ) THEN
        IF ( isDesc    ) Desc  = 'Reactive particulate mercury'
@@ -7854,12 +7839,17 @@ CONTAINS
           numTags = State_Chm%nKppFix
        CASE( 'GAS'     )
           numTags = State_Chm%nGasSpc
-       CASE( 'HG0'     )
-          numTags = State_Chm%N_Hg_Cats
-       CASE( 'HG2'     )
-          numTags = State_Chm%N_Hg_Cats
-       CASE( 'HGP'     )
-          numTags = State_Chm%N_Hg_Cats
+       !------------------------------------------------------
+       ! Prior to 10/24/18:
+       ! Disable Hg tagging for now, but leave commented out
+       ! for future reference (bmy, 10/24/18)
+       !CASE( 'HG0'     )
+       !   numTags = State_Chm%N_Hg_Cats
+       !CASE( 'HG2'     )
+       !   numTags = State_Chm%N_Hg_Cats
+       !CASE( 'HGP'     )
+       !   numTags = State_Chm%N_Hg_Cats
+       !------------------------------------------------------
        CASE( 'HYG'     )
           numTags = State_Chm%nHygGrth
        CASE( 'KPP'     )
@@ -7912,12 +7902,17 @@ CONTAINS
           D = State_Chm%Map_DryDep(N)
        CASE( 'GAS'  )
           D = State_Chm%Map_GasSpc(N)
-       CASE( 'HG0'  )
-          D = State_Chm%Hg0_Id_List(N)
-       CASE( 'HG2'  )
-          D = State_Chm%Hg2_Id_List(N)
-       CASE( 'HGP'  )
-          D = State_Chm%HgP_Id_List(N)
+       !------------------------------------------------------
+       ! Prior to 10/24/18:
+       ! Disable Hg tagging for now, but leave commented out
+       ! for future reference (bmy, 10/24/18)
+       !CASE( 'HG0'  )
+       !   D = State_Chm%Hg0_Id_List(N)
+       !CASE( 'HG2'  )
+       !   D = State_Chm%Hg2_Id_List(N)
+       !CASE( 'HGP'  )
+       !   D = State_Chm%HgP_Id_List(N)
+       !------------------------------------------------------
        CASE( 'HYG'  )
           D = State_Chm%Map_HygGrth(N)
        CASE( 'VAR'  )
