@@ -318,7 +318,8 @@ CONTAINS
 
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL EmissMercury( am_I_Root, Input_Opt,  State_Met,                  &
+                          State_Chm, State_Diag, RC                         )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN

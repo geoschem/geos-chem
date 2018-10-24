@@ -456,6 +456,26 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdPOPPBCPOfromNO3
 
      ! Hg specialty simulation
+     !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
+     REAL(f4), POINTER :: EmisHg0anthro           (:,:  )
+     REAL(f4), POINTER :: EmisHg0biomass          (:,:  )
+     REAL(f4), POINTER :: EmisHg0geogenic         (:,:  )
+     REAL(f4), POINTER :: EmisHg0land             (:,:  )
+     REAL(f4), POINTER :: EmisHg0ocean            (:,:  )
+     REAL(f4), POINTER :: EmisHg0snow             (:,:  )
+     REAL(f4), POINTER :: EmisHg0soil             (:,:  )
+     REAL(f4), POINTER :: EmisHg2HgPanthro        (:,:  )
+     REAL(f4), POINTER :: EmisHg0vegetation       (:,:  )
+     LOGICAL :: Archive_EmisHg0anthro
+     LOGICAL :: Archive_EmisHg0biomass
+     LOGICAL :: Archive_EmisHg0geogenic
+     LOGICAL :: Archive_EmisHg0land
+     LOGICAL :: Archive_EmisHg0ocean
+     LOGICAL :: Archive_EmisHg0snow
+     LOGICAL :: Archive_EmisHg0soil
+     LOGICAL :: Archive_EmisHg0vegetation
+     LOGICAL :: Archive_EmisHg2HgPanthro
+     !  -- chemistry quantities
      REAL(f4), POINTER :: ConcBr                  (:,:,:)
      REAL(f4), POINTER :: ConcBrO                 (:,:,:)
      REAL(f4), POINTER :: LossHg2bySeaSalt        (:,:,:)
@@ -1053,48 +1073,68 @@ CONTAINS
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
 
     ! Hg specialty simulation diagnostics
-    State_Diag%ConcBr                             => NULL()
-    State_Diag%ConcBrO                            => NULL()
-    State_Diag%LossHg2bySeaSalt                   => NULL()
-    State_Diag%LossRateHg2bySeaSalt               => NULL()
-    State_Diag%PolarConcBr                        => NULL()
-    State_Diag%PolarConcBrO                       => NULL()
-    State_Diag%PolarConcO3                        => NULL()
-    State_Diag%ProdHg2fromBr                      => NULL()
-    State_Diag%ProdHg2fromBrY                     => NULL()
-    State_Diag%ProdHg2fromClY                     => NULL()
-    State_Diag%ProdHg2fromHg0                     => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBr2             => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBrBrO           => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBrClO           => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBrHO2           => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBrNO2           => NULL()
-    State_Diag%ProdHg2fromHgBrPlusBrOH            => NULL()
-    State_Diag%ProdHg2fromOH                      => NULL()
-    State_Diag%ProdHg2fromO3                      => NULL()
-    State_Diag%ReactiveParticulateHg              => NULL()
-    State_Diag%ReactiveGaseousHg                  => NULL()
-    State_Diag%Archive_ConcBr                     = .FALSE.
-    State_Diag%Archive_ConcBrO                    = .FALSE.
-    State_Diag%Archive_LossHg2bySeaSalt           = .FALSE.
-    State_Diag%Archive_LossRateHg2bySeaSalt       = .FALSE.
-    State_Diag%Archive_PolarConcBr                = .FALSE.
-    State_Diag%Archive_PolarConcBrO               = .FALSE.
-    State_Diag%Archive_PolarConcO3                = .FALSE.
-    State_Diag%Archive_ProdHg2fromBr              = .FALSE.
-    State_Diag%Archive_ProdHg2fromBrY             = .FALSE.
-    State_Diag%Archive_ProdHg2fromClY             = .FALSE.
-    State_Diag%Archive_ProdHg2fromHg0             = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBr2     = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO   = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBrClO   = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2   = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2   = .FALSE.
-    State_Diag%Archive_ProdHg2fromHgBrPlusBrOH    = .FALSE.
-    State_Diag%Archive_ProdHg2fromOH              = .FALSE.
-    State_Diag%Archive_ProdHg2fromO3              = .FALSE.
-    State_Diag%Archive_ReactiveParticulateHg      = .FALSE.
-    State_Diag%Archive_ReactiveGaseousHg          = .FALSE.
+    !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
+    State_Diag%EmisHg0anthro                       => NULL()
+    State_Diag%EmisHg0biomass                      => NULL()
+    State_Diag%EmisHg0geogenic                     => NULL()
+    State_Diag%EmisHg0land                         => NULL()
+    State_Diag%EmisHg0ocean                        => NULL()
+    State_Diag%EmisHg0soil                         => NULL()
+    State_Diag%EmisHg0snow                         => NULL()
+    State_Diag%EmisHg0vegetation                   => NULL()
+    State_Diag%EmisHg2HgPanthro                    => NULL()
+    State_Diag%Archive_EmisHg0anthro               = .FALSE.
+    State_Diag%Archive_EmisHg0biomass              = .FALSE.
+    State_Diag%Archive_EmisHg0geogenic             = .FALSE.
+    State_Diag%Archive_EmisHg0land                 = .FALSE.
+    State_Diag%Archive_EmisHg0ocean                = .FALSE.
+    State_Diag%Archive_EmisHg0snow                 = .FALSE.
+    State_Diag%Archive_EmisHg0soil                 = .FALSE.
+    State_Diag%Archive_EmisHg0vegetation           = .FALSE.
+    State_Diag%Archive_EmisHg2HgPanthro            = .FALSE.  
+    ! -- chemistry quantities
+    State_Diag%ConcBr                              => NULL()
+    State_Diag%ConcBrO                             => NULL()
+    State_Diag%LossHg2bySeaSalt                    => NULL()
+    State_Diag%LossRateHg2bySeaSalt                => NULL()
+    State_Diag%PolarConcBr                         => NULL()
+    State_Diag%PolarConcBrO                        => NULL()
+    State_Diag%PolarConcO3                         => NULL()
+    State_Diag%ProdHg2fromBr                       => NULL()
+    State_Diag%ProdHg2fromBrY                      => NULL()
+    State_Diag%ProdHg2fromClY                      => NULL()
+    State_Diag%ProdHg2fromHg0                      => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBr2              => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBrBrO            => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBrClO            => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBrHO2            => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBrNO2            => NULL()
+    State_Diag%ProdHg2fromHgBrPlusBrOH             => NULL()
+    State_Diag%ProdHg2fromOH                       => NULL()
+    State_Diag%ProdHg2fromO3                       => NULL()
+    State_Diag%ReactiveParticulateHg               => NULL()
+    State_Diag%ReactiveGaseousHg                   => NULL()
+    State_Diag%Archive_ConcBr                      = .FALSE.
+    State_Diag%Archive_ConcBrO                     = .FALSE.
+    State_Diag%Archive_LossHg2bySeaSalt            = .FALSE.
+    State_Diag%Archive_LossRateHg2bySeaSalt        = .FALSE.
+    State_Diag%Archive_PolarConcBr                 = .FALSE.
+    State_Diag%Archive_PolarConcBrO                = .FALSE.
+    State_Diag%Archive_PolarConcO3                 = .FALSE.
+    State_Diag%Archive_ProdHg2fromBr               = .FALSE.
+    State_Diag%Archive_ProdHg2fromBrY              = .FALSE.
+    State_Diag%Archive_ProdHg2fromClY              = .FALSE.
+    State_Diag%Archive_ProdHg2fromHg0              = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBr2      = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO    = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBrClO    = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2    = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2    = .FALSE.
+    State_Diag%Archive_ProdHg2fromHgBrPlusBrOH     = .FALSE.
+    State_Diag%Archive_ProdHg2fromOH               = .FALSE.
+    State_Diag%Archive_ProdHg2fromO3               = .FALSE.
+    State_Diag%Archive_ReactiveParticulateHg       = .FALSE.
+    State_Diag%Archive_ReactiveGaseousHg           = .FALSE.
 
 #if defined( NC_DIAG )
 
@@ -4826,6 +4866,170 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
+       !-------------------------------------------------------------------
+       ! Anthropogenic Hg0 emissions 
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0anthro'
+       diagID  = 'EmisHg0anthro'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0anthro( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0anthro = 0.0_f4
+          State_Diag%Archive_EmisHg0anthro = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        & 
+                                   State_Diag%EmisHg0anthro,                 &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Biomass Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0biomass'
+       diagID  = 'EmisHg0biomass'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0biomass( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0biomass = 0.0_f4
+          State_Diag%Archive_EmisHg0biomass = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0biomass,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Geogenic Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0geogenic'
+       diagID  = 'EmisHg0geogenic'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0geogenic( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0geogenic = 0.0_f4
+          State_Diag%Archive_EmisHg0geogenic = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0geogenic,               &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Land Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0land'
+       diagID  = 'EmisHg0land'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0land( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0land = 0.0_f4
+          State_Diag%Archive_EmisHg0land = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0land,                   &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Oceanic Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0ocean'
+       diagID  = 'EmisHg0ocean'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0ocean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0ocean = 0.0_f4
+          State_Diag%Archive_EmisHg0ocean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0ocean,                  &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Snow Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0snow'
+       diagID  = 'EmisHg0snow'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0snow( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0snow = 0.0_f4
+          State_Diag%Archive_EmisHg0snow = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0snow,                   &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Soil Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0soil'
+       diagID  = 'EmisHg0soil'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0soil( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0soil = 0.0_f4
+          State_Diag%Archive_EmisHg0soil = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0soil,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+
+       !-------------------------------------------------------------------
+       ! Vegetation Hg0 emissions
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg0vegetation'
+       diagID  = 'EmisHg0vegetation'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg0vegetation( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg0vegetation = 0.0_f4
+          State_Diag%Archive_EmisHg0vegetation = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg0vegetation,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Hg2 and HgP anthropogenic emissions 
+       ! (note: HgP is emitted into Hg2 in the current Hg simulation)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg2HgPanthro'
+       diagID  = 'EmisHg2HgPanthro'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg2HgPanthro( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg2HgPanthro = 0.0_f4
+          State_Diag%Archive_EmisHg2HgPanthro = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg2HgPanthro,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
        !----------------------------------------------------------------
        ! Br concentration
        !----------------------------------------------------------------
@@ -6323,6 +6527,60 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0ocean ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0ocean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0ocean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0land ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0land, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0land', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0geogenic ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0geogenic, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0geogenic', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0biomass ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0biomass, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0biomass', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0vegetation ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0vegetation, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0vegetation', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0snow ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0snow, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0snow', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg2HgPanthro ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg2HgPanthro, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg2HgPanthro', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%ConcBr ) ) THEN
        DEALLOCATE( State_Diag%ConcBr, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ConcBr', 2, RC )
@@ -7622,6 +7880,51 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Loss of CH4 in the stratosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0ANTHRO' ) THEN
+       IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0SOIL' ) THEN
+       IF ( isDesc    ) Desc  = 'Soil emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0OCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Oceanic emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0LAND' ) THEN
+       IF ( isDesc    ) Desc  = 'Land emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0GEOGENIC' ) THEN
+       IF ( isDesc    ) Desc  = 'Geogenic emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0BIOMASS' ) THEN
+       IF ( isDesc    ) Desc  = 'Biomass burning emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0VEGETATION' ) THEN
+       IF ( isDesc    ) Desc  = 'Vegetation emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0SNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Snowpack emissions of Hg0'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG2HGPANTHRO' ) THEN
+       IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg2 + HgP'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBR' ) THEN
        IF ( isDesc    ) Desc  = 'Br concentration'

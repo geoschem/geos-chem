@@ -2526,8 +2526,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -2542,6 +2542,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -2559,6 +2560,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2768,11 +2770,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%Species [kg]
-      CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
       ! Add Hg(II) source into State_Chm%Species [kg]
-      CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
       ! Add HgP source into State_Chm%Species [kg]
@@ -2903,7 +2905,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE SRCHg0( am_I_Root, Input_Opt,
+     &                   State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -2913,6 +2916,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -2923,6 +2927,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3588,7 +3593,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
         
 #if defined( BPCH_DIAG )
          !==============================================================
-         ! ND03 diagnostic: Total Hg(0) emissions [kg]
+         ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+         !
+         ! Total Hg(0) emissions [kg]
          ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
          !==============================================================
 
@@ -3655,6 +3662,77 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             
          ENDIF
 #endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+         !
+         ! Save the various Hg0 emissions to fields of State_Diag
+         ! in units of [kg/s].
+         ! 
+         ! NOTES (bmy, 10/24/18):
+         ! (1) Normally these would go to the HEMCO_diagnostics*.nc
+         !     file, but several of these diagnostics were defined as
+         !     HEMCO manual diagnostics.  Therefore to preserve 
+         !     backwards compatibility with the existing Hg simulation, 
+         !     we save the emission fields into State_Diag.
+         !
+         ! (2) For now, save emissions only for total species
+         !     and not the tagged species.  Colin Thackray says that
+         !     the tagged Hg simulation is in some disrepair and is
+         !     not widely used.
+         !
+         ! (3) The total Hg0 emissions diagnostic is not defined; 
+         !     users can sum up the individual categories in 
+         !     post-processing.
+         !
+         ! (4) In the current Hg simulation, HgP anthro emissions are
+         !     added into the Hg2 species.  Therefore we only have
+         !     a single emissions field of State_Diag for the
+         !     combined Hg2 + HgP anthro emissions.
+         !==============================================================
+
+         ! Anthropogenic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0anthro ) THEN
+            State_Diag%EmisHg0anthro(I,J) = EHg0_an(I,J)
+         ENDIF
+
+         ! Biomass Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0biomass ) THEN
+            State_Diag%EmisHg0biomass(I,J) = EHg0_bb(I,J)
+         ENDIF
+
+         ! Geogenic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0geogenic ) THEN
+            State_Diag%EmisHg0geogenic(I,J) = EHg0_geo(I,J)
+         ENDIF
+
+         ! Land Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+            State_Diag%EmisHg0land(I,J) = EHg0_ln(I,J,1)
+         ENDIF
+
+         ! Oceanic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+            State_Diag%EmisHg0ocean(I,J) = EHg0_oc(I,J,1)
+         ENDIF
+
+         ! Snow Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0snow ) THEN
+            State_Diag%EmisHg0snow(I,J) = EHg0_snow(I,J,1)
+         ENDIF
+
+         ! Soil Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0soil ) THEN
+            State_Diag%EmisHg0soil(I,J) = EHg0_so(I,J)
+         ENDIF
+
+         ! Vegetation Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0vegetation ) THEN
+            State_Diag%EmisHg0vegetation(I,J) = EHg0_vg(I,J)
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3675,7 +3753,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE SRCHg2( am_I_Root, Input_Opt, 
+     &                   State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
@@ -3687,6 +3766,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
@@ -3698,6 +3778,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3859,13 +3940,36 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDDO
             
 #if defined( BPCH_DIAG )
-            !-------------------------------
-            ! ND03 diag: Anthro Hg(II) [kg]
-            !-------------------------------
+            !==============================================================
+            ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
+            !
+            ! Anthro Hg(II) [kg]
+            ! NOTE: HgP is emitted into Hg2 
+            !==============================================================
             IF ( ND03 > 0 ) THEN
                AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
             ENDIF
 #endif
+
+#if defined( NC_DIAG )
+            !==============================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Save the combined Hg2 + HgP emissions to State_Diag
+            ! in units of [kg/s].
+            ! 
+            ! NOTES (bmy, 10/24/18):
+            !
+            ! (1) In the current Hg simulation, HgP anthro emissions
+            !     are added into the Hg2 species.  Therefore we only
+            !     have defined a single emissions field of State_Diag
+            !     for the combined Hg2 + HgP anthro emissions.
+            !==============================================================
+            IF ( State_Diag%Archive_EmisHg2HgPanthro ) THEN
+               State_Diag%EmisHg2HgPanthro(I,J) = EHg2_an(I,J)
+            ENDIF
+#endif
+
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
