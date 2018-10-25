@@ -785,49 +785,52 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "Reading met fields",  RC )
-      CALL GEOS_Timer_Start( "Input",               RC )
-#endif
-
-      ! Read the initial met fields from disk
-      ! This is called after HEMCO initialization so that FlexGrid works
-      CALL Read_Initial_Met_Fields()
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "Reading met fields",  RC )
-      CALL GEOS_Timer_End( "Input",               RC )
-#endif
-
-      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
-      ! and compute avg surface pressures near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Met, 1 )
-      CALL AvgPole( State_Met%PS1_DRY )
-
-      ! Compute avg surface pressure near polar caps
-      CALL AvgPole( State_Met%PS1_WET ) 
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AVGPOLE' )
-
-      ! Initialize surface pressures prior to interpolation
-      ! to allow initialization of floating pressures
-      State_Met%PSC2_WET = State_Met%PS1_WET
-      State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a SET_FLT_PRS' )
-
-      ! Call AIRQNT to compute initial air mass quantities
-      ! Do not update initial tracer concentrations since not read 
-      ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
-     &             update_mixing_ratio=.FALSE. )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "AirQnt" (first call)!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AIRQNT' )
+!------------------------------------------------------------------------------
+! Prior to 10/25/18:
+!#if defined( USE_TIMERS )
+!      CALL GEOS_Timer_Start( "Reading met fields",  RC )
+!      CALL GEOS_Timer_Start( "Input",               RC )
+!#endif
+!
+!      ! Read the initial met fields from disk
+!      ! This is called after HEMCO initialization so that FlexGrid works
+!      CALL Read_Initial_Met_Fields()
+!
+!#if defined( USE_TIMERS )
+!      CALL GEOS_Timer_End( "Reading met fields",  RC )
+!      CALL GEOS_Timer_End( "Input",               RC )
+!#endif
+!
+!      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+!      ! and compute avg surface pressures near polar caps
+!      CALL Set_Dry_Surface_Pressure( State_Met, 1 )
+!      CALL AvgPole( State_Met%PS1_DRY )
+!
+!      ! Compute avg surface pressure near polar caps
+!      CALL AvgPole( State_Met%PS1_WET ) 
+!      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AVGPOLE' )
+!
+!      ! Initialize surface pressures prior to interpolation
+!      ! to allow initialization of floating pressures
+!      State_Met%PSC2_WET = State_Met%PS1_WET
+!      State_Met%PSC2_DRY = State_Met%PS1_DRY
+!      CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+!      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a SET_FLT_PRS' )
+!
+!      ! Call AIRQNT to compute initial air mass quantities
+!      ! Do not update initial tracer concentrations since not read 
+!      ! from restart file yet (ewl, 10/28/15)
+!      CALL AirQnt( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
+!     &             update_mixing_ratio=.FALSE. )
+!
+!      ! Trap potential errors
+!      IF ( RC /= GC_SUCCESS ) THEN
+!         ErrMsg = 'Error encountered in "AirQnt" (first call)!'
+!         CALL Error_Stop( ErrMsg, ThisLoc )
+!      ENDIF
+!
+!      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AIRQNT' )
+!------------------------------------------------------------------------------
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
@@ -883,30 +886,33 @@
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "Reading restart file",  RC )
-      CALL GEOS_Timer_Start( "Input",                 RC )
-#endif
-
-      ! Read initial species conditions
-      ! NOTE: Species concentrations are read in as [v/v dry air] 
-      ! and converted to [kg/kg dry air] (ewl, 8/4/16)
-      CALL Read_GC_Restart( am_I_Root, NYMDb,     NHMSb, 
-     &                      Input_Opt, State_Met, State_Chm, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Read_GC_Restart"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      ! Debug print
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_GC_RESTART' )
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "Reading restart file",  RC )
-      CALL GEOS_Timer_End( "Input",                 RC )
-#endif
+!------------------------------------------------------------------------------
+! Prior to 10/25/18:
+!#if defined( USE_TIMERS )
+!      CALL GEOS_Timer_Start( "Reading restart file",  RC )
+!      CALL GEOS_Timer_Start( "Input",                 RC )
+!#endif
+!
+!      ! Read initial species conditions
+!      ! NOTE: Species concentrations are read in as [v/v dry air] 
+!      ! and converted to [kg/kg dry air] (ewl, 8/4/16)
+!      CALL Read_GC_Restart( am_I_Root, NYMDb,     NHMSb, 
+!     &                      Input_Opt, State_Met, State_Chm, RC )
+!
+!      ! Trap potential errors
+!      IF ( RC /= GC_SUCCESS ) THEN
+!         ErrMsg = 'Error encountered in "Read_GC_Restart"!'
+!         CALL Error_Stop( ErrMsg, ThisLoc )
+!      ENDIF
+!
+!      ! Debug print
+!      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_GC_RESTART' )
+!
+!#if defined( USE_TIMERS )
+!      CALL GEOS_Timer_End( "Reading restart file",  RC )
+!      CALL GEOS_Timer_End( "Input",                 RC )
+!#endif
+!------------------------------------------------------------------------------
 
       ! Initialize the UCX module
       IF ( LUCX ) THEN
@@ -993,16 +999,19 @@
 
 !-----------------------------------------------------------------------------
 
-      !-----------------------------------------------------------------
-      !       ***** I N I T I A L I Z E   R E S T A R T S *****
-      !-----------------------------------------------------------------
-      CALL Init_GC_Restart( am_I_Root, Input_Opt, State_Chm, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_GC_Restart"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
+!------------------------------------------------------------------------------
+! Prior to 10/25/18:
+!      !-----------------------------------------------------------------
+!      !       ***** I N I T I A L I Z E   R E S T A R T S *****
+!      !-----------------------------------------------------------------
+!      CALL Init_GC_Restart( am_I_Root, Input_Opt, State_Chm, RC )
+!
+!      ! Trap potential errors
+!      IF ( RC /= GC_SUCCESS ) THEN
+!         ErrMsg = 'Error encountered in "Init_GC_Restart"!'
+!         CALL Error_Stop( ErrMsg, ThisLoc )
+!      ENDIF
+!------------------------------------------------------------------------------
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Initialization", RC )
@@ -1214,20 +1223,23 @@
             CALL GEOS_Timer_Start( "Writing restart file",  RC )
 #endif
 
-            ! Make atmospheric restart file
-            CALL Write_GC_Restart( am_I_Root, NYMD, NHMS, Input_Opt,
-     &                             State_Chm, State_Met, RC )
-
-            ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Write_GC_Restart!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-
-            !### Debug
-            IF ( prtDebug ) THEN
-               CALL Debug_Msg( '### MAIN: a WRITE_GC_RESTART' )
-            ENDIF
+!------------------------------------------------------------------------------
+! Prior to 10/25/18:
+!            ! Make atmospheric restart file
+!            CALL Write_GC_Restart( am_I_Root, NYMD, NHMS, Input_Opt,
+!     &                             State_Chm, State_Met, RC )
+!
+!            ! Trap potential errors
+!            IF ( RC /= GC_SUCCESS ) THEN
+!               ErrMsg = 'Error encountered in "Write_GC_Restart!'
+!               CALL Error_Stop( ErrMsg, ThisLoc )
+!            ENDIF
+!
+!            !### Debug
+!            IF ( prtDebug ) THEN
+!               CALL Debug_Msg( '### MAIN: a WRITE_GC_RESTART' )
+!            ENDIF
+!------------------------------------------------------------------------------
 
             !===========================================================
             !     ***** W R I T E   H E M C O  R E S T A R T S *****

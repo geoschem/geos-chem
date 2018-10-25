@@ -53,6 +53,8 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: Set_Grid
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoSpecies 
+  PRIVATE :: Get_GC_Restart
+  PRIVATE :: Get_Met_Fields
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -640,7 +642,10 @@ CONTAINS
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REMARKS:
-!  Modifi
+!  Phase -1 : Used for GCHP
+!  Phase  0 : Simplified Phase 1 for reading initial met fields
+!  Phase  1 : Update HEMCO clock and HEMCO data list
+!  Phase  2 : Perform emissions calculation
 !
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version 
@@ -790,6 +795,19 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        CALL Flush( HcoState%Config%Err%Lun )
        RETURN
+    ENDIF
+
+    !=======================================================================
+    ! Do the following only if it's time to get restart fields
+    !=======================================================================
+    IF ( Phase == 0 ) THEN
+
+       ! Get the initial met fields from HEMCO
+       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
+       ! Get fields from GEOS-Chem restart file
+       CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+
     ENDIF
 
     !=======================================================================
@@ -3477,5 +3495,765 @@ CONTAINS
 
    ! Return to calling program
  END SUBROUTINE Calc_SumCosZa
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_met_fields
+!
+! !DESCRIPTION: Subroutine GET\_MET\_FIELDS calls the various routines to get
+! met fields from HEMCO.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!
+! ! USES:
+   !
+   USE DAO_Mod
+   USE FlexGrid_Read_Mod
+   USE Input_Opt_Mod,          ONLY : OptInput
+   USE Pressure_Mod,           ONLY : Set_Floating_Pressures
+#if defined( RRTMG )
+   USE RRTMG_Rad_Transfer_Mod, ONLY : Read_Surface_Rad
+#endif
+   USE State_Chm_Mod,          ONLY : ChmState
+   USE State_Met_Mod,          ONLY : MetState
+   USE Time_Mod
+!
+! !INPUT PARAMETERS:
+!
+   LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
+   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input opts
+   TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Met state
+   INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+! 
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  07 Feb 2012 - R. Yantosca - Initial version
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
+!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
+!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
+!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
+!  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
+!  25 Oct 2018 - M. Sulprizio- Move READ_INITIAL_MET_FIELDS to hcoi_gc_main_mod
+!                              and rename Get_Met_Fields
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   ! Convenience variable for date & time
+   INTEGER :: D(2)
+
+   !=================================================================
+   !    *****  R E A D   M E T   F I E L D S    *****
+   !    *****  At the start of the GEOS-Chem simulation  *****
+   !=================================================================
+
+   ! Read time-invariant data
+   CALL FlexGrid_Read_CN  (             Input_Opt, State_Met )
+
+   ! Read 1-hr time-averaged data
+   D = GET_FIRST_A1_TIME()
+   CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
+
+   ! Read 3-hr time averaged data
+   D = GET_FIRST_A3_TIME()
+   CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+   
+   ! Read 3-hr instantanous data
+   D = GET_FIRST_I3_TIME()
+   CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
+
+#if defined( RRTMG )
+   !  Adding the call to retrieve MODIS-derived surface
+   !  albedo and emissivity here.
+   !  There is a check within READ_SURFACE_RAD to make
+   !  sure we dont re-read the same files
+   WRITE(6,*) 'IN INITIAL_MET_FIELDS'
+   !  Start day may not be one of the 8-day values
+   !  Therefore we pass the init flag to ensure
+   !  the closest date to the current day is read
+   !  rather than nothing at all
+   CALL Read_Surface_Rad( Input_Opt, FORCEREAD =.TRUE. )
+#endif
+
+   ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+   ! and compute avg surface pressures near polar caps
+   CALL Set_Dry_Surface_Pressure( State_Met, 1 )
+   CALL AvgPole( State_Met%PS1_DRY )
+
+   ! Compute avg surface pressure near polar caps
+   CALL AvgPole( State_Met%PS1_WET ) 
+
+   ! Initialize surface pressures prior to interpolation
+   ! to allow initialization of floating pressures
+   State_Met%PSC2_WET = State_Met%PS1_WET
+   State_Met%PSC2_DRY = State_Met%PS1_DRY
+   CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+   
+ END SUBROUTINE Get_Met_Fields
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_gc_restart
+!
+! !DESCRIPTION: Subroutine GET\_GC\_RESTART reads species concentrations 
+!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize 
+!  species concentrations in [kg/kg dry]. If species data are missing from
+!  the restart file, pre-configured background values are used. If using the
+!  mercury simulation, additional restart data are read from file.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+!
+! !USES:
+!     
+   USE CMN_SIZE_Mod
+   USE DAO_Mod,            ONLY : AIRQNT
+   USE ErrCode_Mod
+   USE Error_Mod
+   USE HCO_INTERFACE_MOD,  ONLY : HcoState
+   USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+   USE PHYSCONSTANTS,      ONLY : BOLTZ, AIRMW
+   USE Input_Opt_Mod,      ONLY : OptInput
+   USE Species_Mod,        ONLY : Species
+   USE State_Chm_Mod,      ONLY : ChmState
+   USE State_Met_Mod,      ONLY : MetState
+   USE TIME_MOD,           ONLY : EXPAND_DATE
+   USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+
+   ! For Hg simulation restart file
+   USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
+   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
+   USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
+   USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
+!
+! !INPUT PARAMETERS: 
+!
+   LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+   TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+!
+! !OUTPUT PARAMETERS: 
+!
+   INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
+!
+! !REVISION HISTORY: 
+!
+!  09 Feb 2016 - E. Lundgren - Initial version
+!  20 Apr 2016 - E. Lundgren - Implement ocean and snow Hg variables
+!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  31 May 2016 - E. Lundgren - Replace Input_Opt%TRACER_MW_G with species
+!                              database field emMW_g (emitted species g/mol)
+!  06 Jun 2016 - M. Sulprizio- Replace NTSPEC with State_Chm%nSpecies and
+!                              NAMEGAS with SpcInfo%Name from species database
+!  22 Jun 2016 - R. Yantosca - Now refer to Hg0_Id_List, Hg2_Id_List, and
+!                              HgP_Id_List fields of State_Chm
+!  11 Jul 2016 - E. Lundgren - Remove tracers and read only species
+!  12 Jul 2016 - E. Lundgren - Rename from read_gc_restart_nc
+!  18 Jul 2016 - M. Sulprizio- Remove special handling of ISOPN, MMN, CFCX, and
+!                              HCFCX. Family tracers have been eliminated.
+!  25 Jul 2016 - E. Lundgren - Store whether species in rst file in species db
+!                              rather than module-level variable
+!  03 Aug 2016 - E. Lundgren - Remove tracers; now only use species
+!  11 Aug 2016 - E. Lundgren - Move source of background values to spc database
+!  28 Nov 2017 - R. Yantosca - Now only replace tokens in filename but not
+!                              in the rest of the path
+!  24 Oct 2018 - M. Sulprizio- Move READ_GC_RESTART to hcoi_gc_main_mod.F90
+!                              and rename GET_GC_RESTART
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
+   LOGICAL              :: FOUND              ! ocn Hg var in restart file
+   CHARACTER(LEN=60)    :: Prefix             ! utility string
+   CHARACTER(LEN=255)   :: LOC                ! routine location
+   CHARACTER(LEN=255)   :: MSG                ! message 
+   CHARACTER(LEN=255)   :: v_name             ! variable name 
+   REAL(fp)             :: MW_g               ! species molecular weight
+   REAL(fp)             :: SMALL_NUM          ! small number threshold
+   CHARACTER(LEN=63)    :: OrigUnit
+
+   ! Temporary arrays and pointers
+   REAL*4,  TARGET           :: Temp2D(IIPAR,JJPAR) 
+   REAL*4,  TARGET           :: Temp3D(IIPAR,JJPAR,LLPAR)
+   REAL*4,  POINTER          :: Ptr2D(:,:  )
+   REAL*4,  POINTER          :: Ptr3D(:,:,:)
+
+   ! For Hg simulation
+   INTEGER                   :: Num_Hg_Categories 
+   INTEGER                   :: Total_Hg_Id
+   CHARACTER(LEN=60)         :: HgSpc
+   CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
+
+   ! Default background concentration
+   REAL(fp)                  :: Background_VV
+
+   ! Objects
+   TYPE(Species),    POINTER :: SpcInfo
+
+   !=================================================================
+   ! READ_GC_RESTART begins here!
+   !=================================================================
+
+   ! Assume success
+   RC        = GC_SUCCESS
+
+   ! Initialize pointers
+   Ptr2D       => NULL()
+   Ptr3D       => NULL()
+   SpcInfo     => NULL()
+   Hg_Cat_Name => NULL()
+
+   ! Name of this routine
+   LOC = ' -> at Get_GC_Restart (in GeosCore/hcoi_gc_main_mod.F)'
+
+   ! Set minimum value threshold for [mol/mol]
+   SMALL_NUM = 1.0e-30_fp
+      
+   !=================================================================
+   ! If running Hg simulation, set Hg-specific local variables
+   !=================================================================
+   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+      ! Set the # of tagHg categories from State_Chm
+      Num_Hg_Categories   =  State_Chm%N_Hg_CATS
+
+      ! Set variable storing names for each of the Hg categories
+      Hg_Cat_Name => State_Chm%Hg_Cat_Name
+    
+      ! Set Hg species index corresponding to a given Hg category number;
+      ! total is always the first category
+      Total_Hg_Id   =  State_Chm%Hg0_Id_List(1)
+
+   ENDIF
+
+   !=================================================================
+   ! Call AIRQNT to compute initial air mass quantities
+   !=================================================================
+   ! Do not update initial tracer concentrations since not read 
+   ! from restart file yet (ewl, 10/28/15)
+   CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
+                update_mixing_ratio=.FALSE. )
+
+   ! Trap potential errors
+   IF ( RC /= GC_SUCCESS ) THEN
+      Msg = 'Error encountered in "AirQnt" (first call)!'
+      CALL Error_Stop( Msg, Loc )
+   ENDIF
+
+   !=================================================================
+   ! Open GEOS-Chem restart file
+   !=================================================================
+
+   ! Write read message to log
+   WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
+   WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
+            
+   !=================================================================
+   ! Read species concentrations from NetCDF or use default 
+   ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
+   !=================================================================
+
+   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
+   ! the molecular weight stored in the species database which is
+   ! a meaningful value for advected species but is a bad value (-1)
+   ! for all others. Non-advected species should NOT be used when 
+   ! State_Chm%Species units are in mass mixing ratio. Current
+   ! units can be determined at any point by looking at 
+   ! State_Chm%Spc_Units. (ewl, 8/11/16)
+
+   ! Print header for min/max concentration to log
+   WRITE( 6, 110 )
+110 FORMAT( 'Min and Max of each species in restart file [mol/mol]:' )
+
+   ! Initialize species to all zeroes
+   State_Chm%Species = 0.e+0_fp
+
+   ! Loop over species
+   DO N = 1, State_Chm%nSpecies
+
+      ! Get info about this species from the species database
+      SpcInfo => State_Chm%SpcData(N)%Info
+      MW_g    =  SpcInfo%emMW_g
+
+      ! Define variable name
+      v_name = 'SPC_' // TRIM( SpcInfo%Name )
+
+      ! Initialize temporary array for this species and point to it
+      Temp3D = 0.0_fp
+      Ptr3D => Temp3D
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D,     RC,       FOUND=FOUND )
+
+      ! Check if species data is in file
+      IF ( FOUND ) THEN
+         SpcInfo%Is_InRestart = .TRUE.
+      ELSE
+         SpcInfo%Is_InRestart = .FALSE.
+      ENDIF
+      
+      ! If data is in file, read in as [mol/mol] and convert to 
+      ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
+      ! either stored in species database (advected species all levels and
+      ! non-advected species levels up to LLCHEM) or a small number
+      ! (non-advected species levels above LLCHEM) converted to 
+      ! [kg/kg dry]
+      IF ( SpcInfo%Is_InRestart ) THEN
+
+         ! Print the min & max of each species as it is read from 
+         ! the restart file in mol/mol
+         IF ( Input_Opt%LPRT ) THEN
+            WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
+                            MINVAL( Ptr3D ), MAXVAL( Ptr3D )
+120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
+                    '  Max = ',es15.9)
+         ENDIF
+
+         ! Convert file value [mol/mol] to [kg/kg dry] for storage
+         !$OMP PARALLEL DO
+         !$OMP+DEFAULT( SHARED )
+         !$OMP+PRIVATE( I, J, L )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+            ! Apply minimum value threshold where input conc is very low
+            IF ( Ptr3D(I,J,L) < SMALL_NUM ) THEN
+                 Ptr3D(I,J,L) = SMALL_NUM
+            ENDIF
+            State_Chm%Species(I,J,L,N) = Ptr3D(I,J,L) * MW_g / AIRMW
+         ENDDO
+         ENDDO
+         ENDDO
+         !$OMP END PARALLEL DO
+
+      ELSE
+
+         ! Set species to the background value converted to [kg/kg dry] 
+         !$OMP PARALLEL DO
+         !$OMP+DEFAULT( SHARED )
+         !$OMP+PRIVATE( I, J, L )
+         ! Loop over all grid boxes
+         DO L = 1, LLPAR 
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+               
+            ! Special handling for MOH
+            IF ( TRIM( SpcInfo%Name ) == 'MOH' ) THEN
+
+               !----------------------------------------------------
+               ! For methanol (MOH), use different initial
+               ! background concentrations for different regions of
+               ! the atmosphere:
+               !
+               ! (a) 2.0 ppbv MOH -- continental boundary layer
+               ! (b) 0.9 ppbv MOH -- marine boundary layer
+               ! (c) 0.6 ppbv MOH -- free troposphere
+               !
+               ! The concentrations listed above are from Heikes et
+               ! al, "Atmospheric methanol budget and ocean
+               ! implication", _Global Biogeochem. Cycles_, 2002.
+               ! These represent the best estimates for the methanol
+               ! conc.'s in the troposphere based on various
+               ! measurements.
+               !
+               ! MOH is an inactive chemical species in GEOS-CHEM,
+               ! so these initial concentrations will never change.
+               ! However, MOH acts as a sink for OH, and therefore
+               ! will affect both the OH concentration and the
+               ! methylchloroform lifetime.
+               !
+               ! We specify the MOH concentration as ppbv, but then
+               ! we need to multiply by CONV_FACTOR in order to
+               ! convert to [molec/cm3].  (bdf, bmy, 2/22/02)
+               !----------------------------------------------------
+                  
+               ! Test for altitude (L < 9 is always in the trop)
+               IF ( L <= 9 ) THEN
+                  ! Test for ocean/land boxes
+                  IF ( State_Met%FRCLND(I,J) >= 0.5 ) THEN
+                     ! Continental boundary layer: 2 ppbv MOH
+                     State_Chm%Species(I,J,L,N) = 2.000e-9_fp &
+                                                  * MW_g / AIRMW
+                  ELSE
+                     ! Marine boundary layer: 0.9 ppbv MOH
+                     State_Chm%Species(I,J,L,N) = 0.900e-9_fp &
+                                                  * MW_g / AIRMW
+                  ENDIF
+               ELSE
+                  ! Test for troposphere
+                  IF ( State_Met%InTroposphere(I,J,L) ) THEN
+                     ! Free troposphere: 0.6 ppbv MOH
+                     State_Chm%Species(I,J,L,N) = 0.600e-9_fp &
+                                                  * MW_g / AIRMW
+                  ELSE
+                     ! Strat/mesosphere:
+                     State_Chm%Species(I,J,L,N) =             &
+                                        SMALL_NUM * MW_g / AIRMW
+                  ENDIF
+               ENDIF
+
+               ! Print to log if debugging is on
+               IF ( Input_Opt%LPRT      .AND. &
+                    I == 1 .AND. J == 1 .AND. L == 1 ) THEN
+                  WRITE( 6, 130 ) N, TRIM( SpcInfo%Name )
+130               FORMAT('Species ', i3, ', ', a9, &
+                         ': see READ_GC_RESTART for special MOH values')
+               ENDIF
+
+            ! For non-advected species at levels above LLCHEM, use a 
+            ! small number for background
+            ELSEIF ( L > LLCHEM .AND. &
+                   ( .NOT. SpcInfo%Is_Advected ) ) THEN
+
+               State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW 
+
+            ! For all other cases except MOH, use the background value  
+            ! stored in the species database
+            ELSE
+
+               State_Chm%Species(I,J,L,N) = SpcInfo%BackgroundVV &
+                                            * MW_g / AIRMW
+
+               ! Print to log if debugging is on
+               IF ( Input_Opt%LPRT      .AND. &
+                    I == 1 .AND. J == 1 .AND. L == 1 ) THEN
+                  WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
+140               FORMAT('Species ', i3, ', ', a9, &
+                         ': Use background = ', es15.9)
+               ENDIF
+
+
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+         !$OMP END PARALLEL DO
+
+      ENDIF
+
+      ! Free pointer
+      SpcInfo => NULL()
+
+   ENDDO
+
+   ! Set species units
+   State_Chm%Spc_Units = 'kg/kg dry'
+
+   ! If in debug mode, print out species min and max in [molec/cm3]
+   IF ( am_I_Root .and. Input_Opt%LPRT ) THEN
+
+      ! Convert units
+      PRINT *, " "
+      PRINT *, "Species min and max in molec/cm3"
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                              State_Chm, 'molec/cm3', RC,       &
+                              OrigUnit=OrigUnit )
+
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         Msg = 'Error returned from Convert_Spc_Units, call #1!'
+         CALL GC_Error( Msg, RC, Loc )
+         RETURN
+      ENDIF
+
+      ! Print values
+      DO N = 1, State_Chm%nSpecies
+         SpcInfo => State_Chm%SpcData(N)%Info
+         WRITE(6,150) N, TRIM( SpcInfo%Name ),                 &
+                         MINVAL( State_Chm%Species(:,:,:,N) ), & 
+                         MAXVAL( State_Chm%Species(:,:,:,N) ) 
+150      FORMAT( 'Species ', i3, ', ', a9,                     &
+                 ': Min = ', es15.9, ', Max = ', es15.9 )
+         SpcInfo => NULL()
+      ENDDO
+
+      ! Convert units back
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, OrigUnit,  RC )
+
+      ! Trap error
+      IF ( RC /= GC_SUCCESS ) THEN
+         Msg = 'Error returned from Convert_Spc_Units, call #2!'
+         CALL GC_Error( Msg, RC, Loc )
+         RETURN
+      ENDIF
+
+   ENDIF
+
+!   !=================================================================
+!   ! Read ocean mercury variables
+!   !=================================================================
+!   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+!
+!      ! Print total mass to log
+!      WRITE( 6, 160 )
+!160   FORMAT(/, 'Total mass of each ocean and snow Hg species:')
+!
+!      !--------------------------------------------------------------
+!      ! Total Hg in ocean
+!      !--------------------------------------------------------------
+!      DO M = 1, 3
+!
+!         ! Define variable name
+!         SELECT CASE( M )
+!         CASE ( 1 )
+!            HgSpc    = 'Hg0' 
+!         CASE ( 2 )
+!            HgSpc    = 'Hg2'
+!         CASE ( 3 )
+!            HgSpc    = 'HgP' 
+!         END SELECT
+!         v_name = 'Ocean_' // TRIM( HgSpc )
+!
+!         ! Zero temporary array and set pointer
+!         Temp2D = 0.0d4 
+!         Ptr2D => Temp2D
+!
+!         ! Check if variable is in file. If not found, initialize
+!         ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
+!         ierr = Nf_Inq_Varid (fId, TRIM(v_name), v_id)
+!         IF ( ierr /= NF_NOERR ) THEN
+!            FOUND = .FALSE.
+!            WRITE( 6, 170 ) TRIM( v_name )
+!         ELSE
+!            FOUND = .TRUE.
+!            CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
+!         ENDIF
+!
+!         ! Check for negative concentrations (jaf, 7/6/11)
+!         DO I = 1, IIPAR
+!         DO J = 1, JJPAR
+!            IF ( Temp2D(I,J) < 0.0d4 ) THEN
+!                 Temp2D(I,J) = 0.0d4
+!            ENDIF
+!         ENDDO
+!         ENDDO
+!
+!         ! Assign ocean mercury data and write total mass to log file
+!         SELECT CASE( M )
+!         CASE ( 1 )
+!            Hg0aq(:,:,Total_Hg_Id) = Ptr2D
+!            IF ( FOUND ) THEN
+!               WRITE( 6, 180 ) v_name, &
+!                               SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
+!            ENDIF
+!         CASE ( 2 )
+!            Hg2aq(:,:,Total_Hg_Id) = Ptr2D
+!            IF ( FOUND ) THEN
+!               WRITE( 6, 180 ) v_name,  &
+!                               SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
+!            ENDIF
+!         CASE ( 3 )
+!            HgPaq(:,:,Total_Hg_Id) = Ptr2D
+!            IF ( FOUND ) THEN
+!               WRITE( 6, 180 ) v_name,  &
+!                               SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
+!            ENDIF
+!         END SELECT
+!
+!         ! Nullify pointer
+!         Ptr2D => NULL()
+!      ENDDO
+!
+!      !--------------------------------------------------------------
+!      ! Additional tagged ocean Hg species
+!      !--------------------------------------------------------------
+!      IF ( Input_Opt%LSPLIT ) THEN
+!         DO M = 1, 3
+!            DO N = 2, Num_Hg_Categories
+!
+!               ! Define variable name. Include appended region.
+!               SELECT CASE( M )
+!               CASE ( 1 )
+!                  HgSpc = 'Hg0' 
+!               CASE ( 2 )
+!                  HgSpc = 'Hg2'
+!               CASE ( 3 )
+!                  HgSpc = 'HgP' 
+!               END SELECT
+!               v_name = 'Ocean_' // TRIM( HgSpc ) //  &
+!                        '_'      // TRIM( Hg_Cat_Name(N) )
+!
+!               ! Zero temporary array and set pointer
+!               Temp2D = 0.0d4
+!               Ptr2D => Temp2D
+!                  
+!               ! Check if variable is in file. If not found, initialize
+!               ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
+!               ierr = Nf_Inq_Varid (fId, v_name, v_id)
+!               IF ( ierr /= NF_NOERR ) THEN
+!                  FOUND = .FALSE.
+!                  WRITE( 6, 170 ) TRIM( v_name )
+!               ELSE
+!                  FOUND = .TRUE.
+!                  CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
+!               ENDIF
+!
+!               ! Assign ocean mercury data and write total mass to log
+!               SELECT CASE( M )
+!               CASE ( 1 )
+!                  Hg0aq(:,:,N) = Ptr2D
+!                  IF ( FOUND ) THEN
+!                     WRITE( 6, 180 ) v_name,  &
+!                                     SUM( Hg0aq(:,:,N) ), 'kg'
+!                  ENDIF
+!               CASE ( 2 )
+!                  Hg2aq(:,:,N) = Ptr2D
+!                  IF ( FOUND ) THEN
+!                     WRITE( 6, 180 ) v_name,  &
+!                                     SUM( Hg2aq(:,:,N) ), 'kg'
+!                  ENDIF
+!               CASE ( 3 )
+!                  HgPaq(:,:,N) = Ptr2D
+!                  IF ( FOUND ) THEN
+!                     WRITE( 6, 180 ) v_name,  &
+!                                     SUM( HgPaq(:,:,N) ), 'kg'
+!                  ENDIF
+!               END SELECT
+!
+!               ! Nullify pointer
+!               Ptr2D => NULL()
+!            ENDDO
+!         ENDDO
+!
+!         ! Make sure tagged & total species sum up
+!         IF ( Input_Opt%USE_CHECKS ) THEN
+!            CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART' )
+!         ENDIF
+!      ENDIF
+!
+!      !--------------------------------------------------------------
+!      ! Hg snowpack on land and ocean
+!      !--------------------------------------------------------------
+!      DO M = 1, 4               
+!         DO N = 1, Num_Hg_Categories               
+!
+!            ! Define variable name prefix
+!            SELECT CASE( M )
+!            CASE ( 1 )
+!               Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
+!            CASE ( 2 )
+!               Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
+!            CASE ( 3 )
+!               Prefix = 'Snow_Hg_Land_Hg0'   ! Reducible on land
+!            CASE ( 4 )
+!               Prefix = 'Snow_HgN_Land_Hg0'  ! Non-reducible on land
+!            END SELECT
+!
+!            IF ( N == 1 ) THEN
+!               v_name = TRIM( Prefix )
+!            ELSE
+!               ! Append category name if tagged
+!               v_name = TRIM( Prefix         ) // '_' // &
+!                        TRIM( Hg_Cat_Name(N) ) 
+!            ENDIF
+!
+!            ! Zero temporary array and set pointer
+!            Temp2D = 0.0d4 
+!            Ptr2D => Temp2D
+!
+!            ! Check if variable is in file. If not found, initialize
+!            ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
+!            ierr = Nf_Inq_Varid (fId, v_name, v_id)
+!            IF ( ierr /= NF_NOERR ) THEN
+!               FOUND = .FALSE.
+!               WRITE( 6, 170 ) TRIM( v_name )
+!            ELSE
+!               FOUND = .TRUE.
+!               CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
+!            ENDIF
+!
+!            ! Assign ocean mercury data and write total mass to file
+!            SELECT CASE( M )
+!            CASE ( 1 )
+!               SNOW_HG_OC(:,:,N) = Ptr2D
+!               IF ( FOUND ) THEN
+!                  WRITE( 6, 180 ) v_name,  &
+!                                  SUM( SNOW_HG_OC(:,:,N) ), 'kg'
+!               ENDIF
+!            CASE ( 2 )
+!               SNOW_HG_STORED_OC(:,:,N) = Ptr2D
+!               IF ( FOUND ) THEN
+!                  WRITE( 6, 180 ) v_name,  &
+!                                  SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
+!               ENDIF
+!            CASE ( 3 )
+!               SNOW_HG_LN(:,:,N) = Ptr2D
+!               IF ( FOUND ) THEN
+!                  WRITE( 6, 180 ) v_name,  &
+!                                  SUM( SNOW_HG_LN(:,:,N) ), 'kg'
+!               ENDIF
+!            CASE ( 4 )
+!               SNOW_HG_STORED_LN(:,:,N) = Ptr2D
+!               IF ( FOUND ) THEN
+!                  WRITE( 6, 180 ) v_name,  &
+!                                  SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
+!               ENDIF
+!            END SELECT
+!
+!            ! Nullify pointer
+!            Ptr2D => NULL()
+!
+!         ENDDO
+!      ENDDO
+!
+!      ! Format strings
+!170   FORMAT('Variable not found in restart file: ', a24)
+!180   FORMAT( a24, ':   ', es15.9, 1x, a4)
+!
+!      ! Print note that variables are initialized to zero if not 
+!      ! found (currently only happens in tagged Hg simulation)
+!      IF ( Input_Opt%LSPLIT ) THEN
+!         WRITE( 6, 190 )
+!190      FORMAT( /, 'NOTE: all variables not found are initialized ', &
+!                    'to zero') 
+!      ENDIF
+!
+!      ! Free pointers for Hg indexing
+!      Hg_Cat_Name => NULL()
+!
+!   ENDIF
+
+   !=================================================================
+   ! Clean up
+   !=================================================================
+      
+   ! Mark end of section in log
+   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+   !### Debug
+   IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
+      CALL DEBUG_MSG('### READ_GC_RESTART: read file')
+   ENDIF
+
+ END SUBROUTINE Get_GC_Restart
 !EOC
 END MODULE Hcoi_GC_Main_Mod
