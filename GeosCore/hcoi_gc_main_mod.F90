@@ -632,7 +632,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,          INTENT(IN   )  :: EmisTime   ! Is this an emission time step? 
-    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase: 1, 2, -1 (all) 
+    INTEGER,          INTENT(IN   )  :: Phase      ! Run phase (see remarks)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3513,9 +3513,12 @@ CONTAINS
                             Phase,     RC )
 !
 ! ! USES:
-   !
+!
    USE DAO_Mod
+   USE ErrCode_Mod
    USE FlexGrid_Read_Mod
+   USE HCO_INTERFACE_MOD,      ONLY : HcoState
+   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr 
    USE Input_Opt_Mod,          ONLY : OptInput
    USE Pressure_Mod,           ONLY : Set_Floating_Pressures
 #if defined( RRTMG )
@@ -3555,14 +3558,27 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   ! Convenience variable for date & time
-   INTEGER :: D(2)
+   INTEGER              :: N_DYN              ! Dynamic timestep in seconds
+   INTEGER              :: D(2)               ! Variable for date and time
+   LOGICAL              :: FOUND              ! Found in restart file?
+   CHARACTER(LEN=255)   :: v_name             ! Variable name 
 
+   ! Pointers
+   REAL*4,  POINTER     :: Ptr2D(:,:)
+   REAL*4,  POINTER     :: Ptr3D(:,:,:)
+   
    !=================================================================
    !    *****  R E A D   M E T   F I E L D S    *****
    !    *****  At the start of the GEOS-Chem simulation  *****
    !=================================================================
 
+   ! Assume success
+   RC        = GC_SUCCESS
+   
+   ! Initialize pointers
+   Ptr2D       => NULL()
+   Ptr3D       => NULL()
+   
    !----------------------------------
    ! Read time-invariant data (Phase 0 only)
    !----------------------------------
@@ -3613,15 +3629,153 @@ CONTAINS
       ! Compute avg moist pressure near polar caps
       CALL AvgPole( State_Met%PS2_WET ) 
 
+      ! On first call, attempt to get instantaneous met fields for prior
+      ! timestep from the GEOS-Chem restart file. Otherwise, initialize
+      ! to met fields for this timestep.
       IF ( PHASE == 0 ) THEN
-         ! Initialize I3 met fields prior to interpolation
-         CALL Copy_I3_Fields( State_Met )
-         State_Met%T        = State_Met%TMPU2
-         State_Met%SPHU     = State_Met%SPHU2
+
+         !-------------
+         ! TMPU
+         !-------------
+
+         ! Define variable name
+         v_name = 'TMPU1'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr3D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'Initialize TMPU1    from restart file'
+               State_Met%TMPU1 = Ptr3D
+            ENDIF
+         ELSE
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'TMPU1 not found in restart, set to TMPU2'
+               State_Met%TMPU1 = State_Met%TMPU2
+            ENDIF
+         ENDIF
+
+         ! Nullify pointer
+         Ptr3D => NULL()
+
+         !-------------
+         ! SPHU
+         !-------------
+
+         ! Define variable name
+         v_name = 'SPHU1'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr3D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'Initialize SPHU1    from restart file'
+               State_Met%SPHU1 = Ptr3D
+            ENDIF
+         ELSE
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'SPHU1 not found in restart, set to SPHU2'
+               State_Met%SPHU1 = State_Met%SPHU2
+            ENDIF
+         ENDIF
+
+         ! Nullify pointer
+         Ptr3D => NULL()
+
+         !-------------
+         ! PS1_WET
+         !-------------
+
+         ! Define variable name
+         v_name = 'PS1WET'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr2D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'Initialize PS1_WET  from restart file'
+               State_Met%PS1_WET = Ptr2D
+            ENDIF
+         ELSE
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'PS1_WET not found in restart, set to PS2_WET'
+               State_Met%PS1_WET = State_Met%PS2_WET
+            ENDIF
+         ENDIF
+
+         ! Nullify pointer
+         Ptr2D => NULL()
+         
+         !-------------
+         ! PS1_DRY
+         !-------------
+
+         ! Define variable name
+         v_name = 'PS1DRY'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr2D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'Initialize PS1_DRY  from restart file'
+               State_Met%PS1_DRY = Ptr2D
+            ENDIF
+         ELSE
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'PS1_DRY not found in restart, set to PS2_DRY'
+               State_Met%PS1_DRY = State_Met%PS2_DRY
+            ENDIF
+         ENDIF
+
+         ! Nullify pointer
+         Ptr2D => NULL()
+
+         !-------------
+         ! DELP_DRY
+         !-------------
+
+         ! Define variable name
+         v_name = 'DELPDRY'
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr3D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'Initialize DELP_DRY from restart file'
+               State_Met%DELP_DRY = Ptr3D
+            ENDIF
+         ELSE
+            IF (am_I_Root ) THEN
+               WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
+            ENDIF
+         ENDIF
+
+         ! Nullify pointer
+         Ptr3D => NULL()
+
+         ! Interpolate I-3 fields to current dynamic timestep
+         N_DYN = GET_TS_DYN()
+         CALL Interp( 0, 0, N_DYN, Input_Opt, State_Met )
+         
+         ! Initialize surface pressures prior to interpolation
+         ! to allow initialization of floating pressures
          State_Met%PSC2_WET = State_Met%PS2_WET
          State_Met%PSC2_DRY = State_Met%PS2_DRY
-
-         ! Initialize floating pressures
          CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
 
          !=================================================================
@@ -3735,7 +3889,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER              :: I, J, L, M, N      ! lon, lat, lev, indexes
-   LOGICAL              :: FOUND              ! ocn Hg var in restart file
+   LOGICAL              :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=255)   :: MSG                ! message 
@@ -4041,6 +4195,158 @@ CONTAINS
    ENDIF
 
    !=================================================================
+   ! Get variables for FlexChem
+   !=================================================================
+   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. Input_Opt%LCHEM ) THEN
+
+      ! Define variable name
+      v_name = 'KPP_HVALUE'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Initialize KPP H-value from restart file'
+            State_Chm%KPPHvalue = Ptr3D
+            WRITE(6,160) MINVAL( State_Chm%KPPHvalue(:,:,:) ), & 
+                         MAXVAL( State_Chm%KPPHvalue(:,:,:) ) 
+160         FORMAT( 'KPP_HVALUE: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'KPP H-value not found in restart, set to zero'
+            State_Chm%KPPHvalue = 0e+0_fp
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+      
+   ENDIF
+
+   !=================================================================
+   ! Get variables for Soil NOx emissions
+   !=================================================================
+   IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+
+      ! Define variable name
+      v_name = 'WETDEP_N'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr2D,     RC,       FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Initialize wet deposited nitrogen from restart file'
+            State_Chm%WetDepNitrogen = Ptr2D
+            WRITE(6,170) MINVAL( State_Chm%WetDepNitrogen(:,:) ), & 
+                         MAXVAL( State_Chm%WetDepNitrogen(:,:) ) 
+170         FORMAT( 12x, '  WETDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Wet deposited nitrogen not found in restart, set to zero'
+            State_Chm%WetDepNitrogen = 0e+0_fp
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr2D => NULL()
+
+      ! Define variable name
+      v_name = 'DRYDEP_N'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr2D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
+            State_Chm%DryDepNitrogen = Ptr2D
+            WRITE(6,180) MINVAL( State_Chm%DryDepNitrogen(:,:) ), & 
+                         MAXVAL( State_Chm%DryDepNitrogen(:,:) ) 
+180         FORMAT( 12x, '  DRYDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Dry deposited nitrogen not found in restart, set to zero'
+            State_Chm%DryDepNitrogen = 0e+0_fp
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr2D => NULL()
+
+   ENDIF
+
+   !=================================================================
+   ! Read variables for sulfate chemistry
+   !=================================================================
+   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+        Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+      ! Define variable name
+      v_name = 'H2O2_AFTERCHEM'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Initialize H2O2 from restart file'
+            State_Chm%H2O2AfterChem = Ptr3D
+            WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), & 
+                         MAXVAL( State_Chm%H2O2AfterChem(:,:,:) ) 
+190         FORMAT( 12x, 'H2O2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'H2O2_AFTERCHEM not found in restart, set to zero'
+            State_Chm%H2O2AfterChem = 0e+0_fp
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+      ! Define variable name
+      v_name = 'SO2_AFTERCHEM'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
+            State_Chm%SO2AfterChem = Ptr3D
+            WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), & 
+                         MAXVAL( State_Chm%SO2AfterChem(:,:,:) ) 
+200         FORMAT( 12x, ' SO2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+            WRITE(6,*) 'SO2_AFTERCHEM not found in restart, set to zero'
+            State_Chm%SO2AfterChem = 0e+0_fp
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+   ENDIF
+   
+   !=================================================================
    ! Read variables for UCX
    !=================================================================
    IF ( Input_Opt%LUCX ) THEN
@@ -4050,12 +4356,16 @@ CONTAINS
 
       ! Get variable from HEMCO and store in local array
       CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                       State_Chm%STATE_PSC, RC, FOUND=FOUND )
+                       Ptr3D,     RC,       FOUND=FOUND )
 
-      ! Check if species data is in file
+      ! Check if variable is in file
       IF ( FOUND ) THEN
          IF (am_I_Root ) THEN
-            WRITE(6,*) '    - Initialize PSC from restart for UCX' 
+            WRITE(6,*) 'Initialize PSC from restart for UCX'
+            State_Chm%STATE_PSC = Ptr3D
+            WRITE(6,210) MINVAL( State_Chm%STATE_PSC(:,:,:) ), & 
+                         MAXVAL( State_Chm%STATE_PSC(:,:,:) ) 
+210         FORMAT( 12x, ' STATE_PSC: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
          IF (am_I_Root ) THEN
@@ -4065,16 +4375,20 @@ CONTAINS
             ! will result in the same output from ExtData as if the field
             ! was missing from the file. As such, HEMCO cannot distinguish
             ! between a missing file and a field of zeros
-            WRITE(6,*) '    - PSC restart either all zeros in the '
-            WRITE(6,*) '      root domain, or the restart file did '
-            WRITE(6,*) '      not contain STATE_PSC. Root domain '
-            WRITE(6,*) '      will be initialized PSC-free'
+            WRITE(6,*) 'PSC restart either all zeros in the '
+            WRITE(6,*) 'root domain, or the restart file did '
+            WRITE(6,*) 'not contain STATE_PSC. Root domain '
+            WRITE(6,*) 'will be initialized PSC-free'
          ENDIF
 #else
-            WRITE(6,*) '    - PSC restart not found, initialize PSC-free'
+            WRITE(6,*) 'PSC restart not found, initialize PSC-free'
          ENDIF
 #endif
       ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
    ENDIF
    
 !   !=================================================================
@@ -4316,12 +4630,10 @@ CONTAINS
    !=================================================================
       
    ! Mark end of section in log
-   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-
-   !### Debug
    IF ( Input_Opt%LPRT .AND. am_I_Root ) THEN
-      CALL DEBUG_MSG('### READ_GC_RESTART: read file')
+      CALL DEBUG_MSG('### DONE GET_GC_RESTART')
    ENDIF
+   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
 !EOC
