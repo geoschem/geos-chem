@@ -3805,7 +3805,7 @@ CONTAINS
    ! Write read message to log
    WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
    WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
-            
+
    !=================================================================
    ! Read species concentrations from NetCDF or use default 
    ! background [mol/mol]; store in State_Chm%Species in [kg/kg dry]
@@ -3861,7 +3861,7 @@ CONTAINS
 
          ! Print the min & max of each species as it is read from 
          ! the restart file in mol/mol
-         IF ( Input_Opt%LPRT ) THEN
+         IF ( am_I_Root .AND. Input_Opt%LPRT ) THEN
             WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
                             MINVAL( Ptr3D ), MAXVAL( Ptr3D )
 120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
@@ -3952,7 +3952,7 @@ CONTAINS
                ENDIF
 
                ! Print to log if debugging is on
-               IF ( Input_Opt%LPRT      .AND. &
+               IF ( am_I_Root .AND. Input_Opt%LPRT .AND. &
                     I == 1 .AND. J == 1 .AND. L == 1 ) THEN
                   WRITE( 6, 130 ) N, TRIM( SpcInfo%Name )
 130               FORMAT('Species ', i3, ', ', a9, &
@@ -3974,7 +3974,7 @@ CONTAINS
                                             * MW_g / AIRMW
 
                ! Print to log if debugging is on
-               IF ( Input_Opt%LPRT      .AND. &
+               IF ( am_I_Root .AND. Input_Opt%LPRT .AND. &
                     I == 1 .AND. J == 1 .AND. L == 1 ) THEN
                   WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
 140               FORMAT('Species ', i3, ', ', a9, &
@@ -4040,6 +4040,43 @@ CONTAINS
 
    ENDIF
 
+   !=================================================================
+   ! Read variables for UCX
+   !=================================================================
+   IF ( Input_Opt%LUCX ) THEN
+
+      ! Define variable name
+      v_name = 'STATE_PSC'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       State_Chm%STATE_PSC, RC, FOUND=FOUND )
+
+      ! Check if species data is in file
+      IF ( FOUND ) THEN
+         IF (am_I_Root ) THEN
+            WRITE(6,*) '    - Initialize PSC from restart for UCX' 
+         ENDIF
+      ELSE
+         IF (am_I_Root ) THEN
+#if defined(ESMF_)
+            ! ExtData and HEMCO behave ambiguously - if the file was found
+            ! but was full of zeros throughout the domain of interest, it
+            ! will result in the same output from ExtData as if the field
+            ! was missing from the file. As such, HEMCO cannot distinguish
+            ! between a missing file and a field of zeros
+            WRITE(6,*) '    - PSC restart either all zeros in the '
+            WRITE(6,*) '      root domain, or the restart file did '
+            WRITE(6,*) '      not contain STATE_PSC. Root domain '
+            WRITE(6,*) '      will be initialized PSC-free'
+         ENDIF
+#else
+            WRITE(6,*) '    - PSC restart not found, initialize PSC-free'
+         ENDIF
+#endif
+      ENDIF
+   ENDIF
+   
 !   !=================================================================
 !   ! Read ocean mercury variables
 !   !=================================================================

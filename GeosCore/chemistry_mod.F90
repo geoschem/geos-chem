@@ -138,8 +138,6 @@ CONTAINS
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif                   
     USE UCX_MOD,         ONLY : CALC_STRAT_AER
-    USE UCX_MOD,         ONLY : READ_PSC_FILE
-    USE UCX_MOD,         ONLY : WRITE_STATE_PSC
     USE UnitConv_Mod,    ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
@@ -257,6 +255,7 @@ CONTAINS
 !  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
 !                              match new timestep unit of seconds
 !  28 Aug 2018 - E. Lundgren - Implement budget diagnostics
+!  26 Oct 2018 - M. Sulprizio- Remove calls to read and write STATE_PSC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -395,35 +394,6 @@ CONTAINS
        ! (5) complexSOA-SVPOA; (6) aciduptake; (7) marinePOA
        !====================================================================
        IF ( IT_IS_A_FULLCHEM_SIM ) THEN 
-
-          IF ( LUCX ) THEN
-             !-----------------------------------------------------------
-             !            %%%%%%% UCX-based mechanisms %%%%%%%
-             !
-             ! We need to get the STATE_PSC from the HEMCO restart file.
-             ! NOTE: Do this before calling CHEMDR to avoid reading this
-             ! data from w/in an !$OMP PARALLEL region. (bmy, 4/8/15)
-             ! Now call READ_PSC_FILE on every time step to accomodate 
-             ! replay simulations in GEOS-5 (ckeller, 5/8/15)
-             !
-             ! NOTE: For GEOS-Chem "Classic" simulations, READ_PSC_FILE
-             ! will only execute on the first timestep. (bmy, 10/5/18)
-             !-----------------------------------------------------------
-#if defined( USE_TIMERS )
-             CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
-
-             CALL Read_PSC_File( am_I_Root, State_Chm, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Read_Psc_File"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-#if defined( USE_TIMERS )
-             CALL GEOS_Timer_End( "=> Strat chem", RC )
-#endif
-          ENDIF
              
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_Start( "=> Gas-phase chem", RC )
@@ -656,34 +626,6 @@ CONTAINS
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_End( "=> All aerosol chem", RC )
 #endif
-
-          IF ( LUCX ) THEN
-             !--------------------------------------------------------------
-             !            %%%%%%% UCX-based mechanisms %%%%%%%
-             !
-             ! Write STATE_PSC to diagnostics. This is only of relevance in
-             ! an ESMF environment, where the restart variables (STATE_PSC)
-             ! need to be written to the internal state object on every time
-             ! step (ckeller, 5/8/15). 
-             !--------------------------------------------------------------
-#if defined( USE_TIMERS )
-             CALL GEOS_Timer_Start( "=> Strat chem", RC )
-#endif
-
-             CALL Write_State_PSC( am_I_Root, State_Chm, RC )
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Write_State_PSC"!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-#if defined( USE_TIMERS )
-             CALL GEOS_Timer_End  ( "=> Strat chem",  RC )
-#endif
-
-          ENDIF
           
        !====================================================================
        ! Aerosol-only simulation
