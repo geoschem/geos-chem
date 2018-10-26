@@ -150,13 +150,27 @@ string(REPLACE " " ";" GC_DEFINES "${GC_DEFINES}")
 set_dynamic_default(GC_DEFINES LOG RESULTING_DEFINES_LOG)
 
 # Get compiler options
-set_dynamic_default(FC_OPTIONS
-    -fPIC -cpp -w -auto -noalign "-convert big_endian" -O2 -vec-report0 
-    "-fp-model source" -openmp -mcmodel=medium -shared-intel -traceback
-    -DLINUX_IFORT
+if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
+    set_dynamic_default(FC_OPTIONS
+        -fPIC -cpp -w -auto -noalign "-convert big_endian" -O2 -vec-report0 
+        "-fp-model source" -openmp -mcmodel=medium -shared-intel -traceback
+        -DLINUX_IFORT
 
-    LOG RESULTING_DEFINES_LOG
-)
+        LOG RESULTING_DEFINES_LOG
+    )
+elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+    set_dynamic_default(FC_OPTIONS
+        -fPIC -cpp -w -std=legacy -fautomatic -fno-align-commons
+        -fconvert=native # ONLY FOR HPC 
+        -fno-range-check
+
+        -DLINUX_GFORTRAN
+
+        LOG RESULTING_DEFINES_LOG
+    )
+else()
+    message(FATAL_ERROR "${CMAKE_Fortran_COMPILER_ID} Fortran compiler is not currently supported!")
+endif()
 
 message(STATUS "Resulting definitions/options:")
 dump_log(RESULTING_DEFINES_LOG)
