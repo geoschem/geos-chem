@@ -468,6 +468,7 @@ MODULE State_Diag_Mod
      REAL(f4), POINTER :: EmisHg0vegetation       (:,:  )
      REAL(f4), POINTER :: EmisHg2snowToOcean      (:,:  )
      REAL(f4), POINTER :: EmisHg2rivers           (:,:  )
+     REAL(f4), POINTER :: FluxHg2HgPfromAirToSnow (:,:  )
      LOGICAL :: Archive_EmisHg0anthro
      LOGICAL :: Archive_EmisHg0biomass
      LOGICAL :: Archive_EmisHg0geogenic
@@ -479,6 +480,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_EmisHg2HgPanthro
      LOGICAL :: Archive_EmisHg2snowToOcean
      LOGICAL :: Archive_EmisHg2rivers
+     LOGICAL :: Archive_FluxHg2HgPfromAirToSnow
      !
      !  -- oceanic quantities
      REAL(f4), POINTER :: FluxHg0fromOceanToAir   (:,:  )
@@ -520,7 +522,7 @@ MODULE State_Diag_Mod
      REAL(f4), POINTER :: ProdHg2fromHgBrPlusBrOH (:,:,:)
      REAL(f4), POINTER :: ProdHg2fromOH           (:,:,:)
      REAL(f4), POINTER :: ProdHg2fromO3           (:,:,:)
-     REAL(f4), POINTER :: ReactiveParticulateHg   (:,:,:)
+     REAL(f4), POINTER :: ParticulateBoundHg      (:,:,:)
      REAL(f4), POINTER :: ReactiveGaseousHg       (:,:,:)
      LOGICAL :: Archive_ConcBr
      LOGICAL :: Archive_ConcBrO
@@ -541,7 +543,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ProdHg2fromHgBrPlusBrOH
      LOGICAL :: Archive_ProdHg2fromOH
      LOGICAL :: Archive_ProdHg2fromO3
-     LOGICAL :: Archive_ReactiveParticulateHg
+     LOGICAL :: Archive_ParticulateBoundHg
      LOGICAL :: Archive_ReactiveGaseousHg      
 
      ! Radiation simulation (RRTMG)
@@ -1110,6 +1112,7 @@ CONTAINS
     State_Diag%EmisHg2HgPanthro                    => NULL()
     State_Diag%EmisHg2snowToOcean                  => NULL()
     State_Diag%EmisHg2rivers                       => NULL()
+    State_Diag%FluxHg2HgPfromAirToSnow             => NULL()
     State_Diag%Archive_EmisHg0anthro               = .FALSE.
     State_Diag%Archive_EmisHg0biomass              = .FALSE.
     State_Diag%Archive_EmisHg0geogenic             = .FALSE.
@@ -1121,6 +1124,7 @@ CONTAINS
     State_Diag%Archive_EmisHg2HgPanthro            = .FALSE.
     State_Diag%Archive_EmisHg2snowToOcean          = .FALSE.
     State_Diag%Archive_EmisHg2rivers               = .FALSE.
+    State_Diag%Archive_FluxHg2HgPfromAirToSnow     = .FALSE.
     !
     ! -- oceanic quantities
     State_Diag%FluxHg0fromAirToOcean               => NULL()
@@ -1140,7 +1144,7 @@ CONTAINS
     State_Diag%Archive_MassHg0inOcean              = .FALSE.
     State_Diag%Archive_MassHg2inOcean              = .FALSE.
     State_Diag%Archive_MassHgPinOcean              = .FALSE.
-    State_Diag%Archive_MassHgTotalInOcean            = .FALSE.
+    State_Diag%Archive_MassHgTotalInOcean          = .FALSE.
     !
     ! -- chemistry quantities
     State_Diag%ConcBr                              => NULL()
@@ -1162,7 +1166,7 @@ CONTAINS
     State_Diag%ProdHg2fromHgBrPlusBrOH             => NULL()
     State_Diag%ProdHg2fromOH                       => NULL()
     State_Diag%ProdHg2fromO3                       => NULL()
-    State_Diag%ReactiveParticulateHg               => NULL()
+    State_Diag%ParticulateBoundHg                  => NULL()
     State_Diag%ReactiveGaseousHg                   => NULL()
     State_Diag%Archive_ConcBr                      = .FALSE.
     State_Diag%Archive_ConcBrO                     = .FALSE.
@@ -1183,7 +1187,7 @@ CONTAINS
     State_Diag%Archive_ProdHg2fromHgBrPlusBrOH     = .FALSE.
     State_Diag%Archive_ProdHg2fromOH               = .FALSE.
     State_Diag%Archive_ProdHg2fromO3               = .FALSE.
-    State_Diag%Archive_ReactiveParticulateHg       = .FALSE.
+    State_Diag%Archive_ParticulateBoundHg          = .FALSE.
     State_Diag%Archive_ReactiveGaseousHg           = .FALSE.
 
 #if defined( NC_DIAG )
@@ -5117,6 +5121,23 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
+       ! Flux of Hg2 and HgP from air to snow/ice
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxHg2HgPfromAirToSnow'
+       diagID  = 'FluxHg2HgPfromAirToSnow'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxHg2HgPfromAirToSnow = 0.0_f4
+          State_Diag%Archive_FluxHg2HgPfromAirToSnow = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxHg2HgPfromAirToSnow,       &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+       !-------------------------------------------------------------------
        ! Flux of Hg0 from air to ocean
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%FluxHg0fromAirToOcean'
@@ -5641,6 +5662,44 @@ CONTAINS
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%ProdHg2fromOH,                 &
                                    State_Chm, State_Diag, RC                ) 
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Particulate Bound Hg (PBM)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ParticulateBoundHg'
+       diagID  = 'ParticulateBoundHg'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ParticulateBoundHg( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ParticulateBoundHg = 0.0_f4
+          State_Diag%Archive_ParticulateBoundHg = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ParticulateBoundHg,            & 
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Reactive Gaseous Hg (RGM)
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%ReactiveGaseousHg'
+       diagID  = 'ReactiveGaseousHg'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ReactiveGaseousHg( IM, JM, LM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ReactiveGaseousHg = 0.0_f4
+          State_Diag%Archive_ReactiveGaseousHg = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ReactiveGaseousHg,             & 
+                                   State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
@@ -6841,9 +6900,15 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToSnow ) ) THEN
+       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToSnow', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%FluxHg0fromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean , STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean ', 2, RC )
+       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -7009,9 +7074,9 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ReactiveParticulateHg ) ) THEN
-       DEALLOCATE( State_Diag%ReactiveParticulateHg, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%ReactiveParticulateHg', 2, RC )
+    IF ( ASSOCIATED( State_Diag%ParticulateBoundHg ) ) THEN
+       DEALLOCATE( State_Diag%ParticulateBoundHg, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%ParticulateBoundHg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
@@ -8250,6 +8315,11 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG2HGPFROMAIRTOSNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Deposition flux of Hg2 and HgP to snow and ice'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  2
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMAIRTOOCEAN' ) THEN
        IF ( isDesc    ) Desc  = 'Volatization flux of Hg0 from the ocean to the atmosphere'
        IF ( isUnits   ) Units = 'kg s-1'
@@ -8390,8 +8460,8 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'REACTIVEPARTICULATEHG' ) THEN
-       IF ( isDesc    ) Desc  = 'Reactive particulate mercury'
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PARTICULATEBOUNDHG' ) THEN
+       IF ( isDesc    ) Desc  = 'Particulate bound mercury'
        IF ( isUnits   ) Units = 'pptv'
        IF ( isRank    ) Rank  =  3
 

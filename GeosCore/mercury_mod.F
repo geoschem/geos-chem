@@ -52,6 +52,9 @@
       PUBLIC  :: INIT_MERCURY
       PUBLIC  :: EMISSMERCURY
       PUBLIC  :: PARTITIONHG2
+#if defined( NC_DIAG )
+      PUBLIC  :: Reset_Hg_Diags
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -77,8 +80,6 @@
       PRIVATE :: GET_Cl
       PRIVATE :: GET_ClO
       PRIVATE :: GET_HOCl
-      
-
 !
 ! !REMARKS:
 !  Nomenclature: 
@@ -668,21 +669,6 @@
 
          FIRST = .FALSE.
       ENDIF
-
-#if defined( NC_DIAG )
-      !-----------------------------------------------------------------
-      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-      !
-      ! Zero out the State_Diag%DryDepChm field so as not to have
-      ! data from the last timestep be accounted in the averaging.
-      ! This is because we have to sum the dry deposition flux
-      ! within the PBL to this field. (bmy, 10/25/18)
-      !-----------------------------------------------------------------
-      IF ( State_Diag%Archive_DryDepChm   .or. 
-     &     State_Diag%Archive_DryDep    ) THEN
-         State_Diag%DryDepChm = 0.0_f4
-      ENDIF
-#endif
 
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
@@ -1355,7 +1341,7 @@
             IF ( LHGSNOW ) THEN
                DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
                CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
-     &                                         State_Met    )
+     &                                         State_Met, State_Diag )
             ENDIF           
 !$OMP END CRITICAL
 
@@ -1398,13 +1384,6 @@
                ! Archive Hg(II)p drydep flux in AD44 array [molec/cm2/s]
                AD44(I,J,HgP_Id_List(N),1) = 
      &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
-
-               IF ( dep_hg0 > 0.0_fp ) THEN
-                  print*, '### dep dry flx bpch:'
-                  print*, '### I J L NN    : ', I, J, L
-                  print*, '### Dep_hg0     : ', dep_hg0
-                  print*, '### dep_dry_flx : ', dep_dry_flx
-               ENDIF
 
             ENDIF
 
@@ -2779,8 +2758,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ELSE
          EHg0_oc = 0e+0_fp
-         CALL OFFLINEOCEAN_READMO( EHg0_oc, RC, am_I_Root,
-     &                             State_met, State_Chm)
+         CALL OFFLINEOCEAN_READMO( EHg0_oc,   RC,        am_I_Root,
+     &                             State_met, State_Chm, State_Diag )
 
       ENDIF
 
@@ -3002,7 +2981,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
@@ -4265,13 +4246,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDDO
 
 #if defined( BPCH_DIAG )
-            !----------------------------
-            ! ND03 diag: Anthro HgP [kg]
-            !----------------------------
+            !-----------------------------------------------------------
+            ! %%%%% ND03 (bpch) diagnostics
+            !
+            ! Anthro HgP [kg]
+            ! NOTE: This is zero, because in the current Hg simulation
+            ! HgP is emitted into the Hg2 species (bmy, 10/26/18)
+            !-----------------------------------------------------------
             IF ( ND03 > 0 ) THEN
                AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
             ENDIF
 #endif
+
          ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
@@ -6199,8 +6185,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OFFLINEOCEAN_READMO(FLUX, RC, am_I_Root,
-     &                              State_Met, State_Chm)
+      SUBROUTINE OFFLINEOCEAN_READMO( FLUX,      RC,        am_I_Root,
+     &                                State_Met, State_Chm, State_Diag )
 !
 ! !USES:
 !
@@ -6217,6 +6203,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE DAO_MOD,            ONLY : IS_WATER 
       USE CMN_SIZE_MOD             ! Size parameters
       USE State_Chm_Mod,      ONLY : ChmState 
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -6225,16 +6212,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT PARAMETERS:
 !
       ! hmh adding 5/17/16
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm ! Chemistry State object
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
-
-
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State Object
 !
 ! !OUTPUT PARAMETERS:
 !
       REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 
 ! 
 ! !REVISION HISTORY: 
@@ -6306,6 +6295,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ! Days in each month (will use later) 9/16/15 hmh
       DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
+
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Zero flux arrays of State_Diag to prevent leftover values
+      ! from the last timestep from being included in the averaging
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxHg0fromOceanToAir ) THEN
+         State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+         State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+      ENDIF
+#endif
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! read monthly ocean evasion  !
@@ -6490,6 +6495,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
 
 #if defined( BPCH_DIAG )
+               !--------------------------------------------------------
+               ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
+               !
+               ! Fluxes of Hg0 from air to ocean and ocean to air [kg]
+               !--------------------------------------------------------
                IF ( ND03 > 0 ) THEN
                   AD03(I,J,16,NN) = AD03(I,J,16,NN) 
      &                 + FUP(I,J,NN) * DTSRCE
@@ -6497,6 +6507,30 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &                 + FDOWN(I,J,NN) *DTSRCE
                ENDIF
 #endif
+
+#if defined( NC_DIAG )
+               !--------------------------------------------------------
+               ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+               !
+               ! Fluxes of Hg0 from air to ocean and ocean to air [kg/s]
+               ! NOTE: Implement for total Hg species at ths time
+               !--------------------------------------------------------
+               IF ( NN == 1 ) THEN
+
+                  ! Flux of Hg0 from ocean to air [kg/s]
+                  IF ( State_Diag%Archive_FluxHg0fromOceanToAir ) THEN
+                     State_Diag%FluxHg0fromOceanToAir(I,J) =  
+     &                  FUP(I,J,NN)
+                  ENDIF
+
+                  IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+                     State_Diag%FluxHg0fromAirToOcean(I,J) =  
+     &                  FDOWN(I,J,NN)
+                  ENDIF
+
+               ENDIF
+#endif
+
             ENDDO
 
          ELSE
@@ -6517,6 +6551,125 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE OFFLINEOCEAN_READMO
 !EOC
+#if defined( NC_DIAG )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Reset_Hg_Diags
+!
+! !DESCRIPTION: Zeroes the relevant diagnostic fields of State_Diag for 
+!  the Hg and tagged Hg simulations.  Some of these need to be done
+!  for example, at the start of each timestep.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE Time_Mod,       ONLY : Its_Time_For_Chem
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  NOTE: Not all netCDF diagnostic fields need to be zeroed.  Some fields
+!  of State_Diag are always
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+      ! Assume success
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at Reset_Hg_Diags (in module GeosCore/mercury_mod.F'
+
+      !=================================================================
+      ! Reset_Hg_Diags begins here!
+      !=================================================================
+
+      ! Exit if it's not a Hg sim
+      IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+         ErrMsg = 'Routine "Reset_Hg_Diags" was called, but this ' //
+     &            'routine is only valid for Hg or tagHg simulations!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !--------------------------------------------------------------
+      ! Zero diagnostics in depo_mercury_mod.F
+      !--------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
+         State_Diag%FluxHg2HgPfromAirToSnow = 0.0_fp
+      ENDIF
+
+      ! These are called once per chemistry or emissions timestep
+      IF ( Its_Time_For_Chem() ) THEN
+         
+         !--------------------------------------------------------------
+         ! Zero diagnostics in mercury_mod.F
+         !--------------------------------------------------------------
+         IF ( State_Diag%Archive_DryDepChm   .or. 
+     &        State_Diag%Archive_DryDep    ) THEN
+            State_Diag%DryDepChm = 0.0_f4
+         ENDIF    
+
+         !-------------------------------------------------------------
+         ! Zero diagnostics in ocean_mercury_mod.F
+         !-------------------------------------------------------------
+         IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+            State_Diag%EmisHg2rivers = 0.0_f4
+         ENDIF
+
+         IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+            State_Diag%EmisHg2snowToOcean = 0.0_f4
+         ENDIF
+
+         IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+            State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+         ENDIF
+      
+         IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+            State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+         ENDIF
+              
+         IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+            State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+         ENDIF
+         
+         IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+            State_Diag%FluxOCtoDeepOcean = 0.0_f4
+         ENDIF 
+
+      ENDIF
+
+      END SUBROUTINE Reset_Hg_Diags
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

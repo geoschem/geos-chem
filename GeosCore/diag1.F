@@ -168,7 +168,6 @@
       INTEGER       :: I,          J,          K
       INTEGER       :: L,          N,          NA
       REAL(fp)      :: EmMW_g,     P0,         Spc_VV
-      REAL(fp)      :: EmMW_g_Hg2, EmMW_g_HgP
 
       ! SAVEd scalars
       LOGICAL, SAVE :: FIRST   = .TRUE.
@@ -184,6 +183,8 @@
       LOGICAL, SAVE :: Do_ND71 = .FALSE.
       INTEGER, SAVE :: id_Hg2  = -1
       INTEGER, SAVE :: id_HgP  = -1
+      REAL(fp),SAVE :: EmMW_g_Hg2 = -1.0_fp
+      REAL(fp),SAVE :: EmMW_g_HgP = -1.0_fp
 
       !=================================================================
       ! DIAG1 begins here!
@@ -274,18 +275,18 @@
             IF ( Do_ND03 .and. NA == 1 ) THEN
 
                !--------------------------------------------------------
-               ! Reactive gaseous mercury (RGM), [pptv]
+               ! Reactive gaseous mercury [pptv]
                !--------------------------------------------------------
-               IF ( N == id_Hg2 ) THEN
+               IF ( id_Hg2 > 0 ) THEN
                   AD03_RGM(I,J,L) = AD03_RGM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_Hg2)
      &                            * ( AIRMW / EmMw_g_Hg2 * 1e+12_fp )
                ENDIF
 
                !--------------------------------------------------------
-               ! Reactive particulate mercury (RGM), [pptv]
+               ! Particulate bound mercury [pptv]
                !--------------------------------------------------------
-               IF ( N == id_HgP ) THEN
+               IF ( id_HgP > 0 ) THEN
                   AD03_PBM(I,J,L) = AD03_PBM(I,J,L) 
      &                            + State_Chm%Species(I,J,L,id_HgP)
      &                            * ( AIRMW / EmMW_g_HgP * 1e+12_fp )

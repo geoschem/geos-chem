@@ -279,23 +279,30 @@
 !\\
 ! !INTERFACE: 
 !
-      SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2, State_Met )
+      SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2, 
+     &                             State_Met, State_Diag )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
 #endif
+      USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS:
 !
       ! Arguments as input
-      INTEGER,        INTENT(IN)  :: I, J        ! Grid box lon & lat indices
-      INTEGER,        INTENT(IN)  :: Hg_Cat      ! Hg category number
-      REAL(fp),       INTENT(IN)  :: Dep_Hg2     ! Hg2 (or HgP) deposited
-      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I, J        ! Grid box lon & lat indices
+      INTEGER,        INTENT(IN)    :: Hg_Cat      ! Hg category number
+      REAL(fp),       INTENT(IN)    :: Dep_Hg2     ! Hg2 (or HgP) deposited
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !REVISION HISTORY:
 !  02 Sep 2008 - C. Holmes   - Initial version
@@ -327,6 +334,7 @@
       LOGICAL  :: IS_SNOW_OR_ICE 
       REAL(fp) :: FRAC_SNOW_OR_ICE
       REAL(fp) :: FRAC_O
+      REAL(fp) :: DT 
 
       !=================================================================
       ! ADD_HG2_SNOWPACK begins here!
@@ -337,6 +345,9 @@
 
       ! Return if snowpack model is disabled
       IF ( .NOT. LHGSNOW ) RETURN
+
+      ! Chemistry timestep [s]
+      DT               = GET_TS_CHEM()
 
       ! Don't let fraction be greater than 1
       FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     +
@@ -380,6 +391,8 @@
 
 #if defined( BPCH_DIAG )
 !----------------------------------------------------------------------------
+! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+!
 ! NOTE: Archiving to AD03(I,J,21,1) causes the slot #4 of the PL-HG2-$ 
 ! diagnostic to yield different results when comparing a GEOS-5 Hg simulation
 ! done on a single processor to one done with multi-processors.  (In other
@@ -407,6 +420,20 @@
      &                                    FRAC_SNOW_OR_ICE *
      &                                    MAX(DEP_HG2, 0e+0_fp) 
 !----------------------------------------------------------------------------
+#endif
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+         !
+         ! Store diagnostic of TOTAL HgII/HgP deposition to snow/ice
+         ! NOTE: Units are now kg/s
+         !--------------------------------------------------------------
+         IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
+            State_Diag%FluxHg2HgPfromAirToSnow(I,J) = 
+     &      State_Diag%FluxHg2HgPfromAirToSnow(I,J) +
+     &         ( FRAC_SNOW_OR_ICE * MAX( DEP_HG2, 0e+0_fp ) ) !/ DT
+         ENDIF
 #endif
 
       ENDIF

@@ -3273,9 +3273,9 @@
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited Hg2
-                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat,    DEP_HG     )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_HG, 
+     &                                         State_Met, State_Diag )
 
                ! Check if it is a HgP tag
                ELSE IF ( SpcInfo%Is_HgP ) THEN
@@ -3284,9 +3284,9 @@
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
-                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat,    DEP_HG     )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_HG, 
+     &                                         State_Met, State_Diag )
                   
                ENDIF
 

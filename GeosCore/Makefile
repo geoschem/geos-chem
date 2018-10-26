@@ -509,9 +509,9 @@ co2_mod.o                   : co2_mod.F                                      \
 
 convection_mod.o            : convection_mod.F                               \
                               diag_mod.o              depo_mercury_mod.o     \
-                              fvdas_convect_mod.o     wetscav_mod.o          \
-                              mercury_mod.o           tendencies_mod.o       \
-                              hco_interface_mod.o     diagnostics_mod.o
+                              wetscav_mod.o           mercury_mod.o          \
+                              tendencies_mod.o        hco_interface_mod.o    \
+                              diagnostics_mod.o
 
 dao_mod.o                   : dao_mod.F
 

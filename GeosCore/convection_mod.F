@@ -405,6 +405,7 @@
      &                             Input_Opt  = Input_Opt,
      &                             State_Met  = State_Met,
      &                             State_Chm  = State_Chm,
+     &                             State_Diag = State_Diag,
      &                             I          = I,
      &                             J          = J,
      &                             AREA_M2    = AREA_M2,
@@ -567,6 +568,7 @@
      &                                Input_Opt,
      &                                State_Met,  
      &                                State_Chm,
+     &                                State_Diag,
      &                                I,          
      &                                J,
      &                                AREA_M2,    
@@ -590,6 +592,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : H2O2s_3D => H2O2s ! [v/v]
@@ -616,6 +619,7 @@
 ! !INPUT/OUTPUT PARAMETERS:                        
 !        
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !                                                  
 ! !OUTPUT PARAMETERS:                              
 !                     
@@ -1537,9 +1541,9 @@
                   Hg_Cat  = SpcInfo%Hg_Cat
 
                   ! Pass to "ocean_mercury_mod.f"
-                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
-     &                                                 State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat,    WET_Hg2    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    WET_Hg2, 
+     &                                         State_Met, State_Diag )
                ENDIF
 
                !--------------------------------------
@@ -1554,9 +1558,9 @@
                   Hg_Cat  = SpcInfo%Hg_Cat
 
                   ! Pass to "ocean_mercury_mod.f"
-                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
-     &                                                 State_Met )
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat,    WET_HgP    )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    WET_HgP, 
+     &                                         State_Met, State_Diag )
                ENDIF
             ENDIF
          ENDDO               ! End internal timestep loop

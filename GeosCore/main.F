@@ -1078,7 +1078,26 @@
          !### Debug
          IF ( prtDebug ) THEN
             CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
-         ENDIf
+         ENDIF
+
+#if defined( NC_DIAG )
+         !--------------------------------------------------------------
+         ! %%%%% HISTORY (netCDF diagnostics) %%%%%
+         !
+         ! Certain Hg simulation diagnostics (e.g. deposition of Hg2
+         ! and HgP onto snow and ice) need to be zeroed out at the
+         ! start each timestep, before operations like drydep, wetdep,
+         ! and convection are executed.  Call a routine to do this.
+         ! (bmy, 10/25/18)
+         !--------------------------------------------------------------
+         IF ( ITS_A_MERCURY_SIM ) THEN
+            CALL Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC  )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "Reset_Hg_Diags!"'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+         ENDIF
+#endif
 
          !==============================================================
          !       ***** R U N   H E M C O   P H A S E   1 *****

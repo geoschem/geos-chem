@@ -1168,41 +1168,6 @@
       ! Get current year to check if leap year (jaf, 8/12/11)
       THISYEAR  = GET_YEAR()
 
-#if defined( NC_DIAG ) 
-      !-----------------------------------------------------------------
-      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-      !
-      ! Zero the relevant diagnostic fields of State_Diag so that
-      ! leftover data from the prior timestep won't get accumulated
-      !
-      ! NOTE: Mass fields are updated on each I,J,L so those don't
-      ! need to be zeroed.
-      !-----------------------------------------------------------------
-      IF ( State_Diag%Archive_EmisHg2rivers ) THEN
-         State_Diag%EmisHg2rivers = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
-         State_Diag%EmisHg2snowToOcean = 0.0_f4
-      ENDIF
-
-      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-         State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-      ENDIF
-      
-      IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-         State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-      ENDIF
-              
-      IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-         State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-      ENDIF
-         
-      IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
-         State_Diag%FluxOCtoDeepOcean = 0.0_f4
-      ENDIF   
-#endif
-
       !-----------------------------------------------
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
