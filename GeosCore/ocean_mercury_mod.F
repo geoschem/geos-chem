@@ -688,7 +688,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+      SUBROUTINE DELIVER_SNOW_HG( SNOW_Hg2aq, I, J,
+     &                            State_Met, State_Diag )
 !
 ! !USES:
 !
@@ -700,16 +701,23 @@
       USE DEPO_MERCURY_MOD,   ONLY : LHGSNOW
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
       USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
+      USE Time_Mod,           ONLY : Get_Ts_Chem
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)        :: I, J 
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER, INTENT(IN)           :: I, J
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fpp), INTENT(OUT)     :: SNOW_Hg2aq(N_Hg_CATS)  ! Hg2 from snow
+      REAL(fpp),      INTENT(OUT)   :: SNOW_Hg2aq(N_Hg_CATS)  ! Hg2 from snow
 
 !
 ! !REMARKS:
@@ -728,7 +736,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: NN
-      REAL(fpp)     :: FROCSNOW, FRLNSNOW
+      REAL(fpp)     :: FROCSNOW, FRLNSNOW, DT
       LOGICAL       :: IS_MELT, IS_SNOWHG_OC, IS_SNOWHG_LN
       LOGICAL       :: IS_OPEN_OCEAN, IS_OPEN_LAND
 
@@ -738,6 +746,9 @@
 
       ! Return to calling program if snowpack model is disabled
       IF (.NOT. LHGSNOW) RETURN
+
+      ! Chemistry timestep in seconds
+      DT = GET_TS_CHEM()
 
       ! Intialize
       SNOW_Hg2aq = 0d0
@@ -765,9 +776,25 @@
      &            ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
                   
 #if defined( BPCH_DIAG )
-            ! Store diagnostic of meltwater delivery to ocean
+            !===========================================================
+            ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Store diagnostic of meltwater delivery to ocean [kg]
+            !===========================================================
             IF ( ND03 > 0 ) AD03(I,J,19,1) = AD03(I,J,19,1) +
      &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+#endif
+
+#if defined( NC_DIAG )
+            !===========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Store diagnostic of meltwater delivery to ocean [kg/s]
+            !===========================================================
+            IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+               State_Diag%EmisHg2snowToOcean(I,J) = 
+     &          ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) ) / DT
+            ENDIF
 #endif
 
             ! Zero reservoirs over ocean box, since we've added it
@@ -789,8 +816,9 @@
 !EOC
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
-     &                               State_Chm, FLUX,      RC         )
+      SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt,  State_Met, 
+     &                               State_Chm, State_Diag, FLUX,     
+     &                               RC                                )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -992,6 +1020,7 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
 !
@@ -1004,6 +1033,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1138,6 +1168,41 @@
       ! Get current year to check if leap year (jaf, 8/12/11)
       THISYEAR  = GET_YEAR()
 
+#if defined( NC_DIAG ) 
+      !-----------------------------------------------------------------
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Zero the relevant diagnostic fields of State_Diag so that
+      ! leftover data from the prior timestep won't get accumulated
+      !
+      ! NOTE: Mass fields are updated on each I,J,L so those don't
+      ! need to be zeroed.
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+         State_Diag%EmisHg2rivers = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+         State_Diag%EmisHg2snowToOcean = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+         State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+      ENDIF
+      
+      IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+         State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+      ENDIF
+              
+      IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+         State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+      ENDIF
+         
+      IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+         State_Diag%FluxOCtoDeepOcean = 0.0_f4
+      ENDIF   
+#endif
+
       !-----------------------------------------------
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
@@ -1213,8 +1278,9 @@
       DTSRCE = GET_TS_EMIS()
 
       !----------------------------------------------------------------
-      ! Calculate total mean NPP (mg/m2/day) for later                                                  
-      !----------------------------------------------------------------                                     
+      ! Calculate total mean NPP (mg/m2/day) for later                      
+      !----------------------------------------------------------------
+                          
       ! Initialize values
       NPP_tot = 0e+0_fpp
       A_ocean = 0e+0_fpp
@@ -1364,7 +1430,7 @@
          ! Deliver snowpack Hg to ocean if snow has melted
          ! Call before IF statement so that snow Hg is zeroed in land
          ! boxes as well as ocean boxes (jaf, 11/29/11)
-         CALL DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met )
+         CALL DELIVER_SNOW_HG( SNOW_Hg2aq, I, J, State_Met, State_Diag )
 
          ! Loop over total Hg (and ocean Hg if necessary)
          DO C = 1, N_tot_oc
@@ -1868,17 +1934,37 @@
 
                !--------------------------------------------------------
                ! Calculate new Hg(II) mass
-               !--------------------------------------------------------
+               !
                ! Add flux of Hg(II) from rivers in Arctic (jaf, 12/8/11)
                ! Convert to kg/box/timestep and add to Hg2aq
+               !--------------------------------------------------------
                IF ( (LArcticRiv) .AND. (Y >= 70) ) THEN
                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG *
      &                            A_M2 * DTSRCE * FRAC_O
 
 #if defined( BPCH_DIAG )
+                  !-----------------------------------------------------
+                  ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+                  !
+                  ! Flux of Hg(II) from rivers to ocean in Arctic [kg/s]
+                  ! NOTE: RIVER_HG is kg/m2/s, convert to kg/s
+                  !-----------------------------------------------------
                   IF ( ( ND03 > 0 ) .and. ( NN == ID_Hg_tot ) )
      &                AD03_riv(I,J) = AD03_riv(I,J) + RIVER_HG *
      &                                A_M2 * DTSRCE * FRAC_O
+#endif
+
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+                  !
+                  ! Flux of Hg(II) from rivers to ocean in Arctic [kg/s]
+                  ! NOTE: RIVER_HG is kg/m2/s, convert to kg/s
+                  !-----------------------------------------------------
+                  IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+                     State_Diag%EmisHg2rivers(I,J) = 
+     &                  ( RIVER_HG * A_M2 * FRAC_O )
+                  ENDIF
 #endif
                ENDIF
                   
@@ -2025,10 +2111,26 @@
                   HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )    
 
 #if defined( BPCH_DIAG )
-                  ! Store carbon sinking [kgC/time]
+                  !-----------------------------------------------------
+                  ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+                  !
+                  ! Store organic carbon sinking to ocean [kgC/time]
+                  !-----------------------------------------------------
                   IF ( ND03 > 0 ) THEN
                      AD03(I,J,12,1) = AD03(I,J,12,1) + JorgC_kg
                   ENDIF
+#endif
+
+#if defined( NC_DIAG )
+                  !-----------------------------------------------------
+                  ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+                  !
+                  ! Store organic carbon sinking to ocean [kgC/s]
+                  !-----------------------------------------------------
+                  IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+                     State_Diag%FluxOCtoDeepOcean(I,J) = JorgC_kg
+     &                                                 / DTSRCE
+                  ENDIF                  
 #endif
                 
                !- eds 8/31/10 -----------------------------------------
@@ -2141,10 +2243,12 @@
 
             ENDDO   
 
-            !-----------------------------------------------------------
-            ! ND03 diagnostics ("OCEAN-HG")
-            !-----------------------------------------------------------
 #if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! %%%%% ND03 (bpch) DIAGNOSTICS
+            !
+            ! Oceanic Hg quantities
+            !-----------------------------------------------------------
             IF ( ND03 > 0 ) THEN
 
               ! eds 9/9/10 added NN loop
@@ -2196,6 +2300,71 @@
                ! Total HgII/HgP dep to open ocean [kg]
                AD03(I,J,20,1) = AD03(I,J,20,1) + TOTDEP
 
+            ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !-----------------------------------------------------------
+            ! %%%%% HISTORY (aka netCDF) DIAGNOSTICS %%%%%
+            !
+            ! Oceanic Hg quantities
+            !
+            ! NOTE: We have converted units from kg
+            !-----------------------------------------------------------
+
+            ! NOTE: for now just use the total category
+            NN = 1
+
+            ! Mass of oceanic Hg0 [kg]
+            IF ( State_Diag%Archive_MassHg0inOcean ) THEN
+               State_Diag%MassHg0inOcean(I,J) = Hg0aq(I,J,NN)
+            ENDIF
+
+            ! Mass of oceanic Hg2 [kg]
+            IF ( State_Diag%Archive_MassHg2inOcean ) THEN
+               State_Diag%MassHg2inOcean(I,J) = Hg2aq(I,J,NN)
+            ENDIF
+
+            ! Mass of oceanic HgP [kg]
+            IF ( State_Diag%Archive_MassHgPinOcean ) THEN
+               State_Diag%MassHgPinOcean(I,J) = HgPaq(I,J,NN)
+            ENDIF
+
+            ! Total oceanic mercury [kg]
+            IF ( State_Diag%Archive_MassHgTotalInOcean ) THEN
+               State_Diag%MassHgTotalInOcean(I,J) = Hgaq_tot(I,J,NN)
+            ENDIF
+
+            ! Flux of Hg2 sunk to deep ocean [kg/s]
+            IF ( State_Diag%Archive_FluxHg2toDeepOcean ) THEN
+               State_Diag%FluxHg2toDeepOcean(I,J) =
+     &            HgPaq_SUNK(I,J,NN) / DTSRCE
+            ENDIF
+
+            ! Ocean-to-air and air-to-ocean fluxes
+            IF ( FLUX(I,J,NN) > 0e+0_fpp ) THEN
+               
+               ! Volatization flux of Hg0 from ocean to air
+               ! NOTE: Units are kg/s
+               IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+                  State_Diag%FluxHg0fromOceanToAir(I,J) = FLUX(I,J,NN)
+               ENDIF
+              
+            ELSE IF ( FLUX(I,J,NN) < 0e+0_fpp)  THEN
+               
+               ! Drydep flux of Hg0 from air to ocean
+               IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+                  State_Diag%FluxHg0fromAirToOcean(I,J) =
+     &                 ABS( FLUX(I,J,NN) )
+               ENDIF
+
+            ENDIF
+
+            ! Total Hg2/HgP deposited to ocean 
+            ! NOTE: Changed unit to kg/s
+            IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+               State_Diag%FluxHg2HgPfromAirToOcean(I,J) = TOTDEP
+     &                                                  / DTSRCE
             ENDIF
 #endif
            

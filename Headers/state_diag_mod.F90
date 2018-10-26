@@ -466,6 +466,8 @@ MODULE State_Diag_Mod
      REAL(f4), POINTER :: EmisHg0soil             (:,:  )
      REAL(f4), POINTER :: EmisHg2HgPanthro        (:,:  )
      REAL(f4), POINTER :: EmisHg0vegetation       (:,:  )
+     REAL(f4), POINTER :: EmisHg2snowToOcean      (:,:  )
+     REAL(f4), POINTER :: EmisHg2rivers           (:,:  )
      LOGICAL :: Archive_EmisHg0anthro
      LOGICAL :: Archive_EmisHg0biomass
      LOGICAL :: Archive_EmisHg0geogenic
@@ -475,6 +477,29 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_EmisHg0soil
      LOGICAL :: Archive_EmisHg0vegetation
      LOGICAL :: Archive_EmisHg2HgPanthro
+     LOGICAL :: Archive_EmisHg2snowToOcean
+     LOGICAL :: Archive_EmisHg2rivers
+     !
+     !  -- oceanic quantities
+     REAL(f4), POINTER :: FluxHg0fromOceanToAir   (:,:  )
+     REAL(f4), POINTER :: FluxHg0fromAirToOcean   (:,:  )
+     REAL(f4), POINTER :: FluxHg2HgPfromAirToOcean(:,:  )
+     REAL(f4), POINTER :: FluxHg2toDeepOcean      (:,:  )
+     REAL(f4), POINTER :: FluxOCtoDeepOcean       (:,:  )
+     REAL(f4), POINTER :: MassHg0inOcean          (:,:  )
+     REAL(f4), POINTER :: MassHg2inOcean          (:,:  )
+     REAL(f4), POINTER :: MassHgPinOcean          (:,:  )
+     REAL(f4), POINTER :: MassHgTotalInOcean      (:,:  )
+     LOGICAL :: Archive_FluxHg0fromAirToOcean
+     LOGICAL :: Archive_FluxHg0fromOceanToAir
+     LOGICAL :: Archive_FluxHg2HgPfromAirToOcean
+     LOGICAL :: Archive_FluxHg2toDeepOcean
+     LOGICAL :: Archive_FluxOCtoDeepOcean
+     LOGICAL :: Archive_MassHg0inOcean
+     LOGICAL :: Archive_MassHg2inOcean
+     LOGICAL :: Archive_MassHgPinOcean
+     LOGICAL :: Archive_MassHgTotalInOcean
+     !
      !  -- chemistry quantities
      REAL(f4), POINTER :: ConcBr                  (:,:,:)
      REAL(f4), POINTER :: ConcBrO                 (:,:,:)
@@ -1083,6 +1108,8 @@ CONTAINS
     State_Diag%EmisHg0snow                         => NULL()
     State_Diag%EmisHg0vegetation                   => NULL()
     State_Diag%EmisHg2HgPanthro                    => NULL()
+    State_Diag%EmisHg2snowToOcean                  => NULL()
+    State_Diag%EmisHg2rivers                       => NULL()
     State_Diag%Archive_EmisHg0anthro               = .FALSE.
     State_Diag%Archive_EmisHg0biomass              = .FALSE.
     State_Diag%Archive_EmisHg0geogenic             = .FALSE.
@@ -1091,7 +1118,30 @@ CONTAINS
     State_Diag%Archive_EmisHg0snow                 = .FALSE.
     State_Diag%Archive_EmisHg0soil                 = .FALSE.
     State_Diag%Archive_EmisHg0vegetation           = .FALSE.
-    State_Diag%Archive_EmisHg2HgPanthro            = .FALSE.  
+    State_Diag%Archive_EmisHg2HgPanthro            = .FALSE.
+    State_Diag%Archive_EmisHg2snowToOcean          = .FALSE.
+    State_Diag%Archive_EmisHg2rivers               = .FALSE.
+    !
+    ! -- oceanic quantities
+    State_Diag%FluxHg0fromAirToOcean               => NULL()
+    State_Diag%FluxHg0fromOceanToAir               => NULL()
+    State_Diag%FluxHg2toDeepOcean                  => NULL()
+    State_Diag%FluxHg2HgPfromAirToOcean            => NULL()
+    State_Diag%FluxOCtoDeepOcean                   => NULL()
+    State_Diag%MassHg0inOcean                      => NULL()
+    State_Diag%MassHg2inOcean                      => NULL()
+    State_Diag%MassHgPinOcean                      => NULL()
+    State_Diag%MassHgTotalInOcean                  => NULL()
+    State_Diag%Archive_FluxHg0fromOceanToAir       = .FALSE.
+    State_Diag%Archive_FluxHg0fromAirToOcean       = .FALSE.
+    State_Diag%Archive_FluxHg2toDeepOcean          = .FALSE.
+    State_Diag%Archive_FluxHg2HgPfromAirToOcean    = .FALSE.
+    State_Diag%Archive_FluxOCtoDeepOcean           = .FALSE.
+    State_Diag%Archive_MassHg0inOcean              = .FALSE.
+    State_Diag%Archive_MassHg2inOcean              = .FALSE.
+    State_Diag%Archive_MassHgPinOcean              = .FALSE.
+    State_Diag%Archive_MassHgTotalInOcean            = .FALSE.
+    !
     ! -- chemistry quantities
     State_Diag%ConcBr                              => NULL()
     State_Diag%ConcBrO                             => NULL()
@@ -4921,7 +4971,7 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
-       ! Land Hg0 emissions
+       ! Land Hg0 re-emissions
        !-------------------------------------------------------------------
        arrayID = 'State_Diag%EmisHg0land'
        diagID  = 'EmisHg0land'
@@ -5026,6 +5076,204 @@ CONTAINS
           State_Diag%Archive_EmisHg2HgPanthro = .TRUE.
           CALL Register_DiagField( am_I_Root, diagID,                        &
                                    State_Diag%EmisHg2HgPanthro,              &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Emission of Hg2 from snowmelt into the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg2snowToOcean'
+       diagID  = 'EmisHg2snowToOcean'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg2snowToOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg2snowToOcean = 0.0_f4
+          State_Diag%Archive_EmisHg2snowToOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg2snowToOcean,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Emission of Hg2 from snowmelt into the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%EmisHg2rivers'
+       diagID  = 'EmisHg2rivers'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%EmisHg2rivers( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%EmisHg2rivers = 0.0_f4
+          State_Diag%Archive_EmisHg2rivers = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%EmisHg2rivers,                 &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of Hg0 from air to ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxHg0fromAirToOcean'
+       diagID  = 'FluxHg0fromAirToOcean'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxHg0fromAirToOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+          State_Diag%Archive_FluxHg0fromAirToOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxHg0fromAirToOcean,         &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of Hg0 from air to ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxHg0fromOceanToAir'
+       diagID  = 'FluxHg0fromOceanToair'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxHg0fromOceanToAir( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+          State_Diag%Archive_FluxHg0fromOceanToAir = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxHg0fromOceantoAir,         &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of Hg2 to the deep ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxHg2toDeepOcean'   
+       diagID  = 'FluxHg2toDeepOcean'    
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxHg2toDeepOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxHg2toDeepOcean = 0.0_f4
+          State_Diag%Archive_FluxHg2toDeepOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxHg2toDeepOcean,            &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of organic carbon to the deep ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxOCtoDeepOcean'   
+       diagID  = 'FluxOCtoDeepOcean'    
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxOCtoDeepOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxOCtoDeepOcean = 0.0_f4
+          State_Diag%Archive_FluxOCtoDeepOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxOCtoDeepOcean,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Flux of Hg2 and HgP deposited to the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%FluxHg2HgPfromAirToOcean'   
+       diagID  = 'FluxHg2HgPfromAirToOcean'    
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+          State_Diag%Archive_FluxHg2HgPfromAirToOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%FluxHg2HgPfromAirToOcean,      &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Mass of Hg0 in the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%MassHg0inOcean'     
+       diagID  = 'MassHg0inOcean'     
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%MassHg0inOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%MassHg0inOcean = 0.0_f4
+          State_Diag%Archive_MassHg0inOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%MassHg0inOcean,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Mass of Hg2 in the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%MassHg2inOcean'     
+       diagID  = 'MassHg2inOcean'     
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%MassHg2inOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%MassHg2inOcean = 0.0_f4
+          State_Diag%Archive_MassHg2inOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%MassHg2inOcean,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Mass of HgP in the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%MassHgPinOcean'     
+       diagID  = 'MassHgPinOcean'     
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%MassHgPinOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%MassHgPinOcean = 0.0_f4
+          State_Diag%Archive_MassHgPinOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%MassHgPinOcean,                &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Mass of total Hg in the ocean
+       !-------------------------------------------------------------------
+       arrayID = 'State_Diag%MassHgTotalInOcean'  
+       diagID  = 'MassHgTotalInOcean'   
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%MassHgTotalInOcean( IM, JM ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%MassHgTotalInOcean = 0.0_f4
+          State_Diag%Archive_MassHgTotalInOcean = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%MassHgTotalInOcean,              &
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
@@ -5145,7 +5393,7 @@ CONTAINS
        ENDIF
 
        !----------------------------------------------------------------
-       ! Loss rateof Hg2 by sea salt
+       ! Loss rate of Hg2 by sea salt
        !----------------------------------------------------------------
        arrayID = 'State_Diag%LossRateHg2bySeaSalt'
        diagID  = 'LossRateHg2bySeaSalt'
@@ -6581,6 +6829,72 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%EmisHg2snowToOcean ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg2snowToOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg2snowToOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg2rivers ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg2rivers, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%EmisHg2rivers', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxHg0fromAirToOcean ) ) THEN
+       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean , STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean ', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxHg0fromOceanToAir  ) ) THEN
+       DEALLOCATE( State_Diag%FluxHg0fromOceanToAir, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg0fromOceanToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxHg2toDeepOcean ) ) THEN
+       DEALLOCATE( State_Diag%FluxHg2toDeepOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg2toDeepOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToOcean ) ) THEN
+       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxOCtoDeepOcean ) ) THEN
+       DEALLOCATE( State_Diag%FluxOCtoDeepOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%FluxOCtoDeepOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%MassHg0inOcean ) ) THEN
+       DEALLOCATE( State_Diag%MassHg0inOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%MassHg0inOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%MassHg2inOcean ) ) THEN
+       DEALLOCATE( State_Diag%MassHg2inOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%MassHg2inOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%MassHgPinOcean ) ) THEN
+       DEALLOCATE( State_Diag%MassHgPinOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%MassHgPinOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%MassHgTotalInOcean ) ) THEN
+       DEALLOCATE( State_Diag%MassHgTotalInOcean, STAT=RC  )
+       CALL GC_CheckVar( 'State_Diag%MassHgTotalInOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%ConcBr ) ) THEN
        DEALLOCATE( State_Diag%ConcBr, STAT=RC  )
        CALL GC_CheckVar( 'State_Diag%ConcBr', 2, RC )
@@ -7897,7 +8211,7 @@ CONTAINS
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0LAND' ) THEN
-       IF ( isDesc    ) Desc  = 'Land emissions of Hg0'
+       IF ( isDesc    ) Desc  = 'Land re-emissions of Hg0'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
@@ -7924,6 +8238,61 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG2HGPANTHRO' ) THEN
        IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg2 + HgP'
        IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG2SNOWTOOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Emissions of Hg2 to the ocean from snowmelt'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG2RIVERS' ) THEN
+       IF ( isDesc    ) Desc  = 'Emissions of Hg2 to the ocean from rivers'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMAIRTOOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Volatization flux of Hg0 from the ocean to the atmosphere'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMOCEANTOAIR' ) THEN
+       IF ( isDesc    ) Desc  = 'Deposition flux of Hg0 from the atmosphere to the ocean'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG2TODEEPOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Flux of Hg2 sunk to the deep ocean'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG2HGPFROMAIRTOOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Deposition flux of Hg2 and HgP from the atmosphere to the ocean'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXOCTODEEPOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Flux of organic carbon sunk to the deep ocean'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MASSHG0INOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Total oceanic mass of Hg0'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MASSHG2INOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Total oceanic mass of Hg2'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MASSHGPINOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Total oceanic mass of HgP'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  =  2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'MASSHGTOTALINOCEAN' ) THEN
+       IF ( isDesc    ) Desc  = 'Total ocean mass of all mercury'
+       IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'CONCBR' ) THEN

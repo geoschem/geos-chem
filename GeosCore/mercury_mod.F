@@ -669,6 +669,21 @@
          FIRST = .FALSE.
       ENDIF
 
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Zero out the State_Diag%DryDepChm field so as not to have
+      ! data from the last timestep be accounted in the averaging.
+      ! This is because we have to sum the dry deposition flux
+      ! within the PBL to this field. (bmy, 10/25/18)
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_DryDepChm   .or. 
+     &     State_Diag%Archive_DryDep    ) THEN
+         State_Diag%DryDepChm = 0.0_f4
+      ENDIF
+#endif
+
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -714,8 +729,8 @@
          ENDIF
 
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
-         !-----------------------------------------------------------
 
+         !-------------------------------------------------------------
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
          IF ( LHALOGENCHEM ) THEN
@@ -1350,7 +1365,9 @@
             !
             ! Dry deposition flux of Hg(II) in molec/cm2/s
             !=================================================================
-            IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
+            IF ( ( ND44 > 0 .OR. LGTMM )  .and. 
+     &           ( .not. LNLPBL        )  .and.
+     &           ( F_PBL > 0.1_fp      ) ) THEN
 
                ! Grid box surface area [cm2]
                AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -1381,6 +1398,13 @@
                ! Archive Hg(II)p drydep flux in AD44 array [molec/cm2/s]
                AD44(I,J,HgP_Id_List(N),1) = 
      &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
+
+               IF ( dep_hg0 > 0.0_fp ) THEN
+                  print*, '### dep dry flx bpch:'
+                  print*, '### I J L NN    : ', I, J, L
+                  print*, '### Dep_hg0     : ', dep_hg0
+                  print*, '### dep_dry_flx : ', dep_dry_flx
+               ENDIF
 
             ENDIF
 
@@ -1478,6 +1502,73 @@
 #endif
 
 #if defined( NC_DIAG ) 
+            !===========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Dry deposition flux of Hg(II) in molec/cm2/s
+            !
+            ! NOTE: This is only updated when using the full PBL mixing
+            ! option (aka TURBDAY).  When you use the non-local PBL 
+            ! mixing, option (aka VDIFF), the dry deposition fluxes are 
+            ! applied at the same time the PBL mixing is done.
+            !===========================================================
+            IF ( ( .not. LNLPBL ) .and. ( F_PBL > 0.1_fp ) ) THEN
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
+
+               ! Archive Hg(0) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or.
+     &              State_Diag%Archive_DryDep    ) THEN
+                  
+                  ! Hg0 species index
+                  NN = Hg0_Id_List(N)
+
+                  ! Amt of Hg(0) lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
+     &                 State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &                 ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+
+               ! Archive Hg(II) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or. 
+     &              State_Diag%Archive_DryDep    ) THEN
+
+                  ! Hg2 species index
+                  NN = Hg2_Id_List(N)
+
+                  ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp *
+     &               State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &               ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+
+               ! Archive Hg(0) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or.
+     &              State_Diag%Archive_DryDep    ) THEN
+
+                  ! HgP species index
+                  NN = HgP_Id_List(N)
+
+                  ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp *
+     &                State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &                ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+            ENDIF
+
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -2674,8 +2765,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! (cdh, 4/30/09)
          EHg0_oc = 0e+0_fp
 
-         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, EHg0_oc,   RC         )
+         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt,  State_Met, 
+     &                            State_Chm, State_Diag, EHg0_oc,   RC )
      &                     
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
