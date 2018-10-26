@@ -798,16 +798,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Do the following only if it's time to get restart fields
+    ! Get met fields from HEMCO
+    !=======================================================================
+    CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                         Phase, RC )
+
+    !=======================================================================
+    ! Get fields from GEOS-Chem restart file
     !=======================================================================
     IF ( Phase == 0 ) THEN
-
-       ! Get the initial met fields from HEMCO
-       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
-       ! Get fields from GEOS-Chem restart file
        CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-
     ENDIF
 
     !=======================================================================
@@ -3437,8 +3437,8 @@ CONTAINS
 
           ! Loop over surface grid boxes
 !!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
+!!$OMP DEFAULT( SHARED )
+!!$OMP PRIVATE( I, J, YMID_R, TIMLOC, AHR )
           DO J = 1, JJPAR
           DO I = 1, IIPAR
 
@@ -3509,7 +3509,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+ SUBROUTINE Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            Phase,     RC )
 !
 ! ! USES:
    !
@@ -3528,11 +3529,12 @@ CONTAINS
 !
    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
    TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input opts
-   TYPE(ChmState),   INTENT(IN   )          :: State_Chm  ! Chemistry state
+   INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
    TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Met state
+   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry state
    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 ! 
 ! !REMARKS:
@@ -3561,21 +3563,79 @@ CONTAINS
    !    *****  At the start of the GEOS-Chem simulation  *****
    !=================================================================
 
-   ! Read time-invariant data
-   CALL FlexGrid_Read_CN  (             Input_Opt, State_Met )
-
+   !----------------------------------
+   ! Read time-invariant data (Phase 0 only)
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      CALL FlexGrid_Read_CN( Input_Opt, State_Met )
+   ENDIF
+      
+   !----------------------------------
    ! Read 1-hr time-averaged data
-   D = GET_FIRST_A1_TIME()
-   CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-
-   ! Read 3-hr time averaged data
-   D = GET_FIRST_A3_TIME()
-   CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_A1_TIME()
+   ELSE
+      D = GET_A1_TIME()
+   ENDIF
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() ) THEN
+      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
+   ENDIF
    
-   ! Read 3-hr instantanous data
-   D = GET_FIRST_I3_TIME()
-   CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
+   !----------------------------------
+   ! Read 3-hr time averaged data
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_A3_TIME()
+   ELSE
+      D = GET_A3_TIME()
+   ENDIF
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() ) THEN
+      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
+   ENDIF
 
+   !----------------------------------
+   ! Read 3-hr instantanous data
+   !----------------------------------
+   IF ( PHASE == 0 ) THEN
+      D = GET_FIRST_I3_TIME()
+   ELSE
+      D = GET_I3_TIME()
+   ENDIF
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_I3() ) THEN
+      CALL FlexGrid_Read_I3( D(1), D(2), Input_Opt, State_Met )
+
+      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Met )
+      CALL AvgPole( State_Met%PS2_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Met%PS2_WET ) 
+
+      IF ( PHASE == 0 ) THEN
+         ! Initialize I3 met fields prior to interpolation
+         CALL Copy_I3_Fields( State_Met )
+         State_Met%T        = State_Met%TMPU2
+         State_Met%SPHU     = State_Met%SPHU2
+         State_Met%PSC2_WET = State_Met%PS2_WET
+         State_Met%PSC2_DRY = State_Met%PS2_DRY
+
+         ! Initialize floating pressures
+         CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+
+         !=================================================================
+         ! Call AIRQNT to compute initial air mass quantities
+         !=================================================================
+         ! Do not update initial tracer concentrations since not read 
+         ! from restart file yet (ewl, 10/28/15)
+         CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
+                update_mixing_ratio=.FALSE. )
+
+      ENDIF
+         
+   ENDIF
+   
 #if defined( RRTMG )
    !  Adding the call to retrieve MODIS-derived surface
    !  albedo and emissivity here.
@@ -3589,20 +3649,6 @@ CONTAINS
    CALL Read_Surface_Rad( Input_Opt, FORCEREAD =.TRUE. )
 #endif
 
-   ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
-   ! and compute avg surface pressures near polar caps
-   CALL Set_Dry_Surface_Pressure( State_Met, 1 )
-   CALL AvgPole( State_Met%PS1_DRY )
-
-   ! Compute avg surface pressure near polar caps
-   CALL AvgPole( State_Met%PS1_WET ) 
-
-   ! Initialize surface pressures prior to interpolation
-   ! to allow initialization of floating pressures
-   State_Met%PSC2_WET = State_Met%PS1_WET
-   State_Met%PSC2_DRY = State_Met%PS1_DRY
-   CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
-   
  END SUBROUTINE Get_Met_Fields
 !EOC
 !------------------------------------------------------------------------------
@@ -3753,20 +3799,6 @@ CONTAINS
    ENDIF
 
    !=================================================================
-   ! Call AIRQNT to compute initial air mass quantities
-   !=================================================================
-   ! Do not update initial tracer concentrations since not read 
-   ! from restart file yet (ewl, 10/28/15)
-   CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
-                update_mixing_ratio=.FALSE. )
-
-   ! Trap potential errors
-   IF ( RC /= GC_SUCCESS ) THEN
-      Msg = 'Error encountered in "AirQnt" (first call)!'
-      CALL Error_Stop( Msg, Loc )
-   ENDIF
-
-   !=================================================================
    ! Open GEOS-Chem restart file
    !=================================================================
 
@@ -3837,9 +3869,9 @@ CONTAINS
          ENDIF
 
          ! Convert file value [mol/mol] to [kg/kg dry] for storage
-         !$OMP PARALLEL DO
-         !$OMP+DEFAULT( SHARED )
-         !$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -3851,14 +3883,14 @@ CONTAINS
          ENDDO
          ENDDO
          ENDDO
-         !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ELSE
 
          ! Set species to the background value converted to [kg/kg dry] 
-         !$OMP PARALLEL DO
-         !$OMP+DEFAULT( SHARED )
-         !$OMP+PRIVATE( I, J, L )
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
          ! Loop over all grid boxes
          DO L = 1, LLPAR 
          DO J = 1, JJPAR
@@ -3955,7 +3987,7 @@ CONTAINS
          ENDDO
          ENDDO
          ENDDO
-         !$OMP END PARALLEL DO
+!$OMP END PARALLEL DO
 
       ENDIF
 
