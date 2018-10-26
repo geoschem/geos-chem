@@ -3,12 +3,26 @@ project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran)
 
 # Add our module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeScripts)
+include(GCHelpers)
 
 # Find NetCDF
 find_package(NetCDF REQUIRED COMPONENTS F90)
 
-# Get compiler options and definitions for building GEOS-Chem
-include(GCBuildFlags)
+# Select an implementation
+message(STATUS "GEOS-Chem implementation type:")
+set_dynamic_option(IMPL "Classic"
+    LOG IMPL_LOG
+    SELECT_EXACTLY 1
+    OPTIONS "Classic" "GCHP"
+)
+dump_log(IMPL_LOG)
+
+if("${IMPL}" STREQUAL "GCHP")
+    add_subdirectory(GCHP)
+else()
+    include(GCBuildFlags)
+endif()
+
 set(CMAKE_Fortran_FLAGS ${FC_OPTIONS})
 
 # Add target helpers
