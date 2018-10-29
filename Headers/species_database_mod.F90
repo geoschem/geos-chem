@@ -418,7 +418,8 @@ CONTAINS
                        oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth, &
                        oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,   &
                        oIs_Hg0,         oIs_Hg2,        oIs_HgP,         &
-                       Found,           Underscores,    RC )
+                       oDiagName,       Found,          Underscores,     &
+                       RC )
 !
 ! !USES:
 !
@@ -474,6 +475,7 @@ CONTAINS
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg0           ! Denotes Hg0 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg2           ! Denotes Hg2 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HgP           ! Denotes HgP species
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oDiagName ! Diagnostics long-name 
     INTEGER, INTENT(OUT)              :: RC                ! Return code
     LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present, 
                                                            ! no error if not found 
@@ -536,6 +538,7 @@ CONTAINS
     INTEGER             :: P, IDX, CNT
     LOGICAL             :: IsPassive
     LOGICAL             :: Uscore    
+    CHARACTER(LEN=8)    :: sMW
 
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
@@ -3037,7 +3040,7 @@ CONTAINS
                               WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'SALA' )
-             FullName = 'Accumulation mode sea salt aerosol'
+             FullName = 'Fine (0.01-0.05 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3074,7 +3077,7 @@ CONTAINS
                               WD_RainoutEff = RainEff
 
           CASE( 'SALC' )
-             FullName = 'Coarse mode sea salt aerosol'
+             FullName = 'Coarse (0.5-8 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3327,7 +3330,7 @@ CONTAINS
                               WD_RainoutEff = RainEff
 
           CASE( 'SOAP' )
-             FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
+             FullName = 'SOA Precursor - lumped species for simplified SOA parameterization'
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
@@ -5188,6 +5191,35 @@ CONTAINS
     IF ( PRESENT(oIs_Hg0) ) oIs_Hg0 = Is_Hg0
     IF ( PRESENT(oIs_Hg2) ) oIs_Hg2 = Is_Hg2
     IF ( PRESENT(oIs_HgP) ) oIs_HgP = Is_HgP
+    ! Diagnostics name: long name, formula, MW
+    IF ( PRESENT(oDiagName) ) THEN
+       oDiagName = FullName
+       IF ( TRIM(Formula) /= '' ) THEN
+          oDiagName = TRIM(oDiagName)//' ('//TRIM(Formula)
+       ENDIF
+       IF ( MW_g /= MISSING_MW ) THEN
+          WRITE(sMW,'(f6.2)') MW_g
+          IF ( TRIM(Formula) /= '' ) THEN
+             oDiagName = TRIM(oDiagName)//', MW ='
+          ELSE
+             oDiagName = TRIM(oDiagName)//' (MW ='
+          ENDIF
+          oDiagName = TRIM(oDiagName)//' '//TRIM(ADJUSTL(sMW))//' g mol-1'
+       ENDIF
+       IF ( TRIM(Formula) /= '' .OR. MW_g /= MISSING_MW ) THEN
+          oDiagName = TRIM(oDiagName)//')'
+       ENDIF
+       IF ( Uscore ) THEN
+          CNT = 0
+          IDX = INDEX(TRIM(oDiagName),' ')
+          DO WHILE ( IDX > 0 ) 
+             CNT = CNT + 1
+             IF ( CNT > 100 ) EXIT
+             oDiagName(IDX:IDX) = '_'
+             IDX = INDEX(TRIM(oDiagName),' ')
+          END DO
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Spc_Info 
 !EOC
