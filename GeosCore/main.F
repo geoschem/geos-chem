@@ -2027,9 +2027,11 @@
                CALL SET_SPECMASK(0)
 
                !First call for baseline (all aerosol and ozone)
-               CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
-     &                                     ICLD, 0, ISEED, Input_Opt, 
-     &                                     State_Met, State_Chm, RC)
+               CALL DO_RRTMG_RAD_TRANSFER( am_I_Root,  DAY,
+     &                                     MONTH,      ICLD,
+     &                                     0,          ISEED,
+     &                                     Input_Opt,  State_Met,
+     &                                     State_Chm,  State_Diag, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2049,10 +2051,12 @@
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
-                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY, MONTH, 
-     &                                           ICLD, N, ISEED, 
+                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY,
+     &                                           MONTH,     ICLD,
+     &                                           N,         ISEED,
      &                                           Input_Opt, State_Met, 
-     &                                           State_Chm, RC )
+     &                                           State_Chm, State_Diag,
+     &                                           RC )
 
                      ! Trap potential errors
                      IF ( RC /= GC_SUCCESS ) THEN

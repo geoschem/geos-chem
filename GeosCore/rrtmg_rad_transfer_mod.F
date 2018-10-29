@@ -111,10 +111,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root, THISDAY,   THISMONTH, 
-     &                                  ICLD,      ISPECMENU, ISEED,     
-     &                                  Input_Opt, State_Met, State_Chm,
-     &                                  RC  )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  THISDAY,
+     &                                  THISMONTH,  ICLD,
+     &                                  ISPECMENU,  ISEED,
+     &                                  Input_Opt,  State_Met,
+     &                                  State_Chm,  State_Diag,
+     &                                  RC                      )
 !
 ! !USES:
 !
@@ -147,6 +149,7 @@
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Chm_Mod,       ONLY : Ind_
+      USE State_Diag_Mod,      ONLY : DgnState
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
@@ -169,6 +172,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
                                                    ! 0-NOCLOUD, 1-GREY CLOUD
 !
@@ -1549,37 +1553,166 @@
       DO J=1,JJPAR
       DO I=1,IIPAR
 #if defined( BPCH_DIAG )
+       !================================================================
+       ! %%%%% ND72 (bpch) DIAGNOSTIC %%%%%
+       !
+       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
+       !================================================================
+
        IF (ICLD.GT.0) THEN
+        !-------------------------------------------------------
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
+        !-------------------------------------------------------
+
+        ! All-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX) = AD72(I,J,OUTIDX) -  
      &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+
+        ! All-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+NAD72) = AD72(I,J,OUTIDX+NAD72) +
      &                     SNGL(SW_DFLUX(I,J,1))
+
+        ! All-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+2*NAD72) = AD72(I,J,OUTIDX+2*NAD72) -
      &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+
+        ! All-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+3*NAD72) = AD72(I,J,OUTIDX+3*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
+
+        ! Clear-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
      &                     SNGL(SW_UFLUXC(I,J,LLPAR+1))
+
+        ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
      &                     SNGL(SW_DFLUXC(I,J,1))
+
+        ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
      &                     SNGL(LW_UFLUXC(I,J,LLPAR+1))
+
+        ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUXC(I,J,1))
        ELSE
-        !CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+        !-------------------------------------------------------
+        ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+        !-------------------------------------------------------
+          
+        ! Clear-sky SW flux @ TOA [w/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
      &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+
+        ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
      &                     SNGL(SW_DFLUX(I,J,1))
+
+        ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
      &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+
+        ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
 #endif
+
+#if defined( NC_DIAG ) 
+       !================================================================
+       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+       !
+       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
+       !================================================================
+       IF ( ICLD > 0 ) THEN
+
+          IF ( I==1 .and.J==34 ) THEN
+             print*, '### rrtmg debug!'
+             print*, '### sw_uflux: ', -SW_UFLUX(I,J,LLPAR+1)
+             print*, '### lw_uflux: ', -LW_UFLUX(I,J,LLPAR+1)
+             print*, '### sw_ufluxc:', -SW_UFLUXC(I,J,LLPAR+1)
+             print*, '### lw_ufluc: ', -LW_UFLUXC(I,J,LLPAR+1)
+             print*, '### sw_dflux: ',  SW_DFLUX(I,J,1)
+             print*, '### lw_dflux: ',  LW_DFLUX(I,J,1)
+             print*, '### sw_dfluxc:',  SW_DFLUXC(I,J,1)
+             print*, '### lw_dfluc: ',  LW_DFLUXC(I,J,1)
+          ENDIF
+
+          !-------------------------------------------------------
+          !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
+          !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
+          !-------------------------------------------------------
+
+          ! All-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
+          ENDIF
+
+          ! All-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
+          ENDIF
+
+          ! All-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
+          ENDIF
+
+          ! All-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
+          ENDIF
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+          ENDIF
+
+       ELSE
+     
+          !-------------------------------------------------------
+          ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+          !-------------------------------------------------------
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+          ENDIF
+
+       ENDIF
+#endif
+
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)

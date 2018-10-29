@@ -547,14 +547,14 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ReactiveGaseousHg      
 
      ! Radiation simulation (RRTMG)
-     REAL(f4),  POINTER :: RadAllSkyLWSurf (:,:,:  ) ! All-sky LW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkyLWTOA  (:,:,:  ) ! All-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadAllSkySWSurf (:,:,:  ) ! All-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkySWTOA  (:,:,:  ) ! All-sky SW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkyLWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkyLWTOA  (:,:,:  ) ! Clr-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkySWSurf (:,:,:  ) ! Clr-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkySWTOA  (:,:,:  ) ! Clr-sky SW rad @ atm top
+     REAL(f4),  POINTER :: RadAllSkyLWSurf(:,:) ! All-sky LW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkyLWTOA (:,:) ! All-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadAllSkySWSurf(:,:) ! All-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadAllSkySWTOA (:,:) ! All-sky SW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkyLWSurf(:,:) ! Clr-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkyLWTOA (:,:) ! Clr-sky LW rad @ atm top
+     REAL(f4),  POINTER :: RadClrSkySWSurf(:,:) ! Clr-sky SW rad @ surface
+     REAL(f4),  POINTER :: RadClrSkySWTOA (:,:) ! Clr-sky SW rad @ atm top
      LOGICAL :: Archive_RadAllSkyLWSurf 
      LOGICAL :: Archive_RadAllSkyLWTOA  
      LOGICAL :: Archive_RadAllSkySWSurf 
@@ -2030,7 +2030,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWSurf = 0.0_f4
@@ -2049,7 +2049,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWTOA = 0.0_f4
@@ -2068,7 +2068,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWSurf = 0.0_f4
@@ -2087,7 +2087,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWTOA = 0.0_f4
@@ -2106,7 +2106,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWSurf = 0.0_f4
@@ -2125,7 +2125,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWTOA = 0.0_f4
@@ -2144,7 +2144,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWSurf = 0.0_f4
@@ -2163,7 +2163,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nSpecies ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWTOA = 0.0_f4
@@ -7544,53 +7544,45 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSEIF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId =  'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top ' // &
                                 'of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
-       IF ( isTagged  ) TagId = 'placeholder'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
