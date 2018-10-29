@@ -2003,7 +2003,9 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for Rn-Pb-Be-PASV '   // &
@@ -2208,7 +2210,9 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for simulations '     // &
@@ -2836,7 +2840,9 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for full-chemistry '  // &
@@ -2931,10 +2937,12 @@ CONTAINS
        diagID  = 'OHconcAfterChem'
 
        ! Exit if any of the above are in the diagnostic list
-       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       ! Force an exact string match to avoid namespace confusion
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
+                            Found,     RC,        exact=.TRUE. )
        IF ( Found ) THEN
-          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '      // &
-                   'but this is only appropriate for full-chemistry '    // &
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
+                   'but this is only appropriate for full-chemistry '     // &
                    'or CH4 simulations.' 
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
@@ -3936,7 +3944,9 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for full-chemistry '  // &
@@ -4077,7 +4087,9 @@ CONTAINS
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
-          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE.           )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for aerosol-only '    // &
@@ -4166,7 +4178,9 @@ CONTAINS
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+           ! Force an exact string match to avoid namespace confusion
+           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                                Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '  // &
                       'but this is only appropriate for full-chemistry, '// &
@@ -4267,7 +4281,9 @@ CONTAINS
            END SELECT
 
            ! Exit if any of the above are in the diagnostic list
-           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+           ! Force an exact string match to avoid namespace confusion
+           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                                Found,     RC,        exact=.TRUE.           )
            IF ( Found ) THEN
               ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '   // &
                       'but this is only appropriate for acid uptake '     // &
@@ -4818,6 +4834,89 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! Persistent Organic Pollutants (POPS).
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 27
+
+          SELECT CASE( N )
+             CASE( 1  )
+                diagId = 'EmisPOPPOCPO'
+             CASE( 2  )
+                diagId = 'EmisPOPPBCPO'
+             CASE( 3  )
+                diagId = 'EmisPOPG'
+             CASE( 4  )
+                diagId = 'EmisPOPGfromSoil'
+             CASE( 5  )
+                diagId = 'EmisPOPGfromLake'
+             CASE( 6  )
+                diagId = 'EmisPOPGfromLeaf'
+             CASE( 7  )
+                diagId = 'FluxPOPGfromSoilToAir'
+             CASE( 8  )
+                diagId = 'FluxPOPGfromAirToSoil'
+             CASE( 9  )
+                diagId = 'FluxPOPGfromLakeToAir'
+             CASE( 10 )
+                diagId = 'FluxPOPGfromAirtoLake'
+             CASE( 11 )
+                diagId = 'FluxPOPGfromLeafToAir'
+             CASE( 12 )
+                diagId = 'FluxPOPGfromAirToLeaf'
+             CASE( 13 )
+                diagId = 'FugacitySoilToAir'
+             CASE( 14 )
+                diagId = 'FugacityLakeToAir'
+             CASE( 15 )
+                diagId = 'FugacityLeafToAir'
+             CASE( 16 )
+                diagId = 'LossPOPPOCPObyGasPhase'
+             CASE( 17 )
+                diagId = 'ProdPOPPOCPOfromGasPhase'
+             CASE( 18 )
+                diagId = 'LossPOPPBPOCbyGasPhase'
+             CASE( 19 )
+                diagId = 'ProdPOPPBCPOfromGasPhase'
+             CASE( 20 )
+                diagId = 'ProdPOPGfromOH'
+             CASE( 21 )
+                diagId = 'ProdPOPPOCPOfromO3'
+             CASE( 22 )
+                diagId = 'ProdPOPPOCPIfromO3'
+             CASE( 23 )
+                diagId = 'ProdPOPPBCPIfromO3'
+             CASE( 24 )
+                diagId = 'ProdPOPPBCPOfromO3'
+             CASE( 25 )
+                diagId = 'ProdPOPPOCPOfromNO3'
+             CASE( 26 )
+                diagId = 'ProdPOPPOCPIfromNO3'
+             CASE( 27 )
+                diagId = 'ProdPOPPBCPIfromNO3'
+           END SELECT
+
+           ! Exit if any of the above are in the diagnostic list
+           ! Force an exact string match to avoid namespace confusion
+           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                                Found,     RC,        exact=.TRUE.           )
+           IF ( Found ) THEN
+              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for Persistent '       // &
+                      'Organic Pollutants (POPs) specialty simulations.'
+              CALL GC_Error( ErrMsg, RC, ThisLoc )
+              RETURN
+           ENDIF
+        ENDDO
+
     ENDIF
 
     !=======================================================================
@@ -4845,6 +4944,31 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than CO2.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       diagId = 'ProdCO2fromCO'
+
+       ! Exit if any of the above are in the diagnostic list
+       ! Force an exact string match to avoid namespace confusion
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID,                    &
+                            Found,     RC,        exact=.TRUE.              )
+       IF ( Found ) THEN
+          ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '       // &
+               'but this is only appropriate for the CO2 '                // &
+               'specialty simulation.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
     ENDIF
 
     !=======================================================================
@@ -4910,6 +5034,41 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! Persistent Organic Pollutants (POPS).
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 3
+
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'LossCH4byClinTrop'
+             CASE( 2  )
+                diagID = 'LossCH4byOHinTrop'
+             CASE( 3  )
+                diagID = 'LossCH4inStrat'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE.           )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for the CH4 '         // &
+                      'and tagged CH4 specialty simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
 
     ENDIF
 
@@ -5702,6 +5861,117 @@ CONTAINS
                                    State_Chm, State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! Hg and/or tagged Hg.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 41
+
+          SELECT CASE( N )
+             CASE( 1  )
+                diagId = 'ConcBr'
+             CASE( 2  )
+                diagId = 'ConcBro'
+             CASE( 3  )
+                diagId = 'LossHg2bySeaSalt'
+             CASE( 4  )
+                diagId = 'LossRateHg2bySeaSalt'
+             CASE( 5  )
+                diagId = 'PolarConcBr'
+             CASE( 6  )
+                diagId = 'PolarConcBrO'
+             CASE( 7  )
+                diagId = 'PolarConcO3'
+             CASE( 8  )
+                diagId = 'ProdHg2fromBr'
+             CASE( 9  )
+                diagId = 'ProdHg2fromBrY'
+             CASE( 10 )
+                diagId = 'ProdHg2fromClY'
+             CASE( 11 )
+                diagId = 'ProdHg2fromHg0'
+             CASE( 12 )
+                diagId = 'ProdHg2fromHgBrPlusBr2'
+             CASE( 13 )
+                diagId = 'ProdHg2fromHgBrPlusBrBrO'
+             CASE( 14 )
+                diagId = 'ProdHg2fromHgBrPlusBrClO'
+             CASE( 15 )
+                diagId = 'ProdHg2fromHgBrPlusBrHO2'
+             CASE( 16 )
+                diagId = 'ProdHg2fromHgBrPlusBrNO2'
+             CASE( 17 )
+                diagId = 'ProdHg2fromHgBrPlusBrOH'
+             CASE( 18 )
+                diagId = 'ProdHg2fromO3'
+             CASE( 19 )
+                diagId = 'ProdHg2fromOH'
+             CASE( 20 )
+                diagId = 'ParticulateBoundHg'
+             CASE( 21 )
+                diagId = 'ReactiveGaseousHg'
+             CASE( 22 )
+                diagId = 'EmisHg0anthro'
+             CASE( 23 )
+                diagId = 'EmisHg0biomass'
+             CASE( 24 )
+                diagId = 'EmisHg0geogenic'
+             CASE( 25 )
+                diagId = 'EmisHg0land'
+             CASE( 26 )
+                diagId = 'EmisHg0ocean'
+             CASE( 27 )
+                diagId = 'EmisHg0soil'
+             CASE( 28 )
+                diagId = 'EmisHg0snow'
+             CASE( 29 )
+                diagId = 'EmisHg0vegetation'
+             CASE( 30 )
+                diagId = 'EmisHg2HgPanthro'
+             CASE( 31 )
+                diagId = 'EmisHg2snowToOcean'
+             CASE( 32 )
+                diagId = 'EmisHg2rivers'
+             CASE( 33 )
+                diagId = 'FluxHg2HgPfromAirToSnow'
+             CASE( 34 )
+                diagId = 'FluxHg0fromAirToOcean'
+             CASE( 35 )
+                diagId = 'FluxHg0fromOceanToAir'
+             CASE( 36 )
+                diagId = 'FluxHg2HgPfromAirToOcean'
+             CASE( 37 )
+                diagId = 'FluxOCtoDeepOcean'
+             CASE( 38 )
+                diagId = 'MassHg0inOcean'
+             CASE( 39 )
+                diagId = 'MassHg2inOcean'
+             CASE( 40 )
+                diagId = 'MassHgPinOcean'
+             CASE( 41 )
+                diagId = 'MassHgTotalInOcean'
+           END SELECT
+
+           ! Exit if any of the above are in the diagnostic list
+           ! Force an exact string match to avoid namespace confusion
+           CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                                Found,     RC,        exact=.TRUE.           )
+           IF ( Found ) THEN
+              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for the mercury '      // &
+                      'specialty simulation.'
+              CALL GC_Error( ErrMsg, RC, ThisLoc )
+              RETURN
+           ENDIF
+        ENDDO
 
     ENDIF
 
