@@ -898,7 +898,7 @@ CONTAINS
     ! km2
     ELSEIF ( IsInWord(unt,'/km2' ) .OR. IsInWord(unt,'km-2' ) .OR. & 
              IsInWord(unt,'/km^2') .OR. IsInWord(unt,'km^-2')       ) THEN 
-       Scal = 1e6_hp
+       Scal = 1.0_hp / 1e6_hp
        Flag = 2
 
     ! m2
@@ -914,13 +914,13 @@ CONTAINS
     ! cm3
     ELSEIF ( IsInWord(unt,'/cm3')  .OR. IsInWord(unt,'cm-3' ) .OR. &
              IsInWord(unt,'/cm^3') .OR. IsInWord(unt,'cm^-3')       ) THEN 
-       Scal = 1e-6_hp
+       Scal = 1.0_hp / 1e-6_hp
        Flag = 3
 
     ! dm3
     ELSEIF ( IsInWord(unt,'/dm3')  .OR. IsInWord(unt,'dm-3' ) .OR. & 
              IsInWord(unt,'/dm^3') .OR. IsInWord(unt,'dm^-3')       ) THEN 
-       Scal = 1e-3_hp
+       Scal = 1.0_hp / 1e-3_hp
        Flag = 3
 
     ! m3
@@ -932,7 +932,7 @@ CONTAINS
     ! L
     ELSEIF ( IsInWord(unt,'/l') .OR. IsInWord(unt,'l-1') .OR. & 
              IsInWord(unt,'l^-1')                              ) THEN 
-       Scal = 1e-3_hp
+       Scal = 1.0_hp / 1e-3_hp
        Flag = 3
     ENDIF
 
