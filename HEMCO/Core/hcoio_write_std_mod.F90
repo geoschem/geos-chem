@@ -300,12 +300,6 @@ CONTAINS
     nLev  = HcoState%NZ
     nTime = 1 
 
-    ! Disable multiple time slice update since causes an issue writing 
-    ! restart files. Re-enable when restart files are written via HISTORY
-    ! rather than HEMCO by deleting the forcing of IsOldFile below. 
-    ! (ewl, 10/19/18)
-    IsOldFile = .FALSE.
-
     ! Initialize mirror variables
     allocate(Arr4D(nlon,nlat,nlev,ntime))
     allocate(Arr3D(nlon,nlat,ntime))
@@ -372,6 +366,12 @@ CONTAINS
     ! Check if file already exists. If so, add new diagnostics to this file
     ! (instead of creating a new one)
     INQUIRE( FILE=ncFile, EXIST=IsOldFile )
+
+    ! Disable multiple time slice update since causes an issue writing 
+    ! restart files. Re-enable when restart files are written via HISTORY
+    ! rather than HEMCO by deleting the forcing of IsOldFile below. 
+    ! (ewl, 10/19/18)
+    IsOldFile = .FALSE.
 
     ! If file exists, open file and get time dimension
     IF ( IsOldFile ) THEN
