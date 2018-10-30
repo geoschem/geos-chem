@@ -44,12 +44,13 @@
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBDIF(:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EMISS (:,:,:)
 
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CH4CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: N2OCLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC11CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC12CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CCL4CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC22CLIM(:,:,:)
+      ! NOTE: Changed to pointers to get inputs from HEMCO (bmy, 10/30/18)
+      REAL*4,  POINTER,     PUBLIC         :: CH4CLIM  (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: N2OCLIM  (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC11CLIM(:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC12CLIM(:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CCL4CLIM (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC22CLIM(:,:,:)
 
       !MCICA cloud variables now stored for reuse
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_LW(:,:,:,:)
@@ -500,21 +501,27 @@
       REAL(KIND=RB)          :: p_SSAAER    ( LLPAR,  NBNDSW )
       REAL(KIND=RB)          :: p_ASMAER    ( LLPAR,  NBNDSW )
 
+      ! Strings
+      CHARACTER(LEN=255)     :: ErrMsg, This Loc
+
       !=================================================================
       ! DO_RRTMG_RAD_TRANSFER begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     & ' -> at DO_RRTMG_RAD_TRANSFER (in rrtmg_rad_transfer_mod.F)'
 
       ! Convert species units to kg/kg dry for RRTMG 
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg/kg dry', RC, 
      &                        OrigUnit=OrigUnit )
 
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC,     
-     &                 'DO_RRTMG_RAD_TRANSFER')
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
 
@@ -584,7 +591,9 @@
       CH4VMR(:,:,:)       = 0.0
       NBNDS               = NBNDLW+NBNDSW
 
+      !=================================================================
       ! First-time setup
+      !=================================================================
       IF ( FIRST ) THEN
 
          ! Define species ID flags
@@ -596,9 +605,19 @@
          id_CCL4   = Ind_('CCL4')
          id_HCFC22 = Ind_('HCFC22')
 
+         ! Get pointers to data fields that are read by HEMCO
+         ! NOTE: This has to be done here and not in initialization
+         ! because we have to wait for HEMCO to read the data from disk,
+         ! which is done after initialization. (bmy, 10/30/18)
+         CALL Init_Strat_Clim( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "Init_Strat_Clim"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
-
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2341,52 +2360,112 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_STRAT_CLIM
+      SUBROUTINE INIT_STRAT_CLIM( am_I_root, RC )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-! 
+      USE ErrCode_Mod
+      USE HCO_Interface_Mod, ONLY : HcoState
+      USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  30 Oct 2018 - R. Yantosca - Now get inputs via HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      CHARACTER(LEN=20)  :: FieldName
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_STRAT_CLIM begins here!
       !=================================================================
 
-      ALLOCATE( N2OCLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N2OCLIM' )
-      N2OCLIM = 0D0
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc =
+     & ' -> at Init_Strat_Clim (in module rrtmg_rad_transfer_mod.F)'
 
-      ALLOCATE( CH4CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4CLIM' )
-      CH4CLIM = 0D0
+      !---------------
+      ! CCl4 [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_CCL4'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CCL4CLIM,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CFC11CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC11CLIM' )
-      CFC11CLIM = 0D0
+      !---------------
+      ! CFC11 [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_CFC11'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC11CLIM, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CFC12CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC12CLIM' )
-      CFC12CLIM = 0D0
+      !---------------
+      ! CFC12 [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_CFC12'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC12CLIM, RC  )
 
-      ALLOCATE( CCL4CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CCL4CLIM' )
-      CCL4CLIM = 0D0
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CFC22CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC22CLIM' )
-      CFC22CLIM = 0D0
+      !---------------
+      ! CFC22 [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_CFC22'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC22CLIM, RC  )
+
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !---------------
+      ! CH4 [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_CH4'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CH4CLIM,   RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !---------------
+      ! N2O [ppb]
+      !---------------
+      FieldName = 'TES_CLIM_N2O'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, N2OCLIM,   RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       END SUBROUTINE INIT_STRAT_CLIM
 !EOC
@@ -2546,12 +2625,12 @@
       !=================================================================
       ! CLEANUP_STRAT_CLIM begins here!
       !=================================================================
-      IF ( ALLOCATED( CH4CLIM         ) ) DEALLOCATE( CH4CLIM         )
-      IF ( ALLOCATED( N2OCLIM         ) ) DEALLOCATE( N2OCLIM         )
-      IF ( ALLOCATED( CFC11CLIM       ) ) DEALLOCATE( CFC11CLIM       )
-      IF ( ALLOCATED( CFC12CLIM       ) ) DEALLOCATE( CFC12CLIM       )
-      IF ( ALLOCATED( CCL4CLIM        ) ) DEALLOCATE( CCL4CLIM        )
-      IF ( ALLOCATED( CFC22CLIM       ) ) DEALLOCATE( CFC22CLIM       )
+      CH4CLIM   => NULL()
+      N2OCLIM   => NULL()
+      CFC11CLIM => NULL()
+      CFC12CLIM => NULL()
+      CCL4CLIM  => NULL()
+      CFC22CLIM => NULL()
 
       END SUBROUTINE CLEANUP_STRAT_CLIM
 !EOC
