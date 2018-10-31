@@ -5177,6 +5177,9 @@
                   ! GEOS-3, GEOS-4: CLDTOT
                   NAME (T,21) = 'CLDTOT'
                   FNAME(T,21) = '3-D cloud frc'
+               CASE( 3  )
+                  NAME (T,21) = 'OBSOLETE1'
+                  FNAME(T,21) = 'This diagnostic is obsolete'
                CASE( 4  )
                   NAME (T,21) = 'OPD'
                   FNAME(T,21) = 'Mineral dust opt depth'
@@ -5393,6 +5396,9 @@
                CASE( 59 )
                   NAME (T,21) = 'AQAVOL'
                   FNAME(T,21) = 'Aq. aerosol vol (cm3/cm3)'
+               CASE( 60 )
+                  NAME (T,21) = 'OBSOLETE2'
+                  FNAME(T,21) = 'This diagnostic is obsolete'
                CASE DEFAULT
                   ! Nothing
             END SELECT
