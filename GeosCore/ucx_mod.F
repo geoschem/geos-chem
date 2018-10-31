@@ -1180,7 +1180,7 @@
 
       ! Local variables for quantities from Input_Opt
       LOGICAL              :: LPRT
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       INTEGER              :: TARGYEAR
 #endif
 
@@ -1213,7 +1213,7 @@
      &                        Input_Opt%CFCYEAR, GET_YEAR()
       ENDIF
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
 !      ! Error trap: make sure CFCYEAR is defined. In ESMF mode, CFCYEAR
 !      ! may become initialized to zero because the simulation year is not
 !      ! yet know during initialization (ckeller, 1/20/16).
@@ -1350,7 +1350,7 @@
 !
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       USE TIME_MOD,           ONLY : GET_YEAR
 #endif
 !
@@ -1377,7 +1377,7 @@
       CHARACTER(LEN=20):: LOCAL_NAME
       INTEGER          :: TARG_YR_NC, TARG_MO_NC
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       ! Local variables for quantities from Input_Opt
       INTEGER          :: TARGYEAR
 #endif
@@ -1386,7 +1386,7 @@
       ! READ_SFC begins here!
       !=================================================================
 
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       ! Get target year. This is either the current year (if CFC year in
       ! input_opt is zero), or the set CFC year plus the offset years 
       ! since simulation start.
@@ -1401,7 +1401,7 @@
       GRID_EMIT = 0e+0_fp
 
       IF (UCXNETCDF) THEN
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
          TARG_YR_NC = TARGYEAR
 #else
          TARG_YR_NC = SFC_YEAR+OFFSETYEAR
@@ -1454,7 +1454,7 @@
       ELSE
          ! Read from ASCII
          ! Determine which line needs to be read in
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
          TARG_LINE = (12*(TARGYEAR-1959)) + SFC_MONTH
 #else
          TARG_LINE = (12*(SFC_YEAR+OFFSETYEAR-1959)) + SFC_MONTH
@@ -1484,7 +1484,7 @@
                   ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL(LOCAL_NAME,
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
      &                         TARGYEAR-1949,N,Input_Opt)
 #else
      &                         SFC_YEAR+OFFSETYEAR-1949,N,Input_Opt)
@@ -1658,7 +1658,7 @@
 ! !USES:
 !
       USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       USE TIME_MOD,           ONLY : GET_YEAR
 #endif
 !
@@ -1682,7 +1682,7 @@
       !=================================================================
       ! SET_MONTREAL begins here!
       !=================================================================   
-#if defined( MODEL_GEOS )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
       YY = Input_Opt%CFCYEAR
       IF ( YY <= 0 ) THEN
          YY = GET_YEAR()
