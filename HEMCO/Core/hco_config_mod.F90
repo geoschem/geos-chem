@@ -1243,11 +1243,10 @@ CONTAINS
                    IF ( RC /= HCO_SUCCESS ) RETURN 
                 ENDIF
              ENDIF
-
-             ! Connect file data object of this data container.
-             Lct%Dct%Dta => Dta
-
           ENDIF
+
+          ! Connect file data object of this data container.
+          Lct%Dct%Dta => Dta
 
           ! If a base emission field covers multiple emission categories,
           ! create a 'shadow' container for each additional category.
