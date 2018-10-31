@@ -1226,6 +1226,7 @@ CONTAINS
     ! Scalars
     LOGICAL                :: doExactMatch
     INTEGER                :: matchInd
+    INTEGER                :: matchLen
 
     ! Strings
     CHARACTER(LEN=255)     :: thisLoc
@@ -1251,6 +1252,9 @@ CONTAINS
     ! Convert strings to uppercase for comparison
     substr_AllCaps = To_Uppercase( TRIM( substr ) )
 
+    ! Get the length of subStr_AllCaps excluding whitespace
+    matchLen       = LEN_TRIM( subStr_AllCaps )
+
     ! Search for name in list
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
@@ -1266,11 +1270,13 @@ CONTAINS
 
           ! Exact match: substr_AllCaps matches a sequence of characters
           ! starting with the first character of currentName_AllCaps.
-          IF ( matchInd == 1 ) THEN
+          ! AND has the same trimmed length as currentName_AllCaps
+          IF ( ( matchInd == 1                               )   .and.       &
+               ( matchLen == LEN_TRIM( currentName_AllCaps ) ) ) THEN
              found = .TRUE.
              EXIT
           ENDIF
- 
+
        ELSE
 
           ! Partial match: substr_AllCaps matches a sequence of characters

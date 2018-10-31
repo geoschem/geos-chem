@@ -135,22 +135,16 @@
       !-----------------------------------------------------------------
       ! Radiation modules
       !-----------------------------------------------------------------
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY: DO_RRTMG_RAD_TRANSFER,
-     &                                  LW_UFLUX, LW_DFLUX,
-     &                                  SW_UFLUX, SW_DFLUX,
-     &                                  LW_UFLUXC, LW_DFLUXC,
-     &                                  SW_UFLUXC, SW_DFLUXC,
-     &                                  INIT_SURFACE_RAD,
-     &                                  READ_SURFACE_RAD,
-     &                                  INIT_STRAT_CLIM,
-     &                                  READ_STRAT_CLIM,
-     &                                  INIT_MCICA_CLOUDS,
-     &                                  SET_SPECMASK
-      USE CMN_FJX_MOD,            ONLY: NSPECRADMENU,
-     &                                  LSPECRADMENU
-      USE rrtmg_lw_init,  ONLY : rrtmg_lw_ini
-      USE rrtmg_sw_init,  ONLY : rrtmg_sw_ini
-
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : DO_RRTMG_RAD_TRANSFER
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_SURFACE_RAD
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : READ_SURFACE_RAD
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_STRAT_CLIM
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_MCICA_CLOUDS
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : SET_SPECMASK
+      USE CMN_FJX_MOD,            ONLY : NSPECRADMENU
+      USE CMN_FJX_MOD,            ONLY : LSPECRADMENU
+      USE rrtmg_lw_init,          ONLY : rrtmg_lw_ini
+      USE rrtmg_sw_init,          ONLY : rrtmg_sw_ini
 #endif
 
       IMPLICIT NONE
@@ -659,8 +653,7 @@
       !WRITE(6,*) 'Calling INIT_SURFACE_RAD'
       CALL Init_surface_Rad()
       !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
-      CALL Init_Strat_Clim()
-      CALL Read_Strat_Clim( Input_Opt )
+
       CALL Init_Mcica_Clouds()
 
       ! Initialization
