@@ -193,6 +193,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
+     LOGICAL                     :: LGMIOZ
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -870,6 +871,7 @@ CONTAINS
     Input_Opt%LSCHEM                 = .FALSE.
     Input_Opt%LLINOZ                 = .FALSE. 
     Input_Opt%LSYNOZ                 = .FALSE. 
+    Input_Opt%LGMIOZ                 = .FALSE. 
     Input_Opt%TS_CHEM                = 0
     Input_Opt%GAMMA_HO2              = 0e+0_fp
     Input_Opt%LUCX                   = .FALSE.
