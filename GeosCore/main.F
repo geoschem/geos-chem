@@ -138,7 +138,6 @@
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : DO_RRTMG_RAD_TRANSFER
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_SURFACE_RAD
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : READ_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_STRAT_CLIM
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_MCICA_CLOUDS
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : SET_SPECMASK
       USE CMN_FJX_MOD,            ONLY : NSPECRADMENU
@@ -650,10 +649,7 @@
       !-----------------------------------------------------------------
       ! Initialize RRTMG routines (in rrtmg_rad_transfer_mod.F)
       !-----------------------------------------------------------------
-      !WRITE(6,*) 'Calling INIT_SURFACE_RAD'
       CALL Init_surface_Rad()
-      !WRITE(6,*) 'Calling INIT_STRAT_CLIM'
-
       CALL Init_Mcica_Clouds()
 
       ! Initialization
