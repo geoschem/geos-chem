@@ -57,7 +57,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: NYMDe              
      INTEGER                     :: NHMSe              
      CHARACTER(LEN=255)          :: RUN_DIR            
-     CHARACTER(LEN=255)          :: IN_RST_FILE        
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: RES_DIR
@@ -716,7 +715,6 @@ CONTAINS
     Input_Opt%NYMDe                  = 0
     Input_Opt%NHMSe                  = 0
     Input_Opt%RUN_DIR                = './'
-    Input_Opt%IN_RST_FILE            = ''
     Input_Opt%DATA_DIR               = './'
     Input_Opt%RES_DIR                = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
