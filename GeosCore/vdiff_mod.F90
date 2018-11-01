@@ -2494,8 +2494,9 @@ contains
                 Hg_Cat = SpcInfo%Hg_Cat
 
                 ! Archive dry-deposited Hg2
-                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG            )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
+                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, DEP_KG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, &
+                                       State_Met, State_Chm )
 
              ELSE IF ( SpcInfo%Is_HgP ) THEN 
 
@@ -2503,8 +2504,9 @@ contains
                 Hg_Cat = SpcInfo%Hg_Cat
 
                 ! Archive dry-deposited HgP
-                CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG            )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, State_Met )
+                CALL ADD_HgP_DD      ( I, J, Hg_Cat, DEP_KG )
+                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_KG, &
+                                       State_Met, State_Chm )
 
              ENDIF
 

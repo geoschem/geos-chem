@@ -1535,7 +1535,7 @@
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2   )
                   CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, 
-     &                                                 State_Met )
+     &                                   State_Met, State_Chm )
                ENDIF
 
                !--------------------------------------
@@ -1552,7 +1552,7 @@
                   ! Pass to "ocean_mercury_mod.f"
                   CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP   )
                   CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, 
-     &                                                 State_Met )
+     &                                   State_Met, State_Chm )
                ENDIF
             ENDIF
          ENDDO               ! End internal timestep loop

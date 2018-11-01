@@ -159,6 +159,18 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: HgP_Id_List(:      ) ! HgP cat <-> tracer #
      CHARACTER(LEN=4),  POINTER :: Hg_Cat_Name(:      ) ! Category names
 
+     REAL(fp),          POINTER :: OceanHg0(:,:,:)      ! Hg(0)  ocean mass [kg]
+     REAL(fp),          POINTER :: OceanHg2(:,:,:)      ! Hg(II) ocean mass [kg]
+     REAL(fp),          POINTER :: OceanHgP(:,:,:)      ! HgP    ocean mass [kg]
+     REAL(fp),          POINTER :: SnowHgOcean(:,:,:)   ! Reducible Hg snowpack
+                                                        !  on ocean [kg]
+     REAL(fp),          POINTER :: SnowHgLand(:,:,:)    ! Reducible Hg snowpack
+                                                        !  on land [kg]
+     REAL(fp),          POINTER :: SnowHgOceanStored(:,:,:) ! Non-reducible Hg
+                                                            !  snowpack on ocean
+     REAL(fp),          POINTER :: SnowHgLandStored(:,:,:)  ! Non-reducible Hg
+                                                            !  snowpack on land
+
      !----------------------------------------------------------------------
      ! For HOBr + S(IV) heterogeneous chemistry
      !----------------------------------------------------------------------
@@ -222,6 +234,8 @@ MODULE State_Chm_Mod
 !  03 Aug 2018 - H.P. Lin    - Add nChmState counter for # of chemistry states
 !                              initialized in this CPU, to avoid deallocating
 !                              shared pointers (e.g. species info) until last
+!  01 Nov 2018 - M. Sulprizio- Add SNOW_HG_* and Hg*aq arrays for saving out
+!                              to the Restart collection
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -433,6 +447,13 @@ CONTAINS
     State_Chm%Hg0_Id_List   => NULL()
     State_Chm%Hg2_Id_List   => NULL()
     State_Chm%HgP_Id_List   => NULL()
+    State_Chm%OceanHg0      => NULL()
+    State_Chm%OceanHg2      => NULL()
+    State_Chm%OceanHgP      => NULL()
+    State_Chm%SnowHgOcean   => NULL()
+    State_Chm%SnowHgLand    => NULL()
+    State_Chm%SnowHgOceanStored => NULL()
+    State_Chm%SnowHgLandStored  => NULL()
 
     ! For HOBr + S(IV) chemistry
     State_Chm%HSO3_AQ     => NULL()
@@ -1301,19 +1322,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Print out the list of registered fields
-    !=======================================================================
-    IF ( am_I_Root ) THEN
-       WRITE( 6, 10 )
-10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
-       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-    CALL Registry_Print( am_I_Root   = am_I_Root,             &
-                         Registry    = State_Chm%Registry,    &
-                         ShortFormat = .TRUE.,                &
-                         RC          = RC                    )
-
-    !=======================================================================
     ! Special handling for the Hg and tagHg simulations: get the # of Hg
     ! categories for total & tagged tracers from the species database
     !=======================================================================
@@ -1386,8 +1394,114 @@ CONTAINS
           ThisSpc                  => NULL()
        ENDDO
        
+       !--------------------------------------------------------------------
+       ! Hg(0) ocean mass
+       !--------------------------------------------------------------------
+       chmID = 'OceanHg0'
+       ALLOCATE( State_Chm%OceanHg0( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHg0', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OceanHg0 = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHg0,      &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%OceanHg0', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Hg(II) ocean mass
+       !--------------------------------------------------------------------
+       chmID = 'OceanHg2'
+       ALLOCATE( State_Chm%OceanHg2( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHg2', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OceanHg2 = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHg2,      &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%OceanHg2', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! HgP ocean mass
+       !--------------------------------------------------------------------
+       chmID = 'OceanHgP'
+       ALLOCATE( State_Chm%OceanHgP (IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHgP', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%OceanHgP = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%OceanHgP,      &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%OceanHgP', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Reducible Hg snowpack on ocean
+       !--------------------------------------------------------------------
+       chmID = 'SnowHgOcean'
+       ALLOCATE( State_Chm%SnowHgOcean( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SnowHgOcean = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgOcean,   &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Reducible Hg snowpack on land
+       !--------------------------------------------------------------------
+       chmID = 'SnowHgLand'
+       ALLOCATE( State_Chm%SnowHgLand( IM, JM, State_Chm%N_Hg_CATS ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLand', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SnowHgLand = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLand,    &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLand', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Non-reducible Hg snowpack on ocean
+       !--------------------------------------------------------------------
+       chmID = 'SnowHgOceanStored'
+       ALLOCATE( State_Chm%SnowHgOceanStored(IM, JM, State_Chm%N_Hg_CATS ), &
+                 STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SnowHgOceanStored = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgOceanStored, &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! Non-reducible Hg snowpack on land
+       !--------------------------------------------------------------------
+       chmID = 'SnowHgLandStored'
+       ALLOCATE( State_Chm%SnowHgLandStored(IM, JM, State_Chm%N_Hg_CATS ), &
+                 STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SnowHgLandStored = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SnowHgLandStored, &
+                               State_Chm, RC                             )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
     ENDIF
    
+    !=======================================================================
+    ! Print out the list of registered fields
+    !=======================================================================
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 10 )
+10     FORMAT( /, 'Registered variables contained within the State_Chm object:' )
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    ENDIF
+    CALL Registry_Print( am_I_Root   = am_I_Root,             &
+                         Registry    = State_Chm%Registry,    &
+                         ShortFormat = .TRUE.,                &
+                         RC          = RC                    )
+
     !=======================================================================
     ! Cleanup and quit
     !=======================================================================
@@ -1730,6 +1844,48 @@ CONTAINS
        DEALLOCATE( State_Chm%fupdateHOBr, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 3, RC )
        RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OceanHg0 ) ) THEN
+       DEALLOCATE( State_Chm%OceanHg0, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHg0', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OceanHg2 ) ) THEN
+       DEALLOCATE( State_Chm%OceanHg2, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHg2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%OceanHgP ) ) THEN
+       DEALLOCATE( State_Chm%OceanHgP, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%OceanHgP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SnowHgOcean ) ) THEN
+       DEALLOCATE( State_Chm%SnowHgOcean, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOcean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SnowHgLand ) ) THEN
+       DEALLOCATE( State_Chm%SnowHgLand, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLand', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SnowHgOceanStored ) ) THEN
+       DEALLOCATE( State_Chm%SnowHgOceanStored, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgOceanStored', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%SnowHgLandStored ) ) THEN
+       DEALLOCATE( State_Chm%SnowHgLandStored, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !=======================================================================
@@ -2302,6 +2458,48 @@ CONTAINS
           IF ( isUnits ) Units = 'molec/cm2/s'
           IF ( isRank  ) Rank  =  2
 
+       CASE( 'OCEANHG0' )
+          IF ( isDesc  ) Desc  = 'Hg(0) ocean mass'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'OCEANHG2' )
+          IF ( isDesc  ) Desc  = 'Hg(II) ocean mass'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'OCEANHGP' )
+          IF ( isDesc  ) Desc  = 'HgP ocean mass'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'SNOWHGOCEAN' )
+          IF ( isDesc  ) Desc  = 'Reducible Hg snowpack on ocean'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'SNOWHGLAND' )
+          IF ( isDesc  ) Desc  = 'Reducible Hg snowpack on land'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'SNOWHGOCEANSTORED' )
+          IF ( isDesc  ) Desc  = 'Non-reducible Hg snowpack on ocean'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+
+       CASE( 'SNOWHGLANDSTORED' )
+          IF ( isDesc  ) Desc  = 'Non-reducible Hg snowpack on land'
+          IF ( isUnits ) Units = 'kg'
+          IF ( isRank  ) Rank  = 2
+          IF ( isSpecies ) PerSpecies = 'HgCat'
+          
        CASE DEFAULT
           Found = .False.
           ErrMsg = 'Metadata not found for State_Chm field ' // &
@@ -2666,6 +2864,49 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+    !-----------------------------------------------------------------------
+    ! If tied to Hg category then register each one
+    !-----------------------------------------------------------------------
+    ELSE IF ( perSpecies == 'HgCat' ) THEN
+
+       ! Loop over all species
+       DO N = 1, State_Chm%N_Hg_CATS
+
+          ! Append Hg category to name and description for tagged Hg
+          IF ( N == 1 ) THEN
+             thisSpcName = TRIM( metadataID )
+             thisSpcDesc = TRIM( Desc       )
+          ELSE
+             thisSpcName = TRIM( metadataID ) // '_' // &
+                  TRIM(State_Chm%Hg_Cat_Name(N))
+             thisSpcDesc = TRIM( Desc       ) // ' ' // &
+                  TRIM(State_Chm%Hg_Cat_Name(N))
+          ENDIF
+
+          ! Add field to registry
+          CALL Registry_AddField( am_I_Root    = am_I_Root,                  &
+                                  Registry     = State_Chm%Registry ,        &
+                                  State        = State_Chm%State,            &
+                                  Variable     = thisSpcName,                &
+                                  Description  = thisSpcDesc,                &
+                                  Units        = units,                      &
+                                  OnLevelEdges = onEdges,                    &
+                                  Data2d       = Ptr2Data(:,:,N),            &
+                                  RC           = RC                         )
+
+          ! Free pointers
+          SpcInfo => NULL()
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = TRIM( ErrMsg_reg ) // TRIM( MetadataID ) //            &
+                      '; Abnormal exit from routine "Registry_AddField"!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+       ENDDO
 
     !-----------------------------------------------------------------------   
     ! Otherwise exit with error

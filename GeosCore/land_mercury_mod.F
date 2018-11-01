@@ -615,12 +615,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met,
+     &                                  State_Chm )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
@@ -628,6 +629,10 @@
 !
       LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg from snow?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -673,6 +678,10 @@
       ! when SWRAD = 100 W/m2
       REAL(fp), PARAMETER :: K_EMIT_0 = 2.5e-9_fp
 
+      ! Pointers
+      REAL(fp), POINTER :: SNOW_HG_OC(:,:,:)
+      REAL(fp), POINTER :: SNOW_HG_LN(:,:,:)
+
       !=================================================================
       ! SNOWPACK_MERCURY_FLUX begins here!
       !=================================================================
@@ -682,6 +691,10 @@
 
       ! Return to calling program if snowpack model is disabled
       IF ( .NOT. LHGSNOW ) RETURN
+
+      ! Point to fields in State_Chm
+      SNOW_HG_OC => State_Chm%SnowHgOcean
+      SNOW_HG_LN => State_Chm%SnowHgLand
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS()
@@ -771,6 +784,10 @@
       ENDDO
 !$OMP END PARALLEL DO
       
+      ! Free pointers
+      SNOW_HG_OC => NULL()
+      SNOW_HG_LN => NULL()
+
       END SUBROUTINE SNOWPACK_MERCURY_FLUX
 !EOC
 !------------------------------------------------------------------------------

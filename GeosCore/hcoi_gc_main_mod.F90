@@ -885,8 +885,11 @@ CONTAINS
        ! Reset the accumulated nitrogen dry and wet deposition to zero. 
        ! Will be re-filled in drydep and wetdep.
        !====================================================================
-       CALL RESET_DEP_N( State_Chm )
-   
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+            Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+          CALL RESET_DEP_N( State_Chm )
+       ENDIF
+
        !====================================================================
        ! Emissions are now done for this time step
        !====================================================================
@@ -3831,6 +3834,7 @@ CONTAINS
    USE Error_Mod
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
+   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
    USE PHYSCONSTANTS,      ONLY : BOLTZ, AIRMW
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : Species
@@ -3838,12 +3842,6 @@ CONTAINS
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-
-   ! For Hg simulation restart file
-   USE OCEAN_MERCURY_MOD,  ONLY : Hg0aq, Hg2aq, HgPaq, Hgaq_tot
-   USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
-   USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC,  SNOW_HG_STORED_OC
-   USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_LN,  SNOW_HG_STORED_LN
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4391,239 +4389,209 @@ CONTAINS
 
    ENDIF
    
-!   !=================================================================
-!   ! Read ocean mercury variables
-!   !=================================================================
-!   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-!
-!      ! Print total mass to log
-!      WRITE( 6, 160 )
-!160   FORMAT(/, 'Total mass of each ocean and snow Hg species:')
-!
-!      !--------------------------------------------------------------
-!      ! Total Hg in ocean
-!      !--------------------------------------------------------------
-!      DO M = 1, 3
-!
-!         ! Define variable name
-!         SELECT CASE( M )
-!         CASE ( 1 )
-!            HgSpc    = 'Hg0' 
-!         CASE ( 2 )
-!            HgSpc    = 'Hg2'
-!         CASE ( 3 )
-!            HgSpc    = 'HgP' 
-!         END SELECT
-!         v_name = 'Ocean_' // TRIM( HgSpc )
-!
-!         ! Zero temporary array and set pointer
-!         Temp2D = 0.0d4 
-!         Ptr2D => Temp2D
-!
-!         ! Check if variable is in file. If not found, initialize
-!         ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
-!         ierr = Nf_Inq_Varid (fId, TRIM(v_name), v_id)
-!         IF ( ierr /= NF_NOERR ) THEN
-!            FOUND = .FALSE.
-!            WRITE( 6, 170 ) TRIM( v_name )
-!         ELSE
-!            FOUND = .TRUE.
-!            CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
-!         ENDIF
-!
-!         ! Check for negative concentrations (jaf, 7/6/11)
-!         DO I = 1, IIPAR
-!         DO J = 1, JJPAR
-!            IF ( Temp2D(I,J) < 0.0d4 ) THEN
-!                 Temp2D(I,J) = 0.0d4
-!            ENDIF
-!         ENDDO
-!         ENDDO
-!
-!         ! Assign ocean mercury data and write total mass to log file
-!         SELECT CASE( M )
-!         CASE ( 1 )
-!            Hg0aq(:,:,Total_Hg_Id) = Ptr2D
-!            IF ( FOUND ) THEN
-!               WRITE( 6, 180 ) v_name, &
-!                               SUM( Hg0aq(:,:,Total_Hg_Id) ), 'kg'
-!            ENDIF
-!         CASE ( 2 )
-!            Hg2aq(:,:,Total_Hg_Id) = Ptr2D
-!            IF ( FOUND ) THEN
-!               WRITE( 6, 180 ) v_name,  &
-!                               SUM( Hg2aq(:,:,Total_Hg_Id) ), 'kg'
-!            ENDIF
-!         CASE ( 3 )
-!            HgPaq(:,:,Total_Hg_Id) = Ptr2D
-!            IF ( FOUND ) THEN
-!               WRITE( 6, 180 ) v_name,  &
-!                               SUM( HgPaq(:,:,Total_Hg_Id) ), 'kg'
-!            ENDIF
-!         END SELECT
-!
-!         ! Nullify pointer
-!         Ptr2D => NULL()
-!      ENDDO
-!
-!      !--------------------------------------------------------------
-!      ! Additional tagged ocean Hg species
-!      !--------------------------------------------------------------
-!      IF ( Input_Opt%LSPLIT ) THEN
-!         DO M = 1, 3
-!            DO N = 2, Num_Hg_Categories
-!
-!               ! Define variable name. Include appended region.
-!               SELECT CASE( M )
-!               CASE ( 1 )
-!                  HgSpc = 'Hg0' 
-!               CASE ( 2 )
-!                  HgSpc = 'Hg2'
-!               CASE ( 3 )
-!                  HgSpc = 'HgP' 
-!               END SELECT
-!               v_name = 'Ocean_' // TRIM( HgSpc ) //  &
-!                        '_'      // TRIM( Hg_Cat_Name(N) )
-!
-!               ! Zero temporary array and set pointer
-!               Temp2D = 0.0d4
-!               Ptr2D => Temp2D
-!                  
-!               ! Check if variable is in file. If not found, initialize
-!               ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
-!               ierr = Nf_Inq_Varid (fId, v_name, v_id)
-!               IF ( ierr /= NF_NOERR ) THEN
-!                  FOUND = .FALSE.
-!                  WRITE( 6, 170 ) TRIM( v_name )
-!               ELSE
-!                  FOUND = .TRUE.
-!                  CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
-!               ENDIF
-!
-!               ! Assign ocean mercury data and write total mass to log
-!               SELECT CASE( M )
-!               CASE ( 1 )
-!                  Hg0aq(:,:,N) = Ptr2D
-!                  IF ( FOUND ) THEN
-!                     WRITE( 6, 180 ) v_name,  &
-!                                     SUM( Hg0aq(:,:,N) ), 'kg'
-!                  ENDIF
-!               CASE ( 2 )
-!                  Hg2aq(:,:,N) = Ptr2D
-!                  IF ( FOUND ) THEN
-!                     WRITE( 6, 180 ) v_name,  &
-!                                     SUM( Hg2aq(:,:,N) ), 'kg'
-!                  ENDIF
-!               CASE ( 3 )
-!                  HgPaq(:,:,N) = Ptr2D
-!                  IF ( FOUND ) THEN
-!                     WRITE( 6, 180 ) v_name,  &
-!                                     SUM( HgPaq(:,:,N) ), 'kg'
-!                  ENDIF
-!               END SELECT
-!
-!               ! Nullify pointer
-!               Ptr2D => NULL()
-!            ENDDO
-!         ENDDO
-!
-!         ! Make sure tagged & total species sum up
-!         IF ( Input_Opt%USE_CHECKS ) THEN
-!            CALL CHECK_OCEAN_MERCURY( 'end of READ_GC_RESTART' )
-!         ENDIF
-!      ENDIF
-!
-!      !--------------------------------------------------------------
-!      ! Hg snowpack on land and ocean
-!      !--------------------------------------------------------------
-!      DO M = 1, 4               
-!         DO N = 1, Num_Hg_Categories               
-!
-!            ! Define variable name prefix
-!            SELECT CASE( M )
-!            CASE ( 1 )
-!               Prefix = 'Snow_Hg_Ocean_Hg0'  ! Reducible on ocean
-!            CASE ( 2 )
-!               Prefix = 'Snow_HgN_Ocean_Hg0' ! Non-reducible on ocean
-!            CASE ( 3 )
-!               Prefix = 'Snow_Hg_Land_Hg0'   ! Reducible on land
-!            CASE ( 4 )
-!               Prefix = 'Snow_HgN_Land_Hg0'  ! Non-reducible on land
-!            END SELECT
-!
-!            IF ( N == 1 ) THEN
-!               v_name = TRIM( Prefix )
-!            ELSE
-!               ! Append category name if tagged
-!               v_name = TRIM( Prefix         ) // '_' // &
-!                        TRIM( Hg_Cat_Name(N) ) 
-!            ENDIF
-!
-!            ! Zero temporary array and set pointer
-!            Temp2D = 0.0d4 
-!            Ptr2D => Temp2D
-!
-!            ! Check if variable is in file. If not found, initialize
-!            ! to zero (currently the case for tagged Hg) (ewl, 4/19/16)
-!            ierr = Nf_Inq_Varid (fId, v_name, v_id)
-!            IF ( ierr /= NF_NOERR ) THEN
-!               FOUND = .FALSE.
-!               WRITE( 6, 170 ) TRIM( v_name )
-!            ELSE
-!               FOUND = .TRUE.
-!               CALL NcRd( Ptr2D, fId, v_name, st3d, ct3d )
-!            ENDIF
-!
-!            ! Assign ocean mercury data and write total mass to file
-!            SELECT CASE( M )
-!            CASE ( 1 )
-!               SNOW_HG_OC(:,:,N) = Ptr2D
-!               IF ( FOUND ) THEN
-!                  WRITE( 6, 180 ) v_name,  &
-!                                  SUM( SNOW_HG_OC(:,:,N) ), 'kg'
-!               ENDIF
-!            CASE ( 2 )
-!               SNOW_HG_STORED_OC(:,:,N) = Ptr2D
-!               IF ( FOUND ) THEN
-!                  WRITE( 6, 180 ) v_name,  &
-!                                  SUM( SNOW_HG_STORED_OC(:,:,N) ), 'kg'
-!               ENDIF
-!            CASE ( 3 )
-!               SNOW_HG_LN(:,:,N) = Ptr2D
-!               IF ( FOUND ) THEN
-!                  WRITE( 6, 180 ) v_name,  &
-!                                  SUM( SNOW_HG_LN(:,:,N) ), 'kg'
-!               ENDIF
-!            CASE ( 4 )
-!               SNOW_HG_STORED_LN(:,:,N) = Ptr2D
-!               IF ( FOUND ) THEN
-!                  WRITE( 6, 180 ) v_name,  &
-!                                  SUM( SNOW_HG_STORED_LN(:,:,N) ), 'kg'
-!               ENDIF
-!            END SELECT
-!
-!            ! Nullify pointer
-!            Ptr2D => NULL()
-!
-!         ENDDO
-!      ENDDO
-!
-!      ! Format strings
-!170   FORMAT('Variable not found in restart file: ', a24)
-!180   FORMAT( a24, ':   ', es15.9, 1x, a4)
-!
-!      ! Print note that variables are initialized to zero if not 
-!      ! found (currently only happens in tagged Hg simulation)
-!      IF ( Input_Opt%LSPLIT ) THEN
-!         WRITE( 6, 190 )
-!190      FORMAT( /, 'NOTE: all variables not found are initialized ', &
-!                    'to zero') 
-!      ENDIF
-!
-!      ! Free pointers for Hg indexing
-!      Hg_Cat_Name => NULL()
-!
-!   ENDIF
+   !=================================================================
+   ! Read ocean mercury variables
+   !=================================================================
+   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+      ! Print total mass to log
+      WRITE( 6, 220 )
+220   FORMAT(/, 'Total mass of each ocean and snow Hg species:')
+
+      !--------------------------------------------------------------
+      ! Total Hg in ocean
+      !--------------------------------------------------------------
+      DO M = 1, 3
+
+         ! Define variable name
+         SELECT CASE( M )
+         CASE ( 1 )
+            HgSpc    = 'Hg0' 
+         CASE ( 2 )
+            HgSpc    = 'Hg2'
+         CASE ( 3 )
+            HgSpc    = 'HgP' 
+         END SELECT
+         v_name = 'OCEAN_' // TRIM( HgSpc )
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                          Ptr2D, RC, FOUND=FOUND )
+
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
+
+            ! Check for negative concentrations (jaf, 7/6/11)
+            DO I = 1, IIPAR
+            DO J = 1, JJPAR
+               IF ( Ptr2D(I,J) < 0.0d4 ) THEN
+                  Ptr2D(I,J) = 0.0d4
+               ENDIF
+            ENDDO
+            ENDDO
+
+            ! Assign ocean mercury data and write total mass to log file
+            SELECT CASE( M )
+            CASE ( 1 )
+               State_Chm%OceanHg0(:,:,Total_Hg_Id) = Ptr2D
+               WRITE( 6, 240 ) TRIM( v_name ), &
+                            SUM( State_Chm%OceanHg0(:,:,Total_Hg_Id) ), 'kg'
+            CASE ( 2 )
+               State_Chm%OceanHg2(:,:,Total_Hg_Id) = Ptr2D
+               WRITE( 6, 240 ) TRIM( v_name ),  &
+                            SUM( State_Chm%OceanHg2(:,:,Total_Hg_Id) ), 'kg'
+            CASE ( 3 )
+               State_Chm%OceanHgP(:,:,Total_Hg_Id) = Ptr2D
+               WRITE( 6, 240 ) TRIM( v_name ),  &
+                            SUM( State_Chm%OceanHgP(:,:,Total_Hg_Id) ), 'kg'
+            END SELECT
+
+         ELSE
+            WRITE( 6, 230 ) TRIM( v_name )
+         ENDIF
+
+         ! Nullify pointer
+         Ptr2D => NULL()
+
+      ENDDO
+
+      !--------------------------------------------------------------
+      ! Additional tagged ocean Hg species
+      !--------------------------------------------------------------
+      IF ( Input_Opt%LSPLIT ) THEN
+         DO M = 1, 3
+            DO N = 2, Num_Hg_Categories
+
+               ! Define variable name. Include appended region.
+               SELECT CASE( M )
+               CASE ( 1 )
+                  HgSpc = 'Hg0' 
+               CASE ( 2 )
+                  HgSpc = 'Hg2'
+               CASE ( 3 )
+                  HgSpc = 'HgP' 
+               END SELECT
+               v_name = 'OCEAN_' // TRIM( HgSpc ) //  &
+                        '_'      // TRIM( Hg_Cat_Name(N) )
+
+               ! Get variable from HEMCO and store in local array
+               CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                                Ptr2D, RC, FOUND=FOUND )
+
+               ! Check if variable is in file
+               IF ( FOUND ) THEN
+
+                  ! Assign ocean mercury data and write total mass to log
+                  SELECT CASE( M )
+                  CASE ( 1 )
+                     State_Chm%OceanHg0(:,:,N) = Ptr2D
+                     WRITE( 6, 240 ) TRIM( v_name ),  &
+                                     SUM( State_Chm%OceanHg0(:,:,N) ), 'kg'
+                  CASE ( 2 )
+                     State_Chm%OceanHg2(:,:,N) = Ptr2D
+                     WRITE( 6, 240 ) TRIM( v_name ),  &
+                                     SUM( State_Chm%OceanHg2(:,:,N) ), 'kg'
+                  CASE ( 3 )
+                     State_Chm%OceanHgP(:,:,N) = Ptr2D
+                     WRITE( 6, 240 ) TRIM( v_name ),  &
+                                     SUM( State_Chm%OceanHgP(:,:,N) ), 'kg'
+                  END SELECT
+
+               ELSE
+                  WRITE( 6, 230 ) TRIM( v_name )
+               ENDIF
+
+               ! Nullify pointer
+               Ptr2D => NULL()
+
+            ENDDO
+         ENDDO
+
+         ! Make sure tagged & total species sum up
+         IF ( Input_Opt%USE_CHECKS ) THEN
+            CALL CHECK_OCEAN_MERCURY( State_Chm, 'end of READ_GC_RESTART' )
+         ENDIF
+      ENDIF
+
+      !--------------------------------------------------------------
+      ! Hg snowpack on land and ocean
+      !--------------------------------------------------------------
+      DO M = 1, 4               
+         DO N = 1, Num_Hg_Categories               
+
+            ! Define variable name prefix
+            SELECT CASE( M )
+            CASE ( 1 )
+               Prefix = 'SNOW_HG_OCEAN'        ! Reducible on ocean
+            CASE ( 2 )
+               Prefix = 'SNOW_HG_OCEAN_STORED' ! Non-reducible on ocean
+            CASE ( 3 )
+               Prefix = 'SNOW_HG_LAND'         ! Reducible on land
+            CASE ( 4 )
+               Prefix = 'SNOW_HG_LAND_STORED'  ! Non-reducible on land
+            END SELECT
+
+            IF ( N == 1 ) THEN
+               v_name = TRIM( Prefix )
+            ELSE
+               ! Append category name if tagged
+               v_name = TRIM( Prefix         ) // '_' // &
+                        TRIM( Hg_Cat_Name(N) ) 
+            ENDIF
+
+            ! Get variable from HEMCO and store in local array
+            CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                             Ptr2D, RC, FOUND=FOUND )
+
+            ! Check if variable is in file
+            IF ( FOUND ) THEN
+
+               ! Assign ocean mercury data and write total mass to file
+               SELECT CASE( M )
+               CASE ( 1 )
+                  State_Chm%SnowHgOcean(:,:,N) = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name ),  &
+                                  SUM( State_Chm%SnowHgOcean(:,:,N) ), 'kg'
+               CASE ( 2 )
+                  State_Chm%SnowHgOceanStored(:,:,N) = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name ),  &
+                                  SUM( State_Chm%SnowHgOceanStored(:,:,N) ),'kg'
+               CASE ( 3 )
+                  State_Chm%SnowHgLand(:,:,N) = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name ),  &
+                                  SUM( State_Chm%SnowHgLand(:,:,N) ), 'kg'
+               CASE ( 4 )
+                  State_Chm%SnowHgLandStored(:,:,N) = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name ),  &
+                                  SUM( State_Chm%SnowHgLandStored(:,:,N) ), 'kg'
+               END SELECT
+
+            ELSE
+               WRITE( 6, 230 ) TRIM( v_name )
+            ENDIF
+
+            ! Nullify pointer
+            Ptr2D => NULL()
+
+         ENDDO
+      ENDDO
+
+      ! Format strings
+230   FORMAT( a24, ' not found in restart file, set to zero')
+240   FORMAT( a24, ':   ', es15.9, 1x, a4)
+
+      ! Print note that variables are initialized to zero if not 
+      ! found (currently only happens in tagged Hg simulation)
+      IF ( Input_Opt%LSPLIT ) THEN
+         WRITE( 6, 250 )
+250      FORMAT( /, 'NOTE: all variables not found in restart ', &
+                    'are initialized to zero') 
+      ENDIF
+
+      ! Free pointers for Hg indexing
+      Hg_Cat_Name => NULL()
+
+   ENDIF
 
    !=================================================================
    ! Clean up
