@@ -519,61 +519,61 @@ CONtAINS
     IF ( ALLOCATED( Area ) ) THEN
        DEALLOCATE( Area, STAT=RC )
        CALL GC_CheckVar( 'GRID_AREA', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Time ) ) THEN
        DEALLOCATE( Time, STAT=RC )
        CALL GC_CheckVar( 'GRID_TIME', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lev ) ) THEN
        DEALLOCATE( Lev, STAT=RC )
        CALL GC_CheckVar( 'GRID_LEV', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyAm ) ) THEN
        DEALLOCATE( HyAm, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYAM', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyBm ) ) THEN
        DEALLOCATE( HyBm, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYBM', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( ILev ) ) THEN
        DEALLOCATE( ILev, STAT=RC )
        CALL GC_CheckVar( 'GRID_ILEV', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyAi ) ) THEN
        DEALLOCATE( HyAi, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYAI', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyBi ) ) THEN
        DEALLOCATE( HyBi, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYBI', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lat ) ) THEN
        DEALLOCATE( Lat, STAT=RC )
        CALL GC_CheckVar( 'GRID_LAT', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lon ) ) THEN
        DEALLOCATE( Lon, STAT=RC )
        CALL GC_CheckVar( 'GRID_LON', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !=======================================================================
