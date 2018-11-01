@@ -636,18 +636,11 @@
       DO I = 1, IIPAR
 
          !BROADBAND ALBEDO
-         !---------------------------------------------------------
-         ! Prior to 10/31/18:
-         ! These fields are now read in via HEMCO (bmy, 10/31/18)
-         !ALBDIRVIS(I,J) = ALBDIR(I,J,1)
-         !ALBDIFVIS(I,J) = ALBDIF(I,J,1)
-         !ALBDIRNIR(I,J) = ALBDIR(I,J,2)
-         !ALBDIFNIR(I,J) = ALBDIF(I,J,2)
-         !--------------------------------------------------------
          ALBDIRVIS(I,J) = MODIS_ALBDRVIS(I,J)
          ALBDIFVIS(I,J) = MODIS_ALBDFVIS(I,J)
          ALBDIRNIR(I,J) = MODIS_ALBDRNIR(I,J)
          ALBDIFNIR(I,J) = MODIS_ALBDFNIR(I,J)
+
          IF ((ALBDIRVIS(I,J).GT.0.999)  .OR.
      &       (ALBDIRVIS(I,J).LT.0.001)) THEN
             WRITE(6,*) 'ALBEDO DRVIS OUT OF RANGE',I,J,ALBDIRVIS(I,J)
@@ -1658,18 +1651,6 @@
        !================================================================
        IF ( ICLD > 0 ) THEN
 
-          IF ( I==1 .and.J==34 ) THEN
-             print*, '### rrtmg debug!'
-             print*, '### sw_uflux: ', -SW_UFLUX(I,J,LLPAR+1)
-             print*, '### lw_uflux: ', -LW_UFLUX(I,J,LLPAR+1)
-             print*, '### sw_ufluxc:', -SW_UFLUXC(I,J,LLPAR+1)
-             print*, '### lw_ufluc: ', -LW_UFLUXC(I,J,LLPAR+1)
-             print*, '### sw_dflux: ',  SW_DFLUX(I,J,1)
-             print*, '### lw_dflux: ',  LW_DFLUX(I,J,1)
-             print*, '### sw_dfluxc:',  SW_DFLUXC(I,J,1)
-             print*, '### lw_dfluc: ',  LW_DFLUXC(I,J,1)
-          ENDIF
-
           !-------------------------------------------------------
           !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
           !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
@@ -2068,66 +2049,6 @@
       ! ECHO INFO
       WRITE( 6, 100 ) TRIM( FILENAME )
  100  FORMAT( '     - GET_SURFACE_RAD_DATA: READING ', A )
-
-!#############################################################################
-! Prior to 10/31/18:
-! Now get the albedo data as pointers from HEMCO (bmy, 10/31/18)
-!      !-----------------------
-!      ! DIRECT SURFACE ALBEDO (VIS)
-!      !-----------------------
-!      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 71,
-!     &                 XTAU,      IIPAR,    JJPAR,
-!     &                 1,     ARRAY1,    QUIET=.TRUE. )
-!
-!      ! CAST TO REAL*8 AND RESIZE
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      ALBDIR(I,J,1) = ARRAY1(I,J)
-!      ENDDO
-!      ENDDO
-!
-!      !-----------------------
-!      ! DIFFUSE SURFACE ALBEDO (VIS)
-!      !-----------------------
-!      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 73,
-!     &                 XTAU,      IIPAR,    JJPAR,
-!     &                 1,     ARRAY1,    QUIET=.TRUE. )
-!
-!      ! CAST TO REAL*8 AND RESIZE
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      ALBDIF(I,J,1) = ARRAY1(I,J)
-!      ENDDO
-!      ENDDO
-!
-!      !-----------------------
-!      ! DIRECT SURFACE ALBEDO (NIR)
-!      !-----------------------
-!      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 72,
-!     &                 XTAU,      IIPAR,    JJPAR,
-!     &                 1,     ARRAY1,    QUIET=.TRUE. )
-!
-!      ! CAST TO REAL*8 AND RESIZE
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      ALBDIR(I,J,2) = ARRAY1(I,J)
-!      ENDDO
-!      ENDDO
-!
-!      !-----------------------
-!      ! DIFFUSE SURFACE ALBEDO (NIR)
-!      !-----------------------
-!      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 74,
-!     &                 XTAU,      IIPAR,    JJPAR,
-!     &                 1,     ARRAY1,    QUIET=.TRUE. )
-!
-!      ! CAST TO REAL*8 AND RESIZE
-!      DO I=1,IIPAR
-!      DO J=1,JJPAR
-!      ALBDIF(I,J,2) = ARRAY1(I,J)
-!      ENDDO
-!      ENDDO
-!#############################################################################
 
       !-----------------------
       ! SURFACE EMISSIVITY
