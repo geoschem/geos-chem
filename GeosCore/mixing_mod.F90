@@ -825,7 +825,7 @@ CONTAINS
 
                    ! Eventually add to SOIL_DRYDEP
                    IF ( Input_Opt%LSOILNOX ) THEN
-                      CALL SOIL_DRYDEP( I, J, L, N, FLUX )
+                      CALL SOIL_DRYDEP( I, J, L, N, FLUX, State_Chm )
                    ENDIF
 
 #if defined( BPCH_DIAG )

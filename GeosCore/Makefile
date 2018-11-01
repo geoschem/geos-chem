@@ -700,14 +700,13 @@ main.o                      : main.F                                         \
                               diag51b_mod.o           diag63_mod.o           \
                               diag_oh_mod.o           dao_mod.o              \
                               depo_mercury_mod.o      drydep_mod.o           \
-                              toms_mod.o                                     \
+                              diagnostics_mod.o       toms_mod.o             \
                               gc_environment_mod.o    global_ch4_mod.o       \
                               input_mod.o             linoz_mod.o            \
                               mapping_mod.o           toms_mod.o             \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
-                              restart_mod.o           diagnostics_mod.o      \
                               strat_chem_mod.o        transport_mod.o        \
                               tpcore_bc_mod.o         uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \
@@ -781,10 +780,6 @@ pops_mod.o           	    : pops_mod.F    	                             \
 			      diag_mod.o	      diag53_mod.o           \
                               drydep_mod.o            pbl_mix_mod.o	     \
                               vdiff_pre_mod.o         hco_interface_mod.o
-
-restart_mod.o               : restart_mod.F                                  \
-                              depo_mercury_mod.o      hco_interface_mod.o    \
-                              ocean_mercury_mod.o
 
 RnPbBe_mod.o                : RnPbBe_mod.F                                   \
                               diag_mod.o              hco_interface_mod.o

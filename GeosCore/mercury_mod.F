@@ -1341,7 +1341,7 @@
             IF ( LHGSNOW ) THEN
                DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
                CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
-     &                                         State_Met, State_Diag )
+     &                                State_Met, State_Chm, State_Diag )
             ENDIF           
 !$OMP END CRITICAL
 
@@ -2795,7 +2795,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ENDIF
 
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met,
+     &                             State_Chm )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
       CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )

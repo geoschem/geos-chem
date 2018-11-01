@@ -27,7 +27,6 @@
 !
       PUBLIC  :: AVGPOLE
       PUBLIC  :: AIRQNT
-      PUBLIC  :: COPY_I3_I6_FIELDS
       PUBLIC  :: GET_COSINE_SZA
       PUBLIC  :: GET_OBK
       PUBLIC  :: INTERP
@@ -1209,13 +1208,13 @@
 ! !IROUTINE: set_dry_surface_pressure
 !
 ! !DESCRIPTION: Subroutine SET\_DRY\_SURFACE\_PRESSURE sets the dry
-!  surface pressures PS1\_DRY or PS2\_DRY by removing the water vapor from
-!  the column constructed with MET pressure fields PS1\_WET or PS2\_WET. 
+!  surface pressures PS2\_DRY by removing the water vapor from
+!  the column constructed with MET pressure fields PS2\_WET. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met, PS_ID )
+      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met )
 !
 ! !USES:
 !
@@ -1223,10 +1222,6 @@
       USE ERROR_MOD,            ONLY : CHECK_VALUE
       USE State_Met_Mod,        ONLY : MetState
       USE PRESSURE_MOD,         ONLY : GET_AP, GET_BP
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER,        INTENT(IN)     :: PS_ID       ! 1 = PS1, 2 = PS2
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1238,8 +1233,8 @@
 ! 
 ! !REMARKS:
 !  This subroutine is an adaptation of the GEOS-Chem moisture fix 
-!  implemented by Meemong Lee (JPL) in the adjoint model. Like PS1_WET
-!  and PS2_WET, from which PS1_DRY and PS2_DRY are derived, these values
+!  implemented by Meemong Lee (JPL) in the adjoint model. Like PS2_WET,
+!  from which PS2_DRY is derived, these values
 !  are interpolated within routine INTERP to derive instantaneous PSC2_DRY.
 !  Note that PSC2_WET and PSC2_DRY are not used to fetch pressures and 
 !  calculate air quantities until after advection. Also note that the
@@ -1266,22 +1261,11 @@
       !=================================================================
 
       ! Set pointer to the appropriate humidity
-      IF ( PS_ID == 1 ) THEN
-         SPHU   => State_Met%SPHU1
-      ELSE IF ( PS_ID == 2 ) THEN
-         SPHU   => State_Met%SPHU2
-      ENDIF
+      SPHU   => State_Met%SPHU2
 
       ! Set pointers to State_Met pressure fields.
-      IF ( PS_ID == 1 ) THEN
-         PS_WET => State_Met%PS1_WET
-         PS_DRY => State_Met%PS1_DRY
-      ELSE IF ( PS_ID == 2 ) THEN
-         PS_WET => State_Met%PS2_WET
-         PS_DRY => State_Met%PS2_DRY
-      ELSE 
-         ! Throw an error (to be added)
-      ENDIF
+      PS_WET => State_Met%PS2_WET
+      PS_DRY => State_Met%PS2_DRY
 
       ! Reset dry surface pressure to TOA value
       PS_DRY = GET_AP(LLPAR+1)
@@ -2025,66 +2009,5 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE COSSZA
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: copy_i3_i6_fields
-!
-! !DESCRIPTION: Subroutine COPY\_I3\_I6\_FIELDS copies the I-6 fields at the 
-!  end of a 6-hr timestep.  The I-6 fields at the end of a given 6-hr timestep 
-!  become the fields at the beginning of the next 6-hr timestep. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE COPY_I3_I6_FIELDS( State_Met )
-!
-! !USES:
-!
-      USE State_Met_Mod,        ONLY : MetState
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
-! 
-! !REVISION HISTORY: 
-!  13 Apr 2004 - R. Yantosca - Initial version
-!  (1 ) Added parallel DO-loops (bmy, 4/13/04)
-!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
-!  (3 ) Added TROPP (phs 11/10/06)
-!  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
-!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
-!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
-!  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
-!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
-!                              derived type object
-!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
-!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
-!  03 May 2016 - E. Lundgren - Add PS1_DRY update
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER :: I, J, L
-
-      !=================================================================
-      ! COPY_I3_I6_FIELDS begins here!
-      !=================================================================
-
-      State_Met%PS1_WET = State_Met%PS2_WET ! I3 surface pressure    [hPa]
-      State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa] 
-      State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
-      State_Met%TMPU1   = State_Met%TMPU2   ! I3 temperature         [K]
-
-      END SUBROUTINE COPY_I3_I6_FIELDS
 !EOC
       END MODULE DAO_MOD
