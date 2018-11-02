@@ -536,6 +536,7 @@ CONTAINS
 !                              variable name to simplify reading all species
 !                              concentration fields from the GEOS-Chem restart
 !                              file, but may be expanded for other purposes
+!  02 Nov 2018 - M. Sulprizio- Add cycle flag "CS" to skip fields not found
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -882,6 +883,7 @@ CONTAINS
       
                 ! Set time cycling behaviour. Possible values are: 
                 ! - "C"  : cycling --> Default
+                ! - "CS" : cycling, skip if not exist
                 ! - "R"  : range
                 ! - "RF" : range forced (error if not in range)
                 ! - "E"  : exact (read file once)
@@ -913,6 +915,10 @@ CONTAINS
                    Dta%CycleFlag = HCO_CFLAG_INTER
                 ELSEIF ( TRIM(TmCycle) == "C" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .TRUE.
+                ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
+                   Dta%CycleFlag = HCO_CFLAG_CYCLE
+                   Dta%MustFind  = .FALSE.
                 ELSEIF ( TRIM(TmCycle) == "A" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_AVERG
                 ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
@@ -1141,6 +1147,7 @@ CONTAINS
 
              ! Set time cycling behaviour. Possible values are: 
              ! - "C"  : cycling --> Default
+             ! - "CS" : cycling, skip if not exist
              ! - "R"  : range
              ! - "RF" : range forced (error if not in range)
              ! - "E"  : exact (read file once)
@@ -1172,6 +1179,10 @@ CONTAINS
                 Dta%CycleFlag = HCO_CFLAG_INTER
              ELSEIF ( TRIM(TmCycle) == "C" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .TRUE.
+             ELSEIF ( TRIM(TmCycle) == "CS" ) THEN
+                Dta%CycleFlag = HCO_CFLAG_CYCLE
+                Dta%MustFind  = .FALSE.
              ELSEIF ( TRIM(TmCycle) == "A" ) THEN
                 Dta%CycleFlag = HCO_CFLAG_AVERG
              ELSEIF ( TRIM(TmCycle) == "RA" ) THEN
