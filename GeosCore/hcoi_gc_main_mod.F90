@@ -53,8 +53,10 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: Set_Grid
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoSpecies 
+#if !defined(ESMF_) && !defined( MODEL_WRF )
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
+#endif
 !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
@@ -797,6 +799,7 @@ CONTAINS
        RETURN
     ENDIF
 
+#if !defined(ESMF_) && !defined( MODEL_WRF )
     !=======================================================================
     ! Get met fields from HEMCO
     !=======================================================================
@@ -809,6 +812,7 @@ CONTAINS
     IF ( Phase == 0 ) THEN
        CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
     ENDIF
+#endif
 
     !=======================================================================
     ! Do the following only if it's time to calculate emissions 
@@ -3462,6 +3466,7 @@ CONTAINS
    ! Return to calling program
  END SUBROUTINE Calc_SumCosZa
 !EOC
+#if !defined(ESMF_) && !defined( MODEL_WRF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4567,5 +4572,6 @@ CONTAINS
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
+#endif
 !EOC
 END MODULE Hcoi_GC_Main_Mod
