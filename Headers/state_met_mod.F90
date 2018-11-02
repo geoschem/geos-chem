@@ -2147,7 +2147,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InStratosphere ) ) THEN
-       DEALLOCATE( State_Met%InTroposphere, STAT=RC  )
+       DEALLOCATE( State_Met%InStratosphere, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%InStratosphere', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
