@@ -137,7 +137,6 @@
       !-----------------------------------------------------------------
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : DO_RRTMG_RAD_TRANSFER
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : READ_SURFACE_RAD
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_MCICA_CLOUDS
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : SET_SPECMASK
       USE CMN_FJX_MOD,            ONLY : NSPECRADMENU
@@ -2961,19 +2960,6 @@
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
 
-#if defined( RRTMG )
-      !  Adding the call to retrieve MODIS-derived surface
-      !  albedo and emissivity here.
-      !  There is a check within READ_SURFACE_RAD to make
-      !  sure we dont re-read the same files
-      WRITE(6,*) 'IN INITIAL_MET_FIELDS'
-      !  Start day may not be one of the 8-day values
-      !  Therefore we pass the init flag to ensure
-      !  the closest date to the current day is read
-      !  rather than nothing at all
-      CALL Read_Surface_Rad( Input_Opt, FORCEREAD =.TRUE. )
-#endif
-
       END SUBROUTINE Read_Initial_Met_Fields
 !EOC
 !------------------------------------------------------------------------------
@@ -3054,17 +3040,6 @@
          CALL AvgPole( State_Met%PS2_WET )
 
       ENDIF
-
-#if defined( RRTMG )
-      !  Adding the call to retrieve MODIS-derived surface
-      !  albedo and emissivity here.
-      !  There is a check within READ_SURFACE_RAD to make
-      !  sure we dont re-read the same files
-      IF ( ITS_TIME_FOR_SURFACE_RAD() ) THEN
-!         WRITE(6,*) 'ITS TIME FOR SURFACE RAD'
-         CALL Read_Surface_Rad( Input_Opt )
-      ENDIF
-#endif
 
       END SUBROUTINE READ_MET_FIELDS
 !EOC
