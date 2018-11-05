@@ -1198,32 +1198,6 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
        !------------------------------------------------------------------
-       ! H2O2AfterChem
-       !------------------------------------------------------------------
-       chmID = 'H2O2AfterChem'
-       ALLOCATE( State_Chm%H2O2AfterChem( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%H2O2AfterChem = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%H2O2AfterChem,    &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 1, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
-       ! SO2AfterChem
-       !------------------------------------------------------------------
-       chmID = 'SO2AfterChem'
-       ALLOCATE( State_Chm%SO2AfterChem( IM, JM, LM ) , STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 0, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%SO2AfterChem = 0.0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO2AfterChem,     &
-                               State_Chm, RC                                )
-       CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 1, RC )    
-       IF ( RC /= GC_SUCCESS ) RETURN
-
-       !------------------------------------------------------------------
        ! DryDepNitrogen
        !------------------------------------------------------------------
        chmID = 'DryDepNitrogen'
@@ -1250,6 +1224,36 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF
+
+    !=======================================================================
+    ! Allocate and initialize quantities for wet deposition routines
+    !=======================================================================
+
+    !------------------------------------------------------------------
+    ! H2O2AfterChem
+    !------------------------------------------------------------------
+    chmID = 'H2O2AfterChem'
+    ALLOCATE( State_Chm%H2O2AfterChem( IM, JM, LM ) , STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 0, RC )    
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%H2O2AfterChem = 0.0_fp
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%H2O2AfterChem,    &
+                            State_Chm, RC                                )
+    CALL GC_CheckVar( 'State_Chm%H2O2AfterChem', 1, RC )    
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !------------------------------------------------------------------
+    ! SO2AfterChem
+    !------------------------------------------------------------------
+    chmID = 'SO2AfterChem'
+    ALLOCATE( State_Chm%SO2AfterChem( IM, JM, LM ) , STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 0, RC )    
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%SO2AfterChem = 0.0_fp
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%SO2AfterChem,     &
+                            State_Chm, RC                                )
+    CALL GC_CheckVar( 'State_Chm%SO2AfterChem', 1, RC )    
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !=======================================================================
     ! Allocate and initialize fields for KPP solver
