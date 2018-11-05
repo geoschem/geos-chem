@@ -496,6 +496,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify the Registry object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -583,6 +584,7 @@ CONtAINS
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object "Registry"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
+       Registry => NULL()
        RETURN
     ENDIF
 

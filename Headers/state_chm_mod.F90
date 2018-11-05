@@ -753,9 +753,12 @@ CONTAINS
     ! Allocate and initialize aerodynamic resistance fields 
     !======================================================================= 
     ALLOCATE( State_Chm%DryDepRa2m( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%DryDepRa2m = 0.0_fp
+
     ALLOCATE( State_Chm%DryDepRa10m( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Chm%DryDepRa10m = 0.0_fp
 #endif
@@ -1379,6 +1382,7 @@ CONTAINS
 !                              destroy the registry of State_Chm fields.
 !  03 Aug 2018 - H.P. Lin    - Add a counter for nChmState, only deallocating
 !                              species data if it is the last chemistry state.
+!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1396,235 +1400,295 @@ CONTAINS
     ThisLoc = ' -> at Cleanup_State_Chm (in Headers/state_chm_mod.F90)'
 
     !=======================================================================
-    ! Deallocate fields
+    ! Deallocate and nullify pointer fields of State_Chm
     !=======================================================================
-    IF ( ASSOCIATED( State_Chm%Map_Advect) ) THEN
+    IF ( ASSOCIATED( State_Chm%Map_Advect ) ) THEN
        DEALLOCATE( State_Chm%Map_Advect, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Advect => NULL()  
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%Map_Aero) ) THEN
+    IF ( ASSOCIATED( State_Chm%Map_Aero ) ) THEN
        DEALLOCATE( State_Chm%Map_Aero, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Aero => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
        DEALLOCATE( State_Chm%Map_DryDep, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Drydep', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_DryDep => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_GasSpc ) ) THEN
        DEALLOCATE( State_Chm%Map_GasSpc, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_GasSpc', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_GasSpc => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_HygGrth ) ) THEN
        DEALLOCATE( State_Chm%Map_HygGrth, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_HygGrth', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_HygGrth => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_KppVar ) ) THEN
        DEALLOCATE( State_Chm%Map_KppVar, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppVar', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_KppVar => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_KppFix ) ) THEN
        DEALLOCATE( State_Chm%Map_KppFix, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppFix', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_KppFix => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_KppSpc ) ) THEN
        DEALLOCATE( State_Chm%Map_KppSpc, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_KppSpc', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_KppSpc => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Name_Loss ) ) THEN
        DEALLOCATE( State_Chm%Name_Loss, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Name_Loss', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Name_Loss => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_Loss ) ) THEN
        DEALLOCATE( State_Chm%Map_Loss, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Loss', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Loss => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_Photol ) ) THEN
        DEALLOCATE( State_Chm%Map_Photol, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Photol', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Photol => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Name_Prod ) ) THEN
        DEALLOCATE( State_Chm%Name_Prod, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Name_Prod', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Name_Prod => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_Prod ) ) THEN
        DEALLOCATE( State_Chm%Map_Prod, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Prod', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Prod => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
        DEALLOCATE( State_Chm%Map_WetDep, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_WetDep', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_WetDep => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
        DEALLOCATE( State_Chm%Species, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Species', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Species => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
        DEALLOCATE( State_Chm%Hg_Cat_Name, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Hg_Cat_Name', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Hg_Cat_Name => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg0_Id_List ) ) THEN
        DEALLOCATE( State_Chm%Hg0_Id_List, STAT=RC ) 
        CALL GC_CheckVar( 'State_Chm%Hg0_Id_List', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Hg0_Id_List => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg2_Id_List ) ) THEN
        DEALLOCATE( State_Chm%Hg2_Id_List, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Hg2_Id_List', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Hg2_Id_List => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HgP_Id_List ) ) THEN
        DEALLOCATE( State_Chm%HgP_Id_List, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HgP_Id_List', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HgP_Id_List => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN
        DEALLOCATE( State_Chm%AeroArea, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroArea', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroArea => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroRadi ) ) THEN
        DEALLOCATE( State_Chm%AeroRadi, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AeroRadi', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AeroRadi => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%WetAeroArea ) ) THEN
        DEALLOCATE( State_Chm%WetAeroArea, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroArea', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetAeroArea => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%WetAeroRadi ) ) THEN
        DEALLOCATE( State_Chm%WetAeroRadi, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WetAeroRadi', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WetAeroRadi => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%phSav ) ) THEN
        DEALLOCATE( State_Chm%phSav, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%phSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%pHSav => NULL()
+
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HplusSav ) ) THEN
        DEALLOCATE( State_Chm%HplusSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HplusSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HplusSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%WaterSav ) ) THEN
        DEALLOCATE( State_Chm%WaterSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%WaterSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%WaterSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%SulRatSav ) ) THEN
        DEALLOCATE( State_Chm%SulRatSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SulRatSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SulRatSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%NaRatSav ) ) THEN
        DEALLOCATE( State_Chm%NaRatSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%NaRatSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%NaRatSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AcidPurSav ) ) THEN
        DEALLOCATE( State_Chm%AcidPurSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%AcidPurSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%AcidPurSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%BisulSav ) ) THEN
        DEALLOCATE( State_Chm%BisulSav, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%BiSulSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BisulSav => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%pHCloud ) ) THEN
        DEALLOCATE( State_Chm%pHCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%pHCloud', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%pHCloud => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%SSAlk ) ) THEN
        DEALLOCATE( State_Chm%SSAlk, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SSAlk', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SSAlk => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%STATE_PSC ) ) THEN
        DEALLOCATE( State_Chm%STATE_PSC, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%State_PSC', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%STATE_PSC => NULL()
     ENDIF
        
     IF ( ASSOCIATED( State_Chm%KHETI_SLA ) ) THEN
        DEALLOCATE( State_Chm%KHETI_SLA, STAT=RC  )
        CALL GC_CheckVar( 'State_Chm%KHETI_SLA', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KHETI_SLA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%HSO3_AQ ) ) THEN
        DEALLOCATE( State_Chm%HSO3_AQ, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%HSO3_AQ', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%HSO3_AQ => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%SO3_AQ ) ) THEN
        DEALLOCATE( State_Chm%SO3_AQ, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%SO3_AQ', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%SO3_AQ => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%fupdateHOBr ) ) THEN
        DEALLOCATE( State_Chm%fupdateHOBr, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOBr => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
-    ! Aerodynamic resistance
-    IF ( ASSOCIATED(State_Chm%DryDepRa2m ) ) DEALLOCATE(State_Chm%DryDepRa2m )
-    IF ( ASSOCIATED(State_Chm%DryDepRa10m) ) DEALLOCATE(State_Chm%DryDepRa10m)
+    ! Aerodynamic resistance @ 2m
+    IF ( ASSOCIATED( State_Chm%DryDepRa2m ) ) THEN 
+       DEALLOCATE( State_Chm%DryDepRa2m, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa2m', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepRa2m => NULL()
+    ENDIF
+
+    ! Aerodynamic resistance @ 10m
+    IF ( ASSOCIATED( State_Chm%DryDepRa10m ) ) THEN
+       DEALLOCATE( State_Chm%DryDepRa10m, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepRa10m', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepRa10m => NULL()
+    ENDIF
 #endif
+
+    !-----------------------------------------------------------------------
+    ! Template for deallocating more arrays, replace xxx with field name
+    !-----------------------------------------------------------------------
+    !IF ( ASSOCIATED( State_Chm%xxx ) ) THEN
+    !   DEALLOCATE( State_Chm%xxx, STAT=RC  )
+    !   CALL GC_CheckVar( 'State_Chm%xxx', 2, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !   State_Chm%xxx => NULL()
+    !ENDIF
 
     !=======================================================================
     ! Deallocate the species database object field
@@ -1637,8 +1701,13 @@ CONTAINS
     ! The variable state_chm_mod.F90 nChmState keeps track of the # of chemistry
     ! states initialized in the system. (hplin, 8/3/18)
     IF ( nChmState == 1 ) THEN
-        CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
+       CALL Cleanup_Species_Database( am_I_Root, State_Chm%SpcData, RC )
+       CALL GC_CheckVar( 'State_Chm%SpcData', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    ! Nullify the State_Chm%SpcData object
+    State_Chm%SpcData => NULL()
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -1649,6 +1718,9 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Nullify the registry object
+    State_Chm%Registry => NULL()
 
     !=======================================================================
     ! Decrease the counter of chemistry states in this CPU
@@ -2177,7 +2249,7 @@ CONTAINS
                    TRIM( metadataID ) // ' when search for all caps name ' &
                    // TRIM( Name_AllCaps )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+          IF ( RC /= GC_SUCCESS ) RETURN
 
     END SELECT
 

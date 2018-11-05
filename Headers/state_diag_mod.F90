@@ -6136,6 +6136,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  05 Jul 2017 - R. Yantosca - Initial version
 !  05 Oct 2017 - R. Yantosca - Now put error trapping on deallocations
+!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -6159,372 +6160,434 @@ CONTAINS
        DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesConc => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetMass1 ) ) THEN
        DEALLOCATE( State_Diag%BudgetMass1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMass1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMass1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetMass2 ) ) THEN
        DEALLOCATE( State_Diag%BudgetMass2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMass2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMass2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetEmisDryDepFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmisDryDepFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetEmisDryDepTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmisDryDepTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetEmisDryDepPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetEmisDryDepPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetEmisDryDepPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetEmisDryDepPBL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetTransportFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetTransportFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetTransportFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetTransportTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetTransportTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetTransportTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportPBL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetMixingFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetMixingFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMixingFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetMixingTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetMixingTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMixingTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetMixingPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetMixingPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetMixingPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingPBL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetConvectionFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetConvectionFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetConvectionFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetConvectionTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetConvectionTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetConvectionTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetConvectionPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetConvectionPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetConvectionPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetConvectionPBL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetChemistryFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetChemistryFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetChemistryFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetChemistryTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetChemistryTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetChemistryTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetChemistryPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetChemistryPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetChemistryPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetChemistryPBL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetWetDepFull ) ) THEN
        DEALLOCATE( State_Diag%BudgetWetDepFull, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetWetDepFull', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepFull => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetWetDepTrop ) ) THEN
        DEALLOCATE( State_Diag%BudgetWetDepTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetWetDepTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetWetDepPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetWetDepPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetWetDepPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetWetDepPBL => NULL()
     ENDIF
  
     IF ( ASSOCIATED( State_Diag%DryDepChm ) ) THEN
        DEALLOCATE( State_Diag%DryDepChm, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepChm', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepChm => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepMix ) ) THEN
        DEALLOCATE( State_Diag%DryDepMix, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepMix', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepMix    => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDep ) ) THEN
        DEALLOCATE( State_Diag%DryDep, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDep', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDep => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepVel ) ) THEN
-       DEALLOCATE( State_Diag%DryDepVel, STAT=RC  )
+       DEALLOCATE( State_Diag%DryDepVel, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepVel', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepVel => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%DryDepRa2m ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC  )
+       DEALLOCATE( State_Diag%DryDepRa2m, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepRa2m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRa2m   => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%DryDepRa10m ) ) THEN
-       DEALLOCATE( State_Diag%DryDepRa10m, STAT=RC  )
+       DEALLOCATE( State_Diag%DryDepRa10m, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%DryDepRa10m', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%DryDepRa10m  => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%MoninObukhov ) ) THEN
-       DEALLOCATE( State_Diag%MoninObukhov, STAT=RC  )
+       DEALLOCATE( State_Diag%MoninObukhov, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%MoninObukhov', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MoninObukhov => NULL()
     ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
-       DEALLOCATE( State_Diag%JVal, STAT=RC  )
+       DEALLOCATE( State_Diag%JVal, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%Jval', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JVal => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%JValIndiv ) ) THEN
-       DEALLOCATE( State_Diag%JValIndiv, STAT=RC  )
+       DEALLOCATE( State_Diag%JValIndiv, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%JvalIndiv', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JValIndiv => NULL()
     ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%JNoon ) ) THEN
-       DEALLOCATE( State_Diag%JNoon, STAT=RC  )
+       DEALLOCATE( State_Diag%JNoon, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JNoon => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
-       DEALLOCATE( State_Diag%RxnRates, STAT=RC  )
+       DEALLOCATE( State_Diag%RxnRates, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RxnRates => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%RxnRconst ) ) THEN
-       DEALLOCATE( State_Diag%RxnRconst, STAT=RC  )
+       DEALLOCATE( State_Diag%RxnRconst, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RxnRconst', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RxnRconst => NULL()
     ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%UVFluxDiffuse ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC  )
+       DEALLOCATE( State_Diag%UVFluxDiffuse, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%UvFluxDiffuse', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxDiffuse => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%UVFluxDirect ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC  )
+       DEALLOCATE( State_Diag%UVFluxDirect, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%UvFluxDirect', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxDirect => NULL()
+
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%UVFluxNet ) ) THEN
-       DEALLOCATE( State_Diag%UVFluxNet, STAT=RC  )
+       DEALLOCATE( State_Diag%UVFluxNet, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%UvFluxNet', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%UVFluxNet => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxZonal ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC  )
+       DEALLOCATE( State_Diag%AdvFluxZonal, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AdvFluxZonal', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxZonal => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxMerid ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxMerid, STAT=RC  )
+       DEALLOCATE( State_Diag%AdvFluxMerid, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AdvFluxMerid', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxMerid => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AdvFluxVert ) ) THEN
-       DEALLOCATE( State_Diag%AdvFluxVert, STAT=RC  )
+       DEALLOCATE( State_Diag%AdvFluxVert, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AdvFluxVert', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AdvFluxVert => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PBLMixFrac ) ) THEN
-       DEALLOCATE( State_Diag%PBLMixFrac, STAT=RC  )
+       DEALLOCATE( State_Diag%PBLMixFrac, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PBLMixFrac', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PBLMixFrac => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PBLFlux ) ) THEN
        DEALLOCATE( State_Diag%PBLFlux, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PBLFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PBLFlux => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%CloudConvFlux ) ) THEN
-       DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC  )
+       DEALLOCATE( State_Diag%CloudConvFlux, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%CloudConvFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%CloudConvFlux => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WetLossConv ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConv, STAT=RC  )
+       DEALLOCATE( State_Diag%WetLossConv, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%WetLossConv', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetLossConv => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WetLossConvFrac ) ) THEN
-       DEALLOCATE( State_Diag%WetLossConvFrac, STAT=RC  )
+       DEALLOCATE( State_Diag%WetLossConvFrac, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%WetLossConvFrac', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetLossConvFrac => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WetLossLS ) ) THEN
-       DEALLOCATE( State_Diag%WetLossLS, STAT=RC  )
+       DEALLOCATE( State_Diag%WetLossLS, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%WetLossLS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WetLossLS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PrecipFracLS ) ) THEN
-       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC  )
+       DEALLOCATE( State_Diag%PrecipFracLS, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PrecipFracLS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PrecipFracLS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RainFracLS ) ) THEN
-       DEALLOCATE( State_Diag%RainFracLS, STAT=RC  )
+       DEALLOCATE( State_Diag%RainFracLS, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RainFracLS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RainFracLS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%WashFracLS ) ) THEN
-       DEALLOCATE( State_Diag%WashFracLS, STAT=RC  )
+       DEALLOCATE( State_Diag%WashFracLS, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%WashFracLS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%WashFracLS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PbFromRnDecay ) ) THEN
-       DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC  )
+       DEALLOCATE( State_Diag%PbFromRnDecay, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PbFromRnDecay', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PbFromRnDecay => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadDecay ) ) THEN
-       DEALLOCATE( State_Diag%RadDecay, STAT=RC  )
+       DEALLOCATE( State_Diag%RadDecay, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadDecay', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadDecay => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC  )
+       DEALLOCATE( State_Diag%RadAllSkyLWSurf, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadAllSkyLWSurf', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkyLWSurf => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC  )
+       DEALLOCATE( State_Diag%RadAllSkyLWTOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadAllSkyLWTOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkyLWTOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC  )
+       DEALLOCATE( State_Diag%RadAllSkySWSurf, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadAllSkySWSurf', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkySWSurf => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadAllSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC  )
+       DEALLOCATE( State_Diag%RadAllSkySWTOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadAllSkySWTOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadAllSkySWTOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkyLWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC  )
+       DEALLOCATE( State_Diag%RadClrSkyLWSurf, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadClrSkyLWSurf', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkyLWSurf => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkyLWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC  )
+       DEALLOCATE( State_Diag%RadClrSkyLWTOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadClrSkyLWTOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkyLWTOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkySWSurf ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC  )
+       DEALLOCATE( State_Diag%RadClrSkySWSurf, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadClrSkySWSurf', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkySWSurf => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RadClrSkySWTOA ) ) THEN
-       DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC  )
+       DEALLOCATE( State_Diag%RadClrSkySWTOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RadClrSkySWTOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RadClrSkySWTOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdBCPIfromBCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdBCPIfromBCPO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdBCPIfromBCPO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdBCPIfromBCPO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdOCPIfromOCPO ) ) THEN
-       DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdOCPIfromOCPO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdOCPIfromOCPO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdOCPIfromOCPO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%OHconcAfterChem ) ) THEN
        DEALLOCATE( State_Diag%OhconcAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%OHconcAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%OHconcAfterChem  => NULL()
     ENDIF 
 
 #if defined( MODEL_GEOS )
@@ -6532,837 +6595,1095 @@ CONTAINS
        DEALLOCATE( State_Diag%O3concAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%O3concAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%O3concAfterChem => NULL()
     ENDIF 
 
     IF ( ASSOCIATED( State_Diag%RO2concAfterChem ) ) THEN
        DEALLOCATE( State_Diag%RO2concAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RO2concAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%RO2concAfterChem => NULL()
     ENDIF 
 #endif
 
     IF ( ASSOCIATED( State_Diag%HO2concAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC  )
+       DEALLOCATE( State_Diag%HO2concAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%HO2concAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%HO2concAfterChem => NULL()
     ENDIF 
 
     IF ( ASSOCIATED( State_Diag%O1DconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC  )
+       DEALLOCATE( State_Diag%O1DconcAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%O1DconcAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%O1DconcAfterChem => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%O3PconcAfterChem ) ) THEN
-       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC  )
+       DEALLOCATE( State_Diag%O3PconcAfterChem, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%O3PconcAfterChem', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%O3PconcAfterChem => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODDust ) ) THEN
        DEALLOCATE( State_Diag%AODDust, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODDust', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODDust => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODDustWL1 ) ) THEN
        DEALLOCATE( State_Diag%AODDustWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODDustWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODDustWL1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODDustWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL2, STAT=RC  )
+       DEALLOCATE( State_Diag%AODDustWL2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODDustWL2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODDustWL2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODDustWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODDustWL3, STAT=RC  )
+       DEALLOCATE( State_Diag%AODDustWL3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODDustWL3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODDustWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODHygWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL1, STAT=RC  )
+       DEALLOCATE( State_Diag%AODHygWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODHygWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODHygWL1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODHygWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL2, STAT=RC  )
+       DEALLOCATE( State_Diag%AODHygWL2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODHygWL2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODHygWL2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODHygWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODHygWL3, STAT=RC  )
+       DEALLOCATE( State_Diag%AODHygWL3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODHygWL3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODHygWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL1, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSOAfromAqIsopWL1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL2, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSOAfromAqIsopWL2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSOAfromAqIsopWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL3, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSOAfromAqIsopWL3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSOAfromAqIsopWL3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSOAfromAqIsopWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerHygGrowth ) ) THEN
-       DEALLOCATE( State_Diag%AerHygGrowth, STAT=RC  )
+       DEALLOCATE( State_Diag%AerHygGrowth, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerHygGrowth', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerHygGrowth => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerSurfAreaDust ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaDust, STAT=RC  )
+       DEALLOCATE( State_Diag%AerSurfAreaDust, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerSurfAreaDust', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerSurfAreaDust => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%AerSurfAreaHyg) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaHyg, STAT=RC  )
+    IF ( ASSOCIATED( State_Diag%AerSurfAreaHyg ) ) THEN
+       DEALLOCATE( State_Diag%AerSurfAreaHyg, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerSurfAreaHyg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerSurfAreaHyg => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerNumDenSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenSLA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerNumDenSLA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerNumDenSLA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerNumDenSLA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerNumDenPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerNumDenPSC, STAT=RC  )
+       DEALLOCATE( State_Diag%AerNumDenPSC, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerNumDenPSC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerNumDenPSC => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerAqVol ) ) THEN
-       DEALLOCATE( State_Diag%AerAqVol, STAT=RC  )
+       DEALLOCATE( State_Diag%AerAqVol, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerAqVol', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerAqVol => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerSurfAreaSLA ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaSLA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerSurfAreaSLA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerSurfAreaSLA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerSurfAreaSLA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerSurfAreaPSC ) ) THEN
-       DEALLOCATE( State_Diag%AerSurfAreaPSC, STAT=RC  )
+       DEALLOCATE( State_Diag%AerSurfAreaPSC, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerSurfAreaPSC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerSurfAreaPSC => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSLAWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL1, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSLAWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSLAWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSLAWL1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSLAWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL2, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSLAWL2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSLAWL2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSLAWL2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODSLAWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODSLAWL3, STAT=RC  )
+       DEALLOCATE( State_Diag%AODSLAWL3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODSLAWL3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODSLAWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODPSCWL1 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL1, STAT=RC  )
+       DEALLOCATE( State_Diag%AODPSCWL1, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODPSCWL1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODPSCWL1 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODPSCWL2 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL2, STAT=RC  )
+       DEALLOCATE( State_Diag%AODPSCWL2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODPSCWL2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODPSCWL2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AODPSCWL3 ) ) THEN
-       DEALLOCATE( State_Diag%AODPSCWL3, STAT=RC  )
+       DEALLOCATE( State_Diag%AODPSCWL3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AODPSCWL3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AODPSCWL3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%Loss ) ) THEN
-       DEALLOCATE( State_Diag%Loss, STAT=RC  )
+       DEALLOCATE( State_Diag%Loss, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%Loss', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Loss => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%Prod ) ) THEN
-       DEALLOCATE( State_Diag%Prod, STAT=RC  )
+       DEALLOCATE( State_Diag%Prod, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%Prod', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Prod => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandOH, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO2fromDMSandOH, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO2fromDMSandOH => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO2fromDMSandNO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO2fromDMSandNO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO2fromDMSandNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO2fromDMSandNO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO2fromDMS ) ) THEN
-       DEALLOCATE(  State_Diag%ProdSO2fromDMS, STAT=RC  )
+       DEALLOCATE(  State_Diag%ProdSO2fromDMS, STAT=RC )
        CALL GC_CheckVar( ' State_Diag%ProdSO2fromDMS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO2fromDMS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdMSAfromDMS ) ) THEN
-       DEALLOCATE( State_Diag%ProdMSAfromDMS, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdMSAfromDMS, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdMSAfromDMS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdMSAfromDMS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust ) ) THEN
-       DEALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdNITfromHNO3uptakeOnDust, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdNITfromHNO3uptakeOnDust', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdNITfromHNO3uptakeOnDust => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromGasPhase, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromGasPhase', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromGasPhase => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromH2O2inCloud, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromH2O2inCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromH2O2inCloud', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromH2O2inCloud => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromO3inCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inCloud', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromO3inCloud => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromHOBrInCloud, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromHOBrInCloud, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromHOBrInCloud', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromHOBrInCloud => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO2inCloudMetal ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromO2inCloudMetal, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO2inCloudMetal', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromO2inCloudMetal => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromO3inSeaSalt, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3inSeaSalt', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromO3inSeaSalt => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromOxidationOnDust, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromOxidationOnDust, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromOxidationOnDust', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromOxidationOnDust => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromUptakeOfH2SO4g, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromUptakeOfH2SO4g', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromUptakeOfH2SO4g => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromSRO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromSRO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromSRO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromSRHOBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromSRHOBr, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromSRHOBr, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromSRHOBr', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromSRHOBr => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdSO4fromO3s ) ) THEN
-       DEALLOCATE( State_Diag%ProdSO4fromO3s, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdSO4fromO3s, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdSO4fromO3s', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdSO4fromO3s => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossHNO3onSeaSalt  ) ) THEN
-       DEALLOCATE( State_Diag%LossHNO3onSeaSalt, STAT=RC  )
+       DEALLOCATE( State_Diag%LossHNO3onSeaSalt, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossHNO3onSeaSalt', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossHNO3onSeaSalt => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%CH4pseudoFlux ) ) THEN
-       DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC  )
+       DEALLOCATE( State_Diag%CH4pseudoFlux, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%CH4pseudoFlux', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%CH4pseudoflux => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%OHreactivity ) ) THEN
        DEALLOCATE( State_Diag%OHreactivity, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%OH_reactivity', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%OHreactivity => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
        DEALLOCATE( State_Diag%KppError, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%KppError => NULL()
     ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%AerMassASOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassASOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassASOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassASOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassASOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassBC ) ) THEN
-       DEALLOCATE( State_Diag%AerMassBC, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassBC, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassBC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassBC => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassINDIOL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassINDIOL, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassINDIOL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassINDIOL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassINDIOL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassISN1OA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassISN1OA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassISN1OA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassISN1OAL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassISN1OA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassISOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassISOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassISOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassISOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassISOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassLVOCOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassLVOCOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassLVOCOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassLVOCOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassLVOCOA => NULL()
     ENDIF
 
-
     IF ( ASSOCIATED( State_Diag%AerMassNH4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNH4, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassNH4, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassNH4', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassNH4 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassNIT ) ) THEN
-       DEALLOCATE( State_Diag%AerMassNIT, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassNIT, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassNIT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassNIT => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassOPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassOPOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassOPOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassOPOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassOPOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassPOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassPOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassPOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassPOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassPOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSAL ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSAL, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSAL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSAL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSAL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSO4 ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSO4, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSO4, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSO4', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSO4 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSOAGX ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSOAGX, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSOAGX', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSOAGX => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSOAIE ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAIE, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSOAIE, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSOAIE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSOAIE => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSOAME ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAME, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSOAME, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSOAME', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSOAME => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassSOAMG ) ) THEN
-       DEALLOCATE( State_Diag%AerMassSOAMG, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassSOAMG, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassSOAMG', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassSOAMG => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%AerMassTSOA ) ) THEN
-       DEALLOCATE( State_Diag%AerMassTSOA, STAT=RC  )
+       DEALLOCATE( State_Diag%AerMassTSOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%AerMassTSOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%AerMassTSOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BetaNO ) ) THEN
-       DEALLOCATE( State_Diag%BetaNO, STAT=RC  )
+       DEALLOCATE( State_Diag%BetaNO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BetaNO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+       State_Diag%BetaNO => NULL()
+   ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25 ) ) THEN
-       DEALLOCATE( State_Diag%PM25, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25 => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( ASSOCIATED( State_Diag%PM25ni ) ) THEN
-       DEALLOCATE( State_Diag%PM25ni, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25ni, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25ni', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25ni => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25su ) ) THEN
-       DEALLOCATE( State_Diag%PM25su, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25su, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25su', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25su => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25oc ) ) THEN
-       DEALLOCATE( State_Diag%PM25oc, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25oc, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25oc', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25oc => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25bc ) ) THEN
-       DEALLOCATE( State_Diag%PM25bc, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25bc, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25bc', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25bc => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25ss ) ) THEN
-       DEALLOCATE( State_Diag%PM25ss, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25ss, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25ss', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25ss => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25du ) ) THEN
-       DEALLOCATE( State_Diag%PM25du, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25du, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25du', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25du => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PM25soa ) ) THEN
-       DEALLOCATE( State_Diag%PM25soa, STAT=RC  )
+       DEALLOCATE( State_Diag%PM25soa, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PM25soa', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PM25soa => NULL()
     ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%TotalOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalOA, STAT=RC  )
+       DEALLOCATE( State_Diag%TotalOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%TotalOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%TotalOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
+       DEALLOCATE( State_Diag%TotalOA, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%TotalBiogenicOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%TotalOC ) ) THEN
-       DEALLOCATE( State_Diag%TotalOC, STAT=RC  )
+       DEALLOCATE( State_Diag%TotalOC, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%TotalOC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%TotalOC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPG ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPG, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPG', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPG => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPPOCPO ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPPOCPO, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPPOCPO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPPOCPO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPPBCPO ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPPBCPO, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPPBCPO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPPBCPO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPGfromSoil ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPGfromSoil, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromSoil', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPGfromSoil => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPGfromLake ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPGfromLake, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromLake', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPGfromLake => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisPOPGfromLeaf ) ) THEN
+       DEALLOCATE( State_Diag%EmisPOPGfromLeaf, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisPOPGfromLeaf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisPOPGfromLeaf => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromSoilToAir ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromSoilToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromSoilToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromSoilToAir => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToSoil ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromAirToSoil, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToSoil', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromAirToSoil => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromLakeToAir ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromLakeToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromLakeToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromLakeToAir => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToLake ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromAirToLake, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToLake', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromAirToLake => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromLeafToAir ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromLeafToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromLeafToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromLeafToAir => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FluxPOPGfromAirToLeaf ) ) THEN
+       DEALLOCATE( State_Diag%FluxPOPGfromAirToLeaf, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FluxPOPGfromAirToLeaf', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxPOPGfromAirToLeaf => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FugacitySoilToAir ) ) THEN
+       DEALLOCATE( State_Diag%FugacitySoilToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FugacitySoilToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FugacitySoilToAir => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FugacityLakeToAir ) ) THEN
+       DEALLOCATE( State_Diag%FugacityLakeToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FugacityLakeToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FugacityLakeToAir => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%FugacityLeafToAir ) ) THEN
+       DEALLOCATE( State_Diag%FugacityLeafToAir, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%FugacityLeafToAir', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FugacityLeafToAir => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossPOPPOCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPOCPObyGasPhase, STAT=RC  )
+       DEALLOCATE( State_Diag%LossPOPPOCPObyGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossPOPPOCPObyGasPhase', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossPOPPOCPObyGasPhase => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPOCPOfromGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromGasPhase', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPOCPOfromGasPhase => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossPOPPBCPObyGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%LossPOPPBCPObyGasPhase, STAT=RC  )
+       DEALLOCATE( State_Diag%LossPOPPBCPObyGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossPOPPBCPObyGasPhase', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossPOPPBCPObyGasPhase => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromGasPhase ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPBCPOfromGasPhase, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromGasPhase', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPBCPOfromGasPhase => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPGfromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPGfromOH, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPGfromOH, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPGfromOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPGfromOH => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPOCPOfromO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPOCPOfromO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPOCPIfromO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPOCPIfromO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPBCPOfromO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPBCPOfromO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPBCPIfromO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPBCPIfromO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPOCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPOfromNO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPOCPOfromNO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPOfromNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPOCPOfromNO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPOCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPOCPIfromNO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPOCPIfromNO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPOCPIfromNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPOCPIfromNO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPOfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPOfromNO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPBCPOfromNO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPOfromNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPBCPOfromNO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdPOPPBCPIfromNO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdPOPPBCPIfromNO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdPOPPBCPIfromNO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdPOPPBCPIfromNO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdCO2fromCO ) ) THEN
-       DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdCO2fromCO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdCO2fromCO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdCO2fromCO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%LossCH4byClinTrop ) ) THEN
+       DEALLOCATE( State_Diag%LossCH4byClinTrop, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%LossCH4byClinTrop', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossCH4byClinTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossCH4byOHinTrop ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4byOHinTrop, STAT=RC  )
+       DEALLOCATE( State_Diag%LossCH4byOHinTrop, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossCH4byOHinTrop => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossCH4inStrat ) ) THEN
-       DEALLOCATE( State_Diag%LossCH4inStrat, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%LossCH4byOHinTrop', 2, RC )
+       DEALLOCATE( State_Diag%LossCH4inStrat, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%LossCH4inStrat', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossCH4inStrat => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0ocean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0ocean, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0ocean', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0land ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0land, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0land', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%EmisHg0geogenic ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0geogenic, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0geogenic', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0anthro => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%EmisHg0biomass ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0biomass, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg0biomass, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0biomass', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0biomass => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%EmisHg0vegetation ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0vegetation, STAT=RC  )
-       CALL GC_CheckVar( 'State_Diag%EmisHg0vegetation', 2, RC )
+    IF ( ASSOCIATED( State_Diag%EmisHg0geogenic ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0geogenic, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0geogenic', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0geogenic => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0land ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0land, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0land', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0land => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0ocean ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0ocean, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0ocean', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0ocean => NULL()
+    ENDIF
+
+
+    IF ( ASSOCIATED( State_Diag%EmisHg0soil ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0soil, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0soil', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0soil => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%EmisHg0snow ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg0snow, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg0snow, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0snow', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0snow => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%EmisHg0vegetation ) ) THEN
+       DEALLOCATE( State_Diag%EmisHg0vegetation, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%EmisHg0vegetation', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg0vegetation => NULL()
+    ENDIF
+
+
     IF ( ASSOCIATED( State_Diag%EmisHg2HgPanthro ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2HgPanthro, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg2HgPanthro, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg2HgPanthro', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg2HgPanthro => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%EmisHg2snowToOcean ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2snowToOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg2snowToOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg2snowToOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg2snowToOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%EmisHg2rivers ) ) THEN
-       DEALLOCATE( State_Diag%EmisHg2rivers, STAT=RC  )
+       DEALLOCATE( State_Diag%EmisHg2rivers, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg2rivers', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%EmisHg2rivers => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToSnow ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToSnow, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToSnow', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxHg2HgPfromAirToSnow => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxHg0fromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxHg0fromAirToOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxHg0fromAirToOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxHg0fromAirToOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxHg0fromOceanToAir  ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg0fromOceanToAir, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxHg0fromOceanToAir, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxHg0fromOceanToAir', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxHg0fromOceanToAir => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxHg2toDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2toDeepOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxHg2toDeepOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxHg2toDeepOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxHg2toDeepOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxHg2HgPfromAirToOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxHg2HgPfromAirToOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxHg2HgPfromAirToOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxHg2HgPfromAirToOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%FluxOCtoDeepOcean ) ) THEN
-       DEALLOCATE( State_Diag%FluxOCtoDeepOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%FluxOCtoDeepOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%FluxOCtoDeepOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%FluxOCtoDeepOcean  => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%MassHg0inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg0inOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%MassHg0inOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%MassHg0inOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MassHg0inOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%MassHg2inOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHg2inOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%MassHg2inOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%MassHg2inOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MassHg2inOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%MassHgPinOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgPinOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%MassHgPinOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%MassHgPinOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MassHgPinOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%MassHgTotalInOcean ) ) THEN
-       DEALLOCATE( State_Diag%MassHgTotalInOcean, STAT=RC  )
+       DEALLOCATE( State_Diag%MassHgTotalInOcean, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%MassHgTotalInOcean', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%MassHgTotalInOcean => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ConcBr ) ) THEN
-       DEALLOCATE( State_Diag%ConcBr, STAT=RC  )
+       DEALLOCATE( State_Diag%ConcBr, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ConcBr', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConcBr  => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%ConcBrO, STAT=RC  )
+       DEALLOCATE( State_Diag%ConcBrO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ConcBrO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ConcBrO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossHg2bySeaSalt, STAT=RC  )
+       DEALLOCATE( State_Diag%LossHg2bySeaSalt, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossHg2bySeaSalt', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossHg2bySeaSalt => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%LossRateHg2bySeaSalt ) ) THEN
-       DEALLOCATE( State_Diag%LossRateHg2bySeaSalt, STAT=RC  )
+       DEALLOCATE( State_Diag%LossRateHg2bySeaSalt, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%LossRateHg2bySeaSalt', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%LossRateHg2bySeaSalt => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PolarConcBr ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBr, STAT=RC  )
+       DEALLOCATE( State_Diag%PolarConcBr, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PolarConcBr', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PolarConcBr => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PolarConcBrO ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcBrO, STAT=RC  )
+       DEALLOCATE( State_Diag%PolarConcBrO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PolarConcBrO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PolarConcBrO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%PolarConcO3 ) ) THEN
-       DEALLOCATE( State_Diag%PolarConcO3, STAT=RC  )
+       DEALLOCATE( State_Diag%PolarConcO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%PolarConcO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%PolarConcO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromBr ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBr, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromBr, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromBr', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromBr  => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromBrY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromBrY, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromBrY, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromBrY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromBrY => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromClY ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromClY, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromClY, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromClY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+       State_Diag%ProdHg2fromClY => NULL()
+   ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHg0 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHg0, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHg0, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHg0', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHg0 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBr2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBr2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBr2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHgBrPlusBr2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrBrO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrBrO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrBrO', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+       IF ( RC /= GC_SUCCESS ) RETURN 
+       State_Diag%ProdHg2fromHgBrPlusBrBrO => NULL()
+   ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrClO ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrClO, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrClO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHgBrPlusBrClO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrHO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrHO2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrHO2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHgBrPlusBrHO2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrNO2 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrNO2, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrNO2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHgBrPlusBrNO2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromHgBrPlusBrOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromHgBrPlusBrOH, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromHgBrPlusBrOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromHgBrPlusBrOH => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromOH ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromOH, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromOH, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromOH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromOH => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ProdHg2fromO3 ) ) THEN
-       DEALLOCATE( State_Diag%ProdHg2fromO3, STAT=RC  )
+       DEALLOCATE( State_Diag%ProdHg2fromO3, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ProdHg2fromO3', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdHg2fromO3 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ParticulateBoundHg ) ) THEN
-       DEALLOCATE( State_Diag%ParticulateBoundHg, STAT=RC  )
+       DEALLOCATE( State_Diag%ParticulateBoundHg, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ParticulateBoundHg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ParticulateBoundHg => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ReactiveGaseousHg ) ) THEN
-       DEALLOCATE( State_Diag%ReactiveGaseousHg, STAT=RC  )
+       DEALLOCATE( State_Diag%ReactiveGaseousHg, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ReactiveGaseousHg', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
+       State_Diag%ReactiveGaseousHg => NULL()
+   ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
     !IF ( ASSOCIATED( State_Diag%xxx ) ) THEN
-    !   DEALLOCATE( State_Diag%xxx, STAT=RC  )
+    !   DEALLOCATE( State_Diag%xxx, STAT=RC )
     !   CALL GC_CheckVar( 'State_Diag%xxx', 2, RC )
     !   IF ( RC /= GC_SUCCESS ) RETURN
+    !   State_Diag%xxx => NULL()
     !ENDIF
 
     !=======================================================================
@@ -7375,6 +7696,9 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Nullify the registry object
+    State_Diag%Registry => NULL()
+    
   END SUBROUTINE Cleanup_State_Diag
 !EOC
 !------------------------------------------------------------------------------
