@@ -423,7 +423,6 @@ CONTAINS
     State_Met%PARDR          => NULL()
     State_Met%PARDF          => NULL()
     State_Met%PBLH           => NULL()
-    State_Met%PBLH           => NULL()
     State_Met%PBL_TOP_L      => NULL()
     State_Met%PHIS           => NULL()
     State_Met%PRECANV        => NULL()
@@ -1934,6 +1933,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  22 Aug 2014 - R. Yantosca - Deallocate PBL_TOP_L field
 !  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
+!                              (except 3D fields for GCHP/GEOS/WRF interfaces)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1951,12 +1951,8 @@ CONTAINS
     ThisLoc = ' -> Cleanup_State_Met (in Headers/state_met_mod.F90)'
 
     !========================================================================
-    ! These met fields are used for all data products
+    ! Deallocate 2-D fields
     !========================================================================
-
-    !-----------------
-    ! 2-D fields
-    !-----------------
     IF ( ASSOCIATED( State_Met%ALBD ) ) THEN
        DEALLOCATE( State_Met%ALBD, STAT=RC )
        CALL GC_CheckVar( 'State_Met%ALBD', 2, RC )
@@ -2092,13 +2088,6 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Met%PBLH ) ) THEN
        DEALLOCATE( State_Met%PBLH, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%PBLH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%PBLH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%PBLH ) ) THEN
-       DEALLOCATE( State_Met%PBLH, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PBLH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PBLH => NULL()
@@ -2384,9 +2373,6 @@ CONTAINS
        State_Met%CNV_FRC => NULL()
     ENDIF
 
-    !---------------------------
-    ! Land type / LAI fields
-    !---------------------------
     IF ( ASSOCIATED( State_Met%ILAND ) ) THEN
        DEALLOCATE( State_Met%ILAND, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%ILAND', 2, RC )
@@ -2401,350 +2387,560 @@ CONTAINS
        State_Met%IREG => NULL()
     ENDIF
 
+    !========================================================================
+    ! Deallocate 3-D fields
+    !
+    ! NOTE: If using GEOS-Chem as GCHP, or coupled to GMAO/GEOS, then just 
+    ! nullify the fields without deallocating.  This will prevent abnormal 
+    ! exits in MAPL.  This is probably due to the fact that the State_Met
+    ! fields point to ESMF/MAPL Imports, and cannot be deallocated
+    ! before the Import itself is finalized.
+    !
+    ! ALSO NOTE: If using GEOS-Chem coupled to WRF, then do the same
+    ! as for GCHP or GEOS, as WRF does its own separate deallocation.
+    !
+    !  -- Lizzie Lundgren and Bob Yantosca, 05 Nov 2018
+    !========================================================================
     IF ( ASSOCIATED( State_Met%IUSE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%IUSE => NULL()
+#else
        DEALLOCATE( State_Met%IUSE, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%IUSE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IUSE => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%LANDTYPEFRAC ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%LANDTYPEFRAC => NULL()
+#else
        DEALLOCATE( State_Met%LANDTYPEFRAC, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%LANDTYPEFRAC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%LANDTYPEFRAC => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%MODISLAI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MODISLAI => NULL()
+#else
        DEALLOCATE( State_Met%MODISLAI, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%MODISLAI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%MODISLAI => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%MODISCHLR ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MODISCHLR => NULL()
+#else
        DEALLOCATE( State_Met%MODISCHLR, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%MODISCHLR', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%MODISCHLR => NULL()
+#endif
     ENDIF
 
     !---------------------------
     ! 3-D fields
     !---------------------------
     IF ( ASSOCIATED( State_Met%AD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AD => NULL()
+#else
        DEALLOCATE( State_Met%AD, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%AD', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AD => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%AIRDEN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AIRDEN => NULL()
+#else
        DEALLOCATE( State_Met%AIRDEN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%AIRDEN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AIRDEN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%MAIRDEN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MAIRDEN => NULL()
+#else
        DEALLOCATE( State_Met%MAIRDEN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%MAIRDEN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%MAIRDEN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%AIRVOL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AIRVOL => NULL()
+#else
        DEALLOCATE( State_Met%AIRVOL, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%AIRVOL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AIRVOL => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AREA_M2 => NULL()
+#else
        DEALLOCATE( State_Met%AREA_M2, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AREA_M2 => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%BXHEIGHT ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%BXHEIGHT => NULL()
+#else
        DEALLOCATE( State_Met%BXHEIGHT, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%BXHEIGHT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%BXHEIGHT => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%CLDF ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%CLDF => NULL()
+#else
        DEALLOCATE( State_Met%CLDF, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%CLDF', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%CLDF => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%CMFMC ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%CMFMC => NULL()
+#else
        DEALLOCATE( State_Met%CMFMC, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%CMFMC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%CMFMC => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DELP ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DELP => NULL()
+#else
        DEALLOCATE( State_Met%DELP, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DELP', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DELP => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DELP_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DELP_DRY => NULL()
+#else
        DEALLOCATE( State_Met%DELP_DRY, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DELP_DRY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DELP_DRY => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DP_DRY_PREV ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DP_DRY_PREV => NULL()
+#else
        DEALLOCATE( State_Met%DP_DRY_PREV, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DP_DRY_PREV', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DP_DRY_PREV => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DQRCU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DQRCU => NULL()
+#else
        DEALLOCATE( State_Met%DQRCU, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DQRCU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DQRCU => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DQRLSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DQRLSAN => NULL()
+#else
        DEALLOCATE( State_Met%DQRLSAN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DQRLSAN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DQRLSAN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DTRAIN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DTRAIN => NULL()
+#else
        DEALLOCATE( State_Met%DTRAIN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%DTRAIN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%DTRAIN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%OMEGA ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%OMEGA => NULL()
+#else
        DEALLOCATE( State_Met%OMEGA, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%OMEGA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%OMEGA => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%OPTD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%OPTD => NULL()
+#else
        DEALLOCATE( State_Met%OPTD, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%OPTD', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%OPTD => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PEDGE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PEDGE => NULL()
+#else
        DEALLOCATE( State_Met%PEDGE, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PEDGE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PEDGE => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PEDGE_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PEDGE_DRY => NULL()
+#else
        DEALLOCATE( State_Met%PEDGE_DRY, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PEDGE_DRY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PEDGE_DRY => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFICU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFICU => NULL()
+#else
        DEALLOCATE( State_Met%PFICU, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PFICU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PFICU => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFILSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFILSAN => NULL()
+#else
        DEALLOCATE( State_Met%PFILSAN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PFILSAN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PFILSAN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFLCU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFLCU => NULL()
+#else
        DEALLOCATE( State_Met%PFLCU, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PFLCU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PFLCU => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFLLSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFLLSAN => NULL()
+#else
        DEALLOCATE( State_Met%PFLLSAN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PFLLSAN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PFLLSAN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PMID ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PMID => NULL()
+#else
        DEALLOCATE( State_Met%PMID, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PMID', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PMID => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PMID_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PMID_DRY => NULL()
+#else
        DEALLOCATE( State_Met%PMID_DRY, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%PMID_DRY', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%PMID_DRY => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%QI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%QI => NULL()
+#else
        DEALLOCATE( State_Met%QI, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%QI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%QI => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%QL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%QL => NULL()
+#else
        DEALLOCATE( State_Met%QL, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%QL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%QL => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%REEVAPCN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%REEVAPCN => NULL()
+#else
        DEALLOCATE( State_Met%REEVAPCN, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%REEVAPCN', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%REEVAPCN => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%REEVAPLS ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%REEVAPLS => NULL()
+#else
        DEALLOCATE( State_Met%REEVAPLS, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%REEVAPLS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%REEVAPLS => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%RH ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%RH => NULL()
+#else
        DEALLOCATE( State_Met%RH, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%RH', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%RH => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU => NULL()
+#else
        DEALLOCATE( State_Met%SPHU, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SPHU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%SPHU => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU1 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU1 => NULL()
+#else
        DEALLOCATE( State_Met%SPHU1, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SPHU1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%SPHU1 => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU2 => NULL()
+#else
        DEALLOCATE( State_Met%SPHU2, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%SPHU2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%SPHU2 => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%T ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%T => NULL()
+#else
        DEALLOCATE( State_Met%T, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%T', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%T => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TMPU1 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TMPU1 => NULL()
+#else
        DEALLOCATE( State_Met%TMPU1, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TMPU1', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%TMPU1 => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TMPU2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TMPU2 => NULL()
+#else
        DEALLOCATE( State_Met%TMPU2, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TMPU2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%TMPU2 => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TV ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TV => NULL()
+#else
        DEALLOCATE( State_Met%TV, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TV', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%TV => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TAUCLI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TAUCLI => NULL()
+#else
        DEALLOCATE( State_Met%TAUCLI, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TAUCLI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%TAUCLI => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TAUCLW ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TAUCLW => NULL()
+#else
        DEALLOCATE( State_Met%TAUCLW, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TAUCLW', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%TAUCLW => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%U ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%U => NULL()
+#else
        DEALLOCATE( State_Met%U, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%U', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%U => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%UPDVVEL => NULL()
+#else
        DEALLOCATE( State_Met%UPDVVEL, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%UPDVVEL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%UPDVVEL => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%V ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%V => NULL()
+#else
        DEALLOCATE( State_Met%V, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%V', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%V => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XLAI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XLAI => NULL()
+#else
        DEALLOCATE( State_Met%XLAI, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%XLAI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XLAI => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XCHLR ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XCHLR => NULL()
+#else
        DEALLOCATE( State_Met%XCHLR, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%XCHLR', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XCHLR => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XLAI_NATIVE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XLAI_NATIVE => NULL()
+#else
        DEALLOCATE( State_Met%XLAI_NATIVE, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%XLAI_NATIVE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XLAI_NATIVE => NULL()
+#endif
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XCHLR_NATIVE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XCHLR_NATIVE => NULL()
+#else
        DEALLOCATE( State_Met%XCHLR_NATIVE, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%XCHLR_NATIVE => NULL()
+#endif
     ENDIF
 
     !=======================================================================
