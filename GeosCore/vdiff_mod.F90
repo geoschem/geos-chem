@@ -2496,7 +2496,7 @@ contains
                 ! Archive dry-deposited Hg2
                 CALL ADD_Hg2_DD      ( I, J, Hg_Cat,    DEP_KG              )
                 CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_KG,              &
-                                             State_Met, State_Diag          )
+                                       State_Met, State_Chm, State_Diag     )
 
              ELSE IF ( SpcInfo%Is_HgP ) THEN 
 
@@ -2506,7 +2506,7 @@ contains
                 ! Archive dry-deposited HgP
                 CALL ADD_HgP_DD      ( I, J, Hg_Cat,    DEP_KG              )
                 CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_KG,              &
-                                             State_Met, State_Diag          )
+                                       State_Met, State_Chm, State_Diag     )
 
              ENDIF
 
@@ -2629,7 +2629,7 @@ contains
                   * AVO * 1.e-4_fp &
                   * GET_TS_CONV() / GET_TS_EMIS()
           
-                CALL SOIL_DRYDEP ( I, J, 1, N, soilflux)
+                CALL SOIL_DRYDEP ( I, J, 1, N, soilflux, State_Chm )
              ENDDO
              ENDDO
 	  ENDIF

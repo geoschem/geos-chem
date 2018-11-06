@@ -136,6 +136,8 @@ CONTAINS
     USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
     USE HCO_TIDX_MOD,       ONLY : tIDx_IsInRange
+
+    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
@@ -174,6 +176,8 @@ CONTAINS
 !  24 Mar 2016 - C. Keller   - Simplified handling of file in buffer. Remove
 !                              args LUN and CloseFile.
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
+!  02 Nov 2018 - M. Sulprizio- Add option to skip variables when they're not
+!                              found in the file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -186,6 +190,7 @@ CONTAINS
     INTEGER                       :: NX, NY
     INTEGER                       :: NCRC, Flag, AS
     INTEGER                       :: ncLun, ncLun2
+    INTEGER                       :: ierr,   v_id
     INTEGER                       :: nlon,   nlat,  nlev, nTime
     INTEGER                       :: lev1,   lev2,  dir 
     INTEGER                       :: tidx1,  tidx2,  ncYr,  ncMt
@@ -394,6 +399,32 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! ----------------------------------------------------------------
+    ! Check if variable is in file
+    ! ----------------------------------------------------------------
+    ierr = Nf_Inq_Varid( ncLun, Lct%Dct%Dta%ncPara, v_id )
+    IF ( ierr /= NF_NOERR ) THEN
+
+       ! If MustFind flag is enabled, return with error if field is not
+       ! found
+       IF ( Lct%Dct%Dta%MustFind ) THEN
+          MSG = 'Cannot find field ' // TRIM(Lct%Dct%cName) // &
+                '. Please check variable name in the config. file'
+          CALL HCO_ERROR( HcoState%Config%Err, MSG, RC )
+          RETURN
+
+       ! If MustFind flag is not enabled, ignore this field and return
+       ! with a warning.
+       ELSE   
+          CALL FileData_Cleanup( Lct%Dct%Dta, DeepClean=.FALSE. )
+          MSG = 'Cannot find field ' // TRIM(Lct%Dct%cName) // &
+                '. Will be ignored for time being.'
+          CALL HCO_WARNING ( HcoState%Config%Err, MSG, RC, WARNLEV=3 )
+          CALL HCO_LEAVE ( HcoState%Config%Err,  RC ) 
+          RETURN
+       ENDIF
+    ENDIF
+          
     ! ----------------------------------------------------------------
     ! Read grid 
     ! ----------------------------------------------------------------

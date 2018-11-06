@@ -60,10 +60,7 @@
       PUBLIC  :: KG_STRAT_AER
       PUBLIC  :: RHO_STRAT_AER
       PUBLIC  :: INIT_UCX
-      PUBLIC  :: DIAGINIT_UCX
       PUBLIC  :: CLEANUP_UCX
-      PUBLIC  :: READ_PSC_FILE
-      PUBLIC  :: WRITE_STATE_PSC
 !
 ! PRIVATE MEMBER FUNCTIONS:
 !
@@ -109,6 +106,10 @@
 !                              their constituents. Family tracers have been
 !                              eliminated.
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  26 Oct 2018 - M. Sulprizio- Remove routines READ_PSC_FILE, WRITE_STATE_PSC,
+!                              and DIAGINIT_UCX. The State_PSC field is now
+!                              stored in the GEOS-Chem restart collection and
+!                              read in via HEMCO in hcoi_gc_main_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4759,119 +4760,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_psc_file
-!
-! !DESCRIPTION: Subroutine READ\_PSC\_FILE initializes PSC state information
-!  from a checkpoint file (binary punch file format).
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_PSC_FILE( am_I_Root, State_Chm, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,    ONLY : HCO_RestartGet
-      USE HCO_CLOCK_MOD,      ONLY : HcoClock_First 
-      USE HCO_CLOCK_MOD,      ONLY : HcoClock_Rewind
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE State_Chm_Mod,      ONLY : ChmState
-!
-! !INPUT PARAMETERS: 
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(INOUT) :: RC
-! 
-! !REVISION HISTORY: 
-!  28 Apr 2013 - S. D. Eastham - Initial version, based on READ_CSPEC_FILE
-!  14 Feb 2014 - R. Yantosca   - Reorder DO loops for efficiency
-!  16 Apr 2014 - M. Sulprizio  - Now get PSC restart file path from Input_Opt
-!  23 Jul 2014 - R. Yantosca   - Remove reference to obsolete CMN_mod.F
-!  14 Jan 2015 - C. Keller     - Now read from HEMCO
-!   4 Mar 2015 - R. Yantosca   - Declare pointer args to HCO_GetPtr w/ REAL(f4)
-!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!     
-      ! Scalars
-      LOGICAL            :: IT_EXISTS 
-
-      ! Strings
-      CHARACTER(LEN=255) :: MSG
-     
-      !=================================================================
-      ! READ_PSC_FILE begins here!
-      !=================================================================
-
-      ! Assume success until otherwise 
-      RC = GC_SUCCESS 
-
-      ! Make sure HEMCO state is defined
-      IF ( .NOT. ASSOCIATED ( HcoState ) ) THEN
-         MSG = 'HEMCO state object not associated!'
-         CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
-      ENDIF
- 
-      ! Only read on first call or after rewind
-      IF ( .NOT. HcoClock_First ( HcoState%Clock, .FALSE. ) .AND. 
-     &     .NOT. HcoClock_Rewind( HcoState%Clock, .FALSE. )      ) THEN
-         RETURN
-      ENDIF
-
-      ! Get restart variable
-      CALL HCO_RestartGet( am_I_Root, HcoState, 'STATE_PSC',  
-     &                     State_Chm%STATE_PSC, RC, FILLED=IT_EXISTS ) 
-      IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot get PSC restart variable'
-         CALL ERROR_STOP ( MSG, 'READ_PSC_FILE (ucx_mod.F)' )
-      ENDIF
-
-      ! On first call, prompt some messages
-
-      ! If restart exists, point to this field. Eventually deallocate
-      ! pointer first.
-      IF ( IT_EXISTS ) THEN
-         IF (am_I_Root ) THEN
-            WRITE(6,*) '    - UCX: Initialize PSC from restart' 
-         ENDIF
-      ELSE
-         IF (am_I_Root ) THEN
-#if defined(ESMF_)
-         ! ExtData and HEMCO behave ambiguously - if the file was found
-         ! but was full of zeros throughout the domain of interest, it
-         ! will result in the same output from ExtData as if the field
-         ! was missing from the file. As such, HEMCO cannot distinguish
-         ! between a missing file and a field of zeros
-         WRITE(6,*) '    - UCX: PSC restart either all zeros in the '
-         WRITE(6,*) '           root domain, or the restart file did '
-         WRITE(6,*) '           not contain STATE_PSC. Root domain '
-         WRITE(6,*) '           will be initialized PSC-free'
-         ENDIF
-#else
-         WRITE(6,*) 
-     &      '    - UCX: PSC restart not found, initialize PSC-free'
-         ENDIF
-#endif
-      ENDIF
-
-      END SUBROUTINE READ_PSC_FILE
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: set_clock_trac
 !
 ! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock species mixing 
@@ -6407,140 +6295,7 @@
          CALL NOXCOEFF_INIT( am_I_Root, Input_Opt ) 
       ENDIF
 
-      ! Initialize diagnostics
-      CALL DIAGINIT_UCX ( am_I_Root, Input_Opt, State_Chm, RC )
-
       END SUBROUTINE INIT_UCX
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: diaginit_ucx
-!
-! !DESCRIPTION: Subroutine DIAGINIT\_UCX initializes diagnostics containers
-! for the UCX module. 
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE DIAGINIT_UCX( am_I_Root, Input_Opt, State_Chm, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE HCO_RESTART_MOD,    ONLY : HCO_RestartDefine
-      USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE HCO_ERROR_MOD
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REVISION HISTORY: 
-!  14 Jan 2015 - C. Keller     - Initial version
-!  25 Mar 2015 - C. Keller     - Now use HEMCO restart module
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      CHARACTER(LEN=255)       :: MSG
-      CHARACTER(LEN=255)       :: LOC = 'DIAGINIT_UCX (ucx_mod.F)' 
-
-      !=================================================================
-      ! DIAGINIT_UCX begins here!
-      !=================================================================
-
-      ! Define restart quantity    
-      CALL HCO_RestartDefine ( am_I_Root, HcoState, 
-     &                       'STATE_PSC', State_Chm%STATE_PSC, 
-     &                           'count', RC )
-
-      IF ( RC /= HCO_SUCCESS ) THEN
-         MSG = 'Cannot define STATE_PSC restart'
-         CALL ERROR_STOP ( MSG, LOC ) 
-      ENDIF
-
-      ! Return w/ success
-      RC = GC_SUCCESS
-
-      END SUBROUTINE DIAGINIT_UCX
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: write_state_psc
-!
-! !DESCRIPTION: Subroutine WRITE\_STATE\_PSC saves the STATE\_PSC array into
-! diagnostics. This is only of relevance in an ESMF environment, where 
-! STATE\_PSC is not automatically written into the HEMCO restart diagnostics
-! but needs to be passed explicitly to the internal state. This should be
-! done on every time step to make sure that replay simulations will always
-! have the most current STATE\_PSC values in the internal state (important
-! for checkpointing!).
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE WRITE_STATE_PSC ( am_I_Root, State_Chm, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE HCO_ERROR_MOD
-      USE HCO_RESTART_MOD,   ONLY : HCO_RestartWrite
-      USE HCO_INTERFACE_MOD, ONLY : HcoState
-      USE State_Chm_Mod,     ONLY : ChmState
-! 
-! !INPUT ARGUMENTS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root
-! 
-! !INPUT/OUTPUT ARGUMENTS:
-!
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      INTEGER,        INTENT(INOUT) :: RC
-!
-! !REVISION HISTORY: 
-!  08 May 2015 - C. Keller   - Initial version
-!  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-
-      !=================================================================
-      ! WRITE_STATE_PSC begins here!
-      !=================================================================
-      
-      ! Eventually write PSC_STATE to restart. 
-      CALL HCO_RestartWrite( am_I_Root,   HcoState, 
-     &                       'STATE_PSC', State_Chm%STATE_PSC, RC )
-
-      ! Error check
-      IF ( RC /= HCO_SUCCESS ) THEN
-         RC = GC_FAILURE
-         RETURN
-      ENDIF
-
-      ! Return w/ success
-      RC = GC_SUCCESS
-
-      END SUBROUTINE WRITE_STATE_PSC 
 !EOC
 !------------------------------------------------------------------------------
 !               MIT Laboratory for Aviation and the Environment               !

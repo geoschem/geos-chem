@@ -331,16 +331,6 @@ CONTAINS
                               hhmmss     = Container%ReferenceHms,           &
                               MAPL_Style = .TRUE. )
    
-       ! Echo info about the file we are creating
-       IF ( am_I_Root ) THEN
-          WRITE( 6, 100 ) TRIM( Container%Name ),                            &
-                          Container%ReferenceYmd,                            &
-                          Container%ReferenceHms
-          WRITE( 6, 110 ) TRIM( FileName       )
-       ENDIF
- 100   FORMAT( '     - Creating file for ', a, '; reference = ', i8.8,1x,i6.6 )
- 110   FORMAT( '        with filename = ', a                                   )
-
 !------------------------------------------------------------------------------
 ! TEMPORARY FIX (bmy, 9/20/17)
 ! NOTE: The different timestamps will cause the binary diff in the unit
@@ -376,43 +366,65 @@ CONTAINS
           nILev = nLev  + 1
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Create the file and add global attributes
-       ! Remain in netCDF define mode upon exiting this routine
-       !
-       ! NOTE: Container%Reference is a global attribute lists the GEOS-Chem
-       ! web and wiki page.  It has nothing to do with the reference date
-       ! and time fields that are computed by History_Set_RefDateTime.
-       !--------------------------------------------------------------------
-       CALL Nc_Create( Create_Nc4     = .TRUE.,                              &
-                       NcFile         = FileName,                            &
-                       nLon           = Container%nX,                        &
-                       nLat           = Container%nY,                        &
-                       nLev           = nLev,                                &
-                       nIlev          = nILev,                               &
-                       nTime          = NF_UNLIMITED,                        &
-                       NcFormat       = Container%NcFormat,                  &
-                       Conventions    = Container%Conventions,               &
-                       History        = Container%History,                   &
-                       ProdDateTime   = Container%ProdDateTime,              &
-                       Reference      = Container%Reference,                 &
-                       Title          = Container%Title,                     &
-                       Contact        = Container%Contact,                   &
-                       StartTimeStamp = Container%StartTimeStamp,            &
-                       EndTimeStamp   = Container%EndTimeStamp,              &
-                       fId            = Container%FileId,                    &
-                       TimeId         = Container%tDimId,                    &
-                       LevId          = Container%zDimId,                    &
-                       ILevId         = Container%iDimId,                    &
-                       LatId          = Container%yDimId,                    &
-                       LonId          = Container%xDimId,                    &
-                       KeepDefMode    = .TRUE.,                              &
-                       Varct          = VarCt                               )
-         
-       !--------------------------------------------------------------------
-       ! Denote that the file has been created and is open
-       !--------------------------------------------------------------------
-       Container%IsFileOpen = .TRUE.
+       ! Do not create netCDF file on first timestep if instantaneous collection
+       ! and frequency = duration. This will avoid creation of a netCDF file
+       ! containing all missing values.
+       IF ( TRIM( Container%UpdateMode ) == 'instantaneous'       .and. &
+            Container%UpdateIvalSec == Container%FileCloseIvalSec .and. &
+            Container%FileCloseAlarm  == 0.0  ) THEN
+          RETURN
+       ELSE
+
+          ! Echo info about the file we are creating
+          IF ( am_I_Root ) THEN
+             WRITE( 6, 100 ) TRIM( Container%Name ),                         &
+                             Container%ReferenceYmd,                         &
+                             Container%ReferenceHms
+             WRITE( 6, 110 ) TRIM( FileName       )
+          ENDIF
+100       FORMAT( '     - Creating file for ', a, '; reference = ',i8.8,1x,i6.6)
+110       FORMAT( '        with filename = ', a                                )
+
+          !--------------------------------------------------------------------
+          ! Create the file and add global attributes
+          ! Remain in netCDF define mode upon exiting this routine
+          !
+          ! NOTE: Container%Reference is a global attribute lists the GEOS-Chem
+          ! web and wiki page.  It has nothing to do with the reference date
+          ! and time fields that are computed by History_Set_RefDateTime.
+          !--------------------------------------------------------------------
+          CALL Nc_Create( Create_Nc4     = .TRUE.,                           &
+                          NcFile         = FileName,                         &
+                          nLon           = Container%nX,                     &
+                          nLat           = Container%nY,                     &
+                          nLev           = nLev,                             &
+                          nIlev          = nILev,                            &
+                          nTime          = NF_UNLIMITED,                     &
+                          NcFormat       = Container%NcFormat,               &
+                          Conventions    = Container%Conventions,            &
+                          History        = Container%History,                &
+                          ProdDateTime   = Container%ProdDateTime,           &
+                          Reference      = Container%Reference,              &
+                          Title          = Container%Title,                  &
+                          Contact        = Container%Contact,                &
+                          StartTimeStamp = Container%StartTimeStamp,         &
+                          EndTimeStamp   = Container%EndTimeStamp,           &
+                          fId            = Container%FileId,                 &
+                          TimeId         = Container%tDimId,                 &
+                          LevId          = Container%zDimId,                 &
+                          ILevId         = Container%iDimId,                 &
+                          LatId          = Container%yDimId,                 &
+                          LonId          = Container%xDimId,                 &
+                          KeepDefMode    = .TRUE.,                           &
+                          Varct          = VarCt                               )
+
+          !--------------------------------------------------------------------
+          ! Denote that the file has been created and is open
+          !--------------------------------------------------------------------
+          Container%IsFileOpen = .TRUE.
+
+       ENDIF
+
     ENDIF
 
     !=======================================================================

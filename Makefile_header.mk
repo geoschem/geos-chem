@@ -245,9 +245,6 @@ ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
 
-# Error message for diagnostics
-ERR_DIAG             :="Select one diagnostic output type: NC_DIAG=y or BPCH_DIAG=y"
-
 # Error message for TOMAS error message
 ERR_MICPHYS           :="At present, microphysics packages (TOMAS, APM) cannot be used when NC_DIAG=y!"
 
@@ -399,7 +396,6 @@ endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(DIAG_DEVEL)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DDIAG_DEVEL
-  NC_DIAG            :=yes
   BPCH_DIAG          :=no
 endif
 
@@ -419,7 +415,6 @@ endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(USE_TEND)" =~ $(REGEXP) ]] && echo true),true)
   USER_DEFS          += -DUSE_TEND
-  NC_DIAG            :=yes
   BPCH_DIAG          :=no
 endif
 
@@ -470,7 +465,6 @@ endif
 
 # %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
 ifdef DEVEL
-  NC_DIAG            :=yes
   BPCH_DIAG          :=no
   BPCH_TBPC          :=no
 endif
@@ -480,9 +474,27 @@ ifdef NEST
   BPCH_TPBC          :=yes
 endif
 
-# %%%%% Determine options for netCDF or BPCH diagnostics %%%%%
+# Turn on bpch diagnostics UNLESS specified otherwis
+ifdef BPCH_DIAG
+  BPCH_DIAG          :=yes
+endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+  USER_DEFS        += -DBPCH_DIAG
+endif
+
+# %%%%% Turn netCDF diagnostics on by default to save out restart file %%%%%
+REGEXP               :=(^[Nn]|^[Nn][Oo])
 ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
+
+  # Set a flag to denote netCDF diagnostics are off
+  IS_NC_DIAG         :=0
+
+  # If netCDF diagnostics have not been explicitly specified, then activate
+  # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
+  USER_DEFS          += -DBPCH_DIAG -DBPCH_TIMESER -DBPCH_TPBC
+
+else
 
   # Set a flag to denote netCDF diagnostics are on
   IS_NC_DIAG         :=1
@@ -498,25 +510,6 @@ ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
   ifeq ($(IS_HPC),0)
      USER_DEFS       += -DBPCH_TIMESER
   endif
-
-  # AND turn off bpch diagnostics UNLESS specified otherwise
-  ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DBPCH_DIAG
-  endif
-
-  # AND turn off bpch code for nested BC's code UNLESS specified otherwise
-  ifeq ($(shell [[ "$(BPCH_TPBC)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DBPCH_TPBC
-  endif
-
-else
-
-  # Set a flag to denote netCDF diagnostics are off
-  IS_NC_DIAG         :=0
-
-  # If netCDF diagnostics have not been explicitly specified, then activate
-  # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
-  USER_DEFS          += -DBPCH_DIAG -DBPCH_TIMESER -DBPCH_TPBC
 
 endif
 

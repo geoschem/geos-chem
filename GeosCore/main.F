@@ -52,7 +52,6 @@
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
       USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
-      USE RESTART_MOD           ! For restart file I/O
       USE State_Chm_Mod         ! Derived type for Chemistry State object
       USE State_Diag_Mod        ! Derived type for Diagnostics State object
       USE State_Met_Mod         ! Derived type for Meteorology State object
@@ -297,6 +296,9 @@
 !  14 Sep 2017 - M. Sulprizio- Remove setting of USE_O3_FROM_MET. This is now
 !                              set in the chemistry menu of input.geos.
 !  22 Jan 2018 - R. Yantosca - Attach error traps after every routine w/ RC
+!  26 Oct 2018 - M. Sulprizio- Remove routines READ_INITIAL_MET_FIELDS and
+!                              READ_MET_FIELDS. Met fields are now obtained from
+!                              HEMCO in hcoi_gc_main_mod.F90.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -463,9 +465,6 @@
 #if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
-      CALL GEOS_Timer_Add( "Reading met fields",                   RC )
-      CALL GEOS_Timer_Add( "Reading restart file",                 RC )
-      CALL GEOS_Timer_Add( "Writing restart file",                 RC )
       CALL GEOS_Timer_Add( "Input",                                RC )
       CALL GEOS_Timer_Add( "Output",                               RC )
       CALL GEOS_Timer_Add( "Finalization",                         RC )
@@ -764,7 +763,8 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
        
-      ! Run HEMCO phase 0 as simplfied phase 1 to read initial metfields
+      ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
+      ! and restart file fields
       CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met,
      &                    State_Chm, State_Diag,  TimeForEmis,
      &                    0,         RC )
@@ -772,50 +772,6 @@
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "Reading met fields",  RC )
-      CALL GEOS_Timer_Start( "Input",               RC )
-#endif
-
-      ! Read the initial met fields from disk
-      ! This is called after HEMCO initialization so that FlexGrid works
-      CALL Read_Initial_Met_Fields()
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "Reading met fields",  RC )
-      CALL GEOS_Timer_End( "Input",               RC )
-#endif
-
-      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
-      ! and compute avg surface pressures near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Met, 1 )
-      CALL AvgPole( State_Met%PS1_DRY )
-
-      ! Compute avg surface pressure near polar caps
-      CALL AvgPole( State_Met%PS1_WET ) 
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AVGPOLE' )
-
-      ! Initialize surface pressures prior to interpolation
-      ! to allow initialization of floating pressures
-      State_Met%PSC2_WET = State_Met%PS1_WET
-      State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a SET_FLT_PRS' )
-
-      ! Call AIRQNT to compute initial air mass quantities
-      ! Do not update initial tracer concentrations since not read 
-      ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
-     &             update_mixing_ratio=.FALSE. )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "AirQnt" (first call)!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a AIRQNT' )
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
@@ -871,30 +827,6 @@
       !=================================================================
       !       *****  I N I T I A L   C O N D I T I O N S *****
       !=================================================================
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_Start( "Reading restart file",  RC )
-      CALL GEOS_Timer_Start( "Input",                 RC )
-#endif
-
-      ! Read initial species conditions
-      ! NOTE: Species concentrations are read in as [v/v dry air] 
-      ! and converted to [kg/kg dry air] (ewl, 8/4/16)
-      CALL Read_GC_Restart( am_I_Root, NYMDb,     NHMSb, 
-     &                      Input_Opt, State_Met, State_Chm, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Read_GC_Restart"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      ! Debug print
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_GC_RESTART' )
-
-#if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "Reading restart file",  RC )
-      CALL GEOS_Timer_End( "Input",                 RC )
-#endif
 
       ! Initialize the UCX module
       IF ( LUCX ) THEN
@@ -978,19 +910,7 @@
 #endif
 
 #endif
-
 !-----------------------------------------------------------------------------
-
-      !-----------------------------------------------------------------
-      !       ***** I N I T I A L I Z E   R E S T A R T S *****
-      !-----------------------------------------------------------------
-      CALL Init_GC_Restart( am_I_Root, Input_Opt, State_Chm, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_GC_Restart"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "Initialization", RC )
@@ -1214,32 +1134,10 @@
 !------------------------------------------------------------------------------
 
             !===========================================================
-            !  *** W R I T E   G E O S - C H E M   R E S T A R T S  ***
-            !===========================================================
-#if defined( USE_TIMERS )
-            CALL GEOS_Timer_Start( "Output",                RC )
-            CALL GEOS_Timer_Start( "Writing restart file",  RC )
-#endif
-
-            ! Make atmospheric restart file
-            CALL Write_GC_Restart( am_I_Root, NYMD, NHMS, Input_Opt,
-     &                             State_Chm, State_Met, RC )
-
-            ! Trap potential errors
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Write_GC_Restart!'
-               CALL Error_Stop( ErrMsg, ThisLoc )
-            ENDIF
-
-            !### Debug
-            IF ( prtDebug ) THEN
-               CALL Debug_Msg( '### MAIN: a WRITE_GC_RESTART' )
-            ENDIF
-
-            !===========================================================
             !     ***** W R I T E   H E M C O  R E S T A R T S *****
             !===========================================================
 #if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "Output",                RC )
             CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
 
@@ -1254,7 +1152,6 @@
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "HEMCO",                 RC )
-            CALL GEOS_Timer_End( "Writing restart file",  RC )
             CALL GEOS_Timer_End( "Output",                RC )
 #endif
 
@@ -1308,27 +1205,6 @@
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
          !==============================================================
-         !          ****** R E A D   M E T   F I E L D S ******
-         !
-         !    For clarity, we have split off the code that reads met 
-         !    fields into the internal subroutine READ_MET_FIELDS.
-         !    Lightning NOx emissions are also computed at the same
-         !    time when A3 or A6 met fields are read from disk.
-         !==============================================================
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_Start( "Reading met fields",  RC )
-         CALL GEOS_Timer_Start( "Input",               RC )
-#endif
-
-         ! Read the met fields from disk
-         CALL Read_Met_Fields()
-
-#if defined( USE_TIMERS )
-         CALL GEOS_Timer_End( "Reading met fields",  RC )
-         CALL GEOS_Timer_End( "Input",               RC )
-#endif
-
-         !==============================================================
          !              ***** D A I L Y   D A T A *****
          !==============================================================
          laiMM = -1
@@ -1370,7 +1246,7 @@
          !   ***** I N T E R P O L A T E   Q U A N T I T I E S *****   
          !==============================================================
 
-         ! Interpolate I-6 fields to current dynamic timestep, 
+         ! Interpolate I-3 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
          CALL Interp( NSECb, ELAPSED_TODAY,
      &                N_DYN, Input_Opt,     State_Met )
@@ -2464,14 +2340,14 @@
       ENDDO
 
       !=================================================================
-      !     ***** C O P Y   I - 3   O R   I - 6   F I E L D S *****
+      !     ***** C O P Y   I - 3   F I E L D S *****
       !
-      !     The I-3 or I-6 fields at the end of this outer timestep 
+      !     The I-3 fields at the end of this outer timestep 
       !     become the fields at the beginning of the next timestep
       !=================================================================
-      CALL Copy_I3_I6_Fields( State_Met )
+      CALL Copy_I3_Fields( State_Met )
       IF ( prtDebug ) THEN 
-         CALL Debug_Msg( '### MAIN: after COPY_I3_I6_FIELDS' )
+         CALL Debug_Msg( '### MAIN: after COPY_I3_FIELDS' )
       ENDIF
 
       ENDDO
@@ -2897,151 +2773,6 @@
      &        '**************' )
 
       END SUBROUTINE Display_End_Time
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_initial_met_fields
-!
-! !DESCRIPTION: Internal subroutine READ\_INITIAL\_MET\_FIELDS calls the
-!  various routines to read met fields at the beginning of a GEOS-Chem
-!  simulation.  This code was moved out of the main routine for clarity,
-!  due to the many \#if defined() blocks that are required.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Read_Initial_Met_Fields()
-! 
-! !REMARKS:
-!  All variables used in this routine are declared above in the main 
-!  program, and as such, are visible here.
-!                                                                             .
-!  Also calls the following routines:
-!  (1) AVGPOLE   (average pressure @ poles) when I3 or I6 fields are read
-!  (2) LIGHTNING (lightning NOx emissions)  when A3 or A6 fields are read
-!
-! !REVISION HISTORY: 
-!  07 Feb 2012 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_MERRA_A3_FIELDS
-!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
-!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
-!  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Convenience variable for date & time
-      INTEGER :: D(2)
-
-      !=================================================================
-      !    *****  R E A D   M E T   F I E L D S    *****
-      !    *****  At the start of the GEOS-Chem simulation  *****
-      !=================================================================
-
-      ! Read time-invariant data
-      CALL FlexGrid_Read_CN  (             Input_Opt, State_Met )
-
-      ! Read 1-hr time-averaged data
-      D = GET_FIRST_A1_TIME()
-      CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-
-      ! Read 3-hr time averaged data
-      D = GET_FIRST_A3_TIME()
-      CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-   
-      ! Read 3-hr instantanous data
-      D = GET_FIRST_I3_TIME()
-      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
-
-      END SUBROUTINE Read_Initial_Met_Fields
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_met_fields
-!
-! !DESCRIPTION: Internal subroutine READ\_MET\_FIELDS calls the
-!  various routines to read met fields in the main GEOS-Chem timestepping
-!  loop.  This code was moved out of the main routine for clarity, due to
-!  the many \#if defined() blocks that are required.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_MET_FIELDS()
-!
-! !REMARKS:
-!  All variables used in this routine are declared above in the main 
-!  program, and as such, are visible here.
-!                                                                             .
-!  Also calls the following routines:
-!  (1) AVGPOLE   (average pressure @ poles) when I3 or I6 fields are read
-!  (2) LIGHTNING (lightning NOx emissions)  when A3 or A6 fields are read
-!
-! !REVISION HISTORY: 
-!  07 Feb 2012 - R. Yantosca - Initial version
-!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
-!  04 Jan 2013 - M. Payer    - Call UPDATE_T_DAY for MERRA and GEOS-5.7.2 (tmf)
-!  23 Oct 2013 - R. Yantosca - Now pass Input_Opt to GET_A6_FIELDS
-!  24 Jun 2014 - R. Yantosca - Now pass Input_Opt to other routines
-!  24 Jun 2014 - R. Yantosca - Cosmetic changes, line up arguments
-!  12 Aug 2015 - R. Yantosca - Now call routines to read MERRA2 met data
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Convenience variable for date & time
-      INTEGER :: D(2)
-
-      !==============================================================
-      !  ****** R E A D   M E T   F I E L D S  *****
-      !==============================================================
-
-      !---------------------------------
-      ! A-1 fields (1hr time averaged)
-      !---------------------------------
-      IF ( ITS_TIME_FOR_A1() ) THEN
-         D = GET_A1_TIME()
-         CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! A-3 fields (3-hr time averaged)
-      !----------------------------------
-      IF ( ITS_TIME_FOR_A3() ) THEN
-         D = GET_A3_TIME()
-         CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
-      ENDIF
-
-      !----------------------------------
-      ! I-3 fields (3-hr instantaneous
-      !----------------------------------
-      IF ( ITS_TIME_ FOR_I3() ) THEN
-         D = GET_I3_TIME()
-         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
-
-         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-         ! and average as polar caps
-         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-         CALL AvgPole( State_Met%PS2_DRY )
-
-         ! Compute avg moist pressure at polar caps 
-         CALL AvgPole( State_Met%PS2_WET )
-
-      ENDIF
-
-      END SUBROUTINE READ_MET_FIELDS
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

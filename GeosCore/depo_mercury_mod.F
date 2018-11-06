@@ -38,10 +38,6 @@
 !  
       PUBLIC :: DD_HG2, DD_HGP, WD_HG2, WD_HGP
       PUBLIC :: HG2mth_wd, HG0mth_dd, HG2mth_dd
-      PUBLIC :: SNOW_HG_OC
-      PUBLIC :: SNOW_HG_LN
-      PUBLIC :: SNOW_HG_STORED_OC
-      PUBLIC :: SNOW_HG_STORED_LN
       PUBLIC :: LHGSNOW
 
       REAL(fp),  ALLOCATABLE :: DD_Hg2(:,:,:)
@@ -51,10 +47,6 @@
       REAL(fp),  ALLOCATABLE :: HG0mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_dd(:,:)
       REAL(fp),  ALLOCATABLE :: HG2mth_wd(:,:)
-      REAL(fp),  ALLOCATABLE :: SNOW_HG_OC(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SNOW_HG_LN(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SNOW_HG_STORED_OC(:,:,:)
-      REAL(fp),  ALLOCATABLE :: SNOW_HG_STORED_LN(:,:,:)
       REAL(fp),  ALLOCATABLE :: Hg0dryGEOS(:,:), HgIIdryGEOS(:,:), 
      &                          HgIIwetGEOS(:,:)
 !
@@ -75,6 +67,7 @@
 !  26 Apr 2016 - R. Yantosca - Make N_Hg_CATS IDTHg0, IDTHg2 module variables
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  01 Nov 2018 - M. Sulprizio- Move SNOW_HG_* arrays to State_Chm
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -280,11 +273,12 @@
 ! !INTERFACE: 
 !
       SUBROUTINE ADD_HG2_SNOWPACK( I, J, Hg_Cat, DEP_Hg2, 
-     &                             State_Met, State_Diag )
+     &                             State_Met, State_Chm, State_Diag )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_ICE, IS_LAND
+      USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
@@ -302,6 +296,7 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry   State object
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !REVISION HISTORY:
@@ -336,10 +331,22 @@
       REAL(fp) :: FRAC_O
       REAL(fp) :: DT 
 
+      ! Pointers
+      REAL(fp), POINTER :: SNOW_HG_OC(:,:,:)
+      REAL(fp), POINTER :: SNOW_HG_LN(:,:,:)
+      REAL(fp), POINTER :: SNOW_HG_STORED_OC(:,:,:)
+      REAL(fp), POINTER :: SNOW_HG_STORED_LN(:,:,:)
+
       !=================================================================
       ! ADD_HG2_SNOWPACK begins here!
       !=================================================================
-      
+
+      ! Point to fields in State_Chm
+      SNOW_HG_OC        => State_Chm%SnowHgOcean
+      SNOW_HG_LN        => State_Chm%SnowHgLand
+      SNOW_HG_STORED_OC => State_Chm%SnowHgOceanStored
+      SNOW_HG_STORED_LN => State_Chm%SnowHgLandStored
+
       ! Store the Hg category number in NN
       NN = Hg_Cat
 
@@ -437,6 +444,12 @@
 #endif
 
       ENDIF
+
+      ! Free pointers
+      SNOW_HG_OC        => NULL()
+      SNOW_HG_LN        => NULL()
+      SNOW_HG_STORED_OC => NULL()
+      SNOW_HG_STORED_LN => NULL()
 
       END SUBROUTINE ADD_HG2_SNOWPACK
 !EOC
@@ -1084,22 +1097,6 @@
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'WD_HgP' )
       WD_HgP = 0e+0_fp
 
-      ALLOCATE( SNOW_HG_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_OC' )
-      SNOW_HG_OC = 0e+0_fp
-
-      ALLOCATE( SNOW_HG_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_LN' )
-      SNOW_HG_LN = 0e+0_fp
-
-      ALLOCATE( SNOW_HG_STORED_OC( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_OC' )
-      SNOW_HG_STORED_OC = 0e+0_fp
-
-      ALLOCATE( SNOW_HG_STORED_LN( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'SNOW_HG_STORED_LN' )
-      SNOW_HG_STORED_LN = 0e+0_fp
-
       IF ( Input_Opt%LGTMM ) THEN
          ALLOCATE( HG0mth_dd( IIPAR, JJPAR ), STAT=RC )
          IF ( RC /= 0 ) CALL ALLOC_ERR( 'HG0mth_dd' )
@@ -1143,12 +1140,6 @@
       IF ( ALLOCATED( DD_HgP      ) ) DEALLOCATE( DD_HgP      )
       IF ( ALLOCATED( WD_Hg2      ) ) DEALLOCATE( WD_Hg2      )
       IF ( ALLOCATED( WD_HgP      ) ) DEALLOCATE( WD_HgP      )
-      IF ( ALLOCATED( SNOW_HG_OC  ) ) DEALLOCATE( SNOW_HG_OC  )
-      IF ( ALLOCATED( SNOW_HG_LN  ) ) DEALLOCATE( SNOW_HG_LN  )
-      IF ( ALLOCATED( SNOW_HG_STORED_OC  ) ) 
-     &     DEALLOCATE( SNOW_HG_STORED_OC  )
-      IF ( ALLOCATED( SNOW_HG_STORED_LN  ) ) 
-     &     DEALLOCATE( SNOW_HG_STORED_LN  )
       IF ( ALLOCATED( HG0mth_dd   ) ) DEALLOCATE( HG0mth_dd   )
       IF ( ALLOCATED( HG2mth_dd   ) ) DEALLOCATE( HG2mth_dd   )
       IF ( ALLOCATED( HG2mth_wd   ) ) DEALLOCATE( HG2mth_wd   )

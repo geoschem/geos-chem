@@ -888,14 +888,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%RUN_DIR
 
-      ! Input restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IN_RST_FILE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%IN_RST_FILE
-
       ! Root data dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DATA_DIR', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -984,8 +976,6 @@
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Resolution-specific dir     : ',
      &                    TRIM( Input_Opt%RES_DIR )
-         WRITE( 6, 110 ) 'Input restart file          : ', 
-     &                    TRIM( Input_Opt%IN_RST_FILE )
          WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
      &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
