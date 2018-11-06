@@ -1269,6 +1269,14 @@ CONTAINS
           ! field with multiple categories is written into the category
           ! listed first. 
           IF ( nCat > 1 ) THEN
+
+             ! nCat cannot exceed CatMax
+             IF ( nCat > CatMax ) THEN
+                MSG = 'Category max exceeded'
+                CALL HCO_ERROR ( HcoConfig%Err, MSG, RC, THISLOC=LOC )
+                RETURN
+             ENDIF
+
              CALL AddShadowFields( am_I_Root, HcoConfig, Lct, Cats, nCat, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
 
