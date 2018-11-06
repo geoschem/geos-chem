@@ -1208,13 +1208,13 @@
 ! !IROUTINE: set_dry_surface_pressure
 !
 ! !DESCRIPTION: Subroutine SET\_DRY\_SURFACE\_PRESSURE sets the dry
-!  surface pressures PS2\_DRY by removing the water vapor from
-!  the column constructed with MET pressure fields PS2\_WET. 
+!  surface pressures PS1\_DRY or PS2\_DRY by removing the water vapor from
+!  the column constructed with MET pressure fields PS1\_WET or PS2\_WET. 
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met )
+      SUBROUTINE SET_DRY_SURFACE_PRESSURE( State_Met, PS_ID )
 !
 ! !USES:
 !
@@ -1223,18 +1223,18 @@
       USE State_Met_Mod,        ONLY : MetState
       USE PRESSURE_MOD,         ONLY : GET_AP, GET_BP
 !
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)     :: PS_ID       ! 1 = PS1, 2 = PS2
+!
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(INOUT)  :: State_Met   ! Object for met fields
-!
-! !REVISION HISTORY:
-!  03 May 2002 - E. Lundgren - Initial version (M. Lee, JPL) 
-!  18 Feb 2017 - S. D. Eastham - Updated to include TOA pressure
 ! 
 ! !REMARKS:
 !  This subroutine is an adaptation of the GEOS-Chem moisture fix 
-!  implemented by Meemong Lee (JPL) in the adjoint model. Like PS2_WET,
-!  from which PS2_DRY is derived, these values
+!  implemented by Meemong Lee (JPL) in the adjoint model. Like PS1_WET
+!  and PS2_WET, from which PS1_DRY and PS2_DRY are derived, these values
 !  are interpolated within routine INTERP to derive instantaneous PSC2_DRY.
 !  Note that PSC2_WET and PSC2_DRY are not used to fetch pressures and 
 !  calculate air quantities until after advection. Also note that the
@@ -1242,6 +1242,10 @@
 !  calculate delta dry pressures across a level by utilitizing GMAO 
 !  parameters Ap and Bp but should not be used to extract dry pressure 
 !  edge values as a height proxy.
+!
+! !REVISION HISTORY:
+!  03 May 2002 - E. Lundgren - Initial version (M. Lee, JPL) 
+!  18 Feb 2017 - S. D. Eastham - Updated to include TOA pressure
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1261,11 +1265,22 @@
       !=================================================================
 
       ! Set pointer to the appropriate humidity
-      SPHU   => State_Met%SPHU2
+      IF ( PS_ID == 1 ) THEN
+         SPHU   => State_Met%SPHU1
+      ELSE IF ( PS_ID == 2 ) THEN
+         SPHU   => State_Met%SPHU2
+      ENDIF
 
       ! Set pointers to State_Met pressure fields.
-      PS_WET => State_Met%PS2_WET
-      PS_DRY => State_Met%PS2_DRY
+      IF ( PS_ID == 1 ) THEN
+         PS_WET => State_Met%PS1_WET
+         PS_DRY => State_Met%PS1_DRY
+      ELSE IF ( PS_ID == 2 ) THEN
+         PS_WET => State_Met%PS2_WET
+         PS_DRY => State_Met%PS2_DRY
+      ELSE 
+         ! Throw an error (to be added)
+      ENDIF
 
       ! Reset dry surface pressure to TOA value
       PS_DRY = GET_AP(LLPAR+1)

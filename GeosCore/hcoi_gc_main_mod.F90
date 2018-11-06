@@ -3594,7 +3594,7 @@ CONTAINS
 
       ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
       ! and compute avg dry pressure near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Met )
+      CALL Set_Dry_Surface_Pressure( State_Met, 2 )
       CALL AvgPole( State_Met%PS2_DRY )
 
       ! Compute avg moist pressure near polar caps
@@ -3618,14 +3618,14 @@ CONTAINS
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            IF (am_I_Root ) THEN
+            State_Met%TMPU1 = Ptr3D
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'Initialize TMPU1    from restart file'
-               State_Met%TMPU1 = Ptr3D
             ENDIF
          ELSE
-            IF (am_I_Root ) THEN
+            State_Met%TMPU1 = State_Met%TMPU2
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'TMPU1 not found in restart, set to TMPU2'
-               State_Met%TMPU1 = State_Met%TMPU2
             ENDIF
          ENDIF
 
@@ -3645,14 +3645,14 @@ CONTAINS
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            IF (am_I_Root ) THEN
+            State_Met%SPHU1 = Ptr3D
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'Initialize SPHU1    from restart file'
-               State_Met%SPHU1 = Ptr3D
             ENDIF
          ELSE
-            IF (am_I_Root ) THEN
+            State_Met%SPHU1 = State_Met%SPHU2
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'SPHU1 not found in restart, set to SPHU2'
-               State_Met%SPHU1 = State_Met%SPHU2
             ENDIF
          ENDIF
 
@@ -3672,14 +3672,14 @@ CONTAINS
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            IF (am_I_Root ) THEN
+            State_Met%PS1_WET = Ptr2D
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'Initialize PS1_WET  from restart file'
-               State_Met%PS1_WET = Ptr2D
             ENDIF
          ELSE
-            IF (am_I_Root ) THEN
+            State_Met%PS1_WET = State_Met%PS2_WET
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'PS1_WET not found in restart, set to PS2_WET'
-               State_Met%PS1_WET = State_Met%PS2_WET
             ENDIF
          ENDIF
 
@@ -3699,14 +3699,14 @@ CONTAINS
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            IF (am_I_Root ) THEN
+            State_Met%PS1_DRY = Ptr2D
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'Initialize PS1_DRY  from restart file'
-               State_Met%PS1_DRY = Ptr2D
             ENDIF
          ELSE
-            IF (am_I_Root ) THEN
+            State_Met%PS1_DRY = State_Met%PS2_DRY
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'PS1_DRY not found in restart, set to PS2_DRY'
-               State_Met%PS1_DRY = State_Met%PS2_DRY
             ENDIF
          ENDIF
 
@@ -3726,12 +3726,12 @@ CONTAINS
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            IF (am_I_Root ) THEN
+            State_Met%DELP_DRY = Ptr3D
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'Initialize DELP_DRY from restart file'
-               State_Met%DELP_DRY = Ptr3D
             ENDIF
          ELSE
-            IF (am_I_Root ) THEN
+            IF ( am_I_Root ) THEN
                WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
             ENDIF
          ENDIF
@@ -4174,17 +4174,17 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%KPPHvalue = Ptr3D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize KPP H-value from restart file'
-            State_Chm%KPPHvalue = Ptr3D
             WRITE(6,160) MINVAL( State_Chm%KPPHvalue(:,:,:) ), & 
                          MAXVAL( State_Chm%KPPHvalue(:,:,:) ) 
 160         FORMAT( 'KPP_HVALUE: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         State_Chm%KPPHvalue = 0e+0_fp
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'KPP H-value not found in restart, set to zero'
-            State_Chm%KPPHvalue = 0e+0_fp
          ENDIF
       ENDIF
 
@@ -4207,17 +4207,17 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%WetDepNitrogen = Ptr2D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize wet deposited nitrogen from restart file'
-            State_Chm%WetDepNitrogen = Ptr2D
             WRITE(6,170) MINVAL( State_Chm%WetDepNitrogen(:,:) ), & 
                          MAXVAL( State_Chm%WetDepNitrogen(:,:) ) 
 170         FORMAT( 12x, '  WETDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         State_Chm%WetDepNitrogen = 0e+0_fp
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Wet deposited nitrogen not found in restart, set to zero'
-            State_Chm%WetDepNitrogen = 0e+0_fp
          ENDIF
       ENDIF
 
@@ -4233,17 +4233,17 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%DryDepNitrogen = Ptr2D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
-            State_Chm%DryDepNitrogen = Ptr2D
             WRITE(6,180) MINVAL( State_Chm%DryDepNitrogen(:,:) ), & 
                          MAXVAL( State_Chm%DryDepNitrogen(:,:) ) 
 180         FORMAT( 12x, '  DRYDEP_N: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         State_Chm%DryDepNitrogen = 0e+0_fp
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Dry deposited nitrogen not found in restart, set to zero'
-            State_Chm%DryDepNitrogen = 0e+0_fp
          ENDIF
       ENDIF
 
@@ -4267,17 +4267,17 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%H2O2AfterChem = Ptr3D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize H2O2 from restart file'
-            State_Chm%H2O2AfterChem = Ptr3D
             WRITE(6,190) MINVAL( State_Chm%H2O2AfterChem(:,:,:) ), & 
                          MAXVAL( State_Chm%H2O2AfterChem(:,:,:) ) 
 190         FORMAT( 12x, 'H2O2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         State_Chm%H2O2AfterChem = 0e+0_fp
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'H2O2_AFTERCHEM not found in restart, set to zero'
-            State_Chm%H2O2AfterChem = 0e+0_fp
          ENDIF
       ENDIF
 
@@ -4293,17 +4293,17 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%SO2AfterChem = Ptr3D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize dry deposited nitrogen from restart file'
-            State_Chm%SO2AfterChem = Ptr3D
             WRITE(6,200) MINVAL( State_Chm%SO2AfterChem(:,:,:) ), & 
                          MAXVAL( State_Chm%SO2AfterChem(:,:,:) ) 
 200         FORMAT( 12x, ' SO2_AChem: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         State_Chm%SO2AfterChem = 0e+0_fp
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'SO2_AFTERCHEM not found in restart, set to zero'
-            State_Chm%SO2AfterChem = 0e+0_fp
          ENDIF
       ENDIF
 
@@ -4326,15 +4326,15 @@ CONTAINS
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         IF (am_I_Root ) THEN
+         State_Chm%STATE_PSC = Ptr3D
+         IF ( am_I_Root ) THEN
             WRITE(6,*) 'Initialize PSC from restart for UCX'
-            State_Chm%STATE_PSC = Ptr3D
             WRITE(6,210) MINVAL( State_Chm%STATE_PSC(:,:,:) ), & 
                          MAXVAL( State_Chm%STATE_PSC(:,:,:) ) 
 210         FORMAT( 12x, ' STATE_PSC: Min = ', es15.9, ', Max = ', es15.9 )
          ENDIF
       ELSE
-         IF (am_I_Root ) THEN
+         IF ( am_I_Root ) THEN
 #if defined(ESMF_)
             ! ExtData and HEMCO behave ambiguously - if the file was found
             ! but was full of zeros throughout the domain of interest, it
