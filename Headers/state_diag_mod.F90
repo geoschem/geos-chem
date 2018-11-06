@@ -7176,7 +7176,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%TotalBiogenicOA ) ) THEN
-       DEALLOCATE( State_Diag%TotalOA, STAT=RC )
+       DEALLOCATE( State_Diag%TotalBiogenicOA, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%TotalBiogenicOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%TotalBiogenicOA => NULL()

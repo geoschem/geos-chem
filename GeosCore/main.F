@@ -2438,7 +2438,7 @@
       ! Deallocate fields of the Diagnostics State object
       CALL Cleanup_State_Diag( am_I_Root, State_Diag, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_State_Chm"!'
+         ErrMsg = 'Error encountered in "Cleanup_State_Diag"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Diag' )
@@ -2449,7 +2449,7 @@
          ErrMsg = 'Error encountered in "Cleanup_State_Met"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_met' )
+      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
 
       ! Deallocate dynamic module arrays
       CALL CleanUp( am_I_Root, .FALSE., RC )
