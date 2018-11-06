@@ -56,6 +56,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: NHMSb              
      INTEGER                     :: NYMDe              
      INTEGER                     :: NHMSe              
+     INTEGER                     :: SimLengthSec
      CHARACTER(LEN=255)          :: RUN_DIR            
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
@@ -730,6 +731,7 @@ CONTAINS
     Input_Opt%NHMSb                  = 0
     Input_Opt%NYMDe                  = 0
     Input_Opt%NHMSe                  = 0
+    Input_Opt%SimLengthSec           = 0
     Input_Opt%RUN_DIR                = './'
     Input_Opt%DATA_DIR               = './'
     Input_Opt%RES_DIR                = './'

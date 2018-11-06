@@ -56,8 +56,8 @@ MODULE State_Diag_Mod
      !----------------------------------------------------------------------
 
      ! Restart file fields
-     REAL(f8),  POINTER :: Restart         (:,:,:,:) ! Fields for restarting GC
-     LOGICAL :: Archive_Restart
+     REAL(f8),  POINTER :: SpeciesRst      (:,:,:,:) ! Spc Conc for GC restart
+     LOGICAL :: Archive_SpeciesRst
 
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
@@ -705,8 +705,8 @@ CONTAINS
     ! %%% Free pointers and set logicals %%%
 
     ! Restart file fields
-    State_Diag%Restart                    => NULL()
-    State_Diag%Archive_Restart            = .FALSE.
+    State_Diag%SpeciesRst                          => NULL()
+    State_Diag%Archive_SpeciesRst                  = .FALSE.
 
     ! Species concentration diagnostics
     State_Diag%SpeciesConc                         => NULL()
@@ -1208,19 +1208,19 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Restart file fields
+    ! Species Concentration for restart file
     !------------------------------------------------------------------------
-    arrayID = 'State_Diag%Restart'
-    diagID  = 'Restart'
+    arrayID = 'State_Diag%SpeciesRst'
+    diagID  = 'SpeciesRst'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-       ALLOCATE( State_Diag%Restart( IM, JM, LM, nSpecies ), STAT=RC )
+       ALLOCATE( State_Diag%SpeciesRst( IM, JM, LM, nSpecies ), STAT=RC )
        CALL GC_CheckVar( arrayId, 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%Restart = 0.0_f8
-       State_Diag%Archive_Restart = .TRUE.
-       CALL Register_DiagField( am_I_Root, diagID, State_Diag%Restart, &
+       State_Diag%SpeciesRst = 0.0_f8
+       State_Diag%Archive_SpeciesRst = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesRst, &
                                 State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -6183,10 +6183,11 @@ CONTAINS
     ! Deallocate module variables
     !=======================================================================
 
-    IF ( ASSOCIATED( State_Diag%Restart ) ) THEN
-       DEALLOCATE( State_Diag%Restart, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%Restart', 2, RC )
+    IF ( ASSOCIATED( State_Diag%SpeciesRst ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesRst, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesRst', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesRst => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
@@ -7831,7 +7832,7 @@ CONTAINS
     !=======================================================================
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
-    IF ( TRIM( Name_AllCaps ) == 'RESTART' ) THEN
+    IF ( TRIM( Name_AllCaps ) == 'SPECIESRST' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3

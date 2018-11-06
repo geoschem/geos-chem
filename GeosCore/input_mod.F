@@ -802,6 +802,7 @@
 !
       ! Scalars
       INTEGER            :: N, C
+      REAL(fp)           :: JulianDateStart,  JulianDateEnd
 #if defined( ESMF_ ) || defined( MODEL_ )
       INTEGER            :: H,       M,       S
       REAL(f4)           :: init_UTC
@@ -824,6 +825,10 @@
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = ' -> at Read_Simulation_Menu (in GeosCore/input_mod.F)'
 
+      !-----------------------------------------------------------------
+      ! Simulation start and end time
+      !-----------------------------------------------------------------
+
       ! Start YYYYMMDD, HHMMSS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'NYMDb, NHMSb', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -842,7 +847,7 @@
          RETURN
       ENDIF
 
-      ! Make sure the starting time NYMDb is valid
+      ! Make sure the starting time NHMSb is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
          ErrMsg = 'Input%Opt%NHMSb = ' // TimeStr        // 
@@ -870,7 +875,7 @@
          RETURN
       ENDIF
 
-      ! Make sure the ending time NYMDe is valid
+      ! Make sure the ending time NHMSe is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
          ErrMsg = 'Input%Opt%NHMSe = ' // TimeStr        // 
@@ -879,6 +884,16 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
+
+      ! Compute the length of the simulation, in elapsed seconds
+      JulianDateStart = GET_JD( Input_Opt%NymdB, Input_Opt%NhmsB )
+      JulianDateEnd   = GET_JD( Input_Opt%NymdE, Input_Opt%NhmsE )
+      Input_Opt%SimLengthSec = NINT( ( JulianDateEnd - JulianDateStart )
+     &                         * 86400_f8)
+
+      !-----------------------------------------------------------------
+      ! Data directories
+      !-----------------------------------------------------------------
 
       ! Run directory
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'RUN_DIR', RC )
@@ -896,23 +911,17 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR
 
-      !-----------------------------------------------------------------
       ! Make sure DATA-DIR ends with a "/" character
-      !-----------------------------------------------------------------
       C = LEN_TRIM( Input_Opt%DATA_DIR )
       IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
          Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
       ENDIF
 
-      !-----------------------------------------------------------------
       ! Create CHEM_INPUTS directory
-      !-----------------------------------------------------------------
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
 
-      !-----------------------------------------------------------------
       ! Define resolution-specific directory name RES_DIR
-      !-----------------------------------------------------------------
 #if   defined( GRID4x5 )
       Input_Opt%RES_DIR = 'GEOS_4x5/'
 #elif defined( GRID2x25 ) 
@@ -931,10 +940,8 @@
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
 #endif
 
-      !-----------------------------------------------------------------
       ! Determine if we are running a nested-grid simulation based on
       ! the settings of the C-preprocessor switches.
-      !-----------------------------------------------------------------
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
       Input_Opt%ITS_A_NESTED_GRID = .TRUE.
 #endif
@@ -1157,6 +1164,28 @@
       !=================================================================
       ! Error checks
       !=================================================================
+
+      IF ( Input_Opt%SimLengthSec < Input_Opt%TS_DYN .or.
+     &     Input_Opt%SimLengthSec < Input_Opt%TS_CHEM ) THEN
+         IF ( am_I_Root ) THEN
+
+            WRITE( 6, *   ) '' 
+            WRITE( 6, *   ) 'The length of the simulation is shorter '
+            WRITE( 6, *   ) 'than the transport and/or chemistry '
+            WRITE( 6, *   ) 'timesteps. Check the settings in '
+            WRITE( 6, *   ) 'the "input.geos" file.'
+            WRITE( 6, *   ) '' 
+            WRITE( 6, 100 ) 'Transport/Convection [sec]  : ', 
+     &                       Input_Opt%TS_DYN
+            WRITE( 6, 100 ) 'Chemistry/Emissions  [sec]  : ', 
+     &                       Input_Opt%TS_CHEM
+            WRITE( 6, 100 ) 'Simulation duration  [sec]  : ',
+     &                       Input_Opt%SimLengthSec
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+
+         ENDIF
+      ENDIF
 
 #if   defined( MERRA2 ) && defined( GRID05x0625 )
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN

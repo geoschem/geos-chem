@@ -3622,7 +3622,7 @@ CONTAINS
          ELSE
             State_Met%TMPU1 = State_Met%TMPU2
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'TMPU1 not found in restart, set to TMPU2'
+               WRITE(6,*) 'TMPU1    not found in restart, set to TMPU2'
             ENDIF
          ENDIF
 
@@ -3649,7 +3649,7 @@ CONTAINS
          ELSE
             State_Met%SPHU1 = State_Met%SPHU2
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'SPHU1 not found in restart, set to SPHU2'
+               WRITE(6,*) 'SPHU1    not found in restart, set to SPHU2'
             ENDIF
          ENDIF
 
@@ -3676,7 +3676,7 @@ CONTAINS
          ELSE
             State_Met%PS1_WET = State_Met%PS2_WET
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'PS1_WET not found in restart, set to PS2_WET'
+               WRITE(6,*) 'PS1_WET  not found in restart, set to PS2_WET'
             ENDIF
          ENDIF
 
@@ -3703,7 +3703,7 @@ CONTAINS
          ELSE
             State_Met%PS1_DRY = State_Met%PS2_DRY
             IF ( am_I_Root ) THEN
-               WRITE(6,*) 'PS1_DRY not found in restart, set to PS2_DRY'
+               WRITE(6,*) 'PS1_DRY  not found in restart, set to PS2_DRY'
             ENDIF
          ENDIF
 
@@ -3965,7 +3965,7 @@ CONTAINS
 
          ! Print the min & max of each species as it is read from 
          ! the restart file in mol/mol
-         IF ( am_I_Root .AND. Input_Opt%LPRT ) THEN
+         IF ( am_I_Root ) THEN
             WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
                             MINVAL( Ptr3D ), MAXVAL( Ptr3D )
 120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
@@ -4056,8 +4056,7 @@ CONTAINS
                ENDIF
 
                ! Print to log if debugging is on
-               IF ( am_I_Root .AND. Input_Opt%LPRT .AND. &
-                    I == 1 .AND. J == 1 .AND. L == 1 ) THEN
+               IF ( am_I_Root .AND. I == 1 .AND. J == 1 .AND. L == 1 ) THEN
                   WRITE( 6, 130 ) N, TRIM( SpcInfo%Name )
 130               FORMAT('Species ', i3, ', ', a9, &
                          ': see READ_GC_RESTART for special MOH values')
@@ -4078,8 +4077,7 @@ CONTAINS
                                             * MW_g / AIRMW
 
                ! Print to log if debugging is on
-               IF ( am_I_Root .AND. Input_Opt%LPRT .AND. &
-                    I == 1 .AND. J == 1 .AND. L == 1 ) THEN
+               IF ( am_I_Root .AND. I == 1 .AND. J == 1 .AND. L == 1 ) THEN
                   WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
 140               FORMAT('Species ', i3, ', ', a9, &
                          ': Use background = ', es15.9)
@@ -4168,7 +4166,7 @@ CONTAINS
       ELSE
          State_Chm%KPPHvalue = 0e+0_fp
          IF ( am_I_Root ) THEN
-            WRITE(6,*) 'KPP H-value not found in restart, set to zero'
+            WRITE(6,*) 'KPP_HVALUE     not found in restart, set to zero'
          ENDIF
       ENDIF
 
@@ -4201,7 +4199,7 @@ CONTAINS
       ELSE
          State_Chm%WetDepNitrogen = 0e+0_fp
          IF ( am_I_Root ) THEN
-            WRITE(6,*) 'Wet deposited nitrogen not found in restart, set to zero'
+            WRITE(6,*) 'WETDEP_N       not found in restart, set to zero'
          ENDIF
       ENDIF
 
@@ -4227,7 +4225,7 @@ CONTAINS
       ELSE
          State_Chm%DryDepNitrogen = 0e+0_fp
          IF ( am_I_Root ) THEN
-            WRITE(6,*) 'Dry deposited nitrogen not found in restart, set to zero'
+            WRITE(6,*) 'DRYDEP_N       not found in restart, set to zero'
          ENDIF
       ENDIF
 
@@ -4287,7 +4285,7 @@ CONTAINS
       ELSE
          State_Chm%SO2AfterChem = 0e+0_fp
          IF ( am_I_Root ) THEN
-            WRITE(6,*) 'SO2_AFTERCHEM not found in restart, set to zero'
+            WRITE(6,*) 'SO2_AFTERCHEM  not found in restart, set to zero'
          ENDIF
       ENDIF
 
@@ -4331,7 +4329,7 @@ CONTAINS
             WRITE(6,*) 'will be initialized PSC-free'
          ENDIF
 #else
-            WRITE(6,*) 'PSC restart not found, initialize PSC-free'
+            WRITE(6,*) 'STATE_PSC      not found in restart, initialize PSC-free'
          ENDIF
 #endif
       ENDIF

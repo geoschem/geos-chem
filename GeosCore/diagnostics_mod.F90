@@ -118,7 +118,23 @@ CONTAINS
     ThisLoc = ' -> at Set_Diagnostics_EndofTimestep ' // ModLoc
 
     !-----------------------------------------------------------------------
-    ! Set species concentration diagnostic in units of mol/mol dry air
+    ! Set species concentration for restart in units of mol/mol dry air
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_SpeciesRst ) THEN
+       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesRst',                &
+                                    State_Diag%SpeciesRst,                  &
+                                    Input_Opt,  State_Met,                   &
+                                    State_Chm,  RC                          )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting species concentration diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
+    
+    !-----------------------------------------------------------------------
+    ! Set species concentration diagnostic in units specified in state_diag_mod
     !-----------------------------------------------------------------------
     IF ( State_Diag%Archive_SpeciesConc ) THEN
        CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',                &
@@ -349,21 +365,25 @@ CONTAINS
     ! Exit if species concentration is not a diagnostics in HISTORY.rc
     IF ( ASSOCIATED( Ptr2Data ) ) THEN
 
-#if defined( ESMF_ )
-       ! Retrieve the units of the diagnostic from the metadata
-       CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
-                                     Found, RC, Units=Units )
+       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' ) THEN
 
-       ! Allow for alternate format of units
-       IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
-       IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
-       IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
-       IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
-#else
-       ! Force units to v/v dry to avoid issues in the GEOS-Chem restart file
-       Units = 'v/v dry'
-#endif
-       
+          ! For GEOS-Chem restart collection force units to v/v dry
+          Units = 'v/v dry'
+
+       ELSE
+
+          ! Retrieve the units of the diagnostic from the metadata
+          CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
+                                        Found, RC, Units=Units )
+
+          ! Allow for alternate format of units
+          IF ( TRIM(Units) == 'mol mol-1 dry' ) Units = 'v/v dry'
+          IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
+          IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
+          IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
+
+       ENDIF
+
        ! Convert State_Chm%Species unit to diagnostic units
        CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
                                Units, RC, OrigUnit=OrigUnit )
