@@ -323,6 +323,9 @@ CONTAINS
 !
 ! !REVISION HISTORY: 
 !  27 Sep 2017 - E. Lundgren - Initial version
+!  06 Nov 2018 - M. Sulprizio- Only allow for different units in GCHP and GEOS-5
+!                              and force units to v/v for GEOS-Chem Classic to
+!                              avoid issues with the GEOS-Chem restart file
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -346,6 +349,7 @@ CONTAINS
     ! Exit if species concentration is not a diagnostics in HISTORY.rc
     IF ( ASSOCIATED( Ptr2Data ) ) THEN
 
+#if defined( ESMF_ )
        ! Retrieve the units of the diagnostic from the metadata
        CALL Get_Metadata_State_Diag( am_I_Root, TRIM(DiagMetadataID), &
                                      Found, RC, Units=Units )
@@ -355,6 +359,10 @@ CONTAINS
        IF ( TRIM(Units) == 'kg kg-1 dry'   ) Units = 'kg/kg dry'
        IF ( TRIM(Units) == 'kg m-2'        ) Units = 'kg/m2'
        IF ( TRIM(Units) == 'molec cm-3'    ) Units = 'molec/cm3'
+#else
+       ! Force units to v/v dry to avoid issues in the GEOS-Chem restart file
+       Units = 'v/v dry'
+#endif
        
        ! Convert State_Chm%Species unit to diagnostic units
        CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
