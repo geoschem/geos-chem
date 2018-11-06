@@ -273,7 +273,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libcore
 
 libcore: $(OBJECTS)                                # Build code in GeosCore/
-ifeq ($(EXE_NEEDED),1)
+ifeq ($(EXE_NEEDED),0)
 	$(AR) crs $(LIBRARY) $(OBJECTS)
 	mv $(LIBRARY) $(LIB) # ...build a libGeosCore.a for use instead
 endif
