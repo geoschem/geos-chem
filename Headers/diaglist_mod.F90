@@ -80,8 +80,10 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5), PUBLIC  :: RadWL(3)    ! Wavelengths configured in rad menu
-  LOGICAL,          PUBLIC  :: IsFullChem  ! Is this a fullchem simulation?
+  CHARACTER(LEN=5), PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
+  CHARACTER(LEN=2), PUBLIC  :: RadFlux(12)   ! Names of RRTMG flux outputs
+  INTEGER,          PUBLIC  :: nRadFlux      ! # of selected RRTMG flux outputs
+  LOGICAL,          PUBLIC  :: IsFullChem    ! Is this a fullchem simulation?
 
   !=========================================================================
   ! Derived type for Collections List
@@ -204,11 +206,13 @@ CONTAINS
     EOF             = .FALSE.
     found           = .FALSE.
     NewDiagItem     => NULL()
-    RadWL(:)        =   ''
+    RadWL(:)        =  ''
+    RadFlux(:)      =  ''
+    nRadFlux        =  0
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
-    LastCollName    = ''
+    LastCollName    =  ''
 
     ! Create DiagList object
     DiagList%head   => NULL()
@@ -672,7 +676,6 @@ CONTAINS
        ENDIF
 
        ! For registryID and metdataID, handle special case of AOD wavelength 
-       ! taken from the radiation menu of input.geos
        ! Update registryID
        IWL(1) = INDEX( TRIM(registryID), 'WL1' )
        IWL(2) = INDEX( TRIM(registryID), 'WL2' )
@@ -698,6 +701,44 @@ CONTAINS
           IWLMAXLOC = MAXLOC(IWL(:))
           metadataID = metadataID(1:IWL(IWLMAXLOC(1))-1) //  &
                        TRIM(RadWL(IWLMAXLOC(1))) // 'nm'
+       ENDIF
+
+       ! Special handling for the RRTMG diagnostic flux outputs
+       ! Store the list of the requested fluxes in RadFlux
+       IWL(1) = INDEX( TRIM(metadataID), 'RADCLRSKY' )
+       IWL(2) = INDEX( TRIM(metadataID), 'RADALLSKY' )
+       IWLMAX = MAX( IWL(1), IWL(2) )
+       IF ( IWLMAX > 0 ) THEN
+
+          IF ( LEN_TRIM( Tag ) > 0 ) THEN
+
+             ! If a tag is specified explicitly, then add each
+             ! tag name to the RadFlux array and update nRadFlux
+             IF ( .not. ANY( RadFlux == TRIM(Tag) ) ) THEN
+                nRadFlux          = nRadFlux + 1
+                RadFlux(nRadFlux) = TRIM( Tag )
+             ENDIF
+
+          ELSE
+
+             ! If a tag is not explicity stated, then manually define all 
+             ! slots of the RadFlux array (and update nRadFlux accordingly)
+             ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
+             RadFlux(1 ) = 'BA'
+             RadFlux(2 ) = 'O3'
+             RadFlux(3 ) = 'ME'
+             RadFlux(4 ) = 'SU'
+             RadFlux(5 ) = 'NI'
+             RadFlux(6 ) = 'AM'
+             RadFlux(7 ) = 'BC'
+             RadFlux(8 ) = 'OA'
+             RadFlux(9 ) = 'SS'
+             RadFlux(10) = 'DU'
+             RadFlux(11) = 'PM'
+             RadFlux(12) = 'ST'
+             nRadFlux    = 12
+
+          ENDIF
        ENDIF
 
        !====================================================================
@@ -731,7 +772,7 @@ CONTAINS
     ! Close the file
     !====================================================================
     CLOSE( fId )
-
+ 
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------

@@ -138,8 +138,6 @@
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_SURFACE_RAD
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_MCICA_CLOUDS
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : SET_SPECMASK
-      USE CMN_FJX_MOD,            ONLY : NSPECRADMENU
-      USE CMN_FJX_MOD,            ONLY : LSPECRADMENU
       USE rrtmg_lw_init,          ONLY : rrtmg_lw_ini
       USE rrtmg_sw_init,          ONLY : rrtmg_sw_ini
 #endif
@@ -1888,7 +1886,7 @@
                ENDIF
 
                !set all values to one for baseline RT calc
-               CALL SET_SPECMASK(0)
+               CALL SET_SPECMASK( Input_Opt, 0 )
 
                !First call for baseline (all aerosol and ozone)
                CALL DO_RRTMG_RAD_TRANSFER( am_I_Root,  DAY,
@@ -1905,16 +1903,16 @@
 
                !Second call with aerosols or ozone if requested
                IF ( Input_Opt%LUCX ) THEN
-                  RADSPEC = NSPECRADMENU
+                  RADSPEC = Input_Opt%NSPECRADMENU
                ELSE
                   ! Skip strat aer
-                  RADSPEC = NSPECRADMENU - 1
+                  RADSPEC = Input_Opt%NSPECRADMENU - 1
                ENDIF
 
                DO N = 1, RADSPEC
-                  IF (LSPECRADMENU(N).EQ.1) THEN
+                  IF ( Input_Opt%LSPECRADMENU(N) == 1 ) THEN
                      !generate mask for species in RT
-                     CALL SET_SPECMASK(N)
+                     CALL SET_SPECMASK( Input_Opt, N )
                      CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY,
      &                                           MONTH,     ICLD,
      &                                           N,         ISEED,
@@ -1924,7 +1922,7 @@
 
                      ! Trap potential errors
                      IF ( RC /= GC_SUCCESS ) THEN
-                        ErrMsg = 'Error encountered in "Do_RRTMG 21"!'
+                        ErrMsg = 'Error encountered in "Do_RRTMG 2"!'
                         CALL Error_Stop( ErrMsg, ThisLoc )
                      ENDIF
                   ENDIF

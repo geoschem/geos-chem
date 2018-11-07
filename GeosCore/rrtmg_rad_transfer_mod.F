@@ -17,8 +17,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
-     &                         WVAA, SPECMASK, LSPECRADMENU,
-     &                         NSPECRADMENU
+     &                         WVAA,    SPECMASK
       USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
@@ -1591,9 +1590,9 @@
 
       !THE NUMBER OF ND72 OUTPUTS PER FIELD
       IF ( Input_Opt%LUCX ) THEN
-         NAD72 = NSPECRADMENU + 1
+         NAD72 = Input_Opt%NSPECRADMENU + 1
       ELSE
-         NAD72 = NSPECRADMENU
+         NAD72 = Input_Opt%NSPECRADMENU
       ENDIF
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
@@ -1684,87 +1683,88 @@
        ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
-       !================================================================
-       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-       !
-       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
-       !================================================================
-       IF ( ICLD > 0 ) THEN
-
-          !-------------------------------------------------------
-          !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
-          !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
-          !-------------------------------------------------------
-
-          ! All-sky SW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
-             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
-          ENDIF
-
-          ! All-sky SW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
-             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
-          ENDIF
-
-          ! All-sky LW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
-             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
-          ENDIF
-
-          ! All-sky LW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
-             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
-          ENDIF
-
-          ! Clear-sky SW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
-          ENDIF
-
-          ! Clear-sky SW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
-          ENDIF
-
-          ! Clear-sky LW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
-          ENDIF
-
-          ! Clear-sky LW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
-          ENDIF
-
-       ELSE
-     
-          !-------------------------------------------------------
-          ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
-          !-------------------------------------------------------
-
-          ! Clear-sky SW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
-          ENDIF
-
-          ! Clear-sky SW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
-          ENDIF
-
-          ! Clear-sky LW flux @ TOA [W/m2]
-          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
-          ENDIF
-
-          ! Clear-sky LW flux @ surface [W/m2]
-          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
-          ENDIF
-
-       ENDIF
-#endif
+! Comment out for now till we have the tagging in place (bmy, 11/5/18)
+!#if defined( NC_DIAG ) 
+!       !================================================================
+!       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+!       !
+!       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
+!       !================================================================
+!       IF ( ICLD > 0 ) THEN
+!
+!          !-------------------------------------------------------
+!          !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
+!          !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
+!          !-------------------------------------------------------
+!
+!          ! All-sky SW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+!             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! All-sky SW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+!             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
+!          ENDIF
+!
+!          ! All-sky LW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+!             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! All-sky LW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+!             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
+!          ENDIF
+!
+!          ! Clear-sky SW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+!             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! Clear-sky SW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+!             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+!          ENDIF
+!
+!          ! Clear-sky LW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+!             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! Clear-sky LW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+!             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+!          ENDIF
+!
+!       ELSE
+!     
+!          !-------------------------------------------------------
+!          ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+!          !-------------------------------------------------------
+!
+!          ! Clear-sky SW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+!             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! Clear-sky SW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+!             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+!          ENDIF
+!
+!          ! Clear-sky LW flux @ TOA [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+!             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+!          ENDIF
+!
+!          ! Clear-sky LW flux @ surface [W/m2]
+!          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+!             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+!          ENDIF
+!
+!       ENDIF
+!#endif
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
@@ -1853,21 +1853,23 @@
 ! !INTERFACE:
 !
 
-      SUBROUTINE SET_SPECMASK(ISPECRADMENU)
+      SUBROUTINE SET_SPECMASK( Input_Opt, ISPECRADMENU )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                           LSPECRADMENU
+      USE CMN_FJX_MOD,   ONLY : SPECMASK, NSPECRAD, NASPECRAD
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: ISPECRADMENU
+      INTEGER,        INTENT(IN) :: ISPECRADMENU   ! Index of species
+      TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
 ! 
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
+!  06 Nov 2018 - R. Yantosca - Now get LSPECRADMENU from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1899,7 +1901,7 @@
       !IF ISPECRADMENU IS ZERO, WE JUST WANTED BASELINE, I.E. SPECMASK(:)=1
       IF (ISPECRADMENU.GT.0) THEN
        !CHECK THIS IS A REQUESTED SPECIES
-       IF(LSPECRADMENU(ISPECRADMENU).EQ.1) THEN 
+       IF(Input_Opt%LSPECRADMENU(ISPECRADMENU).EQ.1) THEN 
        SELECT CASE( ISPECRADMENU )
        !OZONE
        CASE( 1 ) 

@@ -6232,9 +6232,9 @@
 
          ! Number of output species plus baseline
          IF ( Input_Opt%LUCX ) THEN
-            NSPECOUT=NSPECRADMENU+1
+            NSPECOUT=Input_Opt%NSPECRADMENU+1
          ELSE
-            NSPECOUT=NSPECRADMENU
+            NSPECOUT=Input_Opt%NSPECRADMENU
          ENDIF
 
          DO M = 1, TMAX(72)
@@ -6281,7 +6281,7 @@
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
              ELSE IF (IS.GE.2) THEN
-              IF (LSPECRADMENU(IS-1).EQ.1) THEN
+              IF (Input_Opt%LSPECRADMENU(IS-1).EQ.1) THEN
                DO I=1,IIPAR
                 DO J=1,JJPAR
                  !store as difference in flux from baseline
@@ -6301,7 +6301,7 @@
             ! but only for turned on species and only for aerosols
             ! i.e. skip IS=2 and IS=3
             ELSE IF (IS.GE.4) THEN
-             IF (LSPECRADMENU(IS-1).EQ.1) THEN
+             IF (Input_Opt%LSPECRADMENU(IS-1).EQ.1) THEN
              !output optics
               ARRAY(:,:,1) = AD72(:,:,NN) / SCALEX
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,

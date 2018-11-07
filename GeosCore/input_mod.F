@@ -2828,9 +2828,9 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE DiagList_Mod,  ONLY : RadFlux, nRadFlux
 !
 ! !INPUT PARAMETERS:
 !
@@ -2859,7 +2859,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N
+      INTEGER            :: N, C
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -2946,15 +2946,49 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%TS_RAD
 
-      ! Selection of species flux changes
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU, 'Fluxes', RC )
+      !%%%% NOTE: LSPECRADMENU Is now going to be set by HISTORY.rc
+      !%%%% but keep it here for now to avoid having to update inputs
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, Input_Opt%NSPECRADMENU, 
+     &                    'Fluxes', RC                         )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      DO N = 1, NSPECRADMENU
-         READ( SUBSTRS(N), * ) LSPECRADMENU(N)
+
+      ! For backwards compatibility, populate Input_Opt%LSpecRadMenu
+      ! based on the flux outputs scheduled in the RRTMG 
+      ! Loop over the possible types of RRTMG flux outputs
+      ! (not including Baseline, which is type 0)
+      DO N = 1, nRadFlux
+         SELECT CASE( RadFlux(N) )
+            CASE( 'O3' )
+               Input_Opt%LSpecRadMenu(1)  = 1
+            CASE( 'ME' )
+               Input_Opt%LSpecRadMenu(2)  = 1
+            CASE( 'SU' )
+               Input_Opt%LSpecRadMenu(3)  = 1
+            CASE( 'NI' )
+               Input_Opt%LSpecRadMenu(4)  = 1
+            CASE( 'AM' )
+               Input_Opt%LSpecRadMenu(5)  = 1
+            CASE( 'BC' )
+               Input_Opt%LSpecRadMenu(6)  = 1
+            CASE( 'OA' )
+               Input_Opt%LSpecRadMenu(7)  = 1
+            CASE( 'SS' )
+               Input_Opt%LSpecRadMenu(8)  = 1
+            CASE( 'DU' )
+               Input_Opt%LSpecRadMenu(9)  = 1
+            CASE( 'PM' )
+               Input_Opt%LSpecRadMenu(10) = 1
+            CASE( 'ST' )
+               Input_Opt%LSpecRadMenu(11) = 1
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
       ENDDO
+      
+      PRINT*, '#### Input_Opt%LSpecRadMenu: ', Input_Opt%LSpecRadMenu
 
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
@@ -3020,27 +3054,26 @@
             WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
      &                           Input_Opt%WVSELECT(N)
          ENDDO
-         WRITE( 6, 100     ) 'Turn on radiation?          : ',
-     &                        Input_Opt%LRAD
-         WRITE( 6, 100     ) 'Consider LW                 : ',
-     &                        Input_Opt%LLWRAD
-         WRITE( 6, 100     ) 'Consider SW                 : ',
-     &                        Input_Opt%LSWRAD
-         WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
-     &                        Input_Opt%LSKYRAD(1), '/',
-     &                        Input_Opt%LSKYRAD(2)
-         WRITE( 6, 110     ) 'Radiation timestep [sec]    : ',
+         WRITE( 6, 100 ) 'Turn on radiation?          : ',
+     &                    Input_Opt%LRAD
+         WRITE( 6, 100 ) 'Consider LW                 : ',
+     &                    Input_Opt%LLWRAD
+         WRITE( 6, 100 ) 'Consider SW                 : ',
+     &                    Input_Opt%LSWRAD
+         WRITE( 6, 125 ) 'Clear-sky/All-sky           : ',
+     &                    Input_Opt%LSKYRAD(1), '/',
+     &                    Input_Opt%LSKYRAD(2)
+         WRITE( 6, 110 ) 'Radiation timestep [sec]    : ',
      &                        Input_Opt%TS_RAD
-         WRITE( 6, 120     ) 'Flux output selection       : ', 
-     &                        LSPECRADMENU
       ENDIF
 
       ! FORMAT statements
- 100  FORMAT( A, L5  )
- 110  FORMAT( A, I5  )
- 115  FORMAT( A, F7.1)
- 120  FORMAT( A, 11I1 )
- 125  FORMAT( A,L5,A,L5 )
+ 100  FORMAT( A, L5           )
+ 110  FORMAT( A, I5           )
+ 115  FORMAT( A, F7.1         ) 
+ 120  FORMAT( A, 11I1         )
+ 125  FORMAT( A, L5, A, L5    )
+ 130  FORMAT( A, 12( A2, 1x ) )
 
       END SUBROUTINE READ_RADIATION_MENU
 !EOC
