@@ -81,7 +81,7 @@ MODULE DiagList_Mod
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
   CHARACTER(LEN=5), PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
-  CHARACTER(LEN=2), PUBLIC  :: RadFlux(12)   ! Names of RRTMG flux outputs
+  CHARACTER(LEN=2), PUBLIC  :: RadFlux(11)   ! Names of RRTMG flux outputs
   INTEGER,          PUBLIC  :: nRadFlux      ! # of selected RRTMG flux outputs
   LOGICAL,          PUBLIC  :: IsFullChem    ! Is this a fullchem simulation?
 
@@ -206,8 +206,8 @@ CONTAINS
     EOF             = .FALSE.
     found           = .FALSE.
     NewDiagItem     => NULL()
-    RadWL(:)        =  ''
-    RadFlux(:)      =  ''
+    RadWL           =  ''
+    RadFlux         =  ''
     nRadFlux        =  0
     IsFullChem      = .FALSE.
     InDefSection    = .FALSE.
@@ -724,19 +724,18 @@ CONTAINS
              ! If a tag is not explicity stated, then manually define all 
              ! slots of the RadFlux array (and update nRadFlux accordingly)
              ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-             RadFlux(1 ) = 'BA'
-             RadFlux(2 ) = 'O3'
-             RadFlux(3 ) = 'ME'
-             RadFlux(4 ) = 'SU'
-             RadFlux(5 ) = 'NI'
-             RadFlux(6 ) = 'AM'
-             RadFlux(7 ) = 'BC'
-             RadFlux(8 ) = 'OA'
-             RadFlux(9 ) = 'SS'
-             RadFlux(10) = 'DU'
-             RadFlux(11) = 'PM'
-             RadFlux(12) = 'ST'
-             nRadFlux    = 12
+             RadFlux(1 ) = 'O3'
+             RadFlux(2 ) = 'ME'
+             RadFlux(3 ) = 'SU'
+             RadFlux(4 ) = 'NI'
+             RadFlux(5 ) = 'AM'
+             RadFlux(6 ) = 'BC'
+             RadFlux(7 ) = 'OA'
+             RadFlux(8 ) = 'SS'
+             RadFlux(9 ) = 'DU'
+             RadFlux(10) = 'PM'
+             RadFlux(11) = 'ST'
+             nRadFlux    = 11
 
           ENDIF
        ENDIF
@@ -772,7 +771,7 @@ CONTAINS
     ! Close the file
     !====================================================================
     CLOSE( fId )
- 
+
   END SUBROUTINE Init_DiagList
 !EOC
 !------------------------------------------------------------------------------

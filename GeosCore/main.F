@@ -134,12 +134,13 @@
       !-----------------------------------------------------------------
       ! Radiation modules
       !-----------------------------------------------------------------
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : DO_RRTMG_RAD_TRANSFER
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : INIT_MCICA_CLOUDS
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : SET_SPECMASK
-      USE rrtmg_lw_init,          ONLY : rrtmg_lw_ini
-      USE rrtmg_sw_init,          ONLY : rrtmg_sw_ini
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_Surface_Rad
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_MCICA_Clouds
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Indices
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Set_SpecMask
+      USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
+      USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
 #endif
 
       IMPLICIT NONE
@@ -297,70 +298,22 @@
 !  26 Oct 2018 - M. Sulprizio- Remove routines READ_INITIAL_MET_FIELDS and
 !                              READ_MET_FIELDS. Met fields are now obtained from
 !                              HEMCO in hcoi_gc_main_mod.F90.
+!  08 Nov 2018 - R. Yantosca - Update the initializations for RRTMG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+      !----------------------------
       ! Scalars
-      LOGICAL                  :: FIRST_RT = .TRUE.
-      LOGICAL                  :: wasModisRead
-      LOGICAL                  :: prtDebug
-      LOGICAL                  :: TimeForEmis
-      INTEGER                  :: I,             IOS,         J
-      INTEGER                  :: K,             L,           N
-      INTEGER                  :: JDAY,          N_DYN
-      INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
-      INTEGER                  :: N_STEP,        YEAR,        MONTH
-      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
-      INTEGER                  :: NYMD,          NYMDb,       NHMS
-      INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
-      INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
-      INTEGER                  :: id_H2O,        id_CH4,      SECOND
-      REAL(f8)                 :: TAU,           TAUb      
-      REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
-      CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
-      CHARACTER(LEN=255)       :: historyConfigFile
-      CHARACTER(LEN=512)       :: ErrMsg
-#if defined( RRTMG )
-      ! For RRTMG
-      INTEGER                  :: ICLD=0,ISEED=10
-      INTEGER                  :: RADSPEC
-#endif
+      !-----------------------------
 
-      ! Arrays
-      INTEGER                  :: DATE(2)
-
-      ! Derived type objects
-      TYPE(MapWeight), POINTER :: mapping(:,:)
-      TYPE(OptInput)           :: Input_Opt   ! Input Options object
-      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
-      TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
-      TYPE(MetState)           :: State_Met   ! Meteorology State object
-      TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
-
-      ! When connecting G-C to an external GCM, we need to only write 
-      ! to stdout if we are on the root CPU.  Otherwise this will slow
-      ! down the code.  This is why we introduced the am_I_Root logical
-      ! variable.
-      !
-      ! However, if we are using the "traditional" G-C, then we don't
-      ! need to restrict I/O to the root CPU.  (This is because each
-      ! GEOS-Chem simulation starts out on a single CPU, with other
-      ! CPUs joining only within parallel DO loops).  Therefore, we
-      ! can just set am_I_Root = .true. here and then have it propagate
-      ! down to all of the lower-level routines.  The main.F routine
-      ! is not called when connecting G-C to an external GCM.
-      ! (mlong, bmy, 7/30/12)
-      LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
-
-      ! Define shadow variables for fields in Input_Opt (bmy, 6/25/14)
-      LOGICAL                  :: ITS_A_FULLCHEM_SIM 
-      LOGICAL                  :: ITS_A_MERCURY_SIM  
+      ! Logicals
+      LOGICAL                  :: ITS_A_FULLCHEM_SIM
+      LOGICAL                  :: ITS_A_MERCURY_SIM 
       LOGICAL                  :: ITS_A_TAGCO_SIM
-      LOGICAL                  :: ITS_AN_AEROSOL_SIM 
+      LOGICAL                  :: ITS_AN_AEROSOL_SIM
       LOGICAL                  :: ITS_A_CH3I_SIM
       LOGICAL                  :: DO_DIAG_WRITE
       LOGICAL                  :: LCHEM
@@ -380,6 +333,70 @@
       LOGICAL                  :: LUCX
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
+      LOGICAL                  :: wasModisRead
+      LOGICAL                  :: prtDebug
+      LOGICAL                  :: TimeForEmis
+
+      ! Integers
+      INTEGER                  :: I,             IOS,         J
+      INTEGER                  :: K,             L,           N
+      INTEGER                  :: JDAY,          N_DYN
+      INTEGER                  :: NNN,           N_DYN_STEPS, NSECb 
+      INTEGER                  :: N_STEP,        YEAR,        MONTH
+      INTEGER                  :: DAY,           DAY_OF_YEAR, SEASON
+      INTEGER                  :: NYMD,          NYMDb,       NHMS
+      INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
+      INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
+      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
+      INTEGER                  :: id_H2O,        id_CH4,      SECOND
+
+      ! Reals
+      REAL(f8)                 :: TAU,           TAUb      
+      REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
+
+      ! Strings
+      CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
+      CHARACTER(LEN=255)       :: historyConfigFile
+      CHARACTER(LEN=512)       :: ErrMsg
+
+#if defined( RRTMG ) 
+      !-----------------------------
+      ! Scalars specific to RRTMG
+      !-----------------------------
+      INTEGER                  :: iCld
+      INTEGER                  :: iSeed
+      INTEGER                  :: iSpecMenu
+      INTEGER                  :: iNcDiag
+      INTEGER                  :: RADSPEC
+      LOGICAL, SAVE            :: FIRST_RT = .TRUE.
+#endif
+
+      !-----------------------------
+      ! Derived type objects 
+      !-----------------------------
+      TYPE(MapWeight), POINTER :: mapping(:,:)
+      TYPE(OptInput)           :: Input_Opt   ! Input Options object
+      TYPE(ChmState)           :: State_Chm   ! Chemistry State object
+      TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
+      TYPE(MetState)           :: State_Met   ! Meteorology State object
+      TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
+!
+! !DEFINED PARAMETERS:
+!
+      ! When connecting G-C to an external GCM, we need to only write 
+      ! to stdout if we are on the root CPU.  Otherwise this will slow
+      ! down the code.  This is why we introduced the am_I_Root logical
+      ! variable.
+      !
+      ! However, if we are using the "traditional" G-C, then we don't
+      ! need to restrict I/O to the root CPU.  (This is because each
+      ! GEOS-Chem simulation starts out on a single CPU, with other
+      ! CPUs joining only within parallel DO loops).  Therefore, we
+      ! can just set am_I_Root = .true. here and then have it propagate
+      ! down to all of the lower-level routines.  The main.F routine
+      ! is not called when connecting G-C to an external GCM.
+      ! (mlong, bmy, 7/30/12)
+      LOGICAL, PARAMETER       :: am_I_Root = .TRUE. 
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -456,7 +473,9 @@
       CALL GEOS_Timer_Add( "Boundary layer mixing",                RC )
       CALL GEOS_Timer_Add( "Dry deposition",                       RC )
       CALL GEOS_Timer_Add( "Wet deposition",                       RC )
+#if defined( RRTMG )
       CALL GEOS_Timer_Add( "RRTMG",                                RC )
+#endif
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
@@ -643,14 +662,23 @@
 
 #if defined( RRTMG )
       !-----------------------------------------------------------------
-      ! Initialize RRTMG routines (in rrtmg_rad_transfer_mod.F)
+      ! Initializations for the RRTMG radiative transfer model
       !-----------------------------------------------------------------
-      CALL Init_surface_Rad()
-      CALL Init_Mcica_Clouds()
 
-      ! Initialization
+      ! Define indices for the selected RRTMG flux outputs
+      CALL Init_RRTMG_Indices( am_I_Root, Input_Opt, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_RRTMG_Indices"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
+      ! Other various initialization calls
+      CALL Init_Surface_Rad()
+      CALL Init_Mcica_Clouds()
       CALL Rrtmg_Lw_Ini()
       CALL Rrtmg_Sw_Ini()
+      iCld  = 0
+      iSeed = 10
 #endif
 
 #if defined( BPCH_DIAG )
@@ -1854,10 +1882,14 @@
 #if defined( RRTMG )
          !==============================================================
          !  ***** R R T M G   R A D I A T I V E   T R A N S F E R *****
-         !==============================================================
+         !
          ! NOTE: Tracer concentration units are converted locally to
-         ! [kg] in RRTMG. Units should eventually be [kg/kg]  (ewl, 9/18/15)
+         ! [kg] in RRTMG. Units should eventually be [kg/kg]  
+         ! (ewl, 9/18/15)
+         !==============================================================
          IF ( Input_opt%LRAD ) THEN 
+
+            ! If it's a RRTMG timestep
             IF ( ITS_TIME_FOR_RT() ) THEN
 
 #if defined( USE_TIMERS )
@@ -1876,55 +1908,101 @@
 
                iseed=iseed+15
 
-               !clear-sky is output with all-sky, so we just need to run once 
-               !regardless of whether both are required or just one
+               !--------------------------------------------------------
+               ! Determine if we are doing clear-sky or all-sky
+               !
+               ! Clear-sky is output with all-sky, so we just need
+               ! to run once regardless of whether both are required
+               ! or just one.
+               !--------------------------------------------------------
                IF ( Input_Opt%LSKYRAD(2) ) THEN
-                  !Determine if we are doing CLEAR-SKY (1) or ALL-SKY (2)
-                  ICLD=1
+                  ICLD = 1
                ELSE
-                  ICLD=0 !clouds are on
+                  ICLD = 0   !clouds are on
                ENDIF
 
-               !set all values to one for baseline RT calc
-               CALL SET_SPECMASK( Input_Opt, 0 )
+               !--------------------------------------------------------
+               ! Baseline calculation...this always gets done first
+               !--------------------------------------------------------
+               iSpecMenu = 0
+               iNcDiag   = 0
 
-               !First call for baseline (all aerosol and ozone)
-               CALL DO_RRTMG_RAD_TRANSFER( am_I_Root,  DAY,
-     &                                     MONTH,      ICLD,
-     &                                     0,          ISEED,
-     &                                     Input_Opt,  State_Met,
-     &                                     State_Chm,  State_Diag, RC )
+               ! Echo info
+               WRITE ( 6, 510 )
+ 510           FORMAT( 5x, '- Calling RRTMG for baseline computation' )
+
+               ! Set all values to one for baseline RT calc
+               CALL Set_SpecMask( Input_Opt    = Input_Opt,
+     &                            iSpecRadMenu = iSpecMenu  )
+
+               ! First call for baseline (all aerosol and ozone)
+               CALL Do_RRTMG_Rad_Transfer( am_I_Root  = am_I_Root,
+     &                                     ThisDay    = DAY,
+     &                                     ThisMonth  = MONTH,
+     &                                     iCld       = ICLD,
+     &                                     iSpecMenu  = iSpecMenu,
+     &                                     iNcDiag    = iNcDiag,
+     &                                     iSeed      = ISEED,
+     &                                     Input_Opt  = Input_Opt,
+     &                                     State_Met  = State_Met,
+     &                                     State_Chm  = State_Chm,
+     &                                     State_Diag = State_Diag,
+     &                                     RC         = RC          )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in "Do_RRTMG #1"!'
+                  ErrMsg = 'Error encountered in '     //
+     &                     '"Do_RRTMG_Rad_Transfer", ' //
+     &                     'for baseline computation!'
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
 
-               !Second call with aerosols or ozone if requested
-               IF ( Input_Opt%LUCX ) THEN
-                  RADSPEC = Input_Opt%NSPECRADMENU
-               ELSE
-                  ! Skip strat aer
-                  RADSPEC = Input_Opt%NSPECRADMENU - 1
-               ENDIF
+               !--------------------------------------------------------
+               ! Calculation for each of the potential output types
+               ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
+               !
+               ! Flux outputs (scheduled in HISTORY.rc):
+               !  1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
+               !  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+               !--------------------------------------------------------
+               DO N = 1, Input_Opt%RadFluxCt
 
-               DO N = 1, RADSPEC
-                  IF ( Input_Opt%LSPECRADMENU(N) == 1 ) THEN
-                     !generate mask for species in RT
-                     CALL SET_SPECMASK( Input_Opt, N )
-                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY,
-     &                                           MONTH,     ICLD,
-     &                                           N,         ISEED,
-     &                                           Input_Opt, State_Met, 
-     &                                           State_Chm, State_Diag,
-     &                                           RC )
+                  ! Index number for RRTMG (see list above)
+                  iSpecMenu = Input_Opt%RadFluxInd(N)
 
-                     ! Trap potential errors
-                     IF ( RC /= GC_SUCCESS ) THEN
-                        ErrMsg = 'Error encountered in "Do_RRTMG 2"!'
-                        CALL Error_Stop( ErrMsg, ThisLoc )
-                     ENDIF
+                  ! Slot # of netCDF diagnostic arrays to update
+                  iNcDiag   = N
+
+                  ! Echo info
+                  WRITE( 6, 520 ) Input_Opt%RadFluxName(N), iSpecMenu
+ 520              FORMAT( 5x, '- Calling RRTMG to compute flux: ',
+     &                    a2, ' (Index = ', i2.2, ')' )
+
+                  ! Generate mask for species in RT
+                  CALL Set_SpecMask( Input_Opt    = Input_Opt,
+     &                               iSpecRadMenu = iSpecMenu   )
+
+                  ! Compute radiative fluxes for the given output
+                  CALL Do_RRTMG_Rad_Transfer( am_I_Root  = am_I_Root,
+     &                                        ThisDay    = DAY,
+     &                                        ThisMonth  = MONTH,
+     &                                        iCld       = ICLD,
+     &                                        iSpecMenu  = iSpecMenu,
+     &                                        iNcDiag    = iNcDiag,
+     &                                        iSeed      = ISEED,
+     &                                        Input_Opt  = Input_Opt,
+     &                                        State_Met  = State_Met,
+     &                                        State_Chm  = State_Chm,
+     &                                        State_Diag = State_Diag,
+     &                                        RC         = RC          )
+
+                 ! Trap potential errors
+                  IF ( RC /= GC_SUCCESS ) THEN
+                     ErrMsg = 'Error encountered in '          //
+     &                        '"Do_RRTMG_Rad_Transfer", '      //
+     &                        'for flux output = '             //
+     &                        TRIM( Input_Opt%RadFluxName(N) )
+                     CALL Error_Stop( ErrMsg, ThisLoc )
                   ENDIF
                ENDDO
 
@@ -1941,7 +2019,6 @@
 #if defined( USE_TIMERS )
                CALL GEOS_Timer_End( "RRTMG", RC )
 #endif
-
             ENDIF
          ENDIF
 #endif

@@ -202,7 +202,10 @@ MODULE Input_Opt_Mod
      REAL(8),            POINTER :: WVSELECT(:)
      CHARACTER(LEN=5),   POINTER :: STRWVSELECT(:)
      INTEGER                     :: NSPECRADMENU
-     INTEGER,            POINTER :: LSPECRADMENU(:)
+     INTEGER,            POINTER :: LSPECRADMENU(:)  ! NOTE: LSPECRADMENU may
+     INTEGER                     :: RadFluxCt        ! soon be obsolete
+     INTEGER,            POINTER :: RadFluxInd(:)
+     CHARACTER(LEN=2),   POINTER :: RadFluxName(:)
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -937,6 +940,16 @@ CONTAINS
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    arrayId = 'Input_Opt%RadFluxInd'
+    ALLOCATE( Input_Opt%RadFluxInd( Input_Opt%NSpecRadMenu ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    arrayId = 'Input_Opt%RadFluxName'
+    ALLOCATE( Input_Opt%RadFluxName( Input_Opt%NSpecRadMenu ), STAT=RC )
+    CALL GC_CheckVar( arrayId, 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     Input_Opt%LRAD                   = .FALSE.
     Input_Opt%LLWRAD                 = .FALSE.
     Input_Opt%LSWRAD                 = .FALSE.
@@ -946,6 +959,9 @@ CONTAINS
     Input_Opt%WVSELECT               = 0e+0_fp
     Input_Opt%STRWVSELECT            = ''
     Input_Opt%LSpecRadMenu           = 0
+    Input_Opt%RadFluxInd             = 0
+    Input_Opt%RadFluxName            = ''
+    Input_Opt%RadFluxCt              = 0
 
     !----------------------------------------
     ! TRANSPORT MENU fields
@@ -1772,6 +1788,20 @@ CONTAINS
        CALL GC_CheckVar( 'Input_Opt%LSPECRADMENU', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%LSPECRADMENU => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%RadFluxName ) ) THEN
+       DEALLOCATE( Input_Opt%RadFluxName, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%RadFluxName', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%RadFluxName => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%RadFluxInd ) ) THEN
+       DEALLOCATE( Input_Opt%RadFluxInd, STAT=RC )
+       CALL GC_CheckVar( 'Input_Opt%RadFluxInd', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Input_Opt%RadFluxInd => NULL()
     ENDIF
 
 #if defined( MODEL_GEOS )

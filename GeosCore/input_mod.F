@@ -2830,7 +2830,6 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-      USE DiagList_Mod,  ONLY : RadFlux, nRadFlux
 !
 ! !INPUT PARAMETERS:
 !
@@ -2843,6 +2842,11 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  Flux outputs are now scheduled in the HISTORY.rc file, and the relevant
+!  fields of Input_Opt will be populated in the RRTMG module routine
+!  Init_RRTMG_Indices (called at startup).
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
@@ -2859,7 +2863,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N, C
+      INTEGER            :: N
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -2946,59 +2950,8 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%TS_RAD
 
-      !%%%% NOTE: LSPECRADMENU Is now going to be set by HISTORY.rc
-      !%%%% but keep it here for now to avoid having to update inputs
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, Input_Opt%NSPECRADMENU, 
-     &                    'Fluxes', RC                         )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! For backwards compatibility, populate Input_Opt%LSpecRadMenu
-      ! based on the flux outputs scheduled in the RRTMG 
-      ! Loop over the possible types of RRTMG flux outputs
-      ! (not including Baseline, which is type 0)
-      DO N = 1, nRadFlux
-         SELECT CASE( RadFlux(N) )
-            CASE( 'O3' )
-               Input_Opt%LSpecRadMenu(1)  = 1
-            CASE( 'ME' )
-               Input_Opt%LSpecRadMenu(2)  = 1
-            CASE( 'SU' )
-               Input_Opt%LSpecRadMenu(3)  = 1
-            CASE( 'NI' )
-               Input_Opt%LSpecRadMenu(4)  = 1
-            CASE( 'AM' )
-               Input_Opt%LSpecRadMenu(5)  = 1
-            CASE( 'BC' )
-               Input_Opt%LSpecRadMenu(6)  = 1
-            CASE( 'OA' )
-               Input_Opt%LSpecRadMenu(7)  = 1
-            CASE( 'SS' )
-               Input_Opt%LSpecRadMenu(8)  = 1
-            CASE( 'DU' )
-               Input_Opt%LSpecRadMenu(9)  = 1
-            CASE( 'PM' )
-               Input_Opt%LSpecRadMenu(10) = 1
-            CASE( 'ST' )
-               Input_Opt%LSpecRadMenu(11) = 1
-            CASE DEFAULT
-               ! Nothing
-         END SELECT
-      ENDDO
-      
-      PRINT*, '#### Input_Opt%LSpecRadMenu: ', Input_Opt%LSpecRadMenu
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -3064,7 +3017,7 @@
      &                    Input_Opt%LSKYRAD(1), '/',
      &                    Input_Opt%LSKYRAD(2)
          WRITE( 6, 110 ) 'Radiation timestep [sec]    : ',
-     &                        Input_Opt%TS_RAD
+     &                    Input_Opt%TS_RAD
       ENDIF
 
       ! FORMAT statements

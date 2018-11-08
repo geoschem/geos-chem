@@ -37,6 +37,7 @@
       PUBLIC  :: Do_RRTMG_Rad_Transfer
       PUBLIC  :: Init_MCICA_Clouds
       PUBLIC  :: Init_Surface_Rad
+      PUBLIC  :: Init_RRTMG_Indices
 !
 ! !PRIVATE:
 !
@@ -134,12 +135,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  THISDAY,
-     &                                  THISMONTH,  ICLD,
-     &                                  ISPECMENU,  ISEED,
-     &                                  Input_Opt,  State_Met,
-     &                                  State_Chm,  State_Diag,
-     &                                  RC                      )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  ThisDay,
+     &                                  ThisMonth,  iCld,
+     &                                  iSpecMenu,  iNcDiag,
+     &                                  iSeed,      Input_Opt,
+     &                                  State_Met,  State_Chm,
+     &                                  State_Diag, RC         )
 !
 ! !USES:
 !
@@ -183,21 +184,22 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
-      INTEGER,        INTENT(IN)    :: THISDAY     ! CURRENT DAY
-      INTEGER,        INTENT(IN)    :: THISMONTH   ! CURRENT MONTH
-      INTEGER,        INTENT(IN)    :: ISPECMENU   ! THE SPECIES BEING INCLUDED
-                                                   ! NEEDED FOR OUTPUT PURPOSES
-      INTEGER,        INTENT(IN)    :: ISEED  
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root core?
+      INTEGER,        INTENT(IN)    :: ThisDay    ! CURRENT DAY
+      INTEGER,        INTENT(IN)    :: ThisMonth  ! CURRENT MONTH
+      INTEGER,        INTENT(IN)    :: iSpecMenu  ! THE SPECIES BEING INCLUDED
+                                                  ! NEEDED FOR OUTPUT PURPOSES
+      INTEGER,        INTENT(IN)    :: iNcDiag    ! Index for netCDF diag arrays
+      INTEGER,        INTENT(IN)    :: iSeed      ! Seed value
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-      INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
-                                                   ! 0-NOCLOUD, 1-GREY CLOUD
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+      INTEGER,        INTENT(INOUT) :: iCld       ! CLOUD FLAG FOR RRTMG
+                                                  ! 0-NOCLOUD, 1-GREY CLOUD
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1830,8 +1832,169 @@
          RETURN
       ENDIF
 
-!EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_RRTMG_Indices
+!
+! !DESCRIPTION: Populates fields of Input_Opt that are used to keep track
+!  of the requested RRTMG flux outputs and their indices.  These are needed
+!  to be able to pass the proper flux output (and corresponding index for
+!  the appropriate netCDF diagnostic arrays) to DO\_RRTMG\_RAD\_TRANSFER.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_RRTMG_Indices( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE DiagList_Mod,  ONLY : nRadFlux, RadFlux
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  The index fields Input_Opt%RadFluxCt, Input_Opt%RadFluxName, and
+!  Input_Opt%RadFluxInd are populated from information obtained in
+!  Headers/diaglist_mod.F90.  But the input.geos file is read before
+!  the diaglist is constructed.  Therefore, we have to delay population
+!  of these fields until after the call to Init_DiagList.
+!
+! !REVISION HISTORY:
+!  08 Nov 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: N
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, FluxStr, TmpStr
+
+      !=================================================================
+      ! Init_RRTMG_Inputs begins here
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      FluxStr = ''
+      TmpStr  = ''
+      ErrMsg  = ''
+      ThisLoc =
+     &   ' -> at Read_Radiation_Menu (in module GeosCore/input_mod.F)'
+
+      !=================================================================
+      ! For backwards compatibility with existing RRTMG code, we need
+      ! to populate the Input_Opt%LSpecRadMenu based on the flux
+      ! outputs requested in the HISTORY.rc file.  Loop over all
+      ! possible types of RRTMG flux outputs (excluding baseline,
+      ! which is type 0).
+      !
+      ! Save the name of each flux output in Input_Opt%RadFluxName
+      ! and its expected index value in Input_Opt%RadFluxInd.
+      ! Expected index values for flux ouptuts are:
+      !
+      ! Optional outputs (requested via HISTORY.rc)
+      !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
+      !   7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+      !
+      ! This is a bit convoluted but we need to do this in order to
+      ! keep track of the slot of the netCDF diagnostic arrays in
+      ! State_Diag in which to archive the various flux outputs.
+      ! Also this allows us to keep backwards compatibility with the
+      ! existing code to the greatest extent.
+      !=================================================================
+
+      ! Save number of requested flux outputs to Input_Opt
+      Input_Opt%RadFluxCt = nRadFlux
+
+      ! Loop over all of the flux outputs requested in HISTORY.rc
+      DO N = 1, Input_Opt%RadFluxCt
+
+         ! Save the name of the flux output in Input_Opt
+         Input_Opt%RadFluxName(N) = RadFlux(N)
+
+         SELECT CASE( Input_Opt%RadFluxName(N) )
+            CASE( 'O3' )
+               Input_Opt%LSpecRadMenu(1)  = 1
+               Input_Opt%RadFluxInd(N)    = 1
+            CASE( 'ME' )
+               Input_Opt%LSpecRadMenu(2)  = 1
+               Input_Opt%RadFluxInd(N)    = 2
+            CASE( 'SU' )
+               Input_Opt%LSpecRadMenu(3)  = 1
+               Input_Opt%RadFluxInd(N)    = 3
+            CASE( 'NI' )
+               Input_Opt%LSpecRadMenu(4)  = 1
+               Input_Opt%RadFluxInd(N)    = 4
+            CASE( 'AM' )
+               Input_Opt%LSpecRadMenu(5)  = 1
+               Input_Opt%RadFluxInd(N)    = 5
+            CASE( 'BC' )
+               Input_Opt%LSpecRadMenu(6)  = 1
+               Input_Opt%RadFluxInd(N)    = 6
+            CASE( 'OA' )
+               Input_Opt%LSpecRadMenu(7)  = 1
+               Input_Opt%RadFluxInd(N)    = 7
+            CASE( 'SS' )
+               Input_Opt%LSpecRadMenu(8)  = 1
+               Input_Opt%RadFluxInd(N)    = 8
+            CASE( 'DU' )
+               Input_Opt%LSpecRadMenu(9)  = 1
+               Input_Opt%RadFluxInd(N)    = 9
+            CASE( 'PM' )
+               Input_Opt%LSpecRadMenu(10) = 1
+               Input_Opt%RadFluxInd(N)    = 10
+            CASE( 'ST' )
+               Input_Opt%LSpecRadMenu(11) = 1
+               Input_Opt%RadFluxInd(N)    = 11
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+
+         ! Create a string with the requested flux outputs
+         WRITE( TmpStr, 100 ) Input_Opt%RadFluxName(N),
+     &                        Input_Opt%RadFluxInd(N)
+
+         ! Append to the resultant string
+         IF ( N == 1 ) THEN
+            FluxStr = TRIM( TmpStr )
+         ELSE
+            FluxStr = TRIM( FluxStr ) // '  ' // TRIM( TmpStr )
+         ENDIF
+      ENDDO
+
+      ! Print to screen
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'INIT_RRTMG_INDICES'
+         WRITE( 6, '(  a)' ) '------------------'
+         WRITE( 6, 110 ) 'Requested RRTMG fluxes : ', TRIM( FluxStr )
+      ENDIF
+
+      ! FORMAT statemetns
+ 100  FORMAT( a, ' (=', i2.2, ')' )
+ 110  FORMAT( a, a                )
+
+      END SUBROUTINE Init_RRTMG_Indices
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1852,8 +2015,7 @@
 !\\
 ! !INTERFACE:
 !
-
-      SUBROUTINE SET_SPECMASK( Input_Opt, ISPECRADMENU )
+      SUBROUTINE Set_SpecMask( Input_Opt, ISPECRADMENU )
 !
 ! !USES:
 !
@@ -1870,6 +2032,7 @@
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
 !  06 Nov 2018 - R. Yantosca - Now get LSPECRADMENU from Input_Opt
+!  08 Nov 2018 - R. Yantosca - Cosmetic changes (indentation & whitespace)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1894,67 +2057,86 @@
       !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
       !IN RTODAER INDEX 8 AND 9, BEFORE DUST
       NXTRA=NSPECRAD-16
+
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1
 
       !IF ISPECRADMENU IS ZERO, WE JUST WANTED BASELINE, I.E. SPECMASK(:)=1
-      IF (ISPECRADMENU.GT.0) THEN
-       !CHECK THIS IS A REQUESTED SPECIES
-       IF(Input_Opt%LSPECRADMENU(ISPECRADMENU).EQ.1) THEN 
-       SELECT CASE( ISPECRADMENU )
-       !OZONE
-       CASE( 1 ) 
-        SPECMASK(15+NXTRA)=0
-       !METHANE
-       CASE( 2 )
-        SPECMASK(16+NXTRA)=0
-       !SU
-       CASE( 3 )
-        SPECMASK(1)=3
-       !NI
-       CASE( 4 )
-        SPECMASK(2)=4
-       !AM
-       CASE( 5 )
-        SPECMASK(3)=5
-       !BC
-       CASE( 6 )
-        !Hydrophillic+phobic
-        SPECMASK(4)=6
-       !OA
-       CASE( 7 )
-        !Hydrophillic+phobic
-        SPECMASK(5)=7
-       !SS
-       CASE( 8 )
-        SPECMASK(6)=8
-        SPECMASK(7)=8
-       !DUST
-       CASE( 9 )
-        SPECMASK(8+NXTRA)=9
-        SPECMASK(9+NXTRA)=9
-        SPECMASK(10+NXTRA)=9
-        SPECMASK(11+NXTRA)=9
-        SPECMASK(12+NXTRA)=9
-        SPECMASK(13+NXTRA)=9
-        SPECMASK(14+NXTRA)=9
-       CASE( 10 )
-        !SET ALL BUT GASES TO 10
-        DO II = 1, NASPECRAD
-         SPECMASK(II)=10
-        ENDDO
-       !STRAT AEROSOL 
-       CASE( 11 )
-        !LSA
-        SPECMASK(8) = 11
-        !NAT
-        SPECMASK(9) = 11
-       END SELECT
-       ENDIF    
+      IF ( ISpecRadMenu .GT. 0 ) THEN
+
+         !%%% NOTE: This test is probably now obsolete, as we now
+         !%%% loop over requested species in the calling routine
+         !%%% (bmy, 11/8/18)
+         ! CHECK THIS IS A REQUESTED SPECIES
+         IF ( Input_Opt%LSpecRadMenu(ISpecRadMenu) .EQ. 1 ) THEN
+
+            SELECT CASE( ISpecRadMenu )
+
+               ! O3 = Ozone
+               CASE( 1 )
+                  SPECMASK(15+NXTRA)=0
+
+               ! ME = Methane
+               CASE( 2 )
+                  SPECMASK(16+NXTRA)=0
+
+               ! SU = Sulfate
+               CASE( 3 )
+                  SPECMASK(1)=3
+
+               ! NI = Nitrate
+               CASE( 4 )
+                  SPECMASK(2)=4
+
+               ! AM = Ammonium
+               CASE( 5 )
+                  SPECMASK(3)=5
+
+               ! BC = Black carbon (Hydrophilic+phobic)
+               CASE( 6 )
+                  SPECMASK(4)=6
+
+               ! OA = Organic aerosol (!Hydrophilic+phobic)
+               CASE( 7 )
+                  SPECMASK(5)=7
+
+               ! SS = Sea salt
+               CASE( 8 )
+                  SPECMASK(6)=8
+                  SPECMASK(7)=8
+
+               ! DU = Mineral dust
+               CASE( 9 )
+                  SPECMASK(8+NXTRA)=9
+                  SPECMASK(9+NXTRA)=9
+                  SPECMASK(10+NXTRA)=9
+                  SPECMASK(11+NXTRA)=9
+                  SPECMASK(12+NXTRA)=9
+                  SPECMASK(13+NXTRA)=9
+                  SPECMASK(14+NXTRA)=9
+
+               ! PM = All particulate matter
+               ! add all aerosols but not gases here
+               CASE( 10 )
+                  DO II = 1, NASPECRAD
+                     SPECMASK(II)=10
+                  ENDDO
+
+               ! ST = STRAT AEROSOL (UCX only)
+               CASE( 11 )
+
+                  !LSA
+                  SPECMASK(8) = 11
+
+                  !NAT
+                  SPECMASK(9) = 11
+
+            END SELECT
+         ENDIF
       ENDIF
 
-      END SUBROUTINE SET_SPECMASK
+      END SUBROUTINE Set_SpecMask
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
