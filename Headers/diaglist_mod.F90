@@ -81,7 +81,7 @@ MODULE DiagList_Mod
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
   CHARACTER(LEN=5), PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
-  CHARACTER(LEN=2), PUBLIC  :: RadFlux(11)   ! Names of RRTMG flux outputs
+  CHARACTER(LEN=2), PUBLIC  :: RadFlux(12)   ! Names of RRTMG flux outputs
   INTEGER,          PUBLIC  :: nRadFlux      ! # of selected RRTMG flux outputs
   LOGICAL,          PUBLIC  :: IsFullChem    ! Is this a fullchem simulation?
 

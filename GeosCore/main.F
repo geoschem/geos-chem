@@ -135,9 +135,7 @@
       ! Radiation modules
       !-----------------------------------------------------------------
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Do_RRTMG_Rad_Transfer
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_Surface_Rad
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_MCICA_Clouds
-      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Indices
+      USE RRTMG_RAD_TRANSFER_MOD, ONLY : Init_RRTMG_Rad_Transfer
       USE RRTMG_RAD_TRANSFER_MOD, ONLY : Set_SpecMask
       USE RRTMG_LW_Init,          ONLY : RRTMG_LW_Ini
       USE RRTMG_SW_Init,          ONLY : RRTMG_SW_Ini
@@ -359,7 +357,7 @@
       CHARACTER(LEN=255)       :: historyConfigFile
       CHARACTER(LEN=512)       :: ErrMsg
 
-#if defined( RRTMG ) 
+#if defined( RRTMG )
       !-----------------------------
       ! Scalars specific to RRTMG
       !-----------------------------
@@ -665,18 +663,21 @@
       ! Initializations for the RRTMG radiative transfer model
       !-----------------------------------------------------------------
 
-      ! Define indices for the selected RRTMG flux outputs
-      CALL Init_RRTMG_Indices( am_I_Root, Input_Opt, RC )
+      ! Initialize module variables
+      CALL Init_RRTMG_Rad_Transfer( am_I_Root,  Input_Opt,
+     &                              State_Diag, RC         )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_RRTMG_Indices"!'
+         ErrMsg = 'Error encountered in "Init_RRTMG_Rad_Transfer"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Other various initialization calls
-      CALL Init_Surface_Rad()
-      CALL Init_Mcica_Clouds()
+      ! Initialize RRTMG code in the GeosRad folder
       CALL Rrtmg_Lw_Ini()
       CALL Rrtmg_Sw_Ini()
+
+      ! Settings
       iCld  = 0
       iSeed = 10
 #endif
@@ -1887,62 +1888,69 @@
          ! [kg] in RRTMG. Units should eventually be [kg/kg]  
          ! (ewl, 9/18/15)
          !==============================================================
-         IF ( Input_opt%LRAD ) THEN 
-
-            ! If it's a RRTMG timestep
-            IF ( ITS_TIME_FOR_RT() ) THEN
+         IF ( Input_opt%LRAD .and. ITS_TIME_FOR_RT() ) THEN
 
 #if defined( USE_TIMERS )
-               CALL GEOS_Timer_Start( "RRTMG", RC )
+            CALL GEOS_Timer_Start( "RRTMG", RC )
 #endif
 
-               ! Splash page
-               IF ( am_I_Root .and. FIRST_RT ) THEN
-                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-                  WRITE( 6, 500 )     
+            ! Splash page
+            IF ( am_I_Root .and. FIRST_RT ) THEN
+               WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+               WRITE( 6, 500 )     
      &              'R R T M G : Radiative Transfer Model (by AER)'
- 500              FORMAT( '#####', 12x, a, 12x, '#####' )
-                  WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-                  FIRST_RT = .FALSE.
-               ENDIF
+ 500           FORMAT( '#####', 12x, a, 12x, '#####' )
+               WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+               FIRST_RT = .FALSE.
+            ENDIF
 
-               iseed=iseed+15
+            iSeed = iSeed + 15
 
-               !--------------------------------------------------------
-               ! Determine if we are doing clear-sky or all-sky
-               !
-               ! Clear-sky is output with all-sky, so we just need
-               ! to run once regardless of whether both are required
-               ! or just one.
-               !--------------------------------------------------------
-               IF ( Input_Opt%LSKYRAD(2) ) THEN
-                  ICLD = 1
-               ELSE
-                  ICLD = 0   !clouds are on
-               ENDIF
+            !-----------------------------------------------------------
+            ! Determine if we are doing clear-sky or all-sky
+            !
+            ! Clear-sky is output with all-sky, so we just need
+            ! to run once regardless of whether both are required
+            ! or just one.
+            !-----------------------------------------------------------
+            IF ( Input_Opt%LSKYRAD(2) ) THEN
+               iCld = 1
+            ELSE
+               iCld = 0         !clouds are on
+            ENDIF
 
-               !--------------------------------------------------------
-               ! Baseline calculation...this always gets done first
-               !--------------------------------------------------------
-               iSpecMenu = 0
-               iNcDiag   = 0
+            !-----------------------------------------------------------
+            ! Calculation for each of the potential output types
+            ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
+            !
+            ! Flux outputs (scheduled in HISTORY.rc):
+            !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
+            !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+            !-----------------------------------------------------------
+            DO N = 1, State_Diag%nRadFlux
+
+               ! Index number for RRTMG (see list above)
+               iSpecMenu = State_Diag%RadFluxInd(N)
+
+               ! Slot # of netCDF diagnostic arrays to update
+               iNcDiag = N
 
                ! Echo info
-               WRITE ( 6, 510 )
- 510           FORMAT( 5x, '- Calling RRTMG for baseline computation' )
+               WRITE( 6, 520 ) State_Diag%RadFluxName(N), iSpecMenu
+ 520           FORMAT( 5x, '- Calling RRTMG to compute flux: ',
+     &                 a2, ' (Index = ', i2.2, ')' )
 
-               ! Set all values to one for baseline RT calc
-               CALL Set_SpecMask( Input_Opt    = Input_Opt,
-     &                            iSpecRadMenu = iSpecMenu  )
+               ! Generate mask for species in RT
+               CALL Set_SpecMask( iSpecMenu )
 
-               ! First call for baseline (all aerosol and ozone)
+               ! Compute radiative fluxes for the given output
                CALL Do_RRTMG_Rad_Transfer( am_I_Root  = am_I_Root,
-     &                                     ThisDay    = DAY,
-     &                                     ThisMonth  = MONTH,
-     &                                     iCld       = ICLD,
+     &                                     ThisDay    = Day,
+     &                                     ThisMonth  = Month,
+     &                                     iCld       = iCld,
      &                                     iSpecMenu  = iSpecMenu,
      &                                     iNcDiag    = iNcDiag,
-     &                                     iSeed      = ISEED,
+     &                                     iSeed      = iSeed,
      &                                     Input_Opt  = Input_Opt,
      &                                     State_Met  = State_Met,
      &                                     State_Chm  = State_Chm,
@@ -1951,75 +1959,27 @@
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 'Error encountered in '     //
-     &                     '"Do_RRTMG_Rad_Transfer", ' //
-     &                     'for baseline computation!'
+                  ErrMsg = 'Error encountered in '      //
+     &                     '"Do_RRTMG_Rad_Transfer", '  //
+     &                     'for flux output = '         //
+     &                 TRIM( State_Diag%RadFluxName(N) )
                   CALL Error_Stop( ErrMsg, ThisLoc )
                ENDIF
-
-               !--------------------------------------------------------
-               ! Calculation for each of the potential output types
-               ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
-               !
-               ! Flux outputs (scheduled in HISTORY.rc):
-               !  1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-               !  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
-               !--------------------------------------------------------
-               DO N = 1, Input_Opt%RadFluxCt
-
-                  ! Index number for RRTMG (see list above)
-                  iSpecMenu = Input_Opt%RadFluxInd(N)
-
-                  ! Slot # of netCDF diagnostic arrays to update
-                  iNcDiag   = N
-
-                  ! Echo info
-                  WRITE( 6, 520 ) Input_Opt%RadFluxName(N), iSpecMenu
- 520              FORMAT( 5x, '- Calling RRTMG to compute flux: ',
-     &                    a2, ' (Index = ', i2.2, ')' )
-
-                  ! Generate mask for species in RT
-                  CALL Set_SpecMask( Input_Opt    = Input_Opt,
-     &                               iSpecRadMenu = iSpecMenu   )
-
-                  ! Compute radiative fluxes for the given output
-                  CALL Do_RRTMG_Rad_Transfer( am_I_Root  = am_I_Root,
-     &                                        ThisDay    = DAY,
-     &                                        ThisMonth  = MONTH,
-     &                                        iCld       = ICLD,
-     &                                        iSpecMenu  = iSpecMenu,
-     &                                        iNcDiag    = iNcDiag,
-     &                                        iSeed      = ISEED,
-     &                                        Input_Opt  = Input_Opt,
-     &                                        State_Met  = State_Met,
-     &                                        State_Chm  = State_Chm,
-     &                                        State_Diag = State_Diag,
-     &                                        RC         = RC          )
-
-                 ! Trap potential errors
-                  IF ( RC /= GC_SUCCESS ) THEN
-                     ErrMsg = 'Error encountered in '          //
-     &                        '"Do_RRTMG_Rad_Transfer", '      //
-     &                        'for flux output = '             //
-     &                        TRIM( Input_Opt%RadFluxName(N) )
-                     CALL Error_Stop( ErrMsg, ThisLoc )
-                  ENDIF
-               ENDDO
+            ENDDO
 
 #if defined( BPCH_DIAG )
-               ! Increment radiation timestep counter
-               CALL Set_Ct_Rad( INCREMENT=.TRUE. )
+            ! Increment radiation timestep counter
+            CALL Set_Ct_Rad( INCREMENT=.TRUE. )
 #endif
 
-               !### Debug
-               IF ( prtDebug ) THEN 
-                  CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
-               ENDIF
+            !### Debug
+            IF ( prtDebug ) THEN 
+               CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
+            ENDIF
 
 #if defined( USE_TIMERS )
-               CALL GEOS_Timer_End( "RRTMG", RC )
+            CALL GEOS_Timer_End( "RRTMG", RC )
 #endif
-            ENDIF
          ENDIF
 #endif
 
