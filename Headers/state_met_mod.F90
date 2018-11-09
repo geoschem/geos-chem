@@ -210,6 +210,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: AD            (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL        (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
+     REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
@@ -1295,6 +1296,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
+    ! SPHU_PREV [g/kg]
+    !-------------------------
+    ALLOCATE( State_Met%SPHU_PREV( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SPHU_PREV', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SPHU_PREV= 0.0_fp
+    CALL Register_MetField( am_I_Root, 'SPHUPREV', State_Met%SPHU_PREV, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
     ! DQRCU [kg kg-1 s-1]
     !-------------------------
     ALLOCATE( State_Met%DQRCU( IM, JM, LM ), STAT=RC )
@@ -2085,6 +2097,7 @@ CONTAINS
     IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
     IF ( ASSOCIATED( State_Met%DELP_DRY   )) DEALLOCATE( State_Met%DELP_DRY   )
     IF ( ASSOCIATED( State_Met%DP_DRY_PREV)) DEALLOCATE( State_Met%DP_DRY_PREV)
+    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
     IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
     IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
     IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
@@ -2681,6 +2694,12 @@ CONTAINS
        CASE ( 'DPDRYPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
           IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'SPHUPREV' )
+          IF ( isDesc  ) Desc  = 'Previous State_Met%SPHU_PREV'
+          IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 
