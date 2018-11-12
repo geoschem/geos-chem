@@ -60,49 +60,6 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: RUN_DIR            
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
-
-     !----------------------------------------
-     ! GRID MENU fields
-     !----------------------------------------
-     CHARACTER(LEN=255)          :: GridRes
-     REAL(fp)                    :: dx
-     REAL(fp)                    :: dy
-     REAL(fp)                    :: MinLon
-     REAL(fp)                    :: MaxLon
-     REAL(fp)                    :: MinLat
-     REAL(fp)                    :: MaxLat
-     INTEGER                     :: nx
-     INTEGER                     :: ny
-     INTEGER                     :: nz
-     LOGICAL                     :: Its_A_Nested_Grid
-     CHARACTER(LEN=255)          :: Res_Dir
-     INTEGER                     :: Nested_I0
-     INTEGER                     :: Nested_J0
- 
-     !----------------------------------------
-     ! NESTED GRID MENU fields
-     !----------------------------------------
-     LOGICAL                     :: LWINDO
-     LOGICAL                     :: LWINDO2x25
-     LOGICAL                     :: LWINDO_NA
-     CHARACTER(LEN=255)          :: TPBC_DIR_NA
-     LOGICAL                     :: LWINDO_EU
-     CHARACTER(LEN=255)          :: TPBC_DIR_EU
-     LOGICAL                     :: LWINDO_CH
-     CHARACTER(LEN=255)          :: TPBC_DIR_CH
-     LOGICAL                     :: LWINDO_AS
-     CHARACTER(LEN=255)          :: TPBC_DIR_AS
-     LOGICAL                     :: LWINDO_CU
-     CHARACTER(LEN=255)          :: TPBC_DIR
-     INTEGER                     :: NESTED_TS
-     INTEGER                     :: NESTED_I1
-     INTEGER                     :: NESTED_J1
-     INTEGER                     :: NESTED_I2
-     INTEGER                     :: NESTED_J2
-     INTEGER                     :: NESTED_I0W
-     INTEGER                     :: NESTED_J0W
-     INTEGER                     :: NESTED_I0E
-     INTEGER                     :: NESTED_J0E
      
      !----------------------------------------
      ! PASSIVE SPECIES MENU fields
@@ -541,7 +498,6 @@ MODULE Input_Opt_Mod
   END TYPE OptInput
 !
 ! !REMARKS:
-!  This will eventually replace the switches in logical_mod.F.  
 !
 ! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version, based on logical_mod.F
@@ -620,6 +576,7 @@ MODULE Input_Opt_Mod
 !  30 Aug 2018 - C. Keller   - Remove LLSTRAT. Only used in GEOS-5, obtained
 !                              from gridded comp module directly.
 !  15 Oct 2018 - E. Lundgren - Remove LFUTURECFC; no longer needed with ucx_mod updates
+!  11 Nov 2018 - M. Sulprizio- Move fields for grid menu to state_grid_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -747,50 +704,6 @@ CONTAINS
     Input_Opt%RUN_DIR                = './'
     Input_Opt%DATA_DIR               = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
-
-    !----------------------------------------
-    ! GRID MENU fields
-    !----------------------------------------
-    Input_Opt%GridRes                = ''
-    Input_Opt%dx                     = 0e+0_fp
-    Input_Opt%dy                     = 0e+0_fp
-    Input_Opt%MinLon                 = 0e+0_fp
-    Input_Opt%MaxLon                 = 0e+0_fp
-    Input_Opt%MinLat                 = 0e+0_fp
-    Input_Opt%MaxLat                 = 0e+0_fp
-    Input_Opt%nx                     = 0
-    Input_Opt%ny                     = 0
-    Input_Opt%nz                     = 0
-    Input_Opt%Its_A_Nested_Grid      = .FALSE.
-    Input_Opt%Res_Dir                = './'
-
-    Input_Opt%NESTED_I0              = 0
-    Input_Opt%NESTED_J0              = 0
-
-    !----------------------------------------
-    ! NESTED GRID MENU fields
-    !----------------------------------------
-    Input_Opt%LWINDO                 = .FALSE.
-    Input_Opt%LWINDO2x25             = .FALSE.
-    Input_Opt%LWINDO_NA              = .FALSE.
-    Input_Opt%TPBC_DIR_NA            = './'
-    Input_Opt%LWINDO_EU              = .FALSE.
-    Input_Opt%TPBC_DIR_EU            = './'
-    Input_Opt%LWINDO_CH              = .FALSE.
-    Input_Opt%TPBC_DIR_CH            = './'
-    Input_Opt%LWINDO_AS              = .FALSE.
-    Input_Opt%TPBC_DIR_AS            = './'
-    Input_Opt%LWINDO_CU              = .FALSE.
-    Input_Opt%TPBC_DIR               = './'
-    Input_Opt%NESTED_TS              = 0
-    Input_Opt%NESTED_I1              = 0
-    Input_Opt%NESTED_J1              = 0
-    Input_Opt%NESTED_I2              = 0
-    Input_Opt%NESTED_J2              = 0
-    Input_Opt%NESTED_I0W             = 0
-    Input_Opt%NESTED_J0W             = 0 
-    Input_Opt%NESTED_I0E             = 0
-    Input_Opt%NESTED_J0E             = 0 
 
     !----------------------------------------
     ! PASSIVE SPECIES MENU fields

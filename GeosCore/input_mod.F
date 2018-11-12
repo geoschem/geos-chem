@@ -191,7 +191,7 @@
 !\\
 ! !INTERFACE:
 ! 
-      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -327,7 +327,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'GRID MENU' ) > 0 ) THEN
-            CALL READ_GRID_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Grid_Timestep_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1047,13 +1047,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !     
       USE CharPak_Mod,        ONLY : StrSplit
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1062,6 +1063,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(INOUT) :: State_Grid  ! Grid State
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1100,15 +1102,15 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%GridRes
+      READ( SUBSTRS(1:N), * ) State_Grid%GridRes
 
       ! Make sure grid resolution is valid
-      IF ( TRIM( Input_Opt%GridRes) /= '4x5'           .and.
-     &     TRIM( Input_Opt%GridRes) /= '2x2.5'         .and.
-     &     TRIM( Input_Opt%GridRes) /= '0.5x625'       .and.
-     &     TRIM( Input_Opt%GridRes) /= '0.25x0.3125' ) THEN
+      IF ( TRIM( State_Grid%GridRes) /= '4x5'           .and.
+     &     TRIM( State_Grid%GridRes) /= '2x2.5'         .and.
+     &     TRIM( State_Grid%GridRes) /= '0.5x625'       .and.
+     &     TRIM( State_Grid%GridRes) /= '0.25x0.3125' ) THEN
 
-        ErrMsg = 'Input_Opt%GridRes = ' // Trim( Input_Opt%GridRes) //
+        ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes) //
      &            ' is not a valid grid resolution! Supported'      //
      &            ' resoltuions are 4x5, 2x2.5, 0.5x0.625, and'     //
      &            ' 0.25x0.3125. Please check your "input.geos" file.'
@@ -1117,19 +1119,19 @@
       ENDIF
 
       ! Split into two values, separated by 'x'
-      CALL StrSplit( Trim(Input_Opt%GridRes) , 'x', SubStrs, nSubStrs )
+      CALL StrSplit( Trim(State_Grid%GridRes) , 'x', SubStrs, nSubStrs )
 
       ! Stop with error if there are more than two substrings
       IF ( nSubStrs /= 2 ) THEN
          ErrMsg = 'Error in extracting dx and dy values from'   //
-     &            ' Input_Opt%GridRes. Values must be separated by' // 
+     &            ' State_Grid%GridRes. Values must be separated by' // 
      &            ' an x. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
       ENDIF
 
       ! Save the delta Lon and Lat values
-      READ( SubStrs(1), '(f10.4)' ) Input_Opt%dx
-      READ (SubStrs(2), '(f10.4)' ) Input_Opt%dy
+      READ( SubStrs(1), '(f10.4)' ) State_Grid%dx
+      READ (SubStrs(2), '(f10.4)' ) State_Grid%dy
 
       ! Longitude range
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
@@ -1137,7 +1139,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%MinLon, Input_Opt%MaxLon
+      READ( SUBSTRS(1:N), * ) State_Grid%MinLon, State_Grid%MaxLon
 
       ! Latitude range
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
@@ -1145,7 +1147,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%MinLat, Input_Opt%MaxLat
+      READ( SUBSTRS(1:N), * ) State_Grid%MinLat, State_Grid%MaxLat
 
       ! Number of levels
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'nz', RC )
@@ -1153,12 +1155,12 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%nz
+      READ( SUBSTRS(1:N), * ) State_Grid%nz
 
       ! Make sure number of levels is valid
-      IF ( Input_Opt%nz /= 47  .and. 
-     &     Input_Opt%nz /= 72 ) THEN 
-        WRITE( nLev, * ) Input_Opt%nz
+      IF ( State_Grid%nz /= 47  .and. 
+     &     State_Grid%nz /= 72 ) THEN 
+        WRITE( nLev, * ) State_Grid%nz
         ErrMsg = 'Input%Opt%nz = ' // TRIM( nLev )                  //
      &            ' is not a valid vertical resolution! Supported' //
      &            ' number of levels are 47 and 72. Please check'  //
@@ -1173,25 +1175,25 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%ITS_A_NESTED_GRID
+      READ( SUBSTRS(1:N), * ) State_Grid%ITS_A_NESTED_GRID
 
       !-----------------------------------------------------------------
       ! Define resolution-specific directory name RES_DIR
       !-----------------------------------------------------------------
-      IF ( TRIM( Input_Opt%GridRes ) == '4x5' ) THEN
+      IF ( TRIM( State_Grid%GridRes ) == '4x5' ) THEN
          Input_Opt%RES_DIR = 'GEOS_4x5/'
-      ELSE IF ( TRIM( Input_Opt%GridRes ) == '2x2.5' ) THEN 
+      ELSE IF ( TRIM( State_Grid%GridRes ) == '2x2.5' ) THEN 
          Input_Opt%RES_DIR = 'GEOS_2x2.5/'
-      ELSE IF ( TRIM( Input_Opt%GridRes ) == '0.5x0.625' ) THEN
-         IF ( Input_Opt%Its_A_Nested_Grid ) THEN
+      ELSE IF ( TRIM( State_Grid%GridRes ) == '0.5x0.625' ) THEN
+         IF ( State_Grid%Its_A_Nested_Grid ) THEN
             Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
             !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
             !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
          ELSE
             Input_Opt%RES_DIR = 'GEOS_0.5x0.625/'
          ENDIF
-      ELSE IF ( TRIM( Input_Opt%GridRes ) == '0.25x0.3125') THEN
-         IF ( Input_Opt%Its_A_Nested_Grid ) THEN
+      ELSE IF ( TRIM( State_Grid%GridRes ) == '0.25x0.3125') THEN
+         IF ( State_Grid%Its_A_Nested_Grid ) THEN
             Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
             !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
             !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
@@ -1217,15 +1219,15 @@
          WRITE( 6, '(/,a)' ) 'GRID MENU'
          WRITE( 6, '(  a)' ) '---------------'
          WRITE( 6, 100 ) 'Grid resolution             : ', 
-     &                    TRIM( Input_Opt%GridRes )
+     &                    TRIM( State_Grid%GridRes )
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
-     &                    Input_Opt%MinLon, Input_Opt%MaxLon
+     &                    State_Grid%MinLon, State_Grid%MaxLon
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
-     &                    Input_Opt%MinLat, Input_Opt%MaxLat
+     &                    State_Grid%MinLat, State_Grid%MaxLat
          WRITE( 6, 120 ) 'Number of levels            : ', 
-     &                    Input_Opt%nz
+     &                    State_Grid%nz
          WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
-     &                    Input_Opt%ITS_A_NESTED_GRID
+     &                    State_Grid%ITS_A_NESTED_GRID
          WRITE( 6, 100 ) 'Resolution-specific dir     : ',
      &                    TRIM( Input_Opt%RES_DIR )
       ENDIF

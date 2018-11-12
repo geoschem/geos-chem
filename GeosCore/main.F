@@ -54,6 +54,7 @@
       USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
       USE State_Chm_Mod         ! Derived type for Chemistry State object
       USE State_Diag_Mod        ! Derived type for Diagnostics State object
+      USE State_Grid_Mod        ! Derived type for Grid State object
       USE State_Met_Mod         ! Derived type for Meteorology State object
       USE TIME_MOD              ! For computing date & time 
       USE UnitConv_Mod          ! For species conc unit conversions
@@ -340,6 +341,7 @@
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState)           :: State_Grid  ! Grid State object
       TYPE(MetState)           :: State_Met   ! Meteorology State object
       TYPE(DgnList )           :: Diag_List   ! Diagnostics list object
 
@@ -485,8 +487,15 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      ! Initialize fields of the Grid State object
+      CALL Init_State_Grid( am_I_Root, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered within call to "Set_Grid_State"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Read GEOS-Chem input file at very beginning of simulation
-      CALL Read_Input_File( am_I_Root, Input_Opt, RC ) 
+      CALL Read_Input_File( am_I_Root, Input_Opt, State_Grid, RC ) 
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Read_Input_File"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
