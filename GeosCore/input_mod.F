@@ -32,6 +32,7 @@
 !
       PRIVATE :: SPLIT_ONE_LINE        
       PRIVATE :: READ_SIMULATION_MENU
+      PRIVATE :: READ_GRID_MENU
       PRIVATE :: READ_ADVECTED_SPECIES_MENU
       PRIVATE :: READ_AEROSOL_MENU     
       PRIVATE :: READ_EMISSIONS_MENU
@@ -49,7 +50,6 @@
       PRIVATE :: READ_ND51b_MENU  
       PRIVATE :: READ_ND63_MENU
       PRIVATE :: READ_PROD_LOSS_MENU 
-      PRIVATE :: READ_NESTED_GRID_MENU
       PRIVATE :: READ_BENCHMARK_MENU  
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: READ_PASSIVE_SPECIES_MENU
@@ -157,6 +157,8 @@
 !  26 Jan 2018 - M. Sulprizio- Moved Initialize_Geos_Grid and GC_Init_Extra
 !                              routines to gc_environment_mod.F90
 !  06 Feb 2018 - E. Lundgren - Change input timestep/freq units from min to sec
+!  11 Nov 2018 - M. Sulprizio- Add routine READ_GRID_MENU and remove
+!                              READ_NESTED_GRID_MENU
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -320,6 +322,14 @@
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Simulation_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
+         ELSE IF ( INDEX( LINE, 'GRID MENU' ) > 0 ) THEN
+            CALL READ_GRID_MENU( am_I_Root, Input_Opt, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Grid_Timestep_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
@@ -505,14 +515,6 @@
                RETURN
             ENDIF
 #endif
-
-         ELSE IF ( INDEX( LINE, 'NESTED GRID MENU' ) > 0 ) THEN 
-            CALL READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
-            IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error in "Read_Nested_Grid_Menu"!'
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
 
          ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
@@ -840,7 +842,7 @@
       ! Make sure the starting date NYMDb is valid
       IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
          WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
-         ErrMsg = 'Input%Opt%NYMDb = ' // DateStr        // 
+         ErrMsg = 'Input_Opt%NYMDb = ' // DateStr        // 
      &            ' is not a valid calendar date!'       //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -850,7 +852,7 @@
       ! Make sure the starting time NHMSb is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
-         ErrMsg = 'Input%Opt%NHMSb = ' // TimeStr        // 
+         ErrMsg = 'Input_Opt%NHMSb = ' // TimeStr        // 
      &            ' is not a valid clock time!'          //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -868,7 +870,7 @@
       ! Make sure the starting date NYMDb is valid
       IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
          WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
-         ErrMsg = 'Input%Opt%NYMDe = ' // DateStr        // 
+         ErrMsg = 'Input_Opt%NYMDe = ' // DateStr        // 
      &            ' is not a valid calendar date!'       //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -878,7 +880,7 @@
       ! Make sure the ending time NHMSe is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
-         ErrMsg = 'Input%Opt%NHMSe = ' // TimeStr        // 
+         ErrMsg = 'Input_Opt%NHMSe = ' // TimeStr        // 
      &            ' is not a valid clock time!'          //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -921,40 +923,6 @@
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
 
-      ! Define resolution-specific directory name RES_DIR
-#if   defined( GRID4x5 )
-      Input_Opt%RES_DIR = 'GEOS_4x5/'
-#elif defined( GRID2x25 ) 
-      Input_Opt%RES_DIR = 'GEOS_2x2.5/'
-#elif defined( GRID05x0625 ) && defined( NESTED_AS )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
-#elif defined( GRID05x0625 ) && defined( NESTED_EU )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
-#elif defined( GRID05x0625 ) && defined( NESTED_NA )
-      Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
-#elif defined( GRID025x03125 ) && defined( NESTED_CH ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
-#elif defined( GRID025x03125 ) && defined( NESTED_EU ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
-#elif defined( GRID025x03125 ) && defined( NESTED_NA ) 
-      Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
-#endif
-
-      ! Determine if we are running a nested-grid simulation based on
-      ! the settings of the C-preprocessor switches.
-#if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
-      Input_Opt%ITS_A_NESTED_GRID = .TRUE.
-#endif
-
-      ! I0, J0 for nested-grid simulations
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Nested I0, J0', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%NESTED_I0, 
-     &                        Input_Opt%NESTED_J0
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -981,20 +949,11 @@
      &                    TRIM( Input_Opt%DATA_DIR )
          WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
-         WRITE( 6, 110 ) 'Resolution-specific dir     : ',
-     &                    TRIM( Input_Opt%RES_DIR )
-         WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
-     &                    Input_Opt%ITS_A_NESTED_GRID
-         WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
-     &                    Input_Opt%NESTED_I0, 
-     &                    Input_Opt%NESTED_J0
       ENDIF
 
       ! Format statements
  100  FORMAT( A, I8.8, 1X, I6.6 )
  110  FORMAT( A, A              )
- 120  FORMAT( A, L5             )
- 130  FORMAT( A, 2I5            )
 
       !=================================================================
       ! Call setup routines from other GEOS-CHEM modules
@@ -1074,6 +1033,210 @@
       CT1 = CT1 + 1
 
       END SUBROUTINE READ_SIMULATION_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_grid_menu
+!
+! !DESCRIPTION: Subroutine READ\_GRID\_MENU reads the GRID MENU section
+!  of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_GRID_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!     
+      USE CharPak_Mod,        ONLY : StrSplit
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,      ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+! 
+! !REVISION HISTORY: 
+!  20 Oct 2018 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N, C
+      INTEGER            :: nSubStrs
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_GRID_MENU begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = 'Error reading the "input.geos" file!'
+      ThisLoc = ' -> at Read_Grid_Menu (in GeosCore/input_mod.F)'
+
+      ! Start YYYYMMDD, HHMMSS
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Grid resolution', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%GridRes
+
+      ! Make sure grid resolution is valid
+      IF ( TRIM( Input_Opt%GridRes) /= '4x5'           .and.
+     &     TRIM( Input_Opt%GridRes) /= '2x2.5'         .and.
+     &     TRIM( Input_Opt%GridRes) /= '0.5x625'       .and.
+     &     TRIM( Input_Opt%GridRes) /= '0.25x0.3125' ) THEN
+
+        ErrMsg = 'Input_Opt%GridRes = ' // Trim( Input_Opt%GridRes) //
+     &            ' is not a valid grid resolution! Supported'      //
+     &            ' resoltuions are 4x5, 2x2.5, 0.5x0.625, and'     //
+     &            ' 0.25x0.3125. Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Split into two values, separated by 'x'
+      CALL StrSplit( Trim(Input_Opt%GridRes) , 'x', SubStrs, nSubStrs )
+
+      ! Stop with error if there are more than two substrings
+      IF ( nSubStrs /= 2 ) THEN
+         ErrMsg = 'Error in extracting dx and dy values from'   //
+     &            ' Input_Opt%GridRes. Values must be separated by' // 
+     &            ' an x. Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+      ENDIF
+
+      ! Save the delta Lon and Lat values
+      READ( SubStrs(1), '(f10.4)' ) Input_Opt%dx
+      READ (SubStrs(2), '(f10.4)' ) Input_Opt%dy
+
+      ! Longitude range
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%MinLon, Input_Opt%MaxLon
+
+      ! Latitude range
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%MinLat, Input_Opt%MaxLat
+
+      ! Number of levels
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'nz', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%nz
+
+      ! Make sure number of levels is valid
+      IF ( Input_Opt%nz /= 47  .and. 
+     &     Input_Opt%nz /= 72 ) THEN 
+        WRITE( nLev, * ) Input_Opt%nz
+        ErrMsg = 'Input%Opt%nz = ' // TRIM( nLev )                  //
+     &            ' is not a valid vertical resolution! Supported' //
+     &            ' number of levels are 47 and 72. Please check'  //
+     &            ' your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Is it a nested grid?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%ITS_A_NESTED_GRID
+
+      !-----------------------------------------------------------------
+      ! Define resolution-specific directory name RES_DIR
+      !-----------------------------------------------------------------
+      IF ( TRIM( Input_Opt%GridRes ) == '4x5' ) THEN
+         Input_Opt%RES_DIR = 'GEOS_4x5/'
+      ELSE IF ( TRIM( Input_Opt%GridRes ) == '2x2.5' ) THEN 
+         Input_Opt%RES_DIR = 'GEOS_2x2.5/'
+      ELSE IF ( TRIM( Input_Opt%GridRes ) == '0.5x0.625' ) THEN
+         IF ( Input_Opt%Its_A_Nested_Grid ) THEN
+            Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
+            !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
+            !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
+         ELSE
+            Input_Opt%RES_DIR = 'GEOS_0.5x0.625/'
+         ENDIF
+      ELSE IF ( TRIM( Input_Opt%GridRes ) == '0.25x0.3125') THEN
+         IF ( Input_Opt%Its_A_Nested_Grid ) THEN
+            Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
+            !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
+            !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
+         ELSE
+            Input_Opt%RES_DIR = 'GEOS_0.25x0.3125/'
+         ENDIF
+      ENDIF
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Return success
+      RC = GC_SUCCESS
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'GRID MENU'
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, 100 ) 'Grid resolution             : ', 
+     &                    TRIM( Input_Opt%GridRes )
+         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+     &                    Input_Opt%MinLon, Input_Opt%MaxLon
+         WRITE( 6, 110 ) 'Min/max longitude           : ', 
+     &                    Input_Opt%MinLat, Input_Opt%MaxLat
+         WRITE( 6, 120 ) 'Number of levels            : ', 
+     &                    Input_Opt%nz
+         WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
+     &                    Input_Opt%ITS_A_NESTED_GRID
+         WRITE( 6, 100 ) 'Resolution-specific dir     : ',
+     &                    TRIM( Input_Opt%RES_DIR )
+      ENDIF
+
+      ! Format statements
+ 100  FORMAT( A, A              )
+ 110  FORMAT( A, F10.4, 1X, F10.4 )
+ 120  FORMAT( A, I5             )
+ 130  FORMAT( A, L5             )
+
+      END SUBROUTINE READ_GRID_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -6690,270 +6853,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_nested_grid_menu
-!
-! !DESCRIPTION: Subroutine READ\_NESTED\_GRID\_MENU reads the NESTED GRID MENU 
-!  section of the GEOS-CHEM input file.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_NESTED_GRID_MENU( am_I_Root, Input_Opt, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Now give user the option of saving out nested grid boundary conditions 
-!        at 2 x 2.5 resolution for the EU, CH, or NA grids (amv, bmy, 12/18/09)
-!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
-!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      ! Scalars
-      INTEGER            :: N
-
-      ! Strings
-      CHARACTER(LEN=255) :: ErrMsg,      ThisLoc
-
-      ! Arrays
-      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-      !=================================================================
-      ! READ_NESTED_GRID_MENU begins here!
-      !=================================================================
-
-      ! Initialize
-      RC      = GC_SUCCESS
-      ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
-     &   ' -> at Read_Nested_Grid_Menu (in module GeosCore/input_mod.F)'
-
-      ! Save out TPCORE BC's at 4x5
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO
-
-      ! Save out TPCORE BC's at 2x2.5?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO2x25', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO2x25
-
-      ! Save out TPCORE BC's over NA
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO_NA', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO_NA
-
-      ! Directory where NA TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TPBC_DIR_NA', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_NA
-
-      ! Save out TPCORE BC's over EU
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO_EU', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO_EU
-
-      ! Directory where EU TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TPBC_DIR_EU', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_EU
-
-      ! Save out TPCORE BC's over CH
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, ' LWINDO_CH', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO_CH
-
-      ! Directory where CH TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TPBC_DIR_CH', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_CH
-
-      ! Save out TPCORE BC's over AS (0.5x0.625 only)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO_AS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO_AS
-
-      ! Directory where AS TPCORE BC's are stored (0.5x0.625 only)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TPBC_DIR_AS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR_AS
-
-      ! Save out TPCORE BC's over Custom Region
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO_CU', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LWINDO_CU
-
-      ! Directory where TPCORE BC's are stored
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TPBC_DIR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%TPBC_DIR
-
-      ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'TS', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%NESTED_TS
-
-      ! Lower left box
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'I1, J1', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%NESTED_I1, Input_Opt%NESTED_J1
-
-      ! Timestep for 4x5 TPCORE BC's
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'I2, J2', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%NESTED_I2, Input_Opt%NESTED_J2
-
-      ! Nested grid transport offsets 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'I0W, J0W, I0E, J0E', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%NESTED_I0W,Input_Opt%NESTED_J0W,
-     &                        Input_Opt%NESTED_I0E,Input_Opt%NESTED_J0E
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      !=================================================================
-      ! Error checks
-      !=================================================================
-#if defined( MERRA2 )
-      IF ( Input_Opt%LWINDO_CH ) THEN
-         ErrMsg = 'MERRA-2 is not set up for the nested CH grid, use '//
-     &            'nested AS instead.'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-#endif
-
-      !=================================================================
-      ! Print to screen
-      !=================================================================
-      IF( am_I_Root ) THEN
-         WRITE( 6, '(/,a)' ) 'NESTED GRID MENU'
-         WRITE( 6, '(  a)' ) '----------------'
-         WRITE( 6, 100 ) 'Save TPCORE BC''s at 4x5     : ',
-     &                    Input_Opt%LWINDO
-         WRITE( 6, 100 ) 'Save TPCORE BC''s at 2x25    : ',
-     &                    Input_Opt%LWINDO2x25
-         WRITE( 6, 100 ) 'Save BC''s over North America: ',
-     &                    Input_Opt%LWINDO_NA
-         WRITE( 6, 110 ) 'Directory with NA BC''s      : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR_NA )
-         WRITE( 6, 100 ) 'Save BC''s over Europe       : ',
-     &                    Input_Opt%LWINDO_EU
-         WRITE( 6, 110 ) 'Directory with EU BC''s      : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR_EU )
-         WRITE( 6, 100 ) 'Save BC''s over China/SE Asia: ',
-     &                    Input_Opt%LWINDO_CH
-         WRITE( 6, 110 ) 'Directory with CH BC''s      : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR_CH )
-         WRITE( 6, 100 ) 'Save BC''s over Asia         : ',
-     &                    Input_Opt%LWINDO_AS
-         WRITE( 6, 110 ) 'Directory with AS BC''s      : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR_AS )
-         WRITE( 6, 100 ) 'Save BC''s over custom region: ',
-     &                    Input_Opt%LWINDO_CU
-         WRITE( 6, 110 ) 'Directory with custom BC''s  : ', 
-     &                    TRIM( Input_Opt%TPBC_DIR )
-         WRITE( 6, 120 ) 'Timestep for BC''s [sec]     : ',
-     &                    Input_Opt%NESTED_TS
-         WRITE( 6, 120 ) 'LL box of BC region         : ',
-     &                    Input_Opt%NESTED_I1,  Input_Opt%NESTED_J1
-         WRITE( 6, 120 ) 'UR box of BC region         : ',
-     &                    Input_Opt%NESTED_I2,  Input_Opt%NESTED_J2
-         WRITE( 6, 130 ) 'Nested grid window offsets  : ',
-     &                    Input_Opt%NESTED_I0W, Input_Opt%NESTED_J0W,
-     &                    Input_Opt%NESTED_I0E, Input_Opt%NESTED_J0E
-      END IF
-
-      ! FORMAT statements
- 100  FORMAT( A, L5  )
- 110  FORMAT( A, A   )
- 120  FORMAT( A, 2I5 )
- 130  FORMAT( A, 4I5 )
-
-      END SUBROUTINE READ_NESTED_GRID_MENU
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: read_benchmark_menu
 !
 ! !DESCRIPTION: Subroutine READ\_BENCHMARK\_MENU reads the BENCHMARK MENU 
@@ -7005,7 +6904,7 @@
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
 
       !=================================================================
-      ! READ_NESTED_GRID_MENU begins here!
+      ! READ_BENCHMARK_MENU begins here!
       !=================================================================
 
       ! Initialize

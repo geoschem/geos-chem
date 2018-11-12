@@ -1178,9 +1178,6 @@
       ! Assume success
       RC = GC_SUCCESS
       
-      ! Return if option not set
-      IF ( .NOT. Input_Opt%LCAPTROP ) RETURN
-      
       ! Loop over grid boxes on this PET
       DO J = 1, JM
       DO I = 1, IM
