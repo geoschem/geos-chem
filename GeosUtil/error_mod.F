@@ -581,6 +581,10 @@
 !
       SUBROUTINE ERROR_STOP( MESSAGE, LOCATION, INSTRUCTIONS )
 !
+! !USES:
+!
+      USE CharPak_Mod, ONLY : WordWrapPrint
+!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Error msg to print
@@ -592,26 +596,33 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  06 Jan 2017 - R. Yantosca - Added optional INSTRUCTIONS argument
 !  01 Nov 2017 - R. Yantosca - Flush the stdout buffer before halting
+!  13 Nov 2018 - R. Yantosca - Now word-wrap the Instructions string
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=512) :: TmpMsg
 
 !$OMP CRITICAL
 
       ! Write the error message
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+      TmpMsg = 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+      CALL WordWrapPrint( TmpMsg, 76 )
 
       ! If the optional INSTRUCTIONS argument is passed, then print it to
       ! the stdout stream.  This is useful for instructing the user to
       ! look for the error in another location (e.g. the HEMCO log file).
       IF ( PRESENT( INSTRUCTIONS ) ) THEN
-         WRITE( 6, 100 ) TRIM( INSTRUCTIONS )
- 100     FORMAT( /, a, / )
+         WRITE( 6, '(a)' )
+         CALL WordWrapPrint( Instructions, 76 )
+         WRITE( 6, '(a)' )
       ENDIF
 
       ! Write the location of the error
-      WRITE( 6, '(a)' ) 'STOP at '          // TRIM( LOCATION )
+      WRITE( 6, '(a)' ) 'STOP at ' // TRIM( LOCATION )
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 !$OMP END CRITICAL

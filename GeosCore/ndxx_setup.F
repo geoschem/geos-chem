@@ -499,6 +499,7 @@
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
          Input_Opt%LD21 = MIN( Input_Opt%ND21, LLCHEM )
+         LD21 = Input_Opt%LD21
 
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, Input_Opt%LD21, PD21 ), STAT=AS )

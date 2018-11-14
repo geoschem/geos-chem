@@ -356,6 +356,7 @@
       CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
       CHARACTER(LEN=255)       :: historyConfigFile
       CHARACTER(LEN=512)       :: ErrMsg
+      CHARACTER(LEN=512)       :: Instr
 
 #if defined( RRTMG )
       !-----------------------------
@@ -795,6 +796,22 @@
       CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met,
      &                    State_Chm, State_Diag,  TimeForEmis,
      &                    0,         RC )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Emissions_Run", Phase 0'
+         Instr  =
+     &     '(1) This error can indicate a missing GEOS-Chem restart '//
+     &     'file (GEOSChem.Restart.YYYYMMDD_hhmmz.nc4), or that the '//
+     &     'restart file date does not match the start date of the ' //
+     &     'simulation.  Please double-check your run directory to ' //
+     &     'make sure that there is a valid restart file for the '   //
+     &     'simulation you are using.  (2) This error can also '     //
+     &     'indicate that a met field file is missing.  Please '     //
+     &     'make sure that you have all relevant met field data '    //
+     &     'on disk for the start date of your simulation.'
+         CALL Error_Stop( ErrMsg, ThisLoc, Instr )
+      ENDIF
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "HEMCO", RC )
