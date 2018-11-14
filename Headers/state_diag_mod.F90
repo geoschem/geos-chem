@@ -1610,8 +1610,7 @@ CONTAINS
     diagID  = 'DryDepChm'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC , &
-                         Exact=.TRUE. )
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepChm( IM, JM, nDryDep ), STAT=RC )
@@ -1631,8 +1630,7 @@ CONTAINS
     diagID  = 'DryDepMix'
     CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     ! Also turn on this diagnostic array if outputting total dry dep flux
-    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC, &
-                         Exact=.TRUE. )
+    CALL Check_DiagList( am_I_Root, Diag_List, 'DryDep', Found2, RC )
     IF ( Found .OR. Found2 ) THEN
        IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDepMix( IM, JM, nDryDep ), STAT=RC )
@@ -1650,8 +1648,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     arrayID = 'State_Diag%DryDep'
     diagID  = 'DryDep'
-    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC, &
-                         Exact=.TRUE. )
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
     IF ( Found ) THEN
        IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
        ALLOCATE( State_Diag%DryDep( IM, JM, nDryDep ), STAT=RC )
