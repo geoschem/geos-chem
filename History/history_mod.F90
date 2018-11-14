@@ -1544,8 +1544,10 @@ CONTAINS
        ENDDO
     ENDIF
 
-    ! Print information about each diagnostic collection
-    CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+    IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+       ! Print information about each diagnostic collection
+       CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+    ENDIF
 
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   

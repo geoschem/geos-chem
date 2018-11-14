@@ -382,7 +382,6 @@ CONTAINS
 
        ! Print info about each species
        ! testing only
-       CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
        IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
