@@ -2913,10 +2913,10 @@
       LOGICAL,          INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(ChmState),   INTENT(IN)    :: State_Chm   ! Chemistry State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
       TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
@@ -2931,6 +2931,7 @@
 !  28 Aug 2018 - E. Lundgren - Move this subroutine from diagnostics_mod.F90
 !                              and remove setting State_Diag%BetaNO which is
 !                              now done in carbon_mod.F
+!  13 Nov 2018 - E. Lundgren - Remove State_Chm%Species unit conversions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2950,7 +2951,7 @@
       CHARACTER(LEN=512)       :: ErrMsg
       
       ! Pointers      
-      REAL(fp),      POINTER   :: AirVol(:,:,:  )
+      REAL(fp),      POINTER   :: AirDen(:,:,:  )
       REAL(fp),      POINTER   :: Spc   (:,:,:,:)
       TYPE(Species), POINTER   :: SpcInfo
 !
@@ -2980,6 +2981,13 @@
       ErrMsg   = ''
       ThisLoc  = ' -> at Set_AerMass_Diagnostic ' //
      &           '(in module GeosCore/aerosol_mod.F)'
+
+      ! Check that species units are kg/kg dry air
+      IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+         CALL GC_Error( 'Incorrect species units: ' //
+     &                  State_Chm%Spc_Units, RC, ThisLoc )
+         RETURN
+      ENDIF
       
       ! Define species ID flags for the aerosol mass diagnostics
       IF ( First ) THEN
@@ -3119,23 +3127,7 @@
          ! Reset first-time flag
          First = .FALSE.
       ENDIF
-      
-      !=======================================================================
-      ! Convert species units to [kg] for this routine
-      !=======================================================================
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
-      
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Convert_Spc_Units"!' //
-     &            '  Could not convert units from [' // 
-     &            TRIM( OrigUnit ) // ' to [kg] before ' //
-     &            'computing aerosol mass and PM2.5 diagnostics!' 
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      
+            
       !=======================================================================
       ! Compute Aerosol mass and PM2.5 diagnostics using concentrations 
       ! from the end of the chemistry timestep, which should be more 
@@ -3144,7 +3136,7 @@
       
       ! Point to fielss of State_Chm and State_Met
       Spc    => State_Chm%Species
-      AirVol => State_Met%AIRVOL
+      AirDen => State_Met%AIRDEN
 
 !$OMP PARALLEL DO         
 !$OMP+DEFAULT( SHARED   ) 
@@ -3176,7 +3168,7 @@
          IF ( State_Diag%Archive_AerMassINDIOL ) THEN
             State_Diag%AerMassINDIOL(I,J,L)   = Spc(I,J,L,id_INDIOL)   
      &                                        * kgm3_to_ugm3           
-     &                                        / AirVol(I,J,L)
+     &                                        * AirDen(I,J,L)
          ENDIF
       
          !--------------------------------------
@@ -3185,7 +3177,7 @@
          IF ( State_Diag%Archive_AerMassISN1OA ) THEN
             State_Diag%AerMassISN1OA(I,J,L)   = Spc(I,J,L,id_ISN1OA)   
      &                                        * kgm3_to_ugm3           
-     &                                        / AirVol(I,J,L)
+     &                                        * AirDen(I,J,L)
          ENDIF
       
          !--------------------------------------
@@ -3203,7 +3195,7 @@
          IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
             State_Diag%AerMassLVOCOA(I,J,L)   = Spc(I,J,L,id_LVOCOA)   
      &                                        * kgm3_to_ugm3           
-     &                                        / AirVol(I,J,L)
+     &                                        * AirDen(I,J,L)
          ENDIF
       
          !--------------------------------------
@@ -3275,7 +3267,7 @@
          IF ( State_Diag%Archive_AerMassSOAIE ) THEN
             State_Diag%AerMassSOAIE(I,J,L)    = Spc(I,J,L,id_SOAIE) 
      &                                        * kgm3_to_ugm3        
-     &                                        / AirVol(I,J,L)
+     &                                        * AirDen(I,J,L)
          ENDIF
       
          !--------------------------------------
@@ -3284,7 +3276,7 @@
          IF ( State_Diag%Archive_AerMassSOAME ) THEN
             State_Diag%AerMassSOAME(I,J,L)    = Spc(I,J,L,id_SOAME) 
      &                                        * kgm3_to_ugm3        
-     &                                        / AirVol(I,J,L)
+     &                                        * AirDen(I,J,L)
          ENDIF
       
          !--------------------------------------
@@ -3363,7 +3355,7 @@
      &                       + ( Spc(I,J,L,id_SOAMG)  * Fac_SOAMG  )    
      &                       + ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA )    
      &                       + ( Spc(I,J,L,id_ISN1OA) * Fac_ISN1OA ) )  
-     &                     / AirVol(I,J,L) * kgm3_to_ugm3
+     &                     * AirDen(I,J,L) * kgm3_to_ugm3
            ENDIF
       
         ENDIF
@@ -3375,25 +3367,8 @@
 
       ! Free pointers
       Spc      => NULL()
-      AirVol   => NULL()
+      AirDen   => NULL()
       
-      !=======================================================================
-      ! Convert species units to [kg] for this routine
-      !=======================================================================
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, OrigUnit,  RC         )
-      
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Convert_Spc_Units"!  ' //
-     &            'Could not convert units from [kg] back to ' // 
-     &            'the original unit of ['  // TRIM( OrigUnit ) //
-     &            '] after computing aerosol mass ' //
-     &             'and PM2.5 diagnostics'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
 #endif
       END SUBROUTINE Set_AerMass_Diagnostic
 !EOC
