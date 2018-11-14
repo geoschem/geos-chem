@@ -645,8 +645,8 @@ CONTAINS
 !
 ! !REMARKS:
 !  Phase -1 : Used for GCHP
-!  Phase  0 : Simplified Phase 1 for reading initial met fields
-!  Phase  1 : Update HEMCO clock and HEMCO data list
+!  Phase  0 : Simplified Phase 1 for reading initial met fields and restart file
+!  Phase  1 : Update HEMCO clock and HEMCO data list and get met fields
 !  Phase  2 : Perform emissions calculation
 !
 ! !REVISION HISTORY: 
@@ -803,8 +803,10 @@ CONTAINS
     !=======================================================================
     ! Get met fields from HEMCO
     !=======================================================================
-    CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                         Phase, RC )
+    IF ( Phase == 0 .or. PHASE == 1 ) THEN
+       CALL Get_Met_Fields( am_I_Root, Input_Opt, State_Met, State_Chm, &
+                            Phase, RC )
+    ENDIF
 
     !=======================================================================
     ! Get fields from GEOS-Chem restart file
@@ -3529,6 +3531,7 @@ CONTAINS
    INTEGER              :: N_DYN              ! Dynamic timestep in seconds
    INTEGER              :: D(2)               ! Variable for date and time
    LOGICAL              :: FOUND              ! Found in restart file?
+   LOGICAL              :: Update_MR          ! Update species mixing ratio?
    CHARACTER(LEN=255)   :: v_name             ! Variable name 
 
    ! Pointers
@@ -3749,10 +3752,18 @@ CONTAINS
          !=================================================================
          ! Call AIRQNT to compute initial air mass quantities
          !=================================================================
-         ! Do not update initial tracer concentrations since not read 
-         ! from restart file yet (ewl, 10/28/15)
+         IF ( PHASE == 0 ) THEN
+            ! Do not update initial tracer concentrations since not read 
+            ! from restart file yet (ewl, 10/28/15)
+            Update_MR = .FALSE.
+         ELSE
+            ! Compute updated airmass quantities at each grid box 
+            ! and update tracer concentration to conserve tracer mass
+            ! (ewl, 10/28/15)
+            Update_MR = .TRUE.
+         ENDIF
          CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
-                update_mixing_ratio=.FALSE. )
+                update_mixing_ratio=Update_MR )
 
       ENDIF
          
