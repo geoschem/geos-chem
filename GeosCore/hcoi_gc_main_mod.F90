@@ -3522,6 +3522,7 @@ CONTAINS
 !  12 Aug 2015 - R. Yantosca - Call routines for reading MERRA2 fields
 !  25 Oct 2018 - M. Sulprizio- Move READ_INITIAL_MET_FIELDS to hcoi_gc_main_mod
 !                              and rename Get_Met_Fields
+!  16 Nov 2018 - M. Sulprizio- Do not get met fields on last timestep
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3565,7 +3566,8 @@ CONTAINS
    ELSE
       D = GET_A1_TIME()
    ENDIF
-   IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() ) THEN
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() .and. &
+        .not. ITS_TIME_FOR_EXIT() ) THEN
       CALL FlexGrid_Read_A1  ( D(1), D(2), Input_Opt, State_Met )
    ENDIF
    
@@ -3577,7 +3579,8 @@ CONTAINS
    ELSE
       D = GET_A3_TIME()
    ENDIF
-   IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() ) THEN
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() .and. &
+        .not. ITS_TIME_FOR_EXIT() ) THEN
       CALL FlexGrid_Read_A3  ( D(1), D(2), Input_Opt, State_Met )
    ENDIF
 
@@ -3589,7 +3592,8 @@ CONTAINS
    ELSE
       D = GET_I3_TIME()
    ENDIF
-   IF ( PHASE == 0 .or. ITS_TIME_FOR_I3() ) THEN
+   IF ( PHASE == 0 .or. ITS_TIME_FOR_I3() .and. &
+        .not. ITS_TIME_FOR_EXIT() ) THEN
       CALL FlexGrid_Read_I3( D(1), D(2), Input_Opt, State_Met )
 
       ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
