@@ -131,6 +131,7 @@ MODULE HCO_TYPES_MOD
                                 ! upon level depths?
      LOGICAL  :: ScaleEmis      ! Scale emissions by uniform scale factors set 
                                 ! in HEMCO configuration file? Defaults to yes.
+     LOGICAL  :: TimeShiftCap   ! Cap time shift to same day. Defaults to no.
   END TYPE HcoOpt
 
   !=========================================================================
