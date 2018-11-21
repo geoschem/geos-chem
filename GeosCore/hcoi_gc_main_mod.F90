@@ -3589,188 +3589,179 @@ CONTAINS
    !----------------------------------
    IF ( PHASE == 0 ) THEN
       D = GET_FIRST_I3_TIME()
-   ELSE
-      D = GET_I3_TIME()
-   ENDIF
-   IF ( PHASE == 0 .or. ITS_TIME_FOR_I3() .and. &
-        .not. ITS_TIME_FOR_EXIT() ) THEN
-      CALL FlexGrid_Read_I3( D(1), D(2), Input_Opt, State_Met )
-
-      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-      ! and compute avg dry pressure near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Met, 2 )
-      CALL AvgPole( State_Met%PS2_DRY )
-
-      ! Compute avg moist pressure near polar caps
-      CALL AvgPole( State_Met%PS2_WET ) 
+      CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Met )
 
       ! On first call, attempt to get instantaneous met fields for prior
       ! timestep from the GEOS-Chem restart file. Otherwise, initialize
       ! to met fields for this timestep.
-      IF ( PHASE == 0 ) THEN
 
-         !-------------
-         ! TMPU
-         !-------------
+      !-------------
+      ! TMPU
+      !-------------
 
-         ! Define variable name
-         v_name = 'TMPU1'
+      ! Define variable name
+      v_name = 'TMPU'
 
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr3D, RC, FOUND=FOUND )
-
-         ! Check if variable is in file
-         IF ( FOUND ) THEN
-            State_Met%TMPU1 = Ptr3D
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Initialize TMPU1    from restart file'
-            ENDIF
-         ELSE
-            State_Met%TMPU1 = State_Met%TMPU2
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'TMPU1    not found in restart, set to TMPU2'
-            ENDIF
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
+      
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%TMPU1 = Ptr3D
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Initialize TMPU1    from restart file'
          ENDIF
-
-         ! Nullify pointer
-         Ptr3D => NULL()
-
-         !-------------
-         ! SPHU
-         !-------------
-
-         ! Define variable name
-         v_name = 'SPHU1'
-
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr3D, RC, FOUND=FOUND )
-
-         ! Check if variable is in file
-         IF ( FOUND ) THEN
-            State_Met%SPHU1 = Ptr3D
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Initialize SPHU1    from restart file'
-            ENDIF
-         ELSE
-            State_Met%SPHU1 = State_Met%SPHU2
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'SPHU1    not found in restart, set to SPHU2'
-            ENDIF
+      ELSE
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'TMPU1    not found in restart, keep as value at t=0'
          ENDIF
+      ENDIF
 
-         ! Nullify pointer
-         Ptr3D => NULL()
+      ! Nullify pointer
+      Ptr3D => NULL()
 
-         !-------------
-         ! PS1_WET
-         !-------------
+      !-------------
+      ! SPHU
+      !-------------
 
-         ! Define variable name
-         v_name = 'PS1WET'
+      ! Define variable name
+      v_name = 'SPHU'
 
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr2D, RC, FOUND=FOUND )
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
 
-         ! Check if variable is in file
-         IF ( FOUND ) THEN
-            State_Met%PS1_WET = Ptr2D
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Initialize PS1_WET  from restart file'
-            ENDIF
-         ELSE
-            State_Met%PS1_WET = State_Met%PS2_WET
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'PS1_WET  not found in restart, set to PS2_WET'
-            ENDIF
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%SPHU1 = Ptr3D
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Initialize SPHU1    from restart file'
          ENDIF
+      ELSE
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'SPHU1    not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
 
-         ! Nullify pointer
-         Ptr2D => NULL()
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+      !-------------
+      ! PS1_WET
+      !-------------
+
+      ! Define variable name
+      v_name = 'PSWET'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr2D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%PS1_WET = Ptr2D
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Initialize PS1_WET  from restart file'
+         ENDIF
+      ELSE
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'PS1_WET  not found in restart, keep as value at t=0'
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr2D => NULL()
          
-         !-------------
-         ! PS1_DRY
-         !-------------
+      !-------------
+      ! PS1_DRY
+      !-------------
 
-         ! Define variable name
-         v_name = 'PS1DRY'
+      ! Define variable name
+      v_name = 'PSDRY'
 
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr2D, RC, FOUND=FOUND )
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr2D, RC, FOUND=FOUND )
 
-         ! Check if variable is in file
-         IF ( FOUND ) THEN
-            State_Met%PS1_DRY = Ptr2D
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Initialize PS1_DRY  from restart file'
-            ENDIF
-         ELSE
-            State_Met%PS1_DRY = State_Met%PS2_DRY
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'PS1_DRY  not found in restart, set to PS2_DRY'
-            ENDIF
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%PS1_DRY = Ptr2D
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Initialize PS1_DRY  from restart file'
          ENDIF
-
-         ! Nullify pointer
-         Ptr2D => NULL()
-
-         !-------------
-         ! DELP_DRY
-         !-------------
-
-         ! Define variable name
-         v_name = 'DELPDRY'
-
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
-                          Ptr3D, RC, FOUND=FOUND )
-
-         ! Check if variable is in file
-         IF ( FOUND ) THEN
-            State_Met%DELP_DRY = Ptr3D
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'Initialize DELP_DRY from restart file'
-            ENDIF
-         ELSE
-            IF ( am_I_Root ) THEN
-               WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-            ENDIF
+      ELSE
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'PS1_DRY  not found in restart, keep as value at t=0'
          ENDIF
+      ENDIF
 
-         ! Nullify pointer
-         Ptr3D => NULL()
+      ! Nullify pointer
+      Ptr2D => NULL()
 
-         ! Interpolate I-3 fields to current dynamic timestep
-         N_DYN = GET_TS_DYN()
-         CALL Interp( 0, 0, N_DYN, Input_Opt, State_Met )
-         
-         ! Initialize surface pressures prior to interpolation
-         ! to allow initialization of floating pressures
-         State_Met%PSC2_WET = State_Met%PS2_WET
-         State_Met%PSC2_DRY = State_Met%PS2_DRY
-         CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+      !-------------
+      ! DELP_DRY
+      !-------------
 
-         !=================================================================
-         ! Call AIRQNT to compute initial air mass quantities
-         !=================================================================
-         IF ( PHASE == 0 ) THEN
-            ! Do not update initial tracer concentrations since not read 
-            ! from restart file yet (ewl, 10/28/15)
-            Update_MR = .FALSE.
-         ELSE
-            ! Compute updated airmass quantities at each grid box 
-            ! and update tracer concentration to conserve tracer mass
-            ! (ewl, 10/28/15)
-            Update_MR = .TRUE.
+      ! Define variable name
+      v_name = 'DELPDRY'
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D, RC, FOUND=FOUND )
+
+      ! Check if variable is in file
+      IF ( FOUND ) THEN
+         State_Met%DELP_DRY = Ptr3D
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'Initialize DELP_DRY from restart file'
          ENDIF
-         CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
-                update_mixing_ratio=Update_MR )
+      ELSE
+         IF ( am_I_Root ) THEN
+            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
+         ENDIF
+      ENDIF
+
+      ! Nullify pointer
+      Ptr3D => NULL()
+
+      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+      ! and compute avg dry pressure near polar caps
+      CALL Set_Dry_Surface_Pressure( State_Met, 1 )
+      CALL AvgPole( State_Met%PS1_DRY )
+
+      ! Compute avg moist pressure near polar caps
+      CALL AvgPole( State_Met%PS1_WET ) 
+
+      ! Initialize surface pressures prior to interpolation
+      ! to allow initialization of floating pressures
+      State_Met%PSC2_WET = State_Met%PS1_WET
+      State_Met%PSC2_DRY = State_Met%PS1_DRY
+      CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+
+      ! Call AIRQNT to compute initial air mass quantities
+      ! Do not update initial tracer concentrations since not read 
+      ! from restart file yet (ewl, 10/28/15)
+      CALL AirQnt( am_I_Root, Input_Opt, State_Met, State_Chm, RC, &
+                   update_mixing_ratio=.FALSE. )
+
+   ELSE
+
+      IF ( ITS_TIME_FOR_I3() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
+
+         D = GET_I3_TIME()
+         CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Met )
+
+         ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+         ! and compute avg dry pressure near polar caps
+         CALL Set_Dry_Surface_Pressure( State_Met, 2 )
+         CALL AvgPole( State_Met%PS2_DRY )
+
+         ! Compute avg moist pressure near polar caps
+         CALL AvgPole( State_Met%PS2_WET ) 
 
       ENDIF
-         
+
    ENDIF
    
  END SUBROUTINE Get_Met_Fields

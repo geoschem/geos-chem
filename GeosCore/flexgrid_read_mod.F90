@@ -45,7 +45,8 @@ MODULE FlexGrid_Read_Mod
   PUBLIC  :: FlexGrid_Read_CN
   PUBLIC  :: FlexGrid_Read_A1
   PUBLIC  :: FlexGrid_Read_A3
-  PUBLIC  :: FlexGrid_Read_I3
+  PUBLIC  :: FlexGrid_Read_I3_1
+  PUBLIC  :: FlexGrid_Read_I3_2
   PUBLIC  :: Copy_I3_Fields
 !
 ! !REMARKS:
@@ -67,8 +68,6 @@ MODULE FlexGrid_Read_Mod
 !  03 Dec 2015 - R. Yantosca - Add CLEANUP_GEOSFP_READ to close any open 
 !                              netCDF files left at the end of a simulation
 !  02 Feb 2016 - E. Lundgren - Block of diagnostics with if defined BPCH
-!  26 Oct 2018 - M. Sulprizio- Consolidate FlexGrid_Read_I3_1 and _2 into one
-!                              routine. Move Copy_I3_Fields here from dao_mod.F.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -133,14 +132,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fCN                ! netCDF file ID
-    INTEGER            :: X, Y, T            ! netCDF file dimensions
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
-    CHARACTER(LEN=255) :: dir                ! Data directory path
-    CHARACTER(LEN=255) :: errMsg             ! Error message
-    CHARACTER(LEN=255) :: caller             ! Name of this routine
                                 
     ! Arrays                                 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
@@ -270,20 +263,12 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: X, Y, T            ! netCDF file dimensions
-    INTEGER            :: I, J               ! Do-loop indices
-    INTEGER            :: time_index         ! Read this time slice of data
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                ! Data directory path
-    CHARACTER(LEN=255) :: errMsg             ! Error message
-    CHARACTER(LEN=255) :: caller             ! Name of this routine
 
     ! Saved scalars
     INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
     INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
-    LOGICAL, SAVE      :: first    = .TRUE.  ! First time reading data?
                 
     ! Arrays                                 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
@@ -300,97 +285,80 @@ CONTAINS
     ENDIF
 
     !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_A1 (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 10000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 24 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
-
-    !======================================================================
     ! Get met fields from HEMCO
     !======================================================================
     
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read EVAP
     !v_name = "EVAP"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%EVAP = Q
     !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read GRN
     !v_name = "GRN"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%GRN = Q
     !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LWI = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT 
     !v_name = "LWGNT"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%RADLWG = Q
     !--------------------------------------------------------------------------
 
@@ -398,169 +366,169 @@ CONTAINS
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%LWTUP = Q
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read PRECSNO
     !v_name = "PRECSNO"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%PRECSNO = Q
     !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL Get_Met_2D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%Z0 = Q
 
     ! Echo info
@@ -768,31 +736,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
                                   
     ! Arrays                                 
     REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
-
-    !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_A3cld (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -800,32 +748,32 @@ CONTAINS
     
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%CLDF = Q
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%TAUCLW = Q
 
     ! Echo info
@@ -908,31 +856,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
     ! Arrays                                 
     REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
-
-    !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_A3dyn (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -940,27 +868,27 @@ CONTAINS
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%V = Q
 
     ! Echo info
@@ -1050,31 +978,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
                                     
     ! Arrays                                 
     REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
-
-    !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_A3mstC (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1082,22 +990,22 @@ CONTAINS
     
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL Get_Met_3D( Q, TRIM(v_name), time_index )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
     State_Met%REEVAPLS = Q
 
     ! Echo info
@@ -1172,31 +1080,11 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L                  ! Loop indices
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
                                              
     ! Arrays                                 
     REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
-
-    !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_A3mstE (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1204,27 +1092,27 @@ CONTAINS
     
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL Get_Met_3De( Qe, TRIM(v_name), time_index )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL Get_Met_3De( Qe, TRIM(v_name), time_index )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name), time_index )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL Get_Met_3De( Qe, TRIM(v_name), time_index )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFLCU = Qe
 
     ! Read  from file
     v_name = "PFLLSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name), time_index )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFLLSAN = Qe
 
     ! Echo info
@@ -1263,7 +1151,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: FlexGrid_Read_I3
+! !IROUTINE: FlexGrid_Read_I3_1
 !
 ! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr instantaneous (I3) data.
@@ -1271,7 +1159,167 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_I3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+! 
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REMARKS:
+!  This routine was automatically generated by the Perl script ncCodeRead, 
+!  and was subsequently hand-edited for compatibility with GEOS-Chem.
+!                                                                             .
+!  Even though the netCDF file is self-describing, the GEOS-FP data, 
+!  dimensions, and units are pre-specified according to the GMAO GEOS-FP
+!  file specification.  Therefore we can "cheat" a little bit and not have
+!  to read netCDF attributes to find what these values are.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  07 Feb 2012 - R. Yantosca - Now echo info after reading fields from disk
+!  10 Feb 2012 - R. Yantosca - Now get a string for the model resolution
+!  05 Apr 2012 - R. Yantosca - Now convert QV1 from [kg/kg] to [g/kg]
+!  09 Nov 2012 - M. Payer    - Copy all met fields to the State_Met derived type
+!                              object
+!  15 Nov 2012 - R. Yantosca - Now replace dao_mod.F arrays with State_Met
+!  11 Apr 2013 - R. Yantosca - Now pass directory fields with Input_Opt
+!  06 Sep 2013 - R. Yantosca - Bug fix: we need to initialize State_Met%T
+!                              with State_Met%TMPU1 to avoid errors.  The
+!                              State_Met%T field will be set again in INTERP.
+!  26 Sep 2013 - R. Yantosca - Renamed to GeosFp_Read_I3_1
+!  29 Oct 2013 - R. Yantosca - Now read T_FULLGRID_1 for offline simulations
+!  06 Nov 2014 - R. Yantosca - Replace TRANSFER_2D with direct casts
+!  16 Apr 2015 - R. Yantosca - Remove reference to T_FULLGRID; it's obsolete
+!  12 Jun 2015 - E. Lundgren - Initialize State_MET%SPHU with State_Met%SPHU1
+!  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
+                                    
+    ! Arrays                                 
+    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    !-------------------------------------------------
+    ! Read 2D data
+    !-------------------------------------------------
+
+    ! Read PS
+    v_name = "PS1"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    State_Met%PS1_WET = Q2
+
+    !-------------------------------------------------
+    ! Read 3D data
+    !-------------------------------------------------
+
+    !----------------------------------------------------------------
+    ! Prior to 2/3/12:
+    ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
+    !! Read PV
+    !v_name = "PV"
+    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
+    !State_Met%PV = Q3
+    !----------------------------------------------------------------
+
+    ! Read QV
+    v_name = "SPHU1"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%SPHU1 = Q3
+
+    ! Read T
+    v_name = "TMPU1"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%TMPU1 = Q3
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all I3     met fields for ', a )
+
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    WHERE ( State_Met%SPHU1 < 0d0 ) 
+
+       ! NOTE: Now set negative Q to a small positive # 
+       ! instead of zero, so as not to blow up logarithms
+       State_Met%SPHU1 = 1d-32
+
+    ELSEWHERE
+
+       ! Convert GEOS-FP specific humidity from [kg/kg] to [g/kg]
+       State_Met%SPHU1 = State_Met%SPHU1 * 1000d0
+
+    ENDWHERE
+
+#if defined( MERRA2 )
+    ! Convert PS1_WET from [Pa] to [hPa]
+    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+#endif
+
+    ! Initialize State_Met%T to State_Met%TMPU1 and State_Met%SPHU to
+    ! State_Met%SPHU1.  After all future MET field reads (geosfp_read_i3_2)
+    ! we will interpolate State_Met%T from the values of State_Met vars 
+    ! TMPU1 and TMPU2 and State_Met%SPHU from the values of State_Met vars 
+    ! SPHU1 and SPHU2. 
+    State_Met%T         = State_Met%TMPU1
+    State_Met%SPHU      = State_Met%SPHU1
+    
+    !======================================================================
+    ! Diagnostics, cleanup, and quit
+    !======================================================================
+
+    ! Increment the # of times I3 fields have been read
+    CALL Set_Ct_I3( INCREMENT=.TRUE. )
+
+#if defined( BPCH_DIAG )
+    ! ND66 diagnostic: T1, QV1 met fields
+    IF ( ND66 > 0 ) THEN
+       AD66(:,:,1:LD66,3) = AD66(:,:,1:LD66,3) + State_Met%TMPU1(:,:,1:LD66)
+       AD66(:,:,1:LD66,4) = AD66(:,:,1:LD66,4) + State_Met%SPHU1(:,:,1:LD66)
+    ENDIF
+#endif
+
+  END SUBROUTINE FlexGrid_Read_I3_1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_I3_2
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr instantaneous (I3) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
@@ -1319,32 +1367,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: time_index               ! Read this slice of data
+    INTEGER            :: I, J, L                  ! Loop indices
+    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
                                     
     ! Arrays                                 
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
     REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
-
-    !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "FlexGrid_Read_I3 (flexgrid_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1355,8 +1385,8 @@ CONTAINS
     !-------------------------------------------------
 
     ! Read PS
-    v_name = "PS"
-    CALL Get_Met_2D( Q2, TRIM(v_name), time_index )
+    v_name = "PS2"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
@@ -1368,19 +1398,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( Q3, TRIM(v_name), time_index )
+    !CALL Get_Met_3D( Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
-    v_name = "SPHU"
-    CALL Get_Met_3D( Q3, TRIM(v_name), time_index )
+    v_name = "SPHU2"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%SPHU2 = Q3
 
     ! Read T
-    v_name = "TMPU"
-    CALL Get_Met_3D( Q3, TRIM(v_name), time_index )
+    v_name = "TMPU2"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
     State_Met%TMPU2 = Q3
 
     ! Echo info
@@ -1399,7 +1429,7 @@ CONTAINS
 
     ELSEWHERE
 
-       ! Convert GEOS-FP specific humidity from [kg/kg] to [g/kg]
+       ! Convert specific humidity from [kg/kg] to [g/kg]
        State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
 
     ENDWHERE
@@ -1408,7 +1438,7 @@ CONTAINS
     ! Convert PS2_WET from [Pa] to [hPa]
     State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
 #endif
-
+    
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
@@ -1424,8 +1454,8 @@ CONTAINS
     ENDIF
 #endif
 
-  END SUBROUTINE FlexGrid_Read_I3
-!EOC
+  END SUBROUTINE FlexGrid_Read_I3_2
+!EOC  
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
