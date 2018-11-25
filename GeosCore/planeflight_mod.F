@@ -2489,10 +2489,51 @@
       LAT_TMP = REAL(PLAT(IND),4)
 
       ! Skip observations outside the nested domain
-#if   defined( NESTED_NA )
-      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR. 
+      ! Add all nested domain, lei, 11/24/18
+#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS)
+      IF ( LAT_TMP < -11e0 .OR. LAT_TMP > 55e0  .OR.
+     &     LON_TMP < 60e0 .OR. LON_TMP > 150e0 ) THEN
+         PRINT*, ' Outside the AS nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
+      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR.
      &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
-         PRINT*, ' Outside nested domain, skipping record ', IND
+         PRINT*, ' Outside the NA nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
+      IF ( LAT_TMP <   30e0 .OR. LAT_TMP >  70e0  .OR.
+     &     LON_TMP < -30e0 .OR. LON_TMP > 50e0 ) THEN
+         PRINT*, ' Outside the EU nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_CH)
+      IF ( LAT_TMP <   15e0 .OR. LAT_TMP >  55e0  .OR.
+     &     LON_TMP < 70e0 .OR. LON_TMP > 140e0 ) THEN
+         PRINT*, ' Outside the CH nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_NA)
+      IF ( LAT_TMP <   9.75e0 .OR. LAT_TMP >  60e0  .OR.
+     &     LON_TMP < -130e0 .OR. LON_TMP > -60e0 ) THEN
+         PRINT*, ' Outside the NA nested domain, skipping record ', IND
+         RETURN
+      ENDIF
+#endif
+
+#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_EU)
+      IF ( LAT_TMP <   32.75e0 .OR. LAT_TMP >  61.25e0  .OR.
+     &     LON_TMP < -15e0 .OR. LON_TMP > 40e0 ) THEN
+         PRINT*, ' Outside the EU nested domain, skipping record ', IND
          RETURN
       ENDIF
 #endif
