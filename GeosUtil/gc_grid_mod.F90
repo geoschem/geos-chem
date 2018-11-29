@@ -48,6 +48,9 @@ MODULE GC_Grid_Mod
   PUBLIC  :: Set_xOffSet
   PUBLIC  :: Set_yOffSet
   PUBLIC  :: SetGridFromCtr
+#if defined ( MODEL_WRF )
+  PUBLIC  :: SetGridFromCtrEdges
+#endif
   PUBLIC  :: GET_IJ
 
 ! Make some arrays public
@@ -70,6 +73,7 @@ MODULE GC_Grid_Mod
 !                              YMID) and AREA_M2.  Added registry routines etc.
 !  18 Aug 2017 - R. Yantosca - Move roundoff routines to roundoff_mod.F90
 !  23 Aug 2017 - R. Yantosca - Registry is now moved to grid_registry_mod.F90
+!  11 Nov 2018 - H.P. Lin    - Added SetGridFromCtrEdges for running in WRF environment
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -796,6 +800,127 @@ CONTAINS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
+#if defined ( MODEL_WRF )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SetGridFromCtrEdges
+!
+! !DESCRIPTION: Subroutine SetGridFromCtrEdges sets the grid based upon the passed
+! mid-points and edge-points given an external grid. This interface is primarily
+! used for GEOS-Chem to interface with the WRF model.
+!\\
+!\\
+! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
+! These need to be updated manually from State_Met%AREA_M2 to maintain consistency
+! with the GEOS-Chem interface to GEOS-5.
+! !INTERFACE:
+!
+  SUBROUTINE SetGridFromCtrEdges( am_I_Root, NX, NY, lonCtr, latCtr, lonEdge, latEdge, RC )
+!
+! USES
+!
+    USE ErrCode_Mod
+    USE Roundoff_Mod
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,  INTENT(IN)   :: am_I_Root           ! Root CPU?
+    INTEGER,  INTENT(IN)   :: NX                  ! # of lons
+    INTEGER,  INTENT(IN)   :: NY                  ! # of lats
+    REAL(f4), INTENT(IN)   :: lonCtr (NX,NY)      ! Lon ctrs [rad]
+    REAL(f4), INTENT(IN)   :: latCtr (NX,NY)      ! Lat ctrs [rad]
+    REAL(f4), INTENT(IN)   :: lonEdge(NX+1,NY)    ! Lon edges [rad]
+    REAL(f4), INTENT(IN)   :: latEdge(NX,NY+1)    ! Lat edges [rad]
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(INOUT) :: RC
+!
+! !REVISION HISTORY:
+!  11 Nov 2018 - H.P. Lin    - Initial version based on SetGridFromCtr
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER            :: I,         J,        L
+    INTEGER            :: NI,        NJ,       NL
+    REAL(fp)           :: YEDGE_VAL, YSIN_VAL
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
+    !======================================================================
+    ! SetGridFromCtrEdges begins here!
+    !======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at SetGridFromCtrEdges (in module GeosUtil/gc_grid_mod.F90)'
+
+    ! Get array size
+    NI = SIZE(XMID,1)
+    NJ = SIZE(XMID,2)
+    NL = SIZE(XMID,3)
+
+    ! Horizontal dimensions must agree
+    IF ( NX /= NI .OR. NY /= NJ ) THEN
+       WRITE(ErrMsg,*) 'Grid dimension mismatch: ',NX, '/=',NI,              &
+                       ' and/or ',NY,'/=',NJ
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Loop over all grid boxes
+    DO L = 1, NL
+    DO J = 1, NJ
+    DO I = 1, NI
+
+       ! Mid points: get directly from passed value
+       XMID(I,J,L)      = RoundOff( lonCtr(I,J) / PI_180, 4 )
+       YMID(I,J,L)      = RoundOff( latCtr(I,J) / PI_180, 4 )
+       YMID_R(I,J,L)    = YMID(I,J,L) * PI_180
+
+       IF ( ALLOCATED(YMID_R_W) ) THEN
+          YMID_R_W(I,J,L)  = YMID_R(I,J,L)
+       ENDIF
+
+       ! Edges: get directly from passed value
+       XEDGE(I,J,L)     = RoundOff( lonEdge(I,J) / PI_180, 4 )
+       YEDGE(I,J,L)     = RoundOff( latEdge(I,J) / PI_180, 4 )
+
+       ! Special treatment at uppermost edge
+       IF ( I == NI ) THEN
+          XEDGE(I+1,J,L) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
+       ENDIF
+       IF ( J == NJ ) THEN
+          YEDGE(I,J+1,L)   = RoundOff( latEdge(I,J+1) / PI_180, 4 )
+          YEDGE_R(I,J+1,L) = YEDGE(I,J+1,L) * PI_180
+          YSIN(I,J+1,L)    = SIN( YEDGE_R(I,J+1,L) )
+       ENDIF
+
+       ! Special quantities directly derived from YEDGE
+       YEDGE_R(I,J,L)   = YEDGE(I,J,L) * PI_180
+       YEDGE_VAL        = YEDGE_R(I,J,L)           ! Lat edge [radians]
+       YSIN_VAL         = SIN( YEDGE_VAL)          ! SIN( lat edge )
+       YSIN(I,J,L)      = YSIN_VAL                 ! Store in YSIN array
+
+    ENDDO
+    ENDDO
+    ENDDO
+
+    ! Return w/ success
+    RC = GC_SUCCESS
+
+  END SUBROUTINE SetGridFromCtrEdges
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
