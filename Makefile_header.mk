@@ -463,17 +463,6 @@ endif
 # Diagnostic settings
 #------------------------------------------------------------------------------
 
-# %%%%% Use netCDF diagnostics if DEVEL=y %%%%%
-ifdef DEVEL
-  BPCH_DIAG          :=no
-  BPCH_TBPC          :=no
-endif
-
-# %%%%% Turn on bpch code for TPCORE BC's if NEST is defined %%%%%
-ifdef NEST
-  BPCH_TPBC          :=yes
-endif
-
 # Turn on bpch diagnostics UNLESS specified otherwis
 ifdef BPCH_DIAG
   BPCH_DIAG          :=yes
@@ -510,6 +499,10 @@ else
   ifeq ($(IS_HPC),0)
      USER_DEFS       += -DBPCH_TIMESER
   endif
+
+  # Turn on bpch code for nested-grid BC's by default
+  # Needed for both global and nested simulations
+  USER_DEFS          += -DBPCH_TPBC
 
 endif
 
