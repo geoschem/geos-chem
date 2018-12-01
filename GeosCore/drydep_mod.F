@@ -43,7 +43,6 @@
 ! !PUBLIC DATA MEMBERS:
 !
       PUBLIC :: DEPNAME
-      PUBLIC :: DEPSAV
       PUBLIC :: NUMDEP
       PUBLIC :: NTRAIND
       PUBLIC :: IDEP,   IRGSS,  IRAC, IRCLS
@@ -194,6 +193,7 @@
 !                              via the HEMCO SeaFlux extension. 
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -227,7 +227,6 @@
       !  IZO       : Roughness heights for each Olson surface type
       !  NDVZIND   : Index array for ordering drydep species in DEPVEL
       !  NTRAIND   : Stores species numbers of drydep species
-      !  DEPSAV    : Array containing dry deposition frequencies [s-1]
       !  PBLFRAC   : Array for multiplicative factor for drydep freq
       !  DRYCOEFF  : Polynomial coefficients for dry deposition
       !  HSTAR     : Henry's law constant
@@ -241,6 +240,9 @@
       !    NTYPE     : Max # of landtypes / grid box
       !    NPOLY     : Number of drydep polynomial coefficients
       !    NSURFTYPE : Number of Olson land types
+      !
+      !  NOTE: these grid-dependent variables are defined in State_Chm_Mod.F90
+      !    DEPSAV    : Array containing dry deposition frequencies [s-1]
       !========================================================================
 
       ! Scalars
@@ -284,7 +286,6 @@
       CHARACTER(LEN=14), ALLOCATABLE :: DEPNAME (:    ) ! Species name
 
       ! Allocatable arrays
-      REAL(fp), TARGET,  ALLOCATABLE :: DEPSAV  (:,:,:) ! Drydep frequencies
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
       
@@ -449,6 +450,9 @@
       REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
 
+      ! Pointers
+      REAL(fp), POINTER :: DEPSAV (:,:,:   )      ! Dry deposition frequencies [s-1]
+
       ! For ESMF, need to assign these from Input_Opt
       LOGICAL       :: PBL_DRYDEP 
       LOGICAL       :: LPRT
@@ -467,7 +471,10 @@
       SpcInfo => NULL()
       ErrMsg  = ''
       ThisLoc = 
-     &   ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F)'      
+     &   ' -> at Do_DryDep  (in module GeosCore/drydep_mod.F)'    
+
+      ! Point to columns of derived-type object fields
+      DEPSAV     => State_Chm%DryDepSav  
       
       ! Copy values from the Input Options object to local variables
       PBL_DRYDEP = Input_Opt%PBL_DRYDEP
@@ -655,6 +662,9 @@
       IF ( LPRT .and. am_I_Root ) THEN
          CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
       ENDIF
+
+      ! Nullify pointers
+      NULLIFY( DEPSAV )
 
       END SUBROUTINE DO_DRYDEP
 !EOC
@@ -4341,11 +4351,6 @@
       ! Allocate arrays
       ! add allocation for SALT_V and DMID (jaegle 5/11/11)
       !=================================================================
-      ALLOCATE( DEPSAV( IIPAR, JJPAR, NUMDEP ), STAT=RC )
-      CALL GC_CheckVar( 'drydep_mod:DEPSAV', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      DEPSAV = 0e+0_fp
-
       ALLOCATE( SALT_V( NR_MAX ), STAT=RC )
       CALL GC_CheckVar( 'drydep_mod:SALT_V', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
@@ -4463,7 +4468,6 @@
       IF ( ALLOCATED( A_RADI   ) ) DEALLOCATE( A_RADI   )
       IF ( ALLOCATED( AIROSOL  ) ) DEALLOCATE( AIROSOL  )
       IF ( ALLOCATED( DEPNAME  ) ) DEALLOCATE( DEPNAME  )
-      IF ( ALLOCATED( DEPSAV   ) ) DEALLOCATE( DEPSAV   )
       IF ( ALLOCATED( DMID     ) ) DEALLOCATE( DMID     )
       IF ( ALLOCATED( F0       ) ) DEALLOCATE( F0       )
       IF ( ALLOCATED( FLAG     ) ) DEALLOCATE( FLAG     )

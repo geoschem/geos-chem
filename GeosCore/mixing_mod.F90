@@ -357,7 +357,6 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
-    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
@@ -467,6 +466,7 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
+    REAL(fp),      POINTER  :: DEPSAV       (:,:,:  )  ! IM, JM, nDryDep
 
     ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
     LOGICAL                 :: ITS_A_CH4_SIM
@@ -501,6 +501,7 @@ CONTAINS
 
     ! Initialize pointer
     SpcInfo           => NULL()
+    DEPSAV            => State_Chm%DryDepSav
 
 #if defined( NC_DIAG )
     !----------------------------------------------------------
@@ -1045,6 +1046,9 @@ CONTAINS
        ENDIF
     ENDIF
 #endif
+
+  ! Nullify pointers
+  NULLIFY( DEPSAV )
 
   END SUBROUTINE DO_TEND 
 !EOC
