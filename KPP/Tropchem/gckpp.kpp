@@ -8,11 +8,128 @@
 #INCLUDE Tropchem.eqn
 
 #FAMILIES
-POx : O3 + NO2 + 2NO3 + PAN + NPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
-LOx : O3 + NO2 + 2NO3 + PAN + NPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
+POx : O3 + NO2 + 2NO3 + PAN + NPMN + IPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
+LOx : O3 + NO2 + 2NO3 + PAN + NPMN + IPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + ISN1 + ISOPNB + ISOPND + MACRN + MVKN + PROPNN + R4N2 + INPN + ISNP + INO2 + ISNOOA + ISNOOB + ISNOHOO + MAN2 + PRN1 + PRPN + R4N1 + PMNN + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4;
 PCO : CO;
 LCO : CO;
 PSO4 : SO4;
+LCH4 : CH4;
+Pxg01 : xg01;
+Pxg02 : xg02;
+Pxg03 : xg03;
+Pxg04 : xg04;
+Pxg05 : xg05;
+Pxg06 : xg06;
+Pxg07 : xg07;
+Pxg08 : xg08;
+Pxg09 : xg09;
+Pxg10 : xg10;
+Pxg11 : xg11;
+Pxg12 : xg12;
+Pxg13 : xg13;
+Pxg14 : xg14;
+Pxg15 : xg15;
+Pxg16 : xg16;
+Pxg17 : xg17;
+Pxg18 : xg18;
+Pxg19 : xg19;
+Pxg20 : xg20;
+Pxg21 : xg21;
+Pxg22 : xg22;
+Pxg23 : xg23;
+Pxg24 : xg24;
+Pxg25 : xg25;
+Pxg26 : xg26;
+Pxg27 : xg27;
+Pxg28 : xg28;
+Pxg29 : xg29;
+Pxg30 : xg30;
+Pxg31 : xg31;
+Pxg32 : xg32;
+Pxg33 : xg33;
+Pxg34 : xg34;
+Pxg35 : xg35;
+Pxg36 : xg36;
+Pxg37 : xg37;
+Pxg38 : xg38;
+Pxg39 : xg39;
+Pxg40 : xg40;
+Pxg41 : xg41;
+Pxg42 : xg42;
+Pxg43 : xg43;
+Pxg44 : xg44;
+Pxg45 : xg45;
+Pxg46 : xg46;
+Pxg47 : xg47;
+Pxg48 : xg48;
+Pxg49 : xg49;
+Pxg50 : xg50;
+Pxg51 : xg51;
+Pxg52 : xg52;
+Pxg53 : xg53;
+Pxg54 : xg54;
+Pxg55 : xg55;
+Pxh01 : xh01;
+Pxh02 : xh02;
+Pxh03 : xh03;
+Pxh04 : xh04;
+Pxh05 : xh05;
+Pxh06 : xh06;
+Pxh07 : xh07;
+Pxh08 : xh08;
+Pxh09 : xh09;
+Pxh10 : xh10;
+Pxh11 : xh11;
+Pxh12 : xh12;
+Pxh13 : xh13;
+Pxh14 : xh14;
+Pxh15 : xh15;
+Pxh16 : xh16;
+Pxh17 : xh17;
+Pxh18 : xh18; 
+Pxh19 : xh19;
+Pxh20 : xh20;
+Pxh21 : xh21;
+Pxh22 : xh22;
+Pxh23 : xh23;
+Pxh24 : xh24;
+Pxh25 : xh25;
+Pxp01 : xp01;
+Pxp02 : xp02;
+Pxp03 : xp03;
+Pxp04 : xp04;
+Pxp05 : xp05;
+Pxp06 : xp06;
+Pxp07 : xp07;
+Pxp08 : xp08;
+Pxp09 : xp09;
+Pxp10 : xp10;
+Pxp11 : xp11;
+Pxp12 : xp12;
+Pxp13 : xp13;
+Pxb01 : xb01;
+Pxb02 : xb02;
+Pxb03 : xb03;
+Pxb04 : xb04;
+Pxb05 : xb05;
+Pxb08 : xb08;
+Pxb09 : xb09;
+Pxb10 : xb10;
+LHCOOH : HCOOH;
+LMO2 : MO2;
+LMP : MP;
+LC2H6 : C2H6;
+LETO2 : ETO2;
+LMOH : MOH;
+LEOH : EOH;
+LACTA : ACTA;
+LC3H8 : C3H8;
+LACET : ACET;
+LISOP : ISOP;
+LALK4 : ALK4;
+LPRPE : PRPE;
+
+
 
 #INLINE F90_RATES
   REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)
@@ -310,7 +427,7 @@ PSO4 : SO4;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------

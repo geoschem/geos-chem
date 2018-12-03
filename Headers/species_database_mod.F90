@@ -541,11 +541,16 @@ CONTAINS
                               Name          = 'BrCl',                       &
                               FullName      = 'Bromine chloride',           &
                               Formula       = 'BrCl',                       &
-                              MW_g          = 115.0_fp,                     &
+                              MW_g          = 115.45_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = T,                            &
+                              DD_F0         = 0.0_fp,                        &
+                              DD_Hstar_old  = 9.70e-1_fp,                   &
+                              Henry_K0      = 9.70e-1_f8,                   &
+                              Henry_CR      = 5600.0_f8,                    &
+                              WD_RetFactor  = 0.0_fp,                       &
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
@@ -662,7 +667,7 @@ CONTAINS
                               Name          = 'CCl4',                       &
                               FullName      = 'Carbon tetrachloride',       &
                               Formula       = 'CCl4',                       &
-                              MW_g          = 152.0_fp,                     &
+                              MW_g          = 153.6_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -839,7 +844,7 @@ CONTAINS
                               Name          = 'CHCl3',                      &
                               FullName      = 'Chloroform',                 &
                               Formula       = 'CHCl3',                      &
-                              MW_g          = 119.0_fp,                     &
+                              MW_g          = 119.35_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -857,7 +862,7 @@ CONTAINS
                               Name          = 'CH2Cl2',                     &
                               FullName      = 'Dichloromethane',            &
                               Formula       = 'CH2Cl2',                     &
-                              MW_g          = 85.0_fp,                      &
+                              MW_g          = 84.9_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -875,7 +880,7 @@ CONTAINS
                               Name          = 'CH3Cl',                      &
                               FullName      = 'Chloromethane',              &
                               Formula       = 'CH3Cl',                      &
-                              MW_g          = 50.0_fp,                      &
+                              MW_g          = 50.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -893,7 +898,7 @@ CONTAINS
                               Name          = 'CH3CCl3',                    &
                               FullName      = 'Methyl chloroform',          &
                               Formula       = 'CH3CCl3',                    &
-                              MW_g          = 133.0_fp,                     &
+                              MW_g          = 133.35_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -947,7 +952,7 @@ CONTAINS
                               Name          = 'Cl',                         &
                               FullName      = 'Atomic chlorine',            &
                               Formula       = 'Cl',                         &
-                              MW_g          = 35.0_fp,                      &
+                              MW_g          = 35.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -964,11 +969,15 @@ CONTAINS
                               Name          = 'Cl2',                        &
                               FullName      = 'Molecular chlorine',         &
                               Formula       = 'Cl2',                        &
-                              MW_g          = 71.0_fp,                      &
+                              MW_g          = 70.9_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Drydep     = T,                            &
+                              Is_Wetdep     = F,                            &            
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 9.2e-2_fp,                   &
+                              Henry_K0      = 9.2e-2_f8,                  &
+                              Henry_CR      = 2000.0_f8,                   &
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
@@ -982,7 +991,7 @@ CONTAINS
                               Name          = 'Cl2O2',                      &
                               FullName      = 'Dichlorine dioxide',         &
                               Formula       = 'Cl2O2',                      &
-                              MW_g          = 103.0_fp,                     &
+                              MW_g          = 102.9_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -1000,11 +1009,13 @@ CONTAINS
                               Name          = 'ClNO2',                      &
                               FullName      = 'Nitryl chloride',            &
                               Formula       = 'ClNO2',                      &
-                              MW_g          = 81.0_fp,                      &
+                              MW_g          = 81.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
+                              Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 4.5e-2_fp,                  &
                               Is_Photolysis = T,                            &
                               RC            = RC )
           CASE( 'CLNO3' )
@@ -1017,14 +1028,17 @@ CONTAINS
                               Name          = 'ClNO3',                      &
                               FullName      = 'Chlorine nitrate',           &
                               Formula       = 'ClNO3',                      &
-                              MW_g          = 97.0_fp,                      &
+                              MW_g          = 97.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
-                              Is_Wetdep     = F,                            &
+                              Is_Wetdep     = T,                            &
                               Is_Photolysis = T,                            &
                               DD_F0         = 0.0_fp,                       &
                               DD_Hstar_old  = 1.00e+20_fp,                  &
+                              Henry_K0      = 1.00e+20_fp,                  &
+                              Henry_CR      = 0.0_fp,                       &
+                              WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
           CASE( 'CLO' )
@@ -1037,11 +1051,13 @@ CONTAINS
                               Name          = 'ClO',                        &
                               FullName      = 'Chlorine monoxide',          &
                               Formula       = 'ClO',                        &
-                              MW_g          = 51.0_fp,                      &
+                              MW_g          = 51.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
+                              Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 7.0e-1_fp,                  &
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
@@ -1056,11 +1072,15 @@ CONTAINS
                               Name          = 'ClOO',                       &
                               FullName      = 'Chlorine dioxide',           &
                               Formula       = 'ClOO',                       &
-                              MW_g          = 67.0_fp,                      &
+                              MW_g          = 67.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
-                              Is_Drydep     = F,                            &
+                              Is_Drydep     = T,                            &
                               Is_Wetdep     = F,                            &
+                              DD_F0         = 0.0_fp,                       &
+                              DD_Hstar_old  = 1.0e0_fp,                     &
+                              Henry_K0      = 1.0e0_f8,                     &
+                              Henry_CR      = 3500.0_f8,                    &
                               Is_Photolysis = T,                            &
                               RC            = RC )
 
@@ -1783,6 +1803,7 @@ CONTAINS
                               RC            = RC )
 
           CASE( 'HCL' )
+
              CALL Spc_Create( am_I_Root     = am_I_Root,                    &
                               ThisSpc       = SpcData(N)%Info,              &
                               ModelID       = N,                            &
@@ -1792,15 +1813,15 @@ CONTAINS
                               Name          = 'HCl',                        &
                               FullName      = 'Hydrochloric acid',          &
                               Formula       = 'HCl',                        &
-                              MW_g          = 36.0_fp,                      &
+                              MW_g          = 36.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
                               DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_old  = 2.05e+6_fp,                   &
-                              Henry_K0      = 7.10e+15_f8,                  &
-                              Henry_CR      = 11000.0_f8,                   &
+                              DD_Hstar_old  = 2.0e+13_fp,                   &
+                              Henry_K0      = 6.30e+10_f8,                  &
+                              Henry_CR      = 9000.0_f8,                   &
                               WD_RetFactor  = 1.0_fp,                       &
                               RC            = RC )
 
@@ -1878,10 +1899,11 @@ CONTAINS
 #if defined( NEW_HENRY_CONSTANTS )                                          
                               Henry_K0      = 2.10e+3_f8 * To_M_atm,        &
                               Henry_CR      = 8700.0_f8,                    &
+                              Henry_pKa     = -1.3e+0_fp
 #else                                                                       
                               DD_Hstar_old  = 1.0e+14_fp,                   &
-                              Henry_K0      = 8.3e+4_f8,                    &
-                              Henry_CR      = 7400.0_f8,                    &
+                              Henry_K0      = 1.3e+11_f8,                    &
+                              Henry_CR      = 8700.0_f8,                    &
 #endif                                      
                               WD_AerScavEff = 1.0_fp,                       &
                               WD_KcScaleFac = KcScale,                      &
@@ -1949,7 +1971,7 @@ CONTAINS
                               Name          = 'HOCl',                       &
                               FullName      = 'Hypochlorous acid',          &
                               Formula       = 'HOCl',                       &
-                              MW_g          = 52.0_fp,                      &
+                              MW_g          = 52.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &
@@ -3031,7 +3053,8 @@ CONTAINS
                               DD_F0         = 0.0_fp,                       &
 #if defined( NEW_HENRY_CONSTANTS )					    
                               Henry_K0      = 2.10e-2_f8 * To_M_atm,        &
-                              Henry_CR      = 3400.0_f8,                    &
+                              Henry_CR      = 8700.0_f8,                    &
+                              Henry_pKa     = -1.3e+0_f8,                   &
 #else									    
                               DD_Hstar_old  = 1.0e+14_fp,                   &
 #endif									    
@@ -3133,41 +3156,41 @@ CONTAINS
                               WD_RainoutEff = RainEff,                      &
                               RC            = RC )
 
-          CASE( 'NH4S' )
-             Fullname = 'Ammonium on surface of seasalt aerosol'
-             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
-
-             ! Halve the Kc (cloud condensate -> precip) rate
-             ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-
-             ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-
-             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
-                              ThisSpc       = SpcData(N)%Info,              &
-                              ModelID       = N,                            &
-                              KppSpcId      = KppSpcId(N),                  &
-                              KppVarId      = KppVarId(N),                  &
-                              KppFixId      = KppFixId(N),                  &
-                              Name          = 'NH4s',                       &
-                              FullName      = Fullname,                     &
-                              MW_g          = 31.4_fp,                      &
-                              Is_Advected   = Is_Advected,                  &
-                              Is_Gas        = F,                            &
-                              Is_Drydep     = T,                            &
-                              Is_Wetdep     = T,                            &
-                              Density       = 2200.0_fp,                    &
-                              Radius        = Radius,                       &
-                              DD_AeroDryDep = T,                            &
-                              DD_F0         = 0.0_fp,                       &
-                              DD_Hstar_Old  = 0.0_fp,                       &
-                              WD_AerScavEff = 1.0_fp,                       &
-                              WD_CoarseAer  = T,                            &
-                              WD_KcScaleFac = KcScale,                      &
-                              WD_RainoutEff = RainEff,                      &
-                              RC            = RC )
+!          CASE( 'NH4S' )
+!             Fullname = 'Ammonium on surface of seasalt aerosol'
+!             Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
+!                          Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+!
+!             ! Halve the Kc (cloud condensate -> precip) rate
+!             ! for the temperature range 237 K <= T < 258 K.
+!             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+!
+!             ! Turn off rainout only when 237 K <= T < 258K.
+!             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+!
+!             CALL Spc_Create( am_I_Root     = am_I_Root,                    &
+!                              ThisSpc       = SpcData(N)%Info,              &
+!                              ModelID       = N,                            &
+!                              KppSpcId      = KppSpcId(N),                  &
+!                              KppVarId      = KppVarId(N),                  &
+!                              KppFixId      = KppFixId(N),                  &
+!                              Name          = 'NH4s',                       &
+!                              FullName      = Fullname,                     &
+!                              MW_g          = 31.4_fp,                      &
+!                              Is_Advected   = Is_Advected,                  &
+!                              Is_Gas        = F,                            &
+!                              Is_Drydep     = T,                            &
+!                              Is_Wetdep     = T,                            &
+!                              Density       = 2200.0_fp,                    &
+!                              Radius        = Radius,                       &
+!                              DD_AeroDryDep = T,                            &
+!                              DD_F0         = 0.0_fp,                       &
+!                              DD_Hstar_Old  = 0.0_fp,                       &
+!                              WD_AerScavEff = 1.0_fp,                       &
+!                              WD_CoarseAer  = T,                            &
+!                              WD_KcScaleFac = KcScale,                      &
+!                              WD_RainoutEff = RainEff,                      &
+!                              RC            = RC )
 
           CASE( 'NIT' )
 
@@ -3249,6 +3272,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
                               DD_AeroDryDep = T,                            &
@@ -3455,7 +3479,7 @@ CONTAINS
                               Name          = 'OClO',                       &
                               FullName      = 'Chlorine dioxide',           &
                               Formula       = 'OClO',                       &
-                              MW_g          = 67.0_fp,                      &
+                              MW_g          = 67.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -3946,6 +3970,7 @@ CONTAINS
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Is_Wetdep     = T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
@@ -4022,11 +4047,12 @@ CONTAINS
                               KppFixId      = KppFixId(N),                  &
                               Name          = NameAllCaps,                  &
                               FullName      = Fullname,                     &
-                              MW_g          = 31.4_fp,                      &
+                              MW_g          = 35.45_fp,                      &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
                               DD_AeroDryDep = T,                            &
@@ -4170,6 +4196,7 @@ CONTAINS
                               Is_Gas        = F,                            &
                               Is_Drydep     = T,                            &
                               Is_Wetdep     = T,                            &
+                              Is_HygroGrowth= T,                            &
                               Density       = 2200.0_fp,                    &
                               Radius        = Radius,                       &
                               DD_AeroDryDep = T,                            &
@@ -4510,7 +4537,7 @@ CONTAINS
                               Name          = 'CH2ICl',                     &
                               FullName      = 'Chloroiodomethane',          &
                               Formula       = 'CH2ICl',                     &
-                              MW_g          = 167.0_fp,                     &
+                              MW_g          = 167.45_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = F,                            &
@@ -4627,7 +4654,7 @@ CONTAINS
                               Name          = 'ICl',                        &
                               FullName      = 'Iodine monochloride',        &
                               Formula       = 'ICl',                        &
-                              MW_g          = 162.0_fp,                     &
+                              MW_g          = 162.45_fp,                     &
                               Is_Advected   = Is_Advected,                  &
                               Is_Gas        = T,                            &
                               Is_Drydep     = T,                            &

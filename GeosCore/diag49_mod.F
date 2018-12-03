@@ -592,44 +592,44 @@
 
 ! NOTE: We can restore this once we figure out what the proper unit
 ! conversion is (bmy, 11/20/17)
-!         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
+         ELSE IF ( N == 501 .and. IS_FULLCHEM ) THEN
 !
 !            !--------------------------------------
 !            ! OH CONCENTRATION [molec/cm3]
 !            !--------------------------------------
-!            CATEGORY = 'TIME-SER'
-!            UNIT     = 'molec/cm3'
-!            GMNL     = ND49_NL
-!            GMTRC    = 1
+            CATEGORY = 'TIME-SER'
+            UNIT     = 'molec/cm3'
+            GMNL     = ND49_NL
+            GMTRC    = 1
 !
-!            ! NOTE: OH is a non-advected species, so it will have a 
-!            ! molecular weight of -1.  Need to multiply the concentration
-!            ! by this to turn it into a positive. (bmy, 11/20/17)
-!            TMP      = State_Chm%SpcData(id_OH)%Info%EmMw_g
-!
-!!$OMP PARALLEL DO
-!!$OMP+DEFAULT( SHARED )
-!!$OMP+PRIVATE( I, J, L, X, Y, K )
-!            DO K = 1, ND49_NL
-!               L = LOFF + K
-!            DO Y = 1, ND49_NJ
-!               J = JOFF + Y
-!            DO X = 1, ND49_NI
-!               I = GET_I( X )
-!               !Q(X,Y,K) = SAVEOH(I,J,L)
-!
-!               ! We are in units of [kg/kg dry] here.  Follow the same
-!               ! unit conversion as in routine ConvertSpc_KgKgDry_to_MND
-!               ! in GeosUtil/unitconv_mod.F90 to get [molec/cm3].
-!               Q(X,Y,K) = ( TMP * Spc(I,J,L,id_OH)  )
-!     &                  * ( State_Met%AIRDEN(I,J,L) )
-!     &                  * ( AVO / 17e-3_fp          )
-!     &                  / ( 1e+6_fp                 )
-!
-!            ENDDO 
-!            ENDDO
-!            ENDDO
-!!$OMP END PARALLEL DO
+            ! NOTE: OH is a non-advected species, so it will have a 
+            ! molecular weight of -1.  Need to multiply the concentration
+            ! by this to turn it into a positive. (bmy, 11/20/17)
+            TMP      = State_Chm%SpcData(id_OH)%Info%EmMw_g
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, X, Y, K )
+            DO K = 1, ND49_NL
+               L = LOFF + K
+            DO Y = 1, ND49_NJ
+               J = JOFF + Y
+            DO X = 1, ND49_NI
+               I = GET_I( X )
+               !Q(X,Y,K) = SAVEOH(I,J,L)
+
+               ! We are in units of [kg/kg dry] here.  Follow the same
+               ! unit conversion as in routine ConvertSpc_KgKgDry_to_MND
+               ! in GeosUtil/unitconv_mod.F90 to get [molec/cm3].
+               Q(X,Y,K) = ( TMP * Spc(I,J,L,id_OH)  )
+     &                  * ( State_Met%AIRDEN(I,J,L) )
+     &                  * ( AVO / 17e-3_fp          )
+     &                  / ( 1e+6_fp                 )
+
+            ENDDO 
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
 !            print*, '@@@@> State_Chm%Spc_Units: ', 
 !     &           State_Chm%Spc_units
 !            print*, '@@@@> SPECIES(OH)     ; ', 
@@ -1635,7 +1635,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%phSav(I,J,L)
+               Q(X,Y,K) = State_Chm%phSav(I,J,L,1)
             ENDDO
             ENDDO
             ENDDO
@@ -1661,7 +1661,7 @@
                J = JOFF + Y
             DO X = 1, ND49_NI
                I = GET_I( X )
-               Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
+               Q(X,Y,K) = State_Chm%WaterSav(I,J,L,1)
             ENDDO
             ENDDO
             ENDDO

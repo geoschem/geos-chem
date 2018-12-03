@@ -296,7 +296,7 @@
       INTEGER                :: id_SALA,   id_SALC,   id_SF1   
       INTEGER                :: id_SO2,    id_SO4,    id_SO4aq 
       INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3 
-      INTEGER                :: id_SO4d4,  id_SO4s,   id_NH4s  
+      INTEGER                :: id_SO4d4,  id_SO4s!,   id_NH4s  
       INTEGER                :: id_SALACL, id_HCL,    id_SALCCL
       INTEGER                :: id_SALAAL, id_SALCAL
       INTEGER                :: id_HOBr,   id_SO4H1,  id_SO4H2
@@ -305,7 +305,7 @@
       INTEGER                :: DRYSO4s,   DRYNITs,   DRYSO4d1 
       INTEGER                :: DRYSO4d2,  DRYSO4d3,  DRYSO4d4 
       INTEGER                :: DRYNITd1,  DRYNITd2,  DRYNITd3 
-      INTEGER                :: DRYNITd4,  DRYNH4s
+      INTEGER                :: DRYNITd4!,  DRYNH4s
 
       ! Diagnostic flags
       LOGICAL                :: Archive_LossHNO3onSeaSalt
@@ -605,14 +605,14 @@
             ENDIF
          ENDIF
 
-         ! NH4s [kg] gravitational settling, xnw 11/20/17
-         IF ( id_NH4s > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
-     &                       State_Chm, State_Diag, id_NH4s,   RC )
-            IF ( prtDebug ) THEN
-               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NH4S' )
-            ENDIF
-         ENDIF
+!         ! NH4s [kg] gravitational settling, xnw 11/20/17
+!         IF ( id_NH4s > 0 ) THEN
+!            CALL GRAV_SETTLING( am_I_Root, Input_Opt, State_Met,
+!     &                       State_Chm, State_Diag, id_NH4s,   RC )
+!            IF ( prtDebug ) THEN
+!               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NH4S' )
+!            ENDIF
+!         ENDIF
 
          !----------------------------------------------------------------
          ! These species are only used for the aciduptake simulations
@@ -1708,8 +1708,8 @@
 
       ! Set a logical to denote that the species is one of the dust 
       ! uptake species, i.e. SO4d{1-4}, NITd{1-4} (bmy, 3/17/17)
-      IS_UPTAKE_SPC =  ( ( N /= id_SO4s ) .and. ( N /= id_NITs ) .and.
-     $                   ( N /= id_NH4s ) )
+      IS_UPTAKE_SPC =  ( ( N /= id_SO4s ) .and. ( N /= id_NITs )) !.and.
+!     $                   ( N /= id_NH4s ) )
 
       ! Drydep species index
       DryDep_Id     =  ThisSpc%DryDepId
@@ -2717,7 +2717,7 @@
       REAL(fp)              :: PSO4E,  PSO4F,   Kt1N,    Kt2N
       REAL(fp)              :: XX,     Kt1L,    Kt2L
       REAL(fp)              :: HPLUS,  SO4nss, TNH3,   TNO3,  GNO3, ANIT
-      REAL(fp)              :: LSTOT,  ALKdst, ALKss,  ALKds, NH3, CL
+      REAL(fp)              :: LSTOT,  ALKdst, ALKss, ALKds, NH3, CL,TNA
       REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
       !tdf 03/02/2K9
       REAL(fp)              :: PSO4d_tot, PNITd_tot
@@ -2749,7 +2749,7 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc(:,:,:,:)
       REAL(fp), POINTER     :: pHCloud(:,:,:)
-      !REAL(fp), POINTER     :: SSAlk(:,:,:,:)
+      REAL(fp), POINTER     :: SSAlk(:,:,:,:)
 
       ! For HEMCO update
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2772,7 +2772,7 @@
       ! Point to chemical species array [v/v dry]
       Spc         => State_Chm%Species
       pHCloud     => State_Chm%pHCloud
-      !SSAlk       => State_Chm%SSAlk
+      SSAlk       => State_Chm%SSAlk
 
       ! Reset cloud pH for safety
       pHCloud(:,:,:) = 4.5e+0_fp
@@ -2817,7 +2817,7 @@
 !$OMP+PRIVATE( RK2, RK, RKT, SO2_cd, L1, Ld, L2, L2S, L3, L3S, FC, LWC )
 !$OMP+PRIVATE( KaqH2O2, KaqO3, ALK, ALK1, ALK2                         )
 !$OMP+PRIVATE( Kt1, Kt2, AREASS1, AREASS2, SO2_ss, Kt1N, Kt2N          )
-!$OMP+PRIVATE( PSO4E, PSO4F, XX, Kt1L, Kt2L                            )
+!$OMP+PRIVATE( PSO4E, PSO4F, XX, Kt1L, Kt2L, TNA                       )
 !$OMP+PRIVATE( HPLUS, SO4nss, TNH3,TNO3,CL,GNO3, ANIT,   LSTOT, ALKdst )
 !$OMP+PRIVATE( ALKds, ALKss,  NH3,  SSCvv, aSO4, SO2_sr, SR,    TANIT  )
 !$OMP+PRIVATE( BULK,  SIZE_RES,     RC, AlkA, AlkC                     )
@@ -2971,8 +2971,11 @@
          ENDIF
 
          ! Store sea salt alkalinity
-         !SSAlk(I,J,L,1) = AlkA
-         !SSAlk(I,J,L,2) = AlkC
+         ! StateChem%SSAlk can be removed at some point, xnw 12/8/17
+         SSAlk(I,J,L,1) = AlkA * (7.0d-2 * State_Met%AD(I,J,L)) / 
+     &        (AIRMW / State_Chm%SpcData(id_SALAAL)%Info%emMW_g)
+         SSAlk(I,J,L,2) = AlkC * (7.0d-2 * State_Met%AD(I,J,L)) / 
+     &        (AIRMW / State_Chm%SpcData(id_SALCAL)%Info%emMW_g)
 
          ! Update sea salt alkalinity [v/v], xnw 12/8/17
          Spc(I,J,L,id_SALAAL) = AlkA
@@ -3181,6 +3184,13 @@
             CL       = ( Spc(I,J,L,id_SALACL) * 0.7e+0_fp ) +
      &                   Spc(I,J,L,id_HCL)
 
+            ! Get total sodium (Na) concentration and convert from [v/v]
+            ! to [moles/liter]
+            ! Use a cloud scavenging ratio of 0.7
+            TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *
+     &                 ( 31.6e+0_fp * 0.378e+0_fp / 23.e+0_fp ) *
+     &                 0.7e+0_fp / ( AIRMW * LWC )
+
 	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
      	    ! Use a cloud scavenging ratio of 0.7 for NIT
 	    IF ( IS_FULLCHEM ) THEN
@@ -3195,7 +3205,7 @@
 	    ENDIF
 		
             ! Calculate cloud pH
-	    CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL, TK, 
+	    CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL, TNA, TK, 
      &                        PATM,   LWC,  HPLUS_45, HPLUS )
 
             ! Store the cloud pH
@@ -3830,7 +3840,7 @@
       ! Free pointers
       Spc     => NULL()
       pHCloud => NULL()
-      !SSAlk   => NULL()
+      SSAlk   => NULL()
 
       END SUBROUTINE CHEM_SO2
 !EOC
@@ -4314,6 +4324,12 @@
       IF ( id_HCl > 0 ) THEN
          HCl_ss = ( TITR_HCl * AIRMW / AD(I,J,L) ) / 1000.0_fp
          Spc(I,J,L,id_HCl) = MAX( HCl_vv - HCl_ss, MINDAT )
+      ENDIF
+
+      IF ( ND05 > 0 .and. L <= LD05 ) THEN
+         ! L(HCl) on sea-salt aerosols [kg Cl/timestep]
+         AD05(I,J,L,20) = AD05(I,J,L,20) +
+     &                  HCl_ss * State_Met%AD(I,J,L) /(AIRMW/35.45_fP)
       ENDIF
 
 #if defined( BPCH_DIAG )
@@ -4991,7 +5007,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2, CL,
+      SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2, CL, TNA,
      &                      T,      PRES, LWC,  iHPLUS, HPLUS )
 !
 ! !USES:
@@ -5006,6 +5022,7 @@
       REAL(fp),  INTENT(IN)    :: TNH3   ! NH3 mixing ratio [v/v]
       REAL(fp),  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
       REAL(fp),  INTENT(IN)    :: CL     ! Total chloride (gas+particulate) mixing
+      REAL(fp),  INTENT(IN)    :: TNA    ! Sodium (particulate) [v/v]
       REAL(fp),  INTENT(IN)    :: T      ! Temperature [K]
       REAL(fp),  INTENT(IN)    :: PRES   ! Dry air partial ressure [atm]
       REAL(fp),  INTENT(IN)    :: LWC    ! Cloud liquid water content [m3/m3]
@@ -5108,7 +5125,7 @@
 
 	 F = KCO2p2 + KSO2p2
 
-	 G = KNH3p
+	 G = KNH3p + TNA
 
 	 H = 1 + G
 
@@ -5573,7 +5590,7 @@
       ! kHCl begins here!
       !=================================================================
 
-      ! HNO3 dissolution constants
+      ! HCl dissolution constants
       HCl_T = Hcl*exp(Dhcl*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
       Kcl_T = Kcl*exp(DhrKcl*((1.0e+0_fp/T)-(1.0e+0_fp/298.0e+0_fp)))
 
@@ -7794,10 +7811,10 @@
       REAL(fp), PARAMETER :: MINDAT = 1.e-20_fp
       INTEGER             :: IRH
       REAL(fp), PARAMETER :: gamma_SO2 = 0.11e+0_fp !from Worsnop et al.(1989)
-      REAL(fp), PARAMETER :: gamma_HNO3 = 0.2e+0_fp !from JPL [2001]
-      ! alpha for HCl on liquid water surfaces, from JPL,2015
-      REAL(fp), PARAMETER :: gamma_HCl = 0.05e+0_fp
-      REAL(fp), PARAMETER :: Dg = 0.2e+0_fp !gas phase diffusion coeff. [cm2/s]
+      REAL(fp), PARAMETER :: gamma_HNO3 = 0.5e+0_fp !from JPL [2015]
+      ! Mass accommodation coefficient alpha for HCl on liquid water surfaces, from JPL,2015
+      REAL(fp), PARAMETER :: gamma_HCl = 0.07e+0_fp
+      REAL(fp)            :: Dg    !gas phase diffusion coeff. [cm2/s]
       REAL(fp), PARAMETER :: v = 3.0e+4_fp  !cm/s
       REAL(fp)            :: SA1, SA2 ! SSA surface area [cm2/cm3]
       REAL(fp)            :: R1, R2 ! SSA radius [cm]
@@ -7945,6 +7962,8 @@
          ! SO2 uptake onto fine particles 
          !----------------------------------
 
+         DG = 9.45E+17_fp/State_Met%AIRNUMDEN(I,J,L) * 
+     &  SQRT(State_Met%T(I,J,L)) * SQRT(3.472E-2_fp +1.E+0_fp/64.e+0_fp)
 	 ! calculate gas-to-particle rate constant for uptake of 
 	 ! SO2 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1 = 4.e+0_fp/(V*GAMMA_SO2)
@@ -7977,6 +7996,8 @@
          ! HNO3 uptake onto fine particles 
          !----------------------------------
 
+         DG = 9.45E+17_fp/State_Met%AIRNUMDEN(I,J,L) * 
+     &  SQRT(State_Met%T(I,J,L)) * SQRT(3.472E-2_fp +1.E+0_fp/63.e+0_fp)
          ! calculate gas-to-particle rate constant for uptake of 
          ! HNO3 onto fine sea-salt aerosols [Jacob, 2000] analytical solution
          CONST1N = 4.e+0_fp/(V*GAMMA_HNO3)
@@ -8006,6 +8027,8 @@
          !----------------------------------
          ! HCl uptake onto fine particles 
          !----------------------------------
+         DG = 9.45E+17_fp/State_Met%AIRNUMDEN(I,J,L) *
+     &  SQRT(State_Met%T(I,J,L))*SQRT(3.472E-2_fp +1.E+0_fp/36.45e+0_fp)
          CONST1L = 4.e+0_fp/(V*GAMMA_HCl)
          KT1L    = SA1/((R1/DG) + CONST1L)
          !----------------------------------
@@ -8350,7 +8373,7 @@
       id_SO4s  = Ind_('SO4s'     )
       id_SALACL= Ind_('SALACL'   )
       id_HCL   = Ind_('HCL'     )
-      id_NH4s  = Ind_('NH4s'     )
+      !id_NH4s  = Ind_('NH4s'     )
       id_SALCCL= Ind_('SALCCL'   )
       id_SALAAL= Ind_('SALAAL'   )
       id_SALCAL= Ind_('SALCAL'   )
@@ -8368,7 +8391,7 @@
       DRYSO4d2 = Ind_('SO4d2','D')
       DRYSO4d3 = Ind_('SO4d3','D')
       DRYSO4d4 = Ind_('SO4d4','D')
-      DRYNH4s  = Ind_('NH4s', 'D')
+      !DRYNH4s  = Ind_('NH4s', 'D')
 
       ! Error check the dust uptake species
       IF ( Input_Opt%LDSTUP ) THEN

@@ -1987,13 +1987,13 @@
                   ! ISORROPIA H+ and pH (eam, 06/2015)
                   !--------------------------
                   CASE( 5001 )
-                     VARI(V) = State_Chm%HplusSav(I,J,L)
+                     VARI(V) = State_Chm%HplusSav(I,J,L,1)
 
                   CASE( 5002 )
-                     VARI(V) = State_Chm%pHSaV(I,J,L)
+                     VARI(V) = State_Chm%pHSaV(I,J,L,1)
 
                   CASE( 5003 )
-                     VARI(V) = State_Chm%WaterSav(I,J,L)
+                     VARI(V) = State_Chm%WaterSav(I,J,L,1)
 
                   CASE( 5004 )
                      VARI(V) = State_Chm%BisulSav(I,J,L)

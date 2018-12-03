@@ -5956,30 +5956,30 @@
 
       IF (LAST_YEAR .ne. CH4_TARG_YEAR) THEN
          ! Get CH4 [ppbv] in 4 latitude bins for each year
-         CALL GET_GLOBAL_CH4( BASE_YEAR, .TRUE., MR90S,
+         CALL GET_GLOBAL_CH4( CH4_YEAR, .TRUE., MR90S,
      &                        MR30S,     MR30N,  MR90N,
      &                        am_I_Root, Input_Opt      )
 
          ! Convert from [ppbv] to [vv] and scale by year
          ! Using just one month's data to be consistent with
          ! base GEOS-Chem approach to CH4 (1-yr resolution)
-         IF (CH4_YEAR > BASE_YEAR) THEN
-            IF (UCXNETCDF) THEN
-               CH4_SCALE = (1.0e-9_fp)*
-     &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
-     &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
-            ELSE
-!               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
-!               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
-!               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
-!     &                       GET_MONTREAL('CH4',BASIS_LINE)
-               THIS_YEAR = CFCYEAR+OFFSETYEAR
-               CH4_SCALE = (1.0e-9_fp) * SFCMR_GET('CH4',THIS_YEAR,1)
-     &                   / SFCMR_GET('CH4',REF_YEAR,1)
-            ENDIF
-         ELSE
+!         IF (CH4_YEAR > BASE_YEAR) THEN
+!            IF (UCXNETCDF) THEN
+!               CH4_SCALE = (1.0e-9_fp)*
+!     &               GET_MONTREAL_NCDF('CH4',CFCYEAR+OFFSETYEAR,1)/
+!     &               GET_MONTREAL_NCDF('CH4',REF_YEAR,1)
+!            ELSE
+!!               FUTURE_LINE = (12*(CFCYEAR+OFFSETYEAR-1959)) + 1
+!!               BASIS_LINE = (12*(REF_YEAR-1959)) + 1
+!!               CH4_SCALE = (1.0d-9)*GET_MONTREAL('CH4',FUTURE_LINE)/
+!!     &                       GET_MONTREAL('CH4',BASIS_LINE)
+!               THIS_YEAR = CFCYEAR+OFFSETYEAR
+!               CH4_SCALE = (1.0e-9_fp) * SFCMR_GET('CH4',THIS_YEAR,1)
+!     &                   / SFCMR_GET('CH4',REF_YEAR,1)
+!            ENDIF
+!         ELSE
             CH4_SCALE = 1.0e-9_fp
-         ENDIF
+!         ENDIF
 
          MR90S = MR90S * CH4_SCALE
          MR30S = MR30S * CH4_SCALE

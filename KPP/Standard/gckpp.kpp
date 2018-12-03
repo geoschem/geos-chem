@@ -13,6 +13,11 @@ LOx : O3 + NO2 + 2NO3 + PAN + NPMN + PPN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + Br
 PCO : CO;
 LCO : CO;
 PSO4 : SO4;
+Px01 : x01;
+Px02 : x02;
+Px03 : x03;
+Px04 : x04;
+Px05 : x05;
 
 #INLINE F90_RATES
   REAL(kind=dp) FUNCTION OH_O1D (J, H2O, TEMP, NUMDEN)
@@ -310,7 +315,7 @@ PSO4 : SO4;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-      REAL(kind=dp) :: HET(NSPEC,7), PHOTOL(1000)
+      REAL(kind=dp) :: HET(NSPEC,8), PHOTOL(1000)
       REAL(kind=dp) :: NUMDEN, H2O, PRESS
 
 !-----------------------------------------------------------------------

@@ -532,7 +532,8 @@ CONTAINS
     RTOL      = 0.5e-2_dp    
 #else
     ! Relative tolerance, non-UCX mechanisms
-    RTOL      = 2e-1_dp    
+    !RTOL      = 2e-1_dp    
+    RTOL      = 0.5e-2_dp
 #endif
 
     !%%%%% SOLVER OPTIONS %%%%%
@@ -898,8 +899,6 @@ CONTAINS
 
        ENDIF
 
-       C(ind_ACTA)  = 0.0_dp
-       C(ind_HCOOH) = 0.0_dp
 #if defined( UCX )
        C(ind_O2) = 0.2095e+0_dp * NUMDEN
        C(ind_N2) = 0.7808e+0_dp * NUMDEN
@@ -979,9 +978,16 @@ CONTAINS
 !         CALL CPU_TIME( start )
 !#endif
 
+
        ! Call the KPP integrator
        CALL Integrate( TIN,    TOUT,    ICNTRL,      &
                        RCNTRL, ISTATUS, RSTATE, IERR )
+
+       DO F = 1, NVar
+          IF (ISNAN(VAR(F))) THEN
+             PRINT*, F
+          ENDIF
+       ENDDO
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
@@ -1003,11 +1009,6 @@ CONTAINS
 !       totrejec = totrejec + ISTATUS(5)
 !       totnumLU = totnumLU + ISTATUS(6)
 !#endif
-
-       ! Zero certain species
-       C(ind_ACTA)  = 0.e0_dp
-       C(ind_EOH)   = 0.e0_dp
-       C(ind_HCOOH) = 0.e0_dp
 
        ! Try another time if it failed
        IF ( IERR < 0 ) THEN
@@ -1079,6 +1080,11 @@ CONTAINS
 
              ! Archive prod or loss for species or families [molec/cm3/s]
              AD65(I,J,L,F) = AD65(I,J,L,F) + VAR(KppID) / DT
+
+             If (ISNAN(AD65(I,J,L,F))) THEN
+                PRINT*, KppID, VAR(KppID), VAR(32) 
+                STOP
+             ENDIF
 
              ! Save out P(Ox) and L(Ox) from the fullchem simulation
              ! for a future tagged O3 run

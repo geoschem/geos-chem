@@ -6455,8 +6455,13 @@
             NN = N
 
             DO L = 1, LD73
-               ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+               IF ( NN == 4 ) THEN
+                  ARRAY(:,:,L) = AD73(:,:,L,N)
+               ELSE 
+                  ARRAY(:,:,L) = AD73(:,:,L,N) / SCALECHEM
+               ENDIF
             ENDDO
+
 
             ! Get correct units:
             IF ( NN == 2 ) THEN
@@ -6465,6 +6470,10 @@
             IF ( NN == 3 ) THEN
                UNIT = 'ug/m3'
             ENDIF
+            IF ( NN == 4 ) THEN
+               UNIT = 'kgCl'
+            ENDIF
+
 
             ! Save to disk
             CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,

@@ -25,7 +25,7 @@
 !
 ! !DEFINED PARAMETERS:
 !
-      INTEGER, PARAMETER :: PD05=19
+      INTEGER, PARAMETER :: PD05=20
       INTEGER, PARAMETER :: PD06=NDSTBIN
       ! +3 for SEAC4RS SOA tracers (jaf, 6/25/13)
       INTEGER, PARAMETER :: PD07=15
@@ -80,7 +80,7 @@
       INTEGER, PARAMETER :: PD72=187 ! Radiation (Ridley 10/2012)
 
       ! (eam, 2015): ISORROPIA pH, H+, & aerosol water
-      INTEGER, PARAMETER :: PD73=3 
+      INTEGER, PARAMETER :: PD73=4 
 
       !=================================================================
       ! Variables for printing out selected tracers in diagnostic output

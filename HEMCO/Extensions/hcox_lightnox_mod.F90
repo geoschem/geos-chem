@@ -1651,12 +1651,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2016-10-25).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
-         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
-         ( cYr .eq. 2016 .and. cMt .le. 7  ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 84.290354
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-24).
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 85.362449d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID2x25 )
@@ -1666,12 +1664,10 @@ CONTAINS
     !---------------------------------------
 
     ! Constrained with simulated "climatology" for
-    ! April 2012 - Apr 2016. Will need to be updated as more
-    ! met fields become available (ltm, 2016-10-07).
-    IF ( ( cYr .eq. 2012 .and. cMt .ge. 4    ) .or. &
-         ( cYr .ge. 2013 .and. cYr .le. 2015 ) .or. &
-         ( cYr .eq. 2016 .and. cMt .le. 4  ) ) THEN
-       BETA = ANN_AVG_FLASHRATE / 185.36d0
+    ! April 2012 - Jul 2017. Will need to be updated as more
+    ! met fields become available (ltm, 2017-09-24).    
+    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+       BETA = ANN_AVG_FLASHRATE / 269.13945d0
     ENDIF
 
 #elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )

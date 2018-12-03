@@ -113,7 +113,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 29
+  INTEGER,           PARAMETER :: N_SPEC  = 31
 !
 ! !PRIVATE TYPES:
 !
