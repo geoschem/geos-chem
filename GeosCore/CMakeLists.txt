@@ -16,8 +16,10 @@ add_static_target(Transport
         HCOI ${GC_EXTRA_TARGETS}
 )
 target_compile_options(Transport 
-    PRIVATE 
-        -r8
+    PRIVATE     
+        ""
+        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
+	$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8>
 )
 
 add_static_target(GeosCore

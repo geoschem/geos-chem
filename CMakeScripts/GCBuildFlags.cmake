@@ -160,10 +160,9 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     )
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
-        -fPIC -cpp -w -std=legacy -fautomatic -fno-align-commons
-        -fconvert=native # ONLY FOR HPC 
-        -fno-range-check
-
+        -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian -fno-range-check -O3 
+        -funroll-loops -fopenmp -mcmodel=medium -fbacktrace -g 
+        
         -DLINUX_GFORTRAN
 
         LOG RESULTING_DEFINES_LOG

@@ -39,3 +39,9 @@ add_static_target(HCO
     PUBLIC_LINK
         History
 )
+
+target_compile_options(HCO
+    PRIVATE
+        ""
+        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-form -ffree-line-length-none>
+)
