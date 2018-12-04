@@ -1,3 +1,4 @@
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1519,3 +1520,4 @@ CONTAINS
       END SUBROUTINE COPY_I3_FIELDS
 !EOC
 END MODULE FlexGrid_Read_Mod
+#endif
