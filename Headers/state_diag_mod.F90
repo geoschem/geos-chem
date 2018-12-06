@@ -569,6 +569,36 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_RadClrSkySWTOA  
 
      !----------------------------------------------------------------------
+     ! Variables for the ObsPack diagnostic
+     ! NOTE: ObsPack archives point data, so don't register these
+     ! as the ObsPack file format won't be COARDS-compliant!
+     !----------------------------------------------------------------------
+     LOGICAL                      :: Do_ObsPack
+     INTEGER                      :: ObsPack_fId
+     INTEGER                      :: ObsPack_nObs
+     INTEGER                      :: ObsPack_nTracers
+     REAL(f8)                     :: ObsPack_AvgIval_Length
+     CHARACTER(LEN=1024)          :: ObsPack_InFile
+     CHARACTER(LEN=1024)          :: ObsPack_OutFile
+     CHARACTER(LEN=100 ), POINTER :: ObsPack_Id          (:  )
+     INTEGER,             POINTER :: ObsPack_nSamples    (:  )
+     INTEGER,             POINTER :: ObsPack_Strategy    (:  )
+     REAL(f4),            POINTER :: ObsPack_Latitude    (:  )
+     REAL(f4),            POINTER :: ObsPack_Longitude   (:  )
+     REAL(f4),            POINTER :: ObsPack_Altitude    (:  )
+     REAL(f8),            POINTER :: ObsPack_Ival_Start  (:  )
+     REAL(f8),            POINTER :: ObsPack_Ival_Center (:  )
+     REAL(f8),            POINTER :: ObsPack_Ival_End    (:  )
+     REAL(f4),            POINTER :: ObsPack_Accum_Weight(:  )
+     REAL(f4),            POINTER :: ObsPack_U           (:  )
+     REAL(f4),            POINTER :: ObsPack_V           (:  )
+     REAL(f4),            POINTER :: ObsPack_BLH         (:  )
+     REAL(f4),            POINTER :: ObsPack_Q           (:  )
+     REAL(f4),            POINTER :: ObsPack_Pressure    (:  )
+     REAL(f4),            POINTER :: ObsPack_Temperature (:  )
+     REAL(f4),            POINTER :: ObsPack_Tracers     (:,:)
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'DIAG'   ! Name of this state
@@ -1197,6 +1227,32 @@ CONTAINS
     State_Diag%Archive_ProdHg2fromO3               = .FALSE.
     State_Diag%Archive_ParticulateBoundHg          = .FALSE.
     State_Diag%Archive_ReactiveGaseousHg           = .FALSE.
+
+    ! ObsPack diagnostic quantities
+    State_Diag%Do_ObsPack                          = .FALSE.
+    State_Diag%ObsPack_fId                         =  0
+    State_Diag%ObsPack_nObs                        =  0
+    State_Diag%ObsPack_nTracers                    =  0
+    State_Diag%ObsPack_AvgIval_Length              =  0.0_f8
+    State_Diag%ObsPack_InFile                      =  ''
+    State_Diag%ObsPack_OutFile                     =  ''
+    State_Diag%ObsPack_Id                          => NULL()
+    State_Diag%ObsPack_nSamples                    => NULL()
+    State_Diag%ObsPack_Strategy                    => NULL()
+    State_Diag%ObsPack_Latitude                    => NULL()
+    State_Diag%ObsPack_Longitude                   => NULL()
+    State_Diag%ObsPack_Altitude                    => NULL()
+    State_Diag%ObsPack_Ival_Start                  => NULL()
+    State_Diag%ObsPack_Ival_Center                 => NULL()
+    State_Diag%ObsPack_Ival_End                    => NULL()
+    State_Diag%ObsPack_Accum_Weight                => NULL()
+    State_Diag%ObsPack_U                           => NULL()
+    State_Diag%ObsPack_V                           => NULL()
+    State_Diag%ObsPack_BLH                         => NULL()
+    State_Diag%ObsPack_Q                           => NULL()
+    State_Diag%ObsPack_Pressure                    => NULL()
+    State_Diag%ObsPack_Temperature                 => NULL()
+    State_Diag%ObsPack_Tracers                     => NULL()
 
 #if defined( NC_DIAG )
 

@@ -42,6 +42,8 @@
       PRIVATE :: READ_DEPOSITION_MENU
       PRIVATE :: READ_OUTPUT_MENU
       PRIVATE :: READ_DIAGNOSTIC_MENU
+      PRIVATE :: READ_PLANEFLIGHT_MENU
+      PRIVATE :: READ_OBSPACK_MENU
       PRIVATE :: SET_TINDEX
       PRIVATE :: READ_ND49_MENU      
       PRIVATE :: READ_ND50_MENU  
@@ -445,7 +447,15 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
+         ELSE IF ( INDEX( LINE, 'OBSPACK MENU' ) > 0 ) THEN
+            CALL READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )   
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Read_ObsPack_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
          ! Read even if BPCH_DIAG=n so that time series diags may be
          ! output if other diagnostics are output as netcdf (ewl, 4/5/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
@@ -5333,6 +5343,122 @@
      &                      Input_Opt%PF_OFILE )
    
       END SUBROUTINE READ_PLANEFLIGHT_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_obspack_menu
+!
+! !DESCRIPTION: Subroutine READ\_OBSPACK\_MENU reads the OBSPACK MENU
+!  section of the GEOS-Chem input file.  This turns on the ObsPack diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,   ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_OBSPACK_MENU begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = 'Error reading the "input.geos" file!'
+      ThisLoc =
+     &  ' -> at Read_ObsPack_Menu (in module GeosCore/input_mod.F)'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &            'must be read in first!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Turn on planeflight diagnostic?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_ObsPack', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%Do_ObsPack
+
+      ! Input file name (w/ flight track data points)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPackInputFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPackInputFile
+
+      ! Output file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPackOutputFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPackOutputFile
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100 ) 'Turn on ObsPack diagnostic? : ',
+     &                    Input_Opt%Do_ObsPack
+         WRITE( 6, 110 ) 'ObsPack input file          : ',
+     &                    TRIM( Input_Opt%ObsPackInputFile )
+         WRITE( 6, 110 ) 'ObsPack output file         : ',
+     &                    TRIM( Input_Opt%ObsPackOutputFile )
+      ENDIF
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+
+      END SUBROUTINE READ_OBSPACK_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

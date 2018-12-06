@@ -327,6 +327,13 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: PF_OFILE
 
      !----------------------------------------
+     ! OBSPACK MENU fields
+     !----------------------------------------
+     LOGICAL                     :: Do_ObsPack
+     CHARACTER(LEN=255)          :: ObsPackInputFile
+     CHARACTER(LEN=255)          :: ObsPackOutputFile
+
+     !----------------------------------------
      ! ND48 MENU fields
      !----------------------------------------
      LOGICAL                     :: DO_ND48
@@ -1075,6 +1082,13 @@ CONTAINS
     Input_Opt%DO_PF                  = .FALSE.
     Input_Opt%PF_IFILE               = ''
     Input_Opt%PF_OFILE               = ''
+
+    !----------------------------------------
+    ! PLANEFLIGHT MENU fields
+    !----------------------------------------
+    Input_Opt%Do_ObsPack             = .FALSE.
+    Input_Opt%ObsPackInputFile       = ''
+    Input_Opt%ObsPackOutputFile      = ''
 
     !----------------------------------------
     ! ND48 MENU fields
