@@ -24,7 +24,6 @@ MODULE Input_Opt_Mod
 !
   PUBLIC :: Set_Input_Opt
   PUBLIC :: Set_Input_Opt_Advect
-  PUBLIC :: Set_Input_Opt_Passive
   PUBLIC :: Cleanup_Input_Opt
 !
 ! !PUBLIC DATA MEMBERS:
@@ -46,8 +45,10 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! SIZE PARAMETER fields
      !----------------------------------------
-     INTEGER                     :: MAX_DIAG
-     INTEGER                     :: MAX_FAM
+     INTEGER                     :: Max_BPCH_Diag
+     INTEGER                     :: Max_Families
+     INTEGER                     :: Max_AdvectSpc
+     INTEGER                     :: Max_PassiveSpc
 
      !----------------------------------------
      ! SIMULATION MENU fields 
@@ -645,18 +646,6 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Set the following fields of Input_Opt outside of this routine:
-!  (1 ) Input_Opt%MAX_DIAG      : Max # of diagnostics
-!  (3 ) Input_Opt%MAX_MEMB      : Max # of members per family tracer
-!  (4 ) Input_Opt%MAX_FAM       : Max # of P/L diagnostic families
-!  (5 ) Input_Opt%MAX_DEP       : Max # of dry depositing species
-!  (6 ) Input_Opt%MAX_PASV      : Max # of passive species
-!  (7 ) Input_Opt%LINOZ_NLEVELS : Number of levels    in LINOZ climatology
-!  (8 ) Input_Opt%LINOZ_NLAT    : Number of latitudes in LINOZ climatology
-!  (9 ) Input_Opt%LINOZ_NMONTHS : Number of months    in LINOZ climatology
-!  (10) Input_Opt%LINOZ_NFIELDS : Number of species   in LINOZ climatology
-!                                                                             .
-!  We also need to implement better error checking.
 !
 ! !REVISION HISTORY: 
 !  01 Nov 2012 - R. Yantosca - Initial version
@@ -705,8 +694,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: MAX_DIAG, MAX_FAM
-
     ! Assume success
     RC                               = GC_SUCCESS
 
@@ -719,11 +706,19 @@ CONTAINS
     Input_Opt%RootCPU                = .false.
     
     !----------------------------------------
-    ! SIZE PARAMETER fields 
+    ! SIZE PARAMETER fields
+    !
+    ! Set to large placeholder values
     !----------------------------------------
-    MAX_DIAG                         = Input_Opt%MAX_DIAG
-    MAX_FAM                          = Input_Opt%MAX_FAM
-  
+#if   defined( RRTMG )
+    Input_Opt%Max_BPCH_Diag          = 187 ! Mirror MAX_DIAG in CMN_DIAG_mod.F
+#else
+    Input_Opt%Max_BPCH_Diag          = 80  ! Mirror MAX_DIAG in CMN_DIAG_mod.F
+#endif
+    Input_Opt%Max_Families           = 250
+    Input_Opt%Max_AdvectSpc          = 300
+    Input_Opt%Max_PassiveSpc         = 50
+
     !----------------------------------------
     ! SIMULATION MENU fields 
     !----------------------------------------
@@ -744,20 +739,10 @@ CONTAINS
     Input_Opt%HcoConfigFile          = ''
 
     !----------------------------------------
-    ! PASSIVE SPECIES MENU fields
-    !----------------------------------------
-    Input_Opt%NPASSIVE               = 0 
-    Input_Opt%NPASSIVE_DECAY         = 0 
-                                  
-    !----------------------------------------
     ! ADVECTED SPECIES MENU fields
     !----------------------------------------
 
-    ! Hardcode maximum number of advected species to a large
-    ! value for now and add check in READ_SIMULATION_MENU (input_mod.F)
-    ! to make sure we don't exceed this value. Eventually we need to
-    ! think of a better way to do this. (mps, 1/26/18)
-    ALLOCATE( Input_Opt%AdvectSpc_Name( 600 ), STAT=RC )
+    ALLOCATE( Input_Opt%AdvectSpc_Name( Input_Opt%Max_AdvectSpc ), STAT=RC )
 
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
@@ -777,6 +762,26 @@ CONTAINS
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_H2HD_SIM         = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
+
+    !----------------------------------------
+    ! PASSIVE SPECIES MENU fields
+    !----------------------------------------
+
+    ALLOCATE( Input_Opt%PASSIVE_NAME    ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_ID      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_MW      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_TAU     ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+
+    Input_Opt%NPASSIVE               = 0 
+    Input_Opt%NPASSIVE_DECAY         = 0 
+    Input_Opt%PASSIVE_NAME           = ''
+    Input_Opt%PASSIVE_ID             = 0
+    Input_Opt%PASSIVE_MW             = 0e+0_fp
+    Input_Opt%PASSIVE_TAU            = 0e+0_fp
+    Input_Opt%PASSIVE_INITCONC       = 0e+0_fp
+    Input_Opt%PASSIVE_DECAYID        = 0
 
     !----------------------------------------
     ! AEROSOL MENU fields
@@ -926,8 +931,8 @@ CONTAINS
     Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
     Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TCOUNT( MAX_DIAG  ), STAT=RC )
-    ALLOCATE( Input_Opt%TMAX  ( MAX_DIAG  ), STAT=RC )
+    ALLOCATE( Input_Opt%TCOUNT( Input_Opt%Max_BPCH_Diag ), STAT=RC )
+    ALLOCATE( Input_Opt%TMAX  ( Input_Opt%Max_BPCH_Diag ), STAT=RC )
 
     Input_Opt%ND01                   = 0
     Input_Opt%ND02                   = 0
@@ -1168,8 +1173,8 @@ CONTAINS
     !----------------------------------------
     ! PROD LOSS MENU fields
     !---------------------------------------
-    ALLOCATE( Input_Opt%FAM_NAME( MAX_FAM ), STAT=RC )
-    ALLOCATE( Input_Opt%FAM_TYPE( MAX_FAM ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_NAME( Input_Opt%Max_Families ), STAT=RC )
+    ALLOCATE( Input_Opt%FAM_TYPE( Input_Opt%Max_Families ), STAT=RC )
 
     Input_Opt%DO_SAVE_PL             = .FALSE.
     Input_Opt%ND65                   = 0
@@ -1340,36 +1345,37 @@ CONTAINS
     ! Allocate arrays
     !=======================================================================
 
-    ALLOCATE( Input_Opt%TINDEX(Input_Opt%MAX_DIAG,Input_Opt%N_ADVECT), STAT=RC )
+    ALLOCATE( Input_Opt%TINDEX(Input_Opt%Max_BPCH_Diag,Input_Opt%N_ADVECT), &
+              STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%TINDEX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%TINDEX = 0
 
-    ALLOCATE( Input_Opt%ND49_TRACERS(Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND49_TRACERS(Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
               STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%ND49_TRACERS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%ND49_TRACERS = 0
 
-    ALLOCATE( Input_Opt%ND50_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND50_TRACERS (Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
               STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%ND50_TRACERS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%ND50_TRACERS = 0
 
-    ALLOCATE( Input_Opt%ND51_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND51_TRACERS (Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
               STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%ND51_TRACERS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%ND51_TRACERS = 0
 
-    ALLOCATE( Input_Opt%ND51b_TRACERS(Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND51b_TRACERS(Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
               STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%ND51b_TRACERS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     Input_Opt%ND51b_TRACERS = 0
 
-    ALLOCATE( Input_Opt%ND63_TRACERS (Input_Opt%N_ADVECT+Input_Opt%MAX_DIAG),&
+    ALLOCATE( Input_Opt%ND63_TRACERS (Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
               STAT=RC )
     CALL GC_CheckVar( 'Input_Opt%ND63_TRACERS', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -1377,96 +1383,96 @@ CONTAINS
 
   END SUBROUTINE Set_Input_Opt_Advect
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Set_Input_Opt_Passive
+!!
+!! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_PASSIVE intializes all GEOS-Chem
+!!  options carried in Input Options derived type object that depend on
+!!  the number of passive species (Input\_Opt%N_PASSIVE).
+!!\\
+!!\\
+!! !INTERFACE:
+!!
+!  SUBROUTINE Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
+!!
+!! !USES:
+!!
+!    USE ErrCode_Mod
+!!
+!! !INPUT PARAMETERS: 
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!!
+!! !INPUT/OUTPUT PARAMETERS: 
+!!
+!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!!
+!! !REMARKS:
+!!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
+!!  be removed from GEOS-Chem.
 !
-! !IROUTINE: Set_Input_Opt_Passive
+!! !REVISION HISTORY: 
+!!  04 Apr 2018 - E. Lundgren - Initial version
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    ! Strings
+!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 !
-! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_PASSIVE intializes all GEOS-Chem
-!  options carried in Input Options derived type object that depend on
-!  the number of passive species (Input\_Opt%N_PASSIVE).
-!\\
-!\\
-! !INTERFACE:
+!    !=======================================================================
+!    ! Initialize
+!    !=======================================================================
+!    RC      = GC_SUCCESS
+!    ErrMsg  = ''
+!    ThisLoc = &
+!       ' -> at Set_Input_Opt_Passive (in module Headers/input_opt_mod.F90)'
 !
-  SUBROUTINE Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
+!    !=======================================================================
+!    ! Allocate arrays
+!    !=======================================================================
+!    ALLOCATE( Input_Opt%PASSIVE_NAME( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_NAME', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_NAME = ''
 !
-! !USES:
+!    ALLOCATE( Input_Opt%PASSIVE_ID( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_ID', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_ID = -999
 !
-    USE ErrCode_Mod
+!    ALLOCATE( Input_Opt%PASSIVE_MW( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_MW', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_MW = 0.0_fp
 !
-! !INPUT PARAMETERS: 
+!    ALLOCATE( Input_Opt%PASSIVE_TAU( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_TAU', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_TAU = 0.0_fp
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_INITCONC', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_INITCONC = 0.0_fp
 !
-! !INPUT/OUTPUT PARAMETERS: 
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
-!  be removed from GEOS-Chem.
-
-! !REVISION HISTORY: 
-!  04 Apr 2018 - E. Lundgren - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-    !=======================================================================
-    ! Initialize
-    !=======================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = &
-       ' -> at Set_Input_Opt_Passive (in module Headers/input_opt_mod.F90)'
-
-    !=======================================================================
-    ! Allocate arrays
-    !=======================================================================
-    ALLOCATE( Input_Opt%PASSIVE_NAME( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_NAME', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_NAME = ''
-
-    ALLOCATE( Input_Opt%PASSIVE_ID( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_ID', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_ID = -999
-
-    ALLOCATE( Input_Opt%PASSIVE_MW( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_MW', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_MW = 0.0_fp
-
-    ALLOCATE( Input_Opt%PASSIVE_TAU( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_TAU', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_TAU = 0.0_fp
-
-    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_INITCONC', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_INITCONC = 0.0_fp
-
-    ALLOCATE( Input_Opt%PASSIVE_DECAYID( Input_Opt%NPASSIVE ), STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%PASSIVE_DECAYID', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%PASSIVE_DECAYID = 0
-                                  
-  END SUBROUTINE Set_Input_Opt_Passive
-!EOC
+!    ALLOCATE( Input_Opt%PASSIVE_DECAYID( Input_Opt%NPASSIVE ), STAT=RC )
+!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_DECAYID', 0, RC )
+!    IF ( RC /= GC_SUCCESS ) RETURN
+!    Input_Opt%PASSIVE_DECAYID = 0
+!                                  
+!  END SUBROUTINE Set_Input_Opt_Passive
+!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

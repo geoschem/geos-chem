@@ -738,7 +738,7 @@
       RC = GC_SUCCESS
 
       ! First-time initialization
-      IF ( FIRST .and. Input_Opt%RootCPU ) THEN
+      IF ( FIRST .and. am_I_Root ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )

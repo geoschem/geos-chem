@@ -415,16 +415,6 @@
       ErrMsg                  = ''
       ThisLoc                 = 'GEOS-Chem (in GeosCore/main.F)'
 
-      ! Define dimensions for fields of the Input Options object
-      ! NOTE: At this point we have not yet read in the "input.geos"
-      ! file so these are just placeholder values (bmy, 11/7/12)
-      Input_Opt%MAX_DIAG      = MAX_DIAG ! Max # of diags from CMN_DIAG_mod.F
-      Input_Opt%MAX_FAM       = 250      ! Set to large placeholder value
-      Input_Opt%LINOZ_NLAT    = 18
-      Input_Opt%LINOZ_NMONTHS = 12
-      Input_Opt%LINOZ_NFIELDS = 7
-      Input_Opt%RootCPU       = .TRUE.
-
       ! Initialize pointers
       mapping => NULL()
 
