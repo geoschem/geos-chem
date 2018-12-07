@@ -336,7 +336,7 @@ CONTAINS
        Item%KindVal    =  KINDVAL_F8
     ELSE IF ( PRESENT( Data2d_8 ) ) THEN
        Item%Rank       =  2
-       Item%Ptr2d_8    => Data2d
+       Item%Ptr2d_8    => Data2d_8
        Item%MemoryInKb =  KbPerElement * SIZE( Data2d_8  )
        Item%KindVal    =  KINDVAL_F8
     ELSE IF ( PRESENT( Data1d_8 ) ) THEN
@@ -505,8 +505,8 @@ CONTAINS
     ! Floating-point data pointers (4-byte precision)
     REAL(f8),   POINTER, OPTIONAL :: Ptr0d_8           ! 0D 8-byte data
     REAL(f8),   POINTER, OPTIONAL :: Ptr1d_8(:    )    ! 1D 8-byte data
-    REAL(f8),   POINTER, OPTIONAL :: Ptr2d_8(:,:  )    ! 2D flex-prec data
-    REAL(f8),   POINTER, OPTIONAL :: Ptr3d_8(:,:,:)    ! 3D flex-prec data
+    REAL(f8),   POINTER, OPTIONAL :: Ptr2d_8(:,:  )    ! 2D 8-byte data
+    REAL(f8),   POINTER, OPTIONAL :: Ptr3d_8(:,:,:)    ! 3D 8-byte data
 
     ! Floating-point data pointers (4-byte precision)
     REAL(f4),   POINTER, OPTIONAL :: Ptr0d_4           ! 0D 4-byte data

@@ -29,12 +29,6 @@
 
       IMPLICIT NONE
       PRIVATE
-!
-! !PUBLIC DATA MEMBERS:
-!
-      ! Soil NOx deposited N arrays
-      REAL(fp), PUBLIC, POINTER   :: DRY_TOTN (:,:) => NULL() ! Drydep'd N
-      REAL(fp), PUBLIC, POINTER   :: WET_TOTN (:,:) => NULL() ! Wetdep'd N
 ! 
 ! !PUBLIC MEMBER FUNCTIONS:
 !      
@@ -42,7 +36,6 @@
       PUBLIC  :: SOIL_WETDEP
       PUBLIC  :: RESET_DEP_N
       PUBLIC  :: Init_Get_Ndep
-      PUBLIC  :: Cleanup_Get_Ndep
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -56,6 +49,9 @@
 !  13 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  16 Jun 2016 - C. Miller   - Now define species ID flags with Ind_
 !  17 Jun 2016 - R. Yantosca - Add species ID flags as module variables
+!  11 Oct 2018 - M. Sulprizio- Move DRY_TOTN and WET_TOTN to State_Chm and
+!                              rename DryDepNitrogen and WetDepNitrogen;
+!                              Remove routine CLEANUP_GET_NDEP
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -94,19 +90,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOIL_DRYDEP( I, J, L, NN, TDRYFX )
+      SUBROUTINE SOIL_DRYDEP( I, J, L, NN, TDRYFX, State_Chm )
 !
 ! !USES:
 !
-      USE State_Chm_Mod,      only : Ind_
+      USE State_Chm_Mod, ONLY : ChmState
+
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN)   :: I          ! I
-      INTEGER, INTENT(IN)   :: J          ! J
-      INTEGER, INTENT(IN)   :: L          ! Level
-      INTEGER, INTENT(IN)   :: NN         ! Dry Dep Tracer # 
+      INTEGER,  INTENT(IN)  :: I          ! I
+      INTEGER,  INTENT(IN)  :: J          ! J
+      INTEGER,  INTENT(IN)  :: L          ! Level
+      INTEGER,  INTENT(IN)  :: NN         ! Dry Dep Tracer # 
       REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s] 
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -123,7 +124,8 @@
      &     NN == id_HNO3 .OR. NN == id_NH3     .OR.
      &     NN == id_NH4  .OR. NN == id_NH4aq   .OR.
      &     NN == id_NIT  .OR. NN == id_NITs  ) THEN
-         DRY_TOTN(I,J) = DRY_TOTN(I,J) + TDRYFX
+         State_Chm%DryDepNitrogen(I,J) = State_Chm%DryDepNitrogen(I,J) +
+     &                                   TDRYFX
       ENDIF
 
       END SUBROUTINE SOIL_DRYDEP
@@ -141,11 +143,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SOIL_WETDEP( I, J, L, NN, TWETFX )
+      SUBROUTINE SOIL_WETDEP( I, J, L, NN, TWETFX, State_Chm )
 !
 ! !USES:
 !
-      USE State_Chm_Mod,      Only : Ind_
+      USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -154,6 +156,10 @@
       INTEGER,  INTENT(IN) :: L          ! Level
       INTEGER,  INTENT(IN) :: NN         ! Wet Dep Tracer # 
       REAL(fp), INTENT(IN) :: TWETFX     ! Wet dep flux [kg/s] 
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - M. Payer    - Added ProTeX headers
@@ -174,7 +180,8 @@
       IF ( NN == id_NITs  ) SCAL = CONVNIT
 
       IF ( SCAL > 0e+0_fp ) THEN
-         WET_TOTN(I,J) = WET_TOTN(I,J) + ( TWETFX * SCAL )
+         State_Chm%WetDepNitrogen(I,J) = State_Chm%WetDepNitrogen(I,J) +
+     &                                   ( TWETFX * SCAL )
       ENDIF
 
       END SUBROUTINE SOIL_WETDEP
@@ -192,7 +199,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE RESET_DEP_N()
+      SUBROUTINE RESET_DEP_N( State_Chm )
+!
+! !USES:
+!
+      USE State_Chm_Mod,      ONLY : ChmState
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !REVISION HISTORY:
 !  03 Apr 2014 - C. Keller   - Initial version
@@ -201,8 +216,8 @@
 !BOC
 
       ! Reset all variables
-      DRY_TOTN = 0e+0_fp
-      WET_TOTN = 0e+0_fp
+      State_Chm%DryDepNitrogen = 0e+0_fp
+      State_Chm%WetDepNitrogen = 0e+0_fp
 
       END SUBROUTINE RESET_DEP_N
 !EOC
@@ -241,11 +256,6 @@
 !
       INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
-! !REMARKS:
-!  We now allocate the DEP_RESERVOIR, DRY_TOTN, and WET_TOTN arrays within
-!  get_ndep_mod.F.  These were formerly contained in Headers/commsoil_mod.F90,
-!  which was rendered mostly obsolete by HEMCO.
-! 
 ! !REVISION HISTORY: 
 !  25 Jul 2014 - R. Yantosca - Initial version
 !  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
@@ -264,58 +274,6 @@
       id_NO2   = Ind_('NO2'  )
       id_PAN   = Ind_('PAN'  )
 
-      ! Allocate arrays
-      ALLOCATE( WET_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      ALLOCATE( DRY_TOTN     ( IIPAR, JJPAR ), STAT=RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      ! Zero arrays
-      WET_TOTN      = 0e+0_fp
-      DRY_TOTN      = 0e+0_fp
-
       END SUBROUTINE Init_Get_Ndep
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_commsoil
-!
-! !DESCRIPTION: Subroutine CLEANUP\_COMMSOIL deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE Cleanup_Get_NDep( am_I_Root, RC )
-!
-! !USES:
-!
-      USE ErrCode_Mod
-!
-! !INPUT PARAMETERS: 
-!     
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER, INTENT(OUT) :: RC          ! Return code
-! 
-! !REVISION HISTORY: 
-!  25 Jul 2014 - R. Yantosca - Initial version
-!  09 Oct 2014 - C. Keller   - Removed obsolete variable DEP_RESERVOIR
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      ! Assume success
-      RC = GC_SUCCESS
-      
-      ! Deallocate arrays
-      IF ( ASSOCIATED( DRY_TOTN      ) ) DEALLOCATE( DRY_TOTN      )
-      IF ( ASSOCIATED( WET_TOTN      ) ) DEALLOCATE( WET_TOTN      )
-
-      END SUBROUTINE Cleanup_Get_Ndep
 !EOC
       END MODULE GET_NDEP_MOD

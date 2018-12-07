@@ -231,8 +231,11 @@
       REAL(f8)                 :: WI(NCOMPA)    
       REAL(f8)                 :: WT(NCOMPA)
       REAL(f8)                 :: CNTRL(NCTRLA)
-      CHARACTER(LEN=255)       :: X 
+
+      ! Strings
       CHARACTER(LEN=15)        :: SCASI  
+      CHARACTER(LEN=255)       :: ErrMsg
+      CHARACTER(LEN=255)       :: ThisLoc
 
       !Temporary variables to check if division is safe
       REAL(fp)                 :: NUM_SAV, DEN_SAV
@@ -268,8 +271,11 @@
       ! DO_ISOROPIAII begins here!
       !=================================================================
 
-      ! Assume success
-      RC                   = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at DO_ISOROPIAII (in module GeosCore/isoropiaII_mod.F)'
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -278,9 +284,6 @@
       LPRT                 = Input_Opt%LPRT  
       IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
       IT_IS_A_FULLCHEM_SIM = Input_Opt%ITS_A_FULLCHEM_SIM
-
-      ! Location string
-      X = 'DO_ISOROPIAII (isoropiaII_mod.F)'
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -295,19 +298,29 @@
 
          ! Make sure certain tracers are defined
          IF ( id_SO4 <= 0 ) THEN
-            CALL ERROR_STOP( 'SO4 is an undefined species!',  X )
+            ErrMsg = 'SO4 is an undefined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          IF ( id_NH3 <= 0 ) THEN
-            CALL ERROR_STOP( 'NH3 is an undefined species!',  X )
+            ErrMsg = 'NH3 is an undefined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          IF ( id_NH4 <= 0 ) THEN
-            CALL ERROR_STOP( 'NH4 is an undefined species!',  X )
+            ErrMsg = 'NH4 is an undefined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          IF ( id_NIT <= 0 ) THEN
-            CALL ERROR_STOP( 'NIT is an undefined species!',  X )
+            ErrMsg = 'NIT is an undefined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
          IF ( id_SALA <= 0 ) THEN
-            CALL ERROR_STOP( 'SALA is an undefined species!', X )
+            ErrMsg = 'SALA is an undefined species!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Initialize arrays
@@ -319,19 +332,27 @@
             IF ( IT_IS_A_FULLCHEM_SIM ) THEN
 
                ! Coupled simulation: stop w/ error since we need HNO3
-               CALL ERROR_STOP( 'id_HNO3 is not defined !', X )
+               ErrMsg = 'HNO3 is an undefined species!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
  
             ELSE IF ( IT_IS_AN_AEROSOL_SIM ) THEN
 
                ! Offline simulation: get HNO3 from HEMCO (mps, 9/23/14)
                CALL HCO_GetPtr( aIR, HcoState, 'GLOBAL_HNO3', HNO3, RC )
-               IF ( RC /= GC_SUCCESS ) 
-     &         CALL ERROR_STOP( 'Cannot get pointer to GLOBAL_HNO3', X )
+               IF ( RC /= GC_SUCCESS ) THEN
+                  ErrMsg = 
+     &              'Cannot get pointer to HEMCO field GLOBAL_HNO3!'
+                  CALL GC_Error( ErrMsg, RC, ThisLoc )
+                  RETURN
+               ENDIF
 
             ELSE
 
-               ! Otherwise stop w/ error
-               CALL ERROR_STOP( 'Invalid simulation type !', X )
+               ! ISORROPIA is only valid for full-chem or aerosol-only sims
+               ErrMsg = 'Invalid simulation type!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
 
             ENDIF
          ENDIF
@@ -718,7 +739,7 @@
       Spc => NULL()
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a AERO_THERMO' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a DO_ISOROPIAII' )
 
       END SUBROUTINE DO_ISOROPIAII
 !EOC

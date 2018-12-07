@@ -266,7 +266,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE ErrCode_Mod
     USE HCO_TYPES_MOD,      ONLY : DiagnCont
     USE HCO_DIAGN_MOD
 !
@@ -298,15 +298,21 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                   :: FLAG, ERR, LevIDx, PS, AF
+    INTEGER                   :: FLAG, LevIDx, PS, AF
     TYPE(DiagnCont), POINTER  :: DgnCont  => NULL()
 
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'GetHcoDiagn (hcoi_gc_diagn_mod.F90)'
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
 
     !=======================================================================
     ! GetHcoDiagn begins here 
     !=======================================================================
+
+    ! Initialize
+    RC      = HCO_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at GetHcoDiagn (in module GeosCore/hcoi_gc_diagn_mod.F90)'
 
     ! Set collection number
     PS = HcoState%Diagn%HcoDiagnIDManual
@@ -319,18 +325,22 @@ CONTAINS
     ! Get diagnostics by name. Search all diagnostics, i.e. both AutoFill
     ! and manually filled diagnostics. Also include those with a manual
     ! output interval.
-    CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,      &
-                    FLAG,        ERR,      cName=TRIM(DiagnName), &
+    CALL Diagn_Get( am_I_Root,   HcoState, .FALSE., DgnCont,         &
+                    FLAG,        RC,        cName=TRIM(DiagnName),   &
                     AutoFill=AF, COL=PS                            )     
 
-    ! Error checks
-    IF ( ERR /= HCO_SUCCESS ) THEN
-       MSG = 'Error in getting diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP ( MSG, LOC )
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       ErrMsg = 'Error in getting diagnostics: ' // TRIM(DiagnName)    
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
+
     IF ( (FLAG /= HCO_SUCCESS) .AND. StopIfNotFound ) THEN
-       MSG = 'Cannot get diagnostics for this time stamp: ' // TRIM(DiagnName)
-       CALL ERROR_STOP ( MSG, LOC )
+       ErrMsg = 'Cannot get diagnostics for this time stamp: ' //    &
+                 TRIM(DiagnName)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
     ENDIF
 
     ! Pass data to output pointer (only if diagnostics defined):
@@ -351,8 +361,9 @@ CONTAINS
 
           ! Error if no 2D or 3D data available
           ELSE
-             MSG = 'no data defined: '// TRIM(DiagnName)
-             CALL ERROR_STOP ( MSG, LOC )
+             ErrMsg = 'no data defined: '// TRIM(DiagnName)
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF 
   
        ! 3D pointer: must point to 3D data
@@ -360,14 +371,16 @@ CONTAINS
           IF ( ASSOCIATED(DgnCont%Arr3D%Val) ) THEN
              Ptr3D => DgnCont%Arr3D%Val
           ELSE
-             MSG = 'no 3D data defined: '// TRIM(DiagnName)
-             CALL ERROR_STOP ( MSG, LOC )
+             ErrMsg = 'no 3D data defined: '// TRIM(DiagnName)
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
           ENDIF 
 
        ! Error otherwise 
        ELSE
-          MSG = 'Please define output data pointer: ' // TRIM(DiagnName)
-          CALL ERROR_STOP ( MSG, LOC )
+          ErrMsg = 'Please define output data pointer: ' // TRIM(DiagnName)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
        ENDIF
     ENDIF
 

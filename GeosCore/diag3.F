@@ -4883,8 +4883,8 @@
             !---------------------------------------------------------
             ! (1) Get OC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPOCPO_SOURCE'
-            UNIT      = 'kg'
+            DiagnName = 'GCPOPS_POPPOCPO_SOURCE'
+            UNIT      = 'kg/m2/s'
             N         = 1
             DiagnCnt  => NULL()
 
@@ -4913,7 +4913,7 @@
             !---------------------------------------------------------
             ! (2) Get BC POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPPBCPO_SOURCE'
+            DiagnName = 'GCPOPS_POPPBCPO_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4938,7 +4938,7 @@
             !---------------------------------------------------------
             ! (3) Get gaseous POP emissions from HEMCO data structure
             !---------------------------------------------------------
-            DiagnName = 'AD53_POPG_SOURCE'
+            DiagnName = 'GCPOPS_POPG_SOURCE'
             DiagnCnt  => NULL()
 
             ! Get diagnostics from HEMCO
@@ -4977,8 +4977,8 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! OC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPOCPO_SOURCE'
-            UNIT      = 'kg'
+            DiagnName = 'GCPOPS_POPPOCPO_SOURCE'
+            UNIT      = 'kg/m2/s'
             N         = 2
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -4992,8 +4992,8 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! BC-sorbed POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPPBCPO_SOURCE'
-            UNIT      = 'kg'
+            DiagnName = 'GCPOPS_POPPBCPO_SOURCE'
+            UNIT      = 'kg/m2/s'
             N         = 3
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5007,8 +5007,9 @@
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             ! Gas-phase POP emissions
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            DiagnName = 'AD53_POPG_SOURCE'
+            DiagnName = 'GCPOPS_POPG_SOURCE'
             N         = 4
+            UNIT      = 'kg/m2/s'
             FACTOR    = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,      N, 1, -1, .TRUE., FACTOR, RC )
@@ -5019,8 +5020,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary POP emissions from soil
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_POPG_SOIL'
-         UNIT      = 'kg'
+         DiagnName = 'GCPOPS_POPG_SOIL'
+         UNIT      = 'kg/m2/s'
          N         = 5
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5030,8 +5031,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary POP emissions from lake
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_POPG_LAKE'
-         UNIT      = 'kg'
+         DiagnName = 'GCPOPS_POPG_LAKE'
+         UNIT      = 'kg/m2/s'
          N         = 6
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5041,8 +5042,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary POP emissions from leaf
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_POPG_LEAF'
-         UNIT      = 'kg'
+         DiagnName = 'GCPOPS_POPG_LEAF'
+         UNIT      = 'kg/m2/s'
          N         = 7
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5052,7 +5053,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary positive soil flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_SOIL2AIR'
+         DiagnName = 'GCPOPS_SOIL2AIR'
          UNIT      = 'ng/m2/day'
          N         = 8
          FACTOR    = 1.0e+0_fp
@@ -5063,7 +5064,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary negative soil flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_AIR2SOIL'
+         DiagnName = 'GCPOPS_AIR2SOIL'
          UNIT      = 'ng/m2/day'
          N         = 9
          FACTOR    = 1.0e+0_fp
@@ -5074,7 +5075,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary positive lake flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_LAKE2AIR'
+         DiagnName = 'GCPOPS_LAKE2AIR'
          UNIT      = 'ng/m2/day'
          N         = 10
          FACTOR    = 1.0e+0_fp
@@ -5085,7 +5086,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary negative lake flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_AIR2LAKE'
+         DiagnName = 'GCPOPS_AIR2LAKE'
          UNIT      = 'ng/m2/day'
          N         = 11
          FACTOR    = 1.0e+0_fp
@@ -5096,7 +5097,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary positive leaf flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_LEAF2AIR'
+         DiagnName = 'GCPOPS_LEAF2AIR'
          UNIT      = 'ng/m2/day'
          N         = 12
          FACTOR    = 1.0e+0_fp
@@ -5107,7 +5108,7 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Secondary negative leaf flux
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_AIR2LEAF'
+         DiagnName = 'GCPOPS_AIR2LEAF'
          UNIT      = 'ng/m2/day'
          N         = 13
          FACTOR    = 1.0e+0_fp
@@ -5118,8 +5119,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Fugacity ratios for soils (soil/air)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_SOILAIR_FUG'
-         Unit      = 'unitless'
+         DiagnName = 'GCPOPS_SOILAIR_FUG'
+         Unit      = '1'
          N         = 14
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5129,8 +5130,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Fugacity ratios for lakes (water/air)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_LAKEAIR_FUG'
-         Unit      = 'unitless'
+         DiagnName = 'GCPOPS_LAKEAIR_FUG'
+         Unit      = '1'
          N         = 15
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5140,8 +5141,8 @@
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
          ! Fugacity ratios for leaves (leaf sfc/air)
          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         DiagnName = 'AD53_LEAFAIR_FUG'
-         Unit      = 'unitless'
+         DiagnName = 'GCPOPS_LEAFAIR_FUG'
+         Unit      = '1'
          N         = 16
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
@@ -5283,49 +5284,6 @@
      &               IIPAR,     JJPAR,     LD57,        IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
-!
-!******************************************************************************
-!  ND58: CH4 Emission Diagnostics
-!
-!   #  : Field   : Description                 : Units     : Scale Factor
-!  ---------------------------------------------------------------------------
-!  (1 ) CH4-TOT  : CH4 Emissions total(w/o sab): kg        : 1
-!  (2 ) CH4-OIL  : CH4 Emissions oil           : kg        : 1
-!  (3 ) CH4-GAS  : CH4 Emissions gas           : kg        : 1
-!  (4 ) CH4-COL  : CH4 Emissions coal          : kg        : 1
-!  (5 ) CH4-LIV  : CH4 Emissions livestock     : kg        : 1
-!  (6 ) CH4-LDF  : CH4 Emissions landfills     : kg        : 1
-!  (7 ) CH4-WST  : CH4 Emissions wastewater    : kg        : 1
-!  (8 ) CH4-RIC  : CH4 Emissions rice          : kg        : 1
-!  (9 ) CH4-OTA  : CH4 Emissions other anthro  : kg        : 1
-!  (10) CH4-BBN  : CH4 Emissions bioburn       : kg        : 1
-!  (11) CH4-WTL  : CH4 Emissions wetlands      : kg        : 1
-!  (12) CH4-SEE  : CH4 Emissions seeps         : kg        : 1
-!  (13) CH4-LAK  : CH4 Emissions lakes         : kg        : 1
-!  (14) CH4-TER  : CH4 Emissions termites      : kg        : 1
-!  (15) CH4-SAB  : CH4 Emissions soil abs      : kg        : 1
-!******************************************************************************
-
-      IF ( ND58 > 0 ) THEN
-         CATEGORY = 'CH4-EMIS'
-
-         DO M = 1, TMAX(58)
-            N  = TINDEX(58,M)
-            IF ( N > PD58 ) CYCLE
-            NN = N
-
-            UNIT = 'kg'
-
-            ARRAY(:,:,1) = AD58(:,:,N)
-
-            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
-     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
-     &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
-         ENDDO
-      ENDIF
-
 #if   defined( TOMAS )
 !
 !*****************************************************************************
@@ -5736,33 +5694,6 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
          ENDDO
       ENDIF
-#else  
-! ND60 s used for wetland fraction in non-tomas sim diagnostics
-!
-!******************************************************************************
-!  ND60: Wetland fraction
-!
-!   # : Field    : Description                     : Units    : Scale factor
-!  --------------------------------------------------------------------------
-!  (1 ) WET-FRAC : WETLAND FRACTION                : unitless : 1
-!******************************************************************************
-!
-
-      IF ( ND60 > 0 ) THEN
-
-         UNIT = 'unitless'
-         CATEGORY     = 'WET-FRAC'
-         ARRAY(:,:,1) = AD60(:,:)
-         N            = 1
-
-         CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &               HALFPOLAR, CENTER180, CATEGORY, N,
-     &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
-
-      ENDIF
-
 #endif
 !
 !*****************************************************************************

@@ -1157,8 +1157,7 @@ CONTAINS
     IF ( NZ < InLev1 ) RETURN
 
     ! Get maximum level to be used for pressure thickness calculations.
-    ! This is one more than the number of levels to be used.
-    TOPLEV = InLev1 + NLEV
+    TOPLEV = InLev1 + ( NLEV-1 )
 
     ! Get pointer to grid edges on the native input grid
     IF ( Met == 4 ) THEN
@@ -1168,12 +1167,12 @@ CONTAINS
     ENDIF
 
     ! Thickness of output level
-    THICK = EDG(1) - EDG(1+NLEV)
+    THICK = EDG(1) - EDG(NLEV)
 
     ! Get level weights
     ALLOCATE(WGT(NLEV))
     WGT = 0.0
-    DO I = 1, NLEV
+    DO I = 1, NLEV-1
        WGT(I) = ( EDG(I) - EDG(I+1) ) / THICK
     ENDDO
 

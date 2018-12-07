@@ -133,74 +133,76 @@ MODULE HCOX_ParaNOx_MOD
   ! Number of values for each variable in the look-up table
   INTEGER, PARAMETER ::  nT=4, nJ=4, nO3=4, nNOx=5, nSEA=12, nWS=5
 
+  ! Now place all module variables in a lderived type object (for a linked
+  ! list) so that we can have one instance per node in an MPI environment.
   TYPE :: MyInst
 
-   ! Scalars
-   INTEGER                       :: Instance
-   INTEGER                       :: ExtNr
-   INTEGER                       :: IDTNO 
-   INTEGER                       :: IDTNO2
-   INTEGER                       :: IDTHNO3
-   INTEGER                       :: IDTO3
-   REAL*8                        :: MW_O3
-   REAL*8                        :: MW_NO
-   REAL*8                        :: MW_NO2
-   REAL*8                        :: MW_HNO3
-   REAL*8                        :: MW_AIR
+     ! Scalars
+     INTEGER               :: Instance
+     INTEGER               :: ExtNr
+     INTEGER               :: IDTNO
+     INTEGER               :: IDTNO2
+     INTEGER               :: IDTHNO3
+     INTEGER               :: IDTO3
+     REAL*8                :: MW_O3
+     REAL*8                :: MW_NO
+     REAL*8                :: MW_NO2
+     REAL*8                :: MW_HNO3
+     REAL*8                :: MW_AIR
+
+     ! Arrays
+     REAL(hp), POINTER     :: ShipNO(:,:,:)
+
+     ! For SunCosMid 5hrs ago
+     REAL(hp), POINTER     :: SC5(:,:)
  
-   ! Arrays
-   REAL(hp), POINTER :: ShipNO(:,:,:)
+     ! Deposition fluxes in kg/m2/s
+     REAL(sp), POINTER     :: DEPO3  (:,:)
+     REAL(sp), POINTER     :: DEPHNO3(:,:)
  
-   ! For SunCosMid 5hrs ago
-   REAL(hp), POINTER             :: SC5(:,:)
+     ! Reference values of variables in the look-up tables
+     REAL*4                :: Tlev(nT)
+     REAL*4                :: JNO2lev(nJ)
+     REAL*4                :: O3lev(nO3)
+     REAL*4                :: SEA0lev(nSEA)
+     REAL*4                :: SEA5lev(nSEA)
+     REAL*4                :: JRATIOlev(nJ)
+     REAL*4                :: NOXlev(nNOx)
+     REAL*4                :: WSlev(nWS)
+
+     ! Look-up tables currently used in GEOS-Chem (likely in v10-01)
+     ! Described by Holmes et al. (2014), now includes effects of wind speed
+     ! Last two digits in LUT names indicate wind speed in m/s
+     REAL(sp), POINTER     :: FRACNOX_LUT02(:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: FRACNOX_LUT06(:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: FRACNOX_LUT10(:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: FRACNOX_LUT14(:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: FRACNOX_LUT18(:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: OPE_LUT02    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: OPE_LUT06    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: OPE_LUT10    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: OPE_LUT14    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: OPE_LUT18    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: MOE_LUT02    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: MOE_LUT06    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: MOE_LUT10    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: MOE_LUT14    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: MOE_LUT18    (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: DNOX_LUT02   (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: DNOX_LUT06   (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: DNOX_LUT10   (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: DNOX_LUT14   (:,:,:,:,:,:,:)
+     REAL(sp), POINTER     :: DNOX_LUT18   (:,:,:,:,:,:,:)
  
-   ! Deposition fluxes in kg/m2/s
-   REAL(sp), POINTER :: DEPO3  (:,:)
-   REAL(sp), POINTER :: DEPHNO3(:,:)
+     ! Location and type of look up table data
+     CHARACTER(LEN=255)    :: LutDir
+     LOGICAL               :: IsNc
  
-   ! Reference values of variables in the look-up tables
-   REAL*4  :: Tlev(nT)
-   REAL*4  :: JNO2lev(nJ)
-   REAL*4  :: O3lev(nO3)
-   REAL*4  :: SEA0lev(nSEA)
-   REAL*4  :: SEA5lev(nSEA)
-   REAL*4  :: JRATIOlev(nJ)
-   REAL*4  :: NOXlev(nNOx)
-   REAL*4  :: WSlev(nWS)
- 
-   ! Look-up tables currently used in GEOS-Chem (likely in v10-01)
-   ! Described by Holmes et al. (2014), now includes effects of wind speed
-   ! Last two digits in LUT names indicate wind speed in m/s
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: FRACNOX_LUT02
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: FRACNOX_LUT06
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: FRACNOX_LUT10
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: FRACNOX_LUT14
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: FRACNOX_LUT18
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: OPE_LUT02
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: OPE_LUT06
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: OPE_LUT10
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: OPE_LUT14
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: OPE_LUT18
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: MOE_LUT02
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: MOE_LUT06
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: MOE_LUT10
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: MOE_LUT14
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: MOE_LUT18
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: DNOX_LUT02
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: DNOX_LUT06
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: DNOX_LUT10
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: DNOX_LUT14
-   REAL(sp), DIMENSION(:,:,:,:,:,:,:), POINTER :: DNOX_LUT18
- 
-   ! Location and type of look up table data
-   CHARACTER(LEN=255)            :: LutDir
-   LOGICAL                       :: IsNc
- 
-   TYPE(MyInst), POINTER           :: NextInst => NULL()
+     TYPE(MyInst), POINTER :: NextInst => NULL()
   END TYPE MyInst
  
   ! Pointer to instances
-  TYPE(MyInst), POINTER            :: AllInst => NULL()
+  TYPE(MyInst), POINTER    :: AllInst => NULL()
 
 CONTAINS
 !EOC
@@ -341,8 +343,6 @@ CONTAINS
     USE HCO_FluxArr_mod,  ONLY : HCO_EmisAdd
     USE HCO_FluxArr_mod,  ONLY : HCO_DepvAdd
     USE HCO_Clock_Mod,    ONLY : HcoClock_First
-    USE HCO_Restart_Mod,  ONLY : HCO_RestartGet
-    USE HCO_Restart_Mod,  ONLY : HCO_RestartWrite
     USE HCO_Calc_Mod,     ONLY : HCO_CheckDepv
     USE HCO_GeoTools_Mod, ONLY : HCO_GetSUNCOS
 !
@@ -893,7 +893,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   INTEGER                        :: ExtNr, AS, I, NN, tmpID, nSpc
+   INTEGER                        :: ExtNr, I, NN, tmpID, nSpc
    INTEGER,           ALLOCATABLE :: HcoIDs(:)
    CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
    CHARACTER(LEN=31)              :: Dummy
@@ -905,6 +905,9 @@ CONTAINS
    !========================================================================
    ! HCOX_PARANOX_INIT begins here!
    !========================================================================
+
+   ! Assume success
+   RC = HCO_SUCCESS
 
    ! Extension Nr.
    ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
@@ -923,18 +926,57 @@ CONTAINS
     ENDIF
 
    !------------------------------------------------------------------------
+   ! Initialize fields of Inst object for safety's sake (bmy, 10/17/18)
+   !------------------------------------------------------------------------
+   Inst%IDTNO         = -1
+   Inst%IDTNO2        = -1
+   Inst%IDTO3         = -1
+   Inst%IDTHNO3       = -1
+   Inst%MW_O3         =  0.0d0
+   Inst%MW_NO         =  0.0d0
+   Inst%MW_NO2        =  0.0d0
+   Inst%MW_HNO3       =  0.0d0
+   Inst%MW_AIR        =  0.0d0
+   Inst%Tlev          =  0.0e0
+   Inst%JNO2lev       =  0.0e0
+   Inst%O3lev         =  0.0e0
+   Inst%SEA0lev       =  0.0e0
+   Inst%SEA5lev       =  0.0e0
+   Inst%JRATIOlev     =  0.0e0
+   Inst%NOXlev        =  0.0e0
+   Inst%WSlev         =  0.0e0
+   Inst%ShipNO        => NULL()
+   Inst%SC5           => NULL()
+   Inst%DEPO3         => NULL()
+   Inst%DEPHNO3       => NULL()
+   Inst%FRACNOX_LUT02 => NULL()
+   Inst%FRACNOX_LUT06 => NULL()
+   Inst%FRACNOX_LUT10 => NULL()
+   Inst%FRACNOX_LUT14 => NULL()
+   Inst%FRACNOX_LUT18 => NULL()
+   Inst%OPE_LUT02     => NULL()
+   Inst%OPE_LUT06     => NULL()
+   Inst%OPE_LUT10     => NULL()
+   Inst%OPE_LUT14     => NULL()
+   Inst%OPE_LUT18     => NULL()
+   Inst%MOE_LUT02     => NULL()
+   Inst%MOE_LUT06     => NULL()
+   Inst%MOE_LUT10     => NULL()
+   Inst%MOE_LUT14     => NULL()
+   Inst%MOE_LUT18     => NULL()
+   Inst%DNOX_LUT02    => NULL()
+   Inst%DNOX_LUT06    => NULL()
+   Inst%DNOX_LUT10    => NULL()
+   Inst%DNOX_LUT14    => NULL()
+   Inst%DNOX_LUT18    => NULL()
+
+   !------------------------------------------------------------------------
    ! Get species IDs
    !------------------------------------------------------------------------
 
    ! Get HEMCO species IDs
    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! Init species ID
-   Inst%IDTNO   = -1
-   Inst%IDTNO2  = -1
-   Inst%IDTO3   = -1
-   Inst%IDTHNO3 = -1
 
    ! Check for NO, NO2, O3, and HNO3
    DO I = 1, nSpc
@@ -1041,149 +1083,171 @@ CONTAINS
    !--------------------------------
 
    ! FNOX
-   ALLOCATE( Inst%FRACNOX_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT02', RC ); RETURN
+   ALLOCATE( Inst%FRACNOX_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT02', RC )
+      RETURN
    ENDIF
    Inst%FRACNOX_LUT02 = 0.0_sp      
 
-   ALLOCATE( Inst%FRACNOX_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT06', RC ); RETURN
+   ALLOCATE( Inst%FRACNOX_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT06', RC )
+      RETURN
    ENDIF
    Inst%FRACNOX_LUT06 = 0.0_sp      
 
-   ALLOCATE( Inst%FRACNOX_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT10', RC ); RETURN
+   ALLOCATE( Inst%FRACNOX_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT10', RC )
+      RETURN
    ENDIF
    Inst%FRACNOX_LUT10 = 0.0_sp      
 
-   ALLOCATE( Inst%FRACNOX_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT014', RC ); RETURN
+   ALLOCATE( Inst%FRACNOX_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT014', RC )
+      RETURN
    ENDIF
    Inst%FRACNOX_LUT14 = 0.0_sp      
 
-   ALLOCATE( Inst%FRACNOX_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT18', RC ); RETURN
+   ALLOCATE( Inst%FRACNOX_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'FRACNOX_LUT18', RC )
+      RETURN
    ENDIF
    Inst%FRACNOX_LUT18 = 0.0_sp      
 
    ! OPE
-   ALLOCATE( Inst%OPE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT02', RC ); RETURN
+   ALLOCATE( Inst%OPE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT02', RC )
+      RETURN
    ENDIF
    Inst%OPE_LUT02 = 0.0_sp      
 
-   ALLOCATE( Inst%OPE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT06', RC ); RETURN
+   ALLOCATE( Inst%OPE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT06', RC )
+      RETURN
    ENDIF
    Inst%OPE_LUT06 = 0.0_sp      
 
-   ALLOCATE( Inst%OPE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT10', RC ); RETURN
+   ALLOCATE( Inst%OPE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= 0 ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT10', RC )
+      RETURN
    ENDIF
    Inst%OPE_LUT10 = 0.0_sp      
 
-   ALLOCATE( Inst%OPE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT014', RC ); RETURN
+   ALLOCATE( Inst%OPE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= 0 ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT014', RC )
+      RETURN
    ENDIF
    Inst%OPE_LUT14 = 0.0_sp      
 
-   ALLOCATE( Inst%OPE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT18', RC ); RETURN
+   ALLOCATE( Inst%OPE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'OPE_LUT18', RC )
+      RETURN
    ENDIF
    Inst%OPE_LUT18 = 0.0_sp      
 
    ! MOE
-   ALLOCATE( Inst%MOE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT02', RC ); RETURN
+   ALLOCATE( Inst%MOE_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT02', RC )
+      RETURN
    ENDIF
    Inst%MOE_LUT02 = 0.0_sp      
 
-   ALLOCATE( Inst%MOE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT06', RC ); RETURN
+   ALLOCATE( Inst%MOE_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT06', RC )
+      RETURN
    ENDIF
    Inst%MOE_LUT06 = 0.0_sp      
 
-   ALLOCATE( Inst%MOE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT10', RC ); RETURN
+   ALLOCATE( Inst%MOE_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT10', RC )
+      RETURN
    ENDIF
    Inst%MOE_LUT10 = 0.0_sp      
 
-   ALLOCATE( Inst%MOE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT014', RC ); RETURN
+   ALLOCATE( Inst%MOE_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT014', RC )
+      RETURN
    ENDIF
    Inst%MOE_LUT14 = 0.0_sp      
 
-   ALLOCATE( Inst%MOE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT18', RC ); RETURN
+   ALLOCATE( Inst%MOE_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'MOE_LUT18', RC )
+      RETURN
    ENDIF
    Inst%MOE_LUT18 = 0.0_sp      
 
    ! DNOx
-   ALLOCATE( Inst%DNOx_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT02', RC ); RETURN
+   ALLOCATE( Inst%DNOx_LUT02(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT02', RC )
+      RETURN
    ENDIF
    Inst%DNOx_LUT02 = 0.0_sp      
 
-   ALLOCATE( Inst%DNOx_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT06', RC ); RETURN
+   ALLOCATE( Inst%DNOx_LUT06(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT06', RC )
+      RETURN
    ENDIF
    Inst%DNOx_LUT06 = 0.0_sp      
 
-   ALLOCATE( Inst%DNOx_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT10', RC ); RETURN
+   ALLOCATE( Inst%DNOx_LUT10(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT10', RC )
+      RETURN
    ENDIF
    Inst%DNOx_LUT10 = 0.0_sp      
 
-   ALLOCATE( Inst%DNOx_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT014', RC ); RETURN
+   ALLOCATE( Inst%DNOx_LUT14(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT014', RC )
+      RETURN
    ENDIF
    Inst%DNOx_LUT14 = 0.0_sp      
 
-   ALLOCATE( Inst%DNOx_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT18', RC ); RETURN
+   ALLOCATE( Inst%DNOx_LUT18(nT,nJ,nO3,nSEA,nSEA,nJ,nNOx), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'DNOx_LUT18', RC )
+      RETURN
    ENDIF
    Inst%DNOx_LUT18 = 0.0_sp      
 
    ALLOCATE(Inst%DEPO3  (HcoState%NX,HcoState%NY),        &
-            Inst%DEPHNO3(HcoState%NX,HcoState%NY), STAT=AS )
-   IF ( AS /= 0 ) THEN 
-      CALL HCO_ERROR ( HcoState%Config%Err, 'Deposition arrays', RC ); RETURN
+            Inst%DEPHNO3(HcoState%NX,HcoState%NY), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
+      CALL HCO_ERROR ( HcoState%Config%Err, 'Deposition arrays', RC )
+      RETURN
    ENDIF
    Inst%DEPO3   = 0.0_sp
    Inst%DEPHNO3 = 0.0_sp
    
 !   ! O3 loss and HNO3 deposition
-!   ALLOCATE( SHIPO3LOSS( IIPAR, JJPAR ), STAT=AS )
-!   IF ( AS /= 0 ) THEN 
-!      CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPO3LOSS', RC ); RETURN
+!   ALLOCATE( Inst%SHIPO3LOSS( IIPAR, JJPAR ), STAT=RC )
+!   IF ( RC /= HCO_SUCCESS ) THEN 
+!      CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPO3LOSS', RC )
+!      RETURN
 !   ENDIF
-!   SHIPO3LOSS = 0d0      
+!   Inst%SHIPO3LOSS = 0d0
 
-!   ALLOCATE( SHIPHNO3DEP( IIPAR, JJPAR ), STAT=AS )
-!   IF ( AS /= 0 ) THEN 
+!   ALLOCATE( Inst%SHIPHNO3DEP( IIPAR, JJPAR ), STAT=RC )
+!   IF ( RC /= HCO_SUCCESS ) THEN 
 !        CALL HCO_ERROR ( HcoState%Config%Err, 'SHIPHNO3DEP', RC ); RETURN
 !   ENDIF
-!   SHIPHNO3DEP = 0d0      
+!   Inst%SHIPHNO3DEP = 0d0
 
    !------------------------------------------------------------------------
    ! Initialize the PARANOX look-up tables
@@ -1191,7 +1255,7 @@ CONTAINS
 
    ! LUT data directory 
    CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'LUT source dir', &
-                    OptValChar=Inst%LutDir, RC=RC)
+                   OptValChar=Inst%LutDir, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
 
    ! Call HEMCO parser to replace tokens such as $ROOT, $MET, or $RES.
@@ -1203,7 +1267,7 @@ CONTAINS
    ! Data format: ncdf (default) or txt 
    Inst%IsNc = .TRUE.
    CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'LUT data format', &
-                    OptValChar=Dummy, RC=RC)
+                   OptValChar=Dummy, RC=RC)
    IF ( RC /= HCO_SUCCESS ) RETURN
    IF ( TRIM(Dummy) == 'txt' ) Inst%IsNc = .FALSE. 
 
@@ -1220,16 +1284,16 @@ CONTAINS
    !------------------------------------------------------------------------
    ! Set other module variables 
    !------------------------------------------------------------------------ 
-   ALLOCATE ( Inst%ShipNO(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=AS )
-   IF ( AS /= 0 ) THEN
+   ALLOCATE ( Inst%ShipNO(HcoState%NX,HcoState%NY,HcoState%NZ), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
       CALL HCO_ERROR ( HcoState%Config%Err, 'ShipNO', RC )
       RETURN
    ENDIF
    Inst%ShipNO = 0.0_hp
 
    ! Allocate variables for SunCosMid from 5 hours ago. 
-   ALLOCATE ( Inst%SC5(HcoState%NX,HcoState%NY), STAT=AS )
-   IF ( AS /= 0 ) THEN
+   ALLOCATE ( Inst%SC5(HcoState%NX,HcoState%NY), STAT=RC )
+   IF ( RC /= HCO_SUCCESS ) THEN
       CALL HCO_ERROR ( HcoState%Config%Err, 'SC5', RC )
       RETURN
    ENDIF
@@ -1238,7 +1302,7 @@ CONTAINS
    ! Prompt warning if chemistry time step is more than 60 mins
    IF ( HcoState%TS_CHEM > 3600.0_hp ) THEN
       IF ( am_I_Root ) THEN
-         MSG = '    Cannot properly store SUNCOS values ' // &
+         MSG = ' Cannot properly store SUNCOS values ' // &
                ' because chemistry time step is more than 60 mins!'
          CALL HCO_WARNING(HcoState%Config%Err, MSG, RC )
       ENDIF
@@ -1251,22 +1315,22 @@ CONTAINS
    ! Define PARANOX diagnostics for the O3 and HNO3 deposition fluxes (in
    ! kg/m2/s). 
    !------------------------------------------------------------------------
-   CALL Diagn_Create ( am_I_Root, HcoState,                       &
-                       cName    = 'PARANOX_O3_DEPOSITION_FLUX',   &
-                       Trgt2D   = Inst%DEPO3,                     &
-                       SpaceDim = 2,                              &
-                       OutUnit  = 'kg/m2/s',                      &
-                       COL = HcoState%Diagn%HcoDiagnIDManual,     &
-                       RC       = RC                               )
+   CALL Diagn_Create ( am_I_Root, HcoState,                                  &
+                       cName    = 'PARANOX_O3_DEPOSITION_FLUX',              &
+                       Trgt2D   = Inst%DEPO3,                                &
+                       SpaceDim = 2,                                         &
+                       OutUnit  = 'kg/m2/s',                                 &
+                       COL = HcoState%Diagn%HcoDiagnIDManual,                &
+                       RC       = RC                                        )
    IF ( RC /= HCO_SUCCESS ) RETURN
 
-   CALL Diagn_Create ( am_I_Root, HcoState,                       &
-                       cName    = 'PARANOX_HNO3_DEPOSITION_FLUX', &
-                       Trgt2D   = Inst%DEPHNO3,                        &
-                       SpaceDim = 2,                              &
-                       OutUnit  = 'kg/m2/s',                      &
-                       COL = HcoState%Diagn%HcoDiagnIDManual,     &
-                       RC       = RC                               )
+   CALL Diagn_Create ( am_I_Root, HcoState,                                  &
+                       cName    = 'PARANOX_HNO3_DEPOSITION_FLUX',            &
+                       Trgt2D   = Inst%DEPHNO3,                              &
+                       SpaceDim = 2,                                         &
+                       OutUnit  = 'kg/m2/s',                                 &
+                       COL = HcoState%Diagn%HcoDiagnIDManual,                &
+                       RC       = RC                                         )
    IF ( RC /= HCO_SUCCESS ) RETURN
  
    !------------------------------------------------------------------------ 
@@ -1322,7 +1386,7 @@ CONTAINS
 !
     LOGICAL,         INTENT(IN   )  :: am_I_Root     ! Root CPU?
     TYPE(HCO_State), POINTER        :: HcoState      ! HEMCO State obj
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State), POINTER        :: ExtState      ! Module options      
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1412,11 +1476,15 @@ CONTAINS
    ! FILENAME format string
  101  FORMAT( a, '/ship_plume_lut_', I2.2, 'ms.nc'  )
 
+   ! Wind speed levels correspond to the files we will read below
+   Inst%WSlev = (/ 2.0e0, 6.0e0, 10.0e0, 14.0e0, 18.0e0 /)
+
    ! Read 2m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 2
    CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
         Inst%FRACNOX_LUT02, Inst%DNOx_LUT02, Inst%OPE_LUT02, Inst%MOE_LUT02, &
-        Inst%Tlev, Inst%JNO2lev, Inst%O3lev, Inst%SEA0lev, Inst%SEA5lev, Inst%JRATIOlev, Inst%NOXlev )
+        Inst%Tlev, Inst%JNO2lev, Inst%O3lev, Inst%SEA0lev, Inst%SEA5lev,     &
+        Inst%JRATIOlev, Inst%NOXlev )
 
    ! Read 6 m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 6
@@ -1437,9 +1505,6 @@ CONTAINS
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 18
    CALL READ_LUT_NCFILE( am_I_Root, HcoState, TRIM( FILENAME ), & 
         Inst%FRACNOX_LUT18, Inst%DNOx_LUT18, Inst%OPE_LUT18, Inst%MOE_LUT18 )
-
-   ! Wind speed levels correspond to the files that we just read
-   WSlev = (/ 2, 6, 10, 14, 18 /)
 
 !   ! To write into txt-file, uncomment the following lines
 !   FILENAME = TRIM(LutDir)//'/ship_plume_lut_02ms.txt'
@@ -1706,6 +1771,9 @@ CONTAINS
    ! FILENAME format string
  101  FORMAT( a, '/ship_plume_lut_', I2.2, 'ms.txt'  )
    
+   ! Wind speed levels correspond to the files that we will read below
+   Inst%WSlev = (/ 2.0e0, 6.0e0, 10.0e0, 14.0e0, 18.0e0 /)
+
    ! Read 2m/s LUT
    WRITE( FILENAME, 101 ) TRIM(Inst%LutDir), 2
    CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), &
@@ -1736,9 +1804,6 @@ CONTAINS
    CALL READ_LUT_TXTFILE( am_I_Root, HcoState, TRIM( FILENAME ), & 
         Inst%FRACNOX_LUT18, Inst%DNOx_LUT18, Inst%OPE_LUT18, Inst%MOE_LUT18, RC )
    IF ( RC /= HCO_SUCCESS ) RETURN
-
-   ! Wind speed levels correspond to the files that we just read
-   Inst%WSlev = (/ 2, 6, 10, 14, 18 /)
 
    ! Return w/ success
    RC = HCO_SUCCESS
@@ -2250,18 +2315,18 @@ CONTAINS
    TYPE(Ext_State), POINTER    :: ExtState
    TYPE(HCO_State), POINTER    :: HcoState
    TYPE(MyInst),    POINTER    :: Inst
-   INTEGER, INTENT(IN)         :: I, J        ! Grid indices
+   INTEGER, INTENT(IN)         :: I, J      ! Grid indices
 !
 ! !OUTPUT PARAMETERS: 
 !
-   REAL*8, INTENT(OUT)           :: FNOX ! fraction of NOx remaining, mol/mol
-   REAL*8, INTENT(OUT)           :: DNOX ! fraction of NOx deposited, mol/mol
-   REAL*8, INTENT(OUT)           :: OPE  ! net OPE, mol(net P(O3))/mol(P(HNO3))
+   REAL*8, INTENT(OUT)           :: FNOX    ! fraction of NOx remaining, mol/mol
+   REAL*8, INTENT(OUT)           :: DNOX    ! fraction of NOx deposited, mol/mol
+   REAL*8, INTENT(OUT)           :: OPE     ! net OPE, mol(net P(O3))/mol(P(HNO3))
    REAL*8, INTENT(OUT), OPTIONAL :: MOE_OUT ! net MOE, mol(L(CH4))/mol(E(NOx))
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
-   INTEGER, INTENT(INOUT)        :: RC   ! Return code
+   INTEGER, INTENT(INOUT)        :: RC      ! Return code
 !
 ! !REVISION HISTORY:
 !     Jun 2010 - G.C.M. Vinken - Initial version
@@ -2298,10 +2363,10 @@ CONTAINS
    INTEGER,  DIMENSION(8,2)   :: INDX
    REAL(sp), DIMENSION(8,2)   :: WTS
 
-   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: FRACNOX_LUT
-   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: DNOX_LUT
-   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: OPE_LUT
-   REAL(sp), POINTER, DIMENSION(:,:,:,:,:,:,:) :: MOE_LUT
+   REAL(sp), POINTER          :: FRACNOX_LUT(:,:,:,:,:,:,:)
+   REAL(sp), POINTER          :: DNOX_LUT   (:,:,:,:,:,:,:)
+   REAL(sp), POINTER          :: OPE_LUT    (:,:,:,:,:,:,:)
+   REAL(sp), POINTER          :: MOE_LUT    (:,:,:,:,:,:,:)
     
    CHARACTER(LEN=255)         :: MSG
    CHARACTER(LEN=255)         :: LOC = 'PARANOX_LUT' 
@@ -2310,11 +2375,17 @@ CONTAINS
    ! PARANOX_LUT begins here!
    !=================================================================
 
-   ! Nullify
+   ! Initialize for safety's sake
    FRACNOX_LUT => NULL()
    DNOX_LUT    => NULL()
    OPE_LUT     => NULL()
    MOE_LUT     => NULL()
+   FNOX        = 0.0_sp
+   DNOX        = 0.0_sp
+   OPE         = 0.0_sp
+   IF ( PRESENT( MOE_OUT ) ) THEN
+      MOE_OUT  = 0.0_sp
+   ENDIF
 
    ! Air mass [kg]
    AIR = ExtState%AIR%Arr%Val(I,J,1)
@@ -2437,22 +2508,24 @@ CONTAINS
            +       ExtState%V10M%Arr%Val(I,J)**2 )
 
 !   ! for debugging only
-!   if(I==3.and.J==35)then
-!      write(*,*) 'VARS(1): ', VARS(1)
-!      write(*,*) 'VARS(2): ', VARS(2)
-!      write(*,*) 'VARS(3): ', VARS(3)
-!      write(*,*) 'VARS(4): ', VARS(4)
-!      write(*,*) 'VARS(5): ', VARS(5)
-!      write(*,*) 'VARS(6): ', VARS(6)
-!      write(*,*) 'VARS(7): ', VARS(7)
-!      write(*,*) 'VARS(8): ', VARS(8)
-!      write(*,*) 'AIR    : ', ExtState%AIR%Arr%Val(I,J,1) 
-!      write(*,*) 'AIRMW  : ', HcoState%Phys%AIRMW
-!      write(*,*) 'MWNO, NO2, O3: ', MW_NO, MW_NO2, MW_O3
-!      write(*,*) 'O3conc: ', ExtState%O3%Arr%Val(I,J,1) 
-!      write(*,*) 'SUNCOSmid5: ', SC5(I,J)
-!      write(*,*) 'NO,NO2 conc: ',ExtState%NO%Arr%Val(I,J,1), ExtState%NO2%Arr%Val(I,J,1)
-!      write(*,*) 'U, V: ', ExtState%U10M%Arr%Val(I,J),ExtState%V10M%Arr%Val(I,J)
+!   if(I==1.and.J==35)then
+!      write(*,*) 'VARS(1)      : ', VARS(1)
+!      write(*,*) 'VARS(2)      : ', VARS(2)
+!      write(*,*) 'VARS(3)      : ', VARS(3)
+!      write(*,*) 'VARS(4)      : ', VARS(4)
+!      write(*,*) 'VARS(5)      : ', VARS(5)
+!      write(*,*) 'VARS(6)      : ', VARS(6)
+!      write(*,*) 'VARS(7)      : ', VARS(7)
+!      write(*,*) 'VARS(8)      : ', VARS(8)
+!      write(*,*) 'AIR          : ', ExtState%AIR%Arr%Val(I,J,1)
+!      write(*,*) 'AIRMW        : ', HcoState%Phys%AIRMW
+!      write(*,*) 'MWNO, NO2, O3: ', Inst%MW_NO, Inst%MW_NO2, Inst%MW_O3
+!      write(*,*) 'O3conc       : ', ExtState%O3%Arr%Val(I,J,1)
+!      write(*,*) 'SUNCOSmid5   : ', Inst%SC5(I,J)
+!      write(*,*) 'NO,NO2 conc  : ', ExtState%NO%Arr%Val(I,J,1), &
+!                                    ExtState%NO2%Arr%Val(I,J,1)
+!      write(*,*) 'U, V         : ', ExtState%U10M%Arr%Val(I,J), &
+!                                    ExtState%V10M%Arr%Val(I,J)
 !   endif
  
       !*****************************************************
@@ -2635,6 +2708,11 @@ CONTAINS
       END DO
       END DO
 
+      ! Free pointers
+      FRACNOX_LUT => NULL()
+      DNOx_LUT    => NULL()
+      OPE_LUT     => NULL()
+      MOE_LUT     => NULL()
    END DO
 
    ! Transfer MOE if optional output parameter is present
@@ -2826,8 +2904,8 @@ CONTAINS
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
-          IF ( ALLOCATED( Inst%ShipNO) ) DEALLOCATE ( Inst%ShipNO )
-          IF ( ALLOCATED( Inst%SC5   ) ) DEALLOCATE ( Inst%SC5    )
+          IF ( ASSOCIATED( Inst%ShipNO) ) DEALLOCATE ( Inst%ShipNO )
+          IF ( ASSOCIATED( Inst%SC5   ) ) DEALLOCATE ( Inst%SC5    )
 
           IF ( ASSOCIATED( Inst%FRACNOX_LUT02 ) ) DEALLOCATE( Inst%FRACNOX_LUT02 )
           IF ( ASSOCIATED( Inst%FRACNOX_LUT06 ) ) DEALLOCATE( Inst%FRACNOX_LUT06 )

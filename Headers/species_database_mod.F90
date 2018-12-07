@@ -169,6 +169,7 @@ CONTAINS
 !  27 Nov 2017 - E. Lundgren - Add SALA, SALC, OCPO/OCPI, BCPO/BCPI, and SO4
 !                              as hygroscopic growth species for cloud diags
 !  14 Sep 2018 - C. Keller   - Now get species info from Spc_Info.
+!  23 Oct 2018 - R. Yantosca - Cosmetic changes
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -272,47 +273,47 @@ CONTAINS
        CALL TranUc( NameAllCaps )
 
        ! Get species info, now write into local variable
-       CALL Spc_Info( am_I_Root       = am_I_Root,         &
-                      iName           = TRIM(NameAllCaps), &
-                      Input_Opt       = Input_Opt,         &
-                      KppSpcId        = KppSpcId(N),       &
-                      oFullName       = FullName,          &
-                      oFormula        = Formula,           &
-                      oMW_g           = MW_g,              & 
-                      oEmMW_g         = EmMW_g,         &
-                      oMolecRatio     = MolecRatio,     &
-                      oBackgroundVV   = BackgroundVV,   &
-                      oHenry_K0       = Henry_K0,       &
-                      oHenry_CR       = Henry_CR,       &
-                      oHenry_PKA      = Henry_PKA,      &
-                      oDensity        = Density,        &
-                      oRadius         = Radius,         &
-                      oDD_AeroDryDep  = DD_AeroDryDep,  &
-                      oDD_DustDryDep  = DD_DustDryDep,  &
-                      oDD_DvzAerSnow  = DD_DvzAerSnow,  &
-                      oDD_DvzMinVal   = DD_DvzMinVal,   &
-                      oDD_F0          = DD_F0,          &
-                      oDD_KOA         = DD_KOA,         &
-                      oDD_Hstar_Old   = DD_Hstar_Old,   &
-                      oMP_SizeResAer  = MP_SizeResAer,  &
-                      oMP_SizeResNum  = MP_SizeResNum,  &
-                      oWD_RetFactor   = WD_RetFactor,   &
-                      oWD_LiqAndGas   = WD_LiqAndGas,   &
-                      oWD_ConvFacI2G  = WD_ConvFacI2G,  &
-                      oWD_AerScavEff  = WD_AerScavEff,  &
-                      oWD_KcScaleFac  = WD_KcScaleFac,  &
-                      oWD_RainoutEff  = WD_RainoutEff,  &
-                      oWD_CoarseAer   = WD_CoarseAer,   &
-                      oIs_Drydep      = Is_Drydep,      & 
-                      oIs_Gas         = Is_Gas,         &
-                      oIs_HygroGrowth = Is_HygroGrowth, &
-                      oIs_Photolysis  = Is_Photolysis,  &
-                      oIs_Wetdep      = Is_Wetdep,      &
-                      oIs_InRestart   = Is_InRestart,   &
-                      oIs_Hg0         = Is_Hg0,         &
-                      oIs_Hg2         = Is_Hg2,         &  
-                      oIs_HgP         = Is_HgP,         &
-                      RC              = RC               )  
+       CALL Spc_Info( am_I_Root       = am_I_Root,                           &
+                      iName           = TRIM(NameAllCaps),                   &
+                      Input_Opt       = Input_Opt,                           &
+                      KppSpcId        = KppSpcId(N),                         &
+                      oFullName       = FullName,                            &
+                      oFormula        = Formula,                             &
+                      oMW_g           = MW_g,                                & 
+                      oEmMW_g         = EmMW_g,                              &
+                      oMolecRatio     = MolecRatio,                          &
+                      oBackgroundVV   = BackgroundVV,                        &
+                      oHenry_K0       = Henry_K0,                            &
+                      oHenry_CR       = Henry_CR,                            &
+                      oHenry_PKA      = Henry_PKA,                           &
+                      oDensity        = Density,                             &
+                      oRadius         = Radius,                              &
+                      oDD_AeroDryDep  = DD_AeroDryDep,                       &
+                      oDD_DustDryDep  = DD_DustDryDep,                       &
+                      oDD_DvzAerSnow  = DD_DvzAerSnow,                       &
+                      oDD_DvzMinVal   = DD_DvzMinVal,                        &
+                      oDD_F0          = DD_F0,                               &
+                      oDD_KOA         = DD_KOA,                              &
+                      oDD_Hstar_Old   = DD_Hstar_Old,                        &
+                      oMP_SizeResAer  = MP_SizeResAer,                       &
+                      oMP_SizeResNum  = MP_SizeResNum,                       &
+                      oWD_RetFactor   = WD_RetFactor,                        &
+                      oWD_LiqAndGas   = WD_LiqAndGas,                        &
+                      oWD_ConvFacI2G  = WD_ConvFacI2G,                       &
+                      oWD_AerScavEff  = WD_AerScavEff,                       &
+                      oWD_KcScaleFac  = WD_KcScaleFac,                       &
+                      oWD_RainoutEff  = WD_RainoutEff,                       &
+                      oWD_CoarseAer   = WD_CoarseAer,                        &
+                      oIs_Drydep      = Is_Drydep,                           & 
+                      oIs_Gas         = Is_Gas,                              &
+                      oIs_HygroGrowth = Is_HygroGrowth,                      &
+                      oIs_Photolysis  = Is_Photolysis,                       &
+                      oIs_Wetdep      = Is_Wetdep,                           &
+                      oIs_InRestart   = Is_InRestart,                        &
+                      oIs_Hg0         = Is_Hg0,                              &
+                      oIs_Hg2         = Is_Hg2,                              &  
+                      oIs_HgP         = Is_HgP,                              &
+                      RC              = RC                                  )  
        ! Error
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT*, '### Could not get species info!',TRIM(NameAllCaps)
@@ -328,51 +329,51 @@ CONTAINS
        IF ( TRIM(Name) == 'POx' ) Name = 'POX'
        IF ( TRIM(Name) == 'LOx' ) Name = 'LOX'
        IF ( TRIM(FullName) == '' ) FullName = TRIM(Name) 
-       CALL Spc_Create( am_I_Root      = am_I_Root,       &
-                        ThisSpc        = SpcData(N)%Info, &
-                        ModelID        = N,               &
-                        KppSpcId       = KppSpcId(N),     & 
-                        KppVarId       = KppVarId(N),     & 
-                        KppFixId       = KppFixId(N),     &
-                        Name           = TRIM(Name),      & 
-                        FullName       = FullName,        &
-                        Formula        = Formula,         &
-                        MW_g           = MW_g,            & 
-                        EmMW_g         = EmMW_g,          &
-                        MolecRatio     = MolecRatio,      &
-                        BackgroundVV   = BackgroundVV,    &
-                        Henry_K0       = Henry_K0,        &
-                        Henry_CR       = Henry_CR,        &
-                        Henry_PKA      = Henry_PKA,       &
-                        Density        = Density,         &
-                        Radius         = Radius,          &
-                        DD_AeroDryDep  = DD_AeroDryDep,   & 
-                        DD_DustDryDep  = DD_DustDryDep,   & 
-                        DD_DvzAerSnow  = DD_DvzAerSnow,   &
-                        DD_DvzMinVal   = DD_DvzMinVal,    &
-                        DD_F0          = DD_F0,           &
-                        DD_KOA         = DD_KOA,          &
-                        DD_Hstar_Old   = DD_Hstar_Old,    &
-                        MP_SizeResAer  = MP_SizeResAer,   &
-                        MP_SizeResNum  = MP_SizeResNum,   &
-                        WD_RetFactor   = WD_RetFactor,    &
-                        WD_LiqAndGas   = WD_LiqAndGas,    &
-                        WD_ConvFacI2G  = WD_ConvFacI2G,   &
-                        WD_AerScavEff  = WD_AerScavEff,   &
-                        WD_KcScaleFac  = WD_KcScaleFac,   &
-                        WD_RainoutEff  = WD_RainoutEff,   &
-                        WD_CoarseAer   = WD_CoarseAer,    &
-                        Is_Advected    = Is_Advected,     & 
-                        Is_Drydep      = Is_Drydep,       & 
-                        Is_Gas         = Is_Gas,          &
-                        Is_HygroGrowth = Is_HygroGrowth,  &
-                        Is_Photolysis  = Is_Photolysis,   &
-                        Is_Wetdep      = Is_Wetdep,       &
-                        Is_InRestart   = Is_InRestart,    &
-                        Is_Hg0         = Is_Hg0,          &
-                        Is_Hg2         = Is_Hg2,          &  
-                        Is_HgP         = Is_HgP,          &
-                        RC             = RC                )  
+       CALL Spc_Create( am_I_Root      = am_I_Root,                          &
+                        ThisSpc        = SpcData(N)%Info,                    &
+                        ModelID        = N,                                  &
+                        KppSpcId       = KppSpcId(N),                        & 
+                        KppVarId       = KppVarId(N),                        & 
+                        KppFixId       = KppFixId(N),                        &
+                        Name           = TRIM(Name),                         & 
+                        FullName       = FullName,                           &
+                        Formula        = Formula,                            &
+                        MW_g           = MW_g,                               & 
+                        EmMW_g         = EmMW_g,                             &
+                        MolecRatio     = MolecRatio,                         &
+                        BackgroundVV   = BackgroundVV,                       &
+                        Henry_K0       = Henry_K0,                           &
+                        Henry_CR       = Henry_CR,                           &
+                        Henry_PKA      = Henry_PKA,                          &
+                        Density        = Density,                            &
+                        Radius         = Radius,                             &
+                        DD_AeroDryDep  = DD_AeroDryDep,                      & 
+                        DD_DustDryDep  = DD_DustDryDep,                      & 
+                        DD_DvzAerSnow  = DD_DvzAerSnow,                      &
+                        DD_DvzMinVal   = DD_DvzMinVal,                       &
+                        DD_F0          = DD_F0,                              &
+                        DD_KOA         = DD_KOA,                             &
+                        DD_Hstar_Old   = DD_Hstar_Old,                       &
+                        MP_SizeResAer  = MP_SizeResAer,                      &
+                        MP_SizeResNum  = MP_SizeResNum,                      &
+                        WD_RetFactor   = WD_RetFactor,                       &
+                        WD_LiqAndGas   = WD_LiqAndGas,                       &
+                        WD_ConvFacI2G  = WD_ConvFacI2G,                      &
+                        WD_AerScavEff  = WD_AerScavEff,                      &
+                        WD_KcScaleFac  = WD_KcScaleFac,                      &
+                        WD_RainoutEff  = WD_RainoutEff,                      &
+                        WD_CoarseAer   = WD_CoarseAer,                       &
+                        Is_Advected    = Is_Advected,                        & 
+                        Is_Drydep      = Is_Drydep,                          & 
+                        Is_Gas         = Is_Gas,                             &
+                        Is_HygroGrowth = Is_HygroGrowth,                     &
+                        Is_Photolysis  = Is_Photolysis,                      &
+                        Is_Wetdep      = Is_Wetdep,                          &
+                        Is_InRestart   = Is_InRestart,                       &
+                        Is_Hg0         = Is_Hg0,                             &
+                        Is_Hg2         = Is_Hg2,                             &  
+                        Is_HgP         = Is_HgP,                             &
+                        RC             = RC                                 )  
        ! Error
        IF ( RC /= GC_SUCCESS ) THEN
           PRINT*, '### Could not initialize species vector!',TRIM(NameAllCaps)
@@ -381,7 +382,6 @@ CONTAINS
 
        ! Print info about each species
        ! testing only
-       CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
        IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
@@ -404,21 +404,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,       &
-                       KppSpcId,        oFullName,      oFormula,        &
-                       oMW_g,           oEmMW_g,        oMolecRatio,     &
-                       oBackgroundVV,   oHenry_K0,      oHenry_CR,       &
-                       oHenry_PKA,      oDensity,       oRadius,         &
-                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,  &
-                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,         &
-                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,  &
-                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,  &
-                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,  &
-                       oWD_CoarseAer,                                    &
-                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth, &
-                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,   &
-                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,         &
-                       Found,           Underscores,    RC )
+  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,           &
+                       KppSpcId,        oFullName,      oFormula,            &
+                       oMW_g,           oEmMW_g,        oMolecRatio,         &
+                       oBackgroundVV,   oHenry_K0,      oHenry_CR,           &
+                       oHenry_PKA,      oDensity,       oRadius,             &
+                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,      &
+                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,             &
+                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,      &
+                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,      &
+                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,      &
+                       oWD_CoarseAer,                                        &
+                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth,     &
+                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,       &
+                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,             &
+                       Found,           Underscores,    RC                  )
 !
 ! !USES:
 !
@@ -484,6 +484,7 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
+!  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -491,44 +492,44 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! local species information
-    CHARACTER(LEN=31)      :: Name
-    CHARACTER(LEN=80)      :: FullName
-    CHARACTER(LEN=80)      :: Formula
-    REAL(fp)               :: MW_g             ! Molecular weight [g]
-    REAL(fp)               :: EmMW_g           ! Emissions mol. wt [g]
-    REAL(fp)               :: MolecRatio       ! Molec ratio
-    REAL(fp)               :: BackgroundVV     ! Background conc [v/v]
-    REAL(f8)               :: Henry_K0         ! Henry's law K0 [M/atm]
-    REAL(f8)               :: Henry_CR         ! Henry's law CR [K]
-    REAL(f8)               :: Henry_PKA        ! Henry's law pKa [1]
-    REAL(fp)               :: Density          ! Density [kg/m3]
-    REAL(fp)               :: Radius           ! Radius [m]
-    LOGICAL                :: DD_AeroDryDep    ! Use AERO_SFCRSII?
-    LOGICAL                :: DD_DustDryDep    ! Use DUST_SFCRSII?
-    REAL(fp)               :: DD_DvzAerSnow    ! Vd for aerosols
-    REAL(fp)               :: DD_DvzMinVal(2)  ! Min Vd for aerosols
-    REAL(fp)               :: DD_F0            ! Drydep reactivity [1]
-    REAL(fp)               :: DD_KOA           ! Drydep KOA parameter
-    REAL(fp)               :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
-    LOGICAL                :: MP_SizeResAer    ! Size resolved aerosol?
-    LOGICAL                :: MP_SizeResNum    ! Size resolved aer #?
-    REAL(fp)               :: WD_RetFactor     ! Wetdep retention factor
-    LOGICAL                :: WD_LiqAndGas     ! Liquid and gas phases?
-    REAL(fp)               :: WD_ConvFacI2G    ! Factor for ice/gas ratio
-    REAL(fp)               :: WD_AerScavEff    ! Aerosol scavenging eff.
-    REAL(fp)               :: WD_KcScaleFac(3) ! Factor to multiply Kc
-    REAL(fp)               :: WD_RainoutEff(3) ! Rainout efficiency
-    LOGICAL                :: WD_CoarseAer     ! Coarse aerosol?
-    LOGICAL                :: Is_Advected      ! Is it advected?
-    LOGICAL                :: Is_Drydep        ! Is it dry deposited?
-    LOGICAL                :: Is_Gas           ! Gas (T) or aerosol (F)?
-    LOGICAL                :: Is_HygroGrowth   ! Is hygroscopic growth?
-    LOGICAL                :: Is_Photolysis    ! Is it photolysis spc?
-    LOGICAL                :: Is_Wetdep        ! Is it wet deposited?
-    LOGICAL                :: Is_InRestart     ! Is it in restart file?
-    LOGICAL                :: Is_Hg0           ! Denotes Hg0 species
-    LOGICAL                :: Is_Hg2           ! Denotes Hg2 species
-    LOGICAL                :: Is_HgP           ! Denotes HgP species
+    CHARACTER(LEN=31)   :: Name
+    CHARACTER(LEN=80)   :: FullName
+    CHARACTER(LEN=80)   :: Formula
+    REAL(fp)            :: MW_g             ! Molecular weight [g]
+    REAL(fp)            :: EmMW_g           ! Emissions mol. wt [g]
+    REAL(fp)            :: MolecRatio       ! Molec ratio
+    REAL(fp)            :: BackgroundVV     ! Background conc [v/v]
+    REAL(f8)            :: Henry_K0         ! Henry's law K0 [M/atm]
+    REAL(f8)            :: Henry_CR         ! Henry's law CR [K]
+    REAL(f8)            :: Henry_PKA        ! Henry's law pKa [1]
+    REAL(fp)            :: Density          ! Density [kg/m3]
+    REAL(fp)            :: Radius           ! Radius [m]
+    LOGICAL             :: DD_AeroDryDep    ! Use AERO_SFCRSII?
+    LOGICAL             :: DD_DustDryDep    ! Use DUST_SFCRSII?
+    REAL(fp)            :: DD_DvzAerSnow    ! Vd for aerosols
+    REAL(fp)            :: DD_DvzMinVal(2)  ! Min Vd for aerosols
+    REAL(fp)            :: DD_F0            ! Drydep reactivity [1]
+    REAL(fp)            :: DD_KOA           ! Drydep KOA parameter
+    REAL(fp)            :: DD_Hstar_Old     ! HSTAR, drydep [M/atm]
+    LOGICAL             :: MP_SizeResAer    ! Size resolved aerosol?
+    LOGICAL             :: MP_SizeResNum    ! Size resolved aer #?
+    REAL(fp)            :: WD_RetFactor     ! Wetdep retention factor
+    LOGICAL             :: WD_LiqAndGas     ! Liquid and gas phases?
+    REAL(fp)            :: WD_ConvFacI2G    ! Factor for ice/gas ratio
+    REAL(fp)            :: WD_AerScavEff    ! Aerosol scavenging eff.
+    REAL(fp)            :: WD_KcScaleFac(3) ! Factor to multiply Kc
+    REAL(fp)            :: WD_RainoutEff(3) ! Rainout efficiency
+    LOGICAL             :: WD_CoarseAer     ! Coarse aerosol?
+    LOGICAL             :: Is_Advected      ! Is it advected?
+    LOGICAL             :: Is_Drydep        ! Is it dry deposited?
+    LOGICAL             :: Is_Gas           ! Gas (T) or aerosol (F)?
+    LOGICAL             :: Is_HygroGrowth   ! Is hygroscopic growth?
+    LOGICAL             :: Is_Photolysis    ! Is it photolysis spc?
+    LOGICAL             :: Is_Wetdep        ! Is it wet deposited?
+    LOGICAL             :: Is_InRestart     ! Is it in restart file?
+    LOGICAL             :: Is_Hg0           ! Denotes Hg0 species
+    LOGICAL             :: Is_Hg2           ! Denotes Hg2 species
+    LOGICAL             :: Is_HgP           ! Denotes HgP species
 
     ! Scalars
     REAL(f8)            :: K0,  CR
@@ -541,7 +542,9 @@ CONTAINS
     REAL(fp)            :: DvzMinVal(2)
     REAL(fp)            :: KcScale(3)
     REAL(fp)            :: RainEff(3)
-
+!
+! !DEFINED PARAMETERS:
+!
     ! Local parameter
     LOGICAL,  PARAMETER :: T        = .TRUE.         ! Yes
     LOGICAL,  PARAMETER :: F        = .FALSE.        ! No
@@ -590,11 +593,11 @@ CONTAINS
     Is_HgP           = .FALSE.
 
     Uscore = .FALSE.
-    IF ( PRESENT(Underscores) ) Uscore = Underscores
-    IF ( PRESENT(Found      ) ) Found = .TRUE.
+    IF ( PRESENT( Underscores ) ) Uscore = Underscores
+    IF ( PRESENT( Found       ) ) Found  = .TRUE.
 
     ! Make sure its all caps
-    Name = TRIM(iName)
+    Name = TRIM( iName )
     CALL TranUc( Name )
 
     ! Test for species name
@@ -611,73 +614,73 @@ CONTAINS
           !==================================================================
 
           CASE( 'ACET' )
-                              FullName      = 'Acetone'
-                              Formula       = 'CH3C(O)CH3'
-                              MW_g          = 58.08_fp
-                              EmMW_g        = 12.00_fp
-                              MolecRatio    = 3.0_fp
-                              Is_Advected   = Is_Advected
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Acetone'
+             Formula       = 'CH3C(O)CH3'
+             MW_g          = 58.08_fp
+             EmMW_g        = 12.00_fp
+             MolecRatio    = 3.0_fp
+             Is_Advected   = Is_Advected
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.7e-1_f8 * To_M_atm
-                              Henry_CR      = 5500.0_f8
+             Henry_K0      = 2.7e-1_f8 * To_M_atm
+             Henry_CR      = 5500.0_f8
 #else
-                              DD_Hstar_Old  = 1e5_fp
-                              Henry_K0      = 2.7e+1_f8
-                              Henry_CR      = 5300.0_f8
+             DD_Hstar_Old  = 1e5_fp
+             Henry_K0      = 2.7e+1_f8
+             Henry_CR      = 5300.0_f8
 #endif
 
           CASE( 'ACTA' )
-                              FullName      = 'Acetic acid'
-                              Formula       = 'CH3C(O)OH'
-                              MW_g          = 60.00_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_Old  = 4.1e+3_fp
-                              Henry_K0      = 4.1e+3_f8
-                              Henry_CR      = 6300.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Acetic acid'
+             Formula       = 'CH3C(O)OH'
+             MW_g          = 60.00_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_Old  = 4.1e+3_fp
+             Henry_K0      = 4.1e+3_f8
+             Henry_CR      = 6300.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
 
           CASE( 'ALD2' )
-                              FullName      = 'Acetaldehyde'
-                              Formula       = 'CH3CHO'
-                              MW_g          = 44.05_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 2.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Acetaldehyde'
+             Formula       = 'CH3CHO'
+             MW_g          = 44.05_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 2.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e-01_f8 * To_M_atm
-                              Henry_CR      = 5900.0_f8
+             Henry_K0      = 1.30e-01_f8 * To_M_atm
+             Henry_CR      = 5900.0_f8
 #else
-                              DD_Hstar_Old  = 1.1e+1_fp
-                              Henry_K0      = 1.1e+1_f8
-                              Henry_CR      = 6300.0_f8
+             DD_Hstar_Old  = 1.1e+1_fp
+             Henry_K0      = 1.1e+1_f8
+             Henry_CR      = 6300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ALK4' )
-                              FullName      = 'Lumped >= C4 Alkanes'
-                              Formula       = ''
-                              MW_g          = 58.12_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 4.3_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Lumped >= C4 Alkanes'
+             Formula       = ''
+             MW_g          = 58.12_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 4.3_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.20e-5_f8 * To_M_atm
-                              Henry_CR      = 3100.0_f8
+             Henry_K0      = 1.20e-5_f8 * To_M_atm
+             Henry_CR      = 3100.0_f8
 #endif
 
           CASE( 'ASOA1', 'ASOA2', 'ASOA3', 'ASOAN' )
@@ -691,29 +694,29 @@ CONTAINS
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
              RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ASOG1', 'ASOG2', 'ASOG3' )
              FullName = 'Lumped non-volatile gas products of light aromatics + IVOCs'
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.00e+5_f8
-                              Henry_CR      = 6039.0_f8
+             Henry_K0      = 1.00e+5_f8
+             Henry_CR      = 6039.0_f8
 #else
                               DD_Hstar_Old  = 1.00e+5_fp
                               Henry_K0      = 1.00e+5_f8
@@ -731,20 +734,20 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= T
-                              Density       = 1800.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'BCPO' )
              Fullname = 'Hydrophobic black carbon aerosol'
@@ -757,256 +760,256 @@ CONTAINS
              ! BCPO is considered to be IN.
              RainEff  = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= F
-                              Density       = 1800.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= F
+             Density       = 1800.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'BENZ' )
-                              FullName      = 'Benzene'
-                              Formula       = 'C6H6'
-                              MW_g          = 78.11_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 6.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-
+             FullName      = 'Benzene'
+             Formula       = 'C6H6'
+             MW_g          = 78.11_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 6.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             
           CASE( 'BR' )
-                              FullName      = 'Atomic bromine'
-                              Formula       = 'Br'
-                              MW_g          = 80.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Atomic bromine'
+             Formula       = 'Br'
+             MW_g          = 80.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.40e-4_f8 * To_M_atm
-                              Henry_CR      = 1800.0_f8
+             Henry_K0      = 3.40e-4_f8 * To_M_atm
+             Henry_CR      = 1800.0_f8
 #endif
 
           CASE( 'BR2' )
-                              FullName      = 'Molecular Bromine'
-                              Formula       = 'Br2'
-                              MW_g          = 160.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Molecular Bromine'
+             Formula       = 'Br2'
+             MW_g          = 160.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.20e-3_f8 * To_M_atm
-                              Henry_CR      = 4400.0_f8
+             Henry_K0      = 7.20e-3_f8 * To_M_atm
+             Henry_CR      = 4400.0_f8
 #else
-                              DD_Hstar_Old  = 7.60e-1_fp
-                              Henry_K0      = 7.60e-1_f8
-                              Henry_CR      = 3720.0_f8
+             DD_Hstar_Old  = 7.60e-1_fp
+             Henry_K0      = 7.60e-1_f8
+             Henry_CR      = 3720.0_f8
 #endif
-                              WD_RetFactor  = 0.0_fp
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'BRCL' )
-                              FullName      = 'Bromine chloride'
-                              Formula       = 'BrCl'
-                              MW_g          = 115.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Bromine chloride'
+             Formula       = 'BrCl'
+             MW_g          = 115.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'BRNO2' )
-                              FullName      = 'Nitryl bromide'
-                              Formula       = 'BrNO2'
-                              MW_g          = 126.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitryl bromide'
+             Formula       = 'BrNO2'
+             MW_g          = 126.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'BRNO3' )
-                              FullName      = 'Bromine nitrate'
-                              Formula       = 'BrNO3'
-                              MW_g          = 142.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 1.00e+20_fp
+             FullName      = 'Bromine nitrate'
+             Formula       = 'BrNO3'
+             MW_g          = 142.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 1.00e+20_fp
 
           CASE( 'BRO' )
-                              FullName      = 'Bromine monoxide'
-                              Formula       = 'BrO'
-                              MW_g          = 96.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Bromine monoxide'
+             Formula       = 'BrO'
+             MW_g          = 96.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'C2H6' )
-                              FullName      = 'Ethane'
-                              Formula       = 'C2H6'
-                              MW_g          = 30.07_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 2.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              DD_F0         = 1.0_fp
+             FullName      = 'Ethane'
+             Formula       = 'C2H6'
+             MW_g          = 30.07_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 2.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.90e+5_f8 * To_M_atm
-                              Henry_CR      = 2400.0_f8
+             Henry_K0      = 1.90e+5_f8 * To_M_atm
+             Henry_CR      = 2400.0_f8
 #endif
 
           CASE( 'C3H8' )
-                              FullName      = 'Propane'
-                              Formula       = 'C3H8'
-                              MW_g          = 44.1_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 3.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Propane'
+             Formula       = 'C3H8'
+             MW_g          = 44.1_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 3.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.50e-5_f8 * To_M_atm
-                              Henry_CR      = 2700.0_f8
+             Henry_K0      = 1.50e-5_f8 * To_M_atm
+             Henry_CR      = 2700.0_f8
 #endif
 
           CASE( 'CCL4' )
-                              FullName      = 'Carbon tetrachloride'
-                              Formula       = 'CCl4'
-                              MW_g          = 152.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Carbon tetrachloride'
+             Formula       = 'CCl4'
+             MW_g          = 152.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CFC11' )
-                              FullName      = 'CFC-11'
-                              Formula       = 'CCl3F'
-                              MW_g          = 137.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-
+             FullName      = 'CFC-11'
+             Formula       = 'CCl3F'
+             MW_g          = 137.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             
           CASE( 'CFC12' )
-                              FullName      = 'CFC-12'
-                              Formula       = 'CCl2F2'
-                              MW_g          = 121.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'CFC-12'
+             Formula       = 'CCl2F2'
+             MW_g          = 121.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CFC113' )
-                              FullName      = 'CFC-113'
-                              Formula       = 'C2Cl3F3'
-                              MW_g          = 187.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'CFC-113'
+             Formula       = 'C2Cl3F3'
+             MW_g          = 187.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CFC114' )
-                              FullName      = 'CFC-114'
-                              Formula       = 'C2Cl2F4'
-                              MW_g          = 187.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'CFC-114'
+             Formula       = 'C2Cl2F4'
+             MW_g          = 187.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CFC115' )
-                              FullName      = 'CFC-115'
-                              Formula       = 'C2ClF5'
-                              MW_g          = 187.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'CFC-115'
+             Formula       = 'C2ClF5'
+             MW_g          = 187.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH2BR2' )
-                              FullName      = 'Dibromomethane'
-                              Formula       = 'CH2Br2'
-                              MW_g          = 174.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Dibromomethane'
+             Formula       = 'CH2Br2'
+             MW_g          = 174.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH2O', 'HCHO' )
-                              FullName      = 'Formaldehyde'
-                              Formula       = 'CH2O'
-                              MW_g          = 30.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Formaldehyde'
+             Formula       = 'CH2O'
+             MW_g          = 30.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.2e+1_f8 * To_M_atm
-                              Henry_CR      = 6800.0_f8
+             Henry_K0      = 3.2e+1_f8 * To_M_atm
+             Henry_CR      = 6800.0_f8
 #else
-                              DD_Hstar_Old  = 3.0e+3_fp
-                              Henry_K0      = 3.0e+3_f8
-                              Henry_CR      = 7200.0_f8
+             DD_Hstar_Old  = 3.0e+3_fp
+             Henry_K0      = 3.0e+3_f8
+             Henry_CR      = 7200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'CH3BR' )
-                              FullName      = 'Methyl bromide'
-                              Formula       = 'CH3Br'
-                              MW_g          = 95.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Methyl bromide'
+             Formula       = 'CH3Br'
+             MW_g          = 95.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CHCL3' )
-                              FullName      = 'Chloroform'
-                              Formula       = 'CHCl3'
-                              MW_g          = 119.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chloroform'
+             Formula       = 'CHCl3'
+             MW_g          = 119.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH2CL2' )
-                              FullName      = 'Dichloromethane'
-                              Formula       = 'CH2Cl2'
-                              MW_g          = 85.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Dichloromethane'
+             Formula       = 'CH2Cl2'
+             MW_g          = 85.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH3CL' )
-                              FullName      = 'Chloromethane'
-                              Formula       = 'CH3Cl'
-                              MW_g          = 50.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chloromethane'
+             Formula       = 'CH3Cl'
+             MW_g          = 50.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH3CCL3' )
-                              FullName      = 'Methyl chloroform'
-                              Formula       = 'CH3CCl3'
-                              MW_g          = 133.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Methyl chloroform'
+             Formula       = 'CH3CCl3'
+             MW_g          = 133.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           ! Now include both total and tagged CH4 species (mps, 6/21/17)
           ! All of these have identical properties except for the names
@@ -1054,84 +1057,84 @@ CONTAINS
                    BackgroundVV = MISSING_VV
              END SELECT
 
-                              Formula       = 'CH4'
-                              MW_g          = 16.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             Formula       = 'CH4'
+             MW_g          = 16.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'CHBR3' )
-                              FullName      = 'Bromoform'
-                              Formula       = 'CHBr3'
-                              MW_g          = 253.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Bromoform'
+             Formula       = 'CHBr3'
+             MW_g          = 253.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CL' )
-                              FullName      = 'Atomic chlorine'
-                              Formula       = 'Cl'
-                              MW_g          = 35.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Atomic chlorine'
+             Formula       = 'Cl'
+             MW_g          = 35.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'CL2' )
-                              FullName      = 'Molecular chlorine'
-                              Formula       = 'Cl2'
-                              MW_g          = 71.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Molecular chlorine'
+             Formula       = 'Cl2'
+             MW_g          = 71.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CL2O2' )
-                              FullName      = 'Dichlorine dioxide'
-                              Formula       = 'Cl2O2'
-                              MW_g          = 103.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Dichlorine dioxide'
+             Formula       = 'Cl2O2'
+             MW_g          = 103.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CLNO2' )
-                              FullName      = 'Nitryl chloride'
-                              Formula       = 'ClNO2'
-                              MW_g          = 81.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitryl chloride'
+             Formula       = 'ClNO2'
+             MW_g          = 81.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
+
           CASE( 'CLNO3' )
-                              FullName      = 'Chlorine nitrate'
-                              Formula       = 'ClNO3'
-                              MW_g          = 97.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.00e+20_fp
+             FullName      = 'Chlorine nitrate'
+             Formula       = 'ClNO3'
+             MW_g          = 97.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.00e+20_fp
 
           CASE( 'CLO' )
-                              FullName      = 'Chlorine monoxide'
-                              Formula       = 'ClO'
-                              MW_g          = 51.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chlorine monoxide'
+             Formula       = 'ClO'
+             MW_g          = 51.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CLOO' )
-
-                              FullName      = 'Chlorine dioxide'
-                              Formula       = 'ClOO'
-                              MW_g          = 67.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chlorine dioxide'
+             Formula       = 'ClOO'
+             MW_g          = 67.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CO',     'COUS',    'COEUR',  'COASIA', 'COOTH',  &
                 'COBBAM', 'COBBAF',  'COBBAS', 'COBBOC', 'COBBEU', &
@@ -1185,60 +1188,57 @@ CONTAINS
                    BackgroundVV = MISSING_VV
              END SELECT
 
-                              Formula       = 'CO'
-                              MW_g          = 28.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             Formula       = 'CO'
+             MW_g          = 28.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 9.70e-6_f8 * To_M_atm
-                              Henry_CR      = 1300.0_f8
+             Henry_K0      = 9.70e-6_f8 * To_M_atm
+             Henry_CR      = 1300.0_f8
 #endif
 
           CASE( 'DHDC' )
-             FullName = 'Dihydroxyperoxide dicarbonyl'
-
-                              Formula       = 'C5H8O6'
-                              MW_g          = 164.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Dihydroxyperoxide dicarbonyl'
+             Formula       = 'C5H8O6'
+             MW_g          = 164.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'DHDN' )
              ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              FullName      = 'C5 dihydroxydinitrate'
-                              Formula       = 'C5H10O8N2'
-                              MW_g          = 226.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_Old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'C5 dihydroxydinitrate'
+             Formula       = 'C5H10O8N2'
+             MW_g          = 226.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_Old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'DHPCARP' )
              FullName = 'Dihydroxy a-formyl peroxy radical'
-
-                              FullName      = FullName
-                              Formula       = 'C5H9O7'
-                              MW_g          = 181.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             Formula       = 'C5H9O7'
+             MW_g          = 181.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'DMS' )
-                              FullName      = 'Dimethyl sulfide'
-                              Formula       = '(CH3)2S'
-                              MW_g          = 62.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Henry_K0      = 4.80e-1_f8
-                              Henry_CR      = 3100.0_f8
+             FullName      = 'Dimethyl sulfide'
+             Formula       = '(CH3)2S'
+             MW_g          = 62.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Henry_K0      = 4.80e-1_f8
+             Henry_CR      = 3100.0_f8
 
           CASE( 'DST1', 'DSTAL1', 'NITD1', 'SO4D1' )
 
@@ -1261,19 +1261,19 @@ CONTAINS
              ! is considered to be IN.
              RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 29.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2500.0_fp
-                              Radius        = 7.3e-7_fp
-                              DD_DustDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 29.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2500.0_fp
+             Radius        = 7.3e-7_fp
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'DST2', 'DSTAL2', 'NITD2', 'SO4D2' )
 
@@ -1290,26 +1290,26 @@ CONTAINS
              END SELECT
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
-             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+             RainEff       = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 29.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2650.0_fp
-                              Radius        = 1.4e-6_fp
-                              DD_DustDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 29.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 1.4e-6_fp
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'DST3', 'DSTAL3', 'NITD3', 'SO4D3' )
 
@@ -1326,26 +1326,26 @@ CONTAINS
              END SELECT
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
-             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+             RainEff       = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 29.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2650.0_fp
-                              Radius        = 2.4e-6_fp
-                              DD_DustDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 29.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 2.4e-6_fp
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
 
           CASE( 'DST4', 'DSTAL4', 'NITD4', 'SO4D4' )
@@ -1362,287 +1362,282 @@ CONTAINS
              END SELECT
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
-             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              ! Allow rainout of dust when T < 258K, because dust
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
+             RainEff       = (/ 1.0_fp, 1.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 29.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2650.0_fp
-                              Radius        = 4.50e-6_fp
-                              DD_DustDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 29.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2650.0_fp
+             Radius        = 4.50e-6_fp
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'EOH' )
-                              FullName      = 'Ethanol'
-                              Formula       = 'C2H5OH'
-                              MW_g          = 46.07_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 2.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.9e+2_fp
-                              Henry_K0      = 1.9e+2_f8
-                              Henry_CR      = 6600.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Ethanol'
+             Formula       = 'C2H5OH'
+             MW_g          = 46.07_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 2.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.9e+2_fp
+             Henry_K0      = 1.9e+2_f8
+             Henry_CR      = 6600.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ETHLN' )
              ! ETHLN uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              FullName      = 'Ethanol nitrate'
-                              Formula       = 'CHOCH2ONO2'
-                              MW_g          = 105.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Ethanol nitrate'
+             Formula       = 'CHOCH2ONO2'
+             MW_g          = 105.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
 
           CASE( 'GLYC' )
-                              FullName      = 'Glycoaldehyde'
-                              Formula       = 'HOCH2CHO'
-                              MW_g          = 60.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Glycoaldehyde'
+             Formula       = 'HOCH2CHO'
+             MW_g          = 60.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.10e+2_f8 * To_M_atm
-                              Henry_CR      = 4600.0_f8
+             Henry_K0      = 4.10e+2_f8 * To_M_atm
+             Henry_CR      = 4600.0_f8
 #else
-                              DD_Hstar_old  = 4.10e+4_fp
-                              Henry_K0      = 4.10e+4_f8
-                              Henry_CR      = 4600.0_f8
+             DD_Hstar_old  = 4.10e+4_fp
+             Henry_K0      = 4.10e+4_f8
+             Henry_CR      = 4600.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'GLYX' )
-                              FullName      = 'Glyoxal'
-                              Formula       = 'CHOCHO'
-                              MW_g          = 58.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 3.6e+5_fp
-                              Henry_K0      = 3.6e+5_f8
-                              Henry_CR      = 7200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Glyoxal'
+             Formula       = 'CHOCHO'
+             MW_g          = 58.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 3.6e+5_fp
+             Henry_K0      = 3.6e+5_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'H1211' )
-                              FullName      = 'Halon 1211, Freon 12B1'
-                              Formula       = 'CBrClF2'
-                              MW_g          = 165.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Halon 1211, Freon 12B1'
+             Formula       = 'CBrClF2'
+             MW_g          = 165.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'H1301' )
-                              FullName      = 'Halon 1301, Freon 13B1'
-                              Formula       = 'CBrF3'
-                              MW_g          = 149.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Halon 1301, Freon 13B1'
+             Formula       = 'CBrF3'
+             MW_g          = 149.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'H2402' )
-                              FullName      = 'Halon 2402'
-                              Formula       = 'C2Br2F4'
-                              MW_g          = 260.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Halon 2402'
+             Formula       = 'C2Br2F4'
+             MW_g          = 260.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'H2O' )
-                              FullName      = 'Water vapor'
-                              Formula       = 'H2O'
-                              MW_g          = 18.0_fp
-                              BackgroundVV  = 1.839e-02_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Water vapor'
+             Formula       = 'H2O'
+             MW_g          = 18.0_fp
+             BackgroundVV  = 1.839e-02_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'H2O2' )
-                              FullName      = 'Hydrogen peroxide'
-                              Formula       = 'H2O2'
-                              MW_g          = 34.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Hydrogen peroxide'
+             Formula       = 'H2O2'
+             MW_g          = 34.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.93e+5_f8 * To_M_atm
-                              Henry_CR      = 6600.0_f8
-                              Henry_pKa     = 11.6_f8
+             Henry_K0      = 4.93e+5_f8 * To_M_atm
+             Henry_CR      = 6600.0_f8
+             Henry_pKa     = 11.6_f8
 #else
-                              DD_Hstar_old  = 5.00e+7_fp
-                              Henry_K0      = 8.30e+4_f8
-                              Henry_CR      = 7400.0_f8
+             DD_Hstar_old  = 5.00e+7_fp
+             Henry_K0      = 8.30e+4_f8
+             Henry_CR      = 7400.0_f8
 #endif
-                              WD_RetFactor  = 5e-2_fp
+             WD_RetFactor  = 5e-2_fp
                               WD_LiqAndGas  = T
                               WD_ConvFacI2G = 4.36564e-1_fp
 
           CASE( 'HAC' )
-                              FullName      = 'Hydroxyacetone'
-                              Formula       = 'HOCH2C(O)CH3'
-                              MW_g          = 74.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Hydroxyacetone'
+             Formula       = 'HOCH2C(O)CH3'
+             MW_g          = 74.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.70e+1_f8 * To_M_atm
-                              Henry_CR      = 0.0_f8
+             Henry_K0      = 7.70e+1_f8 * To_M_atm
+             Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 1.40e+6_fp
-                              Henry_K0      = 1.40e+6_f8
-                              Henry_CR      = 7200.0_f8
+             DD_Hstar_old  = 1.40e+6_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 7200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HBR' )
-                              FullName      = 'Hypobromic acid'
-                              Formula       = 'HBr'
-                              MW_g          = 81.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Hypobromic acid'
+             Formula       = 'HBr'
+             MW_g          = 81.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.40e-1_f8 * To_M_atm
-                              Henry_CR      = 370.0_f8
+             Henry_K0      = 2.40e-1_f8 * To_M_atm
+             Henry_CR      = 370.0_f8
 #else
-                              DD_Hstar_old  = 7.10e+15_fp
-                              Henry_K0      = 7.10e+13_f8
-                              Henry_CR      = 10200.0_f8
+             DD_Hstar_old  = 7.10e+15_fp
+             Henry_K0      = 7.10e+13_f8
+             Henry_CR      = 10200.0_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'HC187' )
              FullName = 'Epoxide oxidation product m/z 187-189'
 
              ! HC187 uses the same DD_F0 and DD_Hstar_old values as HNO3,
              ! so that we can compute its drydep velocity explicitly.
-                              Formula       = ''
-                              MW_g          = 187.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              DD_F0         = 0.0_fp
+             Formula       = ''
+             MW_g          = 187.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e-2_f8 * To_M_atm
-                              Henry_CR      = 3400.0_f8
+             Henry_K0      = 2.10e-2_f8 * To_M_atm
+             Henry_CR      = 3400.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp
+             DD_Hstar_old  = 1.0e+14_fp
 #endif
 
           CASE( 'HCFC123' )
-
-                              FullName      = 'HCFC-123, Freon 123'
-                              Formula       = 'C2HCl2F3'
-                              MW_g          = 117.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'HCFC-123, Freon 123'
+             Formula       = 'C2HCl2F3'
+             MW_g          = 117.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HCFC141B' )
-
-                              FullName      = 'HCFC-141b, Freon 141b'
-                              Formula       = 'C(CH3)Cl2F'
-                              MW_g          = 117.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'HCFC-141b, Freon 141b'
+             Formula       = 'C(CH3)Cl2F'
+             MW_g          = 117.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HCFC142B' )
-
-                              FullName      = 'HCFC-142b, Freon 142b'
-                              Formula       = 'C(CH3)ClF2'
-                              MW_g          = 117.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'HCFC-142b, Freon 142b'
+             Formula       = 'C(CH3)ClF2'
+             MW_g          = 117.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HCFC22' )
-                              FullName      = 'HCFC-22, Freon 22'
-                              Formula       = 'CHClF2'
-                              MW_g          = 86.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'HCFC-22, Freon 22'
+             Formula       = 'CHClF2'
+             MW_g          = 86.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HCL' )
-                              FullName      = 'Hydrochloric acid'
-                              Formula       = 'HCl'
-                              MW_g          = 36.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Hydrochloric acid'
+             Formula       = 'HCl'
+             MW_g          = 36.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
 #if defined( MODEL_GEOS )
-                              !DD_Hstar_old  = 2.05e+13_fp
-                              !Henry_K0      = 7.00e+10_f8
-                              DD_Hstar_old  = 2.05e+6_fp
-                              Henry_K0      = 7.10e+15_f8
+             DD_Hstar_old  = 2.05e+6_fp
+             Henry_K0      = 7.10e+15_f8
 #else
-                              DD_Hstar_old  = 2.05e+6_fp
-                              Henry_K0      = 7.10e+15_f8
+             DD_Hstar_old  = 2.05e+13_fp
+             Henry_K0      = 7.00e+10_f8
 #endif
-                              Henry_CR      = 11000.0_f8
-                              WD_RetFactor  = 1.0_fp
+             Henry_CR      = 11000.0_f8
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'HCOOH' )
-                              FullName      = 'Formic acid'
-                              Formula       = 'HCOOH'
-                              MW_g          = 46.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 8.90e+3_fp
-                              Henry_K0      = 8.90e+3_f8
-                              Henry_CR      = 6100.0_f8
+             FullName      = 'Formic acid'
+             Formula       = 'HCOOH'
+             MW_g          = 46.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 8.90e+3_fp
+             Henry_K0      = 8.90e+3_f8
+             Henry_CR      = 6100.0_f8
                               WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HNO2' )
-                              FullName      = 'Nitrous acid'
-                              Formula       = 'HNO2'
-                              MW_g          = 47.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitrous acid'
+             Formula       = 'HNO2'
+             MW_g          = 47.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HNO3' )
 
@@ -1651,223 +1646,215 @@ CONTAINS
              !%%% with both gas-phase and aerosol parameters. (bmy, 9/28/15)
 
              ! Do not reduce the Kc (cloud condensate -> precip) rate
-             KcScale = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
              ! Allow rainout of HNO3 when T < 258K, becasue HNO3
              ! is considered to be IN.
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-                              FullName      = 'Nitric acid'
-                              Formula       = 'HNO3'
-                              MW_g          = 63.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Nitric acid'
+             Formula       = 'HNO3'
+             MW_g          = 63.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e+3_f8 * To_M_atm
-                              Henry_CR      = 8700.0_f8
+             Henry_K0      = 2.10e+3_f8 * To_M_atm
+             Henry_CR      = 8700.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp
-                              Henry_K0      = 8.3e+4_f8
-                              Henry_CR      = 7400.0_f8
+             DD_Hstar_old  = 1.0e+14_fp
+             Henry_K0      = 8.3e+4_f8
+             Henry_CR      = 7400.0_f8
 #endif
                               WD_AerScavEff = 1.0_fp
                               WD_KcScaleFac = KcScale
                               WD_RainoutEff = RainEff
 
           CASE( 'HNO4' )
-                              FullName      = 'Peroxynitric acid'
-                              Formula       = 'HNO4'
-                              MW_g          = 79.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxynitric acid'
+             Formula       = 'HNO4'
+             MW_g          = 79.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
-                              Henry_K0      = 3.90e-1_f8 * To_M_atm
-                              Henry_CR      = 8400.0_f8
+             !!!Henry_K0      = 3.90e1X_f8 * To_M_atm
+             Henry_K0      = 3.90e-1_f8 * To_M_atm
+             Henry_CR      = 8400.0_f8
 #endif
 
           CASE( 'HOBR' )
-                              FullName      = 'Hypobromous acid'
-                              Formula       = 'HOBr'
-                              MW_g          = 97.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Hypobromous acid'
+             Formula       = 'HOBr'
+             MW_g          = 97.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e+0_f8 * To_M_atm
-                              Henry_CR      = 4000.0_f8
+             Henry_K0      = 1.30e+0_f8 * To_M_atm
+             Henry_CR      = 4000.0_f8
 #else
-                              DD_Hstar_old  = 6.10e+3_fp
-                              Henry_K0      = 6.10e+3_f8
-                              Henry_CR      = 6014.0_f8
+             DD_Hstar_old  = 6.10e+3_fp
+             Henry_K0      = 6.10e+3_f8
+             Henry_CR      = 6014.0_f8
 #endif
-                              WD_RetFactor  = 0.0_fp
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'HOCL' )
-                              FullName      = 'Hypochlorous acid'
-                              Formula       = 'HOCl'
-                              MW_g          = 52.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 6.50e+2_fp
-                              Henry_K0      = 6.50e+2_f8
-                              Henry_CR      = 5900.0_f8
-                              WD_RetFactor  = 0.0_fp
+             FullName      = 'Hypochlorous acid'
+             Formula       = 'HOCl'
+             MW_g          = 52.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 6.50e+2_fp
+             Henry_K0      = 6.50e+2_f8
+             Henry_CR      = 5900.0_f8
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'HONIT' )
              FullName = '2nd gen monoterpene organic nitrate'
 
              ! HONIT uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              Formula       = ''
-                              MW_g          = 215.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.69e+13_f8
-                              Henry_CR      = 5487.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = ''
+             MW_g          = 215.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.69e+13_f8
+             Henry_CR      = 5487.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'HPALD' )
-                              FullName      = 'Hydroperoxyaldehydes'
-                              Formula       = 'C5H8O3'
-                              MW_g          = 116.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 4.0e+4_fp
+             FullName      = 'Hydroperoxyaldehydes'
+             Formula       = 'C5H8O3'
+             MW_g          = 116.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.0e+4_fp
 
           CASE( 'HPC52O2' )
-                              FullName      = 'HOC52O2'
-                              Formula       = 'OOCC(C(C=O)O)(O[O])C'
-                              MW_g          = 165.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'HOC52O2'
+             Formula       = 'OOCC(C(C=O)O)(O[O])C'
+             MW_g          = 165.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'IEPOXA' )
-             FullName = 'trans-Beta isoprene epoxydiol'
-
-                              FullName      = FullName
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 8.00e+7_fp
-                              Henry_K0      = 8.00e+7_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'trans-Beta isoprene epoxydiol'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 8.00e+7_fp
+             Henry_K0      = 8.00e+7_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IEPOXB' )
-             FullName = 'cis-Beta isoprene epoxydiol'
-
-                              FullName      = FullName
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 8.00e+7_fp
-                              Henry_K0      = 8.00e+7_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'cis-Beta isoprene epoxydiol'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 8.00e+7_fp
+             Henry_K0      = 8.00e+7_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IEPOXD' )
-             FullName = 'Delta isoprene epoxydiol'
-
-                              FullName      = FullName
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 8.00e+7_fp
-                              Henry_K0      = 8.00e+7_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Delta isoprene epoxydiol'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 8.00e+7_fp
+             Henry_K0      = 8.00e+7_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IMAE' )
              FullName = 'C4 epoxide from oxidation of MPAN (PMN)'
-
-                              FullName      = FullName
-                              Formula       = 'C4H6O3'
-                              MW_g          = 102.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              ! DD_Hstar based on Pye et al. (2013)
-                              DD_Hstar_old  = 1.20e+5_fp
-                              Henry_K0      = 1.20e+5_f8
-                              Henry_CR      = 7200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = 'C4H6O3'
+             MW_g          = 102.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             ! DD_Hstar based on Pye et al. (2013)
+             DD_Hstar_old  = 1.20e+5_fp
+             Henry_K0      = 1.20e+5_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'INDIOL' )
-             FullName = 'Generic aerosol-phase organonitrate hydrolysis product'
+             FullName      = 'Generic aerosol-phase organonitrate hydrolysis product'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 102.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 102.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'IONITA' )
-             FullName = 'Aer-phase organic nitrate from isoprene precursors'
+             FullName      = 'Aer-phase organic nitrate from isoprene precursors'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 14.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 14.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'IPMN' )
              FullName = 'Peroxymethacroyl nitrate (PMN) from isoprene oxidation'
@@ -1875,364 +1862,361 @@ CONTAINS
              ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-                              Formula       = 'CH2=C(CH3)C(O)OONO2'
-                              MW_g          = 147.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             Formula       = 'CH2=C(CH3)C(O)OONO2'
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.70e-2_f8 * To_M_atm
+             Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 3.60_fp
+             DD_Hstar_old  = 3.60_fp
 #endif
 
           CASE( 'ISN1' )
              ! ISN1 uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              FullName      = 'Nighttime isoprene nitrate'
-                              Formula       = 'C5H8NO4'
-                              MW_g          = 147.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Nighttime isoprene nitrate'
+             Formula       = 'C5H8NO4'
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISN1OA' )
              FullName      = 'Aer-phase 2nd-gen hydroxynitrates from ISOP+NO3'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 226.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 226.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ISN1OG' )
              FullName      = 'Gas-phase 2nd-gen hydroxynitrates from ISOP+NO3'
-
-                              Formula       = ''
-                              MW_g          = 226.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.30e+4_fp
-                              Henry_K0      = 2.30e+4_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = ''
+             MW_g          = 226.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.30e+4_fp
+             Henry_K0      = 2.30e+4_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOA1', 'ISOA2', 'ISOA3' )
-             FullName = 'Lumped semivolatile aer products of isoprene oxidation'
+             FullName      = 'Lumped semivolatile aer products of isoprene oxidation'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ISOG1', 'ISOG2', 'ISOG3' )
-             FullName = 'Lumped semivolatile gas products of isoprene oxidation'
-
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.00e+5_fp
-                              Henry_K0      = 1.00e+5_f8
-                              Henry_CR      = 6039.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Lumped semivolatile gas products of isoprene oxidation'
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.00e+5_fp
+             Henry_K0      = 1.00e+5_f8
+             Henry_CR      = 6039.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOP' )
-                              FullName      = 'Isoprene'
-                              Formula       = 'CH2=C(CH3)CH=CH2'
-                              MW_g          = 68.12_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 5e+0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Isoprene'
+             Formula       = 'CH2=C(CH3)CH=CH2'
+             MW_g          = 68.12_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 5e+0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.40e-4_f8 * To_M_atm
-                              Henry_CR      = 4400.0_f8
+             Henry_K0      = 3.40e-4_f8 * To_M_atm
+             Henry_CR      = 4400.0_f8
 #endif
 
           CASE( 'ISOPNB' )
-                              FullName      = 'Isoprene nitrate Beta'
-                              Formula       = 'C5H9NO4'
-                              MW_g          = 147.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Isoprene nitrate Beta'
+             Formula       = 'C5H9NO4'
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'ISOPND'  )
-                              FullName      = 'Isoprene nitrate Delta'
-                              Formula       = 'C5H9NO4'
-                              MW_g          = 147.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Isoprene nitrate Delta'
+             Formula       = 'C5H9NO4'
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LIMO' )
-                              FullName      = 'Limonene'
-                              Formula       = 'C10H16'
-                              MW_g          = 136.23_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 7.00e-2_fp
-                              Henry_K0      = 7.00e-2_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Limonene'
+             Formula       = 'C10H16'
+             MW_g          = 136.23_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 7.00e-2_fp
+             Henry_K0      = 7.00e-2_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LVOC' )
              FullName = 'Gas-phase low-volatility non-IEPOX product of RIP ox'
-
-                              Formula       = 'C5H14O5'
-                              MW_g          = 154.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 1.00e+8_fp
-                              Henry_K0      = 1.00e+8_f8
-                              Henry_CR      = 7200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = 'C5H14O5'
+             MW_g          = 154.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.00e+8_fp
+             Henry_K0      = 1.00e+8_f8
+             Henry_CR      = 7200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'LVOCOA' )
-             FullName = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
+             FullName      = 'Aer-phase low-volatility non-IEPOX product of RIP ox'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = 'C5H14O5'
-                              MW_g          = 154.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = 'C5H14O5'
+             MW_g          = 154.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'MACR' )
-                              FullName      = 'Methacrolein'
-                              Formula       = 'CH2=C(CH3)CHO'
-                              MW_g          = 70.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Methacrolein'
+             Formula       = 'CH2=C(CH3)CHO'
+             MW_g          = 70.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.8e-2_f8 * To_M_atm
-                              Henry_CR      = 4300.0_f8
+             Henry_K0      = 4.8e-2_f8 * To_M_atm
+             Henry_CR      = 4300.0_f8
 #else
-                              DD_Hstar_old  = 6.5e+0_fp
+             DD_Hstar_old  = 6.5e+0_fp
 #endif
 
           CASE( 'MACRN' )
-                              FullName      = 'Nitrate from MACR'
-                              Formula       = 'HOCH2C(ONO2)(CH3)CHO'
-                              MW_g          = 149.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Nitrate from MACR'
+             Formula       = 'HOCH2C(ONO2)(CH3)CHO'
+             MW_g          = 149.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MAP' )
-                              FullName      = 'Peroxyacetic acid'
-                              Formula       = 'CH3C(O)OOH'
-                              MW_g          = 76.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+              FullName      = 'Peroxyacetic acid'
+              Formula       = 'CH3C(O)OOH'
+              MW_g          = 76.0_fp
+              Is_Gas        = T
+              Is_Drydep     = T
+              Is_Wetdep     = T
+              Is_Photolysis = T
+              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 8.30e+0_f8 * To_M_atm
-                              Henry_CR      = 5300.0_f8
+              Henry_K0      = 8.30e+0_f8 * To_M_atm
+              Henry_CR      = 5300.0_f8
 #else
-                              DD_Hstar_old  = 8.40e+2_fp
-                              Henry_K0      = 8.40e+2_f8
-                              Henry_CR      = 5300.0_f8
+              DD_Hstar_old  = 8.40e+2_fp
+              Henry_K0      = 8.40e+2_f8
+              Henry_CR      = 5300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MEK' )
-                              FullName      = 'Methyl Ethyl Ketone'
-                              Formula       = 'RC(O)R'
-                              MW_g          = 72.11_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 4.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Methyl Ethyl Ketone'
+             Formula       = 'RC(O)R'
+             MW_g          = 72.11_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 4.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.90e+02_f8 * To_M_atm
-                              Henry_CR      = 5700.0_f8
+             Henry_K0      = 2.90e+02_f8 * To_M_atm
+             Henry_CR      = 5700.0_f8
 #endif
 
           CASE( 'MGLY' )
-                              FullName      = 'Methylglyoxal'
-                              Formula       = 'CH3COCHO'
-                              MW_g          = 72.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 3.7e+3_fp
-                              Henry_K0      = 3.7e+3_f8
-                              Henry_CR      = 7500.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Methylglyoxal'
+             Formula       = 'CH3COCHO'
+             MW_g          = 72.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 3.7e+3_fp
+             Henry_K0      = 3.7e+3_f8
+             Henry_CR      = 7500.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MOBA' )
-                              FullName      = '5C acid from isoprene'
-                              Formula       = 'HOC(=O)C(CH3)=CHCHO'
-                              MW_g          = 114.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
+             FullName      = '5C acid from isoprene'
+             Formula       = 'HOC(=O)C(CH3)=CHCHO'
+             MW_g          = 114.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.27e+2_f8 * To_M_atm
-                              Henry_CR      = 6300.0_f8
+             Henry_K0      = 2.27e+2_f8 * To_M_atm
+             Henry_CR      = 6300.0_f8
 #else
-                              Henry_K0      = 2.30e+4_f8
-                              Henry_CR      = 6300.0_f8
+             Henry_K0      = 2.30e+4_f8
+             Henry_CR      = 6300.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MONITA' )
-             FullName = 'Aer-phase organic nitrate from monoterpene precursors'
+             FullName      = 'Aer-phase organic nitrate from monoterpene precursors'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 14.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 14.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'MONITS' )
              FullName = 'Saturated 1st gen monoterpene organic nitrate'
 
              ! MONITS uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              Formula       = ''
-                              MW_g          = 215.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 1.70e+4_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = ''
+             MW_g          = 215.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MONITU' )
              FullName = 'Unsaturated 1st gen monoterpene organic nitrate'
 
              ! MONITU uses the same DD_F0 and DD_Hstar_old values as ISOPN
              ! so that we can compute its drydep velocity explicitly.
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 215.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 1.70e+4_f8
-                              Henry_CR      = 9200.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 215.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 1.70e+4_f8
+             Henry_CR      = 9200.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MOPI', 'MOPO' )
 
@@ -2264,179 +2248,178 @@ CONTAINS
 
              END SELECT
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 1300.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'MP', 'CH3OOH' )
-                              FullName      = 'Methyl hydro peroxide'
-                              Formula       = 'CH3OOH'
-                              MW_g          = 48.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
+             FullName      = 'Methyl hydro peroxide'
+             Formula       = 'CH3OOH'
+             MW_g          = 48.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.90e+0_f8 * To_M_atm
-                              Henry_CR      = 5200.0_f8
+             Henry_K0      = 2.90e+0_f8 * To_M_atm
+             Henry_CR      = 5200.0_f8
 #else
-                              Henry_K0      = 3.10e+2_f8
-                              Henry_CR      = 5200.0_f8
+             Henry_K0      = 3.10e+2_f8
+             Henry_CR      = 5200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MPN' )
-                              FullName      = 'Methyl peroxy nitrate'
-                              Formula       = 'CH3O2NO2'
-                              MW_g          = 93.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Methyl peroxy nitrate'
+             Formula       = 'CH3O2NO2'
+             MW_g          = 93.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'MSA' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              ! Enforce minimum dry deposition velocity (Vd) for MSA
              ! (cf. Mian Chin's GOCART model)
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
-             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+             DvzMinVal     = (/ 0.01_fp, 0.01_fp /)
 
-                              FullName      = 'Methyl sulfonic acid'
-                              Formula       = 'CH4SO3'
-                              MW_g          = 96.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Methyl sulfonic acid'
+             Formula       = 'CH4SO3'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'MTPA' )
-             FullName = 'a-pinene, b-pinene, sabinene, carene'
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 136.23_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 4.90e-2_fp
-                              Henry_K0      = 4.90e-2_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'a-pinene, b-pinene, sabinene, carene'
+             Formula       = ''
+             MW_g          = 136.23_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.90e-2_fp
+             Henry_K0      = 4.90e-2_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MTPO' )
              FullName = 'Terpinene, terpinolene, myrcene, ocimene, other monoterpenes'
-                              Formula       = ''
-                              MW_g          = 136.23_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 4.90e-2_fp
-                              Henry_K0      = 4.90e-2_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             Formula       = ''
+             MW_g          = 136.23_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 4.90e-2_fp
+             Henry_K0      = 4.90e-2_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'MVK' )
-                              FullName      = 'Methyl vinyl ketone'
-                              Formula       = 'CH2=CHC(=O)CH3'
-                              MW_g          = 70.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Methyl vinyl ketone'
+             Formula       = 'CH2=CHC(=O)CH3'
+             MW_g          = 70.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.6e-1_f8 * To_M_atm
-                              Henry_CR      = 4800.0_f8
+             Henry_K0      = 2.6e-1_f8 * To_M_atm
+             Henry_CR      = 4800.0_f8
 #else
-                              DD_Hstar_old  = 4.4e+1_fp
+             DD_Hstar_old  = 4.4e+1_fp
 #endif
 
           CASE( 'MVKN' )
-                              FullName      = 'Nitrate from MVK'
-                              Formula       = 'HOCH2CH(ONO2)C(=O)CH3'
-                              MW_g          = 149.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Nitrate from MVK'
+             Formula       = 'HOCH2CH(ONO2)C(=O)CH3'
+             MW_g          = 149.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.97e+4_f8 * To_M_atm
+             Henry_K0      = 1.97e+4_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 2.00e+6_fp
-                              Henry_K0      = 2.00e+6_f8
-                              Henry_CR      = 9200.0_f8
+             DD_Hstar_old  = 2.00e+6_fp
+             Henry_K0      = 2.00e+6_f8
+             Henry_CR      = 9200.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
-
+             WD_RetFactor  = 2.0e-2_fp
+                              
           CASE( 'N2O' )
-                              FullName      = 'Nitrous oxide'
-                              Formula       = 'N2O'
-                              MW_g          = 44.0_fp
-                              BackgroundVV  = 3.0e-07_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitrous oxide'
+             Formula       = 'N2O'
+             MW_g          = 44.0_fp
+             BackgroundVV  = 3.0e-07_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'N2O5' )
 
              ! N2O5 uses the same DD_F0 and DD_Hstar_old values as HNO3,
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-                              FullName      = 'Dinitrogen pentoxide'
-                              Formula       = 'N2O5'
-                              MW_g          = 108.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Dinitrogen pentoxide'
+             Formula       = 'N2O5'
+             MW_g          = 108.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.10e-2_f8 * To_M_atm
-                              Henry_CR      = 3400.0_f8
+             Henry_K0      = 2.10e-2_f8 * To_M_atm
+             Henry_CR      = 3400.0_f8
 #else
-                              DD_Hstar_old  = 1.0e+14_fp
+             DD_Hstar_old  = 1.0e+14_fp
 #endif
 
 
           CASE( 'NAP' )
-                              FullName      = 'Naphtalene/IVOC surrogate'
-                              Formula       = 'C10H8'
-                              MW_g          = 128.17_fp
-                              EmMw_g        = 12.0_fp
-                              MolecRatio    = 10.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+              FullName      = 'Naphtalene/IVOC surrogate'
+              Formula       = 'C10H8'
+              MW_g          = 128.17_fp
+              EmMw_g        = 12.0_fp
+              MolecRatio    = 10.0_fp
+              Is_Gas        = T
+              Is_Drydep     = F
+              Is_Wetdep     = F
 
           CASE( 'NH3' )
 
@@ -2446,55 +2429,55 @@ CONTAINS
              ! Minimum Vd over land     : 0.3 cm/s
              DvzMinVal = (/ 0.2_fp, 0.3_fp /)
 
-                              FullName      = 'Ammonia'
-                              Formula       = 'NH3'
-                              MW_g          = 17.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
+             FullName      = 'Ammonia'
+             Formula       = 'NH3'
+             MW_g          = 17.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 5.90e-1_f8 * To_M_atm
-                              Henry_CR      = 4200.0_f8
+             Henry_K0      = 5.90e-1_f8 * To_M_atm
+             Henry_CR      = 4200.0_f8
 #else
-                              DD_Hstar_old  = 2.0e+4_fp
-                              Henry_K0      = 3.30e+6_f8
-                              Henry_CR      = 4100.0_f8
+             DD_Hstar_old  = 2.0e+4_fp
+             Henry_K0      = 3.30e+6_f8
+             Henry_CR      = 4100.0_f8
 #endif
-                              WD_RetFactor  = 5.0e-2_fp
-                              WD_LiqAndGas  = T
-                              WD_ConvFacI2G = 6.17395e-1_fp
+             WD_RetFactor  = 5.0e-2_fp
+             WD_LiqAndGas  = T
+             WD_ConvFacI2G = 6.17395e-1_fp
 
           CASE( 'NH4' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              ! Enforce minimum dry deposition velocity (Vd) for NH4
              ! (cf. Mian Chin's GOCART model)
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
-             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+             DvzMinVal     = (/ 0.01_fp, 0.01_fp /)
 
-                              FullName      = 'Ammonium'
-                              Formula       = 'NH4'
-                              MW_g          = 18.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Ammonium'
+             Formula       = 'NH4'
+             MW_g          = 18.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'NIT' )
 
@@ -2510,19 +2493,20 @@ CONTAINS
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
-                              FullName      = 'Inorganic nitrates'
-                              Formula       = ''
-                              MW_g          = 62.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+
+             FullName      = 'Inorganic nitrates'
+             Formula       = ''
+             MW_g          = 62.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'NITS' )
 
@@ -2551,93 +2535,93 @@ CONTAINS
                    RC = -1
                    RETURN
                 ENDIF
-                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
+                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 31.4_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 31.4_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'NO' )
-                              FullName      = 'Nitrogen oxide'
-                              Formula       = 'NO'
-                              MW_g          = 30.0_fp
-                              BackgroundVV  = 4.0e-13_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitrogen oxide'
+             Formula       = 'NO'
+             MW_g          = 30.0_fp
+             BackgroundVV  = 4.0e-13_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )                                          
-                              Henry_K0      = 1.90e-5_f8 * To_M_atm
-                              Henry_CR      = 1600.0_f8
+             Henry_K0      = 1.90e-5_f8 * To_M_atm
+             Henry_CR      = 1600.0_f8
 #endif
 
           CASE( 'NO2' )
-                              FullName      = 'Nitrogen dioxide'
-                              Formula       = 'NO2'
-                              MW_g          = 46.0_fp
-                              BackgroundVV  = 4.0e-13_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.1_fp
+             FullName      = 'Nitrogen dioxide'
+             Formula       = 'NO2'
+             MW_g          = 46.0_fp
+             BackgroundVV  = 4.0e-13_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.1_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.20e-4_f8 * To_M_atm
-                              Henry_CR      = 2400.0_f8
+             Henry_K0      = 1.20e-4_f8 * To_M_atm
+             Henry_CR      = 2400.0_f8
 #else
-                              DD_Hstar_old  = 1.00e-2_fp
+             DD_Hstar_old  = 1.00e-2_fp
 #endif
 
           CASE( 'NO3' )
-                              FullName      = 'Nitrate radical'
-                              Formula       = 'NO3'
-                              MW_g          = 62.0_fp
-                              BackgroundVV  = 4.0e-15_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitrate radical'
+             Formula       = 'NO3'
+             MW_g          = 62.0_fp
+             BackgroundVV  = 4.0e-15_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 3.80e-4_f8 * To_M_atm
-                              Henry_CR      = 1900.0_f8
+             Henry_K0      = 3.80e-4_f8 * To_M_atm
+             Henry_CR      = 1900.0_f8
 #endif
 
           CASE( 'NPMN' )
-             FullName = 'Non-isoprene peroxymethacroyl nitrate (PMN)'
+             FullName      = 'Non-isoprene peroxymethacroyl nitrate (PMN)'
 
              ! PMN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
-                              Formula       = 'CH2=C(CH3)C(O)OONO2 '
-                              MW_g          = 147.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              DD_F0         = 1.0_fp
+             Formula       = 'CH2=C(CH3)C(O)OONO2 '
+             MW_g          = 147.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.70e-2_f8 * To_M_atm
+             Henry_K0      = 1.70e-2_f8 * To_M_atm
 #else
-                              DD_Hstar_old  = 3.60_fp
+             DD_Hstar_old  = 3.60_fp
 #endif
 
           CASE( 'O3',     'O3STRAT', 'O3UT',   'O3MT',   'O3ROW',           &
@@ -2683,358 +2667,356 @@ CONTAINS
                    BackgroundVV = MISSING_VV
              END SELECT
 
-                              Formula       = 'O3'
-                              MW_g          = 48.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             Formula       = 'O3'
+             MW_g          = 48.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.90e-05_f8 * To_M_atm
-                              Henry_CR      = 1600.0_f8
+             Henry_K0      = 1.90e-05_f8 * To_M_atm
+             Henry_CR      = 1600.0_f8
 #else
-                              DD_Hstar_old  = 1.0e-2_fp
+             DD_Hstar_old  = 1.0e-2_fp
 #endif
 
           CASE( 'OCLO' )
-
-                              FullName      = 'Chlorine dioxide'
-                              Formula       = 'OClO'
-                              MW_g          = 67.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chlorine dioxide'
+             Formula       = 'OClO'
+             MW_g          = 67.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'OCPI' )
-             FullName = 'Hydrophilic organic carbon aerosol'
+             FullName      = 'Hydrophilic organic carbon aerosol'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= T
-                              Density       = 1300.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'OCPO' )
-             Fullname = 'Hydrophobic organic carbon aerosol'
+             Fullname      = 'Hydrophobic organic carbon aerosol'
 
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (OCPO is hydrophobic)
-             KcScale  = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
-             RainEff  = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= F
-                              Density       = 1300.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= F
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'OCS' )
-                              FullName      = 'Carbonyl sulfide'
-                              Formula       = 'COS'
-                              MW_g          = 60.0_fp
-                              BackgroundVV  = 9.0e-15_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-
+             FullName      = 'Carbonyl sulfide'
+             Formula       = 'COS'
+             MW_g          = 60.0_fp
+             BackgroundVV  = 9.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             
           CASE( 'OPOA1', 'OPOA2' )
-             FullName = 'Lumped aerosol product of SVOC oxidation'
+             FullName      = 'Lumped aerosol product of SVOC oxidation'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'OPOG1', 'OPOG2' )
-             FullName = 'Lumped gas product of SVOC oxidation'
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.00e+5_fp
-                              Henry_K0      = 1.00e+5_f8
-                              Henry_CR      = 6039.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Lumped gas product of SVOC oxidation'
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.00e+5_fp
+             Henry_K0      = 1.00e+5_f8
+             Henry_CR      = 6039.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PAN' )
-                              FullName      = 'Peroxyacetyl nitrate'
-                              Formula       = 'CH3C(O)OONO2'
-                              MW_g          = 121.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0e+0_fp
+             FullName      = 'Peroxyacetyl nitrate'
+             Formula       = 'CH3C(O)OONO2'
+             MW_g          = 121.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0e+0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.90e+02_f8 * To_M_atm
-                              Henry_CR      = 5700.0_f8
+             Henry_K0      = 2.90e+02_f8 * To_M_atm
+             Henry_CR      = 5700.0_f8
 #else
-                              DD_Hstar_old  = 3.60e+0_fp
+             DD_Hstar_old  = 3.60e+0_fp
 #endif
 
           CASE( 'PFE' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)   
 
-                              FullName      = 'Anthropogenic iron'
-                              Formula       = 'Fe'
-                              MW_g          = 55.85_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0e+0_fp
-                              DD_Hstar_old  = 0.0e+0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Anthropogenic iron'
+             Formula       = 'Fe'
+             MW_g          = 55.85_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0e+0_fp
+             DD_Hstar_old  = 0.0e+0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'POA1' )
 
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (these are hydrophobic species)
-             KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
-             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-                              FullName      ='Lumped aerosol primary SVOCs'
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= T
-                              Density       = 1300.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      ='Lumped aerosol primary SVOCs'
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'POA2' )
 
              ! For all temperatures:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) Turn off rainout (these are hydrophobic species)
-             KcScale = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
-             RainEff = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
+             KcScale       = (/ 0.5_fp, 0.5_fp, 0.5_fp /)
+             RainEff       = (/ 0.0_fp, 0.0_fp, 0.0_fp /)
 
-                              FullName      ='Lumped aerosol primary SVOCs'
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 1300.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      ='Lumped aerosol primary SVOCs'
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 1300.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'POG1', 'POG2' )
-                              FullName      = 'Lumped gas primary SVOCs'
-                              Formula       = ''
-                              MW_g          = 12.01_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 9.50e+0_fp
-                              Henry_K0      = 9.50e+0_f8
-                              Henry_CR      = 4700.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Lumped gas primary SVOCs'
+             Formula       = ''
+             MW_g          = 12.01_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 9.50e+0_fp
+             Henry_K0      = 9.50e+0_f8
+             Henry_CR      = 4700.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'PPN' )
              ! PPN uses the same DD_F0 and DD_Hstar_old values as PAN
              ! so that we can compute its drydep velocity explicitly.
              ! (bmy, 5/19/16)
              FullName = 'Lumped peroxypropionyl nitrate'
-                              Formula       = 'CH3CH2C(O)OONO2'
-                              MW_g          = 135.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              DD_F0         = 1.0_fp
+             Formula       = 'CH3CH2C(O)OONO2'
+             MW_g          = 135.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 2.9e-2_fp * To_M_atm
-                              Henry_CR      = 0.0_f8
+             Henry_K0      = 2.9e-2_fp * To_M_atm
+             Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 3.60_fp
+             DD_Hstar_old  = 3.60_fp
 #endif
 
           CASE( 'PRPE' )
-                              FullName      = 'Lumped >= C3 alkenes'
-                              Formula       = 'C3H6'
-                              MW_g          = 42.08_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 3.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Lumped >= C3 alkenes'
+             Formula       = 'C3H6'
+             MW_g          = 42.08_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 3.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 7.3e-5_f8 * To_M_atm
-                              Henry_CR      = 3400.0_f8
+             Henry_K0      = 7.3e-5_f8 * To_M_atm
+             Henry_CR      = 3400.0_f8
 #endif
 
           CASE( 'PROPNN' )
-                              FullName      = 'Propanone nitrate'
-                              Formula       = 'CH3C(=O)CH2ONO2'
-                              MW_g          = 119.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Propanone nitrate'
+             Formula       = 'CH3C(=O)CH2ONO2'
+             MW_g          = 119.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 4.93e+3_f8 * To_M_atm
-                              Henry_CR      = 0.0_f8
+             Henry_K0      = 4.93e+3_f8 * To_M_atm
+             Henry_CR      = 0.0_f8
 #else
-                              DD_Hstar_old  = 5.00e+5_fp
-                              Henry_K0      = 5.00e+5_f8
-                              Henry_CR      = 0.0_f8
+             DD_Hstar_old  = 5.00e+5_fp
+             Henry_K0      = 5.00e+5_f8
+             Henry_CR      = 0.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'R4N2' )
              ! Now drydep is like other alkyl nitrates (Ito et al., 2007)
              ! (eam, 2014)
-                              FullName      = 'Lumped alkyl nitrate'
-                              Formula       = 'RO2NO'
-                              MW_g          = 119.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
+             FullName      = 'Lumped alkyl nitrate'
+             Formula       = 'RO2NO'
+             MW_g          = 119.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.0e-2_f8 * To_M_atm
-                              Henry_CR      = 5800.0_f8
+             Henry_K0      = 1.0e-2_f8 * To_M_atm
+             Henry_CR      = 5800.0_f8
 #else
-                              DD_Hstar_old  = 1.70e+4_fp
+             DD_Hstar_old  = 1.70e+4_fp
 #endif
-
 
           CASE( 'RCHO' )
-                              FullName      = 'Lumped aldehyde >= C3'
-                              Formula       = 'CH3CH2CHO'
-                              MW_g          = 58.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Lumped aldehyde >= C3'
+             Formula       = 'CH3CH2CHO'
+             MW_g          = 58.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 9.5e-2_f8 * To_M_atm
-                              Henry_CR      = 6200.0_f8
+             Henry_K0      = 9.5e-2_f8 * To_M_atm
+             Henry_CR      = 6200.0_f8
 #else
-                              Henry_K0      = 4.20e+3_f8
-                              Henry_CR      = 0.0_f8
+             Henry_K0      = 4.20e+3_f8
+             Henry_CR      = 0.0_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPA' )
-                              FullName      = '1,2-ISOPOOH'
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 1.70e+6_fp
-                              Henry_K0      = 1.70e+6_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = '1,2-ISOPOOH'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.70e+6_fp
+             Henry_K0      = 1.70e+6_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPB' )
-                              FullName      = '4,3-ISOPOOH'
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 1.70e+6_fp
-                              Henry_K0      = 1.70e+6_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = '4,3-ISOPOOH'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.70e+6_fp
+             Henry_K0      = 1.70e+6_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'RIPD' )
-                              FullName      = 'd(1,4 and 4,1)-ISOPOOH'
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 1.0_fp
-                              DD_Hstar_old  = 1.70e+6_fp
-                              Henry_K0      = 1.70e+6_f8
-                              Henry_CR      = 0.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'd(1,4 and 4,1)-ISOPOOH'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 1.0_fp
+             DD_Hstar_old  = 1.70e+6_fp
+             Henry_K0      = 1.70e+6_f8
+             Henry_CR      = 0.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'SALA' )
              FullName = 'Accumulation mode sea salt aerosol'
@@ -3047,31 +3029,31 @@ CONTAINS
                    RC = -1
                    RETURN
                 ENDIF
-                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  & 
+                               Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 31.4_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 31.4_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SALC' )
              FullName = 'Coarse mode sea salt aerosol'
@@ -3084,33 +3066,33 @@ CONTAINS
                    RC = -1
                    RETURN
                 ENDIF
-                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
+                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = Fullname
-                              Formula       = ''
-                              MW_g          = 31.4_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HygroGrowth= T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = Fullname
+             Formula       = ''
+             MW_g          = 31.4_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HygroGrowth= T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SO2' )
 
@@ -3120,67 +3102,67 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              ! Enforce minimum dry deposition velocity (Vd) for SO2
              ! (cf. Mian Chin's GOCART model)
              ! Minimum Vd over snow/ice : 0.2 cm/s
              ! Minimum Vd over land     : 0.3 cm/s
-             DvzMinVal = (/ 0.2_fp, 0.3_fp /)
+             DvzMinVal     = (/ 0.2_fp, 0.3_fp /)
 
-                              FullName      = 'Sulfur dioxide'
-                              Formula       = 'SO2'
-                              MW_g          = 64.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
+             FullName      = 'Sulfur dioxide'
+             Formula       = 'SO2'
+             MW_g          = 64.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.30e-2_f8 * To_M_atm
-                              Henry_CR      = 2900.0_f8
+             Henry_K0      = 1.30e-2_f8 * To_M_atm
+             Henry_CR      = 2900.0_f8
 #else
-                              DD_Hstar_old  = 1.00e+5_fp
+             DD_Hstar_old  = 1.00e+5_fp
 #endif
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SO4' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale   = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff   = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              ! Enforce minimum dry deposition velocity (Vd) for SO4
              ! (cf. Mian Chin's GOCART model)
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
-             DvzMinVal = (/ 0.01_fp, 0.01_fp /)
+             DvzMinVal     = (/ 0.01_fp, 0.01_fp /)
 
-                              FullName      = 'Sulfate'
-                              Formula       = 'SO4'
-                              MW_g          = 96.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              Is_HygroGrowth= T
-                              Density       = 1700.0_fp
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Sulfate'
+             Formula       = 'SO4'
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             Is_HygroGrowth= T
+             Density       = 1700.0_fp
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SO4S' )
 
@@ -3209,134 +3191,134 @@ CONTAINS
                    RC = -1
                    RETURN
                 ENDIF
-                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
+                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              Formula       = ''
-                              MW_g          = 31.4_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 31.4_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SOAIE' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = 'Aerosol-phase IEPOX'
-                              Formula       = 'C5H10O3'
-                              MW_g          = 118.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Aerosol-phase IEPOX'
+             Formula       = 'C5H10O3'
+             MW_g          = 118.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SOAGX' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = 'Aerosol-phase glyoxal'
-                              Formula       = 'C2H2O2'
-                              MW_g          = 58.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Aerosol-phase glyoxal'
+             Formula       = 'C2H2O2'
+             MW_g          = 58.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SOAME' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = 'Aerosol-phase IMAE'
-                              Formula       = 'C4H6O3'
-                              MW_g          = 102.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Aerosol-phase IMAE'
+             Formula       = 'C4H6O3'
+             MW_g          = 102.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SOAMG' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = 'Aerosol-phase methylglyoxal'
-                              Formula       = 'C3H4O2'
-                              MW_g          = 72.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Aerosol-phase methylglyoxal'
+             Formula       = 'C3H4O2'
+             MW_g          = 72.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SOAP' )
-             FullName = 'SOA Precursor - lumped species for simplified SOA paramterization'
+             FullName      = 'SOA Precursor - lumped species for simplified SOA paramterization'
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'SOAS' )
              FullName = 'SOA Simple - simplified non-volatile SOA parameterization'
@@ -3344,350 +3326,349 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'TOLU' )
-                              FullName      = 'Toluene'
-                              Formula       = 'C7H8'
-                              MW_g          = 92.14_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 7.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Toluene'
+             Formula       = 'C7H8'
+             MW_g          = 92.14_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 7.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'TSOA0', 'TSOA1', 'TSOA2', 'TSOA3' )
              FullName = 'Lumped semivolatile aerosol products of monoterpene + sesquiterpene oxidation'
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
              ! NOTE: Rainout efficiency is 0.8 because these are SOA species.
-             RainEff  = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
+             RainEff       = (/ 0.8_fp, 0.0_fp, 0.8_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 0.8_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 0.8_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'TSOG0', 'TSOG1', 'TSOG2', 'TSOG3' )
-             FullName = 'Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation'
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 150.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.00e+5_fp
-                              Henry_K0      = 1.00e+5_f8
-                              Henry_CR      = 6039.0_f8
-                              WD_RetFactor  = 2.0e-2_fp
+             FullName      = 'Lumped semivolatile gas products of monoterpene + sesquiterpene oxidation'
+             Formula       = ''
+             MW_g          = 150.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.00e+5_fp
+             Henry_K0      = 1.00e+5_f8
+             Henry_CR      = 6039.0_f8
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'XYLE' )
-                              FullName      = 'Xylene'
-                              Formula       = 'C8H10'
-                              MW_g          = 106.16_fp
-                              EmMW_g        = 12.0_fp
-                              MolecRatio    = 8.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Xylene'
+             Formula       = 'C8H10'
+             MW_g          = 106.16_fp
+             EmMW_g        = 12.0_fp
+             MolecRatio    = 8.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           !==================================================================
           ! Species for simulations including iodine
           !==================================================================
 
           CASE( 'CH3I' )
-                              FullName      = 'Methyl iodide'
-                              Formula       = 'CH3I'
-                              MW_g          = 142.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              Henry_K0      = 2.0e-3_f8 * To_M_atm
-                              Henry_CR      = 3.6e+3_f8
+             FullName      = 'Methyl iodide'
+             Formula       = 'CH3I'
+             MW_g          = 142.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             Henry_K0      = 2.0e-3_f8 * To_M_atm
+             Henry_CR      = 3.6e+3_f8
 
           CASE( 'CH2I2' )
-                              FullName      = 'Diiodomethane'
-                              Formula       = 'CH2I2'
-                              MW_g          = 268.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Diiodomethane'
+             Formula       = 'CH2I2'
+             MW_g          = 268.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH2ICL' )
-                              FullName      = 'Chloroiodomethane'
-                              Formula       = 'CH2ICl'
-                              MW_g          = 167.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Chloroiodomethane'
+             Formula       = 'CH2ICl'
+             MW_g          = 167.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'CH2IBR' )
-                              FullName      = 'Bromoiodomethane'
-                              Formula       = 'CH2IBr'
-                              MW_g          = 221.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Bromoiodomethane'
+             Formula       = 'CH2IBr'
+             MW_g          = 221.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HOI' )
-                              FullName      = 'Hypoiodous acid'
-                              Formula       = 'HOI'
-                              MW_g          = 144.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Hypoiodous acid'
+             Formula       = 'HOI'
+             MW_g          = 144.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.54e+4_f8
-                              Henry_K0      = 1.54e+4_f8
-                              Henry_CR      = 8.371e+3_f8
+             DD_Hstar_old  = 1.54e+4_f8
+             Henry_K0      = 1.54e+4_f8
+             Henry_CR      = 8.371e+3_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'I2' )
-                              FullName      = 'Molecular iodine'
-                              Formula       = 'I2'
-                              MW_g          = 254.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Molecular iodine'
+             Formula       = 'I2'
+             MW_g          = 254.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.70e+0_fp
-                              Henry_K0      = 2.7e+0_f8
-                              Henry_CR      = 7.5074e+3_f8
+             DD_Hstar_old  = 2.70e+0_fp
+             Henry_K0      = 2.7e+0_f8
+             Henry_CR      = 7.5074e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'IBR' )
-                              FullName      = 'Iodine monobromide'
-                              Formula       = 'IBr'
-                              MW_g          = 207.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Iodine monobromide'
+             Formula       = 'IBr'
+             MW_g          = 207.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.43e+1_fp
-                              Henry_K0      = 2.4e+1_f8
-                              Henry_CR      = 4.9167e+3_f8
+             DD_Hstar_old  = 2.43e+1_fp
+             Henry_K0      = 2.4e+1_f8
+             Henry_CR      = 4.9167e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'ICL' )
-                              FullName      = 'Iodine monochloride'
-                              Formula       = 'ICl'
-                              MW_g          = 162.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Iodine monochloride'
+             Formula       = 'ICl'
+             MW_g          = 162.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.11e+2_f8
-                              Henry_K0      = 1.11e+2_f8
-                              Henry_CR      = 2.1055e+3_f8
+             DD_Hstar_old  = 1.11e+2_f8
+             Henry_K0      = 1.11e+2_f8
+             Henry_CR      = 2.1055e+3_f8
 #endif
-                              WD_RetFactor  = 0.0_fp
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'I' )
-                              FullName      = 'Atomic iodine'
-                              Formula       = 'I'
-                              MW_g          = 127.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Atomic iodine'
+             Formula       = 'I'
+             MW_g          = 127.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'IO' )
-                              FullName      = 'Iodine monoxide'
-                              Formula       = 'IO'
-                              MW_g          = 143.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Iodine monoxide'
+             Formula       = 'IO'
+             MW_g          = 143.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HI' )
-                              FullName      = 'Hydrogen iodide'
-                              MW_g          = 128.0_fp
-                              Formula       = 'HI'
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Hydrogen iodide'
+             MW_g          = 128.0_fp
+             Formula       = 'HI'
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 2.35e+16_fp
-                              Henry_K0      = 7.43e+13_f8
-                              Henry_CR      = 3.1872e+3_f8
+             DD_Hstar_old  = 2.35e+16_fp
+             Henry_K0      = 7.43e+13_f8
+             Henry_CR      = 3.1872e+3_f8
 #endif
                               WD_RetFactor  = 1.0_fp
 
           CASE( 'OIO' )
-                              FullName      = 'Iodine dioxide'
-                              Formula       = 'OIO'
-                              MW_g          = 159.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Iodine dioxide'
+             Formula       = 'OIO'
+             MW_g          = 159.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'INO' )
-                              FullName      = 'Nitrosyl iodide'
-                              Formula       = 'INO'
-                              MW_g          = 157.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Nitrosyl iodide'
+             Formula       = 'INO'
+             MW_g          = 157.0_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'IONO' )
-                              FullName      = 'Nitryl iodide'
-                              Formula       = 'IONO'
-                              MW_g          = 173.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Nitryl iodide'
+             Formula       = 'IONO'
+             MW_g          = 173.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 3.0e-1_f8
-                              Henry_K0      = 3.0e-1_f8
-                              Henry_CR      = 7.2404e+3_f8
+             DD_Hstar_old  = 3.0e-1_f8
+             Henry_K0      = 3.0e-1_f8
+             Henry_CR      = 7.2404e+3_f8
 #endif
-                              WD_RetFactor  = 2.0e-2_fp
+             WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'IONO2' )
-                              FullName      = 'Iodine nitrate'
-                              Formula       = 'IONO2'
-                              MW_g          = 189.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Iodine nitrate'
+             Formula       = 'IONO2'
+             MW_g          = 189.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8
-                              Henry_K0      = 1.0e+20_f8
-                              Henry_CR      = 3.98e+3_f8
+             DD_Hstar_old  = 1.0e+20_f8
+             Henry_K0      = 1.0e+20_f8
+             Henry_CR      = 3.98e+3_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O2' )
-                              FullName      = 'Diiodine dioxide'
-                              Formula       = 'I2O2'
-                              MW_g          = 286.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Diiodine dioxide'
+             Formula       = 'I2O2'
+             MW_g          = 286.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8
-                              Henry_K0      = 1.0e+20_f8
-                              Henry_CR      = 1.89e+4_f8
+             DD_Hstar_old  = 1.0e+20_f8
+             Henry_K0      = 1.0e+20_f8
+             Henry_CR      = 1.89e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O3' )
-                              FullName      = 'Diiodine trioxide'
-                              Formula       = 'I2O3'
-                              MW_g          = 302.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Diiodine trioxide'
+             Formula       = 'I2O3'
+             MW_g          = 302.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8
-                              Henry_K0      = 1.0e+20_f8
-                              Henry_CR      = 1.34e+4_f8
+             DD_Hstar_old  = 1.0e+20_f8
+             Henry_K0      = 1.0e+20_f8
+             Henry_CR      = 1.34e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'I2O4' )
-                              FullName      = 'Diiodine tetraoxide'
-                              Formula       = 'I2O4'
-                              MW_g          = 318.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Photolysis = T
-                              DD_F0         = 0.0_fp
+             FullName      = 'Diiodine tetraoxide'
+             Formula       = 'I2O4'
+             MW_g          = 318.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Photolysis = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = -1.0e+0_f8 * To_M_atm
-                              Henry_CR      = -1.0e+0_f8
+             Henry_K0      = -1.0e+0_f8 * To_M_atm
+             Henry_CR      = -1.0e+0_f8
 #else
-                              DD_Hstar_old  = 1.0e+20_f8
-                              Henry_K0      = 1.0e+20_f8
-                              Henry_CR      = 1.34e+4_f8
+             DD_Hstar_old  = 1.0e+20_f8
+             Henry_K0      = 1.0e+20_f8
+             Henry_CR      = 1.34e+4_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'BRSALA' )
 
@@ -3701,31 +3682,31 @@ CONTAINS
                    RETURN
                 ENDIF
                 ! Mimic SALA
-                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  &
+                               Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = 'Fine sea salt bromine'
-                              Formula       = 'Br'
-                              MW_g          = 80.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Fine sea salt bromine'
+             Formula       = 'Br'
+             MW_g          = 80.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'BRSALC' )
              IF ( Present(oRadius) ) THEN
@@ -3738,31 +3719,32 @@ CONTAINS
                    RETURN
                 ENDIF
                 ! Mimic SALC
-                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
+                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-                              FullName      = 'Coarse sea salt bromine'
-                              Formula       = 'Br'
-                              MW_g          = 80.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Coarse sea salt bromine'
+             Formula       = 'Br'
+             MW_g          = 80.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ISALA' )
              IF ( Present(oRadius) ) THEN
@@ -3775,31 +3757,31 @@ CONTAINS
                    RETURN
                 ENDIF
                 ! Mimic SALA
-                Radius   = ( Input_Opt%SALA_REDGE_um(1) +                      &
-                             Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALA_REDGE_um(1) +                  &
+                               Input_Opt%SALA_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = 'Fine sea salt iodine'
-                              Formula       = 'I'
-                              MW_g          = 127.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Fine sea salt iodine'
+             Formula       = 'I'
+             MW_g          = 127.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ISALC' )
              IF ( Present(oRadius) ) THEN
@@ -3812,31 +3794,32 @@ CONTAINS
                    RETURN
                 ENDIF
                 ! Mimic SALC
-                Radius   = ( Input_Opt%SALC_REDGE_um(1) +                      &
-                             Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
+                Radius     = ( Input_Opt%SALC_REDGE_um(1) +                  &
+                               Input_Opt%SALC_REDGE_um(2)  ) * 0.5e-6_fp
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale  = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff  = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
-                              FullName      = 'Coarse sea salt iodine'
-                              Formula       = 'I'
-                              MW_g          = 127.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Density       = 2200.0_fp
-                              Radius        = Radius
-                              DD_AeroDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_CoarseAer  = T
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Coarse sea salt iodine'
+             Formula       = 'I'
+             MW_g          = 127.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Density       = 2200.0_fp
+             Radius        = Radius
+             DD_AeroDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_CoarseAer  = T
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'AERI' )
              ! Mimic SO4 (AERI is essentiall iodine dissolved in aerosol)
@@ -3852,75 +3835,76 @@ CONTAINS
              ! Minimum Vd over snow/ice : 0.01 cm/s
              ! Minimum Vd over land     : 0.01 cm/s
              DvzMinVal = (/ 0.01_fp, 0.01_fp /)
-                              FullName      = 'iodine on aerosol'
-                              Formula       = 'I'
-                              MW_g          = 127.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DvzMinVal  = DvzMinVal
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_Old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+
+             FullName      = 'iodine on aerosol'
+             Formula       = 'I'
+             MW_g          = 127.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DvzMinVal  = DvzMinVal
+             DD_F0         = 0.0_fp
+             DD_Hstar_Old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the Rn-Pb-Be specialty simulation
           !==================================================================
 
           CASE( 'RN', '222RN', 'RN222' )
-                              FullName      = 'Radon-222 isotope'
-                              Formula       = 'Rn'
-                              MW_g          = 222.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = 'Radon-222 isotope'
+             Formula       = 'Rn'
+             MW_g          = 222.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'PB', '210PB', 'PB210' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = 'Lead-210 isotope'
-                              Formula       = 'Pb'
-                              MW_g          = 210.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Lead-210 isotope'
+             Formula       = 'Pb'
+             MW_g          = 210.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'BE', '7BE', 'BE7' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = 'Beryllium-7 isotope'
-                              Formula       = 'Be'
-                              MW_g          = 7.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_HStar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Beryllium-7 isotope'
+             Formula       = 'Be'
+             MW_g          = 7.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the Hg specialty simulation
@@ -3995,15 +3979,15 @@ CONTAINS
                    FullName = 'Elemental mercury from Stratosphere'
              END SELECT
 
-                              FullName      = FullName
-                              Formula       = 'Hg'
-                              MW_g          = 201.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = F
-                              Is_Hg0        = T
-                              DD_F0         = 1.0e-5_fp
-                              DD_Hstar_old  = 0.11_fp
+             FullName      = FullName
+             Formula       = 'Hg'
+             MW_g          = 201.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = F
+             Is_Hg0        = T
+             DD_F0         = 1.0e-5_fp
+             DD_Hstar_old  = 0.11_fp
 
           CASE( 'HG2',     'HG2_CAN', 'HG2_USA', 'HG2_CAM', 'HG2_SAM',      &
                 'HG2_WAF', 'HG2_EAF', 'HG2_SAF', 'HG2_NAF', 'HG2_EUR',      &
@@ -4074,23 +4058,23 @@ CONTAINS
                    FullName = 'Divalent mercury from Stratosphere'
              END SELECT
 
-                              FullName      = FullName
-                              Formula       = 'Hg'
-                              MW_g          = 201.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_Hg2        = T
-                              DD_F0         = 0.0_fp
+             FullName      = FullName
+             Formula       = 'Hg'
+             MW_g          = 201.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_Hg2        = T
+             DD_F0         = 0.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-                              Henry_K0      = 1.40e+4_f8 * To_M_atm
-                              Henry_CR      = 5300.0_f8
+             Henry_K0      = 1.40e+4_f8 * To_M_atm
+             Henry_CR      = 5300.0_f8
 #else
-                              DD_Hstar_old  = 1.00e+14_fp
-                              Henry_K0      = 1.40e+6_f8
-                              Henry_CR      = 8400.0_f8
+             DD_Hstar_old  = 1.00e+14_fp
+             Henry_K0      = 1.40e+6_f8
+             Henry_CR      = 8400.0_f8
 #endif
-                              WD_RetFactor  = 1.0_fp
+             WD_RetFactor  = 1.0_fp
 
           CASE( 'HGP',     'HGP_CAN', 'HGP_USA', 'HGP_CAM', 'HGP_SAM',      &
                 'HGP_WAF', 'HGP_EAF', 'HGP_SAF', 'HGP_NAF', 'HGP_EUR',      &
@@ -4192,22 +4176,22 @@ CONTAINS
              ! When 237 K <= T < 258 K:
              ! (1) Halve the Kc (cloud condensate -> precip) rate
              ! (2) DON'T TURN OFF RAINOUT! (at least until we talk to Team Hg)
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
-             RainEff = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 1.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = 'Hg'
-                              MW_g          = 201.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              Is_HgP        = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = 'Hg'
+             MW_g          = 201.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             Is_HgP        = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the POPs specialty simulation
@@ -4302,18 +4286,18 @@ CONTAINS
                    CR       = 43.0_f8     / 8.32e-3_f8
              END SELECT
 
-                              FullName      = FullName
-                              Formula       = Formula
-                              MW_g          = MW_g
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = Hstar
-                              DD_KOA        = KOA
-                              Henry_K0      = K0
-                              Henry_CR      = CR
-                              WD_RetFactor  = 0.0_fp
+             FullName      = FullName
+             Formula       = Formula
+             MW_g          = MW_g
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = Hstar
+             DD_KOA        = KOA
+             Henry_K0      = K0
+             Henry_CR      = CR
+             WD_RetFactor  = 0.0_fp
 
           CASE( 'POPPBCPO', 'POPPOCPO' )
              IF ( .NOT. Present(Input_Opt) ) THEN
@@ -4369,18 +4353,18 @@ CONTAINS
 
              END SELECT
 
-                              FullName      = FullName
-                              Formula       = Formula
-                              MW_g          = MW_g
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = Formula
+             MW_g          = MW_g
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'POPPBCPI', 'POPPOCPI' )
 
@@ -4426,18 +4410,18 @@ CONTAINS
              ! Turn off rainout only when 237 K <= T < 258K.
              RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = Formula
-                              MW_g          = MW_g
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = Formula
+             MW_g          = MW_g
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           !==================================================================
           ! Species for the CO2 specialty simulation
@@ -4482,13 +4466,13 @@ CONTAINS
                    BackgroundVV = MISSING_VV
              END SELECT
 
-                              FullName      = FullName
-                              Formula       = 'CO2'
-                              MW_g          = 44.0_fp
-                              BackgroundVV  = BackgroundVV
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
+             FullName      = FullName
+             Formula       = 'CO2'
+             MW_g          = 44.0_fp
+             BackgroundVV  = BackgroundVV
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
 #if defined( TOMAS )
           !==================================================================
@@ -4503,34 +4487,33 @@ CONTAINS
                 'AW36', 'AW37', 'AW38', 'AW39', 'AW40'  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Aerosol water, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Aerosol water, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 18.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 18.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'DUST1',  'DUST2',  'DUST3',  'DUST4',  'DUST5', &
                 'DUST6',  'DUST7',  'DUST8',  'DUST9',  'DUST10',&
@@ -4542,34 +4525,34 @@ CONTAINS
                 'DUST36', 'DUST37', 'DUST38', 'DUST39', 'DUST40'  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Mineral dust, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Mineral dust, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 100.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 100.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5'
                 'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10'
@@ -4581,34 +4564,33 @@ CONTAINS
                 'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Hydrophilic elemental carbon, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Hydrophilic elemental carbon, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5'
                 'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10'
@@ -4620,34 +4602,33 @@ CONTAINS
                 'ECOB36', 'ECOB37', 'ECOB38', 'ECOB39', 'ECOB40'  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Hydrophobic elemental carbon, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Hydrophobic elemental carbon, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'H2SO4' )
 
@@ -4657,24 +4638,24 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = 'Sulfuric acid'
-                              Formula       = 'H2SO4'
-                              MW_g          = 98.0_fp
-                              MolecRatio    = 1.0_fp
-                              Is_Gas        = T
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 1.00e+5_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = 'Sulfuric acid'
+             Formula       = 'H2SO4'
+             MW_g          = 98.0_fp
+             MolecRatio    = 1.0_fp
+             Is_Gas        = T
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 1.00e+5_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'NK1',  'NK2',  'NK3',  'NK4',  'NK5',  'NK6',  'NK7',      &
                 'NK8',  'NK9',  'NK10', 'NK11', 'NK12', 'NK13', 'NK14',     &
@@ -4684,35 +4665,34 @@ CONTAINS
                 'NK36', 'NK37', 'NK38', 'NK39', 'NK40'                  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Aerosol number, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Aerosol number, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 1.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = T
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_DustDryDep = T
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResNum = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 1.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_DustDryDep = T
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResNum = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'OCIL1',  'OCIL2',  'OCIL3',  'OCIL4',  'OCIL5',&
                 'OCIL6',  'OCIL7',  'OCIL8',  'OCIL9',  'OCIL10',&
@@ -4725,7 +4705,7 @@ CONTAINS
 
              ! Add TOMAS bin number to full name
              FullName = 'Hydrophilic organic carbon, size bin ='
-             C        = LEN_TRIM( Name )
+             C             = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
                 FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
@@ -4734,24 +4714,23 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'OCOB1',  'OCOB2',  'OCOB3',  'OCOB4',  'OCOB5',&
                 'OCOB6',  'OCOB7',  'OCOB8',  'OCOB9',  'OCOB10',&
@@ -4763,8 +4742,8 @@ CONTAINS
                 'OCOB36', 'OCOB37', 'OCOB38', 'OCOB39', 'OCOB40'  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Hydrophobic organic carbon, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Hydrophobic organic carbon, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 5 ) THEN
                 FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
@@ -4773,24 +4752,24 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 12.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 12.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SF1',  'SF2',  'SF3',  'SF4',  'SF5',  'SF6',  'SF7',      &
                 'SF8',  'SF9',  'SF10', 'SF11', 'SF12', 'SF13', 'SF14',     &
@@ -4800,34 +4779,33 @@ CONTAINS
                 'SF36', 'SF37', 'SF38', 'SF39', 'SF40'                  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Sulfate aerosol, size bin ='
-             C        = LEN_TRIM( Name )
+             FullName      = 'Sulfate aerosol, size bin ='
+             C             = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
-                FullName = TRIM( FullName ) // ' ' // Name(C:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
-                FullName = TRIM( FullName ) // ' ' // Name(C-1:C)
+                FullName   = TRIM( FullName ) // ' ' // Name(C-1:C)
              ENDIF
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 96.0_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             Formula       = ''
+             MW_g          = 96.0_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
           CASE( 'SS1',  'SS2',  'SS3',  'SS4',  'SS5',  'SS6',  'SS7',      &
                 'SS8',  'SS9',  'SS10', 'SS11', 'SS12', 'SS13', 'SS14',     &
@@ -4837,8 +4815,8 @@ CONTAINS
                 'SS36', 'SS37', 'SS38', 'SS39', 'SS40'                  )
 
              ! Add TOMAS bin number to full name
-             FullName = 'Sea salt aerosol, size bin = '
-             C        = LEN_TRIM( Name )
+             FullName      = 'Sea salt aerosol, size bin = '
+             C             = LEN_TRIM( Name )
              IF ( C == 3 ) THEN
                 FullName = TRIM( FullName ) // ' ' // Name(C:C)
              ELSE
@@ -4847,24 +4825,24 @@ CONTAINS
 
              ! Halve the Kc (cloud condensate -> precip) rate
              ! for the temperature range 237 K <= T < 258 K.
-             KcScale = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
 
              ! Turn off rainout only when 237 K <= T < 258K.
-             RainEff = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
-                              FullName      = FullName
-                              Formula       = ''
-                              MW_g          = 58.5_fp
-                              Is_Gas        = F
-                              Is_Drydep     = F
-                              Is_Wetdep     = T
-                              DD_DvzAerSnow = 0.03_fp
-                              DD_F0         = 0.0_fp
-                              DD_Hstar_old  = 0.0_fp
-                              MP_SizeResAer = T
-                              WD_AerScavEff = 1.0_fp
-                              WD_KcScaleFac = KcScale
-                              WD_RainoutEff = RainEff
+             FullName      = FullName
+             Formula       = ''
+             MW_g          = 58.5_fp
+             Is_Gas        = F
+             Is_Drydep     = F
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_Hstar_old  = 0.0_fp
+             MP_SizeResAer = T
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
 
 #endif
 
@@ -4873,189 +4851,189 @@ CONTAINS
           !==================================================================
 
           CASE( 'O2' )
-                              BackgroundVV  = 2.095e-01_fp
-                              FullName      = 'Molecular oxygen'
-                              Formula       = 'O2'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             BackgroundVV  = 2.095e-01_fp
+             FullName      = 'Molecular oxygen'
+             Formula       = 'O2'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'INPN' )
-                              FullName      = 'Peroxide from INO2'
-                              Formula       = 'O2NOCH2C(OOH)(CH3)CH=CH2'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from INO2'
+             Formula       = 'O2NOCH2C(OOH)(CH3)CH=CH2'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'PRPN' )
-                              FullName      = 'Peroxide from PRN1'
-                              Formula       = 'O2NOCH2CH(OOH)CH3'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from PRN1'
+             Formula       = 'O2NOCH2CH(OOH)CH3'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'ETP' )
-                              FullName      = 'Ethylhydroperoxide'
-                              Formula       = 'CH3CH2OOH '
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Ethylhydroperoxide'
+             Formula       = 'CH3CH2OOH '
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'RA3P' )
-                              FullName      = 'Peroxide from A3O2'
-                              Formula       = 'CH3CH2CH2OOH'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from A3O2'
+             Formula       = 'CH3CH2CH2OOH'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'RB3P' )
-                              FullName      = 'Peroxide from B3O2'
-                              Formula       = 'CH3CH(OOH)CH3'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from B3O2'
+             Formula       = 'CH3CH(OOH)CH3'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'R4P' )
-                              FullName      = 'Peroxide from R4O2'
-                              Formula       = 'CH3CH2CH2CH2OOH'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from R4O2'
+             Formula       = 'CH3CH2CH2CH2OOH'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'PP' )
-                              FullName      = 'Peroxide from PO2'
-                              Formula       = 'HOCH2CH(OOH)CH3'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from PO2'
+             Formula       = 'HOCH2CH(OOH)CH3'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'RP' )
-                              FullName      = 'Peroxide from RCO3'
-                              Formula       = 'CH3CH2C(O)OOH'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from RCO3'
+             Formula       = 'CH3CH2C(O)OOH'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'IAP' )
-                              FullName      = 'Peroxide from IAO2'
-                              Formula       = 'HOCH2C(CH3)(OOH)CH(OH)CHO'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from IAO2'
+             Formula       = 'HOCH2C(CH3)(OOH)CH(OH)CHO'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'ISNP' )
-                              FullName      = 'Isoprene nitrate'
-                              Formula       = 'HOCH2C(OOH)(CH3)CH(ONO2)CH2OH'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Isoprene nitrate'
+             Formula       = 'HOCH2C(OOH)(CH3)CH(ONO2)CH2OH'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'VRP' )
-                              FullName      = 'Peroxide from VRO2'
-                              Formula       = 'HOCH2CH(OOH)C(O)CH3'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from VRO2'
+             Formula       = 'HOCH2CH(OOH)C(O)CH3'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'MRP' )
-                              FullName      = 'Peroxide from MRO2'
-                              Formula       = 'HOCH2C(OOH)(CH3)CHO '
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
-
+             FullName      = 'Peroxide from MRO2'
+             Formula       = 'HOCH2C(OOH)(CH3)CHO '
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
+             
           CASE( 'MAOP' )
-                              FullName      = 'Peroxide from MAO3'
-                              Formula       = 'CH2=C(CH3)C(O)OOH'
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from MAO3'
+             Formula       = 'CH2=C(CH3)C(O)OOH'
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'ATOOH' )
-                              FullName      = 'ATO2 peroxide'
-                              Formula       = 'CH3C(O)CH2OOH '
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'ATO2 peroxide'
+             Formula       = 'CH3C(O)CH2OOH '
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'PIP' )
-                              FullName      = 'Peroxide from MTPA'
-                              Formula       = ''
-                              Is_Gas        = T
-                              Is_Drydep     = F
-                              Is_Wetdep     = F
-                              Is_Photolysis = T
+             FullName      = 'Peroxide from MTPA'
+             Formula       = ''
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'HO2' )
-                                 FullName      = 'Hydroperoxyl radical'
-                                 Formula       = 'HO2'
-                                 BackgroundVV  = 4.0e-15_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Hydroperoxyl radical'
+             Formula       = 'HO2'
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'MO2' )
-                                 FullName      = 'Methylperoxy radical'
-                                 Formula       = 'CH3O2'
-                                 BackgroundVV  = 4.0e-15_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Methylperoxy radical'
+             Formula       = 'CH3O2'
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'OH' )
-                                 FullName      = 'Hydroxyl radical'
-                                 Formula       = 'OH'
-                                 BackgroundVV  = 4.0e-15_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Hydroxyl radical'
+             Formula       = 'OH'
+             BackgroundVV  = 4.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'H2' )
-                                 FullName      = 'Molecular hydrogen'
-                                 Formula       = 'H2'
-                                 BackgroundVV  = 5.0e-07_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Molecular hydrogen'
+             Formula       = 'H2'
+             BackgroundVV  = 5.0e-07_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'N' )
-                                 FullName      = 'Atomic nitrogen'
-                                 Formula       = 'N'
-                                 BackgroundVV  = 4.0e-20_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Atomic nitrogen'
+             Formula       = 'N'
+             BackgroundVV  = 4.0e-20_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'N2' )
-                                 FullName      = 'Molecular nitrogen'
-                                 Formula       = 'N2'
-                                 BackgroundVV  = 7.808e-1_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Molecular nitrogen'
+             Formula       = 'N2'
+             BackgroundVV  = 7.808e-1_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           CASE( 'O1D' )
-                                 FullName      = 'Excited atomic oxygen (1D)'
-                                 Formula       = 'O(1D)'
-                                 BackgroundVV  = 1.0e-15_fp
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
+             FullName      = 'Excited atomic oxygen (1D)'
+             Formula       = 'O(1D)'
+             BackgroundVV  = 1.0e-15_fp
+             Is_Gas        = T
+             Is_Drydep     = F
+             Is_Wetdep     = F
 
           !==================================================================
           ! Special handling for species not found in the list above
@@ -5098,12 +5076,12 @@ CONTAINS
              IF ( IsPassive ) THEN
 
                 ! Define passive species
-                                 MW_g          = MW_g
-                                 BackgroundVV  = BackgroundVV
-                                 Is_Gas        = F
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
-                                 Is_Photolysis = F
+                MW_g          = MW_g
+                BackgroundVV  = BackgroundVV
+                Is_Gas        = F
+                Is_Drydep     = F
+                Is_Wetdep     = F
+                Is_Photolysis = F
 
              ! Test if this is a non-advected chemical species
              ELSEIF ( KppSpcId > 0 ) THEN
@@ -5112,10 +5090,10 @@ CONTAINS
                 ! If this is a non-advected KPP chemical species, then just
                 ! create a basic default entry in the species database
                 !------------------------------------------------------------
-                                 Is_Gas        = T
-                                 Is_Drydep     = F
-                                 Is_Wetdep     = F
-
+                Is_Gas        = T
+                Is_Drydep     = F
+                Is_Wetdep     = F
+                
              ELSE
 
                 IF ( Present(Found) ) THEN
@@ -5153,41 +5131,45 @@ CONTAINS
           END DO
        ENDIF
     ENDIF
-    IF ( PRESENT(oFormula) ) oFormula = Formula
-    IF ( PRESENT(oMW_g)    ) oMW_g    = MW_g
-    IF ( PRESENT(oEmMW_g)  ) oEmMW_g  = EmMW_g
-    IF ( PRESENT(oMolecRatio) ) oMolecRatio = MolecRatio
-    IF ( PRESENT(oRadius    ) ) oRadius = Radius
-    IF ( PRESENT(oDensity   ) ) oDensity = Density
-    IF ( PRESENT(oDD_AeroDryDep) ) oDD_AeroDryDep = DD_AeroDryDep
-    IF ( PRESENT(oDD_DustDryDep) ) oDD_DustDryDep = DD_DustDryDep
-    IF ( PRESENT(oDD_F0) ) oDD_F0 = DD_F0
-    IF ( PRESENT(oDD_DvzAerSnow) ) oDD_DvzAerSnow = DD_DvzAerSnow
-    IF ( PRESENT(oDD_DvzMinVal) ) oDD_DvzMinVal(:) = DD_DvzMinVal(:)
-    IF ( PRESENT(oDD_KOA) ) oDD_KOA = DD_KOA
-    IF ( PRESENT(oDD_Hstar_Old) ) oDD_Hstar_Old = DD_Hstar_Old
-    IF ( PRESENT(oHenry_K0) ) oHenry_K0 = Henry_K0
-    IF ( PRESENT(oHenry_CR) ) oHenry_CR = Henry_CR
-    IF ( PRESENT(oHenry_PKa) ) oHenry_PKa = Henry_PKa
-    IF ( PRESENT(oWD_RetFactor) ) oWD_RetFactor = WD_RetFactor
-    IF ( PRESENT(oWD_LiqAndGas) ) oWD_LiqAndGas = WD_LiqAndGas
-    IF ( PRESENT(oWD_ConvFacI2G) ) oWD_ConvFacI2G = WD_ConvFacI2G
-    IF ( PRESENT(oWD_AerScavEff) ) oWD_AerScavEff = WD_AerScavEff
-    IF ( PRESENT(oWD_KcScaleFac) ) oWD_KcScaleFac(:) = WD_KcScaleFac(:)
-    IF ( PRESENT(oWD_RainoutEff) ) oWD_RainoutEff(:) = WD_RainoutEff(:)
-    IF ( PRESENT(oIs_DryDep) ) oIs_DryDep = Is_DryDep
-    IF ( PRESENT(oIs_Gas) ) oIs_Gas = Is_Gas
-    IF ( PRESENT(oIs_HygroGrowth) ) oIs_HygroGrowth = Is_HygroGrowth
-    IF ( PRESENT(oIs_Photolysis) ) oIs_Photolysis = Is_Photolysis
-    IF ( PRESENT(oIs_WetDep) ) oIs_WetDep = Is_WetDep
-    IF ( PRESENT(oBackgroundVV) ) oBackgroundVV = BackgroundVV
-    IF ( PRESENT(oIs_InRestart) ) oIs_InRestart = Is_InRestart
-    IF ( PRESENT(oWD_CoarseAer) ) oWD_CoarseAer = WD_CoarseAer
-    IF ( PRESENT(oMP_SizeResAer) ) oMP_SizeResAer = MP_SizeResAer
-    IF ( PRESENT(oMP_SizeResNum) ) oMP_SizeResNum = MP_SizeResNum
-    IF ( PRESENT(oIs_Hg0) ) oIs_Hg0 = Is_Hg0
-    IF ( PRESENT(oIs_Hg2) ) oIs_Hg2 = Is_Hg2
-    IF ( PRESENT(oIs_HgP) ) oIs_HgP = Is_HgP
+
+    !=======================================================================
+    ! Assign species database values to the optional output arguments
+    !=======================================================================
+    IF ( PRESENT( oFormula        ) ) oFormula          = Formula
+    IF ( PRESENT( oMW_g           ) ) oMW_g             = MW_g
+    IF ( PRESENT( oEmMW_g         ) ) oEmMW_g           = EmMW_g
+    IF ( PRESENT( oMolecRatio     ) ) oMolecRatio       = MolecRatio
+    IF ( PRESENT( oRadius         ) ) oRadius           = Radius
+    IF ( PRESENT( oDensity        ) ) oDensity          = Density
+    IF ( PRESENT( oDD_AeroDryDep  ) ) oDD_AeroDryDep    = DD_AeroDryDep
+    IF ( PRESENT( oDD_DustDryDep  ) ) oDD_DustDryDep    = DD_DustDryDep
+    IF ( PRESENT( oDD_F0          ) ) oDD_F0            = DD_F0
+    IF ( PRESENT( oDD_DvzAerSnow  ) ) oDD_DvzAerSnow    = DD_DvzAerSnow
+    IF ( PRESENT( oDD_DvzMinVal   ) ) oDD_DvzMinVal(:)  = DD_DvzMinVal(:)
+    IF ( PRESENT( oDD_KOA         ) ) oDD_KOA           = DD_KOA
+    IF ( PRESENT( oDD_Hstar_Old   ) ) oDD_Hstar_Old     = DD_Hstar_Old
+    IF ( PRESENT( oHenry_K0       ) ) oHenry_K0         = Henry_K0
+    IF ( PRESENT( oHenry_CR       ) ) oHenry_CR         = Henry_CR
+    IF ( PRESENT( oHenry_PKa      ) ) oHenry_PKa        = Henry_PKa
+    IF ( PRESENT( oWD_RetFactor   ) ) oWD_RetFactor     = WD_RetFactor
+    IF ( PRESENT( oWD_LiqAndGas   ) ) oWD_LiqAndGas     = WD_LiqAndGas
+    IF ( PRESENT( oWD_ConvFacI2G  ) ) oWD_ConvFacI2G    = WD_ConvFacI2G
+    IF ( PRESENT( oWD_AerScavEff  ) ) oWD_AerScavEff    = WD_AerScavEff
+    IF ( PRESENT( oWD_KcScaleFac  ) ) oWD_KcScaleFac(:) = WD_KcScaleFac(:)
+    IF ( PRESENT( oWD_RainoutEff  ) ) oWD_RainoutEff(:) = WD_RainoutEff(:)
+    IF ( PRESENT( oIs_DryDep      ) ) oIs_DryDep        = Is_DryDep
+    IF ( PRESENT( oIs_Gas         ) ) oIs_Gas           = Is_Gas
+    IF ( PRESENT( oIs_HygroGrowth ) ) oIs_HygroGrowth   = Is_HygroGrowth
+    IF ( PRESENT( oIs_Photolysis  ) ) oIs_Photolysis    = Is_Photolysis
+    IF ( PRESENT( oIs_WetDep      ) ) oIs_WetDep        = Is_WetDep
+    IF ( PRESENT( oBackgroundVV   ) ) oBackgroundVV     = BackgroundVV
+    IF ( PRESENT( oIs_InRestart   ) ) oIs_InRestart     = Is_InRestart
+    IF ( PRESENT( oWD_CoarseAer   ) ) oWD_CoarseAer     = WD_CoarseAer
+    IF ( PRESENT( oMP_SizeResAer  ) ) oMP_SizeResAer    = MP_SizeResAer
+    IF ( PRESENT( oMP_SizeResNum  ) ) oMP_SizeResNum    = MP_SizeResNum
+    IF ( PRESENT( oIs_Hg0         ) ) oIs_Hg0           = Is_Hg0
+    IF ( PRESENT( oIs_Hg2         ) ) oIs_Hg2           = Is_Hg2
+    IF ( PRESENT( oIs_HgP         ) ) oIs_HgP           = Is_HgP
 
   END SUBROUTINE Spc_Info 
 !EOC

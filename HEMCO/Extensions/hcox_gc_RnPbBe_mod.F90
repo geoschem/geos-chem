@@ -166,7 +166,7 @@ CONTAINS
     !ERR = .FALSE.
 
     ! Sanity check: return if extension not turned on
-    IF ( .NOT. ExtState%Gc_RnPbBe ) RETURN
+    IF ( ExtState%Gc_RnPbBe < 0 ) RETURN
 
     ! Emission timestep [s]
     DTSRCE = HcoState%TS_EMIS 

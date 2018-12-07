@@ -53,7 +53,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: CLDFRC        (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS       (:,:  ) ! Max cloud top height [levels]
      REAL(fp), POINTER :: EFLUX         (:,:  ) ! Latent heat flux [W/m2]
-    !REAL(fp), POINTER :: EVAP          (:,:  ) ! Surface evap [kg/m2/s]
      REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
      REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake [1]
      REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land [1]
@@ -61,7 +60,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean [1]
      REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Sfc sea ice fraction
      REAL(fp), POINTER :: FRSNO         (:,:  ) ! Sfc snow fraction
-    !REAL(fp), POINTER :: GRN           (:,:  ) ! Greenness fraction
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
@@ -83,7 +81,6 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: PRECTOT       (:,:  ) ! Total precip @ ground 
                                                 !  [kg/m2/s]
      REAL(fp), POINTER :: PRECLSC       (:,:  ) ! LS precip @ ground [kg/m2/s]
-    !REAL(fp), POINTER :: PRECSNO       (:,:  ) ! Snow precip [kg/m2/s]
      REAL(fp), POINTER :: PS1_WET       (:,:  ) ! Wet surface pressure at
                                                 !  start of timestep [hPa]
      REAL(fp), POINTER :: PS2_WET       (:,:  ) ! Wet surface pressure at 
@@ -96,8 +93,6 @@ MODULE State_Met_Mod
                                                 !  end of timestep [hPa]
      REAL(fp), POINTER :: PSC2_DRY      (:,:  ) ! Dry interpolated surface
                                                 !  pressure [hPa]
-    !REAL(fp), POINTER :: RADLWG        (:,:  ) ! Net longwave radiation @ 
-                                                !  ground [W/m2]
      REAL(fp), POINTER :: SEAICE00      (:,:  ) ! Sea ice coverage 00-10%
      REAL(fp), POINTER :: SEAICE10      (:,:  ) ! Sea ice coverage 10-20%
      REAL(fp), POINTER :: SEAICE20      (:,:  ) ! Sea ice coverage 20-30%
@@ -154,8 +149,6 @@ MODULE State_Met_Mod
                                                 !  [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN       (:,:,:) ! Dwn flux ice prec:LS+anv 
                                                 !  [kg/m2/s]
-    !REAL(fp), POINTER :: PV            (:,:,:) ! Potential vorticity 
-                                                !  [kg*m2/kg/s]
      REAL(fp), POINTER :: QI            (:,:,:) ! Ice mixing ratio 
                                                 !  [kg/kg dry air]
      REAL(fp), POINTER :: QL            (:,:,:) ! Water mixing ratio 
@@ -384,6 +377,7 @@ CONTAINS
 !  24 Aug 2017 - R. Yantosca - Now register level-edged variables appropriately
 !  07 Sep 2017 - E. Lundgren - Abstract the metadata and method add to registry
 !  16 Nov 2017 - E. Lundgren - Get grid params from CMN_Size_Mod not arguments
+!  05 Nov 2018 - R. Yantosca - Now nullify all fields before allocating
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -408,19 +402,126 @@ CONTAINS
     LM = LLPAR ! # levels
 
     !=======================================================================
-    ! The following fields of State_Met may or may not get allocated
-    ! depending on the met field being used, or if we are using GEOS-Chem
-    ! in the ESMF/HPC configuration.  Make sure to nullify these fields
-    ! in order to prevent issues with unintialized fields.  In particular,
-    ! the GNU Fortran compiler may cause simulations to die with an error 
-    ! when encountering uninitialized fields of State_Met.
-    ! 
-    ! We do not have to nullify the fields that always get allocated,
-    ! since they will be defined for each GEOS-Chem simulation. 
-    ! (bmy, 11/28/16) 
+    ! Nullify all fields for safety's sake before allocating them
     !=======================================================================
-    State_Met%CNV_FRC  => NULL()
-    State_Met%UPDVVEL  => NULL()
+    State_Met%ALBD           => NULL()
+    State_Met%ChemGridLev    => NULL()
+    State_Met%CLDFRC         => NULL()
+    State_Met%CLDTOPS        => NULL()
+    State_Met%EFLUX          => NULL()
+    State_Met%FRCLND         => NULL()
+    State_Met%FRLAKE         => NULL()
+    State_Met%FRLAND         => NULL()
+    State_Met%FRLANDIC       => NULL()
+    State_Met%FROCEAN        => NULL()
+    State_Met%FRSEAICE       => NULL()
+    State_Met%FRSNO          => NULL()
+    State_Met%GWETROOT       => NULL()
+    State_Met%GWETTOP        => NULL()
+    State_Met%HFLUX          => NULL()
+    State_Met%LAI            => NULL()
+    State_Met%LWI            => NULL()
+    State_Met%PARDR          => NULL()
+    State_Met%PARDF          => NULL()
+    State_Met%PBLH           => NULL()
+    State_Met%PBL_TOP_L      => NULL()
+    State_Met%PHIS           => NULL()
+    State_Met%PRECANV        => NULL()
+    State_Met%PRECCON        => NULL()
+    State_Met%PRECLSC        => NULL()
+    State_Met%PRECTOT        => NULL()
+    State_Met%PS1_WET        => NULL()
+    State_Met%PS1_DRY        => NULL()
+    State_Met%PS2_WET        => NULL()
+    State_Met%PS2_DRY        => NULL()
+    State_Met%PSC2_WET       => NULL()
+    State_Met%PSC2_DRY       => NULL()
+    State_Met%SEAICE00       => NULL()
+    State_Met%SEAICE10       => NULL()
+    State_Met%SEAICE20       => NULL()
+    State_Met%SEAICE30       => NULL()
+    State_Met%SEAICE40       => NULL()
+    State_Met%SEAICE50       => NULL()
+    State_Met%SEAICE60       => NULL()
+    State_Met%SEAICE70       => NULL()
+    State_Met%SEAICE80       => NULL()
+    State_Met%SEAICE90       => NULL()
+    State_Met%SLP            => NULL()
+    State_Met%SNODP          => NULL()
+    State_Met%SNOMAS         => NULL()
+    State_Met%SUNCOS         => NULL()
+    State_Met%SUNCOSmid      => NULL()
+    State_Met%SWGDN          => NULL()
+    State_Met%TropLev        => NULL()
+    State_Met%TropHt         => NULL()
+    State_Met%TROPP          => NULL()
+    State_Met%TS             => NULL()
+    State_Met%TSKIN          => NULL()
+    State_Met%TO3            => NULL()
+    State_Met%U10M           => NULL()
+    State_Met%USTAR          => NULL()
+    State_Met%UVALBEDO       => NULL()
+    State_Met%V10M           => NULL()
+    State_Met%Z0             => NULL()
+    State_Met%CNV_FRC        => NULL()
+    State_Met%ILAND          => NULL()
+    State_Met%IREG           => NULL()
+    State_Met%IUSE           => NULL()
+    State_Met%LANDTYPEFRAC   => NULL()
+    State_Met%MODISLAI       => NULL()
+    State_Met%MODISCHLR      => NULL()
+    State_Met%AD             => NULL()
+    State_Met%AIRDEN         => NULL()
+    State_Met%MAIRDEN        => NULL()
+    State_Met%AIRVOL         => NULL()
+    State_Met%AREA_M2        => NULL()
+    State_Met%BXHEIGHT       => NULL()
+    State_Met%CLDF           => NULL()
+    State_Met%CMFMC          => NULL()
+    State_Met%DELP           => NULL()
+    State_Met%DELP_DRY       => NULL()
+    State_Met%DP_DRY_PREV    => NULL()
+    State_Met%DQRCU          => NULL()
+    State_Met%DQRLSAN        => NULL()
+    State_Met%DTRAIN         => NULL()
+    State_Met%OMEGA          => NULL()
+    State_Met%OPTD           => NULL()
+    State_Met%PEDGE          => NULL()
+    State_Met%PEDGE_DRY      => NULL()
+    State_Met%PFICU          => NULL()
+    State_Met%PFILSAN        => NULL()
+    State_Met%PFLCU          => NULL()
+    State_Met%PFLLSAN        => NULL()
+    State_Met%PMID           => NULL()
+    State_Met%PMID_DRY       => NULL()
+    State_Met%QI             => NULL()
+    State_Met%QL             => NULL()
+    State_Met%REEVAPCN       => NULL()
+    State_Met%REEVAPLS       => NULL()
+    State_Met%RH             => NULL()
+    State_Met%SPHU           => NULL()
+    State_Met%SPHU1          => NULL()
+    State_Met%SPHU2          => NULL()
+    State_Met%T              => NULL()
+    State_Met%TMPU1          => NULL()
+    State_Met%TMPU2          => NULL()
+    State_Met%TV             => NULL()
+    State_Met%TAUCLI         => NULL()
+    State_Met%TAUCLW         => NULL()
+    State_Met%U              => NULL()
+    State_Met%UPDVVEL        => NULL()
+    State_Met%V              => NULL()
+    State_Met%XLAI           => NULL()
+    State_Met%XCHLR          => NULL()
+    State_Met%XLAI_NATIVE    => NULL()
+    State_Met%XCHLR_NATIVE   => NULL()
+    State_Met%InChemGrid     => NULL()
+    State_Met%InPbl          => NULL()
+    State_Met%InStratMeso    => NULL()
+    State_Met%InStratosphere => NULL()
+    State_Met%InTroposphere  => NULL()
+    State_Met%IsLocalNoon    => NULL()
+    State_Met%LocalSolarTime => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -483,20 +584,6 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-!------------------------------------------------------------------------------
-! Comment out for now. State_Met%EVAP is not used in the code. (mps, 9/14/17)
-!    !-------------------------
-!    ! EVAP [W m-2]
-!    !-------------------------
-!    ALLOCATE( State_Met%EVAP( IM, JM ), STAT=RC )
-!    CALL GC_CheckVar( 'State_Met%EVAP', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%EVAP= 0.0_fp
-!    CALL Register_MetField( am_I_Root, 'EVAP', State_Met%EVAP, &
-!                            State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
-
     !-------------------------
     ! FRCLND [1]
     !-------------------------
@@ -551,20 +638,6 @@ CONTAINS
     CALL Register_MetField( am_I_Root, 'FROCEAN', State_Met%FROCEAN, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-
-!------------------------------------------------------------------------------
-! Comment out for now. State_Met%GRN is not used in the code. (mps, 9/14/17)
-!    !-------------------------
-!    ! GRN [1]
-!    !-------------------------
-!    ALLOCATE( State_Met%GRN( IM, JM ), STAT=RC )
-!    CALL GC_CheckVar( 'State_Met%GRN', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%GRN = 0.0_fp 
-!    CALL Register_MetField( am_I_Root, 'GRN', State_Met%GRN, &
-!                            State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
 
     !-------------------------
     ! GWETROOT [1]
@@ -687,20 +760,6 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-!------------------------------------------------------------------------------
-! Comment out for now. State_Met%PRECSNO is not used in the code. (mps, 9/14/17)
-!    !-------------------------
-!    ! PRECSNO [kg m-2 s-1]
-!    !-------------------------
-!    ALLOCATE( State_Met%PRECSNO( IM, JM ), STAT=RC )
-!    CALL GC_CheckVar( 'State_Met%PRECSNO', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%PRECSNO = 0.0_fp
-!    CALL Register_MetField( am_I_Root, 'PRECSNO', State_Met%PRECSNO, &
-!                            State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
-
     !-------------------------
     ! PRECTOT [kg m-2 s-1]
     !-------------------------
@@ -777,20 +836,6 @@ CONTAINS
     CALL Register_MetField( am_I_Root, 'PSC2DRY', State_Met%PSC2_DRY, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-
-!------------------------------------------------------------------------------
-! Comment out for now. State_Met%RADLWG is not used in the code. (mps, 9/14/17)
-!    !-------------------------
-!    ! RADLWG [W m-2]
-!    !-------------------------
-!    ALLOCATE( State_Met%RADLWG( IM, JM ), STAT=RC )
-!    CALL GC_CheckVar( 'State_Met%RADLWG', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%RADLWG = 0.0_fp
-!    CALL Register_MetField( am_I_Root, 'RADLWG', State_Met%RADLWG, &
-!                            State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
 
     !-------------------------
     ! SLP [hPa]
@@ -981,7 +1026,7 @@ CONTAINS
 
     ! Convective fractions are not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
     !-------------------------
     ! CNV_FRC [1]
     !-------------------------
@@ -1405,20 +1450,6 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-!------------------------------------------------------------------------------
-! Comment out for now. State_Met%PV is not used in the code. (mps, 9/14/17)
-!    !-------------------------
-!    ! PV [kg m2 kg-1 s-1]
-!    !-------------------------
-!    ALLOCATE( State_Met%PV( IM, JM, LM ), STAT=RC )
-!    CALL GC_CheckVar( 'State_Met%PV', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    State_Met%PV = 0.0_fp
-!    CALL Register_MetField( am_I_Root, 'PV', State_Met%PV, &
-!                            State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!------------------------------------------------------------------------------
-
     !-------------------------
     ! QI [kg kg-1]
     !-------------------------
@@ -1542,7 +1573,7 @@ CONTAINS
 
     ! Updraft vertical velocity is not yet a standard GEOS-FP
     ! field. Only available to online model (ckeller, 3/4/16) 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
     !-------------------------
     ! UPDVVEL [hPa s-1]
     !-------------------------
@@ -1797,7 +1828,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%IsChemGrid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InChemGrid = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! InPBL
@@ -1806,7 +1836,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%InPbl', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InPbl = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! InStratosphere
@@ -1815,7 +1844,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%InStratosphere', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InStratosphere = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! InStratMeso
@@ -1824,7 +1852,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%InStratMeso', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InStratMeso = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! InTroposphere
@@ -1833,7 +1860,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%InTropoSphere', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%InTroposphere = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! IsLocalNoon
@@ -1842,7 +1868,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Met%IsLocalNoon', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%IsLocalNoon = .FALSE.
-    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! LocalSolarTime
@@ -1919,6 +1944,8 @@ CONTAINS
 !  12 Dec 2012 - R. Yantosca - Now deallocate the IREG, ILAND, IUSE fields
 !  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
 !  22 Aug 2014 - R. Yantosca - Deallocate PBL_TOP_L field
+!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify all pointer fields
+!                              (except 3D fields for GCHP/GEOS/WRF interfaces)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1936,244 +1963,1060 @@ CONTAINS
     ThisLoc = ' -> Cleanup_State_Met (in Headers/state_met_mod.F90)'
 
     !========================================================================
-    ! These met fields are used for all data products
+    ! Deallocate 2-D fields
     !========================================================================
+    IF ( ASSOCIATED( State_Met%ALBD ) ) THEN
+       DEALLOCATE( State_Met%ALBD, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%ALBD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%ALBD => NULL()
+    ENDIF
 
-    ! 2-D fields
-    IF ( ASSOCIATED( State_Met%ALBD       )) DEALLOCATE( State_Met%ALBD       ) 
-    IF ( ASSOCIATED( State_Met%ChemGridLev)) DEALLOCATE( State_Met%ChemGridLev)
-    IF ( ASSOCIATED( State_Met%CLDFRC     )) DEALLOCATE( State_Met%CLDFRC     ) 
-    IF ( ASSOCIATED( State_Met%CLDTOPS    )) DEALLOCATE( State_Met%CLDTOPS    )
-    IF ( ASSOCIATED( State_Met%EFLUX      )) DEALLOCATE( State_Met%EFLUX      ) 
-    !IF ( ASSOCIATED( State_Met%EVAP       )) DEALLOCATE( State_Met%EVAP       )
-    IF ( ASSOCIATED( State_Met%FRCLND     )) DEALLOCATE( State_Met%FRCLND     )
-    IF ( ASSOCIATED( State_Met%FRLAKE     )) DEALLOCATE( State_Met%FRLAKE     )
-    IF ( ASSOCIATED( State_Met%FRLAND     )) DEALLOCATE( State_Met%FRLAND     )
-    IF ( ASSOCIATED( State_Met%FRLANDIC   )) DEALLOCATE( State_Met%FRLANDIC   )
-    IF ( ASSOCIATED( State_Met%FROCEAN    )) DEALLOCATE( State_Met%FROCEAN    )
-    IF ( ASSOCIATED( State_Met%FRSEAICE   )) DEALLOCATE( State_Met%FRSEAICE   )
-    IF ( ASSOCIATED( State_Met%FRSNO      )) DEALLOCATE( State_Met%FRSNO      )
-    !IF ( ASSOCIATED( State_Met%GRN        )) DEALLOCATE( State_Met%GRN        )
-    IF ( ASSOCIATED( State_Met%GWETROOT   )) DEALLOCATE( State_Met%GWETROOT   )
-    IF ( ASSOCIATED( State_Met%GWETTOP    )) DEALLOCATE( State_Met%GWETTOP    )
-    IF ( ASSOCIATED( State_Met%HFLUX      )) DEALLOCATE( State_Met%HFLUX      )
-    IF ( ASSOCIATED( State_Met%LAI        )) DEALLOCATE( State_Met%LAI        )
-    IF ( ASSOCIATED( State_Met%LWI        )) DEALLOCATE( State_Met%LWI        )
-    IF ( ASSOCIATED( State_Met%PARDR      )) DEALLOCATE( State_Met%PARDR      )
-    IF ( ASSOCIATED( State_Met%PARDF      )) DEALLOCATE( State_Met%PARDF      )
-    IF ( ASSOCIATED( State_Met%PBLH       )) DEALLOCATE( State_Met%PBLH       )
-    IF ( ASSOCIATED( State_Met%PBL_TOP_L  )) DEALLOCATE( State_Met%PBL_TOP_L  )
-    IF ( ASSOCIATED( State_Met%PHIS       )) DEALLOCATE( State_Met%PHIS       )
-    IF ( ASSOCIATED( State_Met%PRECANV    )) DEALLOCATE( State_Met%PRECANV    )
-    IF ( ASSOCIATED( State_Met%PRECCON    )) DEALLOCATE( State_Met%PRECCON    )
-    IF ( ASSOCIATED( State_Met%PRECLSC    )) DEALLOCATE( State_Met%PRECLSC    )
-    IF ( ASSOCIATED( State_Met%PRECTOT    )) DEALLOCATE( State_Met%PRECTOT    )
-    !IF ( ASSOCIATED( State_Met%PRECSNO    )) DEALLOCATE( State_Met%PRECSNO    )
-    IF ( ASSOCIATED( State_Met%PS1_WET    )) DEALLOCATE( State_Met%PS1_WET    )
-    IF ( ASSOCIATED( State_Met%PS2_WET    )) DEALLOCATE( State_Met%PS2_WET    )
-    IF ( ASSOCIATED( State_Met%PSC2_WET   )) DEALLOCATE( State_Met%PSC2_WET   )
-    IF ( ASSOCIATED( State_Met%PS1_DRY    )) DEALLOCATE( State_Met%PS1_DRY    )
-    IF ( ASSOCIATED( State_Met%PS2_DRY    )) DEALLOCATE( State_Met%PS2_DRY    )
-    IF ( ASSOCIATED( State_Met%PSC2_DRY   )) DEALLOCATE( State_Met%PSC2_DRY   )
-    !IF ( ASSOCIATED( State_Met%RADLWG     )) DEALLOCATE( State_Met%RADLWG     )
-    IF ( ASSOCIATED( State_Met%SEAICE00   )) DEALLOCATE( State_Met%SEAICE00   )
-    IF ( ASSOCIATED( State_Met%SEAICE10   )) DEALLOCATE( State_Met%SEAICE10   )
-    IF ( ASSOCIATED( State_Met%SEAICE20   )) DEALLOCATE( State_Met%SEAICE20   )
-    IF ( ASSOCIATED( State_Met%SEAICE30   )) DEALLOCATE( State_Met%SEAICE30   )
-    IF ( ASSOCIATED( State_Met%SEAICE40   )) DEALLOCATE( State_Met%SEAICE40   )
-    IF ( ASSOCIATED( State_Met%SEAICE50   )) DEALLOCATE( State_Met%SEAICE50   )
-    IF ( ASSOCIATED( State_Met%SEAICE60   )) DEALLOCATE( State_Met%SEAICE60   )
-    IF ( ASSOCIATED( State_Met%SEAICE70   )) DEALLOCATE( State_Met%SEAICE70   )
-    IF ( ASSOCIATED( State_Met%SEAICE80   )) DEALLOCATE( State_Met%SEAICE80   )
-    IF ( ASSOCIATED( State_Met%SEAICE90   )) DEALLOCATE( State_Met%SEAICE90   )
-    IF ( ASSOCIATED( State_Met%SLP        )) DEALLOCATE( State_Met%SLP        )
-    IF ( ASSOCIATED( State_Met%SNODP      )) DEALLOCATE( State_Met%SNODP      )
-    IF ( ASSOCIATED( State_Met%SNOMAS     )) DEALLOCATE( State_Met%SNOMAS     )
-    IF ( ASSOCIATED( State_Met%SUNCOS     )) DEALLOCATE( State_Met%SUNCOS     )
-    IF ( ASSOCIATED( State_Met%SUNCOSmid  )) DEALLOCATE( State_Met%SUNCOSmid  )
-    IF ( ASSOCIATED( State_Met%SWGDN      )) DEALLOCATE( State_Met%SWGDN      )
-    IF ( ASSOCIATED( State_Met%TropLev    )) DEALLOCATE( State_Met%TropLev    )
-    IF ( ASSOCIATED( State_Met%TropHt     )) DEALLOCATE( State_Met%TropHt     )
-    IF ( ASSOCIATED( State_Met%TROPP      )) DEALLOCATE( State_Met%TROPP      )
-    IF ( ASSOCIATED( State_Met%TS         )) DEALLOCATE( State_Met%TS         )
-    IF ( ASSOCIATED( State_Met%TSKIN      )) DEALLOCATE( State_Met%TSKIN      )
-    IF ( ASSOCIATED( State_Met%TO3        )) DEALLOCATE( State_Met%TO3        )
-    IF ( ASSOCIATED( State_Met%U10M       )) DEALLOCATE( State_Met%U10M       )
-    IF ( ASSOCIATED( State_Met%USTAR      )) DEALLOCATE( State_Met%USTAR      )
-    IF ( ASSOCIATED( State_Met%UVALBEDO   )) DEALLOCATE( State_Met%UVALBEDO   )
-    IF ( ASSOCIATED( State_Met%V10M       )) DEALLOCATE( State_Met%V10M       )
-    IF ( ASSOCIATED( State_Met%Z0         )) DEALLOCATE( State_Met%Z0         )
-    IF ( ASSOCIATED( State_Met%CNV_FRC    )) DEALLOCATE( State_Met%CNV_FRC    )
+    IF ( ASSOCIATED( State_Met%ChemGridLev ) ) THEN
+       DEALLOCATE( State_Met%ChemGridLev, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%ChemGridLev', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%ChemGridLev => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CLDFRC ) ) THEN
+       DEALLOCATE( State_Met%CLDFRC, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%CLDFRC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CLDFRC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CLDTOPS ) ) THEN
+       DEALLOCATE( State_Met%CLDTOPS, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%CLDTOPS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CLDTOPS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%EFLUX ) ) THEN
+       DEALLOCATE( State_Met%EFLUX, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%EFLUX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%EFLUX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRCLND ) ) THEN
+       DEALLOCATE( State_Met%FRCLND, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRCLND', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRCLND => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRLAKE ) ) THEN
+       DEALLOCATE( State_Met%FRLAKE, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRLAKE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRLAKE => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRLAND ) ) THEN
+       DEALLOCATE( State_Met%FRLAND, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRLAND', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRLAND => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRLANDIC ) ) THEN
+       DEALLOCATE( State_Met%FRLANDIC, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRLANDIC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRLANDIC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FROCEAN ) ) THEN
+       DEALLOCATE( State_Met%FROCEAN, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FROCEAN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FROCEAN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRSEAICE ) ) THEN
+       DEALLOCATE( State_Met%FRSEAICE, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRSEAICE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRSEAICE => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FRSNO ) ) THEN
+       DEALLOCATE( State_Met%FRSNO, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRSNO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FRSNO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%GWETROOT ) ) THEN
+       DEALLOCATE( State_Met%GWETROOT, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%GWETROOT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%GWETROOT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%GWETTOP ) ) THEN
+       DEALLOCATE( State_Met%GWETTOP, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%GWETTOP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%GWETTOP => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%HFLUX ) ) THEN
+       DEALLOCATE( State_Met%HFLUX, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%HFLUX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%HFLUX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%LAI ) ) THEN
+       DEALLOCATE( State_Met%LAI, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%LAI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%LAI => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%LWI ) ) THEN
+       DEALLOCATE( State_Met%LWI, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%LWI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%LWI => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PARDR ) ) THEN
+       DEALLOCATE( State_Met%PARDR, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%PARDR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PARDR => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PARDF ) ) THEN
+       DEALLOCATE( State_Met%PARDF, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%PARDF', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PARDF => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PBLH ) ) THEN
+       DEALLOCATE( State_Met%PBLH, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%PBLH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PBLH => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PBL_TOP_L ) ) THEN
+       DEALLOCATE( State_Met%PBL_TOP_L, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PBL_TOP_L', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PBL_TOP_L => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PHIS ) ) THEN
+       DEALLOCATE( State_Met%PHIS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PHIS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PHIS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PRECANV ) ) THEN
+       DEALLOCATE( State_Met%PRECANV, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PRECANV', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PRECANV => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PRECCON ) ) THEN
+       DEALLOCATE( State_Met%PRECCON, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PRECCON', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PRECCON => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PRECLSC ) ) THEN
+       DEALLOCATE( State_Met%PRECLSC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PRECLSC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PRECLSC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PRECTOT ) ) THEN
+       DEALLOCATE( State_Met%PRECTOT, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PRECTOT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PRECTOT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PS1_WET ) ) THEN
+       DEALLOCATE( State_Met%PS1_WET, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PS1_WET', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PS1_WET => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PS1_DRY ) ) THEN
+       DEALLOCATE( State_Met%PS1_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PS1_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PS1_DRY => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PS2_WET ) ) THEN
+       DEALLOCATE( State_Met%PS2_WET, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PS2_WET', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PS2_WET => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PS2_DRY ) ) THEN
+       DEALLOCATE( State_Met%PS2_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PS2_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PS2_DRY => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PSC2_WET ) ) THEN
+       DEALLOCATE( State_Met%PSC2_WET, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PSC2_WET', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PSC2_WET => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PSC2_DRY ) ) THEN
+       DEALLOCATE( State_Met%PSC2_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PSC2_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PSC2_DRY => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE00 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE00, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE00', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE00 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE10 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE10, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE10', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE10 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE20 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE20, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE20', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE20 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE30 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE30, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE30', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE30 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE40 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE40, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE40', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE40 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE50 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE50, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE50', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE50 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE60 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE60, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE60', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE60 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE70 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE70, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE70', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE70 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE80 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE80, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE80', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE80 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SEAICE90 ) ) THEN
+       DEALLOCATE( State_Met%SEAICE90, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SEAICE90', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SEAICE90 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SLP ) ) THEN
+       DEALLOCATE( State_Met%SLP, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SLP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SLP => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SNODP ) ) THEN
+       DEALLOCATE( State_Met%SNODP, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SNODP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SNODP => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SNOMAS ) ) THEN
+       DEALLOCATE( State_Met%SNOMAS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SNOMAS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SNOMAS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SUNCOS ) ) THEN
+       DEALLOCATE( State_Met%SUNCOS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SUNCOS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SUNCOS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SUNCOSmid ) ) THEN
+       DEALLOCATE( State_Met%SUNCOSmid, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SUNCOSmid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SUNCOSmid => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SWGDN ) ) THEN
+       DEALLOCATE( State_Met%SWGDN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SWGDN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SWGDN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TropLev ) ) THEN
+       DEALLOCATE( State_Met%TropLev, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TropLev', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TropLev => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TropHt ) ) THEN
+       DEALLOCATE( State_Met%TropHt, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TropHt', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TropHt => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TROPP ) ) THEN
+       DEALLOCATE( State_Met%TROPP, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TROPP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TROPP => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TS ) ) THEN
+       DEALLOCATE( State_Met%TS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TSKIN ) ) THEN
+       DEALLOCATE( State_Met%TSKIN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TSKIN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TSKIN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TO3 ) ) THEN
+       DEALLOCATE( State_Met%TO3, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TO3', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TO3 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%U10M ) ) THEN
+       DEALLOCATE( State_Met%U10M, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%U10M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%U10M => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%USTAR ) ) THEN
+       DEALLOCATE( State_Met%USTAR, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%USTAR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%USTAR => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%UVALBEDO ) ) THEN
+       DEALLOCATE( State_Met%UVALBEDO, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%UVALBEDO', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%UVALBEDO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%V10M ) ) THEN
+       DEALLOCATE( State_Met%V10M, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%V10M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%V10M => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%Z0 ) ) THEN
+       DEALLOCATE( State_Met%Z0, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%Z0', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%Z0 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CNV_FRC ) ) THEN
+       DEALLOCATE( State_Met%CNV_FRC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%CNV_FRC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CNV_FRC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%ILAND ) ) THEN
+       DEALLOCATE( State_Met%ILAND, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%ILAND', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%ILAND => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%IREG ) ) THEN
+       DEALLOCATE( State_Met%IREG, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%IREG', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IREG => NULL()
+    ENDIF
 
     !========================================================================
-    ! Land type and leaf area index (LAI) fields for dry deposition
+    ! Deallocate 3-D fields
+    !
+    ! NOTE: If using GEOS-Chem as GCHP, or coupled to GMAO/GEOS, then just 
+    ! nullify the fields without deallocating.  This will prevent abnormal 
+    ! exits in MAPL.  This is probably due to the fact that the State_Met
+    ! fields point to ESMF/MAPL Imports, and cannot be deallocated
+    ! before the Import itself is finalized.
+    !
+    ! ALSO NOTE: If using GEOS-Chem coupled to WRF, then do the same
+    ! as for GCHP or GEOS, as WRF does its own separate deallocation.
+    !
+    !  -- Lizzie Lundgren and Bob Yantosca, 05 Nov 2018
     !========================================================================
-    IF ( ASSOCIATED( State_Met%IREG       )) DEALLOCATE( State_Met%IREG       )
-    IF ( ASSOCIATED( State_Met%MODISLAI   )) DEALLOCATE( State_Met%MODISLAI   )
-    IF ( ASSOCIATED( State_Met%MODISCHLR  )) DEALLOCATE( State_Met%MODISCHLR  )
-
-    ! 3-D fields
-    IF ( ASSOCIATED( State_Met%PFICU      )) DEALLOCATE( State_Met%PFICU      )
-    IF ( ASSOCIATED( State_Met%PFILSAN    )) DEALLOCATE( State_Met%PFILSAN    )
-    IF ( ASSOCIATED( State_Met%PFLCU      )) DEALLOCATE( State_Met%PFLCU      )
-    IF ( ASSOCIATED( State_Met%PFLLSAN    )) DEALLOCATE( State_Met%PFLLSAN    )
-    IF ( ASSOCIATED( State_Met%REEVAPCN   )) DEALLOCATE( State_Met%REEVAPCN   )
-    IF ( ASSOCIATED( State_Met%REEVAPLS   )) DEALLOCATE( State_Met%REEVAPLS   )
-    IF ( ASSOCIATED( State_Met%SPHU1      )) DEALLOCATE( State_Met%SPHU1      )
-    IF ( ASSOCIATED( State_Met%SPHU2      )) DEALLOCATE( State_Met%SPHU2      )
-    IF ( ASSOCIATED( State_Met%TMPU1      )) DEALLOCATE( State_Met%TMPU1      )
-    IF ( ASSOCIATED( State_Met%TMPU2      )) DEALLOCATE( State_Met%TMPU2      )
-
-#if defined( ESMF_ ) 
-
-    !=========================================================================
-    ! SDE 2016-03-28: GCHP requires that these are nullified rather than being
-    ! deallocated. Not yet sure why, but deallocating causes it to hang during
-    ! cleanup.
-    ! EWL 2018-04-20: This problem occurs when using gfortran 6 and above.
-    ! Always add new 3D State_Met fields to this section to ensure 
-    ! compatibility between GCHP and recent versions of gfortran.
-    !=========================================================================
-
-    ! 3-D fields
-    IF ( ASSOCIATED( State_Met%AD         )) NULLIFY( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%AIRDEN     )) NULLIFY( State_Met%AIRDEN     )
-    IF ( ASSOCIATED( State_Met%AIRVOL     )) NULLIFY( State_Met%AIRVOL     )
-    IF ( ASSOCIATED( State_Met%AREA_M2    )) NULLIFY( State_Met%AREA_M2    )
-    IF ( ASSOCIATED( State_Met%AVGW       )) NULLIFY( State_Met%AVGW       )
-    IF ( ASSOCIATED( State_Met%BXHEIGHT   )) NULLIFY( State_Met%BXHEIGHT   )
-    IF ( ASSOCIATED( State_Met%CLDF       )) NULLIFY( State_Met%CLDF       )
-    IF ( ASSOCIATED( State_Met%CMFMC      )) NULLIFY( State_Met%CMFMC      )
-    IF ( ASSOCIATED( State_Met%DELP       )) NULLIFY( State_Met%DELP       )
-    IF ( ASSOCIATED( State_Met%DQRCU      )) NULLIFY( State_Met%DQRCU      )
-    IF ( ASSOCIATED( State_Met%DQRLSAN    )) NULLIFY( State_Met%DQRLSAN    )
-    IF ( ASSOCIATED( State_Met%DTRAIN     )) NULLIFY( State_Met%DTRAIN     )
-    IF ( ASSOCIATED( State_Met%ILAND      )) NULLIFY( State_Met%ILAND      )
-    IF ( ASSOCIATED( State_Met%IUSE       )) NULLIFY( State_Met%IUSE       )
-    IF ( ASSOCIATED( State_Met%LANDTYPEFRAC)) NULLIFY( State_Met%LANDTYPEFRAC)
-    IF ( ASSOCIATED( State_Met%OMEGA      )) NULLIFY( State_Met%OMEGA      )
-    IF ( ASSOCIATED( State_Met%OPTD       )) NULLIFY( State_Met%OPTD       )
-    IF ( ASSOCIATED( State_Met%PEDGE      )) NULLIFY( State_Met%PEDGE      )
-    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) NULLIFY( State_Met%PEDGE_DRY  )
-    IF ( ASSOCIATED( State_Met%PMID       )) NULLIFY( State_Met%PMID       )
-    IF ( ASSOCIATED( State_Met%PMID_DRY   )) NULLIFY( State_Met%PMID_DRY   )
-   !IF ( ASSOCIATED( State_Met%PV         )) NULLIFY( State_Met%PV         )
-    IF ( ASSOCIATED( State_Met%QI         )) NULLIFY( State_Met%QI         )
-    IF ( ASSOCIATED( State_Met%QL         )) NULLIFY( State_Met%QL         )
-    IF ( ASSOCIATED( State_Met%RH         )) NULLIFY( State_Met%RH         )
-    IF ( ASSOCIATED( State_Met%SPHU       )) NULLIFY( State_Met%SPHU       )
-    IF ( ASSOCIATED( State_Met%T          )) NULLIFY( State_Met%T          )
-    IF ( ASSOCIATED( State_Met%THETA      )) NULLIFY( State_Met%THETA      )
-    IF ( ASSOCIATED( State_Met%TV         )) NULLIFY( State_Met%TV         )
-    IF ( ASSOCIATED( State_Met%TAUCLI     )) NULLIFY( State_Met%TAUCLI     )
-    IF ( ASSOCIATED( State_Met%TAUCLW     )) NULLIFY( State_Met%TAUCLW     ) 
-    IF ( ASSOCIATED( State_Met%U          )) NULLIFY( State_Met%U          )
-    IF ( ASSOCIATED( State_Met%UPDVVEL    )) NULLIFY( State_Met%UPDVVEL    )
-    IF ( ASSOCIATED( State_Met%V          )) NULLIFY( State_Met%V          )
-    IF ( ASSOCIATED( State_Met%XCHLR      )) NULLIFY( State_Met%XCHLR      )
-    IF ( ASSOCIATED( State_Met%XCHLR_NATIVE)) NULLIFY( State_Met%XCHLR_NATIVE)
-    IF ( ASSOCIATED( State_Met%XLAI       )) NULLIFY( State_Met%XLAI       )
-    IF ( ASSOCIATED( State_Met%XLAI_NATIVE)) NULLIFY( State_Met%XLAI_NATIVE )
-
+    IF ( ASSOCIATED( State_Met%IUSE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%IUSE => NULL()
 #else
-
-    !=========================================================================
-    ! For GEOS-Chem "Classic" simulations, we should use DEALLOCATE instead
-    ! of NULLIFY.  Typically if you allocate memory to a pointer-based
-    ! variable, you also need to DEALLOCATE.  If a pointer points to a
-    ! target variable, then you should use NULLIFY. (bmy, 6/27/16)
-    !=========================================================================
-
-    ! 3-D fields
-    IF ( ASSOCIATED( State_Met%AD         )) DEALLOCATE( State_Met%AD         )
-    IF ( ASSOCIATED( State_Met%AIRDEN     )) DEALLOCATE( State_Met%AIRDEN     )
-    IF ( ASSOCIATED( State_Met%MAIRDEN    )) DEALLOCATE( State_Met%MAIRDEN    )
-    IF ( ASSOCIATED( State_Met%AIRVOL     )) DEALLOCATE( State_Met%AIRVOL     )
-    IF ( ASSOCIATED( State_Met%AREA_M2    )) DEALLOCATE( State_Met%AREA_M2    )
-    IF ( ASSOCIATED( State_Met%AVGW       )) DEALLOCATE( State_Met%AVGW       )
-    IF ( ASSOCIATED( State_Met%BXHEIGHT   )) DEALLOCATE( State_Met%BXHEIGHT   )
-    IF ( ASSOCIATED( State_Met%CLDF       )) DEALLOCATE( State_Met%CLDF       )
-    IF ( ASSOCIATED( State_Met%CMFMC      )) DEALLOCATE( State_Met%CMFMC      )
-    IF ( ASSOCIATED( State_Met%DELP       )) DEALLOCATE( State_Met%DELP       )
-    IF ( ASSOCIATED( State_Met%DELP_DRY   )) DEALLOCATE( State_Met%DELP_DRY   )
-    IF ( ASSOCIATED( State_Met%DP_DRY_PREV)) DEALLOCATE( State_Met%DP_DRY_PREV)
-    IF ( ASSOCIATED( State_Met%SPHU_PREV  )) DEALLOCATE( State_Met%SPHU_PREV  )
-    IF ( ASSOCIATED( State_Met%DQRCU      )) DEALLOCATE( State_Met%DQRCU      )
-    IF ( ASSOCIATED( State_Met%DQRLSAN    )) DEALLOCATE( State_Met%DQRLSAN    )
-    IF ( ASSOCIATED( State_Met%DTRAIN     )) DEALLOCATE( State_Met%DTRAIN     )
-    IF ( ASSOCIATED( State_Met%ILAND      )) DEALLOCATE( State_Met%ILAND      )
-    IF ( ASSOCIATED( State_Met%IUSE       )) DEALLOCATE( State_Met%IUSE       )
-    IF (ASSOCIATED( State_Met%LANDTYPEFRAC)) DEALLOCATE( State_Met%LANDTYPEFRAC)
-    IF ( ASSOCIATED( State_Met%OMEGA      )) DEALLOCATE( State_Met%OMEGA      )
-    IF ( ASSOCIATED( State_Met%OPTD       )) DEALLOCATE( State_Met%OPTD       )
-    IF ( ASSOCIATED( State_Met%PEDGE      )) DEALLOCATE( State_Met%PEDGE      )
-    IF ( ASSOCIATED( State_Met%PEDGE_DRY  )) DEALLOCATE( State_Met%PEDGE_DRY  )
-    IF ( ASSOCIATED( State_Met%PMID       )) DEALLOCATE( State_Met%PMID       )
-    IF ( ASSOCIATED( State_Met%PMID_DRY   )) DEALLOCATE( State_Met%PMID_DRY   )
-    !IF ( ASSOCIATED( State_Met%PV         )) DEALLOCATE( State_Met%PV         )
-    IF ( ASSOCIATED( State_Met%QI         )) DEALLOCATE( State_Met%QI         )
-    IF ( ASSOCIATED( State_Met%QL         )) DEALLOCATE( State_Met%QL         )
-    IF ( ASSOCIATED( State_Met%RH         )) DEALLOCATE( State_Met%RH         )
-    IF ( ASSOCIATED( State_Met%SPHU       )) DEALLOCATE( State_Met%SPHU       )
-    IF ( ASSOCIATED( State_Met%T          )) DEALLOCATE( State_Met%T          )
-    IF ( ASSOCIATED( State_Met%TV         )) DEALLOCATE( State_Met%TV         )
-    IF ( ASSOCIATED( State_Met%TAUCLI     )) DEALLOCATE( State_Met%TAUCLI     )
-    IF ( ASSOCIATED( State_Met%TAUCLW     )) DEALLOCATE( State_Met%TAUCLW     ) 
-    IF ( ASSOCIATED( State_Met%U          )) DEALLOCATE( State_Met%U          )
-    IF ( ASSOCIATED( State_Met%UPDVVEL    )) DEALLOCATE( State_Met%UPDVVEL    )
-    IF ( ASSOCIATED( State_Met%V          )) DEALLOCATE( State_Met%V          )
-    IF ( ASSOCIATED( State_Met%XLAI       )) DEALLOCATE( State_Met%XLAI       )
-    IF ( ASSOCIATED( State_Met%XCHLR      )) DEALLOCATE( State_Met%XCHLR      )
-    IF (ASSOCIATED( State_Met%XLAI_NATIVE )) DEALLOCATE( State_Met%XLAI_NATIVE )
-    IF (ASSOCIATED( State_Met%XCHLR_NATIVE)) DEALLOCATE( State_Met%XCHLR_NATIVE)
-
+       DEALLOCATE( State_Met%IUSE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%IUSE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IUSE => NULL()
 #endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%LANDTYPEFRAC ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%LANDTYPEFRAC => NULL()
+#else
+       DEALLOCATE( State_Met%LANDTYPEFRAC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%LANDTYPEFRAC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%LANDTYPEFRAC => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%MODISLAI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MODISLAI => NULL()
+#else
+       DEALLOCATE( State_Met%MODISLAI, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%MODISLAI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%MODISLAI => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%MODISCHLR ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MODISCHLR => NULL()
+#else
+       DEALLOCATE( State_Met%MODISCHLR, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%MODISCHLR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%MODISCHLR => NULL()
+#endif
+    ENDIF
+
+    !---------------------------
+    ! 3-D fields
+    !---------------------------
+    IF ( ASSOCIATED( State_Met%AD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AD => NULL()
+#else
+       DEALLOCATE( State_Met%AD, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%AD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AD => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%AIRDEN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AIRDEN => NULL()
+#else
+       DEALLOCATE( State_Met%AIRDEN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%AIRDEN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AIRDEN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%MAIRDEN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%MAIRDEN => NULL()
+#else
+       DEALLOCATE( State_Met%MAIRDEN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%MAIRDEN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%MAIRDEN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%AIRVOL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AIRVOL => NULL()
+#else
+       DEALLOCATE( State_Met%AIRVOL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%AIRVOL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AIRVOL => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%AREA_M2 => NULL()
+#else
+       DEALLOCATE( State_Met%AREA_M2, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AREA_M2 => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%BXHEIGHT ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%BXHEIGHT => NULL()
+#else
+       DEALLOCATE( State_Met%BXHEIGHT, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%BXHEIGHT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%BXHEIGHT => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CLDF ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%CLDF => NULL()
+#else
+       DEALLOCATE( State_Met%CLDF, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%CLDF', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CLDF => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CMFMC ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%CMFMC => NULL()
+#else
+       DEALLOCATE( State_Met%CMFMC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%CMFMC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CMFMC => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DELP ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DELP => NULL()
+#else
+       DEALLOCATE( State_Met%DELP, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DELP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DELP => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DELP_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DELP_DRY => NULL()
+#else
+       DEALLOCATE( State_Met%DELP_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DELP_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DELP_DRY => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DP_DRY_PREV ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DP_DRY_PREV => NULL()
+#else
+       DEALLOCATE( State_Met%DP_DRY_PREV, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DP_DRY_PREV', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DP_DRY_PREV => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DQRCU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DQRCU => NULL()
+#else
+       DEALLOCATE( State_Met%DQRCU, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DQRCU', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DQRCU => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DQRLSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DQRLSAN => NULL()
+#else
+       DEALLOCATE( State_Met%DQRLSAN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DQRLSAN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DQRLSAN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%DTRAIN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%DTRAIN => NULL()
+#else
+       DEALLOCATE( State_Met%DTRAIN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%DTRAIN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%DTRAIN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%OMEGA ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%OMEGA => NULL()
+#else
+       DEALLOCATE( State_Met%OMEGA, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%OMEGA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%OMEGA => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%OPTD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%OPTD => NULL()
+#else
+       DEALLOCATE( State_Met%OPTD, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%OPTD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%OPTD => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PEDGE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PEDGE => NULL()
+#else
+       DEALLOCATE( State_Met%PEDGE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PEDGE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PEDGE => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PEDGE_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PEDGE_DRY => NULL()
+#else
+       DEALLOCATE( State_Met%PEDGE_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PEDGE_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PEDGE_DRY => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PFICU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFICU => NULL()
+#else
+       DEALLOCATE( State_Met%PFICU, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PFICU', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PFICU => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PFILSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFILSAN => NULL()
+#else
+       DEALLOCATE( State_Met%PFILSAN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PFILSAN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PFILSAN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PFLCU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFLCU => NULL()
+#else
+       DEALLOCATE( State_Met%PFLCU, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PFLCU', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PFLCU => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PFLLSAN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PFLLSAN => NULL()
+#else
+       DEALLOCATE( State_Met%PFLLSAN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PFLLSAN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PFLLSAN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PMID ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PMID => NULL()
+#else
+       DEALLOCATE( State_Met%PMID, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PMID', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PMID => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%PMID_DRY ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%PMID_DRY => NULL()
+#else
+       DEALLOCATE( State_Met%PMID_DRY, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%PMID_DRY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%PMID_DRY => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%QI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%QI => NULL()
+#else
+       DEALLOCATE( State_Met%QI, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%QI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%QI => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%QL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%QL => NULL()
+#else
+       DEALLOCATE( State_Met%QL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%QL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%QL => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%REEVAPCN ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%REEVAPCN => NULL()
+#else
+       DEALLOCATE( State_Met%REEVAPCN, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%REEVAPCN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%REEVAPCN => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%REEVAPLS ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%REEVAPLS => NULL()
+#else
+       DEALLOCATE( State_Met%REEVAPLS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%REEVAPLS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%REEVAPLS => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%RH ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%RH => NULL()
+#else
+       DEALLOCATE( State_Met%RH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%RH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%RH => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SPHU ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU => NULL()
+#else
+       DEALLOCATE( State_Met%SPHU, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SPHU', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SPHU => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SPHU1 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU1 => NULL()
+#else
+       DEALLOCATE( State_Met%SPHU1, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SPHU1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SPHU1 => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%SPHU2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%SPHU2 => NULL()
+#else
+       DEALLOCATE( State_Met%SPHU2, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%SPHU2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%SPHU2 => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%T ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%T => NULL()
+#else
+       DEALLOCATE( State_Met%T, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%T', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%T => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TMPU1 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TMPU1 => NULL()
+#else
+       DEALLOCATE( State_Met%TMPU1, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TMPU1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TMPU1 => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TMPU2 ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TMPU2 => NULL()
+#else
+       DEALLOCATE( State_Met%TMPU2, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TMPU2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TMPU2 => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TV ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TV => NULL()
+#else
+       DEALLOCATE( State_Met%TV, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TV', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TV => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TAUCLI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TAUCLI => NULL()
+#else
+       DEALLOCATE( State_Met%TAUCLI, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TAUCLI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TAUCLI => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%TAUCLW ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TAUCLW => NULL()
+#else
+       DEALLOCATE( State_Met%TAUCLW, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TAUCLW', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TAUCLW => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%U ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%U => NULL()
+#else
+       DEALLOCATE( State_Met%U, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%U', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%U => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%UPDVVEL => NULL()
+#else
+       DEALLOCATE( State_Met%UPDVVEL, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%UPDVVEL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%UPDVVEL => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%V ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%V => NULL()
+#else
+       DEALLOCATE( State_Met%V, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%V', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%V => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%XLAI ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XLAI => NULL()
+#else
+       DEALLOCATE( State_Met%XLAI, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%XLAI', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%XLAI => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%XCHLR ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XCHLR => NULL()
+#else
+       DEALLOCATE( State_Met%XCHLR, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%XCHLR', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%XCHLR => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%XLAI_NATIVE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XLAI_NATIVE => NULL()
+#else
+       DEALLOCATE( State_Met%XLAI_NATIVE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%XLAI_NATIVE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%XLAI_NATIVE => NULL()
+#endif
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%XCHLR_NATIVE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%XCHLR_NATIVE => NULL()
+#else
+       DEALLOCATE( State_Met%XCHLR_NATIVE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%XCHLR_NATIVE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%XCHLR_NATIVE => NULL()
+#endif
+    ENDIF
 
     !=======================================================================
     ! Fields for querying which vertical regime a grid box is in
     ! or if it is near local solar noon at a grid box
     !=======================================================================
     IF ( ASSOCIATED( State_Met%InChemGrid ) ) THEN
-       DEALLOCATE( State_Met%InChemGrid, STAT=RC  )
+       DEALLOCATE( State_Met%InChemGrid, STAT=RC )
        CALL GC_CheckVar( 'State_Met%InChemGrid', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%InChemGrid => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InPbl ) ) THEN
        DEALLOCATE( State_Met%InPbl, STAT=RC )
        CALL GC_CheckVar( 'State_Met%InPbl', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%InPbl => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InStratMeso ) ) THEN
-       DEALLOCATE( State_Met%InStratMeso, STAT=RC  )
+       DEALLOCATE( State_Met%InStratMeso, STAT=RC )
        CALL GC_CheckVar( 'State_Met%InStratMeso', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%InStratMeso => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InStratosphere ) ) THEN
-       DEALLOCATE( State_Met%InTroposphere, STAT=RC  )
+       DEALLOCATE( State_Met%InStratosphere, STAT=RC )
        CALL GC_CheckVar( 'State_Met%InStratosphere', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%InStratosphere => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%InTroposphere ) ) THEN
        DEALLOCATE( State_Met%InTroposphere, STAT=RC )
        CALL GC_CheckVar( 'State_Met%InTroposphere', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%InTroposphere => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%IsLocalNoon ) ) THEN
-       DEALLOCATE( State_Met%IsLocalNoon, STAT=RC  )
+       DEALLOCATE( State_Met%IsLocalNoon, STAT=RC )
        CALL GC_CheckVar( 'State_Met%IsLocalNoon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%IsLocalNoon => NULL()
     ENDIF
  
     IF ( ASSOCIATED( State_Met%LocalSolarTime ) ) THEN
-       DEALLOCATE( State_Met%LocalSolarTime, STAT=RC  )
+       DEALLOCATE( State_Met%LocalSolarTime, STAT=RC )
        CALL GC_CheckVar( 'State_Met%LocalSolarTime', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%LocalSolarTime => NULL()
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Template for deallocating more arrays, replace xxx with field name
+    !-----------------------------------------------------------------------
+    !IF ( ASSOCIATED( State_Met%xxx ) ) THEN
+    !   DEALLOCATE( State_Met%xxx, STAT=RC )
+    !   CALL GC_CheckVar( 'State_Met%xxx', 2, RC )
+    !   IF ( RC /= GC_SUCCESS ) RETURN
+    !   State_Met%xxx => NULL()
+    !ENDIF
 
     !=======================================================================
     ! Destroy the registry of fields for this module
@@ -2184,6 +3027,9 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Nullify the registry object
+    State_Met%Registry => NULL()
 
   END SUBROUTINE Cleanup_State_Met
 !EOC
@@ -2537,7 +3383,7 @@ CONTAINS
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 2
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
        CASE ( 'CNVFRC' )
           IF ( isDesc  ) Desc  = 'Convective fraction'
           IF ( isUnits ) Units = '1'

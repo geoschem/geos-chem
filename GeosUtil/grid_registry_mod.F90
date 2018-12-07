@@ -496,6 +496,7 @@ CONtAINS
 !
 ! !REVISION HISTORY:
 !  23 Aug 2017 - R. Yantosca - Initial version
+!  05 Nov 2018 - R. Yantosca - Now deallocate AND nullify the Registry object
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -517,63 +518,63 @@ CONtAINS
     ! Deallocate fields
     !=======================================================================
     IF ( ALLOCATED( Area ) ) THEN
-       DEALLOCATE( Area ) 
+       DEALLOCATE( Area, STAT=RC )
        CALL GC_CheckVar( 'GRID_AREA', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Time ) ) THEN
-       DEALLOCATE( Time ) 
+       DEALLOCATE( Time, STAT=RC )
        CALL GC_CheckVar( 'GRID_TIME', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lev ) ) THEN
-       DEALLOCATE( Lev ) 
+       DEALLOCATE( Lev, STAT=RC )
        CALL GC_CheckVar( 'GRID_LEV', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyAm ) ) THEN
-       DEALLOCATE( HyAm ) 
+       DEALLOCATE( HyAm, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYAM', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyBm ) ) THEN
-       DEALLOCATE( HyBm ) 
+       DEALLOCATE( HyBm, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYBM', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( ILev ) ) THEN
-       DEALLOCATE( ILev ) 
+       DEALLOCATE( ILev, STAT=RC )
        CALL GC_CheckVar( 'GRID_ILEV', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyAi ) ) THEN
-       DEALLOCATE( HyAi ) 
+       DEALLOCATE( HyAi, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYAI', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( HyBi ) ) THEN
-       DEALLOCATE( HyBi ) 
+       DEALLOCATE( HyBi, STAT=RC )
        CALL GC_CheckVar( 'GRID_HYBI', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lat ) ) THEN
-       DEALLOCATE( Lat ) 
+       DEALLOCATE( Lat, STAT=RC )
        CALL GC_CheckVar( 'GRID_LAT', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( Lon ) ) THEN
-       DEALLOCATE( Lon ) 
+       DEALLOCATE( Lon, STAT=RC )
        CALL GC_CheckVar( 'GRID_LON', 3, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     !=======================================================================
@@ -583,6 +584,7 @@ CONtAINS
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Could not destroy registry object "Registry"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
+       Registry => NULL()
        RETURN
     ENDIF
 

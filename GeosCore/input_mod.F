@@ -802,7 +802,8 @@
 !
       ! Scalars
       INTEGER            :: N, C
-#if defined(  ESMF_ ) 
+      REAL(fp)           :: JulianDateStart,  JulianDateEnd
+#if defined( ESMF_ ) || defined( MODEL_ )
       INTEGER            :: H,       M,       S
       REAL(f4)           :: init_UTC
 #endif
@@ -824,6 +825,10 @@
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = ' -> at Read_Simulation_Menu (in GeosCore/input_mod.F)'
 
+      !-----------------------------------------------------------------
+      ! Simulation start and end time
+      !-----------------------------------------------------------------
+
       ! Start YYYYMMDD, HHMMSS
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'NYMDb, NHMSb', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -842,7 +847,7 @@
          RETURN
       ENDIF
 
-      ! Make sure the starting time NYMDb is valid
+      ! Make sure the starting time NHMSb is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
          ErrMsg = 'Input%Opt%NHMSb = ' // TimeStr        // 
@@ -870,7 +875,7 @@
          RETURN
       ENDIF
 
-      ! Make sure the ending time NYMDe is valid
+      ! Make sure the ending time NHMSe is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
          ErrMsg = 'Input%Opt%NHMSe = ' // TimeStr        // 
@@ -880,6 +885,16 @@
          RETURN
       ENDIF
 
+      ! Compute the length of the simulation, in elapsed seconds
+      JulianDateStart = GET_JD( Input_Opt%NymdB, Input_Opt%NhmsB )
+      JulianDateEnd   = GET_JD( Input_Opt%NymdE, Input_Opt%NhmsE )
+      Input_Opt%SimLengthSec = NINT( ( JulianDateEnd - JulianDateStart )
+     &                         * 86400_f8)
+
+      !-----------------------------------------------------------------
+      ! Data directories
+      !-----------------------------------------------------------------
+
       ! Run directory
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'RUN_DIR', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -887,14 +902,6 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%RUN_DIR
-
-      ! Input restart file
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'IN_RST_FILE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%IN_RST_FILE
 
       ! Root data dir
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'DATA_DIR', RC )
@@ -904,39 +911,17 @@
       ENDIF
       READ( SUBSTRS(1:N), '(a)' ) Input_Opt%DATA_DIR
 
-      ! GEOS-FP subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GEOS_FP_DIR', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%GEOS_FP_DIR
-
-      ! MERRA2 subdir
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'MERRA2_DIR',  RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MERRA2_DIR
-
-      !-----------------------------------------------------------------
       ! Make sure DATA-DIR ends with a "/" character
-      !-----------------------------------------------------------------
       C = LEN_TRIM( Input_Opt%DATA_DIR )
       IF ( Input_Opt%DATA_DIR(C:C) /= '/' ) THEN
          Input_Opt%DATA_DIR = TRIM( Input_Opt%DATA_DIR ) // '/'
       ENDIF
 
-      !-----------------------------------------------------------------
       ! Create CHEM_INPUTS directory
-      !-----------------------------------------------------------------
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
 
-      !-----------------------------------------------------------------
       ! Define resolution-specific directory name RES_DIR
-      !-----------------------------------------------------------------
 #if   defined( GRID4x5 )
       Input_Opt%RES_DIR = 'GEOS_4x5/'
 #elif defined( GRID2x25 ) 
@@ -955,20 +940,8 @@
       Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
 #endif
 
-      !-----------------------------------------------------------------
-      ! Append the resolution specific directory name 
-      ! to each of the met field subdirectories
-      !-----------------------------------------------------------------
-      Input_Opt%GEOS_FP_DIR = TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%GEOS_FP_DIR )
-
-      Input_Opt%MERRA2_DIR =  TRIM( Input_Opt%RES_DIR     ) //
-     &                        TRIM( Input_Opt%MERRA2_DIR  )
-
-      !-----------------------------------------------------------------
       ! Determine if we are running a nested-grid simulation based on
       ! the settings of the C-preprocessor switches.
-      !-----------------------------------------------------------------
 #if defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_NA ) || defined( NESTED_AS )
       Input_Opt%ITS_A_NESTED_GRID = .TRUE.
 #endif
@@ -1010,12 +983,6 @@
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Resolution-specific dir     : ',
      &                    TRIM( Input_Opt%RES_DIR )
-         WRITE( 6, 110 ) 'GEOS-FP    sub-directory    : ', 
-     &                    TRIM( Input_Opt%GEOS_FP_DIR )
-         WRITE( 6, 110 ) 'MERRA-2    sub-directory    : ', 
-     &                    TRIM( Input_Opt%MERRA2_DIR )
-         WRITE( 6, 110 ) 'Input restart file          : ', 
-     &                    TRIM( Input_Opt%IN_RST_FILE )
          WRITE( 6, 120 ) 'Is this a nested-grid sim?  : ', 
      &                    Input_Opt%ITS_A_NESTED_GRID
          WRITE( 6, 130 ) 'Global offsets I0, J0       : ', 
@@ -1197,6 +1164,28 @@
       !=================================================================
       ! Error checks
       !=================================================================
+
+      IF ( Input_Opt%SimLengthSec < Input_Opt%TS_DYN .or.
+     &     Input_Opt%SimLengthSec < Input_Opt%TS_CHEM ) THEN
+         IF ( am_I_Root ) THEN
+
+            WRITE( 6, *   ) '' 
+            WRITE( 6, *   ) 'The length of the simulation is shorter '
+            WRITE( 6, *   ) 'than the transport and/or chemistry '
+            WRITE( 6, *   ) 'timesteps. Check the settings in '
+            WRITE( 6, *   ) 'the "input.geos" file.'
+            WRITE( 6, *   ) '' 
+            WRITE( 6, 100 ) 'Transport/Convection [sec]  : ', 
+     &                       Input_Opt%TS_DYN
+            WRITE( 6, 100 ) 'Chemistry/Emissions  [sec]  : ', 
+     &                       Input_Opt%TS_CHEM
+            WRITE( 6, 100 ) 'Simulation duration  [sec]  : ',
+     &                       Input_Opt%SimLengthSec
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+
+         ENDIF
+      ENDIF
 
 #if   defined( MERRA2 ) && defined( GRID05x0625 )
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
@@ -2136,9 +2125,6 @@
       ENDIF
       READ( SUBSTRS(1:N), '(i4)') Input_Opt%CFCYEAR
 
-      ! Do we apply an offset?
-      Input_Opt%LFUTURECFC = ( Input_Opt%CFCYEAR .gt. 1950 )
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 4', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2247,7 +2233,6 @@
       USE CMN_O3_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
@@ -2285,13 +2270,14 @@
       RC = GC_SUCCESS
 
       ! Location for error messages
-      LOC = 'READ_CO_SIM_MENU ("input_mod.f")'
+      LOC = ' -> at READ_CO_SIM_MENU (in GeosCore/input_mod.f)'
 
       ! Error check
       IF ( CT1 /= 2 ) THEN 
          MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &         'must be read in first!'
-         CALL ERROR_STOP( MSG, LOC )
+         CALL GC_Error( Msg, RC, Loc )
+         RETURN
       ENDIF
 
       ! Use P(CO) from CH4 from full chemistry simulation?
@@ -3315,36 +3301,6 @@
          RETURN
       ENDIF
 
-      !=================================================================
-      ! Error checks
-      !=================================================================
-
-      IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
-         IF ( Input_Opt%LNLPBL .and. am_I_Root ) THEN
-
-            WRITE( 6,* ) '' 
-            WRITE( 6,* ) 'It has been noted in GEOS-Chem v11-01 and'
-            WRITE( 6,* ) ' later that VDIFF (the non-local mixing'
-            WRITE( 6,* ) ' option) does not strictly conserve mass.'
-            WRITE( 6,* ) ' This will be more of a problem for long-'
-            WRITE( 6,* ) ' lived species like CH4 and CO2. Therefore,'
-            WRITE( 6,* ) ' if you are using the CH4 or CO2 specialty'
-            WRITE( 6,* ) ' simulations, we recommend to use the full'
-            WRITE( 6,* ) ' TURBDAY mixing by setting the non-local PBL'
-            WRITE( 6,* ) ' switch to F.'
-            WRITE( 6,* ) ''
-            WRITE( 6,* ) 'You may remove this trap at your own peril,'
-            WRITE( 6,* ) ' by commenting out the call to GC_ERROR in'
-            WRITE( 6,* ) ' GeosCore/input_mod.F. '
-            WRITE( 6,* ) ''
-            WRITE( 6,* ) 'See this GEOS-Chem wiki page for details:'
-            WRITE( 6,* ) ' wiki.geos-chem.org/Boundary_layer_mixing'
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-
-         ENDIF
-      ENDIF
-
       ! Return success
       RC = GC_SUCCESS
 
@@ -3869,14 +3825,14 @@
       INTEGER            :: ND01x, ND02x, ND03x, ND04x, ND05x, ND06x
       INTEGER            :: ND07x, ND08x, ND09x, ND10x, ND11x, ND12x
       INTEGER            :: ND13x, ND14x, ND15x, ND16x, ND17x, ND18x
-      INTEGER            :: ND19x, ND20x, ND21x, ND22x, ND23x, ND24x
+      INTEGER            :: ND19x, ND21x, ND22x, ND24x
       INTEGER            :: ND25x, ND26x, ND27x, ND28x, ND29x, ND30x
       INTEGER            :: ND31x, ND32x, ND33x, ND34x, ND35x, ND36x
-      INTEGER            :: ND37x, ND38x, ND39x, ND40x, ND41x, ND42x
-      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x, ND48x
-      INTEGER            :: ND49x, ND50x, ND51x, ND52x, ND53x, ND54x
+      INTEGER            :: ND37x, ND38x, ND39x, ND41x, ND42x
+      INTEGER            :: ND43x, ND44x, ND45x, ND46x, ND47x
+      INTEGER            :: ND52x, ND53x, ND54x
       INTEGER            :: ND55x, ND56x, ND57x, ND58x, ND59x, ND60x
-      INTEGER            :: ND61x, ND62x, ND63x, ND64x, ND65x, ND66x
+      INTEGER            :: ND61x, ND62x, ND64x, ND66x
       INTEGER            :: ND67x, ND68x, ND69x, ND70x, ND71x, ND72x
       INTEGER            :: ND73x, HR1_JVx, HR2_JVx, HR1_OHx, HR2_OHx
       INTEGER            :: HR1_OTHx, HR2_OTHx
@@ -4668,10 +4624,6 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1), * ) ND58x
-      IF ( .not. Input_Opt%LEMIS ) ND58x = 0
-#if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 58, ND58x, SUBSTRS(2:N), N-1, PD58 )
-#endif
 
       !--------------------------
       ! ND59: TOMAS aerosol emiss
@@ -4922,7 +4874,6 @@
       ND55                         = ND55x
       ND56                         = ND56x
       ND57                         = ND57x
-      ND58                         = ND58x
       ND59                         = ND59x
       ND60                         = ND60x
       ND61                         = ND61x
@@ -4986,7 +4937,6 @@
       Input_Opt%ND55               = ND55x
       Input_Opt%ND56               = ND56x
       Input_Opt%ND57               = ND57x
-      Input_Opt%ND58               = ND58x
       Input_Opt%ND59               = ND59x
       Input_Opt%ND60               = ND60x
       Input_Opt%ND61               = ND61x
@@ -7927,52 +7877,6 @@
             RETURN
          ENDIF
       ENDIF
-
-#if defined( GEOS_FP )
-
-      ! Check GEOS-FP met field directory (starting date)
-      DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Check GEOS-FP met field directory (ending date)
-      DIR = Input_Opt%GEOS_FP_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-#elif defined( MERRA2 )
-
-      ! Check MERRA2 met field directory (starting date)
-      DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDb, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Check MERRA2 met field directory (ending date)
-      DIR = Input_Opt%MERRA2_DIR
-      CALL EXPAND_DATE( DIR, Input_Opt%NYMDe, 000000 )
-      DIR = TRIM( Input_Opt%DATA_DIR ) // TRIM( DIR )
-      CALL CHECK_DIRECTORY( Input_Opt, DIR, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-#endif
 
       END SUBROUTINE VALIDATE_DIRECTORIES
 !EOC

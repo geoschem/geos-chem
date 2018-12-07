@@ -451,6 +451,7 @@ CONTAINS
           CALL GET_OTD_LIS_SCALE( am_I_Root, HcoState, Inst%OTD_LIS_SCALE, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
        ENDIF
+
     ENDIF
 
     ! Eventually get OTD-LIS local redistribution factors from HEMCO.
@@ -1164,28 +1165,33 @@ CONTAINS
     IF ( Inst%DoDiagn ) THEN
        ! Total flash rates
        Arr2D   => DIAGN(:,:,1)
-       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_TOTAL_FLASHRATE', &
+        CALL Diagn_Update( am_I_Root, HcoState,               &
+                          cName='LIGHTNING_TOTAL_FLASHRATE',  &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
+
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
        ! Intracloud flash rates 
        Arr2D     => DIAGN(:,:,2)
-       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
+       CALL Diagn_Update( am_I_Root, HcoState,                    &
+                          cName='LIGHTNING_INTRACLOUD_FLASHRATE', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
    
        ! Cloud to ground flash rates
        Arr2D     => DIAGN(:,:,3)
-       CALL Diagn_Update( am_I_Root, HcoState, cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
+       CALL Diagn_Update( am_I_Root, HcoState,                     &
+                          cName='LIGHTNING_CLOUDGROUND_FLASHRATE', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 
 
        ! Cloud top height
        Arr2D     => TOPDIAGN(:,:)
-       CALL Diagn_Update( am_I_Root,   HcoState, cName='LIGHTNING_CLOUD_TOP', &
+       CALL Diagn_Update( am_I_Root,   HcoState,       &
+                          cName='LIGHTNING_CLOUD_TOP', &
                           ExtNr=Inst%ExtNr, Array2D=Arr2D, RC=RC         ) 
        IF ( RC /= HCO_SUCCESS ) RETURN 
        Arr2D => NULL() 

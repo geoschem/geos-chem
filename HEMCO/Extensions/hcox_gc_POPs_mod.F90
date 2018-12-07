@@ -249,7 +249,7 @@ CONTAINS
     !=======================================================================
 
     ! Return if extension not turned on
-    IF ( .NOT. ExtState%GC_POPs ) RETURN
+    IF ( ExtState%GC_POPs < 0 ) RETURN
 
     ! Enter
     CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_GC_POPs_Run (hcox_gc_POPs_mod.F90)', RC )
@@ -522,73 +522,73 @@ CONTAINS
     ! Manual diagnostics
     !----------------------
 
-    DiagnName = 'AD53_POPG_SOIL'
+    DiagnName = 'GCPOPS_POPG_SOIL'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=EMIS_SOIL, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_POPG_LAKE'
+    DiagnName = 'GCPOPS_POPG_LAKE'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=EMIS_LAKE, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_POPG_LEAF'
+    DiagnName = 'GCPOPS_POPG_LEAF'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=EMIS_LEAF, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_SOIL2AIR'
+    DiagnName = 'GCPOPS_SOIL2AIR'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_SOIL2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_AIR2SOIL'
+    DiagnName = 'GCPOPS_AIR2SOIL'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_AIR2SOIL, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_LAKE2AIR'
+    DiagnName = 'GCPOPS_LAKE2AIR'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_LAKE2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_AIR2LAKE'
+    DiagnName = 'GCPOPS_AIR2LAKE'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_AIR2LAKE, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_LEAF2AIR'
+    DiagnName = 'GCPOPS_LEAF2AIR'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_LEAF2AIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_AIR2LEAF'
+    DiagnName = 'GCPOPS_AIR2LEAF'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FLUX_AIR2LEAF, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_SOILAIR_FUG'
+    DiagnName = 'GCPOPS_SOILAIR_FUG'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FUG_SOILAIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_LAKEAIR_FUG'
+    DiagnName = 'GCPOPS_LAKEAIR_FUG'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FUG_LAKEAIR, RC=RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    DiagnName = 'AD53_LEAFAIR_FUG'
+    DiagnName = 'GCPOPS_LEAFAIR_FUG'
     CALL Diagn_Update( am_I_Root, HcoState, ExtNr=ExtNr, &
                        cName=TRIM(DiagnName), &
                        Array2D=FUG_LEAFAIR, RC=RC)
@@ -900,7 +900,12 @@ CONTAINS
                ! Store total mass emitted from soil [kg] for ND53 diagnostic.
                ! (We don't care about the mass in the other direction right
                ! now)
-               EMIS_SOIL(I,J)     = EPOP_SOIL(I,J) * AREA_M2 * DTSRCE
+               !-------------------------------------------------------------
+               ! Prior to 10/16/18:
+               ! Now revert diagnostic units to kg/m2/s (bmy, 10/16/18)
+               !EMIS_SOIL(I,J)     = EPOP_SOIL(I,J) * AREA_M2 * DTSRCE
+               !-------------------------------------------------------------
+               EMIS_SOIL(I,J)     = EPOP_SOIL(I,J) 
 
                ! Store positive flux
                FLUX_SOIL2AIR(I,J) = FLUX
@@ -1254,10 +1259,15 @@ CONTAINS
                   ! Store total mass emitted from soil [kg] in ND53 diagnostic.
                   ! (We don't care about the mass in the other direction right
                   ! now)
-                  EMIS_LAKE(I,J)     = EPOP_LAKE(I,J) * AREA_M2 * DTSRCE
+                  !-----------------------------------------------------------
+                  ! Prior to 10/16/18:
+                  ! Now diagnostic units to kg/m2/s (bmy, 10/16/18)
+                  !EMIS_LAKE(I,J)     = EPOP_LAKE(I,J) * AREA_M2 * DTSRCE
+                  !-----------------------------------------------------------
+                  EMIS_LAKE(I,J)     = EPOP_LAKE(I,J)
 
                   ! Store positive flux
-                  FLUX_LAKE2AIR(I,J) = + FLUX
+                  FLUX_LAKE2AIR(I,J) = FLUX
 
                   ! Make sure negative flux diagnostic has nothing added to it
                   FLUX_AIR2LAKE(I,J) = 0e+0_hp
@@ -1606,7 +1616,7 @@ CONTAINS
 
                ! Change to units of ng/m2/d for storage
                FLUX = FLUX * 24e+0_hp * MW * 1e+12_hp 
-
+               
                ! Convert to an emission rate in kg/m2/s for returning to
                ! HcoX_GC_POPs_Run
                ! Only want to add rates that are positive
@@ -1622,7 +1632,12 @@ CONTAINS
                   ! Store total mass emitted from soil [kg] in ND53 diagnostic.
                   ! (We don't care about the mass in the other direction right
                   ! now)
-                  EMIS_LEAF(I,J)     = EPOP_VEG(I,J) * AREA_M2 * DTSRCE
+                  !----------------------------------------------------------
+                  ! Prior to 10/16/18:
+                  ! Now revert diagnostic units to kg/m2/s (bmy, 10/16/18)
+                  !EMIS_LEAF(I,J)     = EPOP_VEG(I,J) * AREA_M2 * DTSRCE
+                  !----------------------------------------------------------
+                  EMIS_LEAF(I,J)     = EPOP_VEG(I,J)
  
                   ! Store positive flux
                   FLUX_LEAF2AIR(I,J) = FLUX
