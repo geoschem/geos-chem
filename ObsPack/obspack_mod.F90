@@ -89,6 +89,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE Error_Mod,      ONLY : Debug_Msg
     USE File_Mod,       ONLY : File_Exists
     USE Input_Opt_Mod,  ONLY : OptInput 
     USE State_Diag_Mod, ONLY : DgnState
@@ -455,7 +456,7 @@ CONTAINS
     !----------------------------
     ! Read ID string
     !----------------------------
-    st2d = (/ 1, 1      /)
+    st2d = (/ 1,   1    /)
     ct2d = (/ 100, nObs /)
 
     varName = 'ObsPack_id'
@@ -465,8 +466,8 @@ CONTAINS
     ! Read time components
     ! (Y, M, D, hr, min, sec)
     !----------------------------
-    st2d = (/ 1, 1 /)
-    ct2d = (/ 6, nobs /)
+    st2d = (/ 1, 1    /)
+    ct2d = (/ 6, nObs /)
 
     varName = 'time_components'
     CALL NcRd( Central_Time, fId, TRIM(varName), st2d, ct2d )
@@ -548,7 +549,7 @@ CONTAINS
                 State_Diag%ObsPack_Ival_center(N) + 1800.0_f8
 
           !------------------
-          ! 1-hour window
+          ! 90-minute window
           !------------------
           CASE( 3 )
              State_Diag%ObsPack_Ival_Start(N) =                              &
@@ -1075,6 +1076,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod,
+    USE Error_Mod,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Met_Mod,  ONLY : MetState
@@ -1117,7 +1119,7 @@ CONTAINS
     LOGICAL             :: prtDebug
     INTEGER             :: I,  J,  L,  T,  N
     INTEGER             :: Yr, Mo, Da, Hr, Mn, Sc
-    REAL(f8)            :: Elapsed, LastFileWrite, this_taue, this_taus
+    REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
     CHARACTER(LEN=255)  :: PriorUnit, ErrMsg, ThisLoc
@@ -1163,26 +1165,22 @@ CONTAINS
     CALL Ymd_Extract( hhmmss,   Hr, Mn, Sc )
  
     ! Compute elapsed seconds since 1970
-    Elapsed = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
-    This_taue = elapsed
+    TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
+    TsStart = TsEnd - Input_Opt%TS_DYN
 
-    ! Don't use TAU values
-    THIS_TAUS = THIS_TAUE !!( GET_TS_DIAG() / 60d0 )
-  
-    !=======================================================================
-
+    ! Loop over observations
     DO N = 1, State_Diag%ObsPack_nObs
 
        IF ( State_Diag%ObsPack_Strategy(N) == 0 ) CYCLE
 
-       IF ( State_Diag%ObsPack_Ival_Start(N) <= THIS_TAUS .and.          &
-            State_Diag%ObsPack_Ival_End(N)   >= THIS_TAUE ) THEN
+       IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart .and.                &
+            State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) THEN
 
            WRITE (6,'("   ")')
            FLUSH(6)
            WRITE (6,'("   ")')
            FLUSH(6)
-           WRITE (6,'("sampling obs ",i10,", obspack_id: ",a)') &
+           WRITE (6,'("sampling obs ",i10,", obspack_id: ",a)')              &
                 N, trim(State_Diag%ObsPack_id(N))
            FLUSH(6)
 

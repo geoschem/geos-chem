@@ -99,6 +99,7 @@
 #endif
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
+      USE OBSPACK_MOD           ! For ObsPack diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
@@ -463,6 +464,7 @@
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
+      CALL GEOS_Timer_Add( "=> ObsPack diagnostics",               RC )
 #if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
@@ -492,6 +494,7 @@
          ErrMsg = 'Error encountered in "Read_Input_File"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
+
 
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
@@ -1015,6 +1018,11 @@
          ! and convection are executed.  Call a routine to do this.
          ! (bmy, 10/25/18)
          !--------------------------------------------------------------
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",           RC )
+         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+#endif
+
          IF ( ITS_A_MERCURY_SIM ) THEN
             CALL Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1022,6 +1030,12 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",           RC )
+         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+#endif
+
 #endif
 
          !==============================================================
@@ -1086,6 +1100,31 @@
          CALL GEOS_Timer_End( "HEMCO",                RC )
          CALL GEOS_Timer_End( "Output",               RC )
 #endif
+
+         !==============================================================
+         !      ***** O B S P A C K   D I A G N O S T I C S *****
+         !==============================================================
+         IF ( Input_Opt%Do_ObsPack .and. ( ELAPSED_TODAY == 0 ) ) THEN
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "All diagnostics",        RC )
+            CALL GEOS_Timer_Start( "=> ObsPack diagnostics",  RC )
+#endif
+            ! Initialize Obspack for the new day
+            CALL ObsPack_Init( am_I_Root, NYMD,       NHMS, 
+     &                         Input_Opt, State_Diag, RC    )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "ObsPack_Init"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "All diagnostics",         RC )
+            CALL GEOS_Timer_End( "=> ObsPack diagnostics",  RC )
+#endif
+         ENDIF
 
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
@@ -2039,6 +2078,28 @@
 
 #endif
 
+         !--------------------------------------------------------------
+         !      ***** O B S P A C K   D I A G N O S T I C S *****
+         !--------------------------------------------------------------
+         IF ( Input_Opt%Do_ObsPack) THEN
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "All diagnostics",        RC ) 
+            CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
+#endif
+
+            ! Sample 
+            CALL ObsPack_Sample( am_I_Root,  NYMD,      NHMS, 
+     &                           Input_Opt,  State_Met, State_Chm, 
+     &                           State_Diag, RC                    )
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "All diagnostics",        RC ) 
+            CALL GEOS_Timer_Emd( "=> ObsPack diagnostics", RC )
+#endif
+
+         ENDIF
+
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
@@ -2350,6 +2411,10 @@
 #endif
 
 #endif
+
+         ! 
+         !==============================================================
+
 
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
