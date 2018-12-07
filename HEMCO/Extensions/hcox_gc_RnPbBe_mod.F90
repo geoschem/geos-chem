@@ -55,6 +55,8 @@ MODULE HCOX_GC_RnPbBe_Mod
 !  (4 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the 
 !        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
 !        Springer-Verlag, New York, 1967.
+!  (5 ) Koch and Rind, Beryllium 10/beryllium 7 as a tracer of stratospheric
+!        transport, JGR, 103, D4, 3907-3917, 1998.
 !
 ! !REVISION HISTORY:
 !  07 Jul 2014 - R. Yantosca - Initial version
@@ -66,6 +68,7 @@ MODULE HCOX_GC_RnPbBe_Mod
 !  05 Nov 2014 - C. Keller   - Now allow Rn or Pb to be not specified.
 !  07 Jan 2016 - E. Lundgren - Update Avogadro's # to NIST 2014 value
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP
+!  07 Dec 2018 - M. Sulprizio- Add Be10, Be7Strat, and Be10Strat emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -73,13 +76,19 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !PRIVATE TYPES:
 !
   ! Emissions indices etc.
-  INTEGER                       :: ExtNr  = -1       ! HEMCO Extension number
-  INTEGER                       :: IDTRn  = -1       ! Tracer index # for Rn
-  INTEGER                       :: IDTBe7 = -1       ! Tracer index # for Be7
+  INTEGER                       :: ExtNr       = -1  ! HEMCO Extension number
+  INTEGER                       :: IDTRn222    = -1  ! Index # for Rn222
+  INTEGER                       :: IDTBe7      = -1  ! Index # for Be7
+  INTEGER                       :: IDTBe7Strat = -1  ! Index # for Be7Strat
+  INTEGER                       :: IDTBe10     = -1  ! Index # for Be10
+  INTEGER                       :: IDTBe10Strat= -1  ! Index # for Be10Strat
 
-  ! For tracking Rn222 and Be7 emissions
-  REAL(hp), ALLOCATABLE, TARGET :: EmissRn (:,:  )
-  REAL(hp), ALLOCATABLE, TARGET :: EmissBe7(:,:,:)
+  ! For tracking Rn222, Be7, and Be10 emissions
+  REAL(hp), ALLOCATABLE, TARGET :: EmissRn222    (:,:  )
+  REAL(hp), ALLOCATABLE, TARGET :: EmissBe7      (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EmissBe7Strat (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EmissBe10     (:,:,:)
+  REAL(hp), ALLOCATABLE, TARGET :: EmissBe10Strat(:,:,:)
 
   ! For Lal & Peters 7Be emissions input data
   REAL(hp), ALLOCATABLE         :: LATSOU  (:    )   ! Array for latitudes
@@ -89,8 +98,9 @@ MODULE HCOX_GC_RnPbBe_Mod
 ! !DEFINED PARAMETERS:
 !
   ! To convert kg to atoms
-  REAL*8,  PARAMETER            :: XNUMOL_Rn = ( 6.022140857d23 / 222.0d-3 )    
-  REAL*8,  PARAMETER            :: XNUMOL_Be = ( 6.022140857d23 /   7.0d-3 )
+  REAL*8,  PARAMETER            :: XNUMOL_Rn   = ( 6.022140857d23 / 222.0d-3 )
+  REAL*8,  PARAMETER            :: XNUMOL_Be7  = ( 6.022140857d23 /   7.0d-3 )
+  REAL*8,  PARAMETER            :: XNUMOL_Be10 = ( 6.022140857d23 /  10.0d-3 )
 
 CONTAINS
 !EOC
@@ -101,8 +111,8 @@ CONTAINS
 !
 ! !IROUTINE: HCOX_Gc_RnPbBe_run 
 !
-! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Run computes emissions of 222Rn
-!  and 7Be for the GEOS-Chem Rn-Pb-Be specialty simulation.
+! !DESCRIPTION: Subroutine HcoX\_Gc\_RnPbBe\_Run computes emissions of 222Rn,
+!  7Be, and 10Be for the GEOS-Chem Rn-Pb-Be specialty simulation.
 !\\
 !\\
 ! !INTERFACE:
@@ -143,9 +153,9 @@ CONTAINS
     ! Scalars
     INTEGER           :: I,        J,          L,          N
     INTEGER           :: HcoID
-    REAL*8            :: A_CM2,    ADD_Be,     ADD_Rn,     Rn_LAND
-    REAL*8            :: Rn_WATER, DTSRCE
-    REAL*8            :: Rn_TMP,     LAT,        F_LAND     
+    REAL*8            :: A_CM2,    ADD_Rn,     Add_Be7,    Add_Be10
+    REAL*8            :: Rn_LAND,  Rn_WATER,   DTSRCE
+    REAL*8            :: Rn_TMP,   LAT,        F_LAND     
     REAL*8            :: F_WATER,  F_BELOW_70, F_BELOW_60, F_ABOVE_60
     REAL*8            :: DENOM
     REAL(hp)          :: LAT_TMP,  P_TMP,      Be_TMP
@@ -194,7 +204,7 @@ CONTAINS
     !  global atmospheric transport models using Rn-222 and other 
     !  short-lived tracers, JGR, 1997 (102):5953-5970
     !=======================================================================
-    IF ( IDTRn > 0 ) THEN
+    IF ( IDTRn222 > 0 ) THEN
 
 !$OMP PARALLEL DO                                            &
 !$OMP DEFAULT( SHARED )                                       &
@@ -310,7 +320,7 @@ CONTAINS
           ENDIF
    
           ! Save 222Rn emissions into an array [kg/m2/s]
-          EmissRn(I,J) = ADD_Rn
+          EmissRn222(I,J) = ADD_Rn
        ENDDO
        ENDDO
 !$OMP END PARALLEL DO
@@ -320,28 +330,31 @@ CONTAINS
        !------------------------------------------------------------------------
    
        ! Add emissions
-       Arr2D => EmissRn(:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, IDTRn, RC, ExtNr=ExtNr )
+       Arr2D => EmissRn222(:,:)
+       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr2D, IDTRn222, RC, ExtNr=ExtNr )
        Arr2D => NULL()
        IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisRn', RC )
+          CALL HCO_ERROR( HcoState%Config%Err, &
+                          'HCO_EmisAdd error: EmissRn222', RC )
           RETURN 
        ENDIF
    
-    ENDIF ! IDTRn > 0
+    ENDIF ! IDTRn222 > 0
 
     !=======================================================================
-    ! Compute 7Be emissions [kg/m2/s]    
+    ! Compute 7Be and 10Be emissions [kg/m2/s]    
     !
-    ! Original units of 7Be emissions are [stars/g air/sec],
+    ! Original units of 7Be and 10Be emissions are [stars/g air/sec],
     ! where "stars" = # of nuclear disintegrations of cosmic rays
     !
-    ! Now interpolate from 33 std levels onto GEOS-CHEM levels 
+    ! Now interpolate from 33 std levels onto GEOS-CHEM levels
+    !
+    ! 7Be and 10Be have identical source distributions (Koch and Rind, 1998)
     !=======================================================================
-    IF ( IDTBe7 > 0 ) THEN
-!$OMP PARALLEL DO                                        &
-!$OMP DEFAULT( SHARED )                                  &
-!$OMP PRIVATE( I, J, L, LAT_TMP, P_TMP, Be_TMP, ADD_Be ) &
+    IF ( IDTBe7 > 0 .or. IDTBe10 > 0 ) THEN
+!$OMP PARALLEL DO                                                   &
+!$OMP DEFAULT( SHARED )                                             &
+!$OMP PRIVATE( I, J, L, LAT_TMP, P_TMP, Be_TMP, ADD_Be7, ADD_Be10 ) &
 !$OMP SCHEDULE( DYNAMIC )
        DO L = 1, HcoState%Nz
        DO J = 1, HcoState%Ny
@@ -360,34 +373,83 @@ CONTAINS
           CALL SLQ( LATSOU, PRESOU, BESOU, 10, 33, LAT_TMP, P_TMP, Be_TMP )
    
           ! Be_TMP = [stars/g air/s] * [0.045 atom/star] * 
-          !          [kg air] * [1e3 g/kg] = 7Be emissions [atoms/s]
+          !          [kg air] * [1e3 g/kg] = 7Be/10Be emissions [atoms/s]
           Be_TMP  = Be_TMP * 0.045e+0_hp * ExtState%AIR%Arr%Val(I,J,L) * 1.e+3_hp 
-                     
-          ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be emissions [kg/m2/s]
-          ADD_Be  = ( Be_TMP / XNUMOL_Be ) / HcoState%Grid%AREA_M2%Val(I,J)
+          
+          ! ADD_Be = [atoms/s] / [atom/kg] / [m2] = 7Be/10Be emissions [kg/m2/s]
+          ADD_Be7  = ( Be_TMP / XNUMOL_Be7  ) / HcoState%Grid%AREA_M2%Val(I,J)
+          ADD_Be10 = ( Be_TMP / XNUMOL_Be10 ) / HcoState%Grid%AREA_M2%Val(I,J)
    
           ! Save emissions into an array for use below
-          EmissBe7(I,J,L) = ADD_Be
-   
+          EmissBe7 (I,J,L) = ADD_Be7
+          EmissBe10(I,J,L) = ADD_Be10
+          IF ( L > ExtState%TropLev%Arr%Val(I,J) ) THEN
+             EmissBe7Strat (I,J,L) = Add_Be7
+             EmissBe10Strat(I,J,L) = Add_Be10
+          ENDIF
+          
        ENDDO
        ENDDO
        ENDDO
 !$OMP END PARALLEL DO
    
        !------------------------------------------------------------------------
-       ! Add 7Be emissions to HEMCO data structure & diagnostics
+       ! Add Be7 and Be10 emissions to HEMCO data structure & diagnostics
        !------------------------------------------------------------------------
    
        ! Add emissions
-       Arr3D => EmissBe7(:,:,:)
-       CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe7, RC, ExtNr=ExtNr )
-       Arr3D => NULL()
-       IF ( RC /= HCO_SUCCESS ) THEN
-          CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: EmisBe7', RC )
-          RETURN 
+       IF ( IDTBe7 > 0 ) THEN
+          Arr3D => EmissBe7(:,:,:)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe7, RC, &
+                            ExtNr=ExtNr )
+          Arr3D => NULL()
+          IF ( RC /= HCO_SUCCESS ) THEN
+             CALL HCO_ERROR( HcoState%Config%Err, &
+                             'HCO_EmisAdd error: EmisBe7', RC )
+             RETURN 
+          ENDIF
        ENDIF
-   
-    ENDIF !IDTBe7 > 0
+
+       ! Add emissions
+       IF ( IDTBe7Strat > 0 ) THEN
+          Arr3D => EmissBe7Strat(:,:,:)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe7Strat, RC, &
+                            ExtNr=ExtNr )
+          Arr3D => NULL()
+          IF ( RC /= HCO_SUCCESS ) THEN
+             CALL HCO_ERROR( HcoState%Config%Err, &
+                             'HCO_EmisAdd error: EmisBe7Strat', RC )
+             RETURN 
+          ENDIF
+       ENDIF
+       
+       ! Add emissions
+       IF ( IDTBe10 > 0 ) THEN
+          Arr3D => EmissBe10(:,:,:)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe10, RC, &
+                            ExtNr=ExtNr )
+          Arr3D => NULL()
+          IF ( RC /= HCO_SUCCESS ) THEN
+             CALL HCO_ERROR( HcoState%Config%Err, &
+                             'HCO_EmisAdd error: EmisBe10', RC )
+             RETURN 
+          ENDIF
+       ENDIF
+
+       ! Add emissions
+       IF ( IDTBe10Strat > 0 ) THEN
+          Arr3D => EmissBe10Strat(:,:,:)
+          CALL HCO_EmisAdd( am_I_Root, HcoState, Arr3D, IDTBe10Strat, RC, &
+                            ExtNr=ExtNr )
+          Arr3D => NULL()
+          IF ( RC /= HCO_SUCCESS ) THEN
+             CALL HCO_ERROR( HcoState%Config%Err, &
+                             'HCO_EmisAdd error: EmisBe10Strat', RC )
+             RETURN 
+          ENDIF
+       ENDIF
+
+    ENDIF !IDTBe7 > 0 or IDTBe10 > 0
 
     !=======================================================================
     ! Cleanup & quit
@@ -480,33 +542,49 @@ CONTAINS
     DO N = 1, nSpc
        SELECT CASE( TRIM( SpcNames(N) ) )
           CASE( 'Rn', 'Rn222', '222Rn' )
-             IDTRn   = HcoIDs(N)
+             IDTRn222     = HcoIDs(N)
           CASE( 'Be', 'Be7', '7Be' )
-             IDTBe7  = HcoIDs(N)
+             IDTBe7       = HcoIDs(N)
+          CASE( 'Be7Strat', '7BeStrat' )
+             IDTBe7Strat  = HcoIDs(N)
+          CASE( 'Be10', '10Be' )
+             IDTBe10      = HcoIDs(N)
+          CASE( 'Be10Strat', '10BeStrat' )
+             IDTBe10Strat = HcoIDs(N)
           CASE DEFAULT
              ! Do nothing
        END SELECT
     ENDDO
 
     ! WARNING: Rn tracer is not found!
-    IF ( IDTRn <= 0 .AND. am_I_Root ) THEN
-       CALL HCO_WARNING(HcoState%Config%Err, 'Cannot find 222Rn tracer in list of species!', RC )
+    IF ( IDTRn222 <= 0 .AND. am_I_Root ) THEN
+       CALL HCO_WARNING( HcoState%Config%Err, &
+                         'Cannot find Rn222 tracer in list of species!', RC )
     ENDIF
     
     ! WARNING: Be7 tracer is not found
     IF ( IDTBe7 <= 0 .AND. am_I_Root ) THEN
-       CALL HCO_WARNING(HcoState%Config%Err, 'Cannot find 7Be tracer in list of species!', RC )
+       CALL HCO_WARNING( HcoState%Config%Err, &
+                         'Cannot find Be7 tracer in list of species!', RC )
+    ENDIF
+
+    ! WARNING: Be10 tracer is not found
+    IF ( IDTBe10 <= 0 .AND. am_I_Root ) THEN
+       CALL HCO_WARNING( HcoState%Config%Err, &
+                        'Cannot find Be10 tracer in list of species!', RC )
     ENDIF
 
     ! ERROR: No tracer defined
-    IF ( IDTRn <= 0 .AND. IDTBe7 <= 0 ) THEN
-       CALL HCO_ERROR( HcoState%Config%Err, 'Cannot use RnPbBe extension: no valid species!', RC )
+    IF ( IDTRn222 <= 0 .AND. IDTBe7 <= 0 .AND. IDTBe10 <= 0 ) THEN
+       CALL HCO_ERROR( HcoState%Config%Err, &
+                       'Cannot use RnPbBe extension: no valid species!', RC )
     ENDIF
 
     ! Activate met fields required by this extension
     ExtState%FRCLND%DoUse  = .TRUE. 
     ExtState%T2M%DoUse     = .TRUE. 
     ExtState%AIR%DoUse     = .TRUE. 
+    ExtState%TropLev%DoUse = .TRUE.
 
     ! Activate this extension
     ExtState%Gc_RnPbBe     = .TRUE.
@@ -515,10 +593,11 @@ CONTAINS
     ! Initialize data arrays
     !=======================================================================
 
-    IF ( IDTRn > 0 ) THEN
-       ALLOCATE( EmissRn( HcoState%Nx, HcoState%NY ), STAT=RC )
+    IF ( IDTRn222 > 0 ) THEN
+       ALLOCATE( EmissRn222( HcoState%Nx, HcoState%NY ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmissRn', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate EmissRn222', RC )
           RETURN
        ENDIF 
     ENDIF
@@ -526,7 +605,8 @@ CONTAINS
     IF ( IDTBe7 > 0 ) THEN
        ALLOCATE( EmissBe7( HcoState%Nx, HcoState%NY, HcoState%NZ ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate EmissBe7', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate EmissBe7', RC )
           RETURN
        ENDIF 
        IF ( RC /= 0 ) RETURN
@@ -534,26 +614,61 @@ CONTAINS
        ! Array for latitudes (Lal & Peters data)
        ALLOCATE( LATSOU( 10 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate LATSOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate LATSOU', RC )
           RETURN
        ENDIF 
    
        ! Array for pressures (Lal & Peters data)
        ALLOCATE( PRESOU( 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate PRESOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate PRESOU', RC )
           RETURN
        ENDIF 
    
        ! Array for 7Be emissions ( Lal & Peters data)
        ALLOCATE( BESOU( 10, 33 ), STAT=RC )
        IF ( RC /= 0 ) THEN
-          CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot allocate BESOU', RC )
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate BESOU', RC )
           RETURN
        ENDIF 
        
        ! Initialize the 7Be emisisons data arrays
        CALL Init_7Be_Emissions()
+    ENDIF
+
+    IF ( IDTBe7Strat > 0 ) THEN
+       ALLOCATE( EmissBe7Strat( HcoState%Nx, HcoState%NY, HcoState%NZ ), &
+                                STAT=RC )
+       IF ( RC /= 0 ) THEN
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate EmissBe7Strat', RC )
+          RETURN
+       ENDIF 
+       IF ( RC /= 0 ) RETURN
+    ENDIF
+
+    IF ( IDTBe10 > 0 ) THEN
+       ALLOCATE( EmissBe10( HcoState%Nx, HcoState%NY, HcoState%NZ ), STAT=RC )
+       IF ( RC /= 0 ) THEN
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate EmissBe10', RC )
+          RETURN
+       ENDIF 
+       IF ( RC /= 0 ) RETURN
+    ENDIF
+
+    IF ( IDTBe10Strat > 0 ) THEN
+       ALLOCATE( EmissBe10Strat( HcoState%Nx, HcoState%NY, HcoState%NZ ), &
+                                 STAT=RC )
+       IF ( RC /= 0 ) THEN
+          CALL HCO_ERROR ( HcoState%Config%Err, &
+                           'Cannot allocate EmissBe10Strat', RC )
+          RETURN
+       ENDIF 
+       IF ( RC /= 0 ) RETURN
     ENDIF
 
     !=======================================================================
@@ -593,11 +708,14 @@ CONTAINS
     !=======================================================================
     ! HCOX_GC_RNPBBE_FINAL begins here!
     !=======================================================================
-    IF ( ALLOCATED( EmissRn  ) ) DEALLOCATE( EmissRn  ) 
-    IF ( ALLOCATED( EmissBe7 ) ) DEALLOCATE( EmissBe7 )
-    IF ( ALLOCATED( LATSOU   ) ) DEALLOCATE( LATSOU   )
-    IF ( ALLOCATED( PRESOU   ) ) DEALLOCATE( PRESOU   )
-    IF ( ALLOCATED( BESOU    ) ) DEALLOCATE( BESOU    )
+    IF ( ALLOCATED( EmissRn222     ) ) DEALLOCATE( EmissRn222     ) 
+    IF ( ALLOCATED( EmissBe7       ) ) DEALLOCATE( EmissBe7       )
+    IF ( ALLOCATED( EmissBe7Strat  ) ) DEALLOCATE( EmissBe7Strat  )
+    IF ( ALLOCATED( EmissBe10      ) ) DEALLOCATE( EmissBe10      )
+    IF ( ALLOCATED( EmissBe10Strat ) ) DEALLOCATE( EmissBe10Strat )
+    IF ( ALLOCATED( LATSOU         ) ) DEALLOCATE( LATSOU         )
+    IF ( ALLOCATED( PRESOU         ) ) DEALLOCATE( PRESOU         )
+    IF ( ALLOCATED( BESOU          ) ) DEALLOCATE( BESOU          )
 
   END SUBROUTINE HCOX_Gc_RnPbBe_Final
 !EOC

@@ -83,6 +83,7 @@ MODULE HCOX_STATE_MOD
      LOGICAL                 :: DoUse
      LOGICAL                 :: FromList 
   END TYPE ExtDat_3S
+
   !=========================================================================
   ! Ext_State: Derived type declaration for the State object containing 
   ! pointers to all met fields and related quantities used by the HEMCO 
@@ -156,6 +157,7 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: JOH         ! J-Value for O3->OH  [1/s]
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
+     TYPE(ExtDat_2I),  POINTER :: TropLev     ! Tropopause level [1]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -482,6 +484,9 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CNV_FRC, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%TropLev, RC ) 
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     ! Return w/ success
     RC = HCO_SUCCESS
 
@@ -569,6 +574,7 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%CNV_FRC    )
        CALL ExtDat_Cleanup( ExtState%BYNCY      )
        CALL ExtDat_Cleanup( ExtState%LFR        )
+       CALL ExtDat_Cleanup( ExtState%TropLev    )
 
        ExtState%DRYCOEFF   => NULL()
        ExtState%PBL_MAX    => NULL()
