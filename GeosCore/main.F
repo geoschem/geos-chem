@@ -2095,7 +2095,7 @@
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "All diagnostics",        RC ) 
-            CALL GEOS_Timer_Emd( "=> ObsPack diagnostics", RC )
+            CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
 #endif
 
          ENDIF
