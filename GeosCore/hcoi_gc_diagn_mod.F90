@@ -595,7 +595,7 @@ CONTAINS
        !-------------------------------------------
  
        ! HEMCO species ID
-       HcoID = GetHemcoId( 'Rn', HcoState, LOC, RC )
+       HcoID = GetHemcoId( 'Rn222', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Create diagnostic container
@@ -625,6 +625,81 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'AD01_Be7_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s',            &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !-------------------------------------------
+       ! %%%%% Be7 in stratosphere %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'Be7Strat', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_Be7Strat_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s',            &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !-------------------------------------------
+       ! %%%%% Be10 %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'Be10', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_Be10_SOURCE'
+       CALL Diagn_Create( am_I_Root,                     & 
+                          HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = -1,                &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 3,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/s',            &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  ) 
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       !-------------------------------------------
+       ! %%%%% Be10 in stratosphere %%%%%
+       !-------------------------------------------
+
+       ! HEMCO species ID
+       HcoID = GetHemcoId( 'Be10Strat', HcoState, LOC, RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Create diagnostic container
+       DiagnName = 'AD01_Be10Strat_SOURCE'
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &

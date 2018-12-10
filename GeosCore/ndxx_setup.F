@@ -293,7 +293,7 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, LLPAR )
-         ALLOCATE( AD01( IIPAR, JJPAR, LD01 ), STAT=AS )
+         ALLOCATE( AD01( IIPAR, JJPAR, 2, LD01 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
 

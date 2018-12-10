@@ -355,7 +355,11 @@
 
             ! Units: [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
-               AD01(I,J,L) = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
+               AD01(I,J,L,1) = AD01(I,J,L,1) + ( ADD_Pb / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  AD01(I,J,L,2) = AD01(I,J,L,2) + ( ADD_Pb / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 
@@ -396,6 +400,11 @@
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
                AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  AD02(I,J,L,3) = AD02(I,J,L,3) + (Pb_LOST / DTCHEM )
+               ENDIF
+
             ENDIF
 #endif
 
@@ -409,6 +418,10 @@
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  State_Diag%RadDecay(I,J,L,3) = ( Pb_LOST / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 
@@ -453,7 +466,11 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,3) = AD02(I,J,L,3) + ( Be7_LOST / DTCHEM )
+               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be7_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  AD02(I,J,L,5) = AD02(I,J,L,5) + ( Be7_LOST / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 
@@ -466,7 +483,11 @@
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
-               State_Diag%RadDecay(I,J,L,3) = ( Be7_LOST / DTCHEM )
+               State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  State_Diag%RadDecay(I,J,L,5) = ( Be7_LOST / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 
@@ -511,7 +532,12 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be10_LOST / DTCHEM )
+               AD02(I,J,L,6) = AD02(I,J,L,6) + ( Be10_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  AD02(I,J,L,7) = AD02(I,J,L,7) + ( Be10_LOST / DTCHEM )
+               ENDIF
+
             ENDIF
 #endif
 
@@ -524,7 +550,11 @@
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
-               State_Diag%RadDecay(I,J,L,4) = ( Be10_LOST / DTCHEM )
+               State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  State_Diag%RadDecay(I,J,L,7) = ( Be10_LOST / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 

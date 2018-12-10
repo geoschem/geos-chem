@@ -357,8 +357,10 @@
       ! Now define local tracer flags so that we can remove these from 
       ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
       LOGICAL, SAVE            :: FIRST = .TRUE.
-      INTEGER, SAVE            :: id_Rn,       id_Pb
-      INTEGER, SAVE            :: id_Be7
+      INTEGER, SAVE            :: id_Rn222
+      INTEGER, SAVE            :: id_Pb210,    id_Pb210Strat
+      INTEGER, SAVE            :: id_Be7,      id_Be7Strat
+      INTEGER, SAVE            :: id_Be10,     id_Be10Strat
       INTEGER, SAVE            :: id_POPG
       INTEGER, SAVE            :: id_POPPOCPO, id_POPPOCPI
       INTEGER, SAVE            :: id_POPPBCPO, id_POPPBCPI
@@ -427,9 +429,13 @@
       IF ( FIRST ) THEN
 
          ! Initialize
-         id_Rn        = Ind_('Rn'      )
-         id_Pb        = Ind_('Pb'      )
+         id_Rn222     = Ind_('Rn222'   )
+         id_Pb210     = Ind_('Pb210'   )
+         id_Pb210Strat= Ind_('Pb210Strat')
          id_Be7       = Ind_('Be7'     )
+         id_Be7Strat  = Ind_('Be7Strat')
+         id_Be10      = Ind_('Be10'    )
+         id_Be10Strat = Ind_('Be10Strat')
          id_POPG      = Ind_('POPG'    )
          id_POPPOCPO  = Ind_('POPPOCPO')
          id_POPPOCPI  = Ind_('POPPOCPI')
@@ -533,19 +539,14 @@
 !******************************************************************************
 !  ND01: Rn, Pb, Be emissions (Category: "RN--SRCE")
 !
-!   # : Field  : Description                    : Units      : Scale factor
+!   # : Field     : Description                       : Units     : Scale factor
 !  ----------------------------------------------------------------------------
-!  (1)  Rn222  : Emissions of 222Rn             : kg/s       : SCALESRCE
-!  (2)  Pb210  : Emissions of 210Pb             : kg/s       : SCALECHEM
-!  (3)  Be7    : Emissions of 7Be               : kg/s       : SCALESRCE
-!
-!  and  Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
-!
-!   # : Field  : Description                    : Units      : Scale factor
-!  ----------------------------------------------------------------------------
-!  (1)  Rn222  : Loss of 222Rn                  : kg/s       : SCALECHEM
-!  (2)  Pb210  : Loss of 210Pb                  : kg/s       : SCALECHEM
-!  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
+!  (1)  Rn222     : Emissions of 222Rn                : kg/s      : SCALESRCE
+!  (2)  Pb210     : Emissions of 210Pb                : kg/s      : SCALECHEM
+!  (3)  Be7       : Emissions of 7Be                  : kg/s      : SCALESRCE
+!  (4)  Be7Strat  : Emissions of 7Be  in stratosphere : kg/s      : SCALESRCE
+!  (5)  Be10      : Emissions of 10Be                 : kg/s      : SCALESRCE
+!  (6)  Be10Strat : Emissions of 10Be in stratosphere : kg/s      : SCALESRCE
 !******************************************************************************
 !
       IF ( ND01 > 0 ) THEN
@@ -560,9 +561,9 @@
          ! NOTE: This diagnostic only writes to the first level
          ! because the Rn source is only at the surface!!!
          !-----------------------------------------------------------
-         IF ( id_Rn > 0 ) THEN
+         IF ( id_Rn222 > 0 ) THEN
             DiagnName    = 'AD01_Rn_SOURCE'
-            N            = id_Rn
+            N            = id_Rn222
             FACTOR       = 1.0e+0_fp
             CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                      UNIT,     N, 1, -1, .TRUE., FACTOR, RC    )
@@ -572,16 +573,34 @@
          !-----------------------------------------------------------
          ! %%%%% Pb210 %%%%%
          !-----------------------------------------------------------
-         IF ( id_Pb > 0 ) THEN
+         IF ( id_Pb210 > 0 ) THEN
 
             ! Divide by # of chemistry timesteps
             DO L = 1, LD01
-               ARRAY(:,:,L) = AD01(:,:,L) / SCALECHEM
+               ARRAY(:,:,L) = AD01(:,:,1,L) / SCALECHEM
             ENDDO
 
             ! Write to bpch file
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
-     &                  HALFPOLAR, CENTER180, CATEGORY, id_Pb,    
+     &                  HALFPOLAR, CENTER180, CATEGORY, id_Pb210,    
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
+     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
+         ENDIF
+
+         !-----------------------------------------------------------
+         ! %%%%% Pb210Strat %%%%%
+         !-----------------------------------------------------------
+         IF ( id_Pb210Strat > 0 ) THEN
+
+            ! Divide by # of chemistry timesteps
+            DO L = 1, LD01
+               ARRAY(:,:,L) = AD01(:,:,2,L) / SCALECHEM
+            ENDDO
+
+            ! Write to bpch file
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, id_Pb210Strat,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
      &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
@@ -598,16 +617,56 @@
      &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
             IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
          ENDIF    
+
+         !-----------------------------------------------------------
+         ! %%%%% Be7Strat %%%%%
+         !-----------------------------------------------------------
+         IF ( id_Be7Strat > 0 ) THEN 
+            DiagnName    = 'AD01_Be7Strat_SOURCE'
+            N            = id_Be7Strat
+            FACTOR       = 1.0e+0_fp
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
+
+         !-----------------------------------------------------------
+         ! %%%%% Be10 %%%%%
+         !-----------------------------------------------------------
+         IF ( id_Be10 > 0 ) THEN 
+            DiagnName    = 'AD01_Be10_SOURCE'
+            N            = id_Be10
+            FACTOR       = 1.0e+0_fp
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
+
+         !-----------------------------------------------------------
+         ! %%%%% Be10Strat %%%%%
+         !-----------------------------------------------------------
+         IF ( id_Be10Strat > 0 ) THEN 
+            DiagnName    = 'AD01_Be10Strat_SOURCE'
+            N            = id_Be10Strat
+            FACTOR       = 1.0e+0_fp
+            CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
+     &                      UNIT, N, 1, LD01, .TRUE., FACTOR, RC      )
+            IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
+         ENDIF    
       ENDIF
 !
 !******************************************************************************
 !  ND02: Rn, Pb, Be lost to radioactive decay (Category: "RN-DECAY")
 !
-!   # : Field  : Description                    : Units      : Scale factor
+!   # : Field      : Description                       : Units    : Scale factor
 !  ----------------------------------------------------------------------------
-!  (1)  Rn222  : Loss of 222Rn                  : kg/s       : SCALECHEM
-!  (2)  Pb210  : Loss of 210Pb                  : kg/s       : SCALECHEM
-!  (3)  Be7    : Loss of 7Be                    : kg/s       : SCALECHEM
+!  (1)  Rn222      : Loss of 222Rn                     : kg/s     : SCALECHEM
+!  (2)  Pb210      : Loss of 210Pb                     : kg/s     : SCALECHEM
+!  (2)  Pb210Strat : Loss of 210Pb in the stratosphere : kg/s     : SCALECHEM
+!  (3)  Be7        : Loss of 7Be                       : kg/s     : SCALECHEM
+!  (3)  Be7Strat   : Loss of 7Be   in the stratosphere : kg/s     : SCALECHEM
+!  (4)  Be10       : Loss of 10Be                      : kg/s     : SCALECHEM
+!  (4)  Be10Strat  : Loss of 10Be  in the stratosphere : kg/s     : SCALECHEM
 !******************************************************************************
 !
       IF ( ND02 > 0 ) THEN
