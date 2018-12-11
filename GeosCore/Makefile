@@ -644,7 +644,7 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               vdiff_pre_mod.o         wetscav_mod.o
 
 get_met_mod.o               : get_met_mod.F90                                \
-                              hco_interface_mod.F90
+                              hco_interface_mod.o
 
 get_ndep_mod.o              : get_ndep_mod.F                              
 
