@@ -56,8 +56,6 @@ else()
     set(IMPL_GUESS "Classic")
 endif()
 
-message(">>>>>>>>>>>> ${RUNDIR_NAME}")
-
 # Select an implementation
 message(STATUS "GEOS-Chem implementation type:")
 set_dynamic_option(IMPL "${IMPL_GUESS}"
