@@ -35,6 +35,10 @@
       !######################################################
       !##### NOTE: These variables can be blocked out!  #####
       !######################################################
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER ) || defined( MODEL_GEOS )
+      INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
+     &                           (NSTRATAER*3)
+#endif
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       INTEGER, PARAMETER :: PD05=20
       INTEGER, PARAMETER :: PD06=NDSTBIN
@@ -48,10 +52,6 @@
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=3
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER ) || defined( MODEL_GEOS )
-      INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
-     &                           (NSTRATAER*3)
-#endif
       INTEGER, PARAMETER :: PD22=76
       INTEGER, PARAMETER :: PD43=4
       INTEGER, PARAMETER :: PD52=6
@@ -139,6 +139,8 @@
       INTEGER :: ND52, ND54, ND55, ND57, ND59
       INTEGER :: ND60, ND61, ND62, ND64, ND65, ND66, ND67, ND68
       INTEGER :: ND69, ND70, ND71, ND72, ND73, ND74, ND75
+#elif defined( BPCH_DIAG ) || defined( BPCH_TIMESER ) || defined( MODEL_GEOS )
+      INTEGER :: LD21
 #endif
 
       !=================================================================

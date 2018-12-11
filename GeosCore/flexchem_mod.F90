@@ -1496,85 +1496,85 @@ CONTAINS
                State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
             ENDIF
             IF ( Archive_RO2concAfterChem ) THEN
-               IF ( id_A3O2 > 0 ) THEN
+               IF ( id_A3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) +  Spc(I,J,L,id_A3O2)
-               IF ( id_ATO2 > 0 ) THEN
+               IF ( id_ATO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
-               IF ( id_B3O2 > 0 ) THEN
+               IF ( id_B3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
-               IF ( id_BRO2 > 0 ) THEN
+               IF ( id_BRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
-               IF ( id_DHPCARP > 0 ) THEN
+               IF ( id_DHPCARP > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DHPCARP)
-               IF ( id_DIBOO > 0 ) THEN
+               IF ( id_DIBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DIBOO)
-               IF ( id_ETO2 > 0 ) THEN
+               IF ( id_ETO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
-               IF ( id_HC5OO > 0 ) THEN
+               IF ( id_HC5OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HC5OO)
-               IF ( id_HO2 > 0 ) THEN
+               IF ( id_HO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
-               IF ( id_IEPOXOO > 0 ) THEN
+               IF ( id_IEPOXOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXOO)
-               IF ( id_INPN > 0 ) THEN
+               IF ( id_INPN > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INPN)
-               IF ( id_ISNOOA > 0 ) THEN
+               IF ( id_ISNOOA > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOA)
-               IF ( id_ISNOOB > 0 ) THEN
+               IF ( id_ISNOOB > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOB)
-               IF ( id_ISNOHOO > 0 ) THEN
+               IF ( id_ISNOHOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOHOO)
-               IF ( id_LIMO2 > 0 ) THEN
+               IF ( id_LIMO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
-               IF ( id_MAOPO2 > 0 ) THEN
+               IF ( id_MAOPO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MAOPO2)
-               IF ( id_MO2 > 0  ) THEN
+               IF ( id_MO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
-               IF ( id_MRO2 > 0 ) THEN
+               IF ( id_MRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MRO2)
-               IF ( id_PIO2 > 0 ) THEN
+               IF ( id_PIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
-               IF ( id_PO2 > 0  ) THEN
+               IF ( id_PO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
-               IF ( id_PRNI > 0 ) THEN
+               IF ( id_PRNI > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRNI)
-               IF ( id_R4NI > 0 ) THEN
+               IF ( id_R4NI > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4NI)
-               IF ( id_R4O2 > 0 ) THEN
+               IF ( id_R4O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
-               IF ( id_RIO2 > 0 ) THEN
+               IF ( id_RIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_RIO2)
-               IF ( id_TRO2 > 0 ) THEN
+               IF ( id_TRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
-               IF ( id_VRO2 > 0 ) THEN
+               IF ( id_VRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_VRO2)
-               IF ( id_XRO2 > 0 ) THEN
+               IF ( id_XRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
             ENDIF

@@ -283,7 +283,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_TotalBiogenicOA 
 
 #if defined( MODEL_GEOS )
-     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
      REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
      REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
      REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
