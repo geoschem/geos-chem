@@ -8,21 +8,8 @@ include(GCHelpers)
 # Find NetCDF
 find_package(NetCDF REQUIRED COMPONENTS F90)
 
-# Select an implementation
-message(STATUS "GEOS-Chem implementation type:")
-set_dynamic_option(IMPL "Classic"
-    LOG IMPL_LOG
-    SELECT_EXACTLY 1
-    OPTIONS "Classic" "GCHP"
-)
-dump_log(IMPL_LOG)
-
-if("${IMPL}" STREQUAL "GCHP")
-    add_subdirectory(GCHP)
-else()
-    include(GCBuildFlags)
-endif()
-
+# Get build configuration (defines and compiler options)
+include(GCBuildFlags)
 set(CMAKE_Fortran_FLAGS ${FC_OPTIONS})
 
 # Add target helpers
