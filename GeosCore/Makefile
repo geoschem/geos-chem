@@ -643,7 +643,8 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               toms_mod.o              tpcore_bc_mod.o        \
                               vdiff_pre_mod.o         wetscav_mod.o
 
-get_met_mod.o               : get_met_mod.F90
+get_met_mod.o               : get_met_mod.F90                                \
+                              hco_interface_mod.o
 
 get_ndep_mod.o              : get_ndep_mod.F                              
 
@@ -668,7 +669,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               get_ndep_mod.o          drydep_mod.o           \
                               modis_lai_mod.o         fast_jx_mod.o          \
                               hcoi_gc_diagn_mod.o     tomas_mod.o            \
-                              hco_interface_mod.o
+                              hco_interface_mod.o     flexgrid_read_mod.o
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \

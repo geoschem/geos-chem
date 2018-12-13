@@ -1,3 +1,4 @@
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -291,3 +292,4 @@ CONTAINS
   END SUBROUTINE Get_Met_3De
 !EOC
 END MODULE Get_Met_Mod
+#endif

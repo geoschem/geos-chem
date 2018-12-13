@@ -379,7 +379,7 @@
 
       ! DTEMIS is the number of seconds per emission timestep
       ! used here for conversion from HEMCO
-      DTEMIS    = GET_TS_EMIS() * 60.0_fp
+      DTEMIS    = GET_TS_EMIS()
 
       ! Initialize pointers
       AD        => State_Met%AD
@@ -427,10 +427,10 @@
       IF ( FIRST ) THEN
 
          ! Get species IDs
-         IDch4    = Ind_( 'COch4'  )
-         IDnmvoc  = Ind_( 'COnmvoc'  )
+         IDch4    = Ind_( 'COch4'   )
+         IDnmvoc  = Ind_( 'COnmvoc' )
          IDisop   = Ind_( 'COisop'  )
-         IDch3oh  = Ind_( 'COch3oh'  )
+         IDch3oh  = Ind_( 'COch3oh' )
          IDmono   = Ind_( 'COmono'  )
          IDacet   = Ind_( 'COacet'  )
          

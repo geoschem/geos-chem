@@ -81,7 +81,9 @@ lib:
 	@$(MAKE) libHCO
 	@$(MAKE) libHCOX
 	@$(MAKE) libHCOI
+ifeq ($(IS_HPC),0)
 	@$(MAKE) exe
+endif
 
 libHCO:
 	@$(MAKE) -C $(HCO) lib
