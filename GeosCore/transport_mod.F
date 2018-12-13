@@ -541,8 +541,10 @@
 
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                "pre-advection")
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 "do_global_adv: pre-advection", 
+     &                                 RC )
       ENDIF
     
 !$OMP PARALLEL DO
@@ -637,8 +639,10 @@
 
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met,
-     &                                "post-airqnt")
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 "do_global_adv: post-airqnt", 
+     &                                 RC )
          CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
       ENDIF
 
@@ -843,8 +847,10 @@
       !=================================================================
 
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                "pre-advection")
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+     &                            Input_Opt, State_Met, State_Chm, 
+     &                            "do_window_transport: pre-advection", 
+     &                            RC )
       ENDIF
 
 !$OMP PARALLEL DO
@@ -1004,8 +1010,10 @@
 
       !### Debug
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met,
-     &                                "post-airqnt")
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+     &                               Input_Opt, State_Met, State_Chm, 
+     &                               "do_window_transport: post-airqnt", 
+     &                               RC )
          CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
       ENDIF
 
