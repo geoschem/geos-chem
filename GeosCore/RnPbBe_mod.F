@@ -189,9 +189,9 @@
       REAL(fp)            :: ADD_Pb
       REAL(fp)            :: Decay
       REAL(fp)            :: DTCHEM
-      REAL(fp)            :: Pb_LOST
-      REAL(fp)            :: Be7_LOST
-      REAL(fp)            :: Be10_LOST
+      REAL(fp)            :: Pb_LOST,   PbStrat_LOST
+      REAL(fp)            :: Be7_LOST,  Be7Strat_LOST
+      REAL(fp)            :: Be10_LOST, Be10Strat_LOST
 
       ! SAVEd scalars
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -335,10 +335,10 @@
       !=================================================================
       
       ! Make sure Pb210 is a defined species
-      IF ( id_Pb210 > 0 ) THEN
+      IF ( id_Pb210 > 0 .or. id_Pb210Strat > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST )
+!$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST, PbStrat_LOST )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -388,7 +388,11 @@
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST      = Spc(I,J,L,id_Pb210) * ( 1.0_fp - EXP_Pb )
+            Pb_LOST = Spc(I,J,L,id_Pb210) * ( 1.0_fp - EXP_Pb )
+            IF ( id_Pb210Strat > 0 ) THEN
+               PbStrat_LOST = Spc(I,J,L,id_Pb210Strat) *
+     &                        ( 1.0_fp - EXP_Pb)
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -399,12 +403,8 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  AD02(I,J,L,3) = AD02(I,J,L,3) + (Pb_LOST / DTCHEM )
-               ENDIF
-
+               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST      / DTCHEM )
+               AD02(I,J,L,3) = AD02(I,J,L,3) + ( PbStrat_LOST / DTCHEM )
             ENDIF
 #endif
 
@@ -418,10 +418,7 @@
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  State_Diag%RadDecay(I,J,L,3) = ( Pb_LOST / DTCHEM )
-               ENDIF
+               State_Diag%RadDecay(I,J,L,3) = ( PbStrat_LOST /DTCHEM )
             ENDIF
 #endif
 
@@ -429,10 +426,9 @@
             Spc(I,J,L,id_Pb210) = Spc(I,J,L,id_Pb210) - Pb_LOST
 
             ! Update stratospheric 210Pb [kg]
-            IF ( State_Met%InStratosphere(I,J,L) .and.
-     &           id_Pb210Strat > 0 ) THEN
+            IF ( id_Pb210Strat > 0 ) THEN
                Spc(I,J,L,id_Pb210Strat) = Spc(I,J,L,id_Pb210Strat) -
-     &                                    Pb_LOST
+     &                                    PbStrat_LOST
             ENDIF
 
          ENDDO
@@ -446,16 +442,20 @@
       !=================================================================
 
       ! Make sure Be7 is a defined species
-      IF ( id_Be7 > 0 ) THEN 
+      IF ( id_Be7 > 0 .or. id_Be7Strat > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, Be7_LOST )
+!$OMP+PRIVATE( I, J, L, Be7_LOST, Be7Strat_LOST )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
             Be7_LOST = Spc(I,J,L,id_Be7) * ( 1d0 - EXP_Be7 )
+            IF ( id_Be7Strat > 0 ) THEN
+               Be7Strat_LOST = Spc(I,J,L,id_Be7Strat) *
+     &                         ( 1d0 - EXP_Be7 )
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -466,11 +466,8 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be7_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  AD02(I,J,L,5) = AD02(I,J,L,5) + ( Be7_LOST / DTCHEM )
-               ENDIF
+               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be7_LOST      / DTCHEM)
+               AD02(I,J,L,5) = AD02(I,J,L,5) + ( Be7Strat_LOST / DTCHEM)
             ENDIF
 #endif
 
@@ -483,11 +480,8 @@
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
-               State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  State_Diag%RadDecay(I,J,L,5) = ( Be7_LOST / DTCHEM )
-               ENDIF
+               State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST      / DTCHEM )
+               State_Diag%RadDecay(I,J,L,5) = ( Be7Strat_LOST / DTCHEM )
             ENDIF
 #endif
 
@@ -495,10 +489,9 @@
             Spc(I,J,L,id_Be7) = Spc(I,J,L,id_Be7) - Be7_LOST
 
             ! Update stratospheric 7Be [kg]
-            IF ( State_Met%InStratosphere(I,J,L) .and.
-     &           id_Be7Strat > 0 ) THEN
+            IF ( id_Be7Strat > 0 ) THEN
                Spc(I,J,L,id_Be7Strat) = Spc(I,J,L,id_Be7Strat) -
-     &                                  Be7_LOST
+     &                                  Be7Strat_LOST
             ENDIF
 
          ENDDO
@@ -512,16 +505,20 @@
       !=================================================================
 
       ! Make sure Be10 is a defined species
-      IF ( id_Be10 > 0 ) THEN 
+      IF ( id_Be10 > 0 .or. id_Be10Strat > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, Be10_LOST )
+!$OMP+PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Amount of 10Be lost to decay [kg]
             Be10_LOST = Spc(I,J,L,id_Be10) * ( 1d0 - EXP_Be10 )
+            IF ( id_Be10Strat > 0 ) THEN
+               Be10Strat_LOST = Spc(I,J,L,id_Be10Strat) *
+     &                          ( 1d0 - EXP_Be10 )
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -532,12 +529,8 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,6) = AD02(I,J,L,6) + ( Be10_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  AD02(I,J,L,7) = AD02(I,J,L,7) + ( Be10_LOST / DTCHEM )
-               ENDIF
-
+               AD02(I,J,L,6) = AD02(I,J,L,6) + ( Be10_LOST      /DTCHEM)
+               AD02(I,J,L,7) = AD02(I,J,L,7) + ( Be10Strat_LOST /DTCHEM)
             ENDIF
 #endif
 
@@ -550,11 +543,8 @@
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
-               State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST / DTCHEM )
-
-               IF ( State_Met%InStratosphere(I,J,L) ) THEN
-                  State_Diag%RadDecay(I,J,L,7) = ( Be10_LOST / DTCHEM )
-               ENDIF
+               State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST      / DTCHEM)
+               State_Diag%RadDecay(I,J,L,7) = ( Be10Strat_LOST / DTCHEM)
             ENDIF
 #endif
 
@@ -562,10 +552,9 @@
             Spc(I,J,L,id_Be10) = Spc(I,J,L,id_Be10) - Be10_LOST
 
             ! Update stratospheric 10Be [kg]
-            IF ( State_Met%InStratosphere(I,J,L) .and.
-     &           id_Be10Strat > 0 ) THEN
+            IF ( id_Be10Strat > 0 ) THEN
                Spc(I,J,L,id_Be10Strat) = Spc(I,J,L,id_Be10Strat) -
-     &                                   Be10_LOST
+     &                                   Be10Strat_LOST
             ENDIF
 
          ENDDO
