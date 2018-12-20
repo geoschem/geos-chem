@@ -22,6 +22,13 @@ add_static_target(Headers
         KPPFirstPass
 )
 
+if("${IMPL}" STREQUAL "GCHP")
+    target_include_directories(Headers
+        PUBLIC
+	    ${THIRD_PARTY}/include
+    )
+endif()
+
 target_compile_definitions(Headers
     PUBLIC
         ${GC_DEFINES}

@@ -116,15 +116,18 @@ add_static_target(GeosCore
         Transport
 )
 
-# Add geos executable target
-add_executable(geos
-    main.F
-)
-target_link_libraries(geos
-    PUBLIC 
-        GeosCore
-)
-install(TARGETS geos
-    RUNTIME DESTINATION ${RUNDIR}
-)
+if("${IMPL}" STREQUAL "Classic")
+    # Add geos executable target
+    add_executable(geos
+        main.F
+    )
+    target_link_libraries(geos
+        PUBLIC 
+            GeosCore
+    )
+    install(TARGETS geos
+        RUNTIME DESTINATION ${RUNDIR}
+    )
+endif()
+
 message(STATUS "Initialized executable target geos")
