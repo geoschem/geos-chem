@@ -35,6 +35,7 @@
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
+      PUBLIC  :: SET_TR_CLOCK
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
       PUBLIC  :: GIGC_Cap_Tropopause_Prs
 #endif
@@ -139,6 +140,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
+!  21 Dec 2018 - M. Sulprizio- Add new routine SET_TR_CLOCK
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -892,16 +894,23 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+
+               ! Do not update concentration for TR_Clock if defined
+               ! That species tracks the age of air in seconds (mps, 12/21/18)
+               IF ( TRIM(State_Chm%SpcData(N)%Info%Name) == 'TR_CLOCK')
+     &            CYCLE
+
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
      &                                    * State_Met%DP_DRY_PREV(I,J,L)
      &                                    / State_Met%DELP_DRY(I,J,L) 
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
 !$OMP END PARALLEL DO
 
          ELSE
@@ -2024,5 +2033,87 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE COSSZA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_tr_clock
+!
+! !DESCRIPTION: Subroutine SET\_TR\_CLOCK adds the time step (in seconds)
+!  to every grid box every time step with a total sink at the surface every 
+!  time step to reproduce GMI tracer mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE SET_TR_CLOCK( State_Chm )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(OUT) :: State_Chm
+!
+! !REVISION HISTORY: 
+!  21 Dec 2018 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER       :: I, J, L
+      INTEGER, SAVE :: id_CLOCK
+      LOGICAL, SAVE :: FIRST
+
+      !=================================================================
+      ! SET_CLOCK_TRAC begins here!
+      !=================================================================
+
+      IF ( FIRST ) THEN
+
+         ! Get species ID
+         id_CLOCK = Ind_('TR_Clock','A')
+
+         ! Initialize
+         State_Chm%Species(I,J,L,id_CLOCK) = 0.0e+0_fp
+
+         ! Reset first-time flag
+         FIRST = .FALSE.
+
+         ! Do not update on first call
+         RETURN
+
+      ENDIF
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L=1,LLPAR
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+
+         IF ( L == 1 ) THEN
+            ! Set tracer to zero if it comes into contact with surface
+            State_Chm%Species(I,J,L,id_CLOCK) = 0.0e+0_fp
+         ELSE
+            ! Otherwise add time step [s]
+            State_Chm%Species(I,J,L,id_CLOCK) = 
+     &      State_Chm%Species(I,J,L,id_CLOCK) + GET_TS_DYN()
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE SET_TR_CLOCK
 !EOC
       END MODULE DAO_MOD
