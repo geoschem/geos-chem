@@ -5140,9 +5140,10 @@ CONTAINS
                       CALL TranUc( PName )
 
                       IF ( TRIM(Name) == TRIM(PName) ) THEN
-                         IsPassive = .TRUE.
+                         IsPassive    = .TRUE.
                          BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
-                         MW_g   = Input_Opt%PASSIVE_MW(P)
+                         MW_g         = Input_Opt%PASSIVE_MW(P)
+                         FullName     = TRIM(Input_Opt%PASSIVE_LONGNAME(P))
                          EXIT
                       ENDIF
                    ENDDO

@@ -73,12 +73,13 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      INTEGER                     :: NPASSIVE
      INTEGER                     :: NPASSIVE_DECAY
-     CHARACTER(LEN=63), POINTER  :: PASSIVE_NAME    (:)
-     INTEGER,           POINTER  :: PASSIVE_ID      (:)
-     REAL(fp),          POINTER  :: PASSIVE_MW      (:)
-     REAL(fp),          POINTER  :: PASSIVE_TAU     (:)
-     REAL(fp),          POINTER  :: PASSIVE_INITCONC(:)
-     INTEGER,           POINTER  :: PASSIVE_DECAYID (:)
+     CHARACTER(LEN=63),  POINTER :: PASSIVE_NAME    (:)
+     CHARACTER(LEN=255), POINTER :: PASSIVE_LONGNAME(:)
+     INTEGER,            POINTER :: PASSIVE_ID      (:)
+     REAL(fp),           POINTER :: PASSIVE_MW      (:)
+     REAL(fp),           POINTER :: PASSIVE_TAU     (:)
+     REAL(fp),           POINTER :: PASSIVE_INITCONC(:)
+     INTEGER,            POINTER :: PASSIVE_DECAYID (:)
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -768,6 +769,7 @@ CONTAINS
     !----------------------------------------
 
     ALLOCATE( Input_Opt%PASSIVE_NAME    ( Input_Opt%Max_PassiveSpc ), STAT=RC )
+    ALLOCATE( Input_Opt%PASSIVE_LONGNAME( Input_Opt%Max_PassiveSpc ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_ID      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_MW      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_TAU     ( Input_Opt%Max_PassiveSpc ), STAT=RC )
@@ -777,6 +779,7 @@ CONTAINS
     Input_Opt%NPASSIVE               = 0 
     Input_Opt%NPASSIVE_DECAY         = 0 
     Input_Opt%PASSIVE_NAME           = ''
+    Input_Opt%PASSIVE_LONGNAME       = ''
     Input_Opt%PASSIVE_ID             = 0
     Input_Opt%PASSIVE_MW             = 0e+0_fp
     Input_Opt%PASSIVE_TAU            = 0e+0_fp
@@ -1383,96 +1386,6 @@ CONTAINS
 
   END SUBROUTINE Set_Input_Opt_Advect
 !EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Set_Input_Opt_Passive
-!!
-!! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_PASSIVE intializes all GEOS-Chem
-!!  options carried in Input Options derived type object that depend on
-!!  the number of passive species (Input\_Opt%N_PASSIVE).
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!!
-!! !INPUT PARAMETERS: 
-!!
-!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!!
-!! !INPUT/OUTPUT PARAMETERS: 
-!!
-!    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !REMARKS:
-!!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
-!!  be removed from GEOS-Chem.
-!
-!! !REVISION HISTORY: 
-!!  04 Apr 2018 - E. Lundgren - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Strings
-!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-!
-!    !=======================================================================
-!    ! Initialize
-!    !=======================================================================
-!    RC      = GC_SUCCESS
-!    ErrMsg  = ''
-!    ThisLoc = &
-!       ' -> at Set_Input_Opt_Passive (in module Headers/input_opt_mod.F90)'
-!
-!    !=======================================================================
-!    ! Allocate arrays
-!    !=======================================================================
-!    ALLOCATE( Input_Opt%PASSIVE_NAME( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_NAME', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_NAME = ''
-!
-!    ALLOCATE( Input_Opt%PASSIVE_ID( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_ID', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_ID = -999
-!
-!    ALLOCATE( Input_Opt%PASSIVE_MW( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_MW', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_MW = 0.0_fp
-!
-!    ALLOCATE( Input_Opt%PASSIVE_TAU( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_TAU', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_TAU = 0.0_fp
-!
-!    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_INITCONC', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_INITCONC = 0.0_fp
-!
-!    ALLOCATE( Input_Opt%PASSIVE_DECAYID( Input_Opt%NPASSIVE ), STAT=RC )
-!    CALL GC_CheckVar( 'Input_Opt%PASSIVE_DECAYID', 0, RC )
-!    IF ( RC /= GC_SUCCESS ) RETURN
-!    Input_Opt%PASSIVE_DECAYID = 0
-!                                  
-!  END SUBROUTINE Set_Input_Opt_Passive
-!!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1529,6 +1442,10 @@ CONTAINS
        DEALLOCATE( Input_Opt%PASSIVE_NAME )
     ENDIF
 
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_LONGNAME ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_LONGNAME )
+    ENDIF
+
     IF ( ASSOCIATED( Input_Opt%PASSIVE_ID ) ) THEN
        DEALLOCATE( Input_Opt%PASSIVE_ID )
     ENDIF
@@ -1543,6 +1460,10 @@ CONTAINS
 
     IF ( ASSOCIATED( Input_Opt%PASSIVE_INITCONC ) ) THEN
        DEALLOCATE( Input_Opt%PASSIVE_INITCONC )
+    ENDIF
+
+    IF ( ASSOCIATED( Input_Opt%PASSIVE_DECAYID ) ) THEN
+       DEALLOCATE( Input_Opt%PASSIVE_DECAYID )
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%AdvectSpc_Name ) ) THEN

@@ -7604,6 +7604,7 @@
 !                              the returned # of substrings
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !  04 Apr 2018 - E. Lundgren - Call routine to init Input_Opt passive spc arrays
+!  21 Dec 2018 - M. Sulprizio- Update passive species menu to include long name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7656,10 +7657,11 @@
          ! Exit here if separator line is encountered
          IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
 
-         ! Make sure there are 4 entries
+         ! Make sure there are at least 4 entries
          IF ( N < 4 ) THEN
             ErrMsg = 'Each passive species is expected to have ' //
-     &             'four entries.'
+     &             'at least four entries: Name, MW, TAU, initial ' //
+     &             'concentration, and long name (optional).'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -7683,6 +7685,11 @@
          READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
          READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
 
+         ! Check if optional entry for long name is included
+         IF ( N > 4 ) THEN
+            READ( SUBSTRS(5), * ) Input_Opt%PASSIVE_LONGNAME(P)
+         ENDIF
+
          ! Determine if the passive species decays (i.e. if it has 
          ! an atmospheric lifetime that is not -1).  This will allow
          ! us to skip those passive species that do not decay in
@@ -7701,10 +7708,12 @@
      &            TRIM( Input_Opt%PASSIVE_NAME(P) ) 
             WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
      &            Input_Opt%PASSIVE_MW(P)
-            WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
+            WRITE( 6, 130   ) ' - Lifetime [s]                : ', 
      &            Input_Opt%PASSIVE_TAU(P)
             WRITE( 6, 130   ) ' - Initial concentration [v/v] : ', 
      &            Input_Opt%PASSIVE_INITCONC(P)
+            WRITE( 6, 110   ) ' - Species long name           : ',
+     &            TRIM( Input_Opt%PASSIVE_LONGNAME(P) )
          ENDIF
 
       ENDDO
