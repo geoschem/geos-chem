@@ -490,6 +490,7 @@ CONTAINS
 !
     ! local species information
     CHARACTER(LEN=31)   :: Name
+    CHARACTER(LEN=31)   :: PName
     CHARACTER(LEN=80)   :: FullName
     CHARACTER(LEN=80)   :: Formula
     REAL(fp)            :: MW_g             ! Molecular weight [g]
@@ -5133,8 +5134,12 @@ CONTAINS
    
                    ! Loop over all passive species
                    DO P = 1, Input_Opt%NPASSIVE
-                      IF ( TRIM(Name) ==    &
-                           TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
+
+                      ! Make sure its all caps
+                      PName = TRIM(Input_Opt%PASSIVE_NAME(P))
+                      CALL TranUc( PName )
+
+                      IF ( TRIM(Name) == TRIM(PName) ) THEN
                          IsPassive = .TRUE.
                          BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
                          MW_g   = Input_Opt%PASSIVE_MW(P)
