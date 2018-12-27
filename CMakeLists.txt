@@ -24,7 +24,8 @@ add_subdirectory(History)
 add_subdirectory(HEMCO)
 add_subdirectory(ISOROPIA)
 add_subdirectory(GeosRad)
-
 add_subdirectory(GeosCore)
-add_subdirectory(GCHP)
+if("${IMPL}" STREQUAL "GCHP")
+    add_subdirectory(GCHP)
+endif()
 
