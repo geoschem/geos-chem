@@ -26,5 +26,5 @@ add_subdirectory(ISOROPIA)
 add_subdirectory(GeosRad)
 
 add_subdirectory(GeosCore)
-
+add_subdirectory(GCHP)
 
