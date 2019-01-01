@@ -4972,6 +4972,7 @@ ccc
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
       REAL(fp)                 :: AREA(IIPAR, JJPAR)
       REAL(fp)                 :: SIZE_DIST(IIPAR,JJPAR,IBINS,4) !(ramnarine 12/27/2018)
+      INTEGER                  :: COAG !(ramnarine 12/31/2018)
       REAL*4                   :: BOXVOL  ! calculated from State_Met
       REAL*4                   :: TEMPTMS ! calculated from State_Met
       REAL*4                   :: PRES    ! calculated from State_Met
@@ -5000,6 +5001,7 @@ ccc
 
       ! Assume success
       RC                  = GC_SUCCESS
+      COAG                = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
@@ -5036,20 +5038,6 @@ ccc
          CALL GC_Error( 'Unit conversion error', RC, 
      &                  'Start of EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
-      ENDIF
-
-      ! ---------Fire Number------------------------------------------
-      ! (ramnarine 12/27/2018)
-      IF ( FIRST ) THEN
-         ! Get a pointer to the fire number field
-         CALL HCO_GetPtr( am_I_Root, HcoState, 'FINN_DAILY_NUMBER',
-     &                     FIRE_NUM, RC)
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to FIRE_NUM', LOC )
-         ENDIF
-
-         ! reset first time flag
-         FIRST = .FALSE.
       ENDIF
       
 
@@ -5174,14 +5162,27 @@ ccc
       ENDIF
       Ptr2D => NULL()
 
-      ! ---- Calling Parameterization ------------------------
+      ! ---- Fire Number -------------------------------------
       ! (ramnarine 12/27/2018)
-      SIZE_DIST = SAKAMOTO_SIZE( FIRE_NUM,
+      IF ( FIRST ) THEN
+         ! Get a pointer to the fire number field if in use
+         CALL HCO_GetPtr( am_I_root, HcoState, 'FINN_DAILY_NUMBER',
+     &        FIRE_NUM, COAG )
+            !if biomass burning subgrid coagulation is in use,
+            !COAG = GC_SUCCESS
+
+         !reset first time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      IF ( COAG .EQ. GC_SUCCESS ) THEN
+         ! ---- Calling BB subgrid coag parameterization --------
+         ! (ramnarine 12/27/2018)
+         SIZE_DIST = SAKAMOTO_SIZE( FIRE_NUM,
      &                              OCPI_BIOB_BULK, BCPI_BIOB_BULK,
      &                              OCPO_BIOB_BULK, BCPO_BIOB_BULK,
      &                              State_Met, AREA )
-
-      !ENDIF
+      ENDIF
       
       !2d emis
       BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
@@ -5201,19 +5202,21 @@ ccc
       OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
 
       !2d bioburn
-      BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
-      BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-      OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-      OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
-
-      DO K = 1, IBINS           !ramnarine 12/27/2018
-         BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
-         BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
-         OCBB(:,:,K,1) = OC2OM *
-     &        SIZE_DIST(:,:,K,3) * AREA(:, :) * DTSRCE
-         OCBB(:,:,K,2) = OC2OM *
-     &        SIZE_DIST(:,:,K,4) * AREA(:, :) * DTSRCE
-      ENDDO
+      IF ( COAG /= GC_SUCCESS ) THEN
+         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
+      ELSE
+         DO K = 1, IBINS           !ramnarine 12/27/2018
+            BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
+            BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
+            OCBB(:,:,K,1) = OC2OM *
+     &           SIZE_DIST(:,:,K,3) * AREA(:, :) * DTSRCE
+            OCBB(:,:,K,2) = OC2OM *
+     &           SIZE_DIST(:,:,K,4) * AREA(:, :) * DTSRCE
+         ENDDO
+      ENDIF
       
       ! Add into BCSRC and OCSRC
       BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) + BCBB(:,:,:,1)
