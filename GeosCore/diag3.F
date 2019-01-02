@@ -577,7 +577,7 @@
 
             ! Divide by # of chemistry timesteps
             DO L = 1, LD01
-               ARRAY(:,:,L) = AD01(:,:,1,L) / SCALECHEM
+               ARRAY(:,:,L) = AD01(:,:,L,1) / SCALECHEM
             ENDDO
 
             ! Write to bpch file
@@ -595,7 +595,7 @@
 
             ! Divide by # of chemistry timesteps
             DO L = 1, LD01
-               ARRAY(:,:,L) = AD01(:,:,2,L) / SCALECHEM
+               ARRAY(:,:,L) = AD01(:,:,L,2) / SCALECHEM
             ENDDO
 
             ! Write to bpch file

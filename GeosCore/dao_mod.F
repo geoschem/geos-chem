@@ -2059,7 +2059,7 @@
 !
 ! !OUTPUT PARAMETERS: 
 !
-      TYPE(ChmState), INTENT(OUT) :: State_Chm
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm
 !
 ! !REVISION HISTORY: 
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -2070,20 +2070,26 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER       :: I, J, L
-      INTEGER, SAVE :: id_CLOCK
-      LOGICAL, SAVE :: FIRST
+      INTEGER, SAVE :: id_Clock
+      LOGICAL, SAVE :: FIRST = .TRUE.
+      REAL(fp)      :: TimeStep
 
       !=================================================================
-      ! SET_CLOCK_TRAC begins here!
+      ! SET_TR_CLOCK begins here!
       !=================================================================
 
       IF ( FIRST ) THEN
 
          ! Get species ID
-         id_CLOCK = Ind_('TR_Clock','A')
+         id_Clock = Ind_('TR_Clock','A')
+
+         ! Get timestep [s]
+         TimeStep = GET_TS_DYN()
 
          ! Initialize
-         State_Chm%Species(I,J,L,id_CLOCK) = 0.0e+0_fp
+         IF ( id_CLOCK > 0 ) THEN
+            State_Chm%Species(:,:,:,id_Clock) = 0.0e+0_fp
+         ENDIF
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2091,6 +2097,11 @@
          ! Do not update on first call
          RETURN
 
+      ENDIF
+
+      ! Return if TR_CLOCK is not defined
+      IF ( id_Clock <= 0 ) THEN
+         RETURN
       ENDIF
 
 !$OMP PARALLEL DO
@@ -2101,12 +2112,12 @@
       DO I=1,IIPAR
 
          IF ( L == 1 ) THEN
-            ! Set tracer to zero if it comes into contact with surface
-            State_Chm%Species(I,J,L,id_CLOCK) = 0.0e+0_fp
+            ! Set the surface to a sink
+            State_Chm%Species(I,J,L,id_Clock) = 0.0e+0_fp
          ELSE
             ! Otherwise add time step [s]
-            State_Chm%Species(I,J,L,id_CLOCK) = 
-     &      State_Chm%Species(I,J,L,id_CLOCK) + GET_TS_DYN()
+            State_Chm%Species(I,J,L,id_Clock) = 
+     &      State_Chm%Species(I,J,L,id_Clock) + TimeStep
          ENDIF
 
       ENDDO
