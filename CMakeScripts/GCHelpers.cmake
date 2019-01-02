@@ -94,6 +94,7 @@ function(stringify_list LIST)
     if(${BETTER_PRINT})
         string(ASCII 27 Esc)
         string(REGEX REPLACE "\\[([a-zA-Z0-9_\\.]+)\\]" "${Esc}[32m\\1${Esc}[m" COLORIZED "${STR}")
+	string(REGEX REPLACE "\n$" "" COLORIZED "${COLORIZED}")
         message("${COLORIZED}")
     endif()
 
