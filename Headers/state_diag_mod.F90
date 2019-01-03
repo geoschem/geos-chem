@@ -576,11 +576,11 @@ MODULE State_Diag_Mod
      LOGICAL                      :: Do_ObsPack
      INTEGER                      :: ObsPack_fId
      INTEGER                      :: ObsPack_nObs
-     INTEGER                      :: ObsPack_nTracers
+     INTEGER                      :: ObsPack_nSpecies
      REAL(f8)                     :: ObsPack_AvgIval_Length
      CHARACTER(LEN=1024)          :: ObsPack_InFile
      CHARACTER(LEN=1024)          :: ObsPack_OutFile
-     CHARACTER(LEN=100 ), POINTER :: ObsPack_Id          (:  )
+     CHARACTER(LEN=200 ), POINTER :: ObsPack_Id          (:  )
      INTEGER,             POINTER :: ObsPack_nSamples    (:  )
      INTEGER,             POINTER :: ObsPack_Strategy    (:  )
      REAL(f4),            POINTER :: ObsPack_Latitude    (:  )
@@ -596,7 +596,8 @@ MODULE State_Diag_Mod
      REAL(f4),            POINTER :: ObsPack_Q           (:  )
      REAL(f4),            POINTER :: ObsPack_Pressure    (:  )
      REAL(f4),            POINTER :: ObsPack_Temperature (:  )
-     REAL(f4),            POINTER :: ObsPack_Tracers     (:,:)
+     REAL(f4),            POINTER :: ObsPack_Species     (:,:)
+     CHARACTER(LEN=31 ),  POINTER :: ObsPack_Species_Name(:  )
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
@@ -1232,7 +1233,7 @@ CONTAINS
     State_Diag%Do_ObsPack                          = .FALSE.
     State_Diag%ObsPack_fId                         =  0
     State_Diag%ObsPack_nObs                        =  0
-    State_Diag%ObsPack_nTracers                    =  0
+    State_Diag%ObsPack_nSpecies                    =  0
     State_Diag%ObsPack_AvgIval_Length              =  0.0_f8
     State_Diag%ObsPack_InFile                      =  ''
     State_Diag%ObsPack_OutFile                     =  ''
@@ -1252,7 +1253,8 @@ CONTAINS
     State_Diag%ObsPack_Q                           => NULL()
     State_Diag%ObsPack_Pressure                    => NULL()
     State_Diag%ObsPack_Temperature                 => NULL()
-    State_Diag%ObsPack_Tracers                     => NULL()
+    State_Diag%ObsPack_Species                     => NULL()
+    State_Diag%ObsPack_Species_Name                => NULL()
 
 #if defined( NC_DIAG )
 

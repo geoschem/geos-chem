@@ -2088,7 +2088,7 @@
             CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
 #endif
 
-            ! Sample 
+            ! Sample the observations in today's ObsPack file
             CALL ObsPack_Sample( am_I_Root,  NYMD,      NHMS, 
      &                           Input_Opt,  State_Met, State_Chm, 
      &                           State_Diag, RC                    )
@@ -2442,6 +2442,33 @@
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "Timesteps", RC )
 #endif
+
+      !-----------------------------------------------------------------
+      ! Flush any unwritten ObsPack data to disk
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Do_ObsPack ) THEN
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",        RC )
+         CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
+#endif
+
+         ! Write any remaining ObsPack data to disk, and immediately
+         ! thereafter free the ObsPack pointer fields of State_Diag
+         IF ( ASSOCIATED( State_Diag%ObsPack_id ) ) THEN
+            CALL ObsPack_Write_Output( am_I_Root,  Input_Opt,
+     &                                 State_Diag, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",        RC ) 
+         CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
+#endif      
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Print the mass-weighted mean OH concentration (if applicable)
