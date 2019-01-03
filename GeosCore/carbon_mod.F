@@ -4972,7 +4972,6 @@ ccc
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
       REAL(fp)                 :: AREA(IIPAR, JJPAR)
       REAL(fp)                 :: SIZE_DIST(IIPAR,JJPAR,IBINS,4) !(ramnarine 12/27/2018)
-      INTEGER                  :: COAG !(ramnarine 12/31/2018)
       REAL*4                   :: BOXVOL  ! calculated from State_Met
       REAL*4                   :: TEMPTMS ! calculated from State_Met
       REAL*4                   :: PRES    ! calculated from State_Met
@@ -4983,6 +4982,7 @@ ccc
       INTEGER                  :: ii=53, jj=29
       CHARACTER(LEN=63)        :: OrigUnit
       LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
+      LOGICAL                  :: FND !(ramnarine 1/2/2019)
 
       ! Strings
       CHARACTER(LEN= 63)       :: DgnName
@@ -5001,7 +5001,6 @@ ccc
 
       ! Assume success
       RC                  = GC_SUCCESS
-      COAG                = GC_SUCCESS
 
       ! Get nested-grid offsets
       I0                  = GET_XOFFSET()
@@ -5167,15 +5166,15 @@ ccc
       IF ( FIRST ) THEN
          ! Get a pointer to the fire number field if in use
          CALL HCO_GetPtr( am_I_root, HcoState, 'FINN_DAILY_NUMBER',
-     &        FIRE_NUM, COAG )
+     &        FIRE_NUM, RC, FOUND=FND )
             !if biomass burning subgrid coagulation is in use,
-            !COAG = GC_SUCCESS
+            !FIRE_NUM will not be NULL() and therefore will not be ASSOCIATED()
 
          !reset first time flag
          FIRST = .FALSE.
       ENDIF
 
-      IF ( COAG .EQ. GC_SUCCESS ) THEN
+      IF ( ASSOCIATED(FIRE_NUM) ) THEN
          ! ---- Calling BB subgrid coag parameterization --------
          ! (ramnarine 12/27/2018)
          SIZE_DIST = SAKAMOTO_SIZE( FIRE_NUM,
@@ -5201,14 +5200,9 @@ ccc
       OCBF(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
       OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
 
-      !2d bioburn
-      IF ( COAG /= GC_SUCCESS ) THEN
-         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
-         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
-      ELSE
-         DO K = 1, IBINS           !ramnarine 12/27/2018
+!2d bioburn
+      IF ( ASSOCIATED(FIRE_NUM) ) THEN
+         DO K = 1, IBINS        !ramnarine 12/27/2018
             BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
             BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
             OCBB(:,:,K,1) = OC2OM *
@@ -5216,6 +5210,11 @@ ccc
             OCBB(:,:,K,2) = OC2OM *
      &           SIZE_DIST(:,:,K,4) * AREA(:, :) * DTSRCE
          ENDDO
+      ELSE
+         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
       ENDIF
       
       ! Add into BCSRC and OCSRC
