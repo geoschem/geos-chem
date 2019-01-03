@@ -2069,10 +2069,10 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER       :: I, J, L
-      INTEGER, SAVE :: id_Clock
-      LOGICAL, SAVE :: FIRST = .TRUE.
-      REAL(fp)      :: TimeStep
+      INTEGER        :: I, J, L
+      INTEGER,  SAVE :: id_Clock
+      LOGICAL,  SAVE :: FIRST = .TRUE.
+      REAL(fp), SAVE :: TimeStep
 
       !=================================================================
       ! SET_TR_CLOCK begins here!
