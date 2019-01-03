@@ -1892,7 +1892,20 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
- 
+
+    ! Tropopause level
+    CALL ExtDat_Set( am_I_Root,        HcoState, ExtState%TropLev,          &
+                    'TropLev',         HMRC,     FIRST,                     &
+                     State_Met%TropLev                                     )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( TropLev )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+    
     ! ----------------------------------------------------------------
     ! Species concentrations
     ! ----------------------------------------------------------------

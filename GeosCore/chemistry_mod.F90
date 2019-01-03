@@ -1308,6 +1308,7 @@ CONTAINS
 !  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
 !  13 Dec 2017 - R. Yantosca - Now apply decay only to those passive species
 !                              with finite atmospheric lifetimes
+!  02 Jan 2019 - M. Sulprizio- Add capability to specify TAU in e-fold time
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1316,6 +1317,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL             :: prtDebug
+    LOGICAL             :: Is_eFold
     INTEGER             :: I,       J,      L
     INTEGER             :: N,       GCId,   Id
     REAL(fp)            :: DT,      Decay,  Rate
@@ -1371,22 +1373,37 @@ CONTAINS
        ENDIF
 
        !----------------------------------
+       ! Determine type of decay
+       !----------------------------------
+
+       ! Tracer names starting with 'TR_e' specify TAU in e-fold time
+       ! Otherwise, it is assumed that TAU is the half-life
+       IF ( Input_Opt%PASSIVE_NAME(Id)(1:4) == 'TR_e' ) THEN
+          Is_eFold = .TRUE.
+       ELSE
+          Is_eFold = .FALSE.
+       ENDIF
+
+       !----------------------------------
        ! Compute the decay rate
        !----------------------------------
 
        ! Compute the decay rate for each passive species
-       Decay = ln2 / Input_Opt%PASSIVE_TAU(Id)
+       IF ( Is_eFold ) THEN
+          Decay = 1.0 / Input_Opt%PASSIVE_TAU(Id)
+       ELSE
+          Decay = ln2 / Input_Opt%PASSIVE_TAU(Id)
+       ENDIF
        Rate  = EXP( - DT * Decay )
 
        !### Debug output
        IF ( First ) THEN
           IF ( prtDebug ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
-                            GcId, Rate
- 100         FORMAT( '     -  Pass. species name, Id, loss rate:',           &
-                      a15, i5, 1x, es13.6 )
+                            GcId, Rate, Is_eFold
+ 100         FORMAT( '     -  Pass. species name, Id, loss rate, e-fold: ',&
+                      a15, i5, 1x, es13.6, l5 )
           ENDIF
-          First = .FALSE.
        ENDIF
 
        !----------------------------------
@@ -1408,6 +1425,9 @@ CONTAINS
 
     ENDDO
  
+    ! Reset after the first time
+    IF ( First) First = .FALSE.
+
   END SUBROUTINE Chem_Passive_Species
 !EOC
 !------------------------------------------------------------------------------

@@ -1413,12 +1413,10 @@
          T = T + 1
 
          ! Stop simulation and print warning if we exceed maximum number
-         ! of species currently hardcoded for Input_Opt%AdvectSpc_Name in
-         ! input_opt_mod.F90. Eventually we need to think of a better way
-         ! to do this. (mps, 1/26/18)
-         IF ( T > 600 ) THEN
-            ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
-     &             'must be read in first!'
+         ! of advected species hardcoded in input_opt_mod.F90
+         IF ( T > Input_Opt%Max_AdvectSpc ) THEN
+            ErrMsg = 'Number of advected species exceeds maximum. ' //
+     &             'This value can be modified in input_opt_mod.F90.'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -4959,7 +4957,7 @@
       HR2_OTH                      = HR2_OTHx
 
       ! Loop over # of diagnostics
-      DO M = 1, Input_Opt%MAX_DIAG
+      DO M = 1, Input_Opt%Max_BPCH_Diag
          Input_Opt%TCOUNT(M)       = TCOUNT(M)
          Input_Opt%TMAX(M)         = TMAX(M)
 
@@ -7583,7 +7581,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput, Set_Input_Opt_Passive
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -7606,6 +7604,7 @@
 !                              the returned # of substrings
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !  04 Apr 2018 - E. Lundgren - Call routine to init Input_Opt passive spc arrays
+!  21 Dec 2018 - M. Sulprizio- Update passive species menu to include long name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7631,80 +7630,104 @@
       ThisLoc = 
      & ' -> at Read_Passive_Species_Menu (in mod. GeosCore/input_mod.F)'
 
-      ! # of passive species
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'NPASSIVE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1), * ) Input_Opt%NPASSIVE
-
-      ! Initialize Input_Opt arrays that are dependent on Input_Opt%NPASSIVE
-      CALL Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
+      ! Initialize
+      P = 0
+      D = 0
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
          WRITE( 6, '(  a)' ) '---------------------'
       ENDIF
 
-      ! Read passive species information for each passive species
-      ! Every passive species line is expected to have 3 entries:
-      ! - Species name
-      ! - Species molecular weight 
-      ! - Atmospheric lifetime (s)
-      ! - Default atmospheric concentration (v/v)
-      IF ( Input_Opt%NPASSIVE > 0 ) THEN
+      ! Do until exit
+      DO
 
-         ! Index for decaying passive species
-         D = 0
-
-         ! Loop over the number of listed passive species
-         DO P = 1, Input_Opt%NPASSIVE
-
-            ! Expect 4 metadata parameters to define the passive species
-            CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Pasv Species', RC )
-            IF ( RC /= GC_SUCCESS ) THEN
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
+         ! Read passive species information for each passive species
+         ! Every passive species line is expected to have 4 entries:
+         ! - Species name
+         ! - Species molecular weight 
+         ! - Atmospheric lifetime (s)
+         ! - Initial atmospheric concentration (v/v)
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Pasv Species', RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
      
-            ! Read and store species information
-            Input_Opt%PASSIVE_ID(P)   = P
-            Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
-            READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
-            READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
-            READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
+         ! Exit here if separator line is encountered
+         IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
 
-            ! Determine if the passive species decays (i.e. if it has 
-            ! an atmospheric lifetime that is not -1).  This will allow
-            ! us to skip those passive species that do not decay in
-            ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-            IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
-               D                            = D + 1
-               Input_Opt%NPASSIVE_DECAY     = D
-               Input_Opt%PASSIVE_DECAYID(D) = P
-            ENDIF
+         ! Make sure there are at least 4 entries
+         IF ( N < 4 ) THEN
+            ErrMsg = 'Each passive species is expected to have ' //
+     &             'at least four entries: Name, MW, TAU, initial ' //
+     &             'concentration, and long name (optional).'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
-            ! Verbose
-            IF ( am_I_Root ) THEN
-               WRITE( 6, '(a)' ) 'Added passive species: '
-               WRITE( 6, 110   ) ' - Species name                : ', 
-     &               TRIM( Input_Opt%PASSIVE_NAME(P) ) 
-               WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
-     &               Input_Opt%PASSIVE_MW(P)
-               WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
-     &               Input_Opt%PASSIVE_TAU(P)
-               WRITE( 6, 130   ) ' - Default concentration [v/v] : ', 
-     &               Input_Opt%PASSIVE_INITCONC(P)
-            ENDIF
-         ENDDO
-      ELSE
+         ! Increase number of passive species by one
+         P = P + 1
+
+         ! Stop simulation and print warning if we exceed maximum number
+         ! of passive species hardcoded in input_opt_mod.F90.
+         IF ( P > Input_Opt%Max_PassiveSpc ) THEN
+            ErrMsg = 'Number of passive species exceeds maximum. ' //
+     &             'This value can be modified in input_opt_mod.F90.'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Read and store species information
+         Input_Opt%PASSIVE_ID(P)   = P
+         Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
+         READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
+         READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
+         READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
+
+         ! Check if optional entry for long name is included
+         IF ( N > 4 ) THEN
+            READ( SUBSTRS(5), * ) Input_Opt%PASSIVE_LONGNAME(P)
+         ENDIF
+
+         ! Determine if the passive species decays (i.e. if it has 
+         ! an atmospheric lifetime that is not -1).  This will allow
+         ! us to skip those passive species that do not decay in
+         ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
+         IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
+            D                            = D + 1
+            Input_Opt%NPASSIVE_DECAY     = D
+            Input_Opt%PASSIVE_DECAYID(D) = P
+         ENDIF
+
+
+         ! Verbose
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) 'Added passive species: '
+            WRITE( 6, 110   ) ' - Species name                : ', 
+     &            TRIM( Input_Opt%PASSIVE_NAME(P) ) 
+            WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
+     &            Input_Opt%PASSIVE_MW(P)
+            WRITE( 6, 130   ) ' - Lifetime [s]                : ', 
+     &            Input_Opt%PASSIVE_TAU(P)
+            WRITE( 6, 130   ) ' - Initial concentration [v/v] : ', 
+     &            Input_Opt%PASSIVE_INITCONC(P)
+            WRITE( 6, 110   ) ' - Species long name           : ',
+     &            TRIM( Input_Opt%PASSIVE_LONGNAME(P) )
+         ENDIF
+
+      ENDDO
+
+      IF ( P < 0 ) THEN
          ErrMsg = 'Cannot add passive species ' //
-     &            TRIM(Input_Opt%PASSIVE_NAME(P) ) //
+     &             TRIM(Input_Opt%PASSIVE_NAME(P) ) //
      &            ': # of passive species is smaller than 1!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN 
       ENDIF
+
+      ! Total number of passive species
+      Input_Opt%NPASSIVE = P
 
  110  FORMAT( A, A )
  120  FORMAT( A, F10.2  )

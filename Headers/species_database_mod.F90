@@ -196,9 +196,6 @@ CONTAINS
     LOGICAL             :: Is_Advected
     LOGICAL             :: prtDebug
 
-    ! For passive species
-!    LOGICAL             :: IsPassive
-
     ! Species information
     REAL(fp)               :: EmMW_g           ! Emissions mol. wt [g]
     REAL(fp)               :: MolecRatio       ! Molec ratio
@@ -493,6 +490,7 @@ CONTAINS
 !
     ! local species information
     CHARACTER(LEN=31)   :: Name
+    CHARACTER(LEN=31)   :: PName
     CHARACTER(LEN=80)   :: FullName
     CHARACTER(LEN=80)   :: Formula
     REAL(fp)            :: MW_g             ! Molecular weight [g]
@@ -3884,6 +3882,28 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
+          CASE( 'PBSTRAT', '210PBSTRAT', 'PB210STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Lead-210 isotope in stratosphere'
+             Formula       = 'Pb'
+             MW_g          = 210.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
           CASE( 'BE', '7BE', 'BE7' )
 
              ! Halve the Kc (cloud condensate -> precip) rate
@@ -3894,8 +3914,74 @@ CONTAINS
              RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
 
              FullName      = 'Beryllium-7 isotope'
-             Formula       = 'Be'
+             Formula       = 'Be7'
              MW_g          = 7.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( 'BESTRAT', '7BESTRAT', 'BE7STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-7 isotope in stratosphere'
+             Formula       = 'Be7'
+             MW_g          = 7.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( '10BE', 'BE10' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-10 isotope'
+             Formula       = 'Be10'
+             MW_g          = 10.0_fp
+             Is_Gas        = F
+             Is_Drydep     = T
+             Is_Wetdep     = T
+             DD_DvzAerSnow = 0.03_fp
+             DD_F0         = 0.0_fp
+             DD_HStar_old  = 0.0_fp
+             WD_AerScavEff = 1.0_fp
+             WD_KcScaleFac = KcScale
+             WD_RainoutEff = RainEff
+
+          CASE( '10BESTRAT', 'BE10STRAT' )
+
+             ! Halve the Kc (cloud condensate -> precip) rate
+             ! for the temperature range 237 K <= T < 258 K.
+             KcScale       = (/ 1.0_fp, 0.5_fp, 1.0_fp /)
+
+             ! Turn off rainout only when 237 K <= T < 258K.
+             RainEff       = (/ 1.0_fp, 0.0_fp, 1.0_fp /)
+
+             FullName      = 'Beryllium-10 isotope in stratosphere'
+             Formula       = 'Be10'
+             MW_g          = 10.0_fp
              Is_Gas        = F
              Is_Drydep     = T
              Is_Wetdep     = T
@@ -5042,19 +5128,22 @@ CONTAINS
 
              ! Check if passive species
              IsPassive = .FALSE.
-             !MW_g = 0.0_fp
-             !BackgroundVV = 0.0_fp
 
              IF ( Present(Input_Opt) ) THEN
                 IF ( Input_Opt%NPASSIVE > 0 ) THEN
    
                    ! Loop over all passive species
                    DO P = 1, Input_Opt%NPASSIVE
-                      IF ( TRIM(Name) ==    &
-                           TRIM(Input_Opt%PASSIVE_NAME(P)) ) THEN
-                         IsPassive = .TRUE.
+
+                      ! Make sure its all caps
+                      PName = TRIM(Input_Opt%PASSIVE_NAME(P))
+                      CALL TranUc( PName )
+
+                      IF ( TRIM(Name) == TRIM(PName) ) THEN
+                         IsPassive    = .TRUE.
                          BackgroundVV = Input_Opt%PASSIVE_INITCONC(P)
-                         MW_g   = Input_Opt%PASSIVE_MW(P)
+                         MW_g         = Input_Opt%PASSIVE_MW(P)
+                         FullName     = TRIM(Input_Opt%PASSIVE_LONGNAME(P))
                          EXIT
                       ENDIF
                    ENDDO

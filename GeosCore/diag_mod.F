@@ -29,7 +29,7 @@
 #if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
 
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
-      REAL*4,  ALLOCATABLE :: AD01(:,:,:)
+      REAL*4,  ALLOCATABLE :: AD01(:,:,:,:)
 
       ! For ND02 -- Rn, Pb, Be decay
       REAL*4,  ALLOCATABLE :: AD02(:,:,:,:)
