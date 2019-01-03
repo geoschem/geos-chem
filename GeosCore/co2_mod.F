@@ -113,6 +113,8 @@
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  20 Jun 2014 - R. Yantosca - Remove obsolete emissions code; we now use HEMCO
 !  07 Nov 2014 - M. Yannetti - Added PRECISION_MOD
+!  24 Sep 2018 - R. Yantosca - Emissions for most tagged species are now added
+!                              directly via HEMCO; remove obsolete code.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,21 +147,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,  State_Met, 
+     &                     State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE DIAG04_MOD,         ONLY : AD04, ND04
-      USE DIAG04_MOD,         ONLY : AD04_plane,    AD04_chem
+#if defined( BPCH_DIAG )
+      USE DIAG04_MOD,         ONLY : ND04
+      USE DIAG04_MOD,         ONLY : AD04_chem
+#endif
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -170,8 +174,8 @@
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -205,6 +209,17 @@
 !  29 Apr 2016 - R. Yantosca - Don't initialize pointers in declaration stmts
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
+!  21 May 2018 - C. Keller   - CO2 emissions are now handled like all
+!                              other emissions, i.e. passed to species
+!                              array via mixing_mod.F90. 
+!  20 Jul 2018 - C. Keller   - Make sure CO2 source from CO oxidation is
+!                              added to species array. All other source
+!                              are handled by the emission routines.
+!  24 Sep 2018 - R. Yantosca - Emissions for most tagged species are now added
+!                              directly via HEMCO; remove obsolete code and
+!                              rewrite the DO loop for the chemical production
+!                              of CO species for better efficiency.
+!  24 Sep 2018 - R. Yantosca - Return error conditions to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -214,37 +229,16 @@
       ! Scalars
       INTEGER                    :: I, J, L, N, NA
       INTEGER                    :: nAdvect
-      LOGICAL                    :: LFOSSIL
-      LOGICAL                    :: LCHEMCO2
-      LOGICAL                    :: LBIODIURNAL
-      LOGICAL                    :: LBIONETCLIM
-      LOGICAL                    :: LOCEAN
-      LOGICAL                    :: LSHIP
-      LOGICAL                    :: LPLANE
-      LOGICAL                    :: LFFBKGRD
-      LOGICAL                    :: LBIOSPHTAG
-      LOGICAL                    :: LFOSSILTAG
-      LOGICAL                    :: LSHIPTAG
-      LOGICAL                    :: LPLANETAG
       REAL(fp)                   :: A_CM2, DTSRCE, E_CO2
 
       ! SAVEd scalars
       LOGICAL,         SAVE      :: FIRST      = .TRUE.
       LOGICAL,         SAVE      :: BIOFUEL_ON = .TRUE.
       LOGICAL,         SAVE      :: BIOMASS_ON = .TRUE.
-      INTEGER,         SAVE      :: IDff       = -1
-      INTEGER,         SAVE      :: IDoc       = -1
-      INTEGER,         SAVE      :: IDbal      = -1
-      INTEGER,         SAVE      :: IDbb       = -1
-      INTEGER,         SAVE      :: IDbf       = -1
-      INTEGER,         SAVE      :: IDnte      = -1
-      INTEGER,         SAVE      :: IDse       = -1
-      INTEGER,         SAVE      :: IDav       = -1
-      INTEGER,         SAVE      :: IDch       = -1
-      INTEGER,         SAVE      :: IDcorr     = -1
 
       ! Strings
-      CHARACTER(LEN=255)         :: LOC = 'EMISSCO2 (co2_mod.F)'
+      CHARACTER(LEN=255)         :: ThisLoc
+      CHARACTER(LEN=512)         :: ErrMsg
 
       ! Pointers
       REAL(f4),        POINTER   :: CO2_COPROD(:,:,:  ) 
@@ -259,30 +253,18 @@
       ! EMISSCO2 begins here!
       !=================================================================
 
-      ! Return success
+      ! Initialize
       RC          = GC_SUCCESS
-
-      ! Copy values from Input_Opt
-      LFOSSIL     = Input_Opt%LFOSSIL
-      LCHEMCO2    = Input_Opt%LCHEMCO2
-      LBIODIURNAL = Input_Opt%LBIODIURNAL
-      LBIONETCLIM = Input_Opt%LBIONETCLIM
-      LOCEAN      = Input_Opt%LOCEAN
-      LSHIP       = Input_Opt%LSHIP
-      LPLANE      = Input_Opt%LPLANE
-      LFFBKGRD    = Input_Opt%LFFBKGRD
-      LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
-      LFOSSILTAG  = Input_Opt%LFOSSILTAG
-      LSHIPTAG    = Input_Opt%LSHIPTAG
-      LPLANETAG   = Input_Opt%LPLANETAG
-  
-      ! Initialize pointers
+      ErrMsg      = ''
+      ThisLoc     = ' -> at EMISSCO2 (in module GeosCore/co2_mod.F)'
       CO2_COPROD  => NULL()
       Spc         => NULL()
 
       ! Import emissions from HEMCO (through HEMCO state)
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not defined!', LOC ) 
+         ErrMsg = 'The "HcoState" object is not defined!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Emission timestep
@@ -297,107 +279,15 @@
       IF ( FIRST ) THEN 
 
          !--------------------------------------------------------------
-         ! Query HEMCO for all of the species IDs
-         !--------------------------------------------------------------
-         IDff   = HCO_GetHcoID( 'CO2ff',   HcoState )
-         IDoc   = HCO_GetHcoID( 'CO2oc',   HcoState )
-         IDbal  = HCO_GetHcoID( 'CO2bal',  HcoState )
-         IDbb   = HCO_GetHcoID( 'CO2bb',   HcoState )
-         IDbf   = HCO_GetHcoID( 'CO2bf',   HcoState )
-         IDnte  = HCO_GetHcoID( 'CO2nte',  HcoState )
-         IDse   = HCO_GetHcoID( 'CO2se',   HcoState )
-         IDav   = HCO_GetHcoID( 'CO2av',   HcoState )
-         IDch   = HCO_GetHcoID( 'CO2ch',   HcoState )
-         IDcorr = HCO_GetHcoID( 'CO2corr', HcoState )
-
-         !--------------------------------------------------------------
-         ! Add error checks.  Check to see that the species index
-         ! and the corresponding field in the HEMCO state are defined.
-         ! Move this outside the parallel loop to avoid problems when
-         ! exiting while w/in a parallel region. (bmy, 4/17/15)
-         !--------------------------------------------------------------
-         IF ( LFOSSIL ) THEN
-            IF ( IDff < 1 ) THEN
-               CALL ERROR_STOP( 'CO2ff not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDff)%Emis%Val) ) THEN
-               CALL ERROR_STOP('Fossil emissions not defined', LOC )
-            ENDIF
-         ENDIF
-
-         IF ( LOCEAN ) THEN
-            IF ( IDoc < 1 ) THEN
-               CALL ERROR_STOP( 'CO2oc not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDoc)%Emis%Val) ) THEN
-               CALL ERROR_STOP( 'Oceanic emissions not defined', LOC )
-            ENDIF
-         ENDIF
-
-         IF ( LBIODIURNAL ) THEN
-            IF ( IDbal < 1 ) THEN
-               CALL ERROR_STOP( 'CO2bal not defined' ,LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDbal)%Emis%Val) ) THEN
-               CALL ERROR_STOP( 'Balanced biosphere not defined', LOC )
-            ENDIF
-         ENDIF
-
-         IF ( LBIONETCLIM ) THEN
-            IF ( IDnte < 1 ) THEN
-               CALL ERROR_STOP(' CO2nte not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDnte)%Emis%Val) ) THEN
-               CALL ERROR_STOP( 'Net terr. exchange not defined', LOC )
-            ENDIF
-         ENDIF
-
-         IF ( LSHIP ) THEN
-            IF ( IDse < 1 ) THEN
-               CALL ERROR_STOP( 'CO2se not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDse)%Emis%Val) ) THEN
-               CALL ERROR_STOP('Ship emissions not defined',LOC)
-            ENDIF
-         ENDIF
-
-         IF ( LPLANE ) THEN
-            IF ( IDav < 1 ) THEN
-               CALL ERROR_STOP( 'CO2av not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDav)%Emis%Val) ) THEN
-               CALL ERROR_STOP( 'Aviation emissions not defined', LOC )
-            ENDIF
-         ENDIF
-
-         IF ( LCHEMCO2 ) THEN
-            IF ( IDch < 1 ) THEN
-               CALL ERROR_STOP( 'CO2ch not defined', LOC )
-            ENDIF
-            IF ( IDcorr < 1 ) THEN
-               CALL ERROR_STOP( 'CO2corr not defined', LOC )
-            ENDIF
-            IF ( .not. ASSOCIATED(HcoState%Spc(IDcorr)%Emis%Val) ) THEN
-               CALL ERROR_STOP( 'Surface correction not defined', LOC )
-            ENDIF
-         ENDIF
-
-         !--------------------------------------------------------------
-         ! Also test if the biofuel & biomass species are on
-         ! (i.e. if the pointers in the HEMCO state are associated).
-         ! We can do this just once, outside of the parallel loop
-         !--------------------------------------------------------------
-         BIOFUEL_ON = ASSOCIATED( HcoState%Spc(IDbf)%Emis%Val )
-         BIOMASS_ON = ASSOCIATED( HcoState%Spc(IDbb)%Emis%Val )
-
-         !--------------------------------------------------------------
          ! Error check: For now, the emission grid must be
          ! on the simulation grid.
          !--------------------------------------------------------------
          IF ( HcoState%NX /= IIPAR .OR. 
      &        Hcostate%NY /= JJPAR .OR.
      &        Hcostate%NZ /= LLPAR     ) THEN
-            CALL ERROR_STOP( 'HEMCO grid not same as sim. grid!', LOC )
+            ErrMsg = 'The HEMCO grid not same as the sim. grid!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF 
 
          ! Set first-time flag to false
@@ -405,511 +295,95 @@
       ENDIF
 
       !=================================================================
-      ! Read in monthly, daily or variable emissions fields
-      !=================================================================      
-
-      ! Point to the chemical species ([kg/kg] dry air)
-      Spc  => State_Chm%Species
-
-      ! Get a pointer to the CO2 production from CO oxidation
-      ! This is now listed in the NON-EMISSIONS DATA section of
-      ! the HEMCO configuration file. (bmy, 4/17/15)
-      CALL HCO_GetPtr( am_I_Root,   HcoState, 
-     &                'CO2_COPROD', CO2_COPROD, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'CO2 production not defined', LOC )
-      ENDIF
-
-      !=================================================================
       ! Process emissions and save diagnostics
+      ! #10 CO2 production from CO oxidation
+      !
+      ! NOTE: Emissions for all other tagged species are now handled
+      ! directly via HEMCO.  Therefore, we can move the IF statement
+      ! out of the DO loop, so that the DO loop will only execute
+      ! if Input_Opt%LCHEMCO2 is TRUE.  We can also move the L-loop
+      ! to the outermost loop, which is more efficient.
       !=================================================================
+      IF ( Input_Opt%LCHEMCO2 ) THEN
+
+         ! Point to chemical species array [kg/kg dry air]
+         Spc => State_Chm%Species
+
+         ! %%% NOTE: This might be able to be done just in init %%%
+         ! %%% as the HEMCO pointer will evolve in time %%%%%%%%%%%
+         ! Get a pointer to the CO2 production from CO oxidation
+         ! This is now listed in the NON-EMISSIONS DATA section of
+         ! the HEMCO configuration file. (bmy, 4/17/15)
+         CALL HCO_GetPtr( am_I_Root,   HcoState, 
+     &                   'CO2_COPROD', CO2_COPROD, RC )
+
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'CO2 production is not defined in HEMCO!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Loop over all grid boxes
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( J, I, A_CM2, E_CO2, N )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+!$OMP+PRIVATE( I, J, L, E_CO2, N )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
 
-!         ! Grid box surface area [cm2]
-!         A_CM2 = HcoState%Grid%AREA_M2%Val( I, J ) * CM2PERM2
+            ! Production is in [kg/m3], convert to [molec/cm2/s]
+            E_CO2 = CO2_COPROD(I,J,L)                        ! kg/m3
+     &            / CM3PERM3                                 ! => kg/cm3
+     &            * XNUMOL_CO2                               ! => molec/cm3
+     &            / DTSRCE                                   ! => molec/cm3/s
+     &            * 100                                      ! => molec/cm2/s
 
-         !-------------------------------------------
-         ! #1: Total CO2
-         ! #2: CO2 from fossil fuel emissions 
-         !-------------------------------------------
-         IF ( LFOSSIL ) THEN
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(IDff)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Fossil Fuel CO2 [molec/cm2/s] 
+#if defined( BPCH_DIAG )
+            !==========================================================
+            ! %%%%% ND04 (bpch) DIAGNOSTICS %%%%%
+            ! 
+            ! Save production of CO2 from CO oxidation [molec/cm2/s]
+            !==========================================================
             IF ( ND04 > 0 ) THEN
-               AD04(I,J,1) = AD04(I,J,1) + E_CO2
+               AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
             ENDIF
+#endif
 
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 5/10/17)
-            E_CO2  =  HcoState%Spc(IDff)%Emis%Val(I,J,1)
-     &                * DTSRCE * ( 1.0e+0_fp / ( g0_100
-     &                * State_Met%DELP_DRY(I,J,1) ) )
+#if defined( NC_DIAG )
+            !==========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            ! 
+            ! Save production of CO2 from CO oxidation [kg/m2/s]
+            !==========================================================
+            IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
+               State_Diag%ProdCO2fromCO(I,J,L) = E_CO2       ! molec/cm2/s 
+     &                                         / XNUMOL_CO2  ! => kg/cm2/s
+     &                                         * 1e4_fp      ! => kg/m2/s
+
+            ENDIF
+#endif
+
+            ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
+            ! (ewl, 9/11/15)
+            E_CO2  =  E_CO2 * DTSRCE * CM2PERM2 /
+     &                ( XNUMOL_CO2 * State_Met%DELP(I,J,L) 
+     &                * G0_100 * ( 1.0e+0_fp
+     &                - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
 
             ! Add to Species #1: Total CO2 [kg/kg]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
+            Spc(I,J,L,1) = Spc(I,J,L,1) + E_CO2
 
-	     ! Add to Species #2: Fossil CO2 [kg/kg]
-            IF ( nAdvect > 1 ) THEN
-               Spc(I,J,1,2)   = Spc(I,J,1,2) + E_CO2
-
-               ! Split Fossil Fuel CO2 into geographic regions
-               IF ( LFOSSILTAG ) THEN
-                  N            = FOSSIL_REGION(I,J)
-                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-               ENDIF
-            ENDIF
-
-	     ! Add to Species #12: Background with Fossil CO2 [kg/kg]
-            IF ( LFFBKGRD ) THEN
-               Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
-            ENDIF
-
-	   ! Note: To define the background as including fossil fuels here 
-           ! (instead of during data processing) for tagged-CO2 runs which 
-           ! will be used for estimating natural bio/ocean fluxes etc., and 
-           ! accepting the FF inventory
-           ! use Spc(I,J,1,12) = Spc(I,J,1,12) + E_CO2.
-	   ! Shipping and aviation emissions can be included in a similar way.
-	   
-         ENDIF
-
-         !-------------------------------------------
-         ! #3: CO2 from ocean exchange
-         !-------------------------------------------
-         IF ( LOCEAN ) THEN
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(IDoc)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Ocean CO2 [molec/cm2/s]
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,2) = AD04(I,J,2) + E_CO2
-            ENDIF
-
-! old
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
-            E_CO2  =  HcoState%Spc(IDoc)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-            ! Add to Species #1: Total CO2 [kg/kg]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-
-            ! Add to Species #3: Ocean CO2 [kg/kg]
-            IF ( nAdvect > 2 ) THEN
-               Spc(I,J,1,3)   = Spc(I,J,1,3) + E_CO2   
-
-               ! Split ocean CO2 into geographic regions
-               IF ( LBIOSPHTAG ) THEN
-                  N            = OCEAN_REGION(I,J)
-                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !-------------------------------------------
-         ! #4: CO2 from balanced biosphere emissions
-         !-------------------------------------------
-         IF ( LBIODIURNAL ) THEN
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(IDbal)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Bal Bio CO2 [molec/cm2/s]
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,3) = AD04(I,J,3) + E_CO2
-            ENDIF
-
-! old
-!           ! Convert from [molec/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-! new
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
-            E_CO2  =  HcoState%Spc(IDbal)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
- 
-            ! Add to Species #1 -- total CO2 [kg/kg]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-
-            ! Add to Species #4 -- Bal Bio CO2 [kg/kg]
-            IF ( nAdvect > 3 ) THEN
-               Spc(I,J,1,4)   = Spc(I,J,1,4) + E_CO2
-                
-               	! Split biospheric CO2 exchange into geographic regions
-               IF ( LBIOSPHTAG ) THEN
-                  N            = BIOSPH_REGION(I,J)
-                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-               ENDIF
-            ENDIF	
-         ENDIF
-
-         !-------------------------------------------
-         ! #5: CO2 from biomass burning emissions
-         !-------------------------------------------
-         IF ( IDbb > 0 ) THEN
-
-            ! Emission array will only be defined if biomass burning
-            ! is enabled in HEMCO configuration file.
-            IF ( BIOMASS_ON ) THEN
-
-               ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-               E_CO2 = HcoState%Spc(IDbb)%Emis%Val(I,J,1) 
-     &               / CM2PERM2 
-     &               * XNUMOL_CO2
-   
-               ! ND04 diag: Biomass burning CO2 [molec/cm2/s]
-               IF ( ND04 > 0 ) THEN
-                  AD04(I,J,4) = AD04(I,J,4) + E_CO2
-               ENDIF
-
-! old   
-!               ! Convert from [molec/cm2/s] to [kg]
-!               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2 
-! new
-               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-               ! (ewl, 9/11/15)
-               E_CO2  =  HcoState%Spc(IDbb)%Emis%Val(I,J,1)
-     &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                   * G0_100 * ( 1.0e+0_fp
-     &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)   
-               ! Add to Species #1: Total CO2 [kg/kg]
-               Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-               
-               ! Add to Species #5: Biomass burning CO2 [kg/kg]
-               IF ( nAdvect > 4 ) THEN
-                  Spc(I,J,1,5)   = Spc(I,J,1,5) + E_CO2
-   
-                  ! Split Bioburn CO2 into geographic regions
-                  IF ( LBIOSPHTAG ) THEN
-                     N            = BIOSPH_REGION(I,J)
-                     Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDIF
-
-         !-------------------------------------------
-         ! #6: CO2 from biofuel emissions
-         !-------------------------------------------
-         IF ( IDbf > 0 ) THEN
-
-            ! Emission array will only be defined if biofuel emissions
-            ! are specified in HEMCO configuration file. 
-            IF ( BIOFUEL_ON ) THEN
-   
-               ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-               E_CO2 = HcoState%Spc(IDbf)%Emis%Val(I,J,1) 
-     &               / CM2PERM2 
-     &               * XNUMOL_CO2
-   
-               ! ND04 diag: Biofuel CO2 [molec/cm2/s] 
-               IF ( ND04 > 0 ) THEN
-                  AD04(I,J,5) = AD04(I,J,5) + E_CO2
-               ENDIF
-
-! old   
-!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!               E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-               ! (ewl, 9/11/15)
-               E_CO2  =  HcoState%Spc(IDbf)%Emis%Val(I,J,1)
-     &                   * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                   * G0_100 * ( 1.0e+0_fp
-     &                   - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
-   
-               ! Add to Species #1: Total CO2 [kg/kg]
-               Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-   
-               ! Add to Species #6: Biofuel CO2 [kg/kg]
-               IF (nAdvect > 5) THEN
-                  Spc(I,J,1,6)   = Spc(I,J,1,6) + E_CO2
-   
-                  ! Split BF CO2 into geographic regions
-                  IF ( LBIOSPHTAG ) THEN
-                     N            = BIOSPH_REGION(I,J)
-                     Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-                  ENDIF
-               ENDIF
-            ENDIF
-         ENDIF
-   
-         !-------------------------------------------
-         ! #7: CO2 from net terrestrial exchange
-         !-------------------------------------------
-         IF ( LBIONETCLIM ) THEN
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(IDnte)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: net terrestrial exchange [molec/cm2/s]
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,6) = AD04(I,J,6) + E_CO2
-            ENDIF
-
-! old
-!            ! Convert from [molec/cm2/s] to [kg]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
-            E_CO2  =  HcoState%Spc(IDnte)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-            ! Add to Species #1: Total CO2 [kg CO2]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-
-            ! Add to Species #7: Net Terr exchange CO2 [kg]
-            IF ( nAdvect > 6 ) THEN
-               Spc(I,J,1,7)   = Spc(I,J,1,7) + E_CO2
-
-               ! Split Net Terr Exch CO2 into geographic regions
-               IF ( LBIOSPHTAG ) THEN
-                  N            = BIOSPH_REGION(I,J)
-                  Spc(I,J,1,N) = Spc(I,J,1,N) + E_CO2
-               ENDIF
-            ENDIF	
-         ENDIF
-
-         !-------------------------------------------
-         ! #8: CO2 from ship emissions
-         !-------------------------------------------
-         IF ( LSHIP ) THEN
-
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            E_CO2 = HcoState%Spc(IDse)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: Ship CO2 [molec/cm2/s] 
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,7) = AD04(I,J,7) + E_CO2
-            ENDIF
-
-! old
-!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
-            E_CO2  =  HcoState%Spc(IDse)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-            ! Add to Species #1: Total CO2 [kg/kg]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) + E_CO2
-
-            ! Add to Species #8: Ship CO2 [kg/kg]
-            IF (nAdvect > 7) THEN
-               Spc(I,J,1,8)   = Spc(I,J,1,8) + E_CO2
- 
-              	! Tagged species for global ship emissions
-               IF ( LSHIPTAG ) THEN
-                  Spc(I,J,1,53) = Spc(I,J,1,53) + E_CO2
-               ENDIF
-            ENDIF
-
-	   ! Add to Species #12: Background with Fossil CO2 [kg/kg]
-           !-------------------------------------------
-	   !IF ( LFFBKGRD ) THEN
-           !   Spc(I,J,1,12)   = Spc(I,J,1,12) + E_CO2
-	   !ENDIF
-           !-------------------------------------------
-	   ! Uncomment to include ship CO2 emissions in the background
-
-         ENDIF
-	   
-         !-------------------------------------------
-         ! #9: CO2 from aviation emissions
-         !-------------------------------------------
-         IF ( LPLANE ) THEN
-
-            DO L = 1, LLPAR
-
-               ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-               E_CO2 = HcoState%Spc(IDav)%Emis%Val(I,J,L) 
-     &               / CM2PERM2 
-     &               * XNUMOL_CO2
-
-               ! ND04 diag: Aviation CO2 [molec/cm2/s]  
-               ! !Unit change in v10 
-               IF ( ND04 > 0 ) THEN
-                  AD04_plane(I,J,L) = AD04_plane(I,J,L) + E_CO2
-               ENDIF
-
-! old
-!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
-!               ! Unit change in v10
-!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-               ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-               ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-               ! (ewl, 9/11/15)
-               E_CO2  =  HcoState%Spc(IDav)%Emis%Val(I,J,L)
-     &                   * DTSRCE / ( State_Met%DELP(I,J,L) 
-     &                   * G0_100 * ( 1.0e+0_fp
-     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-               ! Add to Species #1: Total CO2 [kg/kg]
-               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
-
-               ! Add to Species #9: Aviation CO2 [kg/kg]
-               IF ( nAdvect > 8 ) THEN
-                  Spc(I,J,L,9) = Spc(I,J,L,9) + E_CO2
- 
-              	  ! Tagged species for global aviation emissions
-                  IF ( LPLANETAG ) THEN
-                     Spc(I,J,L,54) = Spc(I,J,L,54) + E_CO2
-                  ENDIF
-               ENDIF
-	
-	      ! Add to Species #12: Background with Fossil CO2 [kg]
-              !-------------------------------------------
-	      !IF (LFFBKGRD) THEN
-	      !   Spc(I,J,L,12)   = Spc(I,J,L,12) + E_CO2
-	      !ENDIF
-              !-------------------------------------------
-	      ! Uncomment to include aviation CO2 emissions in the background
-
-            ENDDO
-         ENDIF
- 
-         !-------------------------------------------
-         ! #10 CO2 production from CO oxidation
-         !-------------------------------------------
-         IF ( LCHEMCO2 ) THEN
-
-            DO L = 1, LLPAR
-         
-               ! Production is in [kg/m3], convert to [molec/cm2/s]
-               E_CO2 = CO2_COPROD(I,J,L)
-     &               / CM3PERM3
-     &               * XNUMOL_CO2
-     &               / DTSRCE
-     &               * 100 !per area (cm2) instead of per volume (cm3)
-
-	       ! ND04 diag: CO2 chem source from CO loss (3-D) [molec/cm2/s] 
-               !Unit change in v10 
-               IF ( ND04 > 0 ) THEN
-                  AD04_chem(I,J,L) = AD04_chem(I,J,L) + E_CO2
-               ENDIF
-
-! old
-!               ! Convert E_CO2 from [molec CO2/cm2/s] to [kg]   
-!               ! Unit change in v10
-!               E_CO2 = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-               ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
-               ! (ewl, 9/11/15)
-               E_CO2  =  E_CO2 * DTSRCE * CM2PERM2 /
-     &                   ( XNUMOL_CO2 * State_Met%DELP(I,J,L) 
-     &                   * G0_100 * ( 1.0e+0_fp
-     &                   - State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-               ! Add to Species #1: Total CO2 [kg/kg]
-               Spc(I,J,L,1)   = Spc(I,J,L,1) + E_CO2
-
-               ! Add to Species #10: Chemical Source of CO2 [kg/kg]
-               IF (nAdvect > 9) THEN
-                  Spc(I,J,L,10)   = Spc(I,J,L,10) + E_CO2
-               ENDIF
-		
-            ENDDO
-         ENDIF
-
-         !-------------------------------------------
-         ! #11 CO2 surface correction for CO oxidation
-         !-------------------------------------------
-         IF ( LCHEMCO2 ) THEN
-            
-            ! Get emissions [kg/m2/s] and convert to [molec/cm2/s]
-            ! Emissions are only defined at surface, so set L=1.
-            E_CO2 = HcoState%Spc(IDcorr)%Emis%Val(I,J,1) 
-     &            / CM2PERM2 
-     &            * XNUMOL_CO2
-
-            ! ND04 diag: CO2 chem source surface correction [molec/cm2/s] 
-            IF ( ND04 > 0 ) THEN
-               AD04(I,J,10) = AD04(I,J,10) - E_CO2 ! SUBTRACT
-            ENDIF
-
-! old
-!            ! Convert E_CO2 from [molec CO2/cm2/s] to [kg CO2]
-!            E_CO2          = E_CO2 * A_CM2 * DTSRCE / XNUMOL_CO2
-! new
-            ! Get emissions [kg/m2/s] and convert to [kg/kg dry air]
-            ! using method in ConvertSpc_Kgm2_to_KgKgDry in unitconv_mod
-            ! (ewl, 9/11/15)
-            E_CO2  =  HcoState%Spc(IDcorr)%Emis%Val(I,J,1)
-     &                * DTSRCE / ( State_Met%DELP(I,J,1) 
-     &                * G0_100 * ( 1.0e+0_fp
-     &                - State_Met%SPHU(I,J,1) * 1.0e-3_fp ) )        
-! end new (ewl)
-
-            ! Subtract from Species #1: Total CO2 [kg/kg]
-            Spc(I,J,1,1)   = Spc(I,J,1,1) - E_CO2
-
-            ! Subtract from Species #11: Chem Source Surf Correction [kg/kg]
-            IF ( nAdvect > 10 ) THEN
-               Spc(I,J,1,11)   = Spc(I,J,1,11) - E_CO2
+            ! Add to Species #10: Chemical Source of CO2 [kg/kg]
+            IF ( nAdvect > 9 ) THEN
+               Spc(I,J,L,10) = Spc(I,J,L,10) + E_CO2
             ENDIF
 		
-         ENDIF
-
-         !-------------------------------------------
-         ! #12: Background CO2
-         !-------------------------------------------
-         ! Background CO2 without fossil fuels is obtained by setting 
-         ! species 12 in the restart file, equal to species 1 at the start of 
-         ! a run.  No sources or sinks (chemical or surface) act on this 
-         ! species if LFFBKGRD == FALSE, it is simply the advected intial CO2.
-	 ! To include fossil fuels in the background, see the first loop.
-
-      ENDDO
-      ENDDO
+         ENDDO
+         ENDDO
+         ENDDO
 !$OMP END PARALLEL DO
-
+      ENDIF
+         
       ! Free pointers
       Spc        => NULL()
       CO2_COPROD => NULL()

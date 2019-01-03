@@ -299,9 +299,9 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if defined( GEOS_FP )
+#if   defined( GRID025x03125 )
  dlon = 2.*pi / float(1152)      !(dan)
-#elif defined( MERRA2 )
+#elif defined( GRID05x0625 )
  dlon = 2.*pi / float(576)       !(dan)
 #endif
 

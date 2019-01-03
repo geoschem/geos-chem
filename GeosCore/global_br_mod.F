@@ -151,18 +151,32 @@
       LOGICAL, SAVE      :: FIRST = .TRUE. 
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'GET_GLOBAL_Br (global_br_mod.F)'
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! GET_GLOBAL_BR begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at GET_GLOBAL_Br (in GeosCore/global_br_mod.F)'
 
       ! Allocate BR array, if this is the first call
       IF ( FIRST ) THEN
-         CALL INIT_GLOBAL_BR()
+      
+         ! Initialize arrays
+         CALL INIT_GLOBAL_BR( am_I_Root, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in call to "INIT_GLOBAL_BR"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Reset first-time flag
          FIRST = .FALSE.
       ENDIF
 
@@ -174,9 +188,13 @@
 
          ! Get a pointer to the the GEOS-Chem Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GC', Br_GC,  RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to Br_GC', LOC )
-         ENDIF
+            ErrMsg = 'Cannot get pointer to HEMCO field Br_GC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Convert ppbv -> pptv
          Br_TROP  = Br_GC * 1e+3_fp                         
@@ -187,9 +205,13 @@
 
          ! Get a pointer to the GEOS-Chem BrO from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GC', BrO_GC, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to BrO_GC', LOC )
-         ENDIF
+            ErrMsg = 'Cannot get pointer to HEMCO field BrO_GC!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Convert ppbv -> pptv
          BrO_TROP  = BrO_GC * 1e+3_fp      
@@ -203,9 +225,13 @@
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root,  HcoState, 
      &                   'Br_TOMCAT', Br_TOMCAT, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
-         ENDIF
+            ErrMsg = 'Cannot get pointer to HEMCO field Br_TOMCAT!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Store in Br_TROP array [pptv]
          Br_TROP = BR_TOMCAT
@@ -217,9 +243,13 @@
          ! Get a pointer to the TOMCAT Br from HEMCO (bmy, 3/11/15)
          CALL HCO_GetPtr( am_I_Root,   HcoState, 
      &                   'BrO_TOMCAT', BrO_TOMCAT, RC )
+
+         ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to Br_TOMCAT', LOC )
-         ENDIF
+            ErrMsg = 'Cannot get pointer to HEMCO field BrO_TOMCAT!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Store in BrO_TROP array [pptv]
          BrO_TROP = BRO_TOMCAT
@@ -232,9 +262,13 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 'Br_GMI', Br_GMI, RC )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to Br_GMI', LOC )
-      ENDIF
+         ErrMsg = 'Cannot get pointer to HEMCO field Br_GMI!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
 
       ! Store in BrO_TROP array [pptv]
       Br_STRAT = Br_GMI
@@ -245,9 +279,13 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 'BrO_GMI', BrO_GMI, RC )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to BrO_GMI', LOC )
-      ENDIF
+         ErrMsg = 'Cannot get pointer to HEMCO field BrO_GMI!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
 
       ! Store in BrO_TROP array [pptv]
       BrO_STRAT = BrO_GMI
@@ -290,9 +328,13 @@
 
       ! Get a pointer to the GMI Br from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 'JBrO', JBrO, RC )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to JBrO', LOC )
-      ENDIF
+         ErrMsg = 'Cannot get pointer to HEMCO field JBrO!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
 
       ! Assign data from ARRAY2 to the module variable BR
       J_BrO(:,:,1:LLCHEM_FIX) = JBrO(:,:,1:LLCHEM_FIX)
@@ -312,70 +354,92 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_Br
+      SUBROUTINE INIT_GLOBAL_Br( am_I_Root, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD 
-      USE ERROR_MOD, ONLY : ALLOC_ERR
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  !
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
 !  01 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  11 Oct 2018 - R. Yantosca - Add am_I_Root, RC; improve error trapping
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
       ! INIT_GLOBAL_BR begins here!
       !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at Init_Global_Br (in module GeosCore/global_br_mod.F)'
 
       !-------------------------------------
       ! Br Arrays
       !-------------------------------------
 
       ! Allocate BR_TROP array
-      ALLOCATE( BR_TROP( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_TROP' )
+      ALLOCATE( BR_TROP( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BR_TROP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BR_TROP = 0e+0_fp
 
       ! Allocate BR_STRAT array
-      ALLOCATE( BR_STRAT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_STRAT' )
+      ALLOCATE( BR_STRAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BR_STRAT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BR_STRAT = 0e+0_fp
 
       ! Allocate BR_MERGE array
-      ALLOCATE( BR_MERGE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BR_MERGE' )
+      ALLOCATE( BR_MERGE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BR_MERGE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BR_MERGE = 0e+0_fp
-
 
       !-------------------------------------
       ! BrO Arrays
       !-------------------------------------
 
       ! Allocate J_BrO array
-      ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'J_BrO' )
+      ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:J_BrO', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       J_BrO = 0e+0_fp
 
       ! Allocate BrO_TROP array
-      ALLOCATE( BrO_TROP( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_TROP' )
+      ALLOCATE( BrO_TROP( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BRO_TROP', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BrO_TROP = 0e+0_fp
 
       ! Allocate BrO_STRAT array
-      ALLOCATE( BrO_STRAT( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_STRAT' )
+      ALLOCATE( BrO_STRAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BRO_STRAT', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BrO_STRAT = 0e+0_fp
 
       ! Allocate BrO_MERGE array
-      ALLOCATE( BrO_MERGE( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'BrO_MERGE' )
+      ALLOCATE( BrO_MERGE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'global_br_mod.F:BrO_MERGE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       BrO_MERGE = 0e+0_fp
 
       END SUBROUTINE INIT_GLOBAL_BR
@@ -392,7 +456,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_GLOBAL_Br
+      SUBROUTINE CLEANUP_GLOBAL_Br( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
@@ -403,13 +479,52 @@
       !=================================================================
       ! CLEANUP_GLOBAL_BR begins here!
       !=================================================================
-      IF ( ALLOCATED( BR_TROP   ) ) DEALLOCATE( BR_TROP   ) 
-      IF ( ALLOCATED( BR_STRAT  ) ) DEALLOCATE( BR_STRAT  )  
-      IF ( ALLOCATED( BR_MERGE  ) ) DEALLOCATE( BR_MERGE  ) 
-      IF ( ALLOCATED( J_BrO     ) ) DEALLOCATE( J_BrO     ) 
-      IF ( ALLOCATED( BrO_TROP  ) ) DEALLOCATE( BrO_TROP  ) 
-      IF ( ALLOCATED( BrO_STRAT ) ) DEALLOCATE( BrO_STRAT )      
-      IF ( ALLOCATED( BrO_MERGE ) ) DEALLOCATE( BrO_MERGE ) 
+
+      ! Assume success
+      RC = GC_SUCCESS
+
+      ! Deallocate variables
+      IF ( ALLOCATED( Br_TROP ) ) THEN
+         DEALLOCATE( Br_TROP, STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:Br_TROP', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( Br_STRAT ) ) THEN
+         DEALLOCATE( Br_STRAT, STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:Br_STRAT', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( Br_MERGE ) ) THEN
+         DEALLOCATE( Br_MERGE , STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:Br_MERGE ', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( J_BrO ) ) THEN
+         DEALLOCATE( J_BrO, STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:J_BrO', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( BrO_TROP ) ) THEN
+         DEALLOCATE( BrO_TROP, STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:BrO_TROP', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( BrO_STRAT ) ) THEN
+         DEALLOCATE( BrO_STRAT, STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:BrO_STRAT', 2, RC )
+         RETURN
+      ENDIF
+
+      IF ( ALLOCATED( BrO_MERGE ) ) THEN
+         DEALLOCATE( BrO_MERGE , STAT=RC )     
+         CALL GC_CheckVar( 'global_br_mod.F:BrO_MERGE ', 2, RC )
+         RETURN
+      ENDIF
 
       ! Free pointers
       Br_GC      => NULL()

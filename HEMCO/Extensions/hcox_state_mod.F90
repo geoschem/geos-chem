@@ -99,8 +99,8 @@ MODULE HCOX_STATE_MOD
      !----------------------------------------------------------------------
      INTEGER                   :: Custom         ! Customizable ext.
      INTEGER                   :: DustDead       ! DEAD dust model
-     LOGICAL                   :: DustGinoux     ! Ginoux dust emissions
-     LOGICAL                   :: DustAlk        ! Dust alkalinity
+     INTEGER                   :: DustGinoux     ! Ginoux dust emissions
+     INTEGER                   :: DustAlk        ! Dust alkalinity
      INTEGER                   :: LightNOx       ! Lightning NOx
      INTEGER                   :: ParaNOx        ! PARANOX ship emissions
      INTEGER                   :: SoilNOx        ! Soil NOx emissions
@@ -110,10 +110,10 @@ MODULE HCOX_STATE_MOD
      INTEGER                   :: MarinePOA      ! Marine organic aerosols
      INTEGER                   :: GFED           ! GFED biomass burning
      INTEGER                   :: FINN           ! FINN biomass burning
-     LOGICAL                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
-     LOGICAL                   :: GC_POPs        ! GEOS-Chem POPs simulation
+     INTEGER                   :: GC_RnPbBe      ! GEOS-Chem Rn-Pb-Be simulation
+     INTEGER                   :: GC_POPs        ! GEOS-Chem POPs simulation
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
-     LOGICAL                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
+     INTEGER                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
      INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
      INTEGER                   :: AeroCom        ! AeroCom volcano 
      INTEGER                   :: Inorg_Iodine   ! Oceanic inorganic iodine emissions
@@ -300,28 +300,28 @@ CONTAINS
     IF ( .NOT. ASSOCIATED ( ExtState ) ) ALLOCATE ( ExtState )
 
     !-----------------------------------------------------------------------
-    ! Set all switches to FALSE
+    ! Set all switches to -1
     !-----------------------------------------------------------------------
-    ExtState%Custom         = .FALSE.
+    ExtState%Custom         = -1
     ExtState%DustDead       = -1
-    ExtState%DustGinoux     = .FALSE.
-    ExtState%DustAlk        = .FALSE.
+    ExtState%DustGinoux     = -1
+    ExtState%DustAlk        = -1
     ExtState%LightNOx       = -1
-    ExtState%ParaNOx        = .FALSE.
+    ExtState%ParaNOx        = -1
     ExtState%SoilNOx        = -1
     ExtState%Megan          = -1
-    ExtState%SeaFlux        = .FALSE.
-    ExtState%SeaSalt        = .FALSE.
-    ExtState%MarinePOA      = .FALSE.
-    ExtState%GFED           = .FALSE.
-    ExtState%FINN           = .FALSE.
-    ExtState%GC_RnPbBe      = .FALSE.
-    ExtState%GC_POPs        = .FALSE.
+    ExtState%SeaFlux        = -1
+    ExtState%SeaSalt        = -1
+    ExtState%MarinePOA      = -1
+    ExtState%GFED           = -1
+    ExtState%FINN           = -1
+    ExtState%GC_RnPbBe      = -1
+    ExtState%GC_POPs        = -1
     ExtState%Wetland_CH4    = -1 
-    ExtState%TOMAS_Jeagle   = .FALSE.
+    ExtState%TOMAS_Jeagle   = -1
     ExtState%TOMAS_DustDead = -1
     ExtState%AeroCom        = -1
-    ExtState%Inorg_Iodine   = .FALSE.
+    ExtState%Inorg_Iodine   = -1
 
     !-----------------------------------------------------------------------
     ! Initialize constants for POPs emissions module

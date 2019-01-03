@@ -499,6 +499,7 @@
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
          Input_Opt%LD21 = MIN( Input_Opt%ND21, LLCHEM )
+         LD21 = Input_Opt%LD21
 
          ! For regular 
          ALLOCATE( AD21( IIPAR, JJPAR, Input_Opt%LD21, PD21 ), STAT=AS )
@@ -873,16 +874,6 @@
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD57' )
       ENDIF
 
-      !=================================================================
-      ! ND58: CH4 emissions 
-      !=================================================================
-      IF ( ND58 > 0 ) THEN 
-
-         ALLOCATE( AD58( IIPAR, JJPAR, PD58), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD58' )
-
-      ENDIF
-
 #if   defined ( TOMAS )
       !=================================================================
       ! ND59: Size-resolved primary aerosol emissions      !(win, 7/9/09)
@@ -1141,7 +1132,6 @@
       Input_Opt%LD52  = LD52
       Input_Opt%LD54  = LD54
       Input_Opt%LD57  = LD57
-      Input_Opt%LD58  = LD58
       Input_Opt%LD59  = LD59
       Input_Opt%LD60  = LD60
       Input_Opt%LD61  = LD61

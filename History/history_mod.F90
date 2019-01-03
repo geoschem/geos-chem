@@ -136,7 +136,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  Calls internal routines History_ReadCollectionNames and
-!  History_Read_CollectionData
+!  History_ReadCollectionData
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -494,6 +494,7 @@ CONTAINS
 !  06 Feb 2018 - E. Lundgren - Change TS_DYN units from minutes to seconds
 !   9 Mar 2018 - R. Yantosca - Now accept "YYYYMMDD hhmmss" as the long format
 !                              for collection frequency and duration attrs
+!  12 Oct 2018 - M. Sulprizio- Add 'End' option for frequency and duration
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -504,6 +505,7 @@ CONTAINS
     LOGICAL                      :: EOF,            Found   
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
+    INTEGER                      :: DeltaYMD,       DeltaHMS
     INTEGER                      :: C,              N,             W
     INTEGER                      :: nX,             nY,            nZ
     INTEGER                      :: fId,            IOS,           LineNum
@@ -582,6 +584,8 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
+    deltaYMD       =  yyyymmdd_end - yyyymmdd
+    deltaHMS       =  hhmmss_end   - hhmmss
 
     ! Convert the HeartBeatDtSec into hours:minutes:seconds
     ! for defining the Update interval for time-averaged collections
@@ -759,15 +763,17 @@ CONTAINS
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN 
-             IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
-                  LEN_TRIM( MetaData ) == 14 ) THEN
+             IF ( LEN_TRIM( MetaData ) == 6     .or.                         &
+                  LEN_TRIM( MetaData ) == 14    .or.                         &
+                  TRIM(     MetaData ) == 'End' .or.                         &
+                  TRIM(     MetaData ) == 'end' ) THEN
                 CollectionFrequency(C) = Metadata
              ELSE
                 ErrMsg = 'Error in defining "frequency" for collection "' // &
-                          TRIM( CollectionName(C) ) // '"!  This field '  // &
-                          'must either be of the format "YYYYMMDD '       // &
-                          'hhmmss" or "hhmmss".  Please check the '       // &
-                          '"frequency" setting in the HISTORY.rc file.'
+                         TRIM( CollectionName(C) ) // '"!  This field '   // &
+                         'must either be of the format "YYYYMMDD '        // &
+                         'hhmmss", "hhmmss", or "End".  Please check the '// &
+                         '"frequency" setting in the HISTORY.rc file.'
                 WRITE( ErrorLine, 250 ) LineNum
                 CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
                 RETURN
@@ -809,14 +815,16 @@ CONTAINS
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Line, Pattern, MetaData, C )
           IF ( C > 0 ) THEN
-             IF ( LEN_TRIM( MetaData ) == 6   .or.                           &
-                  LEN_TRIM( MetaData ) == 14 ) THEN
+             IF ( LEN_TRIM( MetaData ) == 6     .or.                         &
+                  LEN_TRIM( MetaData ) == 14    .or.                         &
+                  TRIM(     MetaData ) == 'End' .or.                         &
+                  TRIM(     MetaData ) == 'end' ) THEN
                 CollectionDuration(C) = Metadata
              ELSE
                 ErrMsg = 'Error in defining "duration" for collection "'  // &
-                          TRIM( CollectionName(C) ) // '"!  This field '  // &
+                         TRIM( CollectionName(C) ) // '"!  This field '   // &
                          'must either be of the format "YYYYMMDD '        // &
-                         'hhmmss" or "hhmmss".  Please check the '        // &
+                         'hhmmss", "hhmmss", or "End".  Please check the '// &
                          '"duration" setting in the HISTORY.rc file.'
                 WRITE( ErrorLine, 250 ) LineNum
                 CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
@@ -998,12 +1006,24 @@ CONTAINS
           ! both FileWriteYmd and FileWriteHms.  This is a hack that we 
           ! introduced for GEOS-Chem "Classic" only, as this feature is
           ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          !
+          ! Add capability to set frequency to 'End'. In that case, the
+          ! data will be written to the netCDF file at the end of the
+          ! simulation. This is especially useful for the Restart collection
+          ! for saving fields needed for subsequent GEOS-Chem runs.
+          ! FileCloseYmd and FileCloseHms will be computed as the amount
+          ! of time between the start and end of the simulation.
+          ! (mps, 10/12/18)
           !-----------------------------------------------------------------
           IF ( LEN_TRIM( CollectionFrequency(C) ) == 6 ) THEN
              READ( CollectionFrequency(C), '(i6.6)'  ) FileWriteHms           
           ELSE IF ( LEN_TRIM( CollectionFrequency(C) ) == 14 ) THEN
              READ( CollectionFrequency(C), '(i8,i6)' ) FileWriteYmd,         &
                                                        FileWriteHms
+          ELSE IF ( TRIM( CollectionFrequency(C) ) == 'End'   .or.         &
+                    TRIM( CollectionFrequency(C) ) == 'end' ) THEN
+             FileWriteYmd = DeltaYMD
+             FileWriteHms = DeltaHMS
           ENDIF
 
           ! SPECIAL CASE: If FileWriteHms is 240000, set
@@ -1031,6 +1051,14 @@ CONTAINS
           ! both FileCloseYmd and FileCloseHms.  This is a hack that we 
           ! introduced for GEOS-Chem "Classic" only, as this feature is
           ! not yet supported in MAPL.  (sde, bmy, 8/4/17, 10/26/17)
+          !
+          ! Add capability to set duration to 'End'. In that case, the
+          ! netCDF file will be closed at the end of the simulation.
+          ! This is especially useful for the Restart collection 
+          ! for saving fields needed for subsequent GEOS-Chem runs.
+          ! FileCloseYmd and FileCloseHms will be computed as the amount
+          ! of time between the start and end of the simulation.
+          ! (mps, 10/12/18)
           !-----------------------------------------------------------------
           IF ( TRIM( CollectionDuration(C) ) == UNDEFINED_STR ) THEN
              FileCloseYmd = FileWriteYmd
@@ -1040,7 +1068,10 @@ CONTAINS
           ELSE IF ( LEN_TRIM( CollectionDuration(C) ) == 14 ) THEN
              READ( CollectionDuration(C), '(i8,i6)' ) FileCloseYmd,          &
                                                       FileCloseHms
-          ELSE
+          ELSE IF ( TRIM( CollectionDuration(C) ) == 'End'   .or.          &
+                    TRIM( CollectionDuration(C) ) == 'end' ) THEN
+             FileCloseYmd = DeltaYMD
+             FileCloseHms = DeltaHMS
           ENDIF
 
           ! SPECIAL CASE: If FileCloseHms is 240000, set
@@ -1173,6 +1204,9 @@ CONTAINS
                                      StartTimeStamp = StartTimeStamp,        &
                                      EndTimeStamp   = EndTimeStamp,          &
                                      RC             = RC                    )
+
+          ! Update CollectionFileName
+          CollectionFileName(C) = TRIM( Container%FileName )
 
           ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1498,7 +1532,7 @@ CONTAINS
 !         print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
 
-          ! Trap error if the collection freuency is undefined
+          ! Trap error if the collection frequency is undefined
           ! This indicates an error in parsing the file
           IF ( TRIM( CollectionFrequency(C) ) == UNDEFINED_STR ) THEN
              ErrMsg = 'Collection: ' // TRIM( CollectionName(C) ) //         &
@@ -1510,8 +1544,10 @@ CONTAINS
        ENDDO
     ENDIF
 
-    ! Print information about each diagnostic collection
-    CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+    IF ( Input_Opt%LPRT .and. am_I_Root ) THEN
+       ! Print information about each diagnostic collection
+       CALL MetaHistContainer_Print( am_I_Root, CollectionList, RC )
+    ENDIF
 
     ! Write spacer
     WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )   
@@ -1617,7 +1653,16 @@ CONTAINS
     TYPE(HistItem),      POINTER :: Item
 
     ! Pointer arrays
+    REAL(fp),            POINTER :: Ptr0d
+    REAL(f8),            POINTER :: Ptr0d_8
+    REAL(f4),            POINTER :: Ptr0d_4
+    INTEGER,             POINTER :: Ptr0d_I
+    REAL(fp),            POINTER :: Ptr1d  (:    )
+    REAL(f8),            POINTER :: Ptr1d_8(:    )
+    REAL(f4),            POINTER :: Ptr1d_4(:    )
+    INTEGER,             POINTER :: Ptr1d_I(:    )
     REAL(fp),            POINTER :: Ptr2d  (:,:  )
+    REAL(f8),            POINTER :: Ptr2d_8(:,:  )
     REAL(f4),            POINTER :: Ptr2d_4(:,:  )
     INTEGER,             POINTER :: Ptr2d_I(:,:  )
     REAL(fp),            POINTER :: Ptr3d  (:,:,:)
@@ -1640,7 +1685,16 @@ CONTAINS
     ItemNameUC  = To_UpperCase( ItemName )
     StateMetUC  = State_Met%State // '_'   ! State_Met%State is uppercase
     StateChmUC  = State_Chm%State // '_'   ! State_Chm%State is uppercase
+    Ptr0d       => NULL()
+    Ptr0d_8     => NULL()
+    Ptr0d_4     => NULL()
+    Ptr0d_I     => NULL()
+    Ptr1d       => NULL()
+    Ptr1d_8     => NULL()
+    Ptr1d_4     => NULL()
+    Ptr1d_I     => NULL()
     Ptr2d       => NULL()
+    Ptr2d_8     => NULL()
     Ptr2d_4     => NULL()
     Ptr2d_I     => NULL()
     Ptr3d       => NULL()
@@ -1668,8 +1722,22 @@ CONTAINS
                              Rank         = Rank,                            &
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
+                             Ptr2d        = Ptr2d,                           &
                              Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
+                             Ptr2d_8      = Ptr2d_8,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
+                             Ptr2d_I      = Ptr2d_I,                         &
+                             Ptr3d_I      = Ptr3d_I,                         &
                              RC           = RC                                 )
 
        ! Trap potential not found error
@@ -1685,21 +1753,33 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Meteorology State
        !--------------------------------------------------------------------
-       CALL Registry_Lookup( am_I_Root    = am_I_Root,                      &
-                             Registry     = State_Met%Registry,             &
-                             State        = State_Met%State,                &
-                             Variable     = ItemName,                       &
-                             Description  = Description,                    &
-                             Dimensions   = Dimensions,                     &
-                             KindVal      = KindVal,                        &
-                             Rank         = Rank,                           &
-                             Units        = Units,                          &
-                             OnLevelEdges = OnLevelEdges,                   &
-                             Ptr2d        = Ptr2d,                          &
-                             Ptr3d        = Ptr3d,                          &
-                             Ptr2d_I      = Ptr2d_I,                        &
-                             Ptr3d_I      = Ptr3d_I,                        &
-                             RC           = RC                                )
+       CALL Registry_Lookup( am_I_Root    = am_I_Root,                       &
+                             Registry     = State_Met%Registry,              &
+                             State        = State_Met%State,                 &
+                             Variable     = ItemName,                        &
+                             Description  = Description,                     &
+                             Dimensions   = Dimensions,                      &
+                             KindVal      = KindVal,                         &
+                             Rank         = Rank,                            &
+                             Units        = Units,                           &
+                             OnLevelEdges = OnLevelEdges,                    &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
+                             Ptr2d        = Ptr2d,                           &
+                             Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
+                             Ptr2d_8      = Ptr2d_8,                         &
+                             Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
+                             Ptr2d_I      = Ptr2d_I,                         &
+                             Ptr3d_I      = Ptr3d_I,                         &
+                             RC           = RC                                 )
 
        ! Trap potential not found error
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1724,9 +1804,20 @@ CONTAINS
                              Rank         = Rank,                            &
                              Units        = Units,                           &
                              OnLevelEdges = OnLevelEdges,                    &
-                             Ptr2d_4      = Ptr2d_4,                         &
+                             Ptr0d        = Ptr0d,                           &
+                             Ptr1d        = Ptr1d,                           &
+                             Ptr2d        = Ptr2d,                           &
+                             Ptr3d        = Ptr3d,                           &
+                             Ptr0d_8      = Ptr0d_8,                         &
+                             Ptr1d_8      = Ptr1d_8,                         &
+                             Ptr2d_8      = Ptr2d_8,                         &
                              Ptr3d_8      = Ptr3d_8,                         &
+                             Ptr0d_4      = Ptr0d_4,                         &
+                             Ptr1d_4      = Ptr1d_4,                         &
+                             Ptr2d_4      = Ptr2d_4,                         &
                              Ptr3d_4      = Ptr3d_4,                         &
+                             Ptr0d_I      = Ptr0d_I,                         &
+                             Ptr1d_I      = Ptr1d_I,                         &
                              Ptr2d_I      = Ptr2d_I,                         &
                              Ptr3d_I      = Ptr3d_I,                         &
                              RC           = RC                                 )
@@ -1772,7 +1863,13 @@ CONTAINS
                           SpaceDim       = Rank,                             &
                           Operation      = Collection%Operation,             &
                           Source_KindVal = KindVal,                          &
+                          Source_0d_8    = Ptr0d_8,                          &
+                          Source_1d      = Ptr1d,                            &
+                          Source_1d_8    = Ptr1d_8,                          &
+                          Source_1d_4    = Ptr1d_4,                          &
+                          Source_1d_I    = Ptr1d_I,                          &
                           Source_2d      = Ptr2d,                            &
+                          Source_2d_8    = Ptr2d_8,                          &
                           Source_2d_4    = Ptr2d_4,                          &
                           Source_2d_I    = Ptr2d_I,                          &
                           Source_3d      = Ptr3d,                            &
@@ -1890,7 +1987,16 @@ CONTAINS
     Collection%nHistItems = Collection%nHistItems + 1
 
     ! Free pointers
+    Ptr0d   => NULL()
+    Ptr0d_8 => NULL()
+    Ptr0d_4 => NULL()
+    Ptr0d_I => NULL()
+    Ptr1d   => NULL()
+    Ptr1d_8 => NULL()
+    Ptr1d_4 => NULL()
+    Ptr1d_I => NULL()
     Ptr2d   => NULL()
+    Ptr2d_8 => NULL()
     Ptr2d_4 => NULL()
     Ptr2d_I => NULL()
     Ptr3d   => NULL()

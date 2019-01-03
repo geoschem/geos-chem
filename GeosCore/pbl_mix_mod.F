@@ -118,6 +118,10 @@
 ! !USES:
 !
       USE ErrCode_Mod
+#if defined( NC_DIAG )
+      USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+      USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
+#endif
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
@@ -126,7 +130,11 @@
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-      USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+#if defined( NC_DIAG )
+      USE Time_Mod,           ONLY : Get_Ts_Dyn
+#endif
+      USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -157,6 +165,7 @@
 !                              of in do_mixing
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  07 Nov 2017 - R. Yantosca - Now return error conditions to calling program
+!  26 Sep 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -175,6 +184,10 @@
       ! Strings
       CHARACTER(LEN=63)  :: OrigUnit 
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+#if defined( NC_DIAG )
+      REAL(fp)           :: DT_Dyn
+#endif
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -208,6 +221,29 @@
       ! The following only needs be done if full PBL mixing is on...
       !=================================================================
       IF ( DO_TURBDAY ) THEN
+
+#if defined( NC_DIAG )
+         !-------------------------------------------------
+         ! Full PBL mixing budget diagnostics - Part 1 of 2
+         !-------------------------------------------------
+         IF ( State_Diag%Archive_BudgetMixing ) THEN
+            ! Get initial column masses
+            CALL Compute_Column_Mass( am_I_Root,                 
+     &                    Input_Opt, State_Met, State_Chm,     
+     &                    State_Chm%Map_Advect,                
+     &                    State_Diag%Archive_BudgetMixingFull, 
+     &                    State_Diag%Archive_BudgetMixingTrop, 
+     &                    State_Diag%Archive_BudgetMixingPBL,  
+     &                    State_Diag%BudgetMass1,               
+     &                    RC ) 
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Mixing budget diagnostics ' //
+     &                  'error 1 (full PBL mixing)'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+         ENDIF
+#endif
 
          !--------------------------
          ! Unit conversion #1
@@ -263,6 +299,45 @@
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
+
+#if defined( NC_DIAG )
+       !-------------------------------------------------
+       ! Full PBL mixing budget diagnostics - Part 2 of 2
+       !-------------------------------------------------
+       IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+          ! Get dynamics timestep [s]
+          DT_Dyn = Get_Ts_Dyn()
+
+          ! Get final column masses and compute diagnostics
+          CALL Compute_Column_Mass( am_I_Root,              
+     &                  Input_Opt, State_Met, State_Chm,     
+     &                  State_Chm%Map_Advect,                
+     &                  State_Diag%Archive_BudgetMixingFull, 
+     &                  State_Diag%Archive_BudgetMixingTrop, 
+     &                  State_Diag%Archive_BudgetMixingPBL,  
+     &                  State_Diag%BudgetMass2,              
+     &                  RC )    
+          CALL Compute_Budget_Diagnostics( am_I_Root,       
+     &                  State_Chm%Map_Advect,                
+     &                  DT_Dyn,                              
+     &                  State_Diag%Archive_BudgetMixingFull, 
+     &                  State_Diag%Archive_BudgetMixingTrop, 
+     &                  State_Diag%Archive_BudgetMixingPBL,  
+     &                  State_Diag%BudgetMixingFull,         
+     &                  State_Diag%BudgetMixingTrop,         
+     &                  State_Diag%BudgetMixingPBL,          
+     &                  State_Diag%BudgetMass1,              
+     &                  State_Diag%BudgetMass2,              
+     &                  RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Mixing budget diagnostics error 2' //
+     &                ' (full PBL mixing)'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+#endif
 
       ENDIF
 
@@ -567,6 +642,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 ! 
 ! !REMARKS:
+
 !  Original subroutine by Dale Allen, Univ of MD.
 !
 ! !REVISION HISTORY: 
@@ -641,17 +717,18 @@
 !
       LOGICAL, SAVE :: FIRST = .TRUE.
 
-      INTEGER           :: I,    J,  L     
-      INTEGER           :: LTOP, N,  NA,    nAdvect            
-      REAL(fp)          :: AA,   CC, CC_AA, AREA_M2, DTCONV
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+      INTEGER            :: I,    J,  L     
+      INTEGER            :: LTOP, N,  NA,    nAdvect            
+      REAL(fp)           :: AA,   CC, CC_AA, AREA_M2, DTCONV
 
       ! Arrays
-      REAL(fp)          :: A(IIPAR,JJPAR)
-      REAL(fp)          :: DTC(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)  
+      REAL(fp)           :: A(IIPAR,JJPAR)
+      REAL(fp)           :: DTC(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)  
 
       ! Pointers
-      REAL(fp), POINTER :: AD(:,:,:)
-      REAL(fp), POINTER :: TC(:,:,:,:)
+      REAL(fp), POINTER  :: AD(:,:,:)
+      REAL(fp), POINTER  :: TC(:,:,:,:)
 
       !=================================================================
       ! TURBDAY begins here!          

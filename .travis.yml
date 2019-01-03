@@ -1,0 +1,20 @@
+sudo: required
+language: c
+services:
+    - docker
+
+before_install:
+- docker pull zhuangjw/docker_gc
+
+script:
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 NO_REDUCED=y CHEM=Standard TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 CHEM=Tropchem TIMERS=1 NC_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=025x03125 NEST=ch CHEM=Tropchem TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=025x03125 NEST=ch CHEM=Tropchem TIMERS=1 NC_DIAG=y BPCH_TIMESER=y BPCH_TPBC=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 BPCH_DIAG=y"
+- docker run -it --rm -v $(pwd):/root/workdir zhuangjw/docker_gc /bin/bash -c "cd /root/workdir && make realclean && make -j4 MET=geosfp GRID=4x5 CHEM=SOA_SVPOA TIMERS=1 NC_DIAG=y"
+
+notifications:
+    slack: gcst:7j7EWzrMDfTbRlG2yYRAbffc

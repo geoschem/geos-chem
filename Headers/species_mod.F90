@@ -169,7 +169,11 @@ MODULE Species_Mod
   REAL(fp), PARAMETER, PUBLIC :: ZERO        =  0.0e+0_fp   ! Flexible precision
   REAL(f8), PARAMETER, PUBLIC :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
 
+#if defined( MODEL_GEOS )
   REAL(fp), PARAMETER, PUBLIC :: MISSING_MW  = -1.0_fp      ! Missing MW values
+#else
+  REAL(fp), PARAMETER, PUBLIC :: MISSING_MW  = 1.0_fp       ! Missing MW values
+#endif
 
   !=========================================================================
   ! Missing species concentration value if not in restart file and special
@@ -220,6 +224,7 @@ MODULE Species_Mod
 !  16 Nov 2017 - E. Lundgren - Add Is_HygroGrowth for cloud diagnostics
 !  27 Nov 2017 - E. Lundgren - Complete implementation for gas, aerosol, and 
 !                              photolysis species categories (id and count)
+!  08 Nov 2018 - E. Lundgren - Do not use neg MW missing value if using GEOS-5
 !EOP
 !------------------------------------------------------------------------------
 !BOC

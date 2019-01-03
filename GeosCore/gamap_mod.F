@@ -1662,16 +1662,6 @@
       OFFSET(N)   = SPACING * 57
 
       N           = N + 1
-      CATEGORY(N) = 'CH4-EMIS'
-      DESCRIPT(N) = 'CH4 Emissions'
-      OFFSET(N)   = SPACING * 50
-
-      N           = N + 1
-      CATEGORY(N) = 'WET-FRAC'
-      DESCRIPT(N) = 'Wetland Fraction'
-      OFFSET(N)   = SPACING * 51
-
-      N           = N + 1
       CATEGORY(N) = 'SHIP-$$$'
       DESCRIPT(N) = 'Ship diagnostics'
       OFFSET(N)   = SPACING * 59
@@ -4584,16 +4574,15 @@
       !-------------------------------------
       IF ( ND04 > 0 ) THEN
          
-         ! Number of tracers
-         ! Increased from 6 to 10. (rnassar, 30/08/10)
-!         NTRAC(04) = 6
-         NTRAC(04) = 10
+         ! NOTE: Most CO2 emissions are now tracked
+         ! via HEMCO diagnostics (bmy, 10/18/18)
+         NTRAC(04) = 1
 
          ! Loop over tracers: CO2-SRCE
          DO T = 1, NTRAC(04)
 
             ! Define quantities
-            UNIT (T,04) = 'atoms C/cm2/s'
+            UNIT (T,04) = 'molec/cm2/s'
             INDEX(T,04) = T + ( SPACING * 40 )
             MOLC (T,04) = 1
             MWT  (T,04) = 12e-3  ! hard-coded MW
@@ -4603,38 +4592,8 @@
             ! Names updated (rnassar, 30/08/10)
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,04) = 'CO2ff'
-                  FNAME(T,04) = 'CO2 fossil fuel emiss'
-               CASE( 2  )
-!                  NAME (T,04) = 'CO2ocn'
-!                  FNAME(T,04) = 'CO2 ocean exchange'
-                  NAME (T,04) = 'CO2oc'
-                  FNAME(T,04) = 'CO2 ocean emissions'
-               CASE( 3  )
-                  NAME (T,04) = 'CO2bal'
-                  FNAME(T,04) = 'CO2 balanced biosphere'
-               CASE( 4  )
-                  NAME (T,04) = 'CO2bb'
-                  FNAME(T,04) = 'CO2 biomass burning emiss'
-               CASE( 5  )
-                  NAME (T,04) = 'CO2bf'
-                  FNAME(T,04) = 'CO2 biofuel emission'
-               CASE( 6  )
-!                  NAME (T,04) = 'CO2net'
-                  NAME (T,04) = 'CO2nte'
-                  FNAME(T,04) = 'CO2 net terr exchange'
-               CASE( 7  )
-                  NAME (T,04) = 'CO2shp'
-                  FNAME(T,04) = 'CO2 ship emissions'
-               CASE( 8  )
-                  NAME (T,04) = 'CO2pln'
-                  FNAME(T,04) = 'CO2 aircraft emissions'
-               CASE( 9  )
                   NAME (T,04) = 'CO2che'
                   FNAME(T,04) = 'CO2 chemical oxidation'
-               CASE( 10  )
-                  NAME (T,04) = 'CO2sur'
-                  FNAME(T,04) = 'CO2 chem surf correction'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -5218,6 +5177,9 @@
                   ! GEOS-3, GEOS-4: CLDTOT
                   NAME (T,21) = 'CLDTOT'
                   FNAME(T,21) = '3-D cloud frc'
+               CASE( 3  )
+                  NAME (T,21) = 'OBSOLETE1'
+                  FNAME(T,21) = 'This diagnostic is obsolete'
                CASE( 4  )
                   NAME (T,21) = 'OPD'
                   FNAME(T,21) = 'Mineral dust opt depth'
@@ -5434,6 +5396,9 @@
                CASE( 59 )
                   NAME (T,21) = 'AQAVOL'
                   FNAME(T,21) = 'Aq. aerosol vol (cm3/cm3)'
+               CASE( 60 )
+                  NAME (T,21) = 'OBSOLETE2'
+                  FNAME(T,21) = 'This diagnostic is obsolete'
                CASE DEFAULT
                   ! Nothing
             END SELECT
@@ -6901,7 +6866,6 @@
          DO T = 1, PD53
 
             ! Define quantities
-            UNIT (T,53) = 'kg'
             MOLC (T,53) = 1
             MWT  (T,53) = Input_Opt%POP_XMW
             SCALE(T,53) = 1e0
@@ -6909,121 +6873,150 @@
             ! Get name, long-name, index, and new units
             SELECT CASE( T )
                CASE( 1  )
-                  NAME (T,53) = 'POPT'
+                  NAME (T,53) = 'POPT_em'
                   FNAME(T,53) = 'POP total emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 2  )
-                  NAME (T,53) = 'OCPO em'
+                  NAME (T,53) = 'OCPO_em'
                   FNAME(T,53) = 'POPPOCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 3  )
-                  NAME (T,53) = 'BCPO em'
+                  NAME (T,53) = 'BCPO_em'
                   FNAME(T,53) = 'POPPBCPO emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 4  )
-                  NAME (T,53) = 'G em'
+                  NAME (T,53) = 'POPG_em'
                   FNAME(T,53) = 'POPG emissions'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 5  )
-                  NAME (T,53) = 'kgGsoil'
+                  NAME (T,53) = 'POPGsoil'
                   FNAME(T,53) = '2nd em from soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 6  )
-                  NAME (T,53) = 'kgGlake'
+                  NAME (T,53) = 'POPGlake'
                   FNAME(T,53) = '2nd em from lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 7  )
-                  NAME (T,53) = 'kgGleaf'
+                  NAME (T,53) = 'POPGleaf'
                   FNAME(T,53) = '2nd em from leaves'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'kg/m2/s'
                CASE( 8  )
                   NAME (T,53) = 'soi2air'
                   FNAME(T,53) = 'Diff flux from soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 9  )
                   NAME (T,53) = 'air2soi'
                   FNAME(T,53) = 'Diff flux to soil'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 10  )
                   NAME (T,53) = 'lak2air'
                   FNAME(T,53) = 'Diff flux from lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 11  )
                   NAME (T,53) = 'air2lak'
                   FNAME(T,53) = 'Diff flux to lakes'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 12  )
                   NAME (T,53) = 'lea2air'
                   FNAME(T,53) = 'Diff flux from vegetation'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 13  )
                   NAME (T,53) = 'air2lea'
                   FNAME(T,53) = 'Diff flux to vegetation'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = 'ng/m2/day'
                CASE( 14  )
-                  NAME (T,53) = 'soi/air'
+                  NAME (T,53) = 'soiair'
                   FNAME(T,53) = 'Soil fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 15  )
-                  NAME (T,53) = 'lak/air'
+                  NAME (T,53) = 'lakair'
                   FNAME(T,53) = 'Lake fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 16  )
-                  NAME (T,53) = 'lae/air'
+                  NAME (T,53) = 'leaair'
                   FNAME(T,53) = 'Leaf fug/air fug'
                   INDEX(T,53) = T + ( SPACING * 52 )
+                  UNIT (T,53) = '1'
                CASE( 17  )
                   NAME (T,53) = 'OCPO2G'
                   FNAME(T,53) = 'Gross POPPOCPO lost to gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 18  )
                   NAME (T,53) = 'G2OCPO'
                   FNAME(T,53) = 'Gross POPPOCPO formed from gas'
                   INDEX(T,53) = T - 16+ ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 19  )
                   NAME (T,53) = 'BCPO2G'
                   FNAME(T,53) = 'Gross POPPBCPO lost to gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 20  )
                   NAME (T,53) = 'G2BCPO'
                   FNAME(T,53) = 'Gross POPPBC formed from gas'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 21  )
                   NAME (T,53) = 'OHoxG'
                   FNAME(T,53) = 'POPG oxidized by OH'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 22  )
                   NAME (T,53) = 'O3oxOCPO'
                   FNAME(T,53) = 'POPOCPO oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 23  )
                   NAME (T,53) = 'O3oxOCPI'
                   FNAME(T,53) = 'POPOCPI oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 24  )
                   NAME (T,53) = 'O3oxBCPO'
                   FNAME(T,53) = 'POPBCPO oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 25  )
                   NAME (T,53) = 'O3oxBCPI'
                   FNAME(T,53) = 'POPBCPI oxidized by O3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 26  )
                   NAME (T,53) = 'NO3xOCPO'
                   FNAME(T,53) = 'POPOCPO oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 27  )
                   NAME (T,53) = 'NO3xOCPI'
                   FNAME(T,53) = 'POPOCPI oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 28  )
                   NAME (T,53) = 'NO3xBCPO'
                   FNAME(T,53) = 'POPBCPO oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
                CASE( 29  )
                   NAME (T,53) = 'NO3xBCPI'
                   FNAME(T,53) = 'POPBCPI oxidized by NO3'
                   INDEX(T,53) = T - 16 + ( SPACING * 53 )
+                  UNIT (T,53) = 'kg/s'
             END SELECT
          ENDDO
       ENDIF
@@ -7136,77 +7129,6 @@
          SCALE(T,57) = 1e0
       ENDIF
 
-      !-------------------------------------
-      ! CH4 Emissions
-      !-------------------------------------
-      IF ( ND58 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(58) = 15
-
-         ! Loop over tracers
-         DO T = 1, NTRAC(58)
-
-            ! Get name and long name for each tracer
-            SELECT CASE( T )
-               CASE( 1 )
-                  NAME (T,58) = 'CH4_TOT'
-                  FNAME(T,58) = 'CH4 Emissions total (w/o sab)'
-               CASE( 2 )
-                  NAME (T,58) = 'CH4_OIL'
-                  FNAME(T,58) = 'CH4 Emissions oil'
-               CASE( 3 )
-                  NAME (T,58) = 'CH4_GAS'
-                  FNAME(T,58) = 'CH4 Emissions gas'
-               CASE( 4 )
-                  NAME (T,58) = 'CH4_COL'
-                  FNAME(T,58) = 'CH4 Emissions coal'
-               CASE( 5 )
-                  NAME (T,58) = 'CH4_LIV'
-                  FNAME(T,58) = 'CH4 Emissions livestock'
-               CASE( 6 )
-                  NAME (T,58) = 'CH4_LDF'
-                  FNAME(T,58) = 'CH4 Emissions landfills'
-               CASE( 7 )
-                  NAME (T,58) = 'CH4_WST'
-                  FNAME(T,58) = 'CH4 Emissions wastewater'
-               CASE( 8 )
-                  NAME (T,58) = 'CH4_RIC'
-                  FNAME(T,58) = 'CH4 Emissions rice'
-               CASE( 9 )
-                  NAME (T,58) = 'CH4_OTA'
-                  FNAME(T,58) = 'CH4 Emissions other anthro'
-               CASE( 10 )
-                  NAME (T,58) = 'CH4_BBN'
-                  FNAME(T,58) = 'CH4 Emissions bioburn'
-               CASE( 11 )
-                  NAME (T,58) = 'CH4_WTL'
-                  FNAME(T,58) = 'CH4 Emissions wetlands'
-               CASE( 12 )
-                  NAME (T,58) = 'CH4_SEE'
-                  FNAME(T,58) = 'CH4 Emissions seeps'
-               CASE( 13 )
-                  NAME (T,58) = 'CH4_LAK'
-                  FNAME(T,58) = 'CH4 Emissions lakes'
-               CASE( 14 )
-                  NAME (T,58) = 'CH4_TER'
-                  FNAME(T,58) = 'CH4 Emissions termites'
-               CASE( 15 )
-                  NAME (T,58) = 'CH4_SAB'
-                  FNAME(T,58) = 'CH4 Emissions soil abs'
-               CASE DEFAULT
-                  ! Nothing
-            END SELECT
-
-            ! Define the rest of the quantities
-            UNIT (T,58) = 'kg'
-            INDEX(T,58) = T + ( SPACING * 50 )
-            MOLC (T,58) = 1
-            MWT  (T,58) = 1.6e-3
-            SCALE(T,58) = 1e0
-         ENDDO
-      ENDIF
-
 #if   defined( TOMAS )
 
       !-------------------------------------
@@ -7271,29 +7193,9 @@
             SCALE(T,61) = 1e0
          ENDDO
       ENDIF
-
-#else
-
-      !-------------------------------------      
-      ! Wetland Fraction (ND60)
-      !-------------------------------------      
-      IF ( ND60 > 0 ) THEN
-
-         ! Number of tracers
-         NTRAC(60) = 1
-         T         = 1
-
-         NAME (T,60) = 'WETFRAC'
-         FNAME(T,60) = 'Wetland Fraction'
-         INDEX(T,60) = T + ( SPACING * 51 )
-         MOLC (T,60) = 0 
-         MWT  (T,60) = 0e0
-         SCALE(T,60) = 1e0
-         UNIT(T,60)  = 'unitless'
-      ENDIF
-
 #endif
 #endif
+
       !-------------------------------------      
       ! SHIP DIAGNOSTICS (ND63)
       !-------------------------------------      
@@ -7524,10 +7426,10 @@
                   UNIT(T,67) = 'W/m2'
                CASE( 3  )
                   NAME(T,67) = 'PREACC'
-                  UNIT(T,67) = 'W/m2'
+                  UNIT(T,67) = 'mm/day'
                CASE( 4  )
                   NAME(T,67) = 'PRECON'
-                  UNIT(T,67) = 'W/m2'
+                  UNIT(T,67) = 'mm/day'
                CASE( 5  )
                   NAME(T,67) = 'TS'
                   UNIT(T,67) = 'K'

@@ -27,7 +27,7 @@ MODULE UnitConv_Mod
   USE Precision_Mod
   USE Input_Opt_Mod,  ONLY : OptInput
   USE State_Met_Mod,  ONLY : MetState
-  USE State_Chm_Mod,  ONLY : ChmState
+  USE State_Chm_Mod,  ONLY : ChmState, Ind_
                     
   IMPLICIT NONE
   PRIVATE
@@ -35,6 +35,7 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Convert_Spc_Units
+  PUBLIC :: Print_Global_Species_Kg
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -55,6 +56,14 @@ MODULE UnitConv_Mod
   ! Used in DO_TEND in mixing
   PRIVATE  :: ConvertSpc_KgKgDry_to_VVDry
   PRIVATE  :: ConvertSpc_VVDry_to_KgKgDry
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! KG/KG DRY <-> KG/KG TOTAL
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  ! kg/kg dry air <-> kg/kg total air
+  ! Used in DO_TEND in mixing
+  PRIVATE  :: ConvertSpc_KgKgDry_to_KgKgTotal
+  PRIVATE  :: ConvertSpc_KgKgTotal_to_KgKgDry
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> KG/M2
@@ -135,6 +144,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE GEOS_TIMERS_MOD
 !
 ! !INPUT PARAMETERS: 
 !
@@ -180,8 +190,15 @@ CONTAINS
     ! Convert_Spc_Units begins here!
     !====================================================================
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_Start( "=> Unit conversions", RC )
+#endif
+
     ! Assume success
     RC =  GC_SUCCESS
+
+    ! Store units of input data locally
+    InUnit = State_Chm%Spc_Units
 
     ! Define error handling messages
     LOC = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
@@ -189,9 +206,6 @@ CONTAINS
     ErrMsg_NoIn = 'Conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)//&
                   ' not defined'
     ErrMsg_RC = 'Error in conversion from '//TRIM(InUnit)//' to '//TRIM(OutUnit)
-
-    ! Store units of input data locally
-    InUnit = State_Chm%Spc_Units
 
     ! Archive units of input data for output if passed as argument
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units 
@@ -203,7 +217,12 @@ CONTAINS
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( TRIM(OutUnit) == TRIM(InUnit) ) RETURN
+    IF ( TRIM(OutUnit) == TRIM(InUnit) ) THEN
+#if defined( USE_TIMERS )
+       CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
+       RETURN
+ENDIF
 
     ! Convert based on input and output units
     SELECT CASE ( TRIM(InUnit) )
@@ -215,6 +234,9 @@ CONTAINS
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'v/v dry' )
                 CALL ConvertSpc_KgKgDry_to_VVDry( am_I_Root, State_Chm, RC ) 
+             CASE ( 'kg/kg total' )
+                CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, &
+                                                      State_Chm, RC ) 
              CASE ( 'kg' )
                 CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
                                                State_Chm, RC ) 
@@ -224,6 +246,23 @@ CONTAINS
              CASE ( 'molec/cm3' )
                 CALL ConvertSpc_KgKgDry_to_MND( am_I_Root, State_Met, &
                                                  State_Chm, RC ) 
+             CASE DEFAULT
+                CALL GC_Error( ErrMsg_noOut, RC, LOC )
+          END SELECT
+
+       !================================================================
+       ! Convert from kg/kg total
+       !================================================================
+       CASE ( 'kg/kg total' )
+          SELECT CASE ( TRIM(OutUnit) )
+             CASE ( 'kg/kg dry' )
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
+                                                      State_Chm, RC ) 
+             CASE ( 'kg' )
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
+                                                      State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
+                                               State_Chm, RC ) 
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -254,6 +293,11 @@ CONTAINS
              CASE ( 'kg/kg dry' )
                 CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, &
                                                State_Chm, RC ) 
+             CASE ( 'kg/kg total' )
+                CALL ConvertSpc_Kg_to_KgKgDry( am_I_Root, State_Met, &
+                                               State_Chm, RC ) 
+                CALL ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, &
+                                                      State_Chm, RC ) 
              CASE ( 'v/v dry' )
                 CALL ConvertSpc_Kg_to_VVDry( am_I_Root, State_Met, &
                                              State_Chm, RC ) 
@@ -306,7 +350,140 @@ CONTAINS
        CALL GC_Error( ErrMsg_RC, RC, LOC )
     ENDIF
 
+#if defined( USE_TIMERS )
+    CALL GEOS_Timer_End( "=> Unit conversions", RC )
+#endif
+
   END SUBROUTINE Convert_Spc_Units
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Global_Species_Kg
+!
+! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg prints the 
+!   global and grid box (I,J,L) mass for species N to log. Species
+!   units can be any unit for which conversion to kg is defined in
+!   the unit conversion module unitconv_mod.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Print_Global_Species_Kg( am_I_Root, I, J, L,       &
+                                          Spc, Input_Opt, State_Met,  &
+                                          State_Chm, LOC, RC )
+!
+! !USES:
+!
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,          INTENT(IN)    :: am_I_Root ! Are we on root CPU?
+      INTEGER,          INTENT(IN)    :: I         ! Grid cell lat index
+      INTEGER,          INTENT(IN)    :: J         ! Grid cell lon index
+      INTEGER,          INTENT(IN)    :: L         ! Grid cell lev index
+      CHARACTER(LEN=*), INTENT(IN)    :: Spc       ! Species abbrev string
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC       ! Call location string
+      TYPE(OptInput),   INTENT(IN)    :: Input_Opt ! Input Options object
+      TYPE(MetState),   INTENT(IN)    :: State_Met ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(ChmState),   INTENT(INOUT) :: State_Chm ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,          INTENT(OUT)   :: RC        ! Success or failure?! 
+! !REMARKS:
+!  This routine is for debugging purposes to helptrace where species
+!  mass is not conserved.
+!
+! !REVISION HISTORY: 
+!  22 Jun 2016 - E. Lundgren - Initial version
+!  29 Mar 2017 - R. Yantosca - Now print out sums for up to the 1st 5 species
+!                              and use a more efficient algorithm
+!  07 Nov 2018 - E. Lundgren - Move subroutine here from error_mod; pass 
+!                              I, J, L from call rather than hard-code; only
+!                              print for single species N, passed as arg;
+!                              pass am_I_Root and output RC error code 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!     
+      INTEGER            :: N
+      REAL(fp)           :: SpcTotal
+      CHARACTER(LEN=12)  :: SpcName
+      CHARACTER(LEN=63)  :: OrigUnit
+      CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
+
+      !================================================================
+      ! Print_Global_Species_Kg begins here!
+      !================================================================
+
+      RC        = GC_SUCCESS
+      ErrorMsg  = ''
+      ThisLoc   = ' -> at Print_Global_Species_Kg (in module ' // &
+                  'GeosUtil/unitconv_mod.F)'
+
+      !PRINT *, TRIM(LOC), ', 1,', State_Chm%Species(I,J,L,N)
+
+      ! Convert species conc units to kg
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
+                              State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrorMsg = 'Unit conversion error!'
+         CALL GC_Error( ErrorMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
+
+      ! Echo info
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 100 ) TRIM( LOC )
+      ENDIF
+ 100  FORMAT( /, '%%%%% PRINT_GLOBAL_SPECIES_KG at ', a )
+
+      ! Get species index
+      N = Ind_(spc)
+
+      ! Compute global sum
+      SpcTotal = SUM( State_Chm%Species(:,:,:,N) )
+
+      ! Get species name from the species database
+      SpcName = TRIM( State_Chm%SpcData(N)%Info%Name )
+      
+      ! Write formatted output
+      IF ( am_I_Root ) THEN
+         WRITE( 6, 110 ) SpcName, SpcTotal
+         WRITE( 6, 115 ) SpcName, State_Chm%Species(I,J,L,N), I, J, L
+         WRITE( 6, 115 ) 'AD', State_Met%AD(I,J,L), I, J, L
+         WRITE( 6, 115 ) 'PREVSPHU', State_Met%SPHU_PREV(I,J,L), I, J, L
+         WRITE( 6, 115 ) 'SPHU', State_Met%SPHU(I,J,L), I, J, L
+         WRITE( 6, 120 )
+      ENDIF
+ 110  FORMAT( 'Global sum [kg] for ', a8, ' = ', es24.16 )
+ 115  FORMAT( 'Grid cell  [kg] for ', a8, ' = ', es24.16, ', I,J,L= ',3I4 )
+ 120  FORMAT( / )
+
+      ! Convert species concentration back to original unit
+      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+                              State_Chm, OrigUnit,  RC )
+
+      !PRINT *, TRIM(LOC), ', 2,', State_Chm%Species(I,J,L,N)
+
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrorMsg = 'Unit conversion error!'
+         CALL GC_Error( ErrorMsg, RC, ThisLoc )
+         RETURN
+      ENDIF 
+
+      END SUBROUTINE Print_Global_Species_Kg
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -549,6 +726,192 @@ CONTAINS
     State_Chm%Spc_Units = 'kg/kg dry'
 
     END SUBROUTINE ConvertSpc_VVDry_to_KgKgDry
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConvertSpc_kgkgdry_to_kgkgtotal
+!
+! !DESCRIPTION: Subroutine ConvertSpc\_KgKgDry\_to\_KgKgTotal converts the 
+!  units of species concentrations from dry mass mixing ratio (KGKG) [kg/kg] to 
+!  total mass mixing ratio [kg/kg] including moisture.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConvertSpc_KgKgDry_to_KgKgTotal( am_I_Root, State_Met, &
+                                              State_Chm, RC ) 
+!
+! USES: 
+!
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  07 Nov 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                :: I, J, L, N
+    CHARACTER(LEN=255)     :: MSG, LOC
+
+    !====================================================================
+    ! ConvertSpc_KgKgDry_to_KgKgTotal begins here!
+    !====================================================================
+
+    ! Assume success
+    RC =  GC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
+       LOC = 'Routine ConvertSpc_KgKgDry_to_KgKgTotal in unitconv_mod.F90'
+       CALL GC_Error( MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+    !====================================================================
+    !
+    !  The conversion is as follows:
+    !                   
+    !====================================================================
+
+    ! Loop over all species
+    !$OMP PARALLEL DO                          &
+    !$OMP DEFAULT( SHARED                    ) &
+    !$OMP PRIVATE( I, J, L, N )
+    DO N = 1, State_Chm%nSpecies
+
+       ! Loop over grid boxes and do unit conversion
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)  &
+                        * ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ENDDO
+       ENDDO
+       ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update species units
+    State_Chm%Spc_Units = 'kg/kg total'
+
+  END SUBROUTINE ConvertSpc_KgKgDry_to_KgKgTotal
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ConvertSpc_kgkgtotal_to_kgkgdry
+!
+! !DESCRIPTION: Subroutine ConvertSpc\_KgKgTotal\_to\_KgKgDry converts the 
+!  units of species concentrations from total mass mixing ratio [kg/kg]
+!  (includes moisture) to dry mass mixing ratio [kg/kg]. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
+                                              State_Chm, RC ) 
+!
+! USES: 
+!
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  07 Nov 2018 - E. Lundgren - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER                :: I, J, L, N
+    CHARACTER(LEN=255)     :: MSG, LOC
+
+    !====================================================================
+    ! ConvertSpc_KgKgTotal_to_KgKgDry begins here!
+    !=================================================================
+
+    ! Assume success
+    RC = GC_SUCCESS
+
+    ! Verify correct initial units. If current units are unexpected,
+    ! write error message and location to log, then pass failed RC
+    ! to calling routine. 
+    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg total' ) THEN
+       MSG = 'Incorrect initial units: ' // TRIM( State_Chm%Spc_Units )
+       LOC = 'Routine ConvertSpc_KgKgTotal_to_KgKgDry in unitconv_mod.F90'
+       CALL GC_Error( MSG, RC, LOC )
+       RETURN
+    ENDIF
+
+    !==============================================================
+    !
+    !  The conversion is as follows:
+    !
+    !                   
+    !==============================================================
+
+    ! Loop over all species
+    !$OMP PARALLEL DO                 &
+    !$OMP DEFAULT( SHARED           ) &
+    !$OMP PRIVATE( I, J, L, N ) 
+    DO N = 1, State_Chm%nSpecies
+
+       ! Loop over grid boxes and do the unit conversion
+       DO L = 1, LLPAR
+       DO J = 1, JJPAR
+       DO I = 1, IIPAR
+         State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)   &
+                        / ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ENDDO
+       ENDDO
+       ENDDO
+
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Update species units
+    State_Chm%Spc_Units = 'kg/kg dry'
+
+    END SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1073,7 +1436,7 @@ CONTAINS
     CHARACTER(LEN=255) :: MSG, LOC
 
     !====================================================================
-    ! ConvertSpc_KgKgDry_to_Kg begins here!
+    ! ConvertSpc_VVDry_to_Kg begins here!
     !====================================================================
 
     ! Assume success

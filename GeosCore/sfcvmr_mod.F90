@@ -54,7 +54,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE CMN_SIZE_MOD
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
