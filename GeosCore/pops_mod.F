@@ -521,7 +521,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : DEBUG_MSG
       USE HCO_Interface_Mod,  ONLY : GetHcoDiagn
@@ -573,6 +572,9 @@
       CHARACTER(LEN=255) :: ThisLoc
       CHARACTER(LEN=512) :: ErrMsg
 
+      ! Pointers
+      REAL(fp),      POINTER  :: DEPSAV(:,:,:  )
+
       !=================================================================
       ! CHEMPOPS begins here!
       !=================================================================
@@ -582,6 +584,9 @@
       prtDebug = ( Input_Opt%LPRT .and. am_I_Root )
       ErrMsg   = ''
       ThisLoc  = ' -> at ChemPops (in module Headers/state_chm_mod.F90)'
+
+      ! Point to columns of derived-type object fields (hplin, 12/1/18)
+      DEPSAV            => State_Chm%DryDepSav
 
 #if defined( NC_DIAG )
       !-----------------------------------------------------------------
@@ -779,6 +784,9 @@
       ENDIF      
 
       IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
+
+      ! Nullify pointers
+      NULLIFY( DEPSAV )
    
       END SUBROUTINE CHEMPOPS
 !EOC

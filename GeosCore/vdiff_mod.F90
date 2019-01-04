@@ -1924,7 +1924,6 @@ contains
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -2095,6 +2094,8 @@ contains
     REAL(fp),  POINTER :: p_t1    (:,:,:  )
     REAL(fp),  POINTER :: p_as2   (:,:,:,:)
 
+    REAL(fp),  POINTER :: DEPSAV  (:,:,:  )  ! IM, JM, nDryDep
+
     ! For values from Input_Opt
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
@@ -2150,6 +2151,7 @@ contains
 
     ! Initialize pointers
     SpcInfo => NULL()
+    DEPSAV  => State_Chm%DryDepSav
 
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
@@ -2822,6 +2824,9 @@ contains
 
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+
+    ! Nullify pointers
+    NULLIFY( DEPSAV )
 
   END SUBROUTINE VDIFFDR
 !EOC

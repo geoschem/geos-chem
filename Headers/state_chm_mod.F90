@@ -187,6 +187,11 @@ MODULE State_Chm_Mod
                                                         ! [unitless]
 
      !----------------------------------------------------------------------
+     ! Fields for dry deposition
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Dry deposition frequencies [s-1]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -1225,7 +1230,6 @@ CONTAINS
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 1, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
-
     ENDIF
 
     !=======================================================================
@@ -1512,6 +1516,25 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SnowHgLandStored', 1, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
 
+    ENDIF
+
+
+    !=======================================================================
+    ! Allocate fields for various GeosCore modules
+    !=======================================================================
+    !------------------------------------------------------------------
+    ! DryDepSav
+    !------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmID = 'DryDepSav'
+        ALLOCATE( State_Chm%DryDepSav( IM, JM, State_Chm%nDryDep ) , STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%DryDepSav = 0.0_fp
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,   &
+                               State_Chm, RC                                )
+        CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
    
     !=======================================================================
@@ -1969,6 +1992,13 @@ CONTAINS
        State_Chm%DryDepRa10m => NULL()
     ENDIF
 #endif
+
+    IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
+       DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepSav => NULL()
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -2599,7 +2629,12 @@ CONTAINS
           IF ( isUnits ) Units = 'kg'
           IF ( isRank  ) Rank  = 2
           IF ( isSpecies ) PerSpecies = 'HgCat'
-          
+
+       CASE( 'DRYDEPSAV') 
+          IF ( isDesc  ) Desc  = 'Dry deposition frequencies'
+          IF ( isUnits ) Units = 's-1'
+          IF ( isRank  ) Rank  = 3
+
        CASE DEFAULT
           Found = .False.
           ErrMsg = 'Metadata not found for State_Chm field ' // &
