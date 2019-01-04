@@ -2189,20 +2189,12 @@
                ! Netcdf diagnostics computed here:
                !  Strat aerosol liquid surface area
                !  Polar strat cloud surface area
-#if defined( MODEL_GEOS )
                IF ( State_Diag%Archive_AerSurfAreaSLA 
      &              .AND. ISTRAT==1 ) THEN
-#else
-               IF ( State_Diag%Archive_AerSurfAreaSLA ) THEN
-#endif
                   State_Diag%AerSurfAreaSLA(I,J,L) = SADSTRAT
                ENDIF
-#if defined( MODEL_GEOS )
                IF ( State_Diag%Archive_AerSurfAreaPSC 
      &              .AND. ISTRAT==2 ) THEN
-#else
-               IF ( State_Diag%Archive_AerSurfAreaPSC ) THEN
-#endif
                   State_Diag%AerSurfAreaPSC(I,J,L) = SADSTRAT
                ENDIF
 
