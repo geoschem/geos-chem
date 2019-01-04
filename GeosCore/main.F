@@ -495,7 +495,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem.  The IIPAR and JJPAR
@@ -647,6 +646,19 @@
       !
       !-----------------------------------------------------------------
 
+      !-----------------------------------------------------------------
+      ! OBSPACK Diagnostics: Get information from the species
+      ! database for all requested ObsPack output species
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%Do_ObsPack ) THEN
+         CALL ObsPack_SpeciesMap_Init( am_I_Root, Input_Opt, 
+     &                                 State_Chm, State_Diag, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "ObsPack_SpeciesMap_Init"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+      ENDIF
+         
 #if defined( RRTMG )
       !-----------------------------------------------------------------
       ! Initialize RRTMG routines (in rrtmg_rad_transfer_mod.F)
@@ -1190,11 +1202,11 @@
 !------------------------------------------------------------------------------
 
             !===========================================================
-            !     ***** W R I T E   H E M C O  R E S T A R T S *****
+            !    ***** W R I T E   H E M C O   R E S T A R T S *****
             !===========================================================
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_Start( "Output",                RC )
-            CALL GEOS_Timer_Start( "HEMCO", RC )
+            CALL GEOS_Timer_Start( "Output", RC )
+            CALL GEOS_Timer_Start( "HEMCO",  RC )
 #endif
 
             ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
@@ -1207,8 +1219,8 @@
             ENDIF
 
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_End( "HEMCO",                 RC )
-            CALL GEOS_Timer_End( "Output",                RC )
+            CALL GEOS_Timer_End( "HEMCO",  RC )
+            CALL GEOS_Timer_End( "Output", RC )
 #endif
 
             ! Set time at beginning of next diagnostic timestep
@@ -2081,7 +2093,7 @@
          !--------------------------------------------------------------
          !      ***** O B S P A C K   D I A G N O S T I C S *****
          !--------------------------------------------------------------
-         IF ( Input_Opt%Do_ObsPack) THEN
+         IF ( Input_Opt%Do_ObsPack ) THEN
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_Start( "All diagnostics",        RC ) 
@@ -2412,10 +2424,6 @@
 
 #endif
 
-         ! 
-         !==============================================================
-
-
          !==============================================================
          !  ***** E N D   O F   D Y N A M I C   T I M E S T E P *****
          !==============================================================
@@ -2442,11 +2450,12 @@
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "Timesteps", RC )
 #endif
-
       !-----------------------------------------------------------------
-      ! Flush any unwritten ObsPack data to disk
+      !         ***** O B S P A C K   D I A G N O S T I C S *****
+      !
+      ! Flush any unwritten ObsPack data to disk and finalize
       !-----------------------------------------------------------------
-      IF ( State_Diag%Do_ObsPack ) THEN
+      IF ( Input_Opt%Do_ObsPack ) THEN
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_Start( "All diagnostics",        RC )
@@ -2462,6 +2471,15 @@
                ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
+         ENDIF
+
+         ! Free the ObsPack species mapping fields of State_Diag
+         CALL ObsPack_SpeciesMap_Cleanup( am_I_Root, Input_Opt,
+     &                                    State_Diag, RC         )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 
+     &         'Error encountered in "ObsPack_SpeciesMap_Cleanup"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
 #if defined( USE_TIMERS )

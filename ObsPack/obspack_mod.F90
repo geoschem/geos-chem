@@ -25,10 +25,12 @@ MODULE ObsPack_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: ObsPack_Cleanup
   PUBLIC  :: ObsPack_Init
+  PUBLIC  :: ObsPack_Cleanup
   PUBLIC  :: ObsPack_Sample
   PUBLIC  :: ObsPack_Write_Output
+  PUBLIC  :: ObsPack_SpeciesMap_Init
+  PUBLIC  :: ObsPack_SpeciesMap_Cleanup
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -166,8 +168,8 @@ CONTAINS
     ! the IVALb and IVALe times, if the input files have been
     ! processed accordingly
     !-----------------------------------------------------------------------
-    State_Diag%ObsPack_InFile  = TRIM( Input_Opt%ObsPackInputFile  )
-    State_Diag%ObsPack_OutFile = TRIM( Input_Opt%ObsPackOutputFile )
+    State_Diag%ObsPack_InFile  = TRIM( Input_Opt%ObsPack_InputFile  )
+    State_Diag%ObsPack_OutFile = TRIM( Input_Opt%ObsPack_OutputFile )
 
     ! Replace YYYYMMDD with date and time
     CALL Expand_Date( State_Diag%ObsPack_InFile,  yyyymmdd, hhmmss )
@@ -406,15 +408,15 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Q = 0.0_f4
 
-    ALLOCATE( State_Diag%ObsPack_Pressure( nObs ), STAT=RC )
-    CALL GC_CheckVar( 'State_Diag%ObsPack_Pressure', 0, RC )
+    ALLOCATE( State_Diag%ObsPack_P( nObs ), STAT=RC )
+    CALL GC_CheckVar( 'State_Diag%ObsPack_P', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Diag%ObsPack_Pressure = 0.0_f4
+    State_Diag%ObsPack_P = 0.0_f4
 
-    ALLOCATE( State_Diag%ObsPack_Temperature( nObs ), STAT=RC )
-    CALL GC_CheckVar( 'State_Diag%ObsPack_Temperature', 0, RC )
+    ALLOCATE( State_Diag%ObsPack_T( nObs ), STAT=RC )
+    CALL GC_CheckVar( 'State_Diag%ObsPack_T', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Diag%ObsPack_temperature = 0.0_f4
+    State_Diag%ObsPack_T = 0.0_f4
 
     nSpecies = State_Diag%ObsPack_nSpecies
     ALLOCATE( State_Diag%ObsPack_Species( nObs, nSpecies ), STAT=RC )
@@ -422,11 +424,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Diag%ObsPack_Species = 0.0_f4
 
-    ALLOCATE( State_Diag%ObsPack_Species_Name( nSpecies ), STAT=RC )
-    CALL GC_CheckVar( 'State_Diag%ObsPack_nSpecies', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Diag%ObsPack_Species_Name = ''
-    
     ! central_time is a local work array
     ALLOCATE( central_time( 6, nObs ), STAT=RC )
     CALL GC_CheckVar( 'obspack_mod.F:central_time', 0, RC )
@@ -696,13 +693,6 @@ CONTAINS
        State_Diag%ObsPack_Ival_End => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ObsPack_Accum_Weight ) ) THEN
-       DEALLOCATE( State_Diag%ObsPack_Accum_Weight, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ObsPack_Accum_Weight', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ObsPack_Accum_Weight => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Diag%ObsPack_U ) ) THEN
        DEALLOCATE( State_Diag%ObsPack_U, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ObsPack_U', 2, RC )
@@ -731,18 +721,18 @@ CONTAINS
        State_Diag%ObsPack_Q => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ObsPack_Pressure ) ) THEN
-       DEALLOCATE( State_Diag%ObsPack_Pressure, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ObsPack_Pressure', 2, RC )
+    IF ( ASSOCIATED( State_Diag%ObsPack_P ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_P, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_P', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ObsPack_Pressure => NULL()
+       State_Diag%ObsPack_P => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Diag%ObsPack_Temperature ) ) THEN
-       DEALLOCATE( State_Diag%ObsPack_Temperature, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ObsPack_Temperature', 2, RC )
+    IF ( ASSOCIATED( State_Diag%ObsPack_T ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_T, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_T', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ObsPack_Temperature => NULL()
+       State_Diag%ObsPack_T => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%ObsPack_Species ) ) THEN
@@ -750,13 +740,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%ObsPack_Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%ObsPack_Species => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Diag%ObsPack_Species_Name ) ) THEN
-       DEALLOCATE( State_Diag%ObsPack_Species_Name, STAT=RC )
-       CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Name', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Diag%ObsPack_Species_Name => NULL()
     ENDIF
 
   END SUBROUTINE ObsPack_Cleanup
@@ -817,25 +800,29 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER               :: fId,           nObs,          nSpecies
-    INTEGER               :: ymd,           hms,           omode
-    INTEGER               :: yr,            mo,            da
-    INTEGER               :: hr,            mn,            sc
-    INTEGER               :: dId_obs,       dId_spec
-    INTEGER               :: dId_obslen,    dId_speclen  
-    INTEGER               :: vid,           N
+    INTEGER               :: fId,        nObs,       nSpecies
+    INTEGER               :: ymd,        hms,        omode
+    INTEGER               :: yr,         mo,         da
+    INTEGER               :: hr,         mn,         sc
+    INTEGER               :: vid,        nSamples
+    INTEGER               :: N,          S
+    INTEGER               :: dId_obs,    dId_spec
+    INTEGER               :: dId_obslen, dId_speclen  
 
     ! Arrays
-    INTEGER               :: st1d(1),       ct1d(1),       dims_1d(1)
-    INTEGER               :: st2d(2),       ct2d(2),       dims_2d(2)
+    INTEGER               :: st1d(1),    ct1d(1),    dims_1d(1)
+    INTEGER               :: st2d(2),    ct2d(2),    dims_2d(2)
     INTEGER,  ALLOCATABLE :: aveStart(:)
     INTEGER,  ALLOCATABLE :: aveEnd(:)
     REAL(f8), ALLOCATABLE :: aveTime(:)
 
+    ! Pointers
+    REAL(f4), POINTER     :: ptr1d(:)
+
     ! Strings
     CHARACTER(LEN=16)     :: stamp
-    CHARACTER(LEN=30)     :: varName
-    CHARACTER(LEN=255)    :: attName
+    CHARACTER(LEN=31)     :: varName
+    CHARACTER(LEN=255)    :: attVal
     CHARACTER(LEN=255)    :: ThisLoc
     CHARACTER(LEN=512)    :: ErrMsg
 
@@ -849,6 +836,7 @@ CONTAINS
     ThisLoc  = ' -> at ObsPack_Write_Output (in module Obspack/obspack_mod.F90)'
     fId      = 0
     vId      = 0
+    ptr1d    => NULL()
 
     ! Exit if no ObsPack observations are found
     nObs = State_Diag%ObsPack_nObs
@@ -856,13 +844,6 @@ CONTAINS
 
     ! Number of species to save out per observation
     nSpecies = State_Diag%ObsPack_nSpecies
-
-    ! Trap potential errors
-    IF ( nSpecies < 1 ) THEN
-       ErrMsg = 'OBSPACK: No species found!  Exiting...'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !=======================================================================
     ! Allocate temporary arrays
@@ -889,33 +870,31 @@ CONTAINS
     !=======================================================================
     ! Compute averages
     !=======================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( N      )
+    !$OMP PARALLEL DO               &
+    !$OMP DEFAULT( SHARED         ) &
+    !$OMP PRIVATE( N, S, nSamples )
     DO N = 1, nObs
 
+       ! Number of GEOS-Chem samples for each observation
+       nSamples = State_Diag%ObsPack_nSamples(N)
+
+       ! Compute averages of all GEOS-Chem samples for each observation
        ! Only compute averages if there are samples
-       IF ( State_Diag%ObsPack_nSamples(N) > 0 ) THEN
-          State_Diag%ObsPack_U(N)           =                               &
-          State_Diag%ObsPack_U(N)           / State_Diag%ObsPack_nSamples(N)
+       IF ( nSamples > 0 ) THEN
 
-          State_Diag%ObsPack_V(N)           =                               &
-          State_Diag%ObsPack_V(N)           / State_Diag%ObsPack_nSamples(N)
-
-          State_Diag%ObsPack_BLH(N)         =                               &
-          State_Diag%ObsPack_BLH(N)         / State_Diag%ObsPack_nSamples(N)
-
-          State_Diag%ObsPack_Q(N)           =                               &
-          State_Diag%ObsPack_Q(N)           / State_Diag%ObsPack_nSamples(N)
-
-          State_Diag%ObsPack_Temperature(N) =                               &
-          State_Diag%ObsPack_temperature(N) / State_Diag%ObsPack_nSamples(N)
-
-          State_Diag%ObsPack_Pressure(N)    =                               &
-          State_Diag%ObsPack_Pressure(N)    / State_Diag%ObsPack_nSamples(N)
-
-          State_Diag%ObsPack_Species(N,:)   =                               &
-          State_Diag%ObsPack_Species(N,:)   / State_Diag%ObsPack_nSamples(N)
+          ! Met field quantities
+          State_Diag%ObsPack_U(N)   = State_Diag%ObsPack_U(N)   / nSamples
+          State_Diag%ObsPack_V(N)   = State_Diag%ObsPack_V(N)   / nSamples
+          State_Diag%ObsPack_BLH(N) = State_Diag%ObsPack_BLH(N) / nSamples
+          State_Diag%ObsPack_Q(N)   = State_Diag%ObsPack_Q(N)   / nSamples
+          State_Diag%ObsPack_T(N)   = State_Diag%ObsPack_T(N)   / nSamples
+          State_Diag%ObsPack_P(N)   = State_Diag%ObsPack_P(N)   / nSamples
+          
+          ! Species concentrations
+          DO S = 1, State_Diag%ObsPack_nSpecies
+             State_Diag%ObsPack_Species(N,S) =                               &
+             State_Diag%ObsPack_Species(N,S) / nSamples
+          ENDDO
        ENDIF
     ENDDO
     !$OMP END PARALLEL DO
@@ -960,115 +939,148 @@ CONTAINS
     varName = 'char_len_obs'
     CALL NcDef_Dimension( fId, TRIM(varName), CHAR_LEN_OBS,  dId_obslen  )
 
-    ! Character length of species names
-    varName = 'char_len_species'
-    CALL NcDef_Dimension( fId, TRIM(varName), CHAR_LEN_SPEC, dId_speclen )
-
     !=======================================================================
     ! Set global attributes
     !=======================================================================
 
     ! History
     stamp   = SYSTEM_TIMESTAMP()
-    attName = 'GEOS-Chem simulation at ' // stamp
-    CALL NcDef_Glob_Attributes( fId, 'history', TRIM(attName) )
+    attVal = 'GEOS-Chem simulation at ' // stamp
+    CALL NcDef_Glob_Attributes( fId, 'history', TRIM(attVal) )
 
     ! Conventions
     CALL NcDef_Glob_Attributes( fId, 'conventions', 'CF-1.4'  )
 
     ! Reference
-    attName= 'www.geos-chem.org; wiki.geos-chem.org'
-    CALL NcDef_Glob_Attributes( fId, 'references', TRIM(attName)  )
+    attVal= 'www.geos-chem.org; wiki.geos-chem.org'
+    CALL NcDef_Glob_Attributes( fId, 'references', TRIM(attVal)  )
 
     ! Model start date
     ymd = GET_NYMDb()
     hms = GET_NHMSb()
     CALL Ymd_Extract( ymd, yr, mo, da )
     CALL Ymd_Extract( hms, hr, mn, sc )
-    WRITE( attName, 150 ) yr, mo, da, hr, mn, sc
+    WRITE( attVal, 150 ) yr, mo, da, hr, mn, sc
 150 FORMAT( i4.4,"/",i2.2,"/",i2.2," ",i2.2,":",i2.2,":",i2.2, " UTC" )
-    CALL NcDef_Glob_Attributes( fId, 'model_start_date',  TRIM(attName) )
+    CALL NcDef_Glob_Attributes( fId, 'model_start_date',  TRIM(attVal) )
 
     ! Model end date
     ymd = GET_NYMDe()
     hms = GET_NHMSe()
     CALL Ymd_Extract( ymd, yr, mo, da )
     CALL Ymd_Extract( hms, hr, mn, sc )
-    WRITE( attName, 150 ) yr,mo,da,hr,mn,sc
-    CALL NcDef_Glob_Attributes( fId, 'model_end_date', TRIM(attName) )
+    WRITE( attVal, 150 ) yr,mo,da,hr,mn,sc
+    CALL NcDef_Glob_Attributes( fId, 'model_end_date', TRIM(attVal) )
 
     !=======================================================================
     ! Define variables and attributes
     ! NOTE: Dimension order is row-major (i.e. the reverse of Fortran)
     !=======================================================================
-    dims_2d = (/ dId_speclen, dId_spec /)
-    CALL NcDef_Variable      ( fId, 'species_name', NF_CHAR, 2, dims_2d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Species name'         )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                    )
 
+    ! Dimension arrays
+    dims_1d = (/             dId_obs /)
     dims_2d = (/ dId_obslen, dId_obs /)
-    CALL NcDef_Variable      ( fId, 'obspack_id', NF_CHAR, 2, dims_2d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'obspack_id'         )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                  )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'nsamples', NF_INT, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'no. of model samples')
+    ! ID
+    varName = 'obspack_id'
+    CALL NcDef_Variable      ( fId, TRIM(varName), NF_CHAR, 2, dims_2d, vId )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'obspack_id'          )
     CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                   )
-    CALL NcDef_Var_Attributes( fId, vId, 'comment',   'Number of discrete model samples in average' )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'averaging_interval', NF_INT, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Amount of model time over which this observation is averaged')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds' )
+    ! # of samples
+    varName = 'nsamples'
+    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    attVal = 'no. of model samples'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                   )
+    attVal = 'Number of discrete model samples in average'
+    CALL NcDef_Var_Attributes( fId, vId, 'comment',   TRIM(attVal)          )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'averaging_interval_start', NF_INT, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Start of averaging interval')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds since 1970-01-01 00:00:00 UTC' )
-    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard' )
+    ! Averaging interval
+    varName =  'averaging_interval'
+    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    attVal = 'Amount of model time over which this observation is averaged'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds'             )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'averaging_interval_end', NF_INT, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'End of averaging interval')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds since 1970-01-01 00:00:00 UTC' )
-    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard' )
+    ! Averaging interval start time
+    varName = 'averaging_interval_start'
+    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    attVal = 'Start of averaging interval'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    attVal = 'seconds since 1970-01-01 00:00:00 UTC'
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'            )
 
-    dims_2d = (/ dId_spec, dId_obs /)
-    CALL NcDef_Variable( fId, 'concentration', NF_FLOAT, 2, dims_2d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'mole_fraction_of_trace_gas_in_air' )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'mol mol-1' )
-    CALL NcDef_Var_Attributes( fId, vId, '_FillValue', -1e34      )
+    ! Averaging interval end time
+    varName = 'averaging_interval_end'
+    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    attVal = 'End of averaging interval'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    attVal = 'seconds since 1970-01-01 00:00:00 UTC'
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'            )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'u', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Zonal component of wind')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1' )
+    ! Longitude
+    CALL NcDef_Variable( fId, 'lon', NF_FLOAT, 1, dims_1d, vId              )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'        )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'v', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Meridional component of wind')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1' )
+    ! Latitude
+    CALL NcDef_Variable( fId, 'lat', NF_FLOAT, 1, dims_1d, vId              )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'latitude'            )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north'       )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'blh', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'Boundary layer height')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm' )
+!    ! Altitude
+!    CALL NcDef_Variable( fId, 'height', NF_FLOAT, 1, dims_1d, vId           )
+!    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'           )
+!    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'        )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'q', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'mass_fraction_of_water_inair')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'kg water (kg air)^-1' )
+    ! U-wind
+    CALL NcDef_Variable( fId, 'u', NF_FLOAT, 1, dims_1d, vId                )
+    attVal = 'Zonal component of wind'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'              )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'pressure', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'pressure')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'Pa' )
+    ! V-wind
+    CALL NcDef_Variable( fId, 'v', NF_FLOAT, 1, dims_1d, vId                )
+    attVal = 'Meridional component of wind'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'              )
 
-    dims_1d = (/ dId_obs /)
-    CALL NcDef_Variable( fId, 'temperature', NF_DOUBLE, 1, dims_1d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'temperature')
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'K' )
+    ! Boundary layer height
+    CALL NcDef_Variable( fId, 'blh', NF_FLOAT, 1, dims_1d, vId              )
+    attVal = 'Boundary layer height'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm'                   )
+
+    ! Specific humidity
+    CALL NcDef_Variable( fId, 'q', NF_FLOAT, 1, dims_1d, vId                )
+    attVal = 'mass_fraction_of_water_inair'
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    attVal = 'kg water (kg air)^-1'
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
+
+    ! Pressure
+    CALL NcDef_Variable( fId, 'pressure', NF_FLOAT, 1, dims_1d, vId         )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'pressure'            )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'Pa'                  )
+
+    ! Temperature
+    CALL NcDef_Variable( fId, 'temperature', NF_FLOAT, 1, dims_1d, vId      )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'temperature'         )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'K'                   )
+
+    ! Species concentration
+    DO S = 1, State_Diag%ObsPack_nSpecies
+       varName  = State_Diag%ObsPack_Species_Name(S)
+       attVal = State_Diag%ObsPack_Species_LName(S)
+       CALL NcDef_Variable( fId, TRIM(varName), NF_FLOAT, 1, dims_1d, vId   )
+       CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)       )
+       CALL NcDef_Var_Attributes( fId, vId, 'units',     'mol mol-1'        )
+       CALL NcDef_Var_Attributes( fId, vId, '_FillValue', -1e34             )
+       
+    ENDDO
 
     ! End the definition section
     CALL NcEnd_def( fId )
@@ -1077,70 +1089,67 @@ CONTAINS
     ! Write variables to disk
     ! NOTE: Dimension order is row-major (i.e. the reverse of Fortran)
     !=======================================================================
-    varName = 'species_name'
-    st2d    = (/ 1,             1        /)
-    ct2d    = (/ CHAR_LEN_SPEC, nSpecies /)
-    CALL NcWr( State_Diag%ObsPack_Species_Name, fId, TRIM(varName), st2d, ct2d )
 
-    varName = 'obspack_id'
+    !---------------------------------------
+    ! Write 2-D variables 
+    !---------------------------------------
     st2d    = (/ 1,            1    /)
     ct2d    = (/ CHAR_LEN_OBS, nObs /)
-    CALL NcWr( State_Diag%ObsPack_Id, fId, TRIM(varName), st2d, ct2d )
+
+    varName = 'obspack_id'
+    CALL NcWr( State_Diag%ObsPack_Id,       fId, TRIM(varName), st2d, ct2d  )
+
+    !---------------------------------------
+    ! Write 1-D variables 
+    !---------------------------------------
+    st1d = (/ 1    /)
+    ct1d = (/ nObs /)
 
     varName = 'nsamples'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_nSamples, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_nSamples, fId, TRIM(varName), st1d, ct1d  )
 
     varname = 'averaging_interval'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( aveTime, fId, TRIM(varName),  st1d, ct1d )
+    CALL NcWr( aveTime,                     fId, TRIM(varName), st1d, ct1d  )
 
     varname = 'averaging_interval_start'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( aveStart, fId, TRIM(varName),  st1d, ct1d )
+    CALL NcWr( aveStart,                    fId, TRIM(varName), st1d, ct1d  )
 
     varname = 'averaging_interval_end'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( aveEnd, fId, TRIM(varName),  st1d, ct1d )
+    CALL NcWr( aveEnd,                      fId, TRIM(varName), st1d, ct1d  )
 
-    varName = 'concentration'
-    st2d    = (/ 1,        1    /)
-    ct2d    = (/ nSpecies, nObs /)
-    CALL NcWr( State_Diag%ObsPack_Species, fId, TRIM(varName), st2d, ct2d )
+    varName = 'lon'
+    CALL NcWr( State_Diag%ObsPack_Longitude,fId, TRIM(varName), st1d, ct1d  )
+
+    varName = 'lat'
+    CALL NcWr( State_Diag%ObsPack_Latitude, fId, TRIM(varName), st1d, ct1d  )
 
     varName = 'u'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_U, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_U,        fId, TRIM(varName), st1d, ct1d  )
 
     varName = 'v'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_V, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_V,        fId, TRIM(varName), st1d, ct1d  )
     
     varName = 'blh'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_BLH, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_BLH,      fId, TRIM(varName), st1d, ct1d  )
 
     varName = 'q'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_Q, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_Q,        fId, TRIM(varName), st1d, ct1d  )
 
     varName = 'pressure'
-    st1d    = (/ 1    /)
-    ct1d    = (/ nObs /)
-    CALL NcWr( State_Diag%ObsPack_Pressure, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_P,        fId, TRIM(varName), st1d, ct1d  )
 
     varName = 'temperature'
-    st1d = (/ 1      /)
-    ct1d = (/ nObs   /)
-    CALL NcWr( State_Diag%ObsPack_Temperature, fId, TRIM(varName), st1d, ct1d )
+    CALL NcWr( State_Diag%ObsPack_T,        fId, TRIM(varName), st1d, ct1d  )
+
+    !---------------------------------------
+    ! Write species concentrations
+    !---------------------------------------
+    DO S = 1, State_Diag%ObsPack_nSpecies
+       varName =  State_Diag%ObsPack_Species_Name(S)
+       ptr1d   => State_Diag%ObsPack_Species(:,S)
+       CALL NcWr( ptr1d, fId, TRIM(varName), st1d, ct1d  )
+       ptr1d   => NULL()
+    ENDDO
 
     ! Close the netCDF file
     CALL NcCl( fId )
@@ -1213,7 +1222,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS: 
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 
 !
 ! !OUTPUT PARAMETERS: 
@@ -1234,9 +1243,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtDebug
-    INTEGER             :: I,  J,  L,  T,  N
-    INTEGER             :: Yr, Mo, Da, Hr, Mn, Sc
+    LOGICAL             :: prtLog,  prtDebug
+    INTEGER             :: I,       J,        L,  N,  R,  S
+    INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
     REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
@@ -1250,7 +1259,8 @@ CONTAINS
     RC       =  GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
-    prtDebug = ( am_I_Root .and. Input_Opt%LPRT )
+    prtLog   = ( am_I_Root .and. ( .not. Input_Opt%ObsPack_Quiet ) )
+    prtDebug = ( am_I_Root .and. Input_Opt%LPRT                    )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).
@@ -1272,7 +1282,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Sample the data that falls into this given timestep
+    ! Sample the GEOS-CHem data corresponding to this location & time
     !=======================================================================
 
     ! Extract date and time into components
@@ -1283,8 +1293,8 @@ CONTAINS
     TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
     TsStart = TsEnd - Input_Opt%TS_DYN
 
-    ! Echo info
-    IF ( am_I_Root ) THEN
+    ! Logfile header
+    IF ( prtLog ) THEN
        WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
        WRITE( 6, 100     ) Yr, Mo, Da, Hr, Mn, Sc
  100   FORMAT( 'OBSPACK SAMPLING at ', i4,   '/', i2.2, '/', i2.2,           &
@@ -1305,7 +1315,7 @@ CONTAINS
             State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) THEN
 
           ! Print the observations that are sampled here
-          IF ( am_I_Root ) THEN
+          IF ( prtLog ) THEN
              WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
           ENDIF
 
@@ -1319,40 +1329,55 @@ CONTAINS
              RETURN
           ENDIF
 
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-          ! NOTE: NEED A MAPPING TO ONLY SELECT A SUBSET OF SPECIES!
-          DO T = 1, State_Diag%ObsPack_nSpecies
-             State_Diag%ObsPack_Species(N,T) =                               &
-             State_Diag%ObsPack_Species(N,T) +  State_Chm%SPECIES(I,J,L,T)
+          !------------------------
+          ! Update sample counter
+          !------------------------
+          State_Diag%ObsPack_nSamples(N) = State_Diag%ObsPack_nSamples(N) + 1
+
+          !-----------------------
+          ! Archive species
+          !-----------------------
+
+          ! Loop over the # of requested species
+          DO R = 1, State_Diag%ObsPack_nSpecies
+
+             ! Get the proper index for State_Chm%Species
+             S = State_Diag%ObsPack_Species_Ind(R)
+             
+             ! Add the species concentration
+             !%%% TODO: Maybe do an in-line unit conversion to avoid
+             !%%% converting units for all species if we are only saving
+             !%%% out a few.
+             State_Diag%ObsPack_Species(N,R) =                               &
+             State_Diag%ObsPack_Species(N,R) + State_Chm%SPECIES(I,J,L,S)
           ENDDO
-          !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-          State_Diag%ObsPack_U(N)           =                                &
-          State_Diag%ObsPack_U(N)           + State_Met%U(I,J,L) 
+          !-----------------------
+          ! Archive met fields
+          !-----------------------
+          State_Diag%ObsPack_U(N)   = State_Diag%ObsPack_U(N)                &
+                                    + State_Met%U(I,J,L) 
 
-          State_Diag%ObsPack_V(N)           =                                &
-          State_Diag%ObsPack_V(N)           + State_Met%V(I,J,L) 
+          State_Diag%ObsPack_V(N)   = State_Diag%ObsPack_V(N)                &
+                                    + State_Met%V(I,J,L) 
 
-          State_Diag%ObsPack_BLH(N)         =                                &
-          State_Diag%ObsPack_BLH(N)         + State_Met%PBLH(I,J) 
+          State_Diag%ObsPack_BLH(N) = State_Diag%ObsPack_BLH(N)              &
+                                    + State_Met%PBLH(I,J) 
 
-          State_Diag%ObsPack_Q(N)           =                                &
-          State_Diag%ObsPack_Q(N)           + State_Met%SPHU(I,J,L) 
+          State_Diag%ObsPack_Q(N)   = State_Diag%ObsPack_Q(N)                &
+                                    + State_Met%SPHU(I,J,L) 
 
-          State_Diag%ObsPack_pressure(N)    =                                &
-          State_Diag%ObsPack_pressure(N)    + State_Met%PMID(I,J,L) 
+          State_Diag%ObsPack_P(N)   = State_Diag%ObsPack_P(N)                &
+                                    + State_Met%PMID(I,J,L) 
 
-          State_Diag%ObsPack_temperature(N) =                                &
-          State_Diag%ObsPack_temperature(N) + State_Met%T(I,J,L) 
-
-          State_Diag%ObsPack_nSamples(N)    =                                &
-          State_Diag%ObsPack_nSamples(N)    + 1
+          State_Diag%ObsPack_T(N)   = State_Diag%ObsPack_T(N)                &
+                                    + State_Met%T(I,J,L) 
 
        ENDIF
     ENDDO
 
-    ! Echo info
-    IF ( am_I_Root ) THEN
+    ! Logfile footer
+    IF ( prtLog ) THEN
        WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
     ENDIF
 
@@ -1379,7 +1404,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: 
+! !IROUTINE: ObsPack_Get_Grid_Indices
 !
 ! !DESCRIPTION: Subroutine ObsPack\_GET\_GRID\_INDICES returns the
 !  grid box indices (I, J, L) corresponding to the input point
@@ -1567,6 +1592,285 @@ CONTAINS
     Elapsed_Sec = NINT( JSec - 210866760000.0_f8 )
 
   END FUNCTION Seconds_Since_1970
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ObsPack_SpeciesMap_Init
+!
+! !DESCRIPTION: Gets the index, name, and long name for each requested
+!  ObsPack species from the GEOS-Chem Species Database.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ObsPack_SpeciesMap_Init( am_I_Root,  Input_Opt,                 &
+                                      State_Chm,  State_Diag, RC            )
+!
+! !USES:
+!
+    USE ErrCode_Mod,
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE Species_Mod,    ONLY : Species
+    USE State_Chm_Mod,  ONLY : ChmState, Ind_
+    USE State_Diag_Mod, ONLY : DgnState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine can be called at the model initialization stage.
+!  (unlike ObsPack_Init, which is called every time a new input file is read).
+!
+! !REVISION HISTORY:
+!  04 Jan 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL                :: WildCard 
+    INTEGER                :: N,       nSpc,     R
+
+    ! Strings
+    CHARACTER(LEN=255)     :: ErrMsg,  ThisLoc,  SpcName
+
+    ! Objects
+    TYPE(Species), POINTER :: ThisSpc
+
+    !=======================================================================
+    ! ObsPack_SpeciesMap_Innit begins here!
+    !=======================================================================
+ 
+    ! Initialize
+    RC      = GC_SUCCESS
+    ErrMsg  =''
+    ThisLoc =                                                                &
+     ' -> at ObsPack_SpeciesMap_Init (in module Obspack/obspack_mod.F90)'
+ 
+    !=======================================================================
+    ! Allocate appropriate fields of State_Diag 
+    !=======================================================================
+
+    ! Number of species that will be saved to ObsPack output
+    ! (accounting for any wildcards)
+    IF ( TRIM( Input_Opt%ObsPack_SpcName(1) ) == '?ADV?' ) THEN
+       State_Diag%ObsPack_nSpecies = State_Chm%nAdvect
+       WildCard                    = .TRUE.
+    ELSE
+       State_Diag%ObsPack_nSpecies = Input_Opt%ObsPack_nSpc
+       WildCard                    = .FALSE. 
+    ENDIF
+
+    ! Save in a shadow variable
+    nSpc = State_Diag%ObsPack_nSpecies
+
+    ! Trap potential errors
+    IF ( nSpc < 1 ) THEN
+       ErrMsg = 'OBSPACK: No valid species found!  Exiting...'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! ObsPack species index
+    ALLOCATE( State_Diag%ObsPack_Species_Ind( nSpc ), STAT=RC ) 
+    CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Ind', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Diag%ObsPack_Species_Ind = 0
+
+    ! ObsPack species name
+    ALLOCATE( State_Diag%ObsPack_Species_Name( nSpc ), STAT=RC ) 
+    CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Name', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Diag%ObsPack_Species_Name = ''
+
+    ! ObsPack species long-name
+    ALLOCATE( State_Diag%ObsPack_Species_LName( nSpc ), STAT=RC ) 
+    CALL GC_CheckVar( 'State_Diag%ObsPack_Species_LName', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Diag%ObsPack_Species_LName = ''
+
+    !=======================================================================
+    ! Map species: for each ObsPack requested species, find the 
+    ! corresponding entry in the GEOS-Chem Species Database.
+    !=======================================================================
+    IF ( WildCard ) THEN
+
+       !--------------------------------------------------------------
+       ! Take all advected species if the ?ADV? wildcard is found
+       !--------------------------------------------------------------
+
+       ! Loop over all advected species
+       DO R = 1, State_Chm%nAdvect
+
+          ! Get the overall species index
+          N = State_Chm%Map_Advect(R)
+
+          ! Point to the relevant entry in the species database
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! Save metadata from species database to ObsPack arrays
+          State_Diag%ObsPack_Species_Ind(R)   = N
+          State_Diag%ObsPack_Species_Name(R)  = TRIM( ThisSpc%Name     )
+          State_Diag%ObsPack_Species_LName(R) = TRIM( ThisSpc%FullName )
+
+          ! Free pointer
+          ThisSpc => NULL()
+       ENDDO
+       
+    ELSE
+
+       !--------------------------------------------------------------
+       ! Otherwise look up individual species names
+       !--------------------------------------------------------------
+       DO R = 1, State_Diag%ObsPack_nSpecies
+
+          ! Get the species index 
+          N = Ind_( Input_Opt%ObsPack_SpcName(R) )
+
+          ! If the species isn't found, exit with error
+          IF ( N < 0 ) THEN 
+             ErrMsg = 'Could not find species database info for the '     // &
+                      'ObsPack requested species: '                       // &
+                      TRIM( Input_Opt%ObsPack_SpcName(R) )
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+
+          ! Point to the relevant entry in the species database
+          ThisSpc => State_Chm%SpcData(N)%Info
+
+          ! Save metadata from species database to ObsPack arrays
+          State_Diag%ObsPack_Species_Ind(R)   = N
+          State_Diag%ObsPack_Species_Name(R)  = TRIM( ThisSpc%Name     )
+          State_Diag%ObsPack_Species_LName(R) = TRIM( ThisSpc%FullName )
+
+          ! Free pointer
+          ThisSpc => NULL()
+
+       ENDDO
+    ENDIF
+
+    !=======================================================================
+    ! Print output of Obspack requested species names
+    !=======================================================================
+    IF ( am_I_Root .and. ( .not. Input_Opt%ObsPack_Quiet ) ) THEN
+
+       ! Header
+       WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a,/)' ) 'OBSPACK: Species that will be saved as output'
+       WRITE( 6, 100     ) 
+       WRITE( 6, 110     )
+
+       ! Species info
+       DO R = 1, State_Diag%ObsPack_nSpecies
+          WRITE( 6, 120 ) State_Diag%ObsPack_Species_Ind(R),                 &
+                          State_Diag%ObsPack_Species_Name(R)(1:31),          &
+                          State_Diag%ObsPack_Species_Lname(R)(1:45)
+       ENDDO
+
+       ! FORMAT statements
+ 100   FORMAT( ' Index  Name', 29x, 'Long name' )
+ 110   FORMAT( '------  ----', 29x, '---------' )   
+ 120   FORMAT( i6, 2x, a31, 2x, a40 )
+
+       ! Footer
+       WRITE( 6, '(a,/)'   ) REPEAT( '=', 79 )
+    ENDIF
+
+  END SUBROUTINE ObsPack_SpeciesMap_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ObsPack_SpeciesMap_Cleanup
+!
+! !DESCRIPTION: Deallocates and frees fields of State\_Diag that are
+!  relevant to the ObsPack species mapping.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ObsPack_SpeciesMap_Cleanup( am_I_Root,  Input_Opt,              &
+                                         State_Diag, RC                     )
+!
+! !USES:
+!
+    USE ErrCode_Mod,
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Diag_Mod, ONLY : DgnState
+!
+! !INPUT PARAMETERS: 
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS: 
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This routine can be called at the overall model finalization stage
+!  (unlike ObsPack_Cleanup, which is called every time a file is written).
+!
+! !REVISION HISTORY:
+!  04 Jan 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    
+    !=======================================================================
+    ! ObsPack_SpeciesMap_Cleanup begins here!
+    !=======================================================================
+    
+    ! Assume success
+    RC = GC_SUCCESS
+    
+    ! Deallocate arrays 
+    IF ( ASSOCIATED( State_Diag%ObsPack_Species_Ind ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_Species_Ind, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Ind', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ObsPack_Species_Ind => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ObsPack_Species_Name ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_Species_Name, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_Species_Name', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ObsPack_Species_Name => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%ObsPack_Species_Lname ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_Species_LName, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_Species_LName', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ObsPack_Species_Name => NULL()
+    ENDIF
+   
+  END SUBROUTINE ObsPack_SpeciesMap_Cleanup
 !EOC
 END MODULE ObsPack_Mod
 

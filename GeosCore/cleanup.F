@@ -50,6 +50,7 @@
       USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
+      USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -91,12 +92,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL, INTENT(IN)  :: ERROR       ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC           ! Success or failure
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version

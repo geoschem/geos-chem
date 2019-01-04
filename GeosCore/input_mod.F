@@ -5362,7 +5362,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,   ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -5383,6 +5383,7 @@
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  04 Jan 2019 - R. Yantosca - Add extra ObsPack fields from Input_Opt
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5390,7 +5391,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N
+      INTEGER            :: N, S
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -5416,7 +5417,7 @@
          RETURN
       ENDIF
 
-      ! Turn on planeflight diagnostic?
+      ! Turn on ObsPack diagnostic?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_ObsPack', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5424,21 +5425,42 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%Do_ObsPack
 
-      ! Input file name (w/ flight track data points)
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPackInputFile', RC )
+      ! ObsPack quiet output?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_ObsPack', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPackInputFile
+      READ( SUBSTRS(1:N), * ) Input_Opt%ObsPack_Quiet
+
+      ! Input file name (w/ coordinates and sampling strategy)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPack_InputFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPack_InputFile
 
       ! Output file name
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPackOutputFile', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPack_OutputFile', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPackOutputFile
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPack_OutputFile
+
+      ! Species names
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ObsPack_SpecName', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      ! Populate the ObsPack species name list
+      Input_Opt%ObsPack_nSpc = N
+      DO S = 1, Input_Opt%ObsPack_nSpc
+         Input_Opt%ObsPack_SpcName(S) = TRIM( SUBSTRS(S) )
+      ENDDO
 
       !=================================================================
       ! Print to screen
@@ -5448,10 +5470,12 @@
          WRITE( 6, '(  a)' ) '----------------'
          WRITE( 6, 100 ) 'Turn on ObsPack diagnostic? : ',
      &                    Input_Opt%Do_ObsPack
+         WRITE( 6, 100 ) 'Suppress logfile output?    : ',
+     &                    Input_Opt%ObsPack_Quiet
          WRITE( 6, 110 ) 'ObsPack input file          : ',
-     &                    TRIM( Input_Opt%ObsPackInputFile )
+     &                    TRIM( Input_Opt%ObsPack_InputFile  )
          WRITE( 6, 110 ) 'ObsPack output file         : ',
-     &                    TRIM( Input_Opt%ObsPackOutputFile )
+     &                    TRIM( Input_Opt%ObsPack_OutputFile )
       ENDIF
 
       ! FORMAT statements
