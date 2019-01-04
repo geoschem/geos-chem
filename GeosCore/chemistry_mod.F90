@@ -1392,9 +1392,9 @@ CONTAINS
        IF ( First ) THEN
           IF ( prtDebug ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
-                            GcId, Rate, Is_eFold
- 100         FORMAT( '     -  Pass. species name, Id, loss rate, e-fold: ',&
-                      a15, i5, 1x, es13.6, l5 )
+                            GcId, Rate
+ 100         FORMAT( '     -  Pass. species name, Id, loss rate: ',&
+                      a15, i5, 1x, es13.6 )
           ENDIF
        ENDIF
 
