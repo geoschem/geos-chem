@@ -34,8 +34,6 @@ set_dynamic_default(RUNDIR "${RUNDIR_PROMPT}"
 )
 dump_log(RUNDIR_LOG)
 
-message(STATUS "Bootstrapping ${RUNDIR}")
-
 # Check that RUNDIR exists
 if("${RUNDIR}" STREQUAL "${RUNDIR_PROMPT}")
     message(FATAL_ERROR "You haven't set RUNDIR!")
@@ -46,6 +44,8 @@ endif()
 if(NOT EXISTS "${RUNDIR}")
     message(FATAL_ERROR "Invalid RUNDIR. ${RUNDIR} does not exist!")
 endif()
+
+message(STATUS "Bootstrapping ${RUNDIR}")
 
 # Inspect the RUNDIR's name to make a guess at if we're doing GCC or GCHP
 get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE)  # Remove trailing slash if present
