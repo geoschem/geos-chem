@@ -20,14 +20,8 @@ add_static_target(Headers
         state_met_mod.F90
     PUBLIC_LINK
         KPPFirstPass
+		$<$<STREQUAL:${IMPL},GCHP>:GCHPThirdParty>
 )
-
-if("${IMPL}" STREQUAL "GCHP")
-    target_include_directories(Headers
-        PUBLIC
-	    ${THIRD_PARTY}/include
-    )
-endif()
 
 target_compile_definitions(Headers
     PUBLIC
