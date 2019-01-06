@@ -59,6 +59,10 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesRst      (:,:,:,:) ! Spc Conc for GC restart
      LOGICAL :: Archive_SpeciesRst
 
+     ! Boundary condition fields
+     REAL(f8),  POINTER :: SpeciesBC       (:,:,:,:) ! Spc Conc for BCs
+     LOGICAL :: Archive_SpeciesBC
+     
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
      LOGICAL :: Archive_SpeciesConc
@@ -708,6 +712,10 @@ CONTAINS
     State_Diag%SpeciesRst                          => NULL()
     State_Diag%Archive_SpeciesRst                  = .FALSE.
 
+    ! Boundary condition fields
+    State_Diag%SpeciesBC                           => NULL()
+    State_Diag%Archive_SpeciesBC                   = .FALSE.
+
     ! Species concentration diagnostics
     State_Diag%SpeciesConc                         => NULL()
     State_Diag%Archive_SpeciesConc                 = .FALSE.
@@ -1225,6 +1233,24 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! Species Concentration for boundary conditions
+    !------------------------------------------------------------------------
+    arrayID = 'State_Diag%SpeciesBC'
+    diagID  = 'SpeciesBC'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%SpeciesBC( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesBC = 0.0_f8
+       State_Diag%Archive_SpeciesBC = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesBC, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    
     !------------------------------------------------------------------------
     ! Species Concentration
     !------------------------------------------------------------------------
@@ -6190,6 +6216,13 @@ CONTAINS
        State_Diag%SpeciesRst => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%SpeciesBC ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesBC, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesBC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesBC => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
        DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
@@ -7833,6 +7866,13 @@ CONTAINS
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
     IF ( TRIM( Name_AllCaps ) == 'SPECIESRST' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3

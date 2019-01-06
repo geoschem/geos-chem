@@ -132,6 +132,22 @@ CONTAINS
           CALL GC_ERROR( ErrMsg, RC, ThisLoc )
        ENDIF
     ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set species concentration for BC files in units of mol/mol dry air
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_SpeciesBC ) THEN
+       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesBC',                 &
+                                    State_Diag%SpeciesBC,                   &
+                                    Input_Opt,  State_Met,                   &
+                                    State_Chm,  RC                          )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting species concentration diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
     
     !-----------------------------------------------------------------------
     ! Set species concentration diagnostic in units specified in state_diag_mod
