@@ -11,15 +11,18 @@ find_package(NetCDF REQUIRED COMPONENTS F90)
 # Define the base target which will hold the build configuration
 add_library(BaseTarget INTERFACE)
 
+# Put mod files in mod subdirectory
+set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
+target_include_directories(BaseTarget 
+	INTERFACE ${PROJECT_BINARY_DIR}/mod
+)
+
 # Get the run directory and implementation type
 include(GC-GetRunDir) # sets RUNDIR and IMPL
 
 if("${IMPL}" STREQUAL "Classic")
 	include(GC-ConfigureClassicBuild)
 endif()
-
-# Add target helpers
-include(GCAddTarget)
 
 # Add subdirectories
 add_subdirectory(KPP)

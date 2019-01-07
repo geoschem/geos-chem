@@ -1,8 +1,8 @@
-add_static_target(Isoropia
-    SOURCES
-        isorropiaII_main_mod.F
-	PUBLIC_LINK
-		BaseTarget
+add_library(Isoropia
+    isorropiaII_main_mod.F
+)
+target_link_libraries(Isoropia
+	PUBLIC BaseTarget
 )
 target_compile_options(Isoropia 
     PRIVATE 
