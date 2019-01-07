@@ -320,7 +320,7 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM,       id_CLOCK
+      INTEGER                  :: laiYYYY,       laiMM
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
       REAL(f8)                 :: TAU,           TAUb      
       REAL(fpp)                :: COST_FUNC ! Add here temporarily (mps,6/16/17)
@@ -630,7 +630,6 @@
       State_Met%AREA_M2 =  AREA_M2
 
       ! Define advected species ID flags for use below
-      id_CLOCK = Ind_('TR_Clock','A')
       id_H2O   = Ind_('H2O'     ,'A')
       id_CH4   = Ind_('CH4'     ,'A')
       !
@@ -1612,10 +1611,8 @@
 
          ENDIF
 
-         ! Update clock tracer if relevant
-         IF ( id_CLOCK > 0 ) THEN
-            CALL Set_TR_Clock( State_Chm )
-         ENDIF
+         ! Update clock tracer
+         CALL Set_Met_Clock( State_Met )
 
          !==============================================================
          !     ***** C O M P U T E   P B L   H E I G H T  etc. *****

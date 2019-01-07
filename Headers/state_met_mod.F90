@@ -205,6 +205,11 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
 
      !----------------------------------------------------------------------
+     ! Clock tracer for diagnosing age of air
+     !----------------------------------------------------------------------
+     INTEGER,  POINTER :: CLOCK         (:,:,:) ! Age of air [s]
+     
+     !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG          (:,:  ) ! # of landtypes in box (I,J) 
@@ -521,6 +526,7 @@ CONTAINS
     State_Met%InTroposphere  => NULL()
     State_Met%IsLocalNoon    => NULL()
     State_Met%LocalSolarTime => NULL()
+    State_Met%Clock          => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -1687,6 +1693,17 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-------------------------
+    ! Clock [s]
+    !-------------------------
+    ALLOCATE( State_Met%Clock( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%Clock', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%Clock = 0
+    CALL Register_MetField( am_I_Root, 'Clock', State_Met%Clock, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    
     !=======================================================================
     ! Allocate land type and leaf area index fields for dry deposition
     !=======================================================================
@@ -2525,6 +2542,17 @@ CONTAINS
 #endif
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%Clock ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%Clock => NULL()
+#else
+       DEALLOCATE( State_Met%Clock, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%Clock', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%Clock => NULL()
+#endif
+    ENDIF
+    
     IF ( ASSOCIATED( State_Met%CMFMC ) ) THEN
 #if defined( ESMF_ ) || defined( MODEL_WRF )
        State_Met%CMFMC => NULL()
@@ -3792,6 +3820,12 @@ CONTAINS
           IF ( isUnits ) Units = 'mg m-3'
           IF ( isRank  ) Rank  = 3
 
+       CASE ( 'CLOCK' )
+          IF ( isDesc  ) Desc  = 'Age of air'
+          IF ( isUnits ) Units = 's'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+          
 !       CASE ( 'INCHEMGRID' )
 !          IF ( isDesc  ) Desc  = 'Is each grid box in the chemistry grid?'
 !          IF ( isUnits ) Units = 'boolean'
