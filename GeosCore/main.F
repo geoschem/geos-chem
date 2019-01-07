@@ -99,6 +99,7 @@
 #endif
       USE DIAG_OH_MOD           ! For ND43  (OH,HO2,etc. prod    ) diag
       USE HISTORY_MOD           ! Updated netCDF diagnostics
+      USE OBSPACK_MOD           ! For ObsPack diagnostics
       USE PLANEFLIGHT_MOD       ! For ND40  (plane flight track  ) diag
       USE GOSAT_CH4_MOD         ! For GOSAT observation operator
       USE TCCON_CH4_MOD         ! For TCCON observation operator
@@ -453,6 +454,7 @@
       CALL GEOS_Timer_Add( "All diagnostics",                      RC )
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
+      CALL GEOS_Timer_Add( "=> ObsPack diagnostics",               RC )
 #if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
 #endif
@@ -634,6 +636,19 @@
       !
       !-----------------------------------------------------------------
 
+      !-----------------------------------------------------------------
+      ! OBSPACK Diagnostics: Get information from the species
+      ! database for all requested ObsPack output species
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%Do_ObsPack ) THEN
+         CALL ObsPack_SpeciesMap_Init( am_I_Root, Input_Opt, 
+     &                                 State_Chm, State_Diag, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "ObsPack_SpeciesMap_Init"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+      ENDIF
+         
 #if defined( RRTMG )
       !-----------------------------------------------------------------
       ! Initialize RRTMG routines (in rrtmg_rad_transfer_mod.F)
@@ -1005,6 +1020,11 @@
          ! and convection are executed.  Call a routine to do this.
          ! (bmy, 10/25/18)
          !--------------------------------------------------------------
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",           RC )
+         CALL GEOS_Timer_Start( "=> History (netCDF diags)", RC )
+#endif
+
          IF ( ITS_A_MERCURY_SIM ) THEN
             CALL Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1012,6 +1032,12 @@
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
          ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",           RC )
+         CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
+#endif
+
 #endif
 
          !==============================================================
@@ -1077,6 +1103,31 @@
          CALL GEOS_Timer_End( "Output",               RC )
 #endif
 
+         !==============================================================
+         !      ***** O B S P A C K   D I A G N O S T I C S *****
+         !==============================================================
+         IF ( Input_Opt%Do_ObsPack .and. ( ELAPSED_TODAY == 0 ) ) THEN
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "All diagnostics",        RC )
+            CALL GEOS_Timer_Start( "=> ObsPack diagnostics",  RC )
+#endif
+            ! Initialize Obspack for the new day
+            CALL ObsPack_Init( am_I_Root, NYMD,       NHMS, 
+     &                         Input_Opt, State_Diag, RC    )
+
+            ! Trap potential errors
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "ObsPack_Init"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "All diagnostics",         RC )
+            CALL GEOS_Timer_End( "=> ObsPack diagnostics",  RC )
+#endif
+         ENDIF
+
          ! Original diagnostics
          IF ( ITS_TIME_FOR_BPCH( Input_Opt ) ) THEN
 
@@ -1141,11 +1192,11 @@
 !------------------------------------------------------------------------------
 
             !===========================================================
-            !     ***** W R I T E   H E M C O  R E S T A R T S *****
+            !    ***** W R I T E   H E M C O   R E S T A R T S *****
             !===========================================================
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_Start( "Output",                RC )
-            CALL GEOS_Timer_Start( "HEMCO", RC )
+            CALL GEOS_Timer_Start( "Output", RC )
+            CALL GEOS_Timer_Start( "HEMCO",  RC )
 #endif
 
             ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
@@ -1158,8 +1209,8 @@
             ENDIF
 
 #if defined( USE_TIMERS )
-            CALL GEOS_Timer_End( "HEMCO",                 RC )
-            CALL GEOS_Timer_End( "Output",                RC )
+            CALL GEOS_Timer_End( "HEMCO",  RC )
+            CALL GEOS_Timer_End( "Output", RC )
 #endif
 
             ! Set time at beginning of next diagnostic timestep
@@ -2028,6 +2079,28 @@
 
 #endif
 
+         !--------------------------------------------------------------
+         !      ***** O B S P A C K   D I A G N O S T I C S *****
+         !--------------------------------------------------------------
+         IF ( Input_Opt%Do_ObsPack ) THEN
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_Start( "All diagnostics",        RC ) 
+            CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
+#endif
+
+            ! Sample the observations in today's ObsPack file
+            CALL ObsPack_Sample( am_I_Root,  NYMD,      NHMS, 
+     &                           Input_Opt,  State_Met, State_Chm, 
+     &                           State_Diag, RC                    )
+
+#if defined( USE_TIMERS )
+            CALL GEOS_Timer_End( "All diagnostics",        RC ) 
+            CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
+#endif
+
+         ENDIF
+
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
@@ -2366,6 +2439,43 @@
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End ( "Timesteps", RC )
 #endif
+      !-----------------------------------------------------------------
+      !         ***** O B S P A C K   D I A G N O S T I C S *****
+      !
+      ! Flush any unwritten ObsPack data to disk and finalize
+      !-----------------------------------------------------------------
+      IF ( Input_Opt%Do_ObsPack ) THEN
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_Start( "All diagnostics",        RC )
+         CALL GEOS_Timer_Start( "=> ObsPack diagnostics", RC )
+#endif
+
+         ! Write any remaining ObsPack data to disk, and immediately
+         ! thereafter free the ObsPack pointer fields of State_Diag
+         IF ( ASSOCIATED( State_Diag%ObsPack_id ) ) THEN
+            CALL ObsPack_Write_Output( am_I_Root,  Input_Opt,
+     &                                 State_Diag, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error encountered in "ObsPack_Write_Output"!'
+               CALL Error_Stop( ErrMsg, ThisLoc )
+            ENDIF
+         ENDIF
+
+         ! Free the ObsPack species mapping fields of State_Diag
+         CALL ObsPack_SpeciesMap_Cleanup( am_I_Root, Input_Opt,
+     &                                    State_Diag, RC         )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 
+     &         'Error encountered in "ObsPack_SpeciesMap_Cleanup"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
+#if defined( USE_TIMERS )
+         CALL GEOS_Timer_End( "All diagnostics",        RC ) 
+         CALL GEOS_Timer_End( "=> ObsPack diagnostics", RC )
+#endif      
+      ENDIF
 
       !-----------------------------------------------------------------
       ! Print the mass-weighted mean OH concentration (if applicable)

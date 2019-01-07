@@ -1019,7 +1019,8 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lHistory -lHCOI -lHCOX -lHCO 
+LINK                 :=$(LINK) -lIsoropia -lObsPack -lHistory
+LINK                 :=$(LINK) -lHCOI -lHCOX -lHCO
 LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
 LINK                 :=$(LINK) $(NC_LINK_CMD)
 
