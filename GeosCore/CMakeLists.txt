@@ -19,7 +19,7 @@ target_compile_options(Transport
     PRIVATE     
         ""
         $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
-	$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8>
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8>
 )
 
 add_static_target(GeosCore

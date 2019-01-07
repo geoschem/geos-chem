@@ -28,8 +28,3 @@ if("${IMPL}" STREQUAL "GCHP")
 	    ${THIRD_PARTY}/include
     )
 endif()
-
-target_compile_definitions(Headers
-    PUBLIC
-        ${GC_DEFINES}
-)

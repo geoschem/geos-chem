@@ -74,13 +74,11 @@ add_static_target(RRTMG
         rrtmg_sw_taumol.F90
         rrtmg_sw_vrtqdr.F90
         test_arr_mult.F90
+	PUBLIC_LINK
+		BaseTarget
 )
 
 target_compile_options(RRTMG 
     PRIVATE 
         -r8 -O1 -override-limits
-)
-target_compile_definitions(RRTMG
-    PUBLIC 
-        ${GC_DEFINES}
 )
