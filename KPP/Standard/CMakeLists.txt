@@ -4,6 +4,8 @@ add_static_target(KPPFirstPass
         gckpp_Precision.F90
         gckpp_Parameters.F90
         gckpp_Monitor.F90
+	PUBLIC_LINK
+		BaseTarget
 )
 
 # Add libKPP.a

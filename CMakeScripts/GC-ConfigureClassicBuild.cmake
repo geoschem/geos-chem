@@ -1,22 +1,16 @@
-#[[ Inspect the GC Classic run directory and fill the following variables: 
-    RUNDIR_MET
-    RUNDIR_NESTED
-    RUNDIR_REGION
-    RUNDIR_GRID
-    RUNDIR_MECH
-]]
+# Find OpenMP and make a dependee of BaseTarget
+find_package(OpenMP REQUIRED)
+target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
 
-# Make sure that the run directory is defined
-if(NOT DEFINED RUNDIR)
-    message(FATAL_ERROR "RUNDIR not defined")
-endif()
-
+# Macro to call getRunInfo in the run directory
 macro(inspect_rundir VAR ID)
     execute_process(COMMAND perl ${RUNDIR}/getRunInfo ${RUNDIR} ${ID}
         OUTPUT_VARIABLE ${VAR}
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 endmacro()
+
 
 # Inspect MET
 inspect_rundir(RUNDIR_MET 0)
@@ -54,10 +48,6 @@ else()
     string(TOUPPER "${RUNDIR_REGION}" RUNDIR_REGION)
 endif()
 
-#[[ Build the GC Classic build configuration. Sets the following variables:
-    GC_DEFINES
-    FC_OPTIONS
-]]
 
 # MET field
 set_dynamic_option(MET ${RUNDIR_MET}
@@ -161,8 +151,8 @@ set_dynamic_default(GC_DEFINES LOG RESULTING_DEFINES_LOG)
 # Get compiler options
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_dynamic_default(FC_OPTIONS
-        -fPIC -cpp -w -auto -noalign "-convert big_endian" -O2 -vec-report0 
-        "-fp-model source" -openmp -mcmodel=medium -shared-intel -traceback
+        -fPIC -cpp -w -auto -noalign -convert big_endian -O2 -vec-report0 
+        -fp-model source -mcmodel=medium -shared-intel -traceback -qopenmp
         -DLINUX_IFORT
 
         LOG RESULTING_DEFINES_LOG
@@ -170,7 +160,7 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
         -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian -fno-range-check -O3 
-        -funroll-loops -fopenmp -mcmodel=medium -fbacktrace -g 
+        -funroll-loops -mcmodel=medium -fbacktrace -g 
         
         -DLINUX_GFORTRAN
 
@@ -183,5 +173,9 @@ endif()
 message(STATUS "Resulting definitions/options:")
 dump_log(RESULTING_DEFINES_LOG)
 
-# Replace ';' character (delimiting lists) with ' '
-string(REPLACE ";" " " FC_OPTIONS "${FC_OPTIONS}")
+
+# Set compiler definitions and options in BaseTarget
+target_compile_definitions(BaseTarget INTERFACE ${GC_DEFINES})
+target_compile_options(BaseTarget INTERFACE ${FC_OPTIONS})
+unset(GC_DEFINES)
+unset(FC_OPTIONS)

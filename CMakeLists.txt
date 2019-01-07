@@ -3,14 +3,20 @@ project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran)
 
 # Add our module path
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeScripts)
-include(GCHelpers)
+include(GC-Helpers)
 
 # Find NetCDF
 find_package(NetCDF REQUIRED COMPONENTS F90)
 
-# Get build configuration (defines and compiler options)
-include(GCBuildFlags)
-set(CMAKE_Fortran_FLAGS ${FC_OPTIONS})
+# Define the base target which will hold the build configuration
+add_library(BaseTarget INTERFACE)
+
+# Get the run directory and implementation type
+include(GC-GetRunDir) # sets RUNDIR and IMPL
+
+if("${IMPL}" STREQUAL "Classic")
+	include(GC-ConfigureClassicBuild)
+endif()
 
 # Add target helpers
 include(GCAddTarget)

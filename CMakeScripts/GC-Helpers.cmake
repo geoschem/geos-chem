@@ -137,7 +137,7 @@ Options:
 ]]
 function(set_dynamic_default VAR)
     cmake_parse_arguments(SDD
-        ""
+		"IS_DIRECTORY"
         "LOG"
         ""
         ${ARGN}
@@ -151,6 +151,10 @@ function(set_dynamic_default VAR)
 
     # If ${VAR} is mutable, export it
     if(${${VAR}_IS_MUTABLE})
+		if(SDD_IS_DIRECTORY AND DEFINED ${VAR})
+			# Remove trailing slash 
+			get_filename_component(${VAR} "${${VAR}}" ABSOLUTE) 
+		endif()
         set(${VAR} ${${VAR}} ${SDD_UNPARSED_ARGUMENTS})
         set(${VAR} ${${VAR}} PARENT_SCOPE)
     endif()
@@ -171,6 +175,22 @@ function(set_dynamic_default VAR)
         list(APPEND ${SDD_LOG} "${STR}")
         set(${SDD_LOG} ${${SDD_LOG}} PARENT_SCOPE)
     endif()
+
+	# if IS_DIRECTORY, check that the specified path is valid.
+	if(SDD_IS_DIRECTORY)
+		if("${${VAR}}" STREQUAL "${SDD_UNPARSED_ARGUMENTS}")
+			dump_log(${SDD_LOG})
+			message(FATAL_ERROR "You haven't set ${VAR}!")
+		elseif(NOT IS_ABSOLUTE "${${VAR}}")
+			dump_log(${SDD_LOG})
+			message(FATAL_ERROR "Invalid ${VAR}. An absolute path is required.")
+		endif()
+
+		if(NOT EXISTS "${${VAR}}")
+			dump_log(${SDD_LOG})
+			message(FATAL_ERROR "Invalid ${VAR}. ${${VAR}} does not exist!")
+		endif()
+	endif()
 endfunction()
 
 #[[ set_dynamic_option
