@@ -737,6 +737,7 @@
 !
 ! !USES:
 !     
+      USE Charpak_Mod,        ONLY : To_UpperCase
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD
@@ -796,6 +797,7 @@
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !  26 Jan 2018 - M. Sulprizio- Remove obsolete options LVARTROP and reading of
 !                              DATA_DIR_1x1
+!  06 Jan 2019 - M. Sulprizio- Add reading of met field from input.geos
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -813,6 +815,7 @@
       ! Strings
       CHARACTER(LEN=6)   :: TimeStr
       CHARACTER(LEN=8)   :: DateStr
+      CHARACTER(LEN=12)  :: Met
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays
@@ -923,6 +926,29 @@
       Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
      &                            'CHEM_INPUTS/'
 
+      !-----------------------------------------------------------------
+      ! Meteorology field
+      !-----------------------------------------------------------------
+
+      ! Meteorology field
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Met_Field', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%Met_Field
+
+      ! Make sure a valid met field is specified
+      Met = To_UpperCase( TRIM( Input_Opt%Met_Field) )
+      IF ( TRIM(Met) /= 'GEOS-FP' .and. TRIM(Met) /= 'GEOSFP' .and.
+     &     TRIM(Met) /= 'MERRA-2' .and. TRIM(Met) /= 'MERRA2' ) THEN
+         ErrMsg = Trim( Input_Opt%Met_Field) // ' is not a valid '  //
+     &            ' met field. Supported met fields are GEOS-FP '   //
+     &            ' and MERRA-2. Please check your "input.geos" file.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -949,6 +975,8 @@
      &                    TRIM( Input_Opt%DATA_DIR )
          WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
+         WRITE( 6, 110 ) 'Meteorology field           : ',
+     &                    TRIM( Input_Opt%Met_Field )
       ENDIF
 
       ! Format statements

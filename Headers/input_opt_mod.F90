@@ -60,6 +60,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: RUN_DIR            
      CHARACTER(LEN=255)          :: DATA_DIR           
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
+     CHARACTER(LEN=255)          :: Met_Field
      
      !----------------------------------------
      ! PASSIVE SPECIES MENU fields
@@ -704,6 +705,7 @@ CONTAINS
     Input_Opt%RUN_DIR                = './'
     Input_Opt%DATA_DIR               = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
+    Input_Opt%Met_Field              = ''
 
     !----------------------------------------
     ! PASSIVE SPECIES MENU fields

@@ -430,8 +430,8 @@
       ! Initialize pointers
       mapping => NULL()
 
-      ! Display current grid resolution and data set type
-      CALL Display_Grid_and_Model()
+      ! Display model information
+      CALL Display_Model_Info()
 
       !=================================================================
       !            ***** I N I T I A L I Z A T I O N *****
@@ -2545,16 +2545,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: display_grid_and_model
+! !IROUTINE: display_model_info
 !
-! !DESCRIPTION: Internal Subroutine DISPLAY\_GRID\_AND\_MODEL displays the 
-!  appropriate messages for the given model grid and machine type.  It also 
+! !DESCRIPTION: Internal Subroutine DISPLAY\_MODEL\_INFO displays the 
+!  appropriate messages for the given model and machine type.  It also 
 !  prints the starting time and date (local time) of the GEOS-Chem simulation.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Display_Grid_and_Model()
+      SUBROUTINE Display_Model_Info()
 ! 
 ! !REVISION HISTORY: 
 !  02 Dec 2003 - R. Yantosca - Initial version
@@ -2568,6 +2568,9 @@
 !  01 Mar 2017 - R. Yantosca - Now echo info if netCDF can do compression
 !  16 Mar 2017 - M. Sulprizio- Print model version to log file
 !  26 Jul 2018 - R. Yantosca - Now get version # from gc_classic_version.H
+!  06 Jan 2019 - M. Sulprizio- Rename from Display_Grid_and_Model to
+!                              Display_Model_Info and remove references to grid
+!                              options, which are now specified in input.geos
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2579,36 +2582,10 @@
 
 #include "gc_classic_version.H"
 
-      !-----------------------------------------------------------------
-      ! Print resolution info
-      !-----------------------------------------------------------------
-
-#if   defined( GRID4x5   )
-      WRITE( 6, '(a)' )                   
-     &    REPEAT( '*', 13 )                                          //
-     &    '   S T A R T I N G   4 x 5   G E O S - C H E M   '        //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID2x25  )
       WRITE( 6, '(a)' ) 
      &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   2 x 2.5   G E O S - C H E M   '      //
+     &    '   S T A R T I N G   G E O S - C H E M   '                //
      &    REPEAT( '*', 13 )
-
-#elif defined( GRID05x0625 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G   0.5 x 0.625   G E O S - C H E M   '  //
-     &    REPEAT( '*', 13 )
-
-#elif defined( GRID025x03125 )
-      WRITE( 6, '(a)' ) 
-     &    REPEAT( '*', 13 )                                          // 
-     &    '   S T A R T I N G  0.25 x 0.3125  G E O S - C H E M   '  //
-     &    REPEAT( '*', 13 )
-
-#endif
-
 
       !-----------------------------------------------------------------
       ! Mode of simulation
@@ -2629,27 +2606,6 @@
       WRITE( 6, 120  ) 'Intel Fortran Compiler (aka ifort)'
 #elif defined( LINUX_GFORTRAN )
       WRITE( 6, 120 ) 'GNU Fortran compiler (aka gfortran)'
-#endif
-
-      !-----------------------------------------------------------------
-      ! Print met field info
-      !-----------------------------------------------------------------
-#if defined( GEOS_FP )
-
-#if defined( GRIDREDUCED ) 
-      WRITE( 6, 130 ) 'GMAO GEOS-FP (on reduced 47-layer vertical grid)'
-#else
-      WRITE( 6, 130 ) 'GMAO GEOS-FP (on native 72-layer vertical grid)'
-#endif
-
-#elif defined( MERRA2 )
-
-#if defined( GRIDREDUCED )
-      WRITE( 6, 130 ) 'GMAO MERRA-2 (on reduced 47-layer vertical grid)'
-#else
-      WRITE( 6, 130 ) 'GMAO MERRA-2 (on native 72-layer vertical grid)'
-#endif
-
 #endif
 
       !-----------------------------------------------------------------
@@ -2710,7 +2666,6 @@
  100  FORMAT( /, '===> Mode of operation         : ', a             )
  110  FORMAT(    '===> GEOS-Chem version         : ', a             )
  120  FORMAT(    '===> Compiler                  : ', a             )
- 130  FORMAT(    '===> Driven by meteorology     : ', a             )
  140  FORMAT(    '===> ISORROPIA ATE package     : ', a             )
  150  FORMAT(    '===> Parallelization w/ OpenMP : ', a             )
  160  FORMAT(    '===> Binary punch diagnostics  : ', a             )
