@@ -1,7 +1,13 @@
-# Find OpenMP and make a dependee of BaseTarget
+# Find NetCDF and OpenMP and make them dependees
+find_package(NetCDF REQUIRED COMPONENTS F90)
 find_package(OpenMP REQUIRED)
 target_compile_options(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
-target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
+target_include_directories(BaseTarget
+	INTERFACE ${NETCDF_F90_INCLUDE_DIR}
+)
+target_link_libraries(BaseTarget 
+	INTERFACE ${NETCDF_LIBRARIES} ${OpenMP_Fortran_FLAGS}
+)
 
 # Macro to call getRunInfo in the run directory
 macro(inspect_rundir VAR ID)
