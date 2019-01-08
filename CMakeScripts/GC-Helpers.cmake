@@ -151,10 +151,6 @@ function(set_dynamic_default VAR)
 
     # If ${VAR} is mutable, export it
     if(${${VAR}_IS_MUTABLE})
-		if(SDD_IS_DIRECTORY AND DEFINED ${VAR})
-			# Remove trailing slash 
-			get_filename_component(${VAR} "${${VAR}}" ABSOLUTE) 
-		endif()
         set(${VAR} ${${VAR}} ${SDD_UNPARSED_ARGUMENTS})
         set(${VAR} ${${VAR}} PARENT_SCOPE)
     endif()
