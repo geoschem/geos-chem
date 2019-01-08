@@ -25,3 +25,4 @@ add_library(GeosUtil2 STATIC
 target_link_libraries(GeosUtil2
 	PUBLIC NcdfUtil
 )
+

@@ -31,3 +31,4 @@ add_library(HCOX STATIC
 target_link_libraries(HCOX
 	PUBLIC HCO
 )
+

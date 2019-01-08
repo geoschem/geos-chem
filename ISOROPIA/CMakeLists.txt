@@ -13,3 +13,4 @@ target_compile_options(Isoropia
 
 list(APPEND GC_EXTRA_TARGETS "Isoropia")
 set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
+

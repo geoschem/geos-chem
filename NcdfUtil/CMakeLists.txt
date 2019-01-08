@@ -14,4 +14,6 @@ add_library(NcdfUtil STATIC
 )
 target_link_libraries(NcdfUtil 
 	PUBLIC GeosUtil
+	# Note that NetCDF libraries are linked into BaseTarget
 )
+

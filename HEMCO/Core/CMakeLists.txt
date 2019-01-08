@@ -43,3 +43,4 @@ target_compile_options(HCO
         ""
         $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-form -ffree-line-length-none>
 )
+
