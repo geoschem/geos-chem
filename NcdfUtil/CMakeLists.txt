@@ -13,8 +13,5 @@ add_library(NcdfUtil STATIC
 	ncdf_mod.F90
 )
 target_link_libraries(NcdfUtil 
-	PUBLIC GeosUtil ${NETCDF_F90_LIBRARIES}
-)
-target_include_directories(NcdfUtil
-	PUBLIC ${NETCDF_F90_INCLUDE_DIR}
+	PUBLIC GeosUtil
 )
