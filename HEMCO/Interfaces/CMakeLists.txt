@@ -6,3 +6,4 @@ add_library(HCOI STATIC
 target_link_libraries(HCOI
 	PUBLIC HCOX
 )
+

@@ -28,3 +28,4 @@ add_library(KPP STATIC
 target_link_libraries(KPP
 	PUBLIC GeosUtil2
 )
+

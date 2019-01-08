@@ -1,20 +1,20 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran CXX)
+project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran)
 
-# Add our module path
+# Add our module path and include our helpers
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeScripts)
 include(GC-Helpers)
 
-# Define the base target which will hold the build configuration
+# Define the base target (which will store the build configuration properties)
 add_library(BaseTarget INTERFACE)
 
-# Put mod files in mod subdirectory
+# Put all mod files in mod subdirectory
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
 target_include_directories(BaseTarget 
 	INTERFACE ${PROJECT_BINARY_DIR}/mod
 )
 
-# Get the run directory and implementation type
+# Get the run directory and implementation type 
 include(GC-GetRunDir) # sets RUNDIR and IMPL
 
 if("${IMPL}" STREQUAL "Classic")
@@ -33,3 +33,4 @@ add_subdirectory(HEMCO)
 add_subdirectory(ISOROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GeosCore)
+

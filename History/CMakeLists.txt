@@ -10,3 +10,4 @@ add_library(History STATIC
 target_link_libraries(History
 	PUBLIC KPP
 )
+
