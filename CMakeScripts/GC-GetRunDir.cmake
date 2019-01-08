@@ -7,7 +7,7 @@ set_dynamic_default(RUNDIR "${RUNDIR_PROMPT}"
 )
 dump_log(RUNDIR_LOG)
 message(STATUS "Bootstrapping ${RUNDIR}")
-
+get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE)
 
 # Inspect the RUNDIR's name to guess the implementation (GCC or GCHP)
 get_filename_component(RUNDIR_NAME "${RUNDIR}" NAME)
