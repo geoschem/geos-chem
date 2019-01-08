@@ -1202,7 +1202,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod,
+    USE ErrCode_Mod
     USE Error_Mod,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
@@ -1611,7 +1611,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod,
+    USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
@@ -1813,7 +1813,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE ErrCode_Mod,
+    USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
