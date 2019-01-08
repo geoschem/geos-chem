@@ -1,19 +1,27 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran)
 
-# Add our module path
+# Add our module path and include our helpers
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/CMakeScripts)
-include(GCHelpers)
+include(GC-Helpers)
 
-# Find NetCDF
-find_package(NetCDF REQUIRED COMPONENTS F90)
+# Define the base target (which will store the build configuration properties)
+add_library(BaseTarget INTERFACE)
 
-# Get build configuration (defines and compiler options)
-include(GCBuildFlags)
-set(CMAKE_Fortran_FLAGS ${FC_OPTIONS})
+# Put all mod files in mod subdirectory
+set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
+target_include_directories(BaseTarget 
+	INTERFACE ${PROJECT_BINARY_DIR}/mod
+)
 
-# Add target helpers
-include(GCAddTarget)
+# Get the run directory and implementation type 
+include(GC-GetRunDir) # sets RUNDIR and IMPL
+
+if("${IMPL}" STREQUAL "Classic")
+	include(GC-ConfigureClassicBuild)
+elseif("${IMPL}" STREQUAL "GCHP")
+    add_subdirectory(GCHP)
+endif()
 
 # Add subdirectories
 add_subdirectory(KPP)
@@ -25,7 +33,4 @@ add_subdirectory(HEMCO)
 add_subdirectory(ISOROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GeosCore)
-if("${IMPL}" STREQUAL "GCHP")
-    add_subdirectory(GCHP)
-endif()
 
