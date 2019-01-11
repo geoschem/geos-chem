@@ -182,12 +182,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! NOTE: Need a mapping here to avoid using all advected species
-    ! For now, just use the advected species
-    State_Diag%ObsPack_nSpecies = Input_Opt%N_Advect
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
     !-----------------------------------------------------------------------
     ! Get the list of lon/lat/alt at which to save out GEOS-Chem data
     !-----------------------------------------------------------------------
@@ -198,14 +192,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ! NOTE: Need a mapping here to avoid using all advected species
-    ! For now, just use the advected species
-    DO N = 1, State_Diag%ObsPack_nSpecies
-       State_Diag%ObsPack_Species_Name(N) = TRIM(Input_Opt%AdvectSpc_Name(N))
-    ENDDO
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  
     !-----------------------------------------------------------------------
     ! Print info about diagnostics that will be saved out
     !-----------------------------------------------------------------------
