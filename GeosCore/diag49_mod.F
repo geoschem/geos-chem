@@ -177,7 +177,7 @@
       INTEGER            :: id_HNO3, id_HNO4, id_N2O5, id_NO
       INTEGER            :: id_PAN,  id_NPMN, id_PPN,  id_O3
       INTEGER            :: id_R4N2, id_SALA, id_SALC, id_NO2
-      INTEGER            :: id_PASV, id_IPMN, id_OH
+      INTEGER            :: id_IPMN, id_OH,   id_Passive
 #endif
 
       CONTAINS
@@ -307,6 +307,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  06 Feb 2018 - E. Lundgren - Change ND49 frequency unit from min to sec
+!  18 Jan 2019 - M. Sulprizio- Rename PASV to Passive
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -398,8 +399,8 @@
          id_SALA = Ind_('SALA')
          id_SALC = Ind_('SALC')
          id_NO2  = Ind_('NO2' )
-         id_PASV = Ind_('PASV')
          id_OH   = Ind_('OH'  )
+         id_Passive = Ind_('PassiveTracer')
 
          ! Set logical flags on the first timestep
          IS_CLDTOPS  = ASSOCIATED( State_Met%CLDTOPS )
@@ -425,7 +426,7 @@
       !%%%  only interested in printing out the sum of tracers.      %%%
       !%%%  (ewl, 6/24/15)                                           %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
+      IF ( DO_MASSCONS .or. id_Passive > 0 ) THEN
          DO_DIAG_WRITE = .FALSE.
       ENDIF
 
@@ -512,7 +513,7 @@
             !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)              %%%
             !%%%  Declare a variable for total mass of tracer.       %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_Passive > 0 ) THEN
                TOTALMASS = 0.0e+0_fp
             ENDIF
 
@@ -530,7 +531,7 @@
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
                !%%%  Archive output in kg (not v/v) for printout     %%%
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
+               IF ( DO_MASSCONS .or. id_Passive > 0 ) THEN
                   Q(X,Y,K) = SPC(I,J,L,N) * State_Met%AD(I,J,L)
                ELSE
                   ! Normal ND49 output, archive in v/v
@@ -548,7 +549,7 @@
             !%%%  Sum the mass and write out to an ASCII file        %%%
             !%%%  Use the filename from Input_Opt%ND49_FILE          %%%
             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            IF ( DO_MASSCONS .or. id_PASV > 0 ) THEN
+            IF ( DO_MASSCONS .or. id_Passive > 0 ) THEN
 
                ! Sum the mass of tracer in kg
                TOTALMASS = SUM( Q )

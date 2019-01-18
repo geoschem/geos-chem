@@ -2034,7 +2034,7 @@ CONTAINS
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
-    ! THE Rn-Pb-Be-PASV SPECIALTY SIMULATION
+    ! THE Rn-Pb-Be-Passive SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
 
@@ -2081,7 +2081,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! the Rn-Pb-Be-PASV simulation.
+       ! the Rn-Pb-Be-Passive simulation.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -2103,7 +2103,7 @@ CONTAINS
                                Found,     RC,        exact=.TRUE. )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for Rn-Pb-Be-PASV '   // &
+                      'but this is only appropriate for Rn-Pb-Be-Passive '// &
                       'simulations.' 
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN

@@ -7798,7 +7798,7 @@
          ! - Species molecular weight 
          ! - Atmospheric lifetime (s)
          ! - Initial atmospheric concentration (v/v)
-         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Pasv Species', RC )
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Passive Species', RC )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
