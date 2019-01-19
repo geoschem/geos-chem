@@ -1970,6 +1970,12 @@ CONTAINS
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%LAI, 'LAI', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%FLASH_DENS, 'FLASH_DENS', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CONV_DEPTH, 'CONV_DEPTH', RC, FIRST )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Set ( am_I_Root, HcoState, ExtState%CHLR, 'CHLR', RC, FIRST )
     IF ( RC /= HCO_SUCCESS ) RETURN
 

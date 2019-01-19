@@ -1073,6 +1073,7 @@ CONTAINS
 !  26 Sep 2013 - R. Yantosca - Now read CMFMC from GEOSFP*.nc files
 !  14 Aug 2014 - R. Yantosca - Now compute CLDTOPS here; it depends on CMFMC
 !  03 Dec 2015 - R. Yantosca - Now open file only once per day
+!  16 Jan 2019 - L. Murray   - Add offline lightning met fields 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1086,6 +1087,7 @@ CONTAINS
                                              
     ! Arrays                                 
     REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
+    REAL*4             :: Q2(IIPAR,JJPAR        )  ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1111,11 +1113,21 @@ CONTAINS
     CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFLCU = Qe
 
-    ! Read  from file
+    ! Read PLLSAN
     v_name = "PFLLSAN"
     CALL Get_Met_3De( Qe, TRIM(v_name) )
     State_Met%PFLLSAN = Qe
 
+    ! Read FLASH_DENS
+    v_name = "FLASH_DENS"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    State_Met%FLASH_DENS = Q2
+
+    ! Read CONV_DEPTH
+    v_name = "CONV_DEPTH"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    State_Met%CONV_DEPTH = Q2
+    
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
