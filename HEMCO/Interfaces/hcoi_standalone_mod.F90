@@ -191,7 +191,7 @@ CONTAINS
     RC        = HCO_SUCCESS
     am_I_Root = .TRUE.       ! Treat as root CPU
     ErrMsg    = ''
-    ThisLoc   = ' -> at HCOI_StandAlone_Run (in module HEMCO/Interfaces/hcoi_standalone_mod.F90'
+    ThisLoc   = 'HCOI_StandAlone_Run (in module HEMCO/Interfaces/hcoi_standalone_mod.F90'
 
     ! Initialize the HEMCO standalone
     CALL HCOI_Sa_Init( am_I_Root, TRIM(ConfigFile), RC )
@@ -267,7 +267,7 @@ CONTAINS
     RC      = HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-     ' -> at HCOI_SA_Init (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
+     'HCOI_SA_Init (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
 
     !=================================================================
     ! Read HEMCO configuration file and save into buffer. This also
@@ -461,7 +461,7 @@ CONTAINS
     RC      = HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-     ' -> at HCOI_SA_Run (in module HEMCO/Standalone/hcoi_standalone_mod.F90)'
+     'HCOI_SA_Run (in module HEMCO/Standalone/hcoi_standalone_mod.F90)'
 
     ! Time step counter
     CNT = 0
@@ -640,7 +640,7 @@ CONTAINS
     RC      = HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-    ' -> at HCOI_SA_FINAL (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
+    'HCOI_SA_FINAL (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
  
     ! Cleanup HCO core
     CALL HCO_FINAL( am_I_Root, HcoState, .FALSE., RC )
@@ -1000,7 +1000,7 @@ CONTAINS
     Msg     = ''
     ErrMsg  = ''
     ThisLoc = &
-     ' -> at SET_GRID (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
+     'SET_GRID (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
 
     ! Set PI_180
     PI_180 = HcoState%Phys%PI / 180.0_hp
@@ -1534,7 +1534,7 @@ CONTAINS
     RC      = HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-     ' -> at Get_nnMatch (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
+     'Get_nnMatch (in module HEMCO/Interfaces/hcoi_standalone_mod.F90)'
    
     ! Extract number of HEMCO species and corresponding species names 
     ! as read from the HEMCO config. file.
@@ -1717,7 +1717,7 @@ CONTAINS
     RC      =  HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-' -> at DEFINE_DIAGNOSTICS (in module HEMCO/Interfaces/hcoi_standalone_mod.F90'
+     'DEFINE_DIAGNOSTICS (in module HEMCO/Interfaces/hcoi_standalone_mod.F90'
 
     ! Get number of diagnostics currently defined in the default
     ! collection
@@ -1911,7 +1911,7 @@ CONTAINS
     RC      = HCO_SUCCESS
     ErrMsg  = ''
     ThisLoc = &
-     ' -> at READ_TIME (in module HEMCO/Standalone/hcoi_standalone_mod.F90)'
+     'READ_TIME (in module HEMCO/Standalone/hcoi_standalone_mod.F90)'
 
     ! Try to get TimeFile from configuration file (in settings)
     CALL GetExtOpt ( HcoState%Config, CoreNr, 'TimeFile', &
@@ -2074,7 +2074,7 @@ CONTAINS
     RC       = HCO_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-     ' -> at ExtState_SetFields (in HEMCO/Interfaces/hcoi_standalone_mod.F90'
+     'ExtState_SetFields (in HEMCO/Interfaces/hcoi_standalone_mod.F90'
 
     ! Nullify pointers
     PSFC     => NULL()
@@ -2106,6 +2106,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                     '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2118,6 +2119,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2131,6 +2133,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2144,6 +2147,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2157,6 +2161,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2169,6 +2174,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2182,6 +2188,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2194,6 +2201,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2207,6 +2215,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2219,8 +2228,9 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
-       ENDIF
+      ENDIF
     ENDIF
 
     !%%%%% Friction velocity %%%%%
@@ -2232,6 +2242,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2245,6 +2256,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg , RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2258,6 +2270,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2271,6 +2284,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2283,6 +2297,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2295,6 +2310,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2308,6 +2324,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2321,6 +2338,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2334,6 +2352,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2346,6 +2365,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2358,6 +2378,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2370,6 +2391,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2382,6 +2404,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2395,6 +2418,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2408,6 +2432,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2421,6 +2446,7 @@ CONTAINS
          ErrMsg = 'Could not find quantity "' // TRIM( Name )             // &
                   '" for the HEMCO standalone simulation!'
          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+         CALL HCO_Leave( HcoState%Config%Err, RC )
          RETURN
       ENDIF
    ENDIF
@@ -2433,6 +2459,7 @@ CONTAINS
          ErrMsg = 'Could not find quantity "' // TRIM( Name )             // &
                   '" for the HEMCO standalone simulation!'
          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+         CALL HCO_Leave( HcoState%Config%Err, RC )
          RETURN
       ENDIF
    ENDIF
@@ -2454,6 +2481,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2467,6 +2495,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )              // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2480,6 +2509,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2493,6 +2523,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2505,6 +2536,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2517,6 +2549,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2530,6 +2563,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                 '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2542,6 +2576,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                 '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2554,6 +2589,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2566,6 +2602,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2579,6 +2616,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                 '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2591,6 +2629,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2604,6 +2643,7 @@ CONTAINS
           ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
                    '" for the HEMCO standalone simulation!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2643,6 +2683,7 @@ CONTAINS
           IF ( RC /= HCO_SUCCESS ) THEN
              ErrMsg = 'SUNCOS array is not the expected dimensions!'
              CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+             CALL HCO_Leave( HcoState%Config%Err, RC )
              RETURN
           ENDIF
        ENDIF
@@ -2651,6 +2692,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "HCO_GetSuncos"!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
           RETURN
        ENDIF
     ENDIF
@@ -2663,7 +2705,7 @@ CONTAINS
     FIRST = .FALSE.
 
     ! Leave w/ success
-    CALL HCO_LEAVE( HcoState%Config%Err, RC )
+    CALL HCO_Leave( HcoState%Config%Err, RC )
 
   END SUBROUTINE ExtState_SetFields
 !EOC
@@ -2807,11 +2849,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,          INTENT(IN   )          :: am_I_Root   ! Are we on the root CPU?
+    LOGICAL, INTENT(IN   ) :: am_I_Root   ! Are we on the root CPU?
 !
 ! !INPUT/OUTPUT PARAMETERS
 !
-    INTEGER,          INTENT(INOUT)          :: RC          ! Success or failure?
+    INTEGER, INTENT(INOUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  04 Feb 2016 - C. Keller - Initial Version
