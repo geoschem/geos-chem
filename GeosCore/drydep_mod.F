@@ -801,11 +801,11 @@
 ! !LOCAL VARIABLES:
 !
       REAL(f8) :: a,D,DelM,b,PSI,LAM,EP,USTARWater,K0,K1,Garland,
-     &     Iodide
+     &     Iodide,TEMPK1
 !
 ! !DEFINED PARAMETERS:
 !
-
+      TEMPK1 = TEMPK!-1.0
       !=================================================================
       ! OCEANO3 begins here!
       !=================================================================
@@ -822,9 +822,13 @@
          !print*, 'Iodide', Iodide_Conc(I,J)*1.0E-9_f8
          Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
       ENDIF
-      a = Iodide*EXP((-8772.2/TEMPK)+51.5)
-      
-      D = -1896.0/TEMPK
+     
+      a = Iodide*EXP((-8772.2/TEMPK1)+51.5)
+      !a = Iodide*EXP((-8772.2/289.15)+51.5)
+
+      D = -1896.0/TEMPK1
+      !D = -1896.0/289.15
+
       D = 1.1E-6*EXP(D)
 
       IF (Input_Opt%FixedMicroLayer .EQ. .TRUE.) THEN
