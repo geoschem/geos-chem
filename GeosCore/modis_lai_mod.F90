@@ -73,6 +73,8 @@ MODULE Modis_Lai_Mod
 !  18 Oct 2016 - E. Lundgren - Move module vars GC_LAI and GC_CHLR to State_Met;
 !                              rename as MODISLAI and MODISCHLR; make
 !                              State_Met vars XLAI2 and XCHLR2 module vars
+!  22 Jan 2019 - H.P. Lin    - Move XLAI2 and XCHLR2 to State_Met for compatibility
+!                              with multi-domain WRF-GC
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,10 +95,6 @@ MODULE Modis_Lai_Mod
   REAL*4,  ALLOCATABLE, TARGET :: MODIS_CHLR(:,:)   ! Daily CHLR on MODIS grid
   REAL*4,  ALLOCATABLE, TARGET :: MODIS_CHLR_CM(:,:)! MODIS CHLR for current mo
   REAL*4,  ALLOCATABLE, TARGET :: MODIS_CHLR_NM(:,:)! MODIS CHLR for next month
-
-  ! GEOS-Chem grid arrays
-  REAL(fp), ALLOCATABLE, TARGET :: XLAI2(:,:,:)  ! Next month LAI/land type
-  REAL(fp), ALLOCATABLE, TARGET :: XCHLR2(:,:,:) ! Next month CHLR/land type
 
   ! specify midmonth day for year 2000
   INTEGER, PARAMETER  :: startDay(13) = (/  15,  45,  74, 105,      &
@@ -396,7 +394,7 @@ CONTAINS
        MODIS_PTR_CM      => MODIS_LAI_CM
        MODIS_PTR_NM      => MODIS_LAI_NM
        XTMP              => State_Met%XLAI  ! LAI/land type, GCgrid, this month
-       XTMP2             => XLAI2           ! LAI/land type, GCgrid, next month
+       XTMP2             => State_Met%XLAI2 ! LAI/land type, GCgrid, next month
        numRound          =  numRoundLAI
     ELSE
        GC_PTR            => State_Met%MODISCHLR ! Daily computed CHLR per
@@ -405,7 +403,7 @@ CONTAINS
        MODIS_PTR_CM      => MODIS_CHLR_CM
        MODIS_PTR_NM      => MODIS_CHLR_NM
        XTMP              => State_Met%XCHLR ! CHLR/land type, GCgrid, this month
-       XTMP2             => XCHLR2          ! CHLR/land type, GCgrid, next month
+       XTMP2             => State_Met%XCHLR2! CHLR/land type, GCgrid, next month
        numRound          =  numRoundCHLR 
     ENDIF
 
@@ -1102,22 +1100,15 @@ CONTAINS
 !                              now the default.
 !  15 Mar 2018 - M. Sulprizio- Update MODIS LAI end year to 2011.
 !  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
+!  23 Jan 2019 - H.P. Lin    - Do not allocate MODIS grid grid vars if already done
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    !======================================================================
-    ! Allocate arrays on the "coarse" GEOS-Chem grid
-    !======================================================================
-    ALLOCATE( XLAI2( IIPAR, JJPAR, NTYPE ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'XLAI2' )
-    XLAI2 = 0e+0_fp
-
-    ALLOCATE( XCHLR2( IIPAR, JJPAR, NTYPE ), STAT=RC ) 
-    IF ( RC /= 0 ) CALL ALLOC_ERR( 'XCHLR2' )
-    XCHLR2 = 0e+0_fp
+    ! If already initialized, do not allocate the "fine" MODIS grid
+    ! (which is fixed and not changing between domain calls)
+    IF ( ALLOCATED( MODIS_LAI ) ) THEN
+      RETURN
+    ENDIF
 
     !======================================================================
     ! Allocate arrays on the "fine" MODIS grid grid
@@ -1174,11 +1165,9 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    IF ( ALLOCATED( XLAI2         ) ) DEALLOCATE( XLAI2         )
     IF ( ALLOCATED( MODIS_LAI     ) ) DEALLOCATE( MODIS_LAI     )
     IF ( ALLOCATED( MODIS_LAI_CM  ) ) DEALLOCATE( MODIS_LAI_CM  )
     IF ( ALLOCATED( MODIS_LAI_NM  ) ) DEALLOCATE( MODIS_LAI_NM  )
-    IF ( ALLOCATED( XCHLR2        ) ) DEALLOCATE( XCHLR2        )
     IF ( ALLOCATED( MODIS_CHLR    ) ) DEALLOCATE( MODIS_CHLR    )
     IF ( ALLOCATED( MODIS_CHLR_CM ) ) DEALLOCATE( MODIS_CHLR_CM )
     IF ( ALLOCATED( MODIS_CHLR_NM ) ) DEALLOCATE( MODIS_CHLR_NM )

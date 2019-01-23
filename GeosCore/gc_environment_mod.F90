@@ -663,7 +663,6 @@ CONTAINS
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE Linoz_Mod,          ONLY : Init_Linoz
     USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
     USE Mercury_Mod,        ONLY : Init_Mercury
     USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
@@ -912,18 +911,6 @@ CONTAINS
        CALL Init_Aerosol( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Initialize "linoz_mod.F"
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%LLINOZ ) THEN
-       CALL Init_Linoz( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Linoz"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
