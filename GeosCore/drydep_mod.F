@@ -496,8 +496,8 @@
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
-     &             RHB,       PRESSU,    W10,        RC            
-     &             ID_O3,      O3_DIAGS                           )
+     &             RHB,       PRESSU,    W10,        RC,            
+     &             ID_O3,     O3_DIAGS                           )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1241,7 +1241,7 @@
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
-     &                   RHB,       PRESSU,    W10,       RC          
+     &                   RHB,       PRESSU,    W10,       RC,          
      &                   ID_O3,      O3_DIAGS                      )
 
 !
@@ -2432,12 +2432,10 @@
             DO 230 K = 1,NUMDEP 
                IF ( LDEP(K) ) THEN
                   RA     = 1.0D4
-<<<<<<< HEAD
 #if defined( MODEL_GEOS )
                   RA2M   = 1.0D4
                   RA10M  = 1.0D4
 #endif
-=======
                   N_SPC = State_Chm%Map_DryDep(K)
                   II = IDEP(ILAND(I,J,LDT)+1)
                   IF(LSNOW(I,J)) II=1
@@ -2446,7 +2444,6 @@
                      O3_DIAGS(I,J,1) = 1.0_f8/(RA + RSURFC(K,LDT))
                      O3_DIAGS(I,J,9) = IUSE(I,J,LDT)/10.0_f8
                   ENDIF
->>>>>>> 62943ae... First commit before pull
                   C1X(K) = RA + RSURFC(K,LDT)
                ENDIF
  230        CONTINUE
