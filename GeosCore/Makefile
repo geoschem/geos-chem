@@ -579,11 +579,8 @@ drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
-<<<<<<< HEAD
-                              hco_interface_mod.o     diagnostics_mod.o
-=======
-                              hco_interface_mod.o     seasurface_mod.o
->>>>>>> 5f9b2b8... Addition of seasurface_mod for getting sea surface Iodide input
+                              hco_interface_mod.o     diagnostics_mod.o      \
+                              seasurface_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
