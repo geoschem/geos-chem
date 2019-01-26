@@ -662,7 +662,7 @@ CONTAINS
        ENDIF
 #endif
        IF ( ExtState%DustGinoux > 0 ) THEN
-          CALL HCOX_DustGinoux_Final()
+          CALL HCOX_DustGinoux_Final( ExtState )
        ENDIF
 
        IF ( ExtState%SeaSalt > 0  ) THEN
@@ -686,11 +686,11 @@ CONTAINS
        ENDIF
 
        IF ( ExtState%GC_RnPbBe > 0 ) THEN
-          CALL HCOX_GC_RnPbBe_Final()
+          CALL HCOX_GC_RnPbBe_Final( ExtState )
        ENDIF
 
        IF ( ExtState%GC_POPs > 0  ) THEN
-          CALL HCOX_GC_POPs_Final()
+          CALL HCOX_GC_POPs_Final( ExtState )
        ENDIF
 
        IF ( ExtState%Wetland_CH4 > 0 ) THEN
@@ -706,7 +706,7 @@ CONTAINS
        ENDIF
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_Jeagle > 0  ) THEN
-          CALL HCOX_TOMAS_Jeagle_Final()
+          CALL HCOX_TOMAS_Jeagle_Final( ExtState )
        eNDIF
 #endif       
 

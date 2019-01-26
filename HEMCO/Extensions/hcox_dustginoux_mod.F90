@@ -73,31 +73,43 @@ MODULE HCOX_DustGinoux_Mod
 !  29 Sep 2014 - R. Yantosca - Now use F90 free-format indentation
 !  08 Jul 2015 - M. Sulprizio- Now include dust alkalinity source (tdf 04/10/08)
 !  14 Oct 2016 - C. Keller   - Now use HCO_EvalFld instead of HCO_GetPtr.
+!  25 Jan 2019 - M. Sulprizio- Add instance wrapper   
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 !
-  ! Quantities related to dust bins
-  INTEGER              :: NBINS
-  INTEGER              :: ExtNr    = -1     ! Extension number  for DustGinoux
-  INTEGER              :: ExtNrAlk = -1     ! Extension number  for DustAlk
-  INTEGER, ALLOCATABLE :: HcoIDs    (:)     ! HEMCO species IDs for DustGinoux
-  INTEGER, ALLOCATABLE :: HcoIDsAlk (:)     ! HEMCO species IDs for DustAlk
-  INTEGER, ALLOCATABLE :: IPOINT    (:)     ! 1=sand, 2=silt, 3=clay 
-  REAL,    ALLOCATABLE :: FRAC_S    (:)     !  
-  REAL,    ALLOCATABLE :: DUSTDEN   (:)     ! dust density     [kg/m3] 
-  REAL,    ALLOCATABLE :: DUSTREFF  (:)     ! effective radius [um] 
+  TYPE :: MyInst
 
-  ! Source functions (get from HEMCO core) 
-  REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
-  REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
+   ! Quantities related to dust bins
+   INTEGER              :: Instance
+   INTEGER              :: NBINS
+   INTEGER              :: ExtNr    = -1     ! Extension number  for DustGinoux
+   INTEGER              :: ExtNrAlk = -1     ! Extension number  for DustAlk
+   INTEGER, ALLOCATABLE :: HcoIDs    (:)     ! HEMCO species IDs for DustGinoux
+   INTEGER, ALLOCATABLE :: HcoIDsAlk (:)     ! HEMCO species IDs for DustAlk
+   INTEGER,  POINTER    :: IPOINT    (:)     ! 1=sand, 2=silt, 3=clay 
+   REAL,     POINTER    :: FRAC_S    (:)     !  
+   REAL,     POINTER    :: DUSTDEN   (:)     ! dust density     [kg/m3] 
+   REAL,     POINTER    :: DUSTREFF  (:)     ! effective radius [um] 
+   REAL(hp), POINTER    :: FLUX(:,:,:)
+   REAL(hp), POINTER    :: FLUX_ALK(:,:,:)
+   
+   ! Source functions (get from HEMCO core) 
+   REAL(hp), POINTER    :: SRCE_SAND(:,:) => NULL()
+   REAL(hp), POINTER    :: SRCE_SILT(:,:) => NULL()
+   REAL(hp), POINTER    :: SRCE_CLAY(:,:) => NULL()
 
-  ! Transfer coefficient (grid-dependent)
-  REAL(dp)             :: CH_DUST 
+   ! Transfer coefficient (grid-dependent)
+   REAL(dp)             :: CH_DUST 
 
+   TYPE(MyInst), POINTER :: NextInst => NULL()
+  END TYPE MyInst
+
+  ! Pointer to instances
+  TYPE(MyInst), POINTER  :: AllInst => NULL()
+   
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -193,23 +205,31 @@ CONTAINS
 
     ! Arrays
     REAL*8            :: DUST_EMI_TOTAL(HcoState%NX, HcoState%NY)
-    REAL(hp), TARGET  :: FLUX(HcoState%NX,HcoState%NY,NBINS)
-    REAL(hp), TARGET  :: FLUX_ALK(HcoState%NX,HcoState%NY,NBINS)
 
     ! Pointers
-    REAL(hp), POINTER :: Arr2D(:,:)
+    TYPE(MyInst), POINTER :: Inst
+    REAL(hp),     POINTER :: Arr2D(:,:)
 
     !=======================================================================
     ! HCOX_DUSTGINOUX_RUN begins here!
     !=======================================================================
 
     ! Return if extension is disabled 
-    IF ( ExtState%DustGinoux < 0 ) RETURN
+    IF ( ExtState%DustGinoux <= 0 ) RETURN
 
     ! Enter
     CALL HCO_ENTER(HcoState%Config%Err,'HCOX_DustGinoux_Run (hcox_dustginoux_mod.F90)',RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    ! Get instance
+    Inst   => NULL()
+    CALL InstGet ( ExtState%DustGinoux, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN 
+       WRITE(MSG,*) 'Cannot find DustGinoux instance Nr. ', ExtState%DustGinoux
+       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+       RETURN
+    ENDIF
+    
     ! Set gravity at earth surface (cm/s^2)
     G       = HcoState%Phys%g0 * 1.0d2 
 
@@ -223,8 +243,6 @@ CONTAINS
     ERR     = .FALSE.
 
     ! Init
-    FLUX     = 0.0_hp
-    FLUX_ALK = 0.0_hp
     Arr2D    => NULL()
 
     !=================================================================
@@ -233,15 +251,15 @@ CONTAINS
     !IF ( HcoClock_First(HcoState%Clock,.TRUE.) ) THEN
 
        ! Sand
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SAND', SRCE_SAND, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SAND', Inst%SRCE_SAND, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Silt
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SILT', SRCE_SILT, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_SILT', Inst%SRCE_SILT, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! Clay
-       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_CLAY', SRCE_CLAY, RC )
+       CALL HCO_EvalFld ( am_I_Root, HcoState, 'GINOUX_CLAY', Inst%SRCE_CLAY, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
     !ENDIF
 
@@ -254,7 +272,7 @@ CONTAINS
 !$OMP PRIVATE( REYNOL, ALPHA, BETA,   GAMMA,  U_TS0, U_TS   ) &
 !$OMP PRIVATE( CW,     W10M,  SRCE_P, RC                    ) &
 !$OMP SCHEDULE( DYNAMIC )
-    DO N = 1, NBINS
+    DO N = 1, Inst%NBINS
 
        !====================================================================
        ! Threshold velocity as a function of the dust density and the 
@@ -266,9 +284,9 @@ CONTAINS
        ! Threshold velocity from Marticorena and Bergametti
        ! Convert units to fit dimensional parameters
        !====================================================================
-       DEN    = DUSTDEN(N) * 1.d-3                   ! [g/cm3]
-       DIAM   = 2d0 * DUSTREFF(N) * 1.d2             ! [cm in diameter]
-       REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0    ! [Reynolds number]
+       DEN    = Inst%DUSTDEN(N) * 1.d-3                   ! [g/cm3]
+       DIAM   = 2d0 * Inst%DUSTREFF(N) * 1.d2             ! [cm in diameter]
+       REYNOL = 1331.d0 * DIAM**(1.56d0) + 0.38d0         ! [Reynolds number]
        ALPHA  = DEN * G * DIAM / RHOA
        BETA   = 1d0 + ( 6.d-3 / ( DEN * G * DIAM**(2.5d0) ) )
        GAMMA  = ( 1.928d0 * REYNOL**(0.092d0) ) - 1.d0
@@ -285,7 +303,7 @@ CONTAINS
        U_TS0  = 129.d-5 * SQRT( ALPHA ) * SQRT( BETA ) / SQRT( GAMMA )
 
        ! Index used to select the source function (1=sand, 2=silt, 3=clay)
-       M = IPOINT(N)
+       M = Inst%IPOINT(N)
 
        ! Loop over grid boxes 
        DO J = 1, HcoState%NY 
@@ -316,31 +334,31 @@ CONTAINS
           ! Get source function
           SELECT CASE( M )
              CASE( 1 ) 
-                SRCE_P = SRCE_SAND(I,J)
+                SRCE_P = Inst%SRCE_SAND(I,J)
              CASE( 2 )
-                SRCE_P = SRCE_SILT(I,J)
+                SRCE_P = Inst%SRCE_SILT(I,J)
              CASE( 3 )
-                SRCE_P = SRCE_CLAY(I,J)
+                SRCE_P = Inst%SRCE_CLAY(I,J)
           END SELECT
 
           ! Units are m2
-          SRCE_P = FRAC_S(N) * SRCE_P !* A_M2
+          SRCE_P = Inst%FRAC_S(N) * SRCE_P !* A_M2
 
           ! Dust source increment [kg/m2/s]
-          FLUX(I,J,N) = CW           * CH_DUST * SRCE_P * W10M &
-                      * ( SQRT(W10M) - U_TS )
+          Inst%FLUX(I,J,N) = CW           * Inst%CH_DUST * SRCE_P * W10M &
+                           * ( SQRT(W10M) - U_TS )
 
           ! Not less than zero
-          IF ( FLUX(I,J,N) < 0.d0 ) FLUX(I,J,N) = 0.d0
+          IF ( Inst%FLUX(I,J,N) < 0.d0 ) Inst%FLUX(I,J,N) = 0.d0
 
           ! Increment total dust emissions [kg/m2/s] (L. Zhang, 6/26/15)
-          DUST_EMI_TOTAL(I,J) = DUST_EMI_TOTAL(I,J) + FLUX(I,J,N)
+          DUST_EMI_TOTAL(I,J) = DUST_EMI_TOTAL(I,J) + Inst%FLUX(I,J,N)
 
           ! Include DUST Alkalinity SOURCE, assuming an alkalinity
           ! of 4% by weight [kg].                  !tdf 05/10/08
           !tdf 3% Ca + equ 1% Mg = 4% alkalinity
-          IF ( ExtNrAlk > 0 ) THEN
-             FLUX_ALK(I,J,N) = 0.04 * FLUX(I,J,N)
+          IF ( Inst%ExtNrAlk > 0 ) THEN
+             Inst%FLUX_ALK(I,J,N) = 0.04 * Inst%FLUX(I,J,N)
           ENDIF
 
        ENDDO
@@ -359,18 +377,18 @@ CONTAINS
 !$OMP DEFAULT( SHARED )                                     &
 !$OMP PRIVATE( I, J, N )                                    &
 !$OMP SCHEDULE( DYNAMIC )
-     DO N=1,NBINS
+     DO N=1,Inst%NBINS
      DO J=1,HcoState%NY
      DO I=1,HcoState%NX
         SELECT CASE( N )
            CASE( 1 ) 
-              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.0766d0
+              Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.0766d0
            CASE( 2 )
-              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.1924d0
+              Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.1924d0
            CASE( 3 ) 
-              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3491d0
+              Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3491d0
            CASE( 4 )
-              FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3819d0
+              Inst%FLUX(I,J,N) = DUST_EMI_TOTAL(I,J) * 0.3819d0
         END SELECT
      ENDDO
      ENDDO
@@ -380,12 +398,12 @@ CONTAINS
     !=======================================================================
     ! PASS TO HEMCO STATE AND UPDATE DIAGNOSTICS 
     !=======================================================================
-    DO N = 1, NBINS
-       IF ( HcoIDs(N) > 0 ) THEN
+    DO N = 1, Inst%NBINS
+       IF ( Inst%HcoIDs(N) > 0 ) THEN
 
           ! Add flux to emission array
-          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUX(:,:,N), & 
-                            HcoIDs(N), RC,       ExtNr=ExtNr   )
+          CALL HCO_EmisAdd( am_I_Root,      HcoState, Inst%FLUX(:,:,N), & 
+                            Inst%HcoIDs(N), RC,       ExtNr=Inst%ExtNr   )
           IF ( RC /= HCO_SUCCESS ) THEN
              WRITE(MSG,*) 'HCO_EmisAdd error: dust bin ', N
              CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -396,12 +414,12 @@ CONTAINS
 
        ! This block is only relevant if the DustAlk extension
        ! has been turned on.  Skip othewrise. (bmy, 7/7/17)
-       IF ( ExtNrAlk > 0 ) THEN
-          IF ( HcoIDsAlk(N) > 0 ) THEN
+       IF ( Inst%ExtNrAlk > 0 ) THEN
+          IF ( Inst%HcoIDsAlk(N) > 0 ) THEN
 
              ! Add flux to emission array
-             CALL HCO_EmisAdd( am_I_Root,    HcoState, FLUX_Alk(:,:,N), &
-                               HcoIDsAlk(N), RC,       ExtNr=ExtNrAlk   )
+             CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%FLUX_Alk(:,:,N), &
+                               Inst%HcoIDsAlk(N), RC, ExtNr=Inst%ExtNrAlk)
              IF ( RC /= HCO_SUCCESS ) THEN
                 WRITE(MSG,*) 'HCO_EmisAdd error: dust alkalinity bin ', N
                 CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -412,6 +430,13 @@ CONTAINS
 
     ENDDO
 
+    !=======================================================================
+    ! Cleanup & quit
+    !=======================================================================
+    
+    ! Nullify pointers
+    Inst    => NULL()
+    
     ! Leave w/ success
     CALL HCO_LEAVE( HcoState%Config%Err,RC )
 
@@ -459,7 +484,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                        :: N, AS, nSpc, nSpcAlk
+    INTEGER                        :: N, AS, nSpc, nSpcAlk, ExtNr
     CHARACTER(LEN=255)             :: MSG
     REAL(dp)                       :: Mp, Rp, TmpScal
     LOGICAL                        :: FOUND
@@ -467,6 +492,9 @@ CONTAINS
     ! Arrays
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNames(:)
     CHARACTER(LEN=31), ALLOCATABLE :: SpcNamesAlk(:)
+
+    ! Pointers
+    TYPE(MyInst), POINTER          :: Inst
 
     !=======================================================================
     ! HCOX_DUSTGINOUX_INIT begins here!
@@ -476,30 +504,41 @@ CONTAINS
     ExtNr = GetExtNr( HcoState%Config%ExtList, TRIM(ExtName) )
     IF ( ExtNr <= 0 ) RETURN
 
+    ! Create Instance
+    Inst => NULL()
+    CALL InstCreate ( ExtNr, ExtState%DustGinoux, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create DustGinoux instance', RC )
+       RETURN
+    ENDIF
+    ! Also fill Inst%ExtNr
+    Inst%ExtNr = ExtNr
+    
     ! Check for dust alkalinity option
-    ExtNrAlk = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
+    Inst%ExtNrAlk = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
 
     ! Enter
     CALL HCO_ENTER(HcoState%Config%Err,'HCOX_DustGinoux_Init (hcox_dustginoux_mod.F90)',RC)
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get the expected number of dust species
-    NBINS = HcoState%nDust
+    Inst%NBINS = HcoState%nDust
 
     ! Get the actual number of dust species defined for DustGinoux extension
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, HcoIDs, SpcNames, nSpc, RC )
+    CALL HCO_GetExtHcoID( HcoState, Inst%ExtNr, Inst%HcoIDs, &
+                          SpcNames, nSpc, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get the dust alkalinity species defined for DustAlk option
-    IF ( ExtNrAlk > 0 ) THEN
-       CALL HCO_GetExtHcoID( HcoState,    ExtNrAlk, HcoIDsAlk, &
+    IF ( Inst%ExtNrAlk > 0 ) THEN
+       CALL HCO_GetExtHcoID( HcoState,    Inst%ExtNrAlk, Inst%HcoIDsAlk, &
                              SpcNamesAlk, nSpcAlk,  RC)
        IF ( RC /= HCO_SUCCESS ) RETURN
     ENDIF
 
     ! Make sure the # of dust species is as expected
-    IF ( nSpc /= NBINS ) THEN
-       WRITE( MSG, 100 ) NBINS, nSpc
+    IF ( nSpc /= Inst%NBINS ) THEN
+       WRITE( MSG, 100 ) Inst%NBINS, nSpc
  100   FORMAT( 'Expected ', i3, ' DustGinoux species but only found ', i3, &
                ' in the HEMCO configuration file!  Exiting...' )
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
@@ -509,18 +548,18 @@ CONTAINS
     ! Set scale factor: first try to read from configuration file. If
     ! not specified, call wrapper function which sets teh scale factor
     ! based upon compiler switches.
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Mass tuning factor', &
+    CALL GetExtOpt( HcoState%Config, Inst%ExtNr, 'Mass tuning factor', &
                      OptValDp=TmpScal, Found=FOUND, RC=RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Set parameter FLX_MSS_FDG_FCT to specified tuning factor. Get from
     ! wrapper routine if not defined in configuration file
     IF ( FOUND ) THEN
-       CH_DUST = TmpScal
+       Inst%CH_DUST = TmpScal
     ELSE
        ! Get global mass flux tuning factor
-       CH_DUST = HcoX_DustGinoux_GetCHDust()
-       IF ( CH_DUST < 0.0_dp ) THEN
+       Inst%CH_DUST = HcoX_DustGinoux_GetCHDust( Inst )
+       IF ( Inst%CH_DUST < 0.0_dp ) THEN
           RC = HCO_FAIL
           RETURN
        ENDIF
@@ -531,7 +570,7 @@ CONTAINS
        MSG = 'Use Ginoux dust emissions (extension module)'
        CALL HCO_MSG(HcoState%Config%Err,MSG )
 
-       IF ( ExtNrAlk > 0 ) THEN
+       IF ( Inst%ExtNrAlk > 0 ) THEN
           MSG = 'Use dust alkalinity option'
           CALL HCO_MSG(HcoState%Config%Err,MSG, SEP1='-' )
        ENDIF
@@ -539,50 +578,57 @@ CONTAINS
        MSG = 'Use the following species (Name: HcoID):'
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        DO N = 1, nSpc
-          WRITE(MSG,*) TRIM(SpcNames(N)), ':', HcoIDs(N)
+          WRITE(MSG,*) TRIM(SpcNames(N)), ':', Inst%HcoIDs(N)
           CALL HCO_MSG(HcoState%Config%Err,MSG)
        ENDDO
-       IF ( ExtNrAlk > 0 ) THEN
+       IF ( Inst%ExtNrAlk > 0 ) THEN
           DO N = 1, nSpcAlk
-             WRITE(MSG,*) TRIM(SpcNamesAlk(N)), ':', HcoIDsAlk(N)
+             WRITE(MSG,*) TRIM(SpcNamesAlk(N)), ':', Inst%HcoIDsAlk(N)
              CALL HCO_MSG(HcoState%Config%Err,MSG)
           ENDDO
        ENDIF
 
-       WRITE(MSG,*) 'Global mass flux tuning factor: ', CH_DUST
+       WRITE(MSG,*) 'Global mass flux tuning factor: ', Inst%CH_DUST
        CALL HCO_MSG(HcoState%Config%Err,MSG,SEP2='-')
     ENDIF
 
     ! Allocate vectors holding bin-specific informations 
-    ALLOCATE ( IPOINT  (NBINS) ) 
-    ALLOCATE ( FRAC_S  (NBINS) ) 
-    ALLOCATE ( DUSTDEN (NBINS) ) 
-    ALLOCATE ( DUSTREFF(NBINS) ) 
-
+    ALLOCATE ( Inst%IPOINT  (Inst%NBINS) ) 
+    ALLOCATE ( Inst%FRAC_S  (Inst%NBINS) ) 
+    ALLOCATE ( Inst%DUSTDEN (Inst%NBINS) ) 
+    ALLOCATE ( Inst%DUSTREFF(Inst%NBINS) ) 
+    ALLOCATE ( Inst%FLUX    (HcoState%NX,HcoState%NY,Inst%NBINS) )
+    ALLOCATE ( Inst%FLUX_ALK(HcoState%NX,HcoState%NY,Inst%NBINS) )
+    
     ! Allocate arrays
-    ALLOCATE ( SRCE_SAND ( HcoState%NX, HcoState%NY ), & 
-               SRCE_SILT ( HcoState%NX, HcoState%NY ), & 
-               SRCE_CLAY ( HcoState%NX, HcoState%NY ), & 
+    ALLOCATE ( Inst%SRCE_SAND ( HcoState%NX, HcoState%NY ), & 
+               Inst%SRCE_SILT ( HcoState%NX, HcoState%NY ), & 
+               Inst%SRCE_CLAY ( HcoState%NX, HcoState%NY ), & 
                STAT = AS )
     IF ( AS /= 0 ) THEN
        CALL HCO_ERROR(HcoState%Config%Err,'Allocation error', RC )
        RETURN
     ENDIF
-    SRCE_SAND = 0.0_hp
-    SRCE_SILT = 0.0_hp
-    SRCE_CLAY = 0.0_hp
 
+    ! Init
+    Inst%FLUX      = 0.0_hp
+    Inst%FLUX_ALK  = 0.0_hp
+    Inst%SRCE_SAND = 0.0_hp
+    Inst%SRCE_SILT = 0.0_hp
+    Inst%SRCE_CLAY = 0.0_hp
+
+    
     !=======================================================================
     ! Setup for simulations that use 4 dust bins (w/ or w/o TOMAS)
     !=======================================================================
 
     ! Fill bin-specific information
-    IF ( NBINS == 4 ) THEN
+    IF ( Inst%NBINS == 4 ) THEN
 
-       IPOINT  (1:NBINS) = (/ 3,       2,       2,       2       /)
-       FRAC_S  (1:NBINS) = (/ 0.095d0, 0.3d0,   0.3d0,   0.3d0   /)
-       DUSTDEN (1:NBINS) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
-       DUSTREFF(1:NBINS) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
+       Inst%IPOINT  (1:Inst%NBINS) = (/ 3,       2,       2,       2       /)
+       Inst%FRAC_S  (1:Inst%NBINS) = (/ 0.095d0, 0.3d0,   0.3d0,   0.3d0   /)
+       Inst%DUSTDEN (1:Inst%NBINS) = (/ 2500.d0, 2650.d0, 2650.d0, 2650.d0 /)
+       Inst%DUSTREFF(1:Inst%NBINS) = (/ 0.73d-6, 1.4d-6,  2.4d-6,  4.5d-6  /)
 
     ELSE
 
@@ -610,7 +656,7 @@ CONTAINS
     ! SRCE_FUNC Source function                              
     ! for 1: Sand, 2: Silt, 3: Clay
     !=======================================================================
-    IF ( NBINS == HcoState%MicroPhys%nBins ) THEN
+    IF ( Inst%NBINS == HcoState%MicroPhys%nBins ) THEN
 
        !--------------------------------------------------------------------
        ! Define the IPOINT array based on particle size
@@ -625,9 +671,9 @@ CONTAINS
 
           ! Pick the source function based on particle size
           IF ( Rp < 1.d-6 ) THEN
-             IPOINT(N) = 3
+             Inst%IPOINT(N) = 3
           ELSE
-             IPOINT(N) = 2
+             Inst%IPOINT(N) = 2
           END IF
        END DO
 
@@ -636,9 +682,9 @@ CONTAINS
        !--------------------------------------------------------------------
        DO N = 1, HcoState%MicroPhys%nBins
           IF ( HcoState%MicroPhys%BinBound(N) < 4.0D-15 ) THEN
-             DUSTDEN(N)  = 2500.d0
+             Inst%DUSTDEN(N)  = 2500.d0
           ELSE
-             DUSTDEN(N)  = 2650.d0
+             Inst%DUSTDEN(N)  = 2650.d0
           ENDIF
        ENDDO
 
@@ -646,10 +692,10 @@ CONTAINS
        ! Set up dust density (DUSTDEN) array
        !--------------------------------------------------------------------
        DO N = 1, HcoState%MicroPhys%nBins
-          DUSTREFF(N) = 0.5d0                                              &
+          Inst%DUSTREFF(N) = 0.5d0                                    &
                       * ( SQRT( HcoState%MicroPhys%BinBound(N) *      &
                                 HcoState%MicroPhys%BinBound(N+1) )    &
-                      /   DUSTDEN(N) * 6.d0/HcoState%Phys%PI )**( 0.333d0 )
+                      /   Inst%DUSTDEN(N) * 6.d0/HcoState%Phys%PI )**( 0.333d0 )
        ENDDO
         
        !--------------------------------------------------------------------
@@ -657,61 +703,61 @@ CONTAINS
        !--------------------------------------------------------------------
 
        ! Initialize
-       FRAC_S( 1:HcoState%MicroPhys%nBins )           = 0d0
+       Inst%FRAC_S( 1:HcoState%MicroPhys%nBins )           = 0d0
 
 # if  defined( TOMAS12 ) || defined( TOMAS15 )
 
        !---------------------------------------------------
        ! TOMAS simulations with 12 or 15 size bins
        !---------------------------------------------------
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 1  )  = 7.33E-10
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 2  )  = 2.032E-08
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 3  )  = 3.849E-07
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 4  )  = 5.01E-06
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 5  )  = 4.45E-05
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 6  )  = 2.714E-04
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 7  )  = 1.133E-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 8  )  = 3.27E-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 9  )  = 6.81E-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 1.276E-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 2.155E-01
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 6.085E-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 1  )  = 7.33E-10
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 2  )  = 2.032E-08
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 3  )  = 3.849E-07
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 4  )  = 5.01E-06
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 5  )  = 4.45E-05
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 6  )  = 2.714E-04
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 7  )  = 1.133E-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 8  )  = 3.27E-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 9  )  = 6.81E-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 1.276E-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 2.155E-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 6.085E-01
 
 # else
 
        !---------------------------------------------------
        ! TOMAS simulations with 30 or 40 size bins
        !---------------------------------------------------        
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  1 )  = 1.05d-10
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  2 )  = 6.28d-10
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  3 )  = 3.42d-09
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  4 )  = 1.69d-08
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  5 )  = 7.59d-08
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  6 )  = 3.09d-07
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  7 )  = 1.15d-06
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  8 )  = 3.86d-06
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins +  9 )  = 1.18d-05
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 3.27d-05
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 8.24d-05
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 1.89d-04
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 13 )  = 3.92d-04
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 14 )  = 7.41d-04
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 15 )  = 1.27d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 16 )  = 2.00d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 17 )  = 2.89d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 18 )  = 3.92d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 19 )  = 5.26d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 20 )  = 7.50d-03
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 21 )  = 1.20d-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 22 )  = 2.08d-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 23 )  = 3.62d-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 24 )  = 5.91d-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 25 )  = 8.74d-02
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 26 )  = 1.15d-01
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 27 )  = 1.34d-01
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 28 )  = 1.37d-01
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 29 )  = 1.24d-01
-       FRAC_S( HcoState%MicroPhys%nActiveModeBins + 30 )  = 9.85d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  1 )  = 1.05d-10
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  2 )  = 6.28d-10
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  3 )  = 3.42d-09
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  4 )  = 1.69d-08
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  5 )  = 7.59d-08
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  6 )  = 3.09d-07
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  7 )  = 1.15d-06
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  8 )  = 3.86d-06
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins +  9 )  = 1.18d-05
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 10 )  = 3.27d-05
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 11 )  = 8.24d-05
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 12 )  = 1.89d-04
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 13 )  = 3.92d-04
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 14 )  = 7.41d-04
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 15 )  = 1.27d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 16 )  = 2.00d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 17 )  = 2.89d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 18 )  = 3.92d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 19 )  = 5.26d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 20 )  = 7.50d-03
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 21 )  = 1.20d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 22 )  = 2.08d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 23 )  = 3.62d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 24 )  = 5.91d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 25 )  = 8.74d-02
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 26 )  = 1.15d-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 27 )  = 1.34d-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 28 )  = 1.37d-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 29 )  = 1.24d-01
+       Inst%FRAC_S( HcoState%MicroPhys%nActiveModeBins + 30 )  = 9.85d-02
 
 # endif
 
@@ -733,11 +779,14 @@ CONTAINS
     ExtState%V10M%DoUse    = .TRUE.
     ExtState%GWETTOP%DoUse = .TRUE.
 
-    ! Activate this module
-    ExtState%DustGinoux    = .TRUE.
-
+    !=======================================================================
     ! Leave w/ success
+    !=======================================================================    
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
+
+    ! Nullify pointers
+    Inst    => NULL()
+
     CALL HCO_LEAVE( HcoState%Config%Err,RC ) 
 
   END SUBROUTINE HcoX_DustGinoux_Init
@@ -755,7 +804,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HcoX_DustGinoux_Final()
+  SUBROUTINE HcoX_DustGinoux_Final( ExtState )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  11 Dec 2013 - C. Keller - Now a HEMCO extension
@@ -767,18 +820,9 @@ CONTAINS
     ! HCOX_DUSTGINOUX_FINAL begins here!
     !=======================================================================
  
-    ! Free pointer
-    IF ( ASSOCIATED( SRCE_SAND ) ) DEALLOCATE( SRCE_SAND ) 
-    IF ( ASSOCIATED( SRCE_SILT ) ) DEALLOCATE( SRCE_SILT )
-    IF ( ASSOCIATED( SRCE_CLAY ) ) DEALLOCATE( SRCE_CLAY )
+    CALL InstRemove ( ExtState%DustGinoux )
 
-    ! Cleanup option object
-    IF ( ALLOCATED( IPOINT    ) ) DEALLOCATE( IPOINT    )
-    IF ( ALLOCATED( FRAC_S    ) ) DEALLOCATE( FRAC_S    )
-    IF ( ALLOCATED( DUSTDEN   ) ) DEALLOCATE( DUSTDEN   )
-    IF ( ALLOCATED( DUSTREFF  ) ) DEALLOCATE( DUSTREFF  )
-    IF ( ALLOCATED( HcoIDs    ) ) DEALLOCATE( HcoIDs    )
-    IF ( ALLOCATED( HcoIDsALK ) ) DEALLOCATE( HcoIDsALK )
+
 
   END SUBROUTINE HcoX_DustGinoux_Final
 !EOC
@@ -795,7 +839,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCOX_DustGinoux_GetChDust() RESULT( CH_DUST )
+  FUNCTION HCOX_DustGinoux_GetChDust( Inst ) RESULT( CH_DUST )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(MyInst),    POINTER        :: Inst      ! Instance    
 !
 ! !RETURN VALUE:
 !
@@ -823,7 +871,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! All 4x5 simulations (including TOMAS)
     !-----------------------------------------------------------------------
-    CH_DUST  = 9.375d-10
+    Inst%CH_DUST  = 9.375d-10
 
 #else
 
@@ -832,16 +880,217 @@ CONTAINS
     !-----------------------------------------------------------------------
 
     ! Start w/ same value as for 4x5
-    CH_DUST  = 9.375d-10
+    Inst%CH_DUST  = 9.375d-10
 
 #if defined( TOMAS )
     ! KLUDGE: For TOMAS simulations at grids higher than 4x5 (e.g. 2x25),
     ! then multiplyCH_DUST by 0.75.  (Sal Farina)
-    CH_DUST  = CH_DUST * 0.75d0
+    Inst%CH_DUST  = Inst%CH_DUST * 0.75d0
 #endif
 
 #endif
       
   END FUNCTION HCOX_DustGinoux_GetChDust
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstGet 
+!
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                             :: Instance
+    TYPE(MyInst),     POINTER           :: Inst
+    INTEGER                             :: RC
+    TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst),     POINTER    :: PrvInst
+
+    !=================================================================
+    ! InstGet begins here!
+    !=================================================================
+ 
+    ! Get instance. Also archive previous instance.
+    PrvInst => NULL() 
+    Inst    => AllInst
+    DO WHILE ( ASSOCIATED(Inst) ) 
+       IF ( Inst%Instance == Instance ) EXIT
+       PrvInst => Inst
+       Inst    => Inst%NextInst
+    END DO
+    IF ( .NOT. ASSOCIATED( Inst ) ) THEN
+       RC = HCO_FAIL
+       RETURN
+    ENDIF
+
+    ! Pass output arguments
+    IF ( PRESENT(PrevInst) ) PrevInst => PrvInst
+
+    ! Cleanup & Return
+    PrvInst => NULL()
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstGet 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: InstCreate 
+!
+! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,       INTENT(IN)       :: ExtNr
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(  OUT)    :: Instance
+    TYPE(MyInst),  POINTER          :: Inst
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,       INTENT(INOUT)    :: RC 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    TYPE(MyInst), POINTER          :: TmpInst
+    INTEGER                        :: nnInst
+
+    !=================================================================
+    ! InstCreate begins here!
+    !=================================================================
+
+    ! ----------------------------------------------------------------
+    ! Generic instance initialization 
+    ! ----------------------------------------------------------------
+
+    ! Initialize
+    Inst => NULL()
+
+    ! Get number of already existing instances
+    TmpInst => AllInst
+    nnInst = 0
+    DO WHILE ( ASSOCIATED(TmpInst) )
+       nnInst  =  nnInst + 1
+       TmpInst => TmpInst%NextInst
+    END DO
+
+    ! Create new instance
+    ALLOCATE(Inst)
+    Inst%Instance = nnInst + 1
+    Inst%ExtNr    = ExtNr 
+
+    ! Attach to instance list
+    Inst%NextInst => AllInst
+    AllInst       => Inst
+
+    ! Update output instance
+    Instance = Inst%Instance
+
+    ! ----------------------------------------------------------------
+    ! Type specific initialization statements follow below
+    ! ----------------------------------------------------------------
+
+    ! Return w/ success
+    RC = HCO_SUCCESS
+
+  END SUBROUTINE InstCreate
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!BOP
+!
+! !IROUTINE: InstRemove 
+!
+! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE InstRemove ( Instance ) 
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER                         :: Instance 
+!
+! !REVISION HISTORY:
+!  18 Feb 2016 - C. Keller   - Initial version
+!  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    INTEGER                     :: RC
+    TYPE(MyInst), POINTER       :: PrevInst
+    TYPE(MyInst), POINTER       :: Inst
+
+    !=================================================================
+    ! InstRemove begins here!
+    !=================================================================
+
+    ! Init 
+    PrevInst => NULL()
+    Inst     => NULL()
+    
+    ! Get instance. Also archive previous instance.
+    CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
+
+    ! Instance-specific deallocation
+    IF ( ASSOCIATED(Inst) ) THEN 
+   
+       ! Pop off instance from list
+       IF ( ASSOCIATED(PrevInst) ) THEN
+        
+          ! Free pointer
+          IF ( ASSOCIATED( Inst%SRCE_SAND ) ) DEALLOCATE( Inst%SRCE_SAND ) 
+          IF ( ASSOCIATED( Inst%SRCE_SILT ) ) DEALLOCATE( Inst%SRCE_SILT )
+          IF ( ASSOCIATED( Inst%SRCE_CLAY ) ) DEALLOCATE( Inst%SRCE_CLAY )
+
+          ! Cleanup option object
+          IF ( ASSOCIATED( Inst%IPOINT    ) ) DEALLOCATE( Inst%IPOINT    )
+          IF ( ASSOCIATED( Inst%FRAC_S    ) ) DEALLOCATE( Inst%FRAC_S    )
+          IF ( ASSOCIATED( Inst%DUSTDEN   ) ) DEALLOCATE( Inst%DUSTDEN   )
+          IF ( ASSOCIATED( Inst%DUSTREFF  ) ) DEALLOCATE( Inst%DUSTREFF  )
+          IF ( ASSOCIATED( Inst%FLUX      ) ) DEALLOCATE( Inst%FLUX      )
+          IF ( ASSOCIATED( Inst%FLUX_ALK  ) ) DEALLOCATE( Inst%FLUX_ALK  )
+          IF ( ALLOCATED ( Inst%HcoIDs    ) ) DEALLOCATE( Inst%HcoIDs    )
+          IF ( ALLOCATED ( Inst%HcoIDsALK ) ) DEALLOCATE( Inst%HcoIDsALK )
+          
+          PrevInst%NextInst => Inst%NextInst
+       ELSE
+          AllInst => Inst%NextInst
+       ENDIF
+       DEALLOCATE(Inst)
+       Inst => NULL() 
+    ENDIF
+   
+   END SUBROUTINE InstRemove
 !EOC
 END MODULE HCOX_DustGinoux_Mod

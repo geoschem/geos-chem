@@ -798,8 +798,8 @@ CONTAINS
     ! ExtState%DustGinoux.  This will make sure these variables are 
     ! cast to LOGICAL, so that we can compare them in the same IF
     ! statement.  Otherwise GNU Fortran will choke. (bmy, 10/25/16)
-    Is_DustDead   = ( ExtState%DustDead   )
-    Is_DustGinoux = ( ExtState%DustGinoux )
+    Is_DustDead   = ( ExtState%DustDead   > 0 )
+    Is_DustGinoux = ( ExtState%DustGinoux > 0 )
 
     ! Define diagnostics if dust is used
     IF ( ( Is_DustDead .OR. Is_DustGinoux )  .AND. &
