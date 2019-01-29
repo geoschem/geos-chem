@@ -1265,7 +1265,7 @@ CONTAINS
 !
 ! !IROUTINE: chem_passive_species
 !
-! !DESCRIPTION: Subroutine RUN\_PASSIVE\_SPECIES performs loss chemistry 
+! !DESCRIPTION: Subroutine CHEM\_PASSIVE\_SPECIES performs loss chemistry 
 !  on passive species with finite atmospheric lifetimes.
 !\\
 !\\
@@ -1286,17 +1286,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! root CPU?
-    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input options object
-    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology state object
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),  INTENT(IN   )  :: State_Chm   ! Chemistry state object 
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(INOUT)  :: RC          ! Failure or success
+    INTEGER,        INTENT(OUT)   :: RC          ! Failure or success
 !
 ! !REMARKS:
 !
@@ -1310,6 +1310,7 @@ CONTAINS
 !                              with finite atmospheric lifetimes
 !  04 Jan 2019 - M. Sulprizio- Add capability to specify TAU in half-life;
 !                              e-folding time will always be used for now
+!  29 Jan 2019 - R. Yantosca - Bug fix: State_Chm should be INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
