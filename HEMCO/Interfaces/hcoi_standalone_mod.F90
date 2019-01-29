@@ -249,15 +249,19 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version
 !  18 Jan 2019 - R. Yantosca - Improve error trapping
+!  29 Jan 2019 - R. Yantosca - Now flush errmsgs to logfile before exiting
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                  :: nnMatch
-    LOGICAL                  :: Dum,    Found
-    CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
+    ! Scalars
+    INTEGER            :: nnMatch
+    LOGICAL            :: Dum,    Found
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
     ! HCOI_SA_INIT begins here!
@@ -303,16 +307,18 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Get_nnMatch"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
     !-----------------------------------------------------------------
     ! Initialize HCO state. Use only species that are used
-    ! in GEOS-Chem and are also found in the HEMCO config. file.
+    ! in HEMCO_sa_Spec.rc and are also found in the HEMCO config. file.
     CALL HcoState_Init ( am_I_Root, HcoState, HcoConfig, nnMatch, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HcoState_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -322,6 +328,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Set_Grid"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -331,6 +338,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Register_Species"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -340,6 +348,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Read_Time"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -360,6 +369,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "GetExtOpt"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
     IF ( .NOT. Found ) HcoState%Options%Field2Diagn = .TRUE.
@@ -374,6 +384,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCO_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -386,6 +397,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "HCOX_Init"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -396,6 +408,7 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Define_Diagnostics"!'
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+       CALL Flush( HcoState%Config%Err%Lun )
        RETURN
     ENDIF
 
@@ -443,6 +456,9 @@ CONTAINS
 ! !REVISION HISTORY: 
 !  12 Sep 2013 - C. Keller   - Initial version
 !  18 Jan 2019 - R. Yantosca - Improve error trapping
+!  29 Jan 2019 - R. Yantosca - Bug fix: Call HCO_RUN twice, once with phase=1
+!                              and again with phase=2.  This is necessary
+!                              for emissions to be computed.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -542,11 +558,25 @@ CONTAINS
        ! ================================================================
        ! Run HCO core module
        ! Emissions will be written into the corresponding flux arrays 
-       ! in HcoState. 
+       ! in HcoState.  
+       !
+       ! NOTE: Call HCO_Run explicitly twice, once for phase 1 and 
+       ! once for phase 2.  This will ensure emissions get computed.
+       ! (bmy, 1/29/18)
        ! ================================================================
-       CALL HCO_Run( am_I_Root, HcoState, -1, RC )
+
+       ! Phase 1: Update reading data fields etc.
+       CALL HCO_Run( am_I_Root, HcoState, 1, RC )
        IF ( RC /= HCO_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in routine "Hco_Run"!'
+          ErrMsg = 'Error encountered in routine "Hco_Run", phase 1!'
+          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Phase 2: Compute emissions
+       CALL HCO_Run( am_I_Root, HcoState, 2, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "Hco_Run", phase 2!'
           CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -1728,6 +1758,8 @@ CONTAINS
        CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    print*, '### Define_Diagnostics: NNDIAGN: ', N
 
     ! If there are no diagnostics defined yet, define some default
     ! diagnostics below. These are simply the overall emissions 

@@ -1151,7 +1151,8 @@ CONTAINS
 
     ! Verbose mode
     IF ( HCO_IsVerb(HcoState%Config%Err,1) ) THEN
-       WRITE(MSG,*) 'Successfully added diagnostics to collection ' , PS
+       WRITE(MSG,'(a, i4)') 'Successfully added diagnostic '// &
+                             TRIM(ThisDiagn%cName) // ' to collection ', PS
        CALL HCO_MSG ( HcoState%Config%Err, MSG )
     ENDIF
 
