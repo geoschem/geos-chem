@@ -863,7 +863,7 @@ CONTAINS
              Is_Wetdep     = F
              DD_F0         = 1.0_fp
 #if defined( NEW_HENRY_CONSTANTS )
-             Henry_K0      = 1.90e+5_f8 * To_M_atm
+             Henry_K0      = 1.90e-5_f8 * To_M_atm
              Henry_CR      = 2400.0_f8
 #endif
 
