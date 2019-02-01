@@ -1910,10 +1910,10 @@
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22
-               CASE( 2 ) 
+               CASE( 2, 3 ) 
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 2.6141E+19
-               CASE( 3 )
+               CASE( 4, 5, 6, 7 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 4.0513E+21
                CASE DEFAULT

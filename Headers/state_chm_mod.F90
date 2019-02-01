@@ -674,7 +674,7 @@ CONTAINS
     IF ( am_I_Root ) THEN
        WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
+       WRITE( 6,'(  a)' ) '  #  Species Name'
     ENDIF
 
     ! Loop over all species
@@ -694,7 +694,7 @@ CONTAINS
           
           ! Print to screen
           IF ( am_I_Root ) THEN
-             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
+             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
           ENDIF
 
        ENDIF
@@ -1570,7 +1570,7 @@ CONTAINS
     ENDIF 
 
     ! Format statement
-100 FORMAT( I3, 1x, A10, 3x, F7.2 )
+100 FORMAT( I3, 2x, A31 )
 110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
