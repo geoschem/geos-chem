@@ -6243,12 +6243,12 @@
                   UNIT (T,42) = 'dimless'
                   MWT  (T,42) = 1e-6
                CASE( 10 )
-                  NAME (T,42) = 'POA'
+                  NAME (T,42) = 'POA_C'
                   FNAME(T,42) = 'Aer from SVOCs'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 11 )
-                  NAME (T,42) = 'OPOA'
+                  NAME (T,42) = 'OPOA_C'
                   FNAME(T,42) = 'Aer prods of pog ox'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
