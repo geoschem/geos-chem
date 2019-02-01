@@ -1611,8 +1611,8 @@
 
          ENDIF
 
-         ! Update clock tracer
-         CALL Set_Met_Clock( State_Met )
+         ! Update age of air
+         CALL Set_Met_AgeOfAir( State_Met )
 
          !==============================================================
          !     ***** C O M P U T E   P B L   H E I G H T  etc. *****

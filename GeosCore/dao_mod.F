@@ -35,7 +35,7 @@
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
-      PUBLIC  :: Set_Met_Clock
+      PUBLIC  :: Set_Met_AgeOfAir
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
       PUBLIC  :: GIGC_Cap_Tropopause_Prs
 #endif
@@ -140,7 +140,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
-!  21 Dec 2018 - M. Sulprizio- Add new routine Set_Met_Clock
+!  21 Dec 2018 - M. Sulprizio- Add new routine Set_Met_AgeOfAir
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2034,16 +2034,16 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_met_clock
+! !IROUTINE: set_met_ageofair
 !
-! !DESCRIPTION: Subroutine SET\_MET\_CLOCK adds the time step (in seconds)
+! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
 !  to every grid box every time step with a total sink at the surface every 
 !  time step to reproduce GMI tracer mechanism.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Set_Met_Clock( State_Met )
+      SUBROUTINE Set_Met_AgeOfAir( State_Met )
 !
 ! !USES:
 !
@@ -2067,7 +2067,7 @@
       REAL(fp), SAVE :: TimeStep
 
       !=================================================================
-      ! SET_MET_CLOCK begins here!
+      ! SET_MET_AGEOFAIR begins here!
       !=================================================================
 
       ! Get timestep [s]
@@ -2082,10 +2082,11 @@
 
          IF ( L == 1 ) THEN
             ! Set the surface to a sink
-            State_Met%Clock(I,J,L) = 0
+            State_Met%AgeOfAir(I,J,L) = 0
          ELSE
             ! Otherwise add time step [s]
-            State_Met%Clock(I,J,L) = State_Met%Clock(I,J,L) + TimeStep
+            State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + 
+     &                                  TimeStep
          ENDIF
 
       ENDDO
@@ -2093,6 +2094,6 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-      END SUBROUTINE Set_Met_Clock
+      END SUBROUTINE Set_Met_AgeOfAir
 !EOC
       END MODULE DAO_MOD
