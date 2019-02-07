@@ -298,6 +298,7 @@ MODULE HCO_TYPES_MOD
      TYPE(ListCont), POINTER :: Hour
      INTEGER                 :: FileLun       = -1  ! LUN of file in archive
      CHARACTER(LEN=2023)     :: FileInArchive = ''  ! name of file in archive
+     INTEGER                 :: Counter       =  0  ! ReadList read counter 
   END TYPE RdList
 
   !-------------------------------------------------------------------------
@@ -533,6 +534,7 @@ MODULE HCO_TYPES_MOD
 !  23 Oct 2018 - M. Sulprizio- Added derived type for external model species
 !                              to ConfigObj to facilitate reading GEOS-Chem
 !                              restart file via HEMCO.
+!  07 Feb 2019 - C. Keller   - Added ReadList read counter.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
