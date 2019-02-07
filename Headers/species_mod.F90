@@ -168,12 +168,7 @@ MODULE Species_Mod
   REAL(f8), PARAMETER, PUBLIC :: MISSING_R8  = -999e+0_f8   ! 8-byte precision
   REAL(fp), PARAMETER, PUBLIC :: ZERO        =  0.0e+0_fp   ! Flexible precision
   REAL(f8), PARAMETER, PUBLIC :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
-
-#if defined( MODEL_GEOS )
-  REAL(fp), PARAMETER, PUBLIC :: MISSING_MW  = -1.0_fp      ! Missing MW values
-#else
   REAL(fp), PARAMETER, PUBLIC :: MISSING_MW  = 1.0_fp       ! Missing MW values
-#endif
 
   !=========================================================================
   ! Missing species concentration value if not in restart file and special
@@ -225,6 +220,7 @@ MODULE Species_Mod
 !  27 Nov 2017 - E. Lundgren - Complete implementation for gas, aerosol, and 
 !                              photolysis species categories (id and count)
 !  08 Nov 2018 - E. Lundgren - Do not use neg MW missing value if using GEOS-5
+!  04 Feb 2019 - C. Keller   - GEOS-5 now also uses 1.0 as missing MW.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
