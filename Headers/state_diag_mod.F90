@@ -551,14 +551,17 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_ReactiveGaseousHg      
 
      ! Radiation simulation (RRTMG)
-     REAL(f4),  POINTER :: RadAllSkyLWSurf(:,:) ! All-sky LW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkyLWTOA (:,:) ! All-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadAllSkySWSurf(:,:) ! All-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadAllSkySWTOA (:,:) ! All-sky SW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkyLWSurf(:,:) ! Clr-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkyLWTOA (:,:) ! Clr-sky LW rad @ atm top
-     REAL(f4),  POINTER :: RadClrSkySWSurf(:,:) ! Clr-sky SW rad @ surface
-     REAL(f4),  POINTER :: RadClrSkySWTOA (:,:) ! Clr-sky SW rad @ atm top
+     INTEGER                   :: nRadFlux
+     INTEGER,          POINTER :: RadFluxInd(:)
+     CHARACTER(LEN=2), POINTER :: RadFluxName(:)
+     REAL(f4),         POINTER :: RadAllSkyLWSurf(:,:,:)
+     REAL(f4),         POINTER :: RadAllSkyLWTOA (:,:,:)
+     REAL(f4),         POINTER :: RadAllSkySWSurf(:,:,:)
+     REAL(f4),         POINTER :: RadAllSkySWTOA (:,:,:)
+     REAL(f4),         POINTER :: RadClrSkyLWSurf(:,:,:)
+     REAL(f4),         POINTER :: RadClrSkyLWTOA (:,:,:)
+     REAL(f4),         POINTER :: RadClrSkySWSurf(:,:,:)
+     REAL(f4),         POINTER :: RadClrSkySWTOA (:,:,:)
      LOGICAL :: Archive_RadAllSkyLWSurf 
      LOGICAL :: Archive_RadAllSkyLWTOA  
      LOGICAL :: Archive_RadAllSkySWSurf 
@@ -711,7 +714,7 @@ CONTAINS
     INTEGER                :: N,        IM,      JM,      LM
     INTEGER                :: nSpecies, nAdvect, nDryDep, nKppSpc
     INTEGER                :: nWetDep,  nPhotol, nProd,   nLoss
-    INTEGER                :: nHygGrth
+    INTEGER                :: nHygGrth, nRad
     LOGICAL                :: EOF,      Found,   Found2
 
     !=======================================================================
@@ -1062,6 +1065,9 @@ CONTAINS
     State_Diag%Archive_RadDecay                    = .FALSE.
 
     ! RRTMG simulation diagnostics
+    State_Diag%nRadFlux                            =  0
+    State_Diag%RadFluxInd                          => NULL()
+    State_Diag%RadFluxName                         => NULL()
     State_Diag%RadAllSkyLWSurf                     => NULL()
     State_Diag%RadAllSkyLWTOA                      => NULL()
     State_Diag%RadAllSkySWSurf                     => NULL()
@@ -2120,6 +2126,33 @@ CONTAINS
     IF ( Input_Opt%LRAD ) THEN
 
        !--------------------------------------------------------------------
+       ! RRTMG: Define index arrays
+       !--------------------------------------------------------------------
+
+       ! Number of requested RRTMG flux outputs
+       State_Diag%nRadFlux = nRadFlux
+
+       ! Exit if no flux ouptuts have been selected
+       IF ( State_Diag%nRadFlux == 0 ) THEN
+          ErrMsg = 'No RRTMG diagnostic flux outputs have been requested!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Array to contain the RRTMG indices for each requested flux output
+       ALLOCATE( State_Diag%RadFluxInd( State_Diag%nRadFlux ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadFluxInd', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Array to contain the names of each requested flux output
+       ALLOCATE( State_Diag%RadFluxName( State_Diag%nRadFlux ), STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%RadFluxName', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       ! Populate the index arrays for RRTMG
+       CALL Init_RRTMG_Indices( am_I_Root, Input_Opt, State_Diag, RC )
+
+       !--------------------------------------------------------------------
        ! RRTMG: All-sky LW rad @ surface
        !--------------------------------------------------------------------
        arrayID = 'State_Diag%RadAllSkyLWSurf'
@@ -2127,7 +2160,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWSurf = 0.0_f4
@@ -2146,7 +2179,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkyLWTOA = 0.0_f4
@@ -2165,7 +2198,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWSurf = 0.0_f4
@@ -2184,7 +2217,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadAllSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadAllSkySWTOA = 0.0_f4
@@ -2203,7 +2236,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWSurf( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWSurf = 0.0_f4
@@ -2222,7 +2255,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkyLWTOA( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkyLWTOA = 0.0_f4
@@ -2241,7 +2274,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWSurf( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWSurf = 0.0_f4
@@ -2260,7 +2293,7 @@ CONTAINS
        CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
        IF ( Found ) THEN
           IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
-          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM ), STAT=RC )
+          ALLOCATE( State_Diag%RadClrSkySWTOA( IM, JM, nRadFlux ), STAT=RC )
           CALL GC_CheckVar( arrayID, 0, RC )
           IF ( RC /= GC_SUCCESS ) RETURN
           State_Diag%RadClrSkySWTOA = 0.0_f4
@@ -8248,45 +8281,53 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSEIF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTOA ' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at top of ' // &
                                 'atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWSURF' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at surface'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTOA' ) THEN
        IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at top ' // &
                                 'of atmosphere'
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
@@ -9203,7 +9244,6 @@ CONTAINS
 !
 ! !USES:
 !
-!
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,            INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
@@ -9298,6 +9338,8 @@ CONTAINS
           numTags = State_Chm%nPhotol+2  ! NOTE: Extra slots for diagnostics
        CASE( 'PRD'     )
           numTags = State_Chm%nProd
+       CASE( 'RRTMG'   )
+          numTags = nRadFlux
        CASE( 'VAR'     )
           numTags = State_Chm%nKppVar
        CASE( 'WET'     )
@@ -9332,7 +9374,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS' )
+       CASE( 'ALL', 'ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -9427,6 +9469,10 @@ CONTAINS
              tagName = State_Chm%SpcData(D)%Info%Name
              
           ENDIF
+
+       ! RRTMG requested output fluxes
+       CASE( 'RRTMG' )
+          tagName = RadFlux(D)
 
        ! Default tag name is the name in the species database
        CASE DEFAULT
@@ -10368,5 +10414,164 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Register_DiagField_R8_4D
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_RRTMG_Indices
+!
+! !DESCRIPTION: Populates fields of State_Diag that are used to keep track
+!  of the requested RRTMG flux outputs and their indices.  These are needed
+!  to be able to pass the proper flux output (and corresponding index for
+!  the appropriate netCDF diagnostic arrays) to DO\_RRTMG\_RAD\_TRANSFER.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_RRTMG_Indices( am_I_Root, Input_Opt, State_Diag, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE DiagList_Mod,   ONLY : RadFlux, nRadFlux
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  The index fields State_Diag%nRadFlux, State_Diag%RadFluxName, and
+!  State_Diag%RadFluxInd are populated from information obtained in
+!  Headers/diaglist_mod.F90.
+!
+! !REVISION HISTORY:
+!  08 Nov 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, FluxStr, TmpStr
+
+    !=======================================================================
+    ! Init_RRTMG_Indices begins here
+    !=======================================================================
+
+    ! Assume success )
+    RC      = GC_SUCCESS
+
+    ! Return if RRTMG isn't turned on
+    IF ( .not. Input_Opt%LRAD ) RETURN
+
+    ! Initialze
+    FluxStr = ''
+    TmpStr  = ''
+    ErrMsg  = ''
+    ThisLoc = ' -> at Init_RRTMG_Indices (in module Headers/state_diag_mod.F)'
+
+    !=======================================================================
+    ! Loop over all possible types of RRTMG flux outputs and store the name
+    ! of each flux output in State_Diag%RadFluxName and its expected index
+    ! value in State_Diag%RadFluxInd.
+    !
+    ! Flux outputs are requested in HISTORY.rc.  The expected
+    ! index corresponding to each flux output type is:
+    !
+    !   0=BA  1=O3  2=ME  3=SU   4=NI  5=AM
+    !   6=BC  7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+    !
+    ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
+    !
+    ! This is a bit convoluted but we need to do this in order to keep
+    ! track of the slot of the netCDF diagnostic arrays in State_Diag in
+    ! which to archive the various flux outputs. This also lets us keep
+    ! backwards compatibility with the existing code to the greatest extent.
+    !=======================================================================
+
+    ! Loop over all of the flux outputs requested in HISTORY.rc
+    DO N = 1, State_Diag%nRadFlux
+
+       ! Save the name of the requested flux output
+       State_Diag%RadFluxName(N) = RadFlux(N)
+
+       ! Determine the RRTMG-expected index
+       ! corresponding to each flux output name
+       SELECT CASE( State_Diag%RadFluxName(N) )
+          CASE( 'BA' )
+             State_Diag%RadFluxInd(N) = 0
+          CASE( 'O3' )
+             State_Diag%RadFluxInd(N) = 1
+          CASE( 'ME' )
+             State_Diag%RadFluxInd(N) = 2
+          CASE( 'SU' )
+             State_Diag%RadFluxInd(N) = 3
+          CASE( 'NI' )
+             State_Diag%RadFluxInd(N) = 4
+          CASE( 'AM' )
+             State_Diag%RadFluxInd(N) = 5
+          CASE( 'BC' )
+             State_Diag%RadFluxInd(N) = 6
+          CASE( 'OA' )
+             State_Diag%RadFluxInd(N) = 7
+          CASE( 'SS' )
+             State_Diag%RadFluxInd(N) = 8
+          CASE( 'DU' )
+             State_Diag%RadFluxInd(N) = 9
+          CASE( 'PM' )
+             State_Diag%RadFluxInd(N) = 10
+          CASE( 'ST' )
+             IF ( Input_Opt%LUCX ) THEN
+                State_Diag%RadFluxInd(N) = 11
+             ELSE
+                ErrMsg = 'RRTMG flux output "ST (strat aerosol is '       // &
+                         'selected, but the UCX mechanism is off!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          CASE DEFAULT
+             ! Nothing
+       END SELECT
+
+       ! Create a string with the requested flux outputs
+       WRITE( TmpStr, 100 ) State_Diag%RadFluxName(N),                       &
+                            State_Diag%RadFluxInd(N)
+
+       ! Append to the resultant string
+       IF ( N == 1 ) THEN
+          FluxStr = TRIM( TmpStr )
+       ELSE
+          FluxStr = TRIM( FluxStr ) // '  ' // TRIM( TmpStr )
+       ENDIF
+    ENDDO
+
+    ! Print to screen
+    IF ( am_I_Root ) THEN
+       WRITE( 6, '(/,a)' ) 'INIT_RRTMG_INDICES'
+       WRITE( 6, '(  a)' ) '------------------'
+       WRITE( 6, 110 ) 'Requested RRTMG fluxes : ', TRIM( FluxStr )
+    ENDIF
+
+    ! FORMAT statements
+100 FORMAT( a, ' (=', i2.2, ')' )
+110 FORMAT( a, a                )
+
+  END SUBROUTINE Init_RRTMG_Indices
 !EOC
 END MODULE State_Diag_Mod

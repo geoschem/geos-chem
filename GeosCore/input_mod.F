@@ -2836,9 +2836,8 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2851,6 +2850,11 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  Flux outputs are now scheduled in the HISTORY.rc file, and the relevant
+!  fields of Input_Opt will be populated in the RRTMG module routine
+!  Init_RRTMG_Indices (called at startup).
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
@@ -2954,25 +2958,8 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%TS_RAD
 
-      ! Selection of species flux changes
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU, 'Fluxes', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      DO N = 1, NSPECRADMENU
-         READ( SUBSTRS(N), * ) LSPECRADMENU(N)
-      ENDDO
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -3028,27 +3015,26 @@
             WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
      &                           Input_Opt%WVSELECT(N)
          ENDDO
-         WRITE( 6, 100     ) 'Turn on radiation?          : ',
-     &                        Input_Opt%LRAD
-         WRITE( 6, 100     ) 'Consider LW                 : ',
-     &                        Input_Opt%LLWRAD
-         WRITE( 6, 100     ) 'Consider SW                 : ',
-     &                        Input_Opt%LSWRAD
-         WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
-     &                        Input_Opt%LSKYRAD(1), '/',
-     &                        Input_Opt%LSKYRAD(2)
-         WRITE( 6, 110     ) 'Radiation timestep [sec]    : ',
-     &                        Input_Opt%TS_RAD
-         WRITE( 6, 120     ) 'Flux output selection       : ', 
-     &                        LSPECRADMENU
+         WRITE( 6, 100 ) 'Turn on radiation?          : ',
+     &                    Input_Opt%LRAD
+         WRITE( 6, 100 ) 'Consider LW                 : ',
+     &                    Input_Opt%LLWRAD
+         WRITE( 6, 100 ) 'Consider SW                 : ',
+     &                    Input_Opt%LSWRAD
+         WRITE( 6, 125 ) 'Clear-sky/All-sky           : ',
+     &                    Input_Opt%LSKYRAD(1), '/',
+     &                    Input_Opt%LSKYRAD(2)
+         WRITE( 6, 110 ) 'Radiation timestep [sec]    : ',
+     &                    Input_Opt%TS_RAD
       ENDIF
 
       ! FORMAT statements
- 100  FORMAT( A, L5  )
- 110  FORMAT( A, I5  )
- 115  FORMAT( A, F7.1)
- 120  FORMAT( A, 11I1 )
- 125  FORMAT( A,L5,A,L5 )
+ 100  FORMAT( A, L5           )
+ 110  FORMAT( A, I5           )
+ 115  FORMAT( A, F7.1         ) 
+ 120  FORMAT( A, 11I1         )
+ 125  FORMAT( A, L5, A, L5    )
+ 130  FORMAT( A, 12( A2, 1x ) )
 
       END SUBROUTINE READ_RADIATION_MENU
 !EOC

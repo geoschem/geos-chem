@@ -82,9 +82,7 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 
 #if   defined( RRTMG )
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_MCICA_CLOUDS
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Cleanup_RRTMG_Rad_Transfer
 #endif
 
 
@@ -403,9 +401,12 @@
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM()
-      CALL CLEANUP_MCICA_CLOUDS()
+      CALL Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
 #if   defined( GRID05x0625 ) || defined( GRID025x03125)

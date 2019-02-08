@@ -1732,7 +1732,6 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -7582,10 +7581,10 @@
 
          ! Number of tracers
          IF ( Input_Opt%LUCX ) THEN
-            NTRAC(72) = (NSPECRADMENU+1)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU+1)*PD72R
          ELSE
             ! Skip strat aer
-            NTRAC(72) = (NSPECRADMENU)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU)*PD72R
          ENDIF
 
          ! Loop over tracers
@@ -7599,10 +7598,10 @@
 
             !get number of current flux type
             IF ( Input_Opt%LUCX ) THEN
-               T0 = ((T-1)/(NSPECRADMENU+1))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T0 = ((T-1)/(NSPECRADMENU))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T0 )
@@ -7687,10 +7686,10 @@
 
             ! Get name long-name (and sometimes, unit)
             IF ( Input_Opt%LUCX ) THEN
-               T1=MOD((T-1),(NSPECRADMENU+1))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T1=MOD((T-1),(NSPECRADMENU))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T1 )
