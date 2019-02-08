@@ -47,7 +47,6 @@
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
       USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
@@ -248,6 +247,7 @@
 !  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  22 Jan 2019 - H.P. Lin    - Remove call to CLEANUP_LINOZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -361,7 +361,6 @@
 
       CALL CLEANUP_HDF()  
       CALL CLEANUP_ISOROPIAII()
-      CALL CLEANUP_LINOZ()
       CALL CLEANUP_MAP_A2A()
       CALL CLEANUP_MERCURY()
       CALL CLEANUP_MODIS_LAI()

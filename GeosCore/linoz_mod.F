@@ -21,15 +21,9 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PRIVATE DATA MEMBERS:
-!
-      REAL(fp), ALLOCATABLE :: TLSTT(:,:,:,:)
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_LINOZ
-      PUBLIC  :: DO_LINOZ    
-      PUBLIC  :: INIT_LINOZ
+      PUBLIC  :: DO_LINOZ
       PUBLIC  :: LINOZ_READ
 !
 ! !PRIVATE MEMBER FUNCTIONS:
@@ -102,6 +96,7 @@
 !  17 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
+!  22 Jan 2019 - H.P. Lin    - Move TLSTT to State_Met%TLSTT
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -180,7 +175,7 @@
 
       ! if new month, get new parameters?
       IF ( MONTH /= LASTMONTH ) THEN
-         CALL LINOZ_STRATL( am_I_Root, Input_Opt, RC )
+         CALL LINOZ_STRATL( am_I_Root, Input_Opt, State_Chm, RC )
          LASTMONTH =  MONTH
       ENDIF
 
@@ -293,6 +288,10 @@
       ! from the Chemistry State (State_Chm) object. (mpayer, 12/6/12)
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
+      ! Define local arrays to hold the previously global TLSTT array
+      ! from the State_Chm object. (hplin, 1/22/19)
+      REAL(fp), POINTER :: TLSTT (:,:,:,:)   ! IM, JM, LM, Input_Opt%LINOZ_NFIELDS
+
       ! From Input_Opt
       LOGICAL       :: LPRT
 
@@ -319,6 +318,9 @@
 
       ! Point to chemical species array [v/v dry air]
       Spc        => State_Chm%Species
+
+      ! Point to the TLSTT array
+      TLSTT      => State_Chm%TLSTT
 
       ! Look up the species ID of O3 only on the first call
       IF ( FIRST ) THEN
@@ -538,7 +540,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE LINOZ_STRATL( am_I_Root, Input_Opt, RC )
+      SUBROUTINE LINOZ_STRATL( am_I_Root, Input_Opt, State_Chm, RC )
 !
 ! !USES:
 !
@@ -546,6 +548,7 @@
       USE ErrCode_Mod
       USE GC_GRID_MOD,        ONLY : GET_YMID 
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
       USE PRESSURE_MOD
       USE TIME_MOD,           ONLY : GET_MONTH
 !
@@ -553,6 +556,10 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -605,6 +612,8 @@
       REAL(fp)            :: STRTX (Input_Opt%LINOZ_NLEVELS)
       REAL(fp)            :: YSTRT (Input_Opt%LINOZ_NLAT   )
 
+      REAL(fp), POINTER   :: TLSTT (:,:,:,:)   ! IM, JM, LM, Input_Opt%LINOZ_NFIELDS
+
       ! Month names
       CHARACTER(LEN=3)  :: CMONTH(12) = (/'jan', 'feb', 'mar', 'apr',
      &                                    'may', 'jun', 'jul', 'aug',
@@ -626,6 +635,9 @@
       NLAT_LINOZ     = Input_Opt%LINOZ_NLAT
       NLEVELS_LINOZ  = Input_Opt%LINOZ_NLEVELS
       NMONTHS_LINOZ  = Input_Opt%LINOZ_NMONTHS
+
+      ! Point to the TLSTT array in state_chm_mod.F90
+      TLSTT          => State_Chm%TLSTT
 
       ! Echo info to stdout
       IF ( am_I_Root ) THEN
@@ -1289,89 +1301,5 @@
       enddo
 
       END SUBROUTINE LINOZ_INTPL
-!EOC
-!----------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: init_linoz
-!
-! !DESCRIPTION: Subroutine INIT\_LINOZ allocates and zeroes the module arrays 
-!  used in the Linoz stratospheric ozone algorithm.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE INIT_LINOZ( am_I_Root, Input_Opt, 
-     &                       State_Chm, State_Diag, RC )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD 
-      USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Diag_Mod,     ONLY : DgnState
-!
-! !INPUT PARAMETERS:
-!
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-!
-! !OUTPUT PARAMETERS:
-!
-      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
-!
-! !REVISION HISTORY: 
-!  16 Oct 2009 - R. Yantosca - Initial version
-!  18 Mar 2013 - R. Yantosca - Remove TPARM array since that is now carried
-!                              within the Input_Opt object.
-!  18 Mar 2013 - R. Yantosca - Accept am_I_Root, Input_Opt, RC arguments
-!  14 Mar 2013 - M. Payer    - Replace Ox with O3 for full-chemistry simulation
-!  19 Oct 2015 - C. Keller   - TLSTT is now 4D to work on curvilinear grids
-!  07 Aug 2018 - H.P. Lin    - Now accepts State_Chm, State_Diag to unify input
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      ! Assume success
-      RC = GC_SUCCESS
-
-      ! Allocate TLSTT array
-      ALLOCATE( TLSTT( IIPAR, 
-     &                 JJPAR, 
-     &                 LLPAR, 
-     &                 Input_Opt%LINOZ_NFIELDS ), STAT=RC )
-      IF ( RC /= 0 ) CALL ALLOC_ERR( 'TPARM' )
-      TLSTT = 0e+0_fp
-
-      END SUBROUTINE INIT_LINOZ
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_linoz
-!
-! !DESCRIPTION: Subroutine CLEANUP\_LINOZ deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_LINOZ
-!
-! !REVISION HISTORY: 
-!  16 Oct 2009 - R. Yantosca - Initial version
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-      ! Deallocate arrays
-      IF ( ALLOCATED( TLSTT ) ) DEALLOCATE( TLSTT )
-      
-      END SUBROUTINE CLEANUP_LINOZ
 !EOC
       END MODULE LINOZ_MOD

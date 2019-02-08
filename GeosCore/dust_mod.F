@@ -2769,8 +2769,11 @@
       ENDIF
 #endif 
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
+#if defined( ESMF_ ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GCHP
+      !
+      ! Changed to use the ESMF_ flag and not EXTERNAL_GRID/EXTERNAL_FORCING, as
+      ! WRF-GC which uses these flags does not require SRCE_FUNC (hplin, 1/22/19)
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.e+0_fp

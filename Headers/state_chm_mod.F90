@@ -192,6 +192,11 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Dry deposition frequencies [s-1]
 
      !----------------------------------------------------------------------
+     ! Fields for Linoz stratospheric ozone algorithm
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: TLSTT      (:,:,:,:) ! TLSTT (I,J,L,LINOZ_NFIELDS)
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -335,6 +340,7 @@ CONTAINS
 !  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
 !                              DB if DB is already initialized before
 !  22 Aug 2018 - R. Yantosca - Fixed typo in registration of SSAlk field
+!  23 Jan 2019 - H.P. Lin    - Add TLSTT for Linoz
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1532,9 +1538,25 @@ CONTAINS
         IF ( RC /= GC_SUCCESS ) RETURN
         State_Chm%DryDepSav = 0.0_fp
         CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,   &
-                               State_Chm, RC                                )
+                                State_Chm, RC                            )
         CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )    
         IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! TLSTT (Linoz)
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
+        chmID = 'TLSTT'
+        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ) , STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%TLSTT', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%TLSTT = 0.0_fp
+
+        ! Do not register this field as it is internal
+        ! to the linoz_mod module state. (hplin, 1/24/19)
+        ! Note: We might want to implement support for implementing a 4th
+        ! dimension later.
     ENDIF
    
     !=======================================================================
@@ -1998,6 +2020,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%DryDepSav => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TLSTT ) ) THEN
+       DEALLOCATE( State_Chm%TLSTT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%TLSTT => NULL()
     ENDIF
 
     !-----------------------------------------------------------------------
@@ -2630,10 +2659,15 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
           IF ( isSpecies ) PerSpecies = 'HgCat'
 
-       CASE( 'DRYDEPSAV') 
+       CASE( 'DRYDEPSAV' )
           IF ( isDesc  ) Desc  = 'Dry deposition frequencies'
           IF ( isUnits ) Units = 's-1'
           IF ( isRank  ) Rank  = 3
+
+       CASE( 'TLSTT' )
+          IF ( isDesc  ) Desc  = 'TLSTT'
+          IF ( isUnits ) Units = ''
+          IF ( isRank  ) Rank  = 4
 
        CASE DEFAULT
           Found = .False.
