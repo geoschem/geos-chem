@@ -44,6 +44,7 @@ MODULE Species_Database_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: TranUc
+  PRIVATE :: SpcData_To_JSON
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%% Uncomment this if you want to use the new henry's law constants
@@ -56,7 +57,8 @@ MODULE Species_Database_Mod
 !
 ! !REVISION HISTORY:
 !  28 Aug 2015 - R. Yantosca - Initial version
-!  02 Aug 2016 - M. Sulprizio- Add KppSpcId to store all KPP species incices.
+!  02 Aug 2016 - M. Sulprizio- Add KppSpcId to store all KPP species indices.
+!  04 Feb 2019 - R. Yantosca - Add function to save species DB in JSON format
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -382,6 +384,13 @@ CONTAINS
        IF ( prtDebug ) CALL Spc_Print( am_I_Root, SpcData(N)%Info, RC )
 
     ENDDO
+
+    !-----------------------------------------------------------------------
+    ! Print Species Database to JSON format
+    ! NOTE: Comment this out unless you really need it!
+    !CALL SpcData_To_JSON( am_I_Root, SpcData, RC )
+    !STOP
+    !-----------------------------------------------------------------------
 
     ! Deallocate temporary work arrays
     CALL Cleanup_Work_Arrays()
@@ -5605,5 +5614,208 @@ CONTAINS
     IF ( ALLOCATED( KppSpcId      ) ) DEALLOCATE( KppSpcId      )
 
   END SUBROUTINE Cleanup_Work_Arrays
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: SpcData_To_JSON
+!
+! !DESCRIPTION: Prints the GEOS-Chem species database to a JSON file.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SpcData_To_JSON( am_I_Root, SpcData, RC )
+
+    USE ErrCode_Mod
+    USE Species_Mod, ONLY : Species, SpcPtr
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,      INTENT(IN)  :: am_I_Root    ! Are we on the root CPU
+    TYPE(SpcPtr), POINTER     :: SpcData(:)   ! GEOS-Chem Species Database
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,      INTENT(OUT) :: RC           ! Success or failure
+!
+! !REMARKS:
+!  This routine can be used to generate JSON output for use with Python
+!  code for GEOS-Chem post-processing.  You can generate a new JSON file
+!  for each of the GEOS_Chem simulation types.
+!                                                                             .
+!  For now the file name and unit number are hardwired.  We can make this
+!  more flexible if so desired.
+!                                                                             .
+!  A good overview of the JSON format may be found here:
+!     https://www.w3schools.com/js/js_json_datatypes.asp
+!
+! !REVISION HISTORY:
+!  04 Feb 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER                :: N, nSpc, Unit
+
+    ! Strings
+    CHARACTER(LEN=255)     :: FileName
+    
+    ! Pointers
+    TYPE(Species), POINTER :: ThisSpc
+
+    !=======================================================================
+    ! SpcData_to_Dict begins here!
+    !=======================================================================
+
+    ! Assume success
+    RC       = GC_SUCCESS
+
+    ! Hardwire the file name and unit for now
+    ! (we typically won't call this routine unless we want this printout)
+    FileName = 'GEOS-Chem_Species_Database_Dict.txt'
+    Unit     = 700
+
+    ! Number of species in database
+    nSpc     = SIZE( SpcData )
+
+    !=======================================================================
+    ! Write species database to JSON format
+    !
+    ! NOTE: Some species database fields are only relevant for passing
+    ! parameters to specific GEOS-Chem operations (e.g. drydep, wetdep, 
+    ! etc).  Therefore, we have only included those properties which we
+    ! feel would be most relevant to post-processing of data in Python
+    ! or other tools. (bmy, 2/4/18)
+    !=======================================================================
+
+    ! Open file
+    OPEN( Unit, File=TRIM(FileName), Status='Unknown', FORM='Formatted' )
+
+    ! Write header
+    WRITE( Unit, '(a)' ) '{'
+
+    ! Loop over the number of elements in the species database
+    DO N = 1, nSpc
+
+       ! Point to this entry of the species database
+       ThisSpc => SpcData(N)%Info
+
+       ! Write individual fields of the species database
+       WRITE( Unit, 100 ) TRIM( ThisSpc%Name )
+       WRITE( Unit, '(10x,a)' ) '{'
+
+       WRITE( Unit, 110 ) '"Fullname"', TRIM( ThisSpc%FullName )
+
+       IF ( LEN_TRIM( ThisSpc%Formula ) > 0 ) THEN
+          WRITE( Unit, 110 ) '"Formula"',  TRIM( ThisSpc%Formula  )
+       ENDIF
+
+       IF ( ThisSpc%Is_Advected ) THEN
+          WRITE( Unit, 111 ) '"Is_Advected"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Advected"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Aero ) THEN
+          WRITE( Unit, 111 ) '"Is_Aero"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Aero"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Drydep ) THEN
+          WRITE( Unit, 111 ) '"Is_DryDep"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_DryDep"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_DryDep ) THEN
+          WRITE( Unit, 111 ) '"Is_Gas"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Gas"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_HygroGrowth ) THEN
+          WRITE( Unit, 111 ) '"Is_HygroGrowth"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_HygroGrowth"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_Photolysis ) THEN
+          WRITE( Unit, 111 ) '"Is_Photolysis"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_Photolysis"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Is_WetDep ) THEN
+          WRITE( Unit, 111 ) '"Is_WetDep"', 'true'
+       ELSE
+          WRITE( Unit, 111 ) '"Is_WetDep"', 'false'
+       ENDIF
+
+       IF ( ThisSpc%Density > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"Density"',    ThisSpc%Density
+       ENDIF
+
+       IF ( ThisSpc%Radius > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"Radius"',     ThisSpc%Radius
+       ENDIF
+          
+       IF ( ThisSpc%Henry_K0 > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_K0"',   ThisSpc%Henry_K0
+       ENDIF
+
+       IF ( ThisSpc%Henry_CR > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_CR"',   ThisSpc%Henry_CR
+       ENDIF
+
+       IF ( ThisSpc%Henry_PKA > 0.0_fp ) THEN
+          WRITE( Unit, 130 ) '"Henry_PKA"',  ThisSpc%Henry_PKA
+       ENDIF
+
+       IF ( ThisSpc%Mw_g > 0.0_fp ) THEN 
+          WRITE( Unit, 120 ) '"MW_g"',       ThisSpc%MW_g
+       ENDIF
+
+       IF ( ThisSpc%EmMW_g > 0.0_fp ) THEN
+          WRITE( Unit, 120 ) '"EmMW_g"',     ThisSpc%EmMW_g
+       ENDIF
+
+       IF ( ThisSpc%MolecRatio > 0.0_fp ) THEN
+          WRITE( Unit, 121 ) '"MolecRatio"', ThisSpc%MolecRatio
+       ENDIF
+
+       ! Write closing bracket
+       IF ( n < nSpc ) THEN
+          WRITE( Unit, '(10x,a)' ) '},'
+       ELSE
+          WRITE( Unit, '(10x,a)' ) '}'
+       ENDIF
+
+       ! Free pointer
+       ThisSpc => NULL()
+
+    ENDDO
+
+    ! Write end bracket and close file
+    WRITE( Unit, '(a)' ) '}'
+    CLOSE( Unit        )
+
+    !=======================================================================
+    ! Format strings
+    !=======================================================================
+100 FORMAT( 2x,  '"', a,   '" : '       )
+110 FORMAT( 14x, a, ': "', a,      '",' )
+111 FORMAT( 14x, a, ': ',  a,      ','  )
+120 FORMAT( 14x, a, ': ',  f11.4,  ','  )
+121 FORMAT( 14x, a, ': ',  f11.4        )
+130 FORMAT( 14x, a, ': ',  es13.6, ','  )
+
+  END SUBROUTINE SpcData_to_JSON
 !EOC
 END MODULE Species_Database_Mod
