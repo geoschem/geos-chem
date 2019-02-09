@@ -405,7 +405,7 @@
      &        ' information about GEOS-CHEM'                           )
  115  FORMAT( '# tracers.  It is read by routine ',
      &        '"ctm_tracerinfo.pro" of the GAMAP package.',      /,'#' )
- 120  FORMAT( '# NAME     (A8   )  Tracer name (up to 8 chars)'        )
+ 120  FORMAT( '# NAME     (A31  )  Tracer name (up to 31 chars)'       )
  125  FORMAT( '#  --      (1X   )  1-character spacer'                 )
  130  FORMAT( '# FULLNAME (A30  )  Full tracer name (up to 30 chars)'  )
  135  FORMAT( '# MOLWT    (E10.0)  Molecular weight (kg/mole)'         )
@@ -746,7 +746,7 @@
       IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'write_tinfo:1' )
 
       ! FORMAT string
- 100  FORMAT( a8, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
+ 100  FORMAT( a31, 1x, a30, es10.3, i3, i9, es10.3, 1x, a )
 
       END SUBROUTINE WRITE_TINFO
 !EOC
