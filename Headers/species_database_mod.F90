@@ -544,7 +544,8 @@ CONTAINS
     INTEGER             :: P, IDX, CNT
     LOGICAL             :: IsPassive
     LOGICAL             :: Uscore    
-
+    INTEGER             :: C !ramnarine 12/2018
+    
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
     REAL(fp)            :: KcScale(3)
@@ -4649,13 +4650,13 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5'
-                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10'
-                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15'
-                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20'
-                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25'
-                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30'
-                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35'
+          CASE( 'ECIL1',  'ECIL2',  'ECIL3',  'ECIL4',  'ECIL5',  &
+                'ECIL6',  'ECIL7',  'ECIL8',  'ECIL9',  'ECIL10', &
+                'ECIL11', 'ECIL12', 'ECIL13', 'ECIL14', 'ECIL15', &
+                'ECIL16', 'ECIL17', 'ECIL18', 'ECIL19', 'ECIL20', &
+                'ECIL21', 'ECIL22', 'ECIL23', 'ECIL24', 'ECIL25', &
+                'ECIL26', 'ECIL27', 'ECIL28', 'ECIL29', 'ECIL30', &
+                'ECIL31', 'ECIL32', 'ECIL33', 'ECIL34', 'ECIL35', &
                 'ECIL36', 'ECIL37', 'ECIL38', 'ECIL39', 'ECIL40'  )
 
              ! Add TOMAS bin number to full name
@@ -4687,13 +4688,13 @@ CONTAINS
              WD_KcScaleFac = KcScale
              WD_RainoutEff = RainEff
 
-          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5'
-                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10'
-                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15'
-                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20'
-                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25'
-                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30'
-                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35'
+          CASE( 'ECOB1',  'ECOB2',  'ECOB3',  'ECOB4',  'ECOB5',  &
+                'ECOB6',  'ECOB7',  'ECOB8',  'ECOB9',  'ECOB10', &
+                'ECOB11', 'ECOB12', 'ECOB13', 'ECOB14', 'ECOB15', &
+                'ECOB16', 'ECOB17', 'ECOB18', 'ECOB19', 'ECOB20', &
+                'ECOB21', 'ECOB22', 'ECOB23', 'ECOB24', 'ECOB25', &
+                'ECOB26', 'ECOB27', 'ECOB28', 'ECOB29', 'ECOB30', &
+                'ECOB31', 'ECOB32', 'ECOB33', 'ECOB34', 'ECOB35', &
                 'ECOB36', 'ECOB37', 'ECOB38', 'ECOB39', 'ECOB40'  )
 
              ! Add TOMAS bin number to full name
