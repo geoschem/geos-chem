@@ -1,7 +1,7 @@
-#if defined( ISORROPIA_V22 )
-#undef ISORROPIA_V22
-#endif
-!#define ISORROPIA_V22
+!#if defined( ISORROPIA_V22 )
+!#undef ISORROPIA_V22
+!#endif
+#define ISORROPIA_V22
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
