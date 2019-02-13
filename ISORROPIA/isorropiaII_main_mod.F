@@ -25,7 +25,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      Public  :: Isoropia
+      Public  :: Isorropia
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -265,7 +265,7 @@
 !
 !******************************************************************************
 !
-      ! leave this implicit statement for isoropiaIIcode.f variables
+      ! leave this implicit statement for isorropiaIIcode.f variables
       ! ideally all variables would be declared
       !IMPLICIT DOUBLE PRECISION (A-H,O-Z)
       !IMPLICIT NONE
@@ -283,7 +283,7 @@
       !----------------------------------------------------------------------
       ! Prior to 6/28/10:
       ! IONIC should be Real(kind=fp) for consistency with -r8 flag during
-      ! compiling of isoropiaIIcode routines (hotp 6/23/10)
+      ! compiling of isorropiaIIcode routines (hotp 6/23/10)
 #if   defined( ESMF_ )
       Integer, Parameter   :: IonicKind=sp
 #else
@@ -10125,7 +10125,7 @@
 ! ======================================================================
 !
 ! *** ISORROPIA CODE II
-! *** SUBROUTINE ISOROPIA
+! *** SUBROUTINE ISORROPIA
 ! *** THIS SUBROUTINE IS THE MASTER ROUTINE FOR THE ISORROPIA
 !     THERMODYNAMIC EQUILIBRIUM AEROSOL MODEL (VERSION 1.1 and above)
 !
@@ -10275,7 +10275,7 @@
 !
 !=======================================================================
 !
-      SUBROUTINE ISOROPIA (WI_IN, RHI_IN, TEMPI_IN,  CNTRL,
+      SUBROUTINE ISORROPIA (WI_IN, RHI_IN, TEMPI_IN,  CNTRL,
      &                     WT, GAS, AERLIQ, AERSLD, SCASI, OTHER)
       ! Input parameters
       Real(kind=fp) :: WI_IN(NCOMP)
@@ -10333,7 +10333,7 @@
       ELSE
          ! Remove this portion of the code, GEOS-Chem will never need
          ! reverse problem solution (hotp)
-         print*, 'ERROR: DO NOT SOLVE ISOROPIAII REVERSE PROBLEM'
+         print*, 'ERROR: DO NOT SOLVE ISORROPIAII REVERSE PROBLEM'
          STOP
 
          !IF (WI(1)+WI(2)+WI(3)+WI(4)+WI(5)+WI(6)+WI(7)+WI(8) .LE. TINY)
@@ -10436,9 +10436,9 @@
 !
       RETURN
 !
-! *** END OF SUBROUTINE ISOROPIA ******************************************
+! *** END OF SUBROUTINE ISORROPIA ******************************************
 !
-      END SUBROUTINE ISOROPIA
+      END SUBROUTINE ISORROPIA
 
 
 !=======================================================================

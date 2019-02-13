@@ -3,10 +3,10 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: Makefile (in the ISOROPIA/ subdirectory)
+# !MODULE: Makefile (in the ISORROPIA/ subdirectory)
 #
-# !DESCRIPTION: This makefile compiles the ISOROPIA code.  
-#  Object files (*.o) are bundled into the libIsoropia.a library 
+# !DESCRIPTION: This makefile compiles the ISORROPIA code.  
+#  Object files (*.o) are bundled into the libIsorropia.a library 
 #  (located in the LIB directory).  Module files (*.mod) are copied to 
 #  the MOD directory. 
 #\\
@@ -79,7 +79,7 @@ MODULES :=$(shell echo $(MODULES) | tr A-Z a-z)
 MODULES :=$(foreach I,$(MODULES),$(MOD)/$(I))
 
 # Library file
-LIBRARY :=libIsoropia.a
+LIBRARY :=libIsorropia.a
 
 ###############################################################################
 ###                                                                         ###
@@ -94,11 +94,11 @@ lib: $(OBJECTS)
 	mv $(LIBRARY) $(LIB)
 
 clean:
-	@echo "===> Making clean in directory: ISOROPIA <==="
+	@echo "===> Making clean in directory: ISORROPIA <==="
 	@rm -f *.o *.mod *.a *.x
 
 slowclean:
-	@echo "===> Making slowclean in directory: ISOROPIA <==="
+	@echo "===> Making slowclean in directory: ISORROPIA <==="
 	@rm -f $(OBJECTS) $(MODULES) $(LIBRARY) $(LIB)/$(LIBRARY)
 
 debug:

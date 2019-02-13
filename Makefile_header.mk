@@ -82,7 +82,7 @@
 #                              can reference it.
 #  19 Jan 2010 - R. Yantosca - Minor fix, add -m64 if SUN32 is not defined.
 #  25 Jan 2010 - R. Yantosca - Now add -DTOMAS to FFLAGS if necessary
-#  28 Jan 2010 - C. Carouge  - Add -lIsoropia to LINK, for ISORROPIA II
+#  28 Jan 2010 - C. Carouge  - Add -lIsorropia to LINK, for ISORROPIA II
 #  16 Feb 2011 - R. Yantosca - Now add -DAPM to FFLAGS if necessary
 #  25 Aug 2011 - R. Yantosca - Add "-fp-model source" to FFLAGS for IFORT 
 #                              compiler.  This will prevent aggressive 
@@ -1019,7 +1019,7 @@ ifeq ($(RRTMG_NEEDED),1)
 endif
 
 # Create linker command to create the GEOS-Chem executable
-LINK                 :=$(LINK) -lIsoropia -lObsPack -lHistory
+LINK                 :=$(LINK) -lIsorropia -lObsPack -lHistory
 LINK                 :=$(LINK) -lHCOI -lHCOX -lHCO
 LINK                 :=$(LINK) -lGeosUtil -lKpp -lHeaders -lNcUtils 
 LINK                 :=$(LINK) $(NC_LINK_CMD)

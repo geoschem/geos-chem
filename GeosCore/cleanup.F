@@ -46,7 +46,7 @@
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
-      USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
+      USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
       USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
       USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
@@ -175,7 +175,7 @@
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
-!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (43) Now references CLEANUP_ISORROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
@@ -360,7 +360,7 @@
       ENDIF
 
       CALL CLEANUP_HDF()  
-      CALL CLEANUP_ISOROPIAII()
+      CALL CLEANUP_ISORROPIAII()
       CALL CLEANUP_MAP_A2A()
       CALL CLEANUP_MERCURY()
       CALL CLEANUP_MODIS_LAI()

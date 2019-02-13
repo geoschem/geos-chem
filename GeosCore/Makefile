@@ -67,7 +67,7 @@
 # (5) HEMCO/Core/          : HEMCO Core modules
 # (6) HEMCO/Extensions/    : HEMCO Extensions modules
 # (7) HEMCO/Interfaces/    : HEMCO Interface modules
-# (7) ISOROPIA/            : ISORROPIA aerosol thermodyn equilibrium module
+# (7) ISORROPIA/           : ISORROPIA aerosol thermodyn equilibrium module
 # (8) GeosCore/            : "Core" GEOS-Chem modules
 #
 # !REVISION HISTORY: 
@@ -185,7 +185,7 @@ HEMCO   :=$(ROOT)/HEMCO
 HDR     :=$(ROOT)/Headers
 HELP    :=$(ROOT)/help
 HIST    :=$(ROOT)/History
-ISO     :=$(ROOT)/ISOROPIA
+ISO     :=$(ROOT)/ISORROPIA
 LIB     :=$(ROOT)/lib
 KPP     :=$(ROOT)/KPP
 MOD     :=$(ROOT)/mod
@@ -304,7 +304,7 @@ libhemcosa:                                        # Build HEMCO standalone
 libhistory:                                        # Build code in History/
 	@$(MAKE) -C $(HIST) lib
 
-libiso:                                            # Build code in ISOROPIA/
+libiso:                                            # Build code in ISORROPIA/
 	@$(MAKE) -C $(ISO)			  
 
 librad:                                            # Build code in GeosRad/
@@ -472,7 +472,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               dao_mod.o
 
 chemistry_mod.o             : chemistry_mod.F90                              \
-                              aerosol_mod.o           isoropiaII_mod.o       \
+                              aerosol_mod.o           isorropiaII_mod.o      \
                               c2h6_mod.o              carbon_mod.o           \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
@@ -495,7 +495,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag_oh_mod.o           diag20_mod.o           \
                               drydep_mod.o            dust_mod.o             \
                               global_ch4_mod.o        wetscav_mod.o          \
-                              isoropiaII_mod.o        land_mercury_mod.o     \
+                              isorropiaII_mod.o       land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
                               strat_chem_mod.o        mercury_mod.o          \
                               modis_lai_mod.o         ocean_mercury_mod.o    \
@@ -691,7 +691,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag53_mod.o            diag56_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
-isoropiaII_mod.o            : isoropiaII_mod.F                               \
+isorropiaII_mod.o           : isorropiaII_mod.F                              \
                               hco_interface_mod.o
 
 land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \

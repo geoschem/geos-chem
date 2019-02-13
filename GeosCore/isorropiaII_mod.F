@@ -3,19 +3,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: isoropiaii_mod.F
+! !MODULE: isorropiaii_mod.F
 !
-! !DESCRIPTION: Module ISOROPIAII\_MOD contains the routines that provide
+! !DESCRIPTION: Module ISORROPIAII\_MOD contains the routines that provide
 !  the interface between ISORROPIA II and GEOS-Chem.
 !\\
 !\\
 !  The actual ISORROPIA II code which performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg) 
-!  aerosol thermodynamic equilibrium is in \texttt{isoropiaIIcode.f}.
+!  aerosol thermodynamic equilibrium is in \texttt{isorropiaIIcode.f}.
 !\\
 !\\
 ! !INTERFACE:
 !
-      MODULE ISOROPIAII_MOD
+      MODULE ISORROPIAII_MOD
 !
 ! !USES:
 !
@@ -27,14 +27,14 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-      PUBLIC  :: CLEANUP_ISOROPIAII
-      PUBLIC  :: DO_ISOROPIAII
+      PUBLIC  :: CLEANUP_ISORROPIAII
+      PUBLIC  :: DO_ISORROPIAII
       PUBLIC  :: GET_GNO3
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: GET_HNO3
-      PRIVATE :: INIT_ISOROPIAII
+      PRIVATE :: INIT_ISORROPIAII
       PRIVATE :: SAFELOG10
       PRIVATE :: SET_HNO3
 !
@@ -45,25 +45,25 @@
 !  *** WRITTEN BY ATHANASIOS NENES
 !  *** UPDATED BY CHRISTOS FOUNTOUKIS
 !                                                                             .
-!  Original v1.3 isoropia implementation into GEOS-Chem by
+!  Original v1.3 isorropia implementation into GEOS-Chem by
 !  Becky Alexander and Bob Yantosca (bec, bmy, 4/12/05, 11/2/05)
 !                                                                             .
-!  For Ca,K,Mg = 0, ISOROPIA II performs exactly like ISOROPIAv1.7
+!  For Ca,K,Mg = 0, ISORROPIA II performs exactly like ISORROPIAv1.7
 !  Ca, K, Mg, Na from dust is not currently considered
 !                                                                             .
-!  To implement ISOROPIA II into GEOS-Chem:
-!    * cleanup_isoropiaII needs to be called from cleanup.f
-!    * DO_ISOROPIA needs to be replaced with DO_ISOROPIAII in chemistry_mod.f
-!    * Change ISOROPIA to ISOROPIAII in sulfate_mod.f
-!    * add isoropiaII_mod.f, isoropiaIIcode.f, and irspia.inc to Makefile
+!  To implement ISORROPIA II into GEOS-Chem:
+!    * cleanup_isorropiaII needs to be called from cleanup.f
+!    * DO_ISORROPIA needs to be replaced with DO_ISORROPIAII in chemistry_mod.f
+!    * Change ISORROPIA to ISORROPIAII in sulfate_mod.f
+!    * add isorropiaII_mod.f, isorropiaIIcode.f, and irspia.inc to Makefile
 !                                                                             .
-!  ISOROPIA II implementation notes by Havala O.T. Pye:
-!  (1) The original isoropia code from T.Nenes is left as unmodified as 
-!       possible. Original isoropia code can be found in isoropiaIIcode.f
+!  ISORROPIA II implementation notes by Havala O.T. Pye:
+!  (1) The original isorropia code from T.Nenes is left as unmodified as 
+!       possible. Original isorropia code can be found in isorropiaIIcode.f
 !       and common blocks can be found in isrpia.inc. For future upgrades
-!       to isoropia, replace isrpia.inc and isoropiaIIcode.f with the new
-!       version of isoropia and modify the call to ISOROPIA in this module.
-!       Please let the original author know of any changes made to ISOROPIA.
+!       to isorropia, replace isrpia.inc and isorropiaIIcode.f with the new
+!       version of isorropia and modify the call to ISORROPIA in this module.
+!       Please let the original author know of any changes made to ISORROPIA.
 !  (2) As of Nov 2007, routines using non-zero Ca, K, and Mg do not always 
 !       conserve mass. Ca, K, and Mg are set to zero. 
 !                                                                             .
@@ -72,7 +72,7 @@
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
 !  29 Jan 2010 - R. Yantosca  - Added ProTeX headers
-!  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISOROPIAII for offline aerosol
+!  21 Apr 2010 - R. Yantosca  - Bug fix in DO_ISORROPIAII for offline aerosol
 !  16 Feb 2011 - R. Yantosca  - Add modifications for APM from G. Luo
 !  20 Aug 2013 - R. Yantosca  - Removed "define.h", this is now obsolete
 !  23 Sep 2014 - M. Sulprizio - Get global HNO3 for offline aerosol simulation
@@ -115,17 +115,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_isoropiaii
+! !IROUTINE: do_isorropiaii
 !
-! !DESCRIPTION: Subroutine DO\_ISOROPIAII is the interface between the 
+! !DESCRIPTION: Subroutine DO\_ISORROPIAII is the interface between the 
 !  GEOS-Chem model and the aerosol thermodynamical equilibrium routine 
 !  ISORROPIA II.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_ISORROPIAII( am_I_Root, Input_Opt,  State_Met,
+     &                           State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -143,7 +143,7 @@
       USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
-      USE IsorropiaII_Main_Mod, ONLY : Isoropia
+      USE IsorropiaII_Main_Mod, ONLY : Isorropia
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,         ONLY : LD73,   ND73
       USE DIAG_MOD,             ONLY : AD73
@@ -165,7 +165,7 @@
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  Original isoropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
+!  Original isorropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
 ! 
 ! !REVISION HISTORY: 
 !  24 Aug 2007 - H. O. T. Pye - Initial version, in ISORROPIA II
@@ -268,14 +268,14 @@
       Logical                  :: OutOfBounds
 
       !=================================================================
-      ! DO_ISOROPIAII begins here!
+      ! DO_ISORROPIAII begins here!
       !=================================================================
 
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
       ThisLoc = 
-     &  ' -> at DO_ISOROPIAII (in module GeosCore/isoropiaII_mod.F)'
+     &  ' -> at DO_ISORROPIAII (in module GeosCore/isorropiaII_mod.F)'
 
       ! am I root? 
       aIR                  = am_I_Root
@@ -324,7 +324,7 @@
          ENDIF
 
          ! Initialize arrays
-         CALL INIT_ISOROPIAII()
+         CALL INIT_ISORROPIAII()
 
          ! Check to see if we need to get HNO3 from HEMCO
          IF ( id_HNO3 <= 0 ) THEN
@@ -380,8 +380,8 @@
       Spc => State_Chm%Species
 
       !=================================================================
-      ! Loop over grid boxes and call ISOROPIA (see comments in the 
-      ! ISOROPIA routine ISOROPIAIICODE.f which describes
+      ! Loop over grid boxes and call ISORROPIA (see comments in the 
+      ! ISORROPIA routine ISORROPIAIICODE.f which describes
       ! the input/output args)
       !=================================================================
 !$OMP PARALLEL DO
@@ -430,7 +430,7 @@
          VOL      = State_Met%AIRVOL(I,J,L)
 
          !---------------------------------
-         ! Compute quantities for ISOROPIA
+         ! Compute quantities for ISORROPIA
          !---------------------------------
 
          ! Total SO4 [mole/m3]
@@ -458,7 +458,7 @@
 !==============================================================================
 !=== NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg are 
 !=== non-zero. If you would like to consider Ca, K, Mg from seasalt and dust, 
-!=== isoropiaIIcode.f ISRP4F routines must be debugged.  (hotp, bmy, 2/1/10)
+!=== isorropiaIIcode.f ISRP4F routines must be debugged.  (hotp, bmy, 2/1/10)
 !===
 !===            ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
 !===            TCA      = Spc(I,J,L,id_SALA) * 0.0116e+0_fp * 1.d3 /
@@ -525,10 +525,10 @@
          ENDIF
 
          !---------------------------------
-         ! Call ISOROPIA
+         ! Call ISORROPIA
          !---------------------------------
 
-         ! set type of ISOROPIA call
+         ! set type of ISORROPIA call
          ! Forward problem, do not change this value
          ! 0e+0_fp represents forward problem
          CNTRL(1) = 0.0e+0_fp
@@ -600,9 +600,9 @@
          ELSE
 
             ! %%% Perform aerosol thermodynamic equilibrium %%%
-            ! ISOROPIA can be found in ISOROPIAIICODE.F
+            ! ISORROPIA can be found in ISORROPIAIICODE.F
             ! inputs are WI, RHI, TEMPI, CNTRL
-            CALL ISOROPIA( WI,    RHI,  TEMPI,  CNTRL, 
+            CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, 
      &                     WT,    GAS,  AERLIQ, AERSLD,
      &                     SCASI, OTHER                 )
 
@@ -619,7 +619,7 @@
          !---------------------------------
          ! Save back into tracer array
          !---------------------------------
-         ! Convert ISOROPIA output from [mole/m3] to [kg]
+         ! Convert ISORROPIA output from [mole/m3] to [kg]
          TSO4 = MAX( 96.e-3_fp * VOL * TSO4, CONMIN )
          TNH3 = MAX( 17.e-3_fp * VOL * TNH3, CONMIN )
          TNH4 = MAX( 18.e-3_fp * VOL * TNH4, CONMIN )
@@ -739,9 +739,9 @@
       Spc => NULL()
 
       !### Debug
-      IF ( LPRT ) CALL DEBUG_MSG( '### ISOROPIAII: a DO_ISOROPIAII' )
+      IF ( LPRT ) CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
 
-      END SUBROUTINE DO_ISOROPIAII
+      END SUBROUTINE DO_ISORROPIAII
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -947,14 +947,14 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_isoropiaII
+! !IROUTINE: init_isorropiaII
 !
-! !DESCRIPTION: Subroutine INIT\_ISOROPIAII initializes all module arrays.
+! !DESCRIPTION: Subroutine INIT\_ISORROPIAII initializes all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ISOROPIAII
+      SUBROUTINE INIT_ISORROPIAII
 !
 ! !USES:
 !
@@ -974,7 +974,7 @@
       INTEGER :: AS
 
       !=================================================================
-      ! INIT_ISOROPIAII begins here!
+      ! INIT_ISORROPIAII begins here!
       !=================================================================
 
       ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
@@ -986,21 +986,21 @@
       GAS_HNO3 = 0e+0_fp
 
       ! Return to calling program
-      END SUBROUTINE INIT_ISOROPIAII
+      END SUBROUTINE INIT_ISORROPIAII
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_isoropiaII
+! !IROUTINE: cleanup_isorropiaII
 !
-! !DESCRIPTION: Subroutine CLEANUP\_ISOROPIAII deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_ISORROPIAII deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_ISOROPIAII
+      SUBROUTINE CLEANUP_ISORROPIAII
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
@@ -1015,6 +1015,6 @@
       ! Free pointers
       IF ( ASSOCIATED( HNO3       ) ) HNO3 => NULL()
 
-      END SUBROUTINE CLEANUP_ISOROPIAII
+      END SUBROUTINE CLEANUP_ISORROPIAII
 !EOC
-      END MODULE ISOROPIAII_MOD
+      END MODULE ISORROPIAII_MOD

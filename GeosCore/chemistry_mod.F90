@@ -115,7 +115,7 @@ CONTAINS
     USE FlexChem_Mod,    ONLY : Do_FlexChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
-    USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
+    USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
     USE MERCURY_MOD,     ONLY : CHEMMERCURY
     USE POPS_MOD,        ONLY : CHEMPOPS
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -179,7 +179,7 @@ CONTAINS
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
 !  (9 ) Now do not call DO_RPMARES if we are doing an offline aerosol run
 !        with crystalline sulfur & aqueous tracers (cas, bmy, 1/7/05)
-!  (10) Now use ISOROPIA for aer thermodyn equilibrium if we have seasalt 
+!  (10) Now use ISORROPIA for aer thermodyn equilibrium if we have seasalt 
 !        tracers defined, or RPMARES if not.  Now call CHEMSEASALT before
 !        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
 !        aerosol chemistry for offline aerosol runs.  Now also reference 
@@ -548,13 +548,13 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-                ! ISOROPIA takes Na+, Cl- into account
-                CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,        &
-                                    State_Chm, State_Diag, RC               )
+                ! ISORROPIA takes Na+, Cl- into account
+                CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
+                                     State_Chm, State_Diag, RC              )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_ISOROPIAII"!'
+                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -680,14 +680,14 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-                ! ISOROPIA takes Na+, Cl- into account
-                CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,        &
-                                    State_Chm, State_Diag, RC               )
+                ! ISORROPIA takes Na+, Cl- into account
+                CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
+                                     State_Chm, State_Diag, RC              )
 #endif
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_IsoropiaII"!'
+                   ErrMsg = 'Error encountered in "Do_IsorropiaII"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
