@@ -108,7 +108,7 @@ set_dynamic_default(GC_DEFINES ${TEMP})
 set_dynamic_option(MECH "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
-    OPTIONS "Standard" "Tropchem" "SOA_SVPOA"
+    OPTIONS "Standard" "Tropchem" "SOA_SVPOA" "benchmark"
 )
 
 if(${MECH} STREQUAL "Tropchem")
