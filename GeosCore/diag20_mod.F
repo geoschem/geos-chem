@@ -774,6 +774,9 @@
       ! INIT_DIAG20 begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
       ALLOCATE( COUNT( IIPAR, JJPAR, LLPAR ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )

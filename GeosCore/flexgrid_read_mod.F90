@@ -1,25 +1,21 @@
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: geosfp_read_mod.F90
+! !MODULE: flexgrid_read_mod.F90
 !
-! !DESCRIPTION: Module GEOSFP\_READ\_MOD contains subroutines for reading the 
-!  GEOS-FP data from disk (in netCDF format).
+! !DESCRIPTION: Module FLEXGRID\_READ\_MOD contains subroutines for reading the 
+!  metfield from disk (in netCDF format).
 !\\
 !\\
 ! !INTERFACE: 
 !
-MODULE GeosFp_Read_Mod
+MODULE FlexGrid_Read_Mod
 !
 ! !USES:
 !
-  ! NcdfUtil modules for netCDF I/O
-  USE m_netcdf_io_open                    ! netCDF open
-  USE m_netcdf_io_get_dimlen              ! netCDF dimension queries
-  USE m_netcdf_io_read                    ! netCDF data reads
-  USE m_netcdf_io_close                   ! netCDF close
 
   ! GEOS-Chem modules
   USE CMN_SIZE_MOD                        ! Size parameters
@@ -32,7 +28,6 @@ MODULE GeosFp_Read_Mod
   USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
   USE PhysConstants                       ! Physical constants
   USE TIME_MOD                            ! Date & time routines
-  USE TRANSFER_MOD                        ! Routines for casting 
 
   IMPLICIT NONE
   PRIVATE
@@ -41,21 +36,19 @@ MODULE GeosFp_Read_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Check_Dimensions
-  PRIVATE :: GeosFp_Read_A3cld
-  PRIVATE :: GeosFp_Read_A3dyn
-  PRIVATE :: GeosFp_Read_A3mstC
-  PRIVATE :: GeosFp_Read_A3mstE
-  PRIVATE :: Get_Resolution_String
+  PRIVATE :: FlexGrid_Read_A3cld
+  PRIVATE :: FlexGrid_Read_A3dyn
+  PRIVATE :: FlexGrid_Read_A3mstC
+  PRIVATE :: FlexGrid_Read_A3mstE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 ! 
-  PUBLIC  :: GeosFp_Read_CN
-  PUBLIC  :: GeosFp_Read_A1
-  PUBLIC  :: GeosFp_Read_A3
-  PUBLIC  :: GeosFp_Read_I3_1
-  PUBLIC  :: GeosFp_Read_I3_2
-  PUBLIC  :: Cleanup_GeosFp_Read
+  PUBLIC  :: FlexGrid_Read_CN
+  PUBLIC  :: FlexGrid_Read_A1
+  PUBLIC  :: FlexGrid_Read_A3
+  PUBLIC  :: FlexGrid_Read_I3_1
+  PUBLIC  :: FlexGrid_Read_I3_2
+  PUBLIC  :: Copy_I3_Fields
 !
 ! !REMARKS:
 !  Assumes that you have a netCDF library (either v3 or v4) installed on 
@@ -82,14 +75,6 @@ MODULE GeosFp_Read_Mod
 !
 ! !LOCAL VARIABLES:
 !
-  ! netCDF file ID's
-  INTEGER :: fA1     = -1
-  INTEGER :: fA3cld  = -1
-  INTEGER :: fA3dyn  = -1
-  INTEGER :: fA3mstC = -1
-  INTEGER :: fA3mstE = -1
-  INTEGER :: fI3_1   = -1
-  INTEGER :: fI3_2   = -1
 
 CONTAINS
 !EOC
@@ -98,158 +83,21 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Get_Resolution_String
+! !IROUTINE: FlexGrid_Read_cn
 !
-! !DESCRIPTION: Function Get\_Resolution\_String returns the proper filename 
-!  extension for the GEOS-Chem horizontal grid resolution.  This is used to
-!  construct the various file names.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION Get_Resolution_String() RESULT( resString )
-!
-! !RETURN VALUE:
-!
-    CHARACTER(LEN=255) :: resString
-! 
-! !REVISION HISTORY:
-!  10 Feb 2012 - R. Yantosca - Initial version
-!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!  26 Sep 2013 - R. Yantosca - Remove SEAC4RS C-preprocssor switch
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-#if   defined( GRID4x5 )
-    resString = '4x5.nc'
-     
-#elif defined( GRID2x25 ) 
-    resString = '2x25.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    resString = '025x03125.CH.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_EU )
-    resString = '025x03125.EU.nc'
-
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    resString = '025x03125.NA.nc'
-
-#elif defined( GRID025x03125 )
-    resString = '025x03125.nc'
-
-#endif
-
-  END FUNCTION Get_Resolution_String
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Check_Dimensions
-!
-! !DESCRIPTION: Subroutine CHECK\_DIMENSIONS checks to see if dimensions read 
-!  from the netCDF file match the defined GEOS-Chem dimensions.  If not, then 
-!  it will stop the GEOS-Chem simulation with an error message.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Check_Dimensions( lon, lat, lev, time, time_expected, caller )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lon            ! Lon dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lat            ! Lat dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: lev            ! Alt dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: time           ! Time dimension
-    INTEGER,          OPTIONAL, INTENT(IN)  :: time_expected  ! Expected # of 
-                                                              !  time slots
-    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)  :: caller         ! Name of caller
-                                                              !  routine
-! 
-! !REMARKS:
-!  Call this routine with keyword arguments, e.g
-!     CALL CHECK_DIMENSION( lon=X,  lat=Y,           lev=Z,         &
-!                           time=T, time_expected=8, caller=caller )
-!
-! !REVISION HISTORY:
-!  02 Feb 2012 - R. Yantosca - Initial version
-!  03 Feb 2012 - R. Yantosca - Now pass the caller routine name as an argument
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Error message string
-    CHARACTER(LEN=255) :: errMsg                  
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lon ) ) THEN
-       IF ( lon /= IIPAR ) THEN
-          WRITE( errMsg, 100 ) lon, IIPAR
- 100      FORMAT( 'Longitude dimension (', i5, &
-                  ' ) does not match IIPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lat ) ) THEN
-       IF ( lat /= JJPAR ) THEN
-          WRITE( errMsg, 110 ) lat, JJPAR
- 110      FORMAT( 'Latitude dimension (', i5, &
-                  ' ) does not match JJPAR ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-
-    ! Error check longitude dimension 
-    IF ( PRESENT( lev ) ) THEN
-       IF ( lev /= LGLOB ) THEN
-          WRITE( errMsg, 120 ) lev, LGLOB
- 120      FORMAT( 'Levels dimension (', i5, &
-                  ' ) does not match LGLOB ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-    ! Error check time dimension 
-    IF ( PRESENT( time ) .and. PRESENT( time_expected ) ) THEN
-       IF ( time /= time_expected ) THEN
-          WRITE( errMsg, 130 ) time, time_expected
- 130      FORMAT( 'Time dimension (', i5, &
-                  ' ) does not match expected # of times ( ', i5, ')!' )
-          CALL ERROR_STOP( errMsg, caller )
-       ENDIF
-    ENDIF
-
-  END SUBROUTINE Check_Dimensions
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: GeosFp_Read_cn
-!
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing constant (CN) data.  
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_CN( Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -285,87 +133,41 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: fCN                ! netCDF file ID
-    INTEGER            :: X, Y, T            ! netCDF file dimensions
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
-    CHARACTER(LEN=255) :: dir                ! Data directory path
-    CHARACTER(LEN=255) :: errMsg             ! Error message
-    CHARACTER(LEN=255) :: caller             ! Name of this routine
                                 
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
-
-    !======================================================================
-    ! Open the netCDF file.  We only read this file once, at startup.
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_CN (geosfp_read_mod.F90)"
-
-    ! Replace time & date tokens in the file name
-    dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-    CALL Expand_Date( dir, 20110101, 000000 )
-
-    ! Replace time & date tokens in the file name
-    nc_file = Get_Resolution_String() 
-    nc_file = 'GEOSFP.YYYYMMDD.CN.' // TRIM( nc_file ) 
-    CALL Expand_Date( nc_file, 20110101, 000000 )
-
-    ! Construct complete file path
-    nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-    ! Open netCDF file
-    CALL NcOp_Rd( fCN, TRIM( nc_file ) )
-    
-    ! Read the dimensions from the netCDF file
-    CALL NcGet_DimLen( fCN, 'lon',   X )
-    CALL NcGet_DimLen( fCN, 'lat',   Y )
-    CALL NcGet_DimLen( fCN, 'time',  T )
-
-    ! Make sure the dimensions of the file are valid
-    CALL Check_Dimensions( lon=X,           lat=Y,         time=T,  &
-                           time_expected=1, caller=caller          )
-
-    !======================================================================
-    ! Read data from netCDF file
-    !======================================================================
-
-    ! Start and count indices
-    st3d   = (/ 1,     1,     1 /)
-    ct3d   = (/ IIPAR, JJPAR, 1 /)
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRLANDIC = Q
     
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FROCEAN = Q
     
     ! Read PHIS
     v_name = "PHIS"
-    CALL NcRd( Q, fCN, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
     ! Echo info
     stamp = TimeStamp_String( 20110101, 000000 )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 5  GEOS-FP CN     met fields for ', a )
+ 10 FORMAT( '     - Found all CN     met fields for ', a )
 
     !======================================================================
     ! Cleanup and quit
@@ -381,30 +183,28 @@ CONTAINS
     ENDIF
 #endif
 
-    ! Close netCDF file
-    CALL NcCl( fCN )
-
-  END SUBROUTINE GeosFp_Read_CN
+  END SUBROUTINE FlexGrid_Read_CN
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a1
+! !IROUTINE: FlexGrid_Read_a1
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 1-hr time-averaged (A1) data.  
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -464,23 +264,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: X, Y, T            ! netCDF file dimensions
-    INTEGER            :: I, J               ! Do-loop indices
-    INTEGER            :: time_index         ! Read this time slice of data
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file            ! netCDF file name
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                ! Data directory path
-    CHARACTER(LEN=255) :: errMsg             ! Error message
-    CHARACTER(LEN=255) :: caller             ! Name of this routine
 
     ! Saved scalars
     INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
     INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
-    LOGICAL, SAVE      :: first    = .TRUE.  ! First time reading data?
                 
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)   ! Start + count, for 3D arrays 
     REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
 
     !======================================================================
@@ -489,140 +280,86 @@ CONTAINS
     IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
        stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
        WRITE( 6, 20 ) stamp
- 20    FORMAT( '     - GEOS-FP A1 met fields for ', a,  &
+ 20    FORMAT( '     - FLEXGRID A1 met fields for ', a,  &
                ' have been read already'                  ) 
        RETURN
     ENDIF
 
     !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A1 (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 10000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 24 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
-       CALL Error_Stop( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN 
-
-       ! replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL Expand_Date( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.A1.' // TRIM( nc_file )
-       CALL Expand_Date( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-       ! Open netCDF file
-       CALL NcOp_Rd( fA1, TRIM( nc_file ) )
-       
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fA1, 'lon',   X )
-       CALL NcGet_DimLen( fA1, 'lat',   Y )
-       CALL NcGet_DimLen( fA1, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,            lat=Y,        time=T,  &
-                              time_expected=24, caller=caller         )
-
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
+    ! Get met fields from HEMCO
     !======================================================================
     
-    ! netCDF start & count indices
-    st3d      = (/ 1,     1,     time_index /)      
-    ct3d      = (/ IIPAR, JJPAR, 1          /)
-
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read EVAP
     !v_name = "EVAP"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%EVAP = Q
     !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read GRN
     !v_name = "GRN"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%GRN = Q
     !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%LWI = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT 
     !v_name = "LWGNT"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%RADLWG = Q
     !--------------------------------------------------------------------------
 
@@ -630,186 +367,179 @@ CONTAINS
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
-    !State_Met%LWTUP = Q)
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !State_Met%LWTUP = Q
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read PRECSNO
     !v_name = "PRECSNO"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%PRECSNO = Q
     !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    !CALL Get_Met_2D( Q, TRIM(v_name) )
     !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL NcRd( Q, fA1, TRIM(v_name), st3d, ct3d )
+    CALL Get_Met_2D( Q, TRIM(v_name) )
     State_Met%Z0 = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp                    
- 10 FORMAT( '     - Found all 44 GEOS-FP A1     met fields for ', a )
+ 10 FORMAT( '     - Found all A1     met fields for ', a )
 
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
-
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 24 ) THEN
-       CALL NcCl( fA1 )
-       fA1 = -1
-    ENDIF
 
     ! Increment the # of times A1 fields are read from disk
     CALL Set_Ct_A1( INCREMENT=.TRUE. )
@@ -819,7 +549,13 @@ CONTAINS
     State_Met%PRECCON = State_Met%PRECCON * 86400d0
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
-    
+
+#if defined( MERRA2 )
+    ! Convert pressure quantities from [Pa] -> [hPa]
+    State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+    State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
+#endif
+
 #if defined( BPCH_DIAG )
     ! ND67 diagnostic: surface fields
     IF ( ND67 > 0 ) THEN
@@ -850,27 +586,27 @@ CONTAINS
     lastDate = YYYYMMDD
     lastTime = HHMMSS
 
-  END SUBROUTINE GeosFp_Read_A1
+  END SUBROUTINE FlexGrid_Read_A1
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a3
+! !IROUTINE: FlexGrid_Read_a3
 !
 ! !DESCRIPTION: Convenience wrapper for the following routines which read
 !  3-hour time averaged data from disk:
 ! \begin{itemize}
-! \item GeosFp\_Read\_A3cld
-! \item GeosFp\_Read\_A3dyn
-! \item GeosFp\_Read\_A3mstC
-! \item GeosFp\_Read\_A3mstE
+! \item FlexGrid\_Read\_A3cld
+! \item FlexGrid\_Read\_A3dyn
+! \item FlexGrid\_Read\_A3mstC
+! \item FlexGrid\_Read\_A3mstE
 ! \end{itemize}
 !
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
@@ -912,7 +648,7 @@ CONTAINS
     IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
        stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
        WRITE( 6, 20 ) stamp
- 20    FORMAT( '     - GEOS-FP A3 met fields for ', a,  &
+ 20    FORMAT( '     - FLEXGRID A3 met fields for ', a,  &
                ' have been read already'                  ) 
        RETURN
     ENDIF
@@ -922,10 +658,10 @@ CONTAINS
     lastTime = HHMMSS
 
     ! Read all the diffeent A3 files
-    CALL GeosFp_Read_A3cld ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL GeosFp_Read_A3dyn ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL GeosFp_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL GeosFp_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3cld ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3dyn ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 
     !======================================================================
     ! Cleanup and quit
@@ -938,27 +674,28 @@ CONTAINS
     lastDate = YYYYMMDD
     lastTime = HHMMSS
 
-  END SUBROUTINE GeosFp_Read_A3
+  END SUBROUTINE FlexGrid_Read_A3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a3cld
+! !IROUTINE: FlexGrid_Read_a3cld
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr time-averaged (A3) data (cloud fields).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1000,115 +737,50 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
-           
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                   
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q(IIPAR,JJPAR,LGLOB)     ! Temporary data arrray
+    REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3cld (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.A3cld.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-       ! Open netCDF file
-       CALL NcOp_Rd( fA3cld, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fA3cld, 'lon',   X )
-       CALL NcGet_DimLen( fA3cld, 'lat',   Y )
-       CALL NcGet_DimLen( fA3cld, 'lev',   Z )
-       CALL NcGet_DimLen( fA3cld, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                              time=T, time_expected=8, caller=caller )
-
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
+    ! Get met fields from HEMCO
     !======================================================================
     
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,     time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
-
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3d( Q, State_Met%CLDF )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%CLDF = Q
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL TRANSFER_3d( Q, State_Met%OPTD )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%QI )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%QL )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%TAUCLI )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL NcRd( Q, fA3cld, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%TAUCLW )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%TAUCLW = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 6  GEOS-FP A3cld  met fields for ', a )
+ 10 FORMAT( '     - Found all A3cld  met fields for ', a )
 
     !======================================================================
     ! Diagnostics, cleanup, and quit
@@ -1122,34 +794,28 @@ CONTAINS
     ENDIF
 #endif
 
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fA3cld )
-       fA3cld = -1
-    ENDIF
-
-  END SUBROUTINE GeosFp_Read_A3cld
+  END SUBROUTINE FlexGrid_Read_A3cld
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a3dyn
+! !IROUTINE: FlexGrid_Read_a3dyn
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr time-averaged (A3) data (dynamics fields).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput  
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1191,112 +857,45 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L                  ! Loop indices
-    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
 
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time we read data?
-        
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q (IIPAR,JJPAR,LGLOB  )  ! Temporary data arrray
-    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+    REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
+    ! Get met fields from HEMCO
     !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3dyn (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL ERROR_STOP( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.A3dyn.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-       ! Open netCDF file
-       CALL NcOp_Rd( fA3dyn, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fA3dyn, 'lon',   X )
-       CALL NcGet_DimLen( fA3dyn, 'lat',   Y )
-       CALL NcGet_DimLen( fA3dyn, 'lev',   Z )
-       CALL NcGet_DimLen( fA3dyn, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                              time=T, time_expected=8, caller=caller )
-
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file (only when necessary)
-    !======================================================================
-    
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,     time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DTRAIN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%OMEGA )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%RH )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%U )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL NcRd( Q, fA3dyn, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%V )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%V = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 6  GEOS-FP A3dyn  met fields for ', a )
+ 10 FORMAT( '     - Found all A3dyn  met fields for ', a )
 
     !======================================================================
     ! Unit conversions, diagnostics, cleanup, and quit
@@ -1320,35 +919,29 @@ CONTAINS
     ENDIF
 #endif
 
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fA3dyn )
-       fA3dyn = -1
-    ENDIF
-
-  END SUBROUTINE GeosFp_Read_A3dyn
+  END SUBROUTINE FlexGrid_Read_A3dyn
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a3mstc
+! !IROUTINE: FlexGrid_Read_a3mstc
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
 !  saved on level centers).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1386,140 +979,68 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L                  ! Loop indices
-    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Q (IIPAR,JJPAR,LGLOB)    ! Temporary data arrray
+    REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
-    !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3mstC (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL Error_Stop( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.A3mstC.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-    
-       ! Open netCDF file
-       CALL NcOp_Rd( fA3mstC, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fA3mstC, 'lon',   X )
-       CALL NcGet_DimLen( fA3mstC, 'lat',   Y )
-       CALL NcGet_DimLen( fA3mstC, 'lev',   Z )
-       CALL NcGet_DimLen( fA3mstC, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                              time=T, time_expected=8, caller=caller )
-
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
+    ! Get met fields from HEMCO
     !======================================================================
     
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,     time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB, 1          /)
-
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DQRCU )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%DQRLSAN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%REEVAPCN )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL NcRd( Q, fA3mstC, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q, State_Met%REEVAPLS )
+    CALL Get_Met_3D( Q, TRIM(v_name) )
+    State_Met%REEVAPLS = Q
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 4  GEOS-FP A3mstC met fields for ', a )
+ 10 FORMAT( '     - Found all A3mstC met fields for ', a )
 
     !======================================================================
     ! Cleanup and quit
     !======================================================================
 
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fA3mstC )
-       fA3mstC = -1
-    ENDIF
-
-  END SUBROUTINE GeosFp_Read_A3mstC
+  END SUBROUTINE FlexGrid_Read_A3mstC
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_a3mste
+! !IROUTINE: FlexGrid_Read_a3mste
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr time-averaged (A3) data (moist fields,
 !  saved on level edges).
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1560,110 +1081,45 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L                  ! Loop indices
-    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                              
     ! Arrays                                 
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
-    REAL*4             :: Qe(IIPAR,JJPAR,LGLOB+1)  ! Temporary data arrray
+    REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
+    ! Get met fields from HEMCO
     !======================================================================
-
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_A3mstE (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL Error_Stop( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.A3mstE.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
     
-       ! Open netCDF file
-       CALL NcOp_Rd( fA3mstE, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fA3mstE, 'lon',   X )
-       CALL NcGet_DimLen( fA3mstE, 'lat',   Y )
-       CALL NcGet_DimLen( fA3mstE, 'lev',   Z )
-       CALL NcGet_DimLen( fA3mstE, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z-1,       &
-                              time=T, time_expected=8, caller=caller )
-
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-
-    ! netCDF start & count indices
-    st4d      = (/ 1,     1,     1,       time_index /)      
-    ct4d      = (/ IIPAR, JJPAR, LGLOB+1, 1          /)
-
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%CMFMC )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFICU )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFILSAN )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFLCU )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFLCU = Qe
 
     ! Read  from file
     v_name = "PFLLSAN"
-    CALL NcRd( Qe, fA3mstE, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d_Lp1( Qe, State_Met%PFLLSAN )
+    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    State_Met%PFLLSAN = Qe
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 4  GEOS-FP A3mstE met fields for ', a )
+ 10 FORMAT( '     - Found all A3mstE met fields for ', a )
 
     !=================================================================
     ! Diagnostics, cleanup and quit
@@ -1689,34 +1145,28 @@ CONTAINS
     ENDIF
 #endif
 
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fA3mstE )
-       fA3mstE = -1
-    ENDIF
-
-  END SUBROUTINE GeosFp_Read_A3mstE
+  END SUBROUTINE FlexGrid_Read_A3mstE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_I3_1
+! !IROUTINE: FlexGrid_Read_I3_1
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr instantaneous (I3) data.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1762,124 +1212,54 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L                  ! Loop indices
-    INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
-                                        
+                                    
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
+    ! Get met fields from HEMCO
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_I3_1 (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL Error_Stop( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file only when necessary
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-       ! Open netCDF file
-       CALL NcOp_Rd( fI3_1, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fI3_1, 'lon',   X )
-       CALL NcGet_DimLen( fI3_1, 'lat',   Y )
-       CALL NcGet_DimLen( fI3_1, 'lev',   Z )
-       CALL NcGet_DimLen( fI3_1, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                              time=T, time_expected=8, caller=caller )
-       
-       ! Reset first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     !-------------------------------------------------
-    ! Read 3D data (2D spatial + 1D time )
+    ! Read 2D data
     !-------------------------------------------------
-
-    ! netCDF start & count indices
-    st3d   = (/ 1,     1,     time_index /)
-    ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
-    v_name = "PS"
-    CALL NcRd( Q2, fI3_1, TRIM(v_name), st3d, ct3d )
+    v_name = "PS1"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
-    ! Read 4D data (3D spatial + 1D time)
+    ! Read 3D data
     !-------------------------------------------------
 
-    ! netCDF start + count indices
-    st4d   = (/ 1,     1,     1,     time_index /)
-    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
-
     !----------------------------------------------------------------
+    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
-    ! Read PV
+    !! Read PV
     !v_name = "PV"
-    !CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
+    !CALL Get_Met_3D( Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
-    !CALL Transfer_3d( Q3, State_Met%PV )
+    !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
-    v_name = "QV"
-    CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%SPHU1 )
+    v_name = "SPHU1"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%SPHU1 = Q3
 
     ! Read T
-    v_name = "T"
-    CALL NcRd( Q3, fI3_1, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%TMPU1 )
+    v_name = "TMPU1"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%TMPU1 = Q3
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 4  GEOS-FP I3     met fields for ', a )
+ 10 FORMAT( '     - Found all I3     met fields for ', a )
 
     !-------------------------------------------------
     ! Unit conversions & special handling
@@ -1897,6 +1277,11 @@ CONTAINS
 
     ENDWHERE
 
+#if defined( MERRA2 )
+    ! Convert PS1_WET from [Pa] to [hPa]
+    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+#endif
+
     ! Initialize State_Met%T to State_Met%TMPU1 and State_Met%SPHU to
     ! State_Met%SPHU1.  After all future MET field reads (geosfp_read_i3_2)
     ! we will interpolate State_Met%T from the values of State_Met vars 
@@ -1904,17 +1289,10 @@ CONTAINS
     ! SPHU1 and SPHU2. 
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
-
+    
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
-
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fI3_1 )
-       fI3_1 = -1
-    ENDIF
 
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
@@ -1927,27 +1305,28 @@ CONTAINS
     ENDIF
 #endif
 
-  END SUBROUTINE GeosFp_Read_I3_1
+  END SUBROUTINE FlexGrid_Read_I3_1
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GeosFp_Read_I3_2
+! !IROUTINE: FlexGrid_Read_I3_2
 !
-! !DESCRIPTION: Routine to read variables and attributes from a GEOS-FP
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
 !  met fields file containing 3-hr instantaneous (I3) data.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GeosFp_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 ! 
@@ -1991,121 +1370,54 @@ CONTAINS
     ! Scalars
     INTEGER            :: I, J, L                  ! Loop indices
     INTEGER            :: X, Y, Z, T               ! netCDF file dimensions
-    INTEGER            :: time_index               ! Read this slice of data
     CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
-    CHARACTER(LEN=255) :: nc_file                  ! netCDF file name
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
-    CHARACTER(LEN=255) :: dir                      ! Data directory path
-    CHARACTER(LEN=255) :: errMsg                   ! Error message
-    CHARACTER(LEN=255) :: caller                   ! Name of this routine
-
-    ! SAVEd scalars
-    LOGICAL, SAVE      :: first = .TRUE.           ! First time reading data?
                                     
     ! Arrays                                 
-    INTEGER            :: st3d(3), ct3d(3)         ! Start & count indices
-    INTEGER            :: st4d(4), ct4d(4)         ! Start & count indices
     REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LGLOB)    ! 3D temporary data arrray
+    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
 
     !======================================================================
-    ! Select the proper time slice
+    ! Get met fields from HEMCO
     !======================================================================
 
-    ! Name of this routine (for error printout)
-    caller  = "GEOSFP_READ_I3_2 (geosfp_read_mod.F90)"
-
-    ! Find the proper time-slice to read from disk
-    time_index = ( HHMMSS / 030000 ) + 1
-
-    ! Stop w/ error if the time index is invalid
-    IF ( time_index < 1 .or. time_index > 8 ) THEN
-       WRITE( 6, 100 ) time_index
- 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
-       CALL Error_Stop( errMsg, caller )
-    ENDIF
-
-    !======================================================================
-    ! Open the netCDF file
-    !======================================================================
-    IF ( time_index == 1 .or. first ) THEN
-
-       ! Replace time & date tokens in the file name
-       dir     = TRIM( Input_Opt%GEOS_FP_DIR )
-       CALL EXPAND_DATE( dir, YYYYMMDD, HHMMSS )
-
-       ! Replace time & date tokens in the file name
-       nc_file = Get_Resolution_String()
-       nc_file = 'GEOSFP.YYYYMMDD.I3.' // TRIM( nc_file )
-       CALL EXPAND_DATE( nc_file, YYYYMMDD, HHMMSS )
-
-       ! Construct complete file path
-       nc_file = TRIM( Input_Opt%DATA_DIR ) // TRIM( dir ) // TRIM( nc_file )
-
-       ! Open netCDF file
-       CALL NcOp_Rd( fI3_2, TRIM( nc_file ) )
-
-       ! Read the dimensions from the netCDF file
-       CALL NcGet_DimLen( fI3_2, 'lon',   X )
-       CALL NcGet_DimLen( fI3_2, 'lat',   Y )
-       CALL NcGet_DimLen( fI3_2, 'lev',   Z )
-       CALL NcGet_DimLen( fI3_2, 'time',  T )
-
-       ! Make sure the dimensions of the file are valid
-       CALL Check_Dimensions( lon=X,  lat=Y,           lev=Z,         &
-                              time=T, time_expected=8, caller=caller )
-
-       ! Reset the first-time flag
-       first = .FALSE.
-    ENDIF
-
-    !======================================================================
-    ! Read data from the netCDF file
-    !======================================================================
-    
     !-------------------------------------------------
-    ! Read 3D data (2D spatial + 1D time )
+    ! Read 2D data
     !-------------------------------------------------
-
-    ! netCDF start & count indices
-    st3d   = (/ 1,     1,     time_index /)
-    ct3d   = (/ IIPAR, JJPAR, 1          /)
 
     ! Read PS
-    v_name = "PS"
-    CALL NcRd( Q2, fI3_2, TRIM(v_name), st3d, ct3d )
+    v_name = "PS2"
+    CALL Get_Met_2D( Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
-    ! Read 4D data (3D spatial + 1D time)
+    ! Read 3D data
     !-------------------------------------------------
 
-    ! netCDF start + count indices
-    st4d   = (/ 1,     1,     1,     time_index /)
-    ct4d   = (/ IIPAR, JJPAR, LGLOB, 1          /)
-
     !----------------------------------------------------------------
+    ! Prior to 2/3/12:
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL NcRd( Q3, fI3_2, TRIM(v_name), st4d, ct4d )
-    !CALL Transfer_3d( Q3, State_Met%PV )
+    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
+    !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
-    v_name = "QV"
-    CALL NcRd( Q3, fI3_2, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%SPHU2 )
+    v_name = "SPHU2"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%SPHU2 = Q3
 
     ! Read T
-    v_name = "T"
-    CALL NcRd( Q3, fI3_2, TRIM(v_name), st4d, ct4d )
-    CALL Transfer_3d( Q3, State_Met%TMPU2 )
+    v_name = "TMPU2"
+    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    State_Met%TMPU2 = Q3
 
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
- 10 FORMAT( '     - Found all 4  GEOS-FP I3     met fields for ', a )
+ 10 FORMAT( '     - Found all I3     met fields for ', a )
 
     !-------------------------------------------------
     ! Unit conversions & special handling
@@ -2118,21 +1430,19 @@ CONTAINS
 
     ELSEWHERE
 
-       ! Convert GEOS-FP specific humidity from [kg/kg] to [g/kg]
+       ! Convert specific humidity from [kg/kg] to [g/kg]
        State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
 
     ENDWHERE
 
+#if defined( MERRA2 )
+    ! Convert PS2_WET from [Pa] to [hPa]
+    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+#endif
+    
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================
-
-    ! If it's the last time slice, then close the netCDF file
-    ! and set the file ID to -1 to indicate that it's closed.
-    IF ( time_index == 8 ) THEN
-       CALL NcCl( fI3_2 )
-       fI3_2 = -1
-    ENDIF
 
     ! Increment the # of times I3 fields have been read
     CALL Set_Ct_I3( INCREMENT=.TRUE. )
@@ -2145,70 +1455,69 @@ CONTAINS
     ENDIF
 #endif
 
-  END SUBROUTINE GeosFp_Read_I3_2
-!EOC
+  END SUBROUTINE FlexGrid_Read_I3_2
+!EOC  
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Cleanup_GeosFp_Read
+! !IROUTINE: copy_i3_fields
 !
-! !DESCRIPTION: Closes any open netCDF files at the end of a simulation.
-!  This can occur if the simulation ends at a time other than 00:00 GMT.
+! !DESCRIPTION: Subroutine COPY\_I3\_FIELDS copies the I-3 fields at the 
+!  end of a 3-hr timestep.  The I-3 fields at the end of a given 3-hr timestep 
+!  become the fields at the beginning of the next 3-hr timestep. 
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Cleanup_GeosFp_Read()
+      SUBROUTINE COPY_I3_FIELDS( State_Met )
 !
-! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
+! !USES:
+!
+      USE State_Met_Mod,        ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+! 
+! !REVISION HISTORY: 
+!  13 Apr 2004 - R. Yantosca - Initial version
+!  (1 ) Added parallel DO-loops (bmy, 4/13/04)
+!  (2 ) Remove support for GEOS-1 and GEOS-STRAT met fields (bmy, 8/4/06)
+!  (3 ) Added TROPP (phs 11/10/06)
+!  (4 ) Don't copy TROPP2 to TROPP1 for GEOS-5 (bmy, 1/17/07) 
+!  16 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  20 Aug 2010 - R. Yantosca - Rewrite #if block for clarity
+!  20 Aug 2010 - R. Yantosca - Added #if block for MERRA met fields
+!  06 Feb 2012 - R. Yantosca - Added #if block for GEOS-5.7.x met fields
+!  07 Feb 2012 - R. Yantosca - Renamed to COPY_I3_I6_FIELDS
+!  28 Feb 2012 - R. Yantosca - Removed support for GEOS-3
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  26 Sep 2013 - R. Yantosca - Renamed GEOS_57 Cpp switch to GEOS_FP
+!  11 Aug 2015 - R. Yantosca - MERRA2 behaves in the same way as GEOS-FP
+!  03 May 2016 - E. Lundgren - Add PS1_DRY update
+!  26 Oct 2018 - M. Sulprizio- Moved this routine from dao_mod.F to
+!                              flexgrid_read_mod.F90
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: I, J, L
 
-    !=======================================================================
-    ! Close any netCDF file ID's that are still open
-    !=======================================================================
-    IF ( fA1 > 0 ) THEN
-       CALL NcCl( fA1 )
-       WRITE( 6, 100 ) 'A1    '
-    ENDIF
+      !=================================================================
+      ! COPY_I3_FIELDS begins here!
+      !=================================================================
 
-    IF ( fA3cld > 0 ) THEN
-       CALL NcCl( fA3cld  )
-       WRITE( 6, 100 ) 'A3cld '
-    ENDIF
+      State_Met%PS1_WET = State_Met%PS2_WET ! I3 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa] 
+      State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
+      State_Met%TMPU1   = State_Met%TMPU2   ! I3 temperature         [K]
 
-    IF ( fA3dyn > 0 ) THEN
-       CALL NcCl( fA3dyn  )
-       WRITE( 6, 100 ) 'A3dyn '
-    ENDIF
-
-    IF ( fA3mstC > 0 ) THEN
-       CALL NcCl( fA3mstC )
-       WRITE( 6, 100 ) 'A3mstC'
-    ENDIF
-
-    IF ( fA3mstE > 0 ) THEN
-       CALL NcCl( fA3mstE )
-       WRITE( 6, 100 ) 'A3mstE'
-    ENDIF
-
-    IF ( fI3_1 > 0 ) THEN
-       CALL NcCl( fI3_1   )
-       WRITE( 6, 100 ) 'I3_1  '
-    ENDIF
-
-    IF ( fI3_2 > 0 ) THEN
-       CALL NcCl( fI3_2   )
-       WRITE( 6, 100 ) 'I3_2  '
-    ENDIF
-
-    ! Format strings
-100 FORMAT( '     - Closing the GEOS-FP ', a6, ' file at end of simulation' )
-
-  END SUBROUTINE Cleanup_GeosFp_Read
+      END SUBROUTINE COPY_I3_FIELDS
 !EOC
-END MODULE GeosFp_Read_Mod
+END MODULE FlexGrid_Read_Mod
+#endif

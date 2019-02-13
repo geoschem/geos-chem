@@ -103,7 +103,13 @@
 
       ! N_  = no. of levels in Mie scattering arrays
       !     = 2*NC+1 = 4*(L_+1) + 1 + 2*sum(JADDLV)
+#if defined( MODEL_GEOS )
+      !!!INTEGER, PARAMETER ::  N_    = 601
+      !!!INTEGER, PARAMETER ::  N_    = 1201
+      INTEGER            :: N_
+#else
       INTEGER, PARAMETER ::  N_    = 601
+#endif
 
       ! M_  = no. of Gauss points used, must = 4 in fast_JX (no option)
       INTEGER, PARAMETER ::  M_    = 4
@@ -129,6 +135,9 @@
 
       ! ATAU: heating rate (factor increase from one layer to the next)
       REAL(fp), PARAMETER  :: ATAU   = 1.120e+0_fp
+#if defined( MODEL_GEOS )
+      !REAL(fp), PARAMETER  :: ATAU   = 1.180e+0_fp
+#endif
 
       ! ATAU0: minimum heating rate
       REAL(fp), PARAMETER  :: ATAU0  = 0.010e+0_fp
@@ -360,6 +369,16 @@
       JXL1_  = JXL_+1   ! Vertical levels edges for J-values
       JXL2_  = 2*JXL_+2 ! Max # levels in the basic Fast-JX grid (mid-level)
 
+      
+#if defined( MODEL_GEOS )
+      ! N_  = no. of levels in Mie scattering arrays
+      IF ( Input_Opt%LLFASTJX > 0 ) THEN
+         N_ = Input_Opt%LLFASTJX
+      ELSE
+         N_ = 601
+      ENDIF
+#endif
+
       JTAUMX = ( N_ - 4*JXL_ ) / 2  ! Maximum number of divisions ( i.e., may
                                     ! not get to ATAUMN)
 
@@ -525,6 +544,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  21 Feb 2014 - M. Sulprizio- Initial version
+!  10 Aug 2018 - H.P. Lin    - Add missing allocations for RRTMG
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -534,8 +554,25 @@
       IF ( ALLOCATED( ZPJ       ) ) DEALLOCATE( ZPJ       )
       IF ( ALLOCATED( ODMDUST   ) ) DEALLOCATE( ODMDUST   )
       IF ( ALLOCATED( ODAER     ) ) DEALLOCATE( ODAER     )
+      IF ( ALLOCATED( MIEDX     ) ) DEALLOCATE( MIEDX     )
       IF ( ALLOCATED( ISOPOD    ) ) DEALLOCATE( ISOPOD    )
       IF ( ALLOCATED( IRHARR    ) ) DEALLOCATE( IRHARR    )
+      IF ( ALLOCATED( WVAA      ) ) DEALLOCATE( WVAA      )
+      IF ( ALLOCATED( RHAA      ) ) DEALLOCATE( RHAA      )
+      IF ( ALLOCATED( NRLAA     ) ) DEALLOCATE( NRLAA     )
+      IF ( ALLOCATED( NCMAA     ) ) DEALLOCATE( NCMAA     )
+      IF ( ALLOCATED( RDAA      ) ) DEALLOCATE( RDAA      )
+      IF ( ALLOCATED( RWAA      ) ) DEALLOCATE( RWAA      )
+      IF ( ALLOCATED( SGAA      ) ) DEALLOCATE( SGAA      )
+      IF ( ALLOCATED( QQAA      ) ) DEALLOCATE( QQAA      )
+      IF ( ALLOCATED( ALPHAA    ) ) DEALLOCATE( ALPHAA    )
+      IF ( ALLOCATED( REAA      ) ) DEALLOCATE( REAA      )
+      IF ( ALLOCATED( SSAA      ) ) DEALLOCATE( SSAA      )
+      IF ( ALLOCATED( ASYMAA    ) ) DEALLOCATE( ASYMAA    )
+      IF ( ALLOCATED( PHAA      ) ) DEALLOCATE( PHAA      )
+      IF ( ALLOCATED( SPECMASK  ) ) DEALLOCATE( SPECMASK  )
+
+
 #if defined( RRTMG )
       IF ( ALLOCATED( RTODAER   ) ) DEALLOCATE( RTODAER   )
       IF ( ALLOCATED( RTSSAER   ) ) DEALLOCATE( RTSSAER   )

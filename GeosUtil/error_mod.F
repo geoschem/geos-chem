@@ -42,6 +42,9 @@
       PUBLIC  :: INIT_ERROR
       PUBLIC  :: CLEANUP_ERROR
       PUBLIC  :: PRINT_GLOBAL_SPECIES_KG
+#if defined( MODEL_GEOS )
+      PUBLIC  :: mpiComm
+#endif 
 
       ! Interface for NaN-check routines
       INTERFACE IT_IS_NAN
@@ -69,7 +72,6 @@
 ! !PRIVATE MEMBER FUNCTIONS:
 !
       PRIVATE :: CHECK_DBLE_VALUE
-      PRIVATE :: CHECK_REAL_VALUE
       PRIVATE :: FINITE_DBLE
       PRIVATE :: FINITE_FLOAT
       PRIVATE :: NAN_DBLE
@@ -138,12 +140,16 @@
 !                              obsolete tracer_mod.F
 !  16 Sep 2016 - E. Lundgren - Add routine to print global species mass to log
 !  26 Jun 2017 - R. Yantosca - Moved GC_ERROR to Headers/errcode_mod.F90
+!  15 Jun 2018 - E. Lundgren - Add code for use in GEOS-5 only
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !PRIVATE TYPES:
 
+#if defined( MODEL_GEOS )
+      INTEGER, SAVE           :: mpiComm
+#endif
       LOGICAL                 :: SHADOW_am_I_Root   ! Shadow for am_I_Root
       TYPE(OptInput), POINTER :: SHADOW_Input_Opt   ! Shadow for Input_Opt
 
@@ -575,6 +581,10 @@
 !
       SUBROUTINE ERROR_STOP( MESSAGE, LOCATION, INSTRUCTIONS )
 !
+! !USES:
+!
+      USE CharPak_Mod, ONLY : WordWrapPrint
+!
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN) :: MESSAGE      ! Error msg to print
@@ -586,26 +596,33 @@
 !  20 Nov 2009 - R. Yantosca - Added ProTeX header
 !  06 Jan 2017 - R. Yantosca - Added optional INSTRUCTIONS argument
 !  01 Nov 2017 - R. Yantosca - Flush the stdout buffer before halting
+!  13 Nov 2018 - R. Yantosca - Now word-wrap the Instructions string
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=512) :: TmpMsg
 
 !$OMP CRITICAL
 
       ! Write the error message
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-      WRITE( 6, '(a)' ) 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+      TmpMsg = 'GEOS-CHEM ERROR: ' // TRIM( MESSAGE )
+      CALL WordWrapPrint( TmpMsg, 76 )
 
       ! If the optional INSTRUCTIONS argument is passed, then print it to
       ! the stdout stream.  This is useful for instructing the user to
       ! look for the error in another location (e.g. the HEMCO log file).
       IF ( PRESENT( INSTRUCTIONS ) ) THEN
-         WRITE( 6, 100 ) TRIM( INSTRUCTIONS )
- 100     FORMAT( /, a, / )
+         WRITE( 6, '(a)' )
+         CALL WordWrapPrint( Instructions, 76 )
+         WRITE( 6, '(a)' )
       ENDIF
 
       ! Write the location of the error
-      WRITE( 6, '(a)' ) 'STOP at '          // TRIM( LOCATION )
+      WRITE( 6, '(a)' ) 'STOP at ' // TRIM( LOCATION )
       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
 !$OMP END CRITICAL

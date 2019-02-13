@@ -32,26 +32,50 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-      PUBLIC  :: CLEANUP_SURFACE_RAD
-      PUBLIC  :: INIT_SURFACE_RAD
-      PUBLIC  :: READ_SURFACE_RAD
-      PUBLIC  :: CLEANUP_MCICA_CLOUDS
-      PUBLIC  :: INIT_MCICA_CLOUDS
+      PUBLIC  :: Cleanup_MCICA_Clouds
+      PUBLIC  :: Cleanup_Strat_Clim
+      PUBLIC  :: Cleanup_Surface_Rad
+      PUBLIC  :: Do_RRTMG_Rad_Transfer
+      PUBLIC  :: Init_MCICA_Clouds
+      PUBLIC  :: Init_Surface_Rad
+!
+! !PRIVATE:
+!
+      PRIVATE :: AttachPointersFromHemco
 !
 ! !PUBLIC DATA MEMBERS:
 !
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBDIR(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ALBDIF(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: EMISS (:,:,:)
-
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CH4CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: N2OCLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC11CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC12CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CCL4CLIM(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CFC22CLIM(:,:,:)
+      ! NOTE: Changed to pointers to get inputs from HEMCO (bmy, 10/30/18)
+      ! NOTE: These should eventually go into fields of State_Chm
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_ALBDFNIR(:,:  ) 
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_ALBDFVIS(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_ALBDRNIR(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_ALBDRVIS(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_01(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_02(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_03(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_04(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_05(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_06(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_07(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_08(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_09(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_10(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_11(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_12(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_13(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_14(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_15(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: MODIS_EMISS_16(:,:  )
+      REAL*4,  POINTER,     PUBLIC         :: CH4CLIM       (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: N2OCLIM       (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC11CLIM     (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC12CLIM     (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CCL4CLIM      (:,:,:)
+      REAL*4,  POINTER,     PUBLIC         :: CFC22CLIM     (:,:,:)
 
       !MCICA cloud variables now stored for reuse
+      !NOTE: These should eventually go into fields of State_Chm
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLDFMCL_LW(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_LW(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_LW(:,:,:,:)
@@ -60,11 +84,11 @@
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CIWPMCL_SW(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: CLWPMCL_SW(:,:,:,:)
       REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: TAUCMCL_SW(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SSACMCL(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ASMCMCL(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL(:,:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL(:,:,:)
-      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL(:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: SSACMCL   (:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: ASMCMCL   (:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: FSFCMCL   (:,:,:,:)
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: REICMCL   (:,:,:  )
+      REAL*8,  ALLOCATABLE, PUBLIC, TARGET :: RELQMCL   (:,:,:  )
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
@@ -111,10 +135,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root, THISDAY,   THISMONTH, 
-     &                                  ICLD,      ISPECMENU, ISEED,     
-     &                                  Input_Opt, State_Met, State_Chm,
-     &                                  RC  )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  THISDAY,
+     &                                  THISMONTH,  ICLD,
+     &                                  ISPECMENU,  ISEED,
+     &                                  Input_Opt,  State_Met,
+     &                                  State_Chm,  State_Diag,
+     &                                  RC                      )
 !
 ! !USES:
 !
@@ -147,6 +173,7 @@
       USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
       USE State_Chm_Mod,       ONLY : ChmState
       USE State_Chm_Mod,       ONLY : Ind_
+      USE State_Diag_Mod,      ONLY : DgnState
       USE State_Met_Mod,       ONLY : MetState
       USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
       USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
@@ -169,6 +196,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
       INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
                                                    ! 0-NOCLOUD, 1-GREY CLOUD
 !
@@ -496,21 +524,27 @@
       REAL(KIND=RB)          :: p_SSAAER    ( LLPAR,  NBNDSW )
       REAL(KIND=RB)          :: p_ASMAER    ( LLPAR,  NBNDSW )
 
+      ! Strings
+      CHARACTER(LEN=255)     :: ErrMsg, This Loc
+
       !=================================================================
       ! DO_RRTMG_RAD_TRANSFER begins here!
       !=================================================================
 
-      ! Assume success
-      RC = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     & ' -> at DO_RRTMG_RAD_TRANSFER (in rrtmg_rad_transfer_mod.F)'
 
       ! Convert species units to kg/kg dry for RRTMG 
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg/kg dry', RC, 
      &                        OrigUnit=OrigUnit )
 
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC,     
-     &                 'DO_RRTMG_RAD_TRANSFER')
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
 
@@ -580,7 +614,9 @@
       CH4VMR(:,:,:)       = 0.0
       NBNDS               = NBNDLW+NBNDSW
 
+      !=================================================================
       ! First-time setup
+      !=================================================================
       IF ( FIRST ) THEN
 
          ! Define species ID flags
@@ -592,9 +628,19 @@
          id_CCL4   = Ind_('CCL4')
          id_HCFC22 = Ind_('HCFC22')
 
+         ! Get pointers to data fields that are read by HEMCO
+         ! NOTE: This has to be done here and not in initialization
+         ! because we have to wait for HEMCO to read the data from disk,
+         ! which is done after initialization. (bmy, 10/30/18)
+         CALL AttachPointersFromHemco( am_I_Root, RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "AttachPointersFromHemco"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
          ! Reset first-time flag
          FIRST = .FALSE.
-
       ENDIF
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -603,16 +649,18 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, IB, IB_SW )
+!$OMP+PRIVATE( I, J, IB  )
 !$OMP+SCHEDULE( DYNAMIC )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
-         !BROADBAND ALBEDO
-         ALBDIRVIS(I,J) = ALBDIR(I,J,1)
-         ALBDIFVIS(I,J) = ALBDIF(I,J,1)
-         ALBDIRNIR(I,J) = ALBDIR(I,J,2)
-         ALBDIFNIR(I,J) = ALBDIF(I,J,2)
+         ! BROADBAND ALBEDO
+         ! Attache the HEMCO pointers to RRTMG albedo variables (bmy, 11/1/18)
+         ALBDIRVIS(I,J) = MODIS_ALBDRVIS(I,J)
+         ALBDIFVIS(I,J) = MODIS_ALBDFVIS(I,J)
+         ALBDIRNIR(I,J) = MODIS_ALBDRNIR(I,J)
+         ALBDIFNIR(I,J) = MODIS_ALBDFNIR(I,J)
+
          IF ((ALBDIRVIS(I,J).GT.0.999)  .OR.
      &       (ALBDIRVIS(I,J).LT.0.001)) THEN
             WRITE(6,*) 'ALBEDO DRVIS OUT OF RANGE',I,J,ALBDIRVIS(I,J)
@@ -630,12 +678,33 @@
             WRITE(6,*) 'ALBEDO DFNIR OUT OF RANGE',I,J,ALBDIFNIR(I,J)
          ENDIF
 
-         DO IB= 1, NBNDS
-            IB_SW = IB-NBNDLW
-            IF ( IB .LE. 16) THEN
-               RTEMISS(I,J,IB)     = EMISS(I,J,IB)
-            ENDIF
-         ENDDO
+         !-------------------------------------------------
+         ! Prior to 11/2/18:
+         ! IB_SW is not used in this loop (bmy, 11/2/18)
+         !DO IB= 1, NBNDS
+         !   IB_SW = IB-NBNDLW
+         !ENDDO
+         !-------------------------------------------------
+
+         ! Assign the MODIS emissivity pointers from HEMCO to the
+         ! different slots of the RTEMISS array (for each spectral band)
+         ! Hardcode the assignments, which is much faster (bmy, 11/2/18)
+         RTEMISS(I,J,1 ) = MODIS_EMISS_01(I,J)
+         RTEMISS(I,J,2 ) = MODIS_EMISS_02(I,J)
+         RTEMISS(I,J,3 ) = MODIS_EMISS_03(I,J)
+         RTEMISS(I,J,4 ) = MODIS_EMISS_04(I,J)
+         RTEMISS(I,J,5 ) = MODIS_EMISS_05(I,J)
+         RTEMISS(I,J,6 ) = MODIS_EMISS_06(I,J)
+         RTEMISS(I,J,7 ) = MODIS_EMISS_07(I,J)
+         RTEMISS(I,J,8 ) = MODIS_EMISS_08(I,J)
+         RTEMISS(I,J,9 ) = MODIS_EMISS_09(I,J)
+         RTEMISS(I,J,10) = MODIS_EMISS_10(I,J)
+         RTEMISS(I,J,11) = MODIS_EMISS_11(I,J)
+         RTEMISS(I,J,12) = MODIS_EMISS_12(I,J)
+         RTEMISS(I,J,13) = MODIS_EMISS_13(I,J)
+         RTEMISS(I,J,14) = MODIS_EMISS_14(I,J)
+         RTEMISS(I,J,15) = MODIS_EMISS_15(I,J)
+         RTEMISS(I,J,16) = MODIS_EMISS_16(I,J)
 
       ENDDO
       ENDDO
@@ -1549,37 +1618,154 @@
       DO J=1,JJPAR
       DO I=1,IIPAR
 #if defined( BPCH_DIAG )
+       !================================================================
+       ! %%%%% ND72 (bpch) DIAGNOSTIC %%%%%
+       !
+       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
+       !================================================================
+
        IF (ICLD.GT.0) THEN
+        !-------------------------------------------------------
         !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
         !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
+        !-------------------------------------------------------
+
+        ! All-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX) = AD72(I,J,OUTIDX) -  
      &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+
+        ! All-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+NAD72) = AD72(I,J,OUTIDX+NAD72) +
      &                     SNGL(SW_DFLUX(I,J,1))
+
+        ! All-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+2*NAD72) = AD72(I,J,OUTIDX+2*NAD72) -
      &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+
+        ! All-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+3*NAD72) = AD72(I,J,OUTIDX+3*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
+
+        ! Clear-sky SW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
      &                     SNGL(SW_UFLUXC(I,J,LLPAR+1))
+
+        ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
      &                     SNGL(SW_DFLUXC(I,J,1))
+
+        ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
      &                     SNGL(LW_UFLUXC(I,J,LLPAR+1))
+
+        ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUXC(I,J,1))
        ELSE
-        !CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+        !-------------------------------------------------------
+        ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+        !-------------------------------------------------------
+          
+        ! Clear-sky SW flux @ TOA [w/m2]
         AD72(I,J,OUTIDX+4*NAD72) = AD72(I,J,OUTIDX+4*NAD72) -
      &                     SNGL(SW_UFLUX(I,J,LLPAR+1))
+
+        ! Clear-sky SW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+5*NAD72) = AD72(I,J,OUTIDX+5*NAD72) +
      &                     SNGL(SW_DFLUX(I,J,1))
+
+        ! Clear-sky LW flux @ TOA [W/m2]
         AD72(I,J,OUTIDX+6*NAD72) = AD72(I,J,OUTIDX+6*NAD72) -
      &                     SNGL(LW_UFLUX(I,J,LLPAR+1))
+
+        ! Clear-sky LW flux @ surface [W/m2]
         AD72(I,J,OUTIDX+7*NAD72) = AD72(I,J,OUTIDX+7*NAD72) +
      &                     SNGL(LW_DFLUX(I,J,1))
        ENDIF
 #endif
+
+#if defined( NC_DIAG ) 
+       !================================================================
+       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+       !
+       ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
+       !================================================================
+       IF ( ICLD > 0 ) THEN
+
+          !-------------------------------------------------------
+          !ALL-SKY (WE GET CLEAR-SKY WITH THIS TOO)
+          !N.B. UPWELLING SHOULD BE NEGATIVE AS DOWN IS +VE
+          !-------------------------------------------------------
+
+          ! All-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
+             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
+          ENDIF
+
+          ! All-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
+             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
+          ENDIF
+
+          ! All-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
+             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
+          ENDIF
+
+          ! All-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
+             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
+          ENDIF
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+          ENDIF
+
+       ELSE
+     
+          !-------------------------------------------------------
+          ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
+          !-------------------------------------------------------
+
+          ! Clear-sky SW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
+             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky SW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
+             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+          ENDIF
+
+          ! Clear-sky LW flux @ TOA [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
+             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ surface [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
+             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+          ENDIF
+
+       ENDIF
+#endif
+
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
        !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
@@ -1773,351 +1959,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_surface_rad
-!
-! !DESCRIPTION: Subroutine READ\_SURFACE\_RAD gets the surface albedo and
-!  emissivity from data files processed from MODIS MCD43C3.5 and MOD11C2.
-!  Albedo is direct (black sky) and diffuse (white sky) and interpolated
-!  to the first 21 wavelengths of GADS, used in the RRTMG code.
-!  Emissivity has been interpolated to last 40 wavelengths of GADS.!
-!  This routine is called from main.F when ITS\_TIME\_FOR\_SURFACE\_RAD() is
-!  true (every 8 days) DAR (10/2012)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_SURFACE_RAD( Input_Opt, FORCEREAD )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE JULDAY_MOD,         ONLY : JULDAY, CALDATE
-      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH 
-      USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR  
-      USE TIME_MOD,           ONLY : YMD_EXTRACT
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN)           :: Input_Opt ! Input options
-      LOGICAL,        INTENT(IN), OPTIONAL :: FORCEREAD ! Reset first-time flag?
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (05 Mar 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!  10 Apr 2015 - R. Yantosca - Read from ExtData/CHEM_INPUTS/modis_surf_201210
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL               :: DOREAD
-      INTEGER               :: THISDAY, THISMONTH, THISYEAR, DAYSAWAY
-      INTEGER               :: THISDOFY, I, J
-      INTEGER, SAVE         :: LASTDAY = -1
-      REAL*4                :: ARRAY1(IIPAR,JJPAR)
-      REAL*4                :: ARRAY2(IIPAR,JJPAR,NEMISS)
-      REAL*8                :: XTAU
-      CHARACTER(LEN=255)    :: FILENAME
-      CHARACTER(LEN=4)      :: STHISYEAR
-      CHARACTER(LEN=3)      :: STHISDOFY
-      INTEGER               :: NYMD, NHMS
-      REAL*8                :: JDNEW
-
-      !=================================================================
-      ! READ_SURFACE_RAD begins here!
-      !=================================================================
-      !FLAG TO FORCE READ FROM CLOSEST DAY
-      DOREAD=.FALSE.
-      ! RESET THE FIRST FLAG IF
-      IF ( PRESENT( FORCEREAD ) ) THEN
-         IF ( FORCEREAD ) DOREAD = .TRUE.
-      ENDIF
-
-
-      ! TAU FOR READING THE BPCH FILES
-      ! FIX YEAR AS 2002 FOR CLIMATOLOGY
-      THISYEAR  = 2002 !GET_YEAR()
-      THISMONTH = GET_MONTH()
-      THISDOFY  = GET_DAY_OF_YEAR()
-      THISDAY   = GET_DAY() 
-      
-      !FORCE READ OF CLOSEST FILE
-      IF ( DOREAD ) THEN
-       !NUMBER OF DAYS UNTIL NEXT FILE
-       DAYSAWAY = 9 - MOD(THISDOFY,8)
-       !READ CLOSEST 8-DAY FILE
-       IF ( DAYSAWAY .GE. 4) THEN
-        THISDOFY = THISDOFY - (8 - DAYSAWAY)
-       ELSE
-        THISDOFY = THISDOFY + DAYSAWAY
-       ENDIF
-      ENDIF
-
-       ! CALCULATE NEW MONTH AND DAY FROM JULIAN DAY (CLH)
-      JDNEW = THISDOFY + JULDAY(THISYEAR, 1, 0D0)
-      CALL CALDATE(JDNEW, NYMD, NHMS)
-      CALL YMD_EXTRACT( NYMD, THISYEAR, THISMONTH, THISDAY )
-!     THIS GETS CALLED EVERY TIMESTEP ON THE CORRECT DAY
-!     SO WE NEED A CTACH TO ONLY READ THE FIRST TIME THAT DAY      
-      IF ( THISDOFY == LASTDAY ) THEN
-       RETURN
-      ENDIF
-      WRITE(STHISDOFY,101) THISDOFY
-101   FORMAT( I3.3 )
-      WRITE(STHISYEAR,102) THISYEAR
-102   FORMAT( I4.4 )
-      XTAU      = GET_TAU0( THISMONTH, THISDAY, THISYEAR )
-
-
-      ! FILENAME AND TIME
-      FILENAME  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
-     &            'modis_surf_201210/'              //
-     &            GET_RES_EXT()                     //
-! the 02-07 file contains our regridded and filled emissivity
-! and albedo climatology for 2002-2007 direct from MODIS products
-! N.B. this is raw MODIS data so contains snow cover but may have more
-! filled missing value data.
-     &            '/modis_surf_02-07_'       //
-
-! the 01-04 file contains our regridded and filled emissivity
-! for 2002-2007 and eco-type filled albedo produced by MODIS averaged over
-! 2001-2004 data.
-! N.B. this does NOT contain snow cover so gives flux in absence of snow
-! Needs combining with the FRSNO met field! (DAR 03/2014)
-
-!     &            '/modis_surf_01-04_' //
-
-     &            STHISDOFY//'.'// GET_RES_EXT()
-
-      ! ECHO INFO
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - GET_SURFACE_RAD_DATA: READING ', A )
-      !-----------------------
-      ! DIRECT SURFACE ALBEDO (VIS)
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 71,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 1,     ARRAY1,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-      ALBDIR(I,J,1) = ARRAY1(I,J)
-      ENDDO
-      ENDDO
-
-      !-----------------------
-      ! DIFFUSE SURFACE ALBEDO (VIS)
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 73,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 1,     ARRAY1,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-      ALBDIF(I,J,1) = ARRAY1(I,J)
-      ENDDO
-      ENDDO
-
-      !-----------------------
-      ! DIRECT SURFACE ALBEDO (NIR)
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 72,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 1,     ARRAY1,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-      ALBDIR(I,J,2) = ARRAY1(I,J)
-      ENDDO
-      ENDDO
-
-      !-----------------------
-      ! DIFFUSE SURFACE ALBEDO (NIR)
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 74,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 1,     ARRAY1,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      DO I=1,IIPAR
-      DO J=1,JJPAR
-      ALBDIF(I,J,2) = ARRAY1(I,J)
-      ENDDO
-      ENDDO
-
-      !-----------------------
-      ! SURFACE EMISSIVITY
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'MODAVG-$', 75,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 NEMISS,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      EMISS(:,:,:) = ARRAY2(:,:,:)
-
-      !SAVE THIS DAY TO PREVENT RE-READ OF SAME FILE
-      LASTDAY = THISDOFY
-      WRITE(6,*) 'SURFACE REFLECTIVITY READ SUCCESSFULLY'
-
-      END SUBROUTINE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: read_strat_clim
-!
-! !DESCRIPTION: Subroutine READ\_STRAT\_CLIM gets the stored N2O and CH4
-!  profiles  created based on TES climatology. These are global July mean
-!  profiles from TES that are interpolated to the 3D GEOS-Chem grid as a
-!  simple solution to account for stratospheric contribution of these species
-!  to radiative balance. This routine is called from main.F once at the
-!  start of the model run. DAR (12/2012)
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE READ_STRAT_CLIM( Input_Opt )
-!
-! !USES:
-!
-      USE BPCH2_MOD,          ONLY : GET_NAME_EXT_2D, GET_RES_EXT
-      USE BPCH2_MOD,          ONLY : GET_TAU0,        READ_BPCH2
-      USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD             ! SIZE PARAMETERS
-      USE Input_Opt_Mod,      ONLY : OptInput
-      USE TIME_MOD,           ONLY : GET_YEAR, GET_MONTH
-      USE TIME_MOD,           ONLY : GET_DAY,  GET_DAY_OF_YEAR
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
-!
-! !INPUT PARAMETERS:
-!
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-! 
-! !REMARKS:
-!  ##########################################################################
-!  #####    NOTE: BINARY PUNCH INPUT IS BEING PHASED OUT.  THIS DATA    #####
-!  #####    WILL EVENTUALLY BE READ IN FROM netCDF FILES VIA HEMCO!     #####
-!  #####       -- Bob Yantosca (10 Apr 2015)                            #####
-!  ##########################################################################
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!  10 Apr 2015 - R. Yantosca - Now read from ExtData/CHEM_INPUTS/RRTMG_201104/
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      LOGICAL               :: DOREAD
-      REAL*4                :: ARRAY2(IIPAR,JJPAR,LGLOB)
-      REAL*8                :: XTAU
-      CHARACTER(LEN=255)    :: FILENAME
-
-      !=================================================================
-      ! READ_STRAT_CHEM begins here!
-      !=================================================================
-
-      ! Filename
-      FILENAME = TRIM( Input_Opt%CHEM_INPUTS_DIR ) //
-     &            'RRTMG_201411/'                  //
-     &            'species_clim_profiles.'         //
-     &            GET_RES_EXT()
-
-      ! ECHO INFO
-      WRITE( 6, 100 ) TRIM( FILENAME )
- 100  FORMAT( '     - GET_TES_STRAT_CLIM: READING ', A )
-
-      ! TAU value corresponding to 2000/01/01
-      XTAU      = GET_TAU0( 1, 1, 2000 )
-
-      !-----------------------
-      ! N2O
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 71,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, N2OCLIM )
-
-      !-----------------------
-      ! CH4
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 72,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, CH4CLIM)
-
-      WRITE(6,*) 'CFC MIPAS & UARS CLIMATOLOGY READ SUCCESSFULLY'
-
-      !-----------------------
-      ! CFC11
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 73,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, CFC11CLIM )
-
-      !-----------------------
-      ! CFC12
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 74,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, CFC12CLIM)
-
-      !-----------------------
-      ! CCL4
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 75,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, CCL4CLIM )
-
-      !-----------------------
-      ! CFC22
-      !-----------------------
-      CALL READ_BPCH2( FILENAME, 'O3CLIM-$', 76,
-     &                 XTAU,      IIPAR,    JJPAR,
-     &                 LGLOB,     ARRAY2,    QUIET=.TRUE. )
-
-      ! CAST TO REAL*8 AND RESIZE
-      CALL TRANSFER_3D( ARRAY2, CFC22CLIM)
-
-      END SUBROUTINE
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_surface_rad
 !
 ! !DESCRIPTION: Subroutine INIT\_SURFACE\_RAD initializes all allocatable
@@ -2148,18 +1989,6 @@
       !=================================================================
       ! INIT_SURFACE_RAD begins here!
       !=================================================================
-
-      ALLOCATE( ALBDIR( IIPAR, JJPAR, NALBD ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBDIR' )
-      ALBDIR = 0D0
-
-      ALLOCATE( ALBDIF( IIPAR, JJPAR, NALBD ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'ALBDIF' )
-      ALBDIF = 0D0
-
-      ALLOCATE( EMISS( IIPAR, JJPAR, NEMISS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EMISS' )
-      EMISS = 0D0
 
       ALLOCATE( LW_UFLUX(IIPAR,JJPAR,LLPAR+1), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'LW_UFLUX' )
@@ -2200,62 +2029,362 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_strat_clim
+! !IROUTINE: AttachPointersFromHemco
 !
-! !DESCRIPTION: Subroutine INIT\_STRAT\_CLIM initializes all allocatable
-!  module arrays.
+! !DESCRIPTION: Subroutine AttachPointersFromHemco attaches pointers for 
+!  various RRTMG input data that is read in via HEMCO to module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_STRAT_CLIM
+      SUBROUTINE AttachPointersFromHemco( am_I_root, RC )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-! 
+      USE ErrCode_Mod
+      USE HCO_Interface_Mod, ONLY : HcoState
+      USE HCO_EmisList_Mod,  ONLY : HCO_GetPtr
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  30 Oct 2018 - R. Yantosca - Now get inputs via HEMCO
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS
+      CHARACTER(LEN=20)  :: FieldName
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       !=================================================================
-      ! INIT_STRAT_CLIM begins here!
+      ! AttachPointersFromHemco begins here!
       !=================================================================
 
-      ALLOCATE( N2OCLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'N2OCLIM' )
-      N2OCLIM = 0D0
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc =
+     & ' -> at AttachPointersFromHemco (in rrtmg_rad_transfer_mod.F)'
 
-      ALLOCATE( CH4CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4CLIM' )
-      CH4CLIM = 0D0
+      !-------------------------------
+      ! CCl4 [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_CCL4'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CCL4CLIM,  RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CFC11CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC11CLIM' )
-      CFC11CLIM = 0D0
+      !-------------------------------
+      ! CFC11 [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_CFC11'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC11CLIM, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CFC12CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC12CLIM' )
-      CFC12CLIM = 0D0
+      !-------------------------------
+      ! CFC12 [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_CFC12'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC12CLIM, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      ALLOCATE( CCL4CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CCL4CLIM' )
-      CCL4CLIM = 0D0
+      !-------------------------------
+      ! CFC22 [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_CFC22'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CFC22CLIM, RC  )
 
-      ALLOCATE( CFC22CLIM( IIPAR, JJPAR, LLPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CFC22CLIM' )
-      CFC22CLIM = 0D0
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
-      END SUBROUTINE INIT_STRAT_CLIM
+      !-------------------------------
+      ! CH4 [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_CH4'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, CH4CLIM,   RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! N2O [ppb]
+      !-------------------------------
+      FieldName = 'TES_CLIM_N2O'
+      CALL HCO_GetPtr( am_I_Root, HcoState, FieldName, N2OCLIM,   RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! Diffuse Near-IR albedo [1]
+      !-------------------------------
+      FieldName = 'MODIS_ALBDFNIR'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_ALBDFNIR, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! Diffuse visible albedo [1]
+      !-------------------------------
+      FieldName = 'MODIS_ALBDFVIS'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_ALBDFVIS, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! Direct Near-IR albedo [1]
+      !-------------------------------
+      FieldName = 'MODIS_ALBDRNIR'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_ALBDRNIR, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! Direct visible albedo [1]
+      !-------------------------------
+      FieldName = 'MODIS_ALBDRVIS'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_ALBDRVIS, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 1 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_01'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_01, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 2 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_02'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_02, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 3 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_03'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_03, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 4 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_04'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_04, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 5 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_05'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_05, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 6 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_06'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_06, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 7 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_07'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_07, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 8 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_08'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_08, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 9 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_09'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_09, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 10 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_10'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_10, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 11 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_11'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_11, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 12 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_12'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_12, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 13 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_13'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_13, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 14 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_14'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_14, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 15 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_15'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_15, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !-------------------------------
+      ! MODIS emissivity, band 16 [1]
+      !-------------------------------
+      FieldName = 'MODIS_EMISSIVITY_16'
+      CALL HCO_GetPtr( am_I_Root, HcoState, 
+     &                 FieldName, MODIS_EMISS_16, RC  )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Cannot get pointer to ' // TRIM( FieldName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+
+      END SUBROUTINE AttachPointersFromHemco
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2375,9 +2504,6 @@
       !=================================================================
       ! CLEANUP_SURFACE_RAD begins here!
       !=================================================================
-      IF ( ALLOCATED( ALBDIR          ) ) DEALLOCATE( ALBDIR          )
-      IF ( ALLOCATED( ALBDIF          ) ) DEALLOCATE( ALBDIF          )
-      IF ( ALLOCATED( EMISS           ) ) DEALLOCATE( EMISS           )
       IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
       IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
       IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
@@ -2413,12 +2539,38 @@
       !=================================================================
       ! CLEANUP_STRAT_CLIM begins here!
       !=================================================================
-      IF ( ALLOCATED( CH4CLIM         ) ) DEALLOCATE( CH4CLIM         )
-      IF ( ALLOCATED( N2OCLIM         ) ) DEALLOCATE( N2OCLIM         )
-      IF ( ALLOCATED( CFC11CLIM       ) ) DEALLOCATE( CFC11CLIM       )
-      IF ( ALLOCATED( CFC12CLIM       ) ) DEALLOCATE( CFC12CLIM       )
-      IF ( ALLOCATED( CCL4CLIM        ) ) DEALLOCATE( CCL4CLIM        )
-      IF ( ALLOCATED( CFC22CLIM       ) ) DEALLOCATE( CFC22CLIM       )
+
+      ! Climatology
+      CH4CLIM        => NULL()
+      N2OCLIM        => NULL()
+      CFC11CLIM      => NULL()
+      CFC12CLIM      => NULL()
+      CCL4CLIM       => NULL()
+      CFC22CLIM      => NULL()
+
+      ! Albedoes
+      MODIS_ALBDFNIR => NULL() 
+      MODIS_ALBDFVIS => NULL()
+      MODIS_ALBDRNIR => NULL()
+      MODIS_ALBDRVIS => NULL()
+
+      ! Emissivity
+      MODIS_EMISS_01 => NULL() 
+      MODIS_EMISS_02 => NULL() 
+      MODIS_EMISS_03 => NULL() 
+      MODIS_EMISS_04 => NULL() 
+      MODIS_EMISS_05 => NULL() 
+      MODIS_EMISS_06 => NULL() 
+      MODIS_EMISS_07 => NULL() 
+      MODIS_EMISS_08 => NULL() 
+      MODIS_EMISS_09 => NULL() 
+      MODIS_EMISS_10 => NULL() 
+      MODIS_EMISS_11 => NULL() 
+      MODIS_EMISS_12 => NULL() 
+      MODIS_EMISS_13 => NULL() 
+      MODIS_EMISS_14 => NULL() 
+      MODIS_EMISS_15 => NULL() 
+      MODIS_EMISS_16 => NULL() 
 
       END SUBROUTINE CLEANUP_STRAT_CLIM
 !EOC

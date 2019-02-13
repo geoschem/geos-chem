@@ -1112,6 +1112,7 @@
       LOGICAL :: LWINDO_CH
       LOGICAL :: LWINDO_AS
       LOGICAL :: LWINDO_CU
+#endif
 
       !=================================================================
       ! CLEAN_WINDOW_TPCORE_BC begins here!
@@ -1120,6 +1121,7 @@
       ! Assume success
       RC        =  GC_SUCCESS
 
+#if defined( BPCH_TPBC )
       ! Copy values from Input_Opt
       LWINDO_NA = Input_Opt%LWINDO_NA
       LWINDO_EU = Input_Opt%LWINDO_EU

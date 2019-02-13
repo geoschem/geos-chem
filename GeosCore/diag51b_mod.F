@@ -151,7 +151,6 @@
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       !=================================================================
       ! MODULE VARIABLES
-      !
       ! GOOD             : Array denoting grid boxes w/in LT limits
       ! GOOD_CT          : # of "good" times per grid box
       ! GOOD_CT_CHEM     : # of "good" chemistry timesteps
@@ -192,14 +191,8 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
       INTEGER, ALLOCATABLE :: GOOD_CT(:)
-      ! For chemistry
-      INTEGER, ALLOCATABLE :: GOOD_CHEM(:)
-      INTEGER, ALLOCATABLE :: GOOD_CT_CHEM(:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
-      ! For emissions
-      INTEGER, ALLOCATABLE :: GOOD_EMIS(:)
-      INTEGER, ALLOCATABLE :: GOOD_CT_EMIS(:)
-      REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
+      REAL(fp),ALLOCATABLE :: Q(:,:,:,:)
 
       !=================================================================
       ! Original code from old DIAG51_MOD.  Leave here as a guide to 
@@ -574,20 +567,8 @@
          FIRST       = .FALSE.
       ENDIF
 
-      ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(), 
-     &                 GET_TS_CHEM() ) == 0 )
-
-      ! Is it an emissions timestep?
-      IS_EMIS = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(),
-     &                 GET_TS_EMIS() ) == 0 )
-
-      ! Is it time for diagnostic accumulation ?
-      IF ( GET_ELAPSED_SEC() == 0 ) THEN
-         IS_DIAG = .FALSE.
-      ELSE
-         IS_DIAG = ( MOD( GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 0 )
-      ENDIF
+      ! Force accumulation on every "heartbeat" timestep (bmy, 10/4/18)
+      IS_DIAG = .TRUE.
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
@@ -606,28 +587,8 @@
          ENDDO
       ENDIF
 
-      ! Archive counter array of good points for chemistry timesteps only
-      IF ( IS_CHEM ) THEN
-         DO X = 1, ND51b_NI
-            I               = GET_I( X )
-            GOOD_CT_CHEM(X) = GOOD_CT_CHEM(X) + GOOD(I)
-            ! Save GOOD points only for chemistry time steps
-            GOOD_CHEM(X) = GOOD(I)
-         ENDDO
-      ENDIF
-
-      ! Archive counter array of good points for emissions timesteps only
-      IF ( IS_EMIS ) THEN
-         DO X = 1, ND51b_NI
-            I               = GET_I( X )
-            GOOD_CT_EMIS(X) = GOOD_CT_EMIS(X) + GOOD(I)
-            ! Save GOOD points only for emission time steps
-            GOOD_EMIS(X) = GOOD(I)
-         ENDDO
-      ENDIF
-
       ! Also increment 3-D counter for boxes in the chemistry grid
-      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
+      IF ( IS_FULLCHEM ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
@@ -717,7 +678,7 @@
 !
 !               ! Accumulate data
 !               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( SAVEOH(I,J,L,id_OH) * GOOD_CHEM(X) )
+!     &              ( SAVEOH(I,J,L,id_OH) * GOOD(X) )
 
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
@@ -916,7 +877,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -924,7 +885,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -943,7 +904,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -951,7 +912,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -970,7 +931,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -978,7 +939,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -997,7 +958,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -1005,7 +966,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1024,7 +985,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -1032,7 +993,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1050,7 +1011,7 @@
                DO R = 1, NDUST
 
                   IF ( .not. LINTERP ) THEN
-                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                            ODMDUST(I,J,L,IWVSELECT(1,1),R)
                   ELSE
                      ! Interpolated using angstrom exponent between
@@ -1060,7 +1021,7 @@
                      IF ((ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0).AND.
      &                   (ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0)) THEN
 
-                        Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                        Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                               (ODMDUST(I,J,L,IWVSELECT(2,1),R)*
      &                               ACOEF_WV(1)**(BCOEF_WV(1)*LOG(
      &                               ODMDUST(I,J,L,IWVSELECT(1,1),R)/
@@ -1082,7 +1043,7 @@
 
                ! Accumulate
                IF ( .not. LINTERP ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                         ODMDUST(I,J,L,IWVSELECT(1,1),R)
                ELSE
                   ! Interpolated using angstrom exponent between
@@ -1092,7 +1053,7 @@
                   IF ((ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0).AND.
      &                (ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0)) THEN
 
-                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                            (ODMDUST(I,J,L,IWVSELECT(2,1),R)*
      &                            ACOEF_WV(1)**(BCOEF_WV(1)*LOG(
      &                            ODMDUST(I,J,L,IWVSELECT(1,1),R)/
@@ -1471,37 +1432,13 @@
 
          SELECT CASE( Input_Opt%ND51b_TRACERS(W) )
 
-            CASE( 91, 92, 76, 77 )
+            CASE( 502 )
                !--------------------------------------------------------
                ! Avoid div by zero for tracers which are archived each
                ! chem timestep and only available in the troposphere
                !--------------------------------------------------------
                IF ( COUNT_CHEM3D(X,Y,K) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / COUNT_CHEM3D(X,Y,K)
-               ELSE
-                  Q(X,Y,K,W) = 0e+0_fp
-               ENDIF
-
-            CASE( 84:89, 115:121 )
-
-               !--------------------------------------------------------
-               ! Avoid division by zero for tracers which are archived
-               ! on each chem timestep (at trop & strat levels)
-               !--------------------------------------------------------
-               IF ( GOOD_CT_CHEM(X) > 0 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X)
-               ELSE
-                  Q(X,Y,K,W) = 0e+0_fp
-               ENDIF
-
-            CASE( 105:114 )
-
-               !--------------------------------------------------------
-               ! Avoid division by zero for tracers which are archived 
-               ! on each EMISSION timestep (at SURFACE)      (mpb,2009)
-               !--------------------------------------------------------
-               IF ( GOOD_CT_EMIS(X) > 0 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_EMIS(X) 
                ELSE
                   Q(X,Y,K,W) = 0e+0_fp
                ENDIF
@@ -1891,10 +1828,6 @@
       ! Zero counter arrays
       COUNT_CHEM3D = 0e+0_fp
       GOOD_CT      = 0e+0_fp
-      GOOD_CHEM    = 0e+0_fp
-      GOOD_CT_CHEM = 0e+0_fp
-      GOOD_EMIS    = 0e+0_fp
-      GOOD_CT_EMIS = 0e+0_fp
 #endif
 
       END SUBROUTINE WRITE_DIAG51b
@@ -1968,6 +1901,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD        ! Size parameters
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
@@ -2143,26 +2077,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
       GOOD_CT = 0
 
-      ! Counter of "good" times per day at each grid box for chemistry species
-      ALLOCATE( GOOD_CHEM( ND51b_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CHEM' )
-      GOOD_CHEM = 0
-
-      ! Counter of "good" times per day for each chemistry timestep
-      ALLOCATE( GOOD_CT_CHEM( ND51b_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
-      GOOD_CT_CHEM = 0
-
-      ! Array denoting where LT is between HR1 and HR2 for emissions
-      ALLOCATE( GOOD_EMIS( ND51b_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_EMIS' )
-      GOOD_EMIS = 0
-
-      ! Counter of "good" times per day at each grid box for emissions
-      ALLOCATE( GOOD_CT_EMIS( ND51b_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_EMIS' )
-      GOOD_CT_EMIS = 0
-
       ! Accumulating array
       ALLOCATE( Q( ND51b_NI, ND51b_NJ, ND51b_NL, Input_Opt%N_ND51b ),
      &             STAT=AS)
@@ -2207,10 +2121,6 @@
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
-      IF ( ALLOCATED( GOOD_CT_CHEM ) ) DEALLOCATE( GOOD_CT_CHEM )
-      IF ( ALLOCATED( GOOD_CHEM    ) ) DEALLOCATE( GOOD_CHEM    )
-      IF ( ALLOCATED( GOOD_CT_EMIS ) ) DEALLOCATE( GOOD_CT_EMIS )
-      IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 #endif
 

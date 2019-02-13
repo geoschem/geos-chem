@@ -204,7 +204,6 @@
 !     
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_STATE_MOD,      ONLY : HCO_STATE
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
@@ -245,45 +244,35 @@
 ! 
 ! !LOCAL VARIABLES:
 !     
-!      REAL(fp)                 :: DTSRCE, E_CO, AREA_CM2
-      INTEGER                :: I, J
+      ! Scalars
+      INTEGER            :: I, J
 
-!      ! Hg molar mass, kg Hg/ mole Hg
-!      REAL(fp),  PARAMETER   :: FMOL_HG     = 200.59d-3
+      ! Pointers
+      REAL(sp), POINTER  :: Ptr2D(:,:)
 
-      ! Hg/CO molar ratio in BB emissions, mol/mol
-      ! emission factor 1.5e-7 molHg/molCO (Slemr et al poster EGU 2006)
-      ! change emission factor to 2.1
-      ! Update to Holmes et al. 2010 version (jaf, 4/11/11)
-      !REAL(fp),  PARAMETER   :: BBRatio_Hg_CO = 2.1D-7
-      ! Literature range is 70-240e-9. ARCTAS gives 80-130e-9 
-      ! Choose 100e-9 (Holmes et al. 2010 )
-      ! REAL(fp),  PARAMETER   :: BBRatio_Hg_CO = 1d-7
-      !
-      ! UPDATE: In HEMCO, Hg is now an additional biomass burning tracer
-      ! and the emissions factors are explicitly set in the GFED3 / FINN
-      ! scale factor tables (ckeller, 09/23/2014).
-
-      ! HEMCO update
-      CHARACTER(LEN= 63)       :: DgnName
-      REAL(sp), POINTER        :: Ptr2D(:,:)
-
-      CHARACTER(LEN=255)       :: MSG
-      CHARACTER(LEN=255)       :: LOC ='BIOMASSHG (land_mercury_mod.F)'
+      ! Strings
+      CHARACTER(LEN=63)  :: DgnName
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
  
       !=================================================================
       ! BIOMASSHG begins here!
       !=================================================================
 
-      ! Initialize pointers
-      Ptr2d    => NULL()
+      ! Initialize
+      RC      =  GC_SUCCESS
+      ErrMsg  =  ''
+      ThisLoc =  ' -> at BIOMASSHG (in GeosCore/land_mercury_mod.F)'
+      Ptr2d   => NULL()
 
       ! Do biomass Hg emissions if biomass burning is on and it is a 
       ! present-day simulation (i.e. not preindustrial)
       IF ( .NOT. Input_Opt%LPREINDHG ) THEN
        
          IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-            CALL ERROR_STOP ( 'HcoState not associated!', LOC )
+            ErrMsg = 'HcoState object is not associated!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Get diagnostics from HEMCO. The HG0 biomass diagnostics
@@ -292,7 +281,11 @@
          ! defining diagnostics (kg/m2/s).
          DgnName = 'BIOMASS_HG0'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not find HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg0_bb = Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
 
       ELSE
@@ -615,12 +608,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met )
+      SUBROUTINE SNOWPACK_MERCURY_FLUX( FLUX, LHGSNOW, State_Met,
+     &                                  State_Chm )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
-      USE DEPO_MERCURY_MOD,   ONLY : SNOW_HG_OC, SNOW_HG_LN
+      USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
@@ -628,6 +622,10 @@
 !
       LOGICAL,        INTENT(IN)  :: LHGSNOW     ! Use Hg from snow?
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -673,6 +671,10 @@
       ! when SWRAD = 100 W/m2
       REAL(fp), PARAMETER :: K_EMIT_0 = 2.5e-9_fp
 
+      ! Pointers
+      REAL(fp), POINTER :: SNOW_HG_OC(:,:,:)
+      REAL(fp), POINTER :: SNOW_HG_LN(:,:,:)
+
       !=================================================================
       ! SNOWPACK_MERCURY_FLUX begins here!
       !=================================================================
@@ -682,6 +684,10 @@
 
       ! Return to calling program if snowpack model is disabled
       IF ( .NOT. LHGSNOW ) RETURN
+
+      ! Point to fields in State_Chm
+      SNOW_HG_OC => State_Chm%SnowHgOcean
+      SNOW_HG_LN => State_Chm%SnowHgLand
 
       ! Emission timestep [s]
       DTSRCE = GET_TS_EMIS()
@@ -771,6 +777,10 @@
       ENDDO
 !$OMP END PARALLEL DO
       
+      ! Free pointers
+      SNOW_HG_OC => NULL()
+      SNOW_HG_LN => NULL()
+
       END SUBROUTINE SNOWPACK_MERCURY_FLUX
 !EOC
 !------------------------------------------------------------------------------
@@ -1070,6 +1080,9 @@
       !=================================================================
       ! INIT_MERCURY begins here!
       !=================================================================
+
+      ! Assume success
+      RC = GC_SUCCESS
 
       ! Save State_Chm%N_Hg_CATS in a shadow variable
       N_Hg_CATS = State_Chm%N_Hg_CATS

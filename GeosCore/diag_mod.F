@@ -26,7 +26,7 @@
 !
 ! !PUBLIC DATA MEMBERS:
 !
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
 
       ! For ND01 -- Pb emissions (Rn, Be now tracked thru HEMCO)
       REAL*4,  ALLOCATABLE :: AD01(:,:,:)
@@ -344,7 +344,7 @@
       !=================================================================
       ! CLEANUP_DIAG begins here!
       !=================================================================
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       IF ( ALLOCATED( AD01        ) ) DEALLOCATE( AD01        )
       IF ( ALLOCATED( AD02        ) ) DEALLOCATE( AD02        )
       IF ( ALLOCATED( AD07_BC     ) ) DEALLOCATE( AD07_BC     )

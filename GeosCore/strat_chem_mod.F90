@@ -321,7 +321,10 @@ CONTAINS
     LOGICAL            :: LPRT
     LOGICAL            :: LUCX
     LOGICAL            :: LCYCLE
-    LOGICAL            :: ISBR2 
+    LOGICAL            :: ISBR2
+#if defined( MODEL_GEOS ) 
+    LOGICAL            :: SKIP  
+#endif
 
     ! Strings
     CHARACTER(LEN=16)  :: STAMP
@@ -358,6 +361,18 @@ CONTAINS
     Spc                  => NULL()
     AD                   => NULL()
     T                    => NULL()
+
+#if defined( MODEL_GEOS )
+    ! Skip strat chem if chemistry is over entire vertical domain
+    SKIP = .FALSE.
+    IF ( LLCHEM == LLPAR ) THEN
+       SKIP = .TRUE.
+       IF ( FIRST .AND. am_I_Root ) THEN
+          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
+       ENDIF 
+    ENDIF
+    IF ( .NOT. SKIP ) THEN
+#endif
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -917,6 +932,11 @@ CONTAINS
        RETURN
 
     ENDIF
+   
+#if defined( MODEL_GEOS )
+    ! End of SKIP loop
+    ENDIF ! SKIP 
+#endif
 
     ! Set first-time flag to false
     FIRST = .FALSE.    
@@ -1747,10 +1767,12 @@ CONTAINS
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name ) // ' (via Synoz)'
                    ENDIF
                 ELSE
-                   IF ( LUCX .and. am_I_Root ) THEN
+                   IF ( am_I_Root ) THEN
+                    IF ( LUCX ) THEN
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via GMI rates)'
-                   ELSE
+                    ELSE
                       WRITE( 6, '(a)' ) TRIM( SpcInfo%Name )//' (via UCX rates)'
+                    ENDIF
                    ENDIF
                 ENDIF
 
@@ -1829,7 +1851,7 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = 0.0_fp
 
-#if !defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
     CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
@@ -2056,7 +2078,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : ERROR_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
     USE State_Chm_Mod,      ONLY : ChmState
@@ -2270,11 +2291,7 @@ CONTAINS
     !                                     be the default)
     !  (2) IORD = 5, JORD = 5, KORD = 7 
     !=================================================================
-#if  defined( GEOS_FP ) || defined( MERRA2 )
-
-    PO3_vmr = 5.14e-14_fp   
-
-#elif defined( GISS ) && defined( MODELE )
+#if defined( GISS ) && defined( MODELE )
 
     ! For Model E, assuming 3,3,7 and 475 Tg N a-1
     PO3_vmr = 4.84610e-14 !/ 2e+0_fp
@@ -2293,6 +2310,10 @@ CONTAINS
        ! LGM CLIMAP STE was 3% higher
        PO3_vmr = PO3_vmr * 1.0285232e+0_fp
     endif
+
+#else
+
+    PO3_vmr = 5.14e-14_fp   
 
 #endif
 

@@ -280,15 +280,19 @@
          ! Sum of all organic carbon [ugC/m3]
          !-----------------------------------------------------------
          IF ( IS_POA ) THEN
-            AD42(I,J,L,7) = AD42(I,J,L,7) +
-     &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
-     &                        OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+            IF ( OCFOPOA(I,J) > 0 .and. OCFPOA(I,J) > 0 ) THEN
+               AD42(I,J,L,7) = AD42(I,J,L,7) +
+     &                     ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                         OCPI(I,J,L) + OPOA(I,J,L) )/OCFOPOA(I,J)+
+     &                         OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+            ENDIF
          ELSE
-            AD42(I,J,L,7) = AD42(I,J,L,7)  +
-     &                    ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
-     &                        OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
-     &                      / OCFOPOA(I,J) ) * FACTOR
+            IF ( OCFOPOA(I,J) > 0 ) THEN
+               AD42(I,J,L,7) = AD42(I,J,L,7)  +
+     &                     ( ( TSOA(I,J,L) + ISOA(I,J,L) + ASOA(I,J,L) +
+     &                         OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) )
+     &                       / OCFOPOA(I,J) ) * FACTOR
+            ENDIF
          ENDIF
 
          ! Add mechanistic isoprene OA
@@ -333,28 +337,36 @@
          ! POA [ugC/m3]
          !--------------------------------------------------------------
          IF ( IS_POA ) THEN
-            AD42(I,J,L,10) = AD42(I,J,L,10) +
-     &                       ( OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+            IF ( OCFPOA(I,J) > 0 ) THEN
+               AD42(I,J,L,10) = AD42(I,J,L,10) +
+     &                        ( OCPO(I,J,L) / OCFPOA(I,J) ) * FACTOR
+            ENDIF
          ELSE
-            AD42(I,J,L,10) = AD42(I,J,L,10) + 
-     &                       ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
-     &                       OCFOPOA(I,J) ) * FACTOR
+            IF ( OCFOPOA(I,J) > 0 ) THEN
+               AD42(I,J,L,10) = AD42(I,J,L,10) + 
+     &                      ( ( OCPI(I,J,L) + OCPO(I,J,L) ) /
+     &                          OCFOPOA(I,J) ) * FACTOR
+            ENDIF
          ENDIF
 
          !--------------------------------------------------------------
          ! OPOA [ugC/m3]
          !--------------------------------------------------------------
-         AD42(I,J,L,11) = AD42(I,J,L,11) +
-     &                    OPOA(I,J,L) / OCFOPOA(I,J) * FACTOR
+         IF ( OCFOPOA(I,J) > 0 ) THEN
+            AD42(I,J,L,11) = AD42(I,J,L,11) +
+     &                       OPOA(I,J,L) / OCFOPOA(I,J) * FACTOR
+         ENDIF
 
          !--------------------------------------------------------------
          ! Additional aerosol tracers
          !--------------------------------------------------------------
 
          ! OC [ugC/m3]
-         AD42(I,J,L,12) = AD42(I,J,L,12) + 
-     &                    ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
-     &                    OCFOPOA(I,J) ) * FACTOR
+         IF ( OCFOPOA(I,J) > 0 ) THEN
+            AD42(I,J,L,12) = AD42(I,J,L,12) + 
+     &                   ( ( OCPI(I,J,L) + OCPO(I,J,L) ) / 
+     &                       OCFOPOA(I,J) ) * FACTOR
+         ENDIF
 
          ! BC [ugC/m3]
          AD42(I,J,L,13) = AD42(I,J,L,13) + 
@@ -644,6 +656,10 @@
       !=================================================================
       ! INIT_DIAG42 begins here!
       !=================================================================
+
+      ! Initialize
+      RC = GC_SUCCESS
+
 #if defined( BPCH_DIAG )
      
       ! This is no longer necessary (bmy, 12/13/17)

@@ -713,8 +713,12 @@ CONTAINS
 
     ! Allocate arrays 
     IF ( ALLOCATED(HcoIDs  ) ) DEALLOCATE(HcoIDs  ) 
-    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames) 
+    IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
     ALLOCATE(HcoIDs(nSpc), SpcNames(nSpc), STAT=AS)
+#if defined( MODEL_GEOS )
+    SpcNames(:) = ''
+    HcoIDs(:)   = -1
+#endif
     IF ( AS/=0 ) THEN
        CALL HCO_ERROR(HcoState%Config%Err,'HcoIDs allocation error', RC, THISLOC=LOC)
        RETURN

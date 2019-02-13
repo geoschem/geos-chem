@@ -45,7 +45,11 @@ CONTAINS
 ! 
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#if defined( MODEL_GEOS )
+SUBROUTINE Fun ( V, F, RCT, Vdot, Aout )
+#else
 SUBROUTINE Fun ( V, F, RCT, Vdot )
+#endif
 
 ! V - Concentrations of variable species (local)
   REAL(kind=dp) :: V(NVAR)
@@ -55,7 +59,10 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   REAL(kind=dp) :: RCT(NREACT)
 ! Vdot - Time derivative of variable species concentrations
   REAL(kind=dp) :: Vdot(NVAR)
-
+ 
+#if defined( MODEL_GEOS )
+  REAL(dp), optional :: Aout(NREACT)
+#endif
 
 ! Computation of equation rates
   A(1) = RCT(1)*V(223)*V(231)
@@ -783,6 +790,11 @@ SUBROUTINE Fun ( V, F, RCT, Vdot )
   A(723) = RCT(723)*V(148)
   A(724) = RCT(724)*V(162)
   A(725) = RCT(725)*V(119)
+
+#if defined( MODEL_GEOS )
+! Aout
+  if(present(Aout)) Aout(:) = A(:)
+#endif
 
 ! Aggregate function
   Vdot(1) = -A(701)

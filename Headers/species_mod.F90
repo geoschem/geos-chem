@@ -163,13 +163,13 @@ MODULE Species_Mod
   !=========================================================================
   ! Missing value parameters
   !=========================================================================
-  INTEGER,  PARAMETER  :: MISSING_INT = -999         ! Integer 
-  REAL(fp), PARAMETER  :: MISSING     = -999e+0_fp   ! Flexible precision
-  REAL(f8), PARAMETER  :: MISSING_R8  = -999e+0_f8   ! 8-byte precision
-  REAL(fp), PARAMETER  :: ZERO        =  0.0e+0_fp   ! Flexible precision
-  REAL(f8), PARAMETER  :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
+  INTEGER,  PARAMETER, PUBLIC :: MISSING_INT = -999         ! Integer 
+  REAL(fp), PARAMETER, PUBLIC :: MISSING     = -999e+0_fp   ! Flexible precision
+  REAL(f8), PARAMETER, PUBLIC :: MISSING_R8  = -999e+0_f8   ! 8-byte precision
+  REAL(fp), PARAMETER, PUBLIC :: ZERO        =  0.0e+0_fp   ! Flexible precision
+  REAL(f8), PARAMETER, PUBLIC :: ZERO_R8     =  0.0e+0_f8   ! 8-byte precision
 
-  REAL(fp), PARAMETER  :: MISSING_MW  = -1.0_fp      ! Missing MW values
+  REAL(fp), PARAMETER, PUBLIC :: MISSING_MW  = -1.0_fp      ! Missing MW values
 
   !=========================================================================
   ! Missing species concentration value if not in restart file and special

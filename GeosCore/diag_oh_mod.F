@@ -45,16 +45,16 @@
       LOGICAL               :: DO_SAVE_OH
 
       ! Arrays 
-      REAL(f8), ALLOCATABLE :: OH_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: AIR_MASS(:,:,:)
-      REAL(f8), ALLOCATABLE :: OH_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: OHCH4_LOSS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_MASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_TROPMASS(:,:,:)
-      REAL(fp), ALLOCATABLE :: CH4_EMIS(:,:,:)
+      REAL(f8), ALLOCATABLE, PUBLIC :: OH_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE, PUBLIC :: AIR_MASS(:,:,:)
+      REAL(f8), ALLOCATABLE         :: OH_LOSS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: OHCH4_LOSS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_MASS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_TROPMASS(:,:,:)
+      REAL(fp), ALLOCATABLE         :: CH4_EMIS(:,:,:)
       
       ! Species ID flags (formerly in tracerid_mod.F)
-      INTEGER               :: id_OH
+      INTEGER                       :: id_OH
 
       CONTAINS
 !EOC
@@ -387,8 +387,6 @@
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_
 !
@@ -416,14 +414,23 @@
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER :: AS, LMAX
+      ! Scalars
+      INTEGER :: LMAX
+
+      ! Strings
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
 
       !=================================================================
       ! INIT_DIAG_OH begins here!
       !=================================================================
 
       ! Initialize
+      RC         = GC_SUCCESS
+      ErrMsg     = ''
+      ThisLoc    = ' -> at INIT_DIAG_OH (in GeosCore/diag_oh_mod.F)'
       DO_SAVE_OH = .FALSE.
+      RC = GC_SUCCESS
          
       ! Return if we are not doing chemistry
       IF ( .not. Input_Opt%LCHEM ) RETURN
@@ -439,9 +446,11 @@
          ! Find the OH species ID (formerly in tracerid_mod.F)
          id_OH      = Ind_('OH')
 
+         ! Exit if OH Is not defined
          IF ( id_OH < 0 ) THEN
-            CALL ERROR_STOP( 'OH is an undefined species !',
-     &                       'INIT_DIAG_OH (GeosCore/diag_oh_mod.F)' )
+            ErrMsg = 'OH is an undefined species !'
+            CALL GC_Error ( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
@@ -471,33 +480,40 @@
       !=================================================================
 
       ! Air mass array
-      ALLOCATE( AIR_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AIR_MASS' )
+      ALLOCATE( AIR_MASS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:AIR_MASS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       AIR_MASS = 0e+0_fp
 
       ! OH mass array
-      ALLOCATE( OH_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_MASS' )
+      ALLOCATE( OH_MASS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:OH_MASS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       OH_MASS = 0e+0_fp
 
-      ALLOCATE( OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OH_LOSS' )
+      ALLOCATE( OH_LOSS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:OH_LOSS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       OH_LOSS = 0e+0_fp
 
-      ALLOCATE( OHCH4_LOSS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'OHCH4_LOSS' )
+      ALLOCATE( OHCH4_LOSS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:OHCH4_LOSS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       OHCH4_LOSS = 0e+0_fp
 
-      ALLOCATE( CH4_MASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_MASS' )
+      ALLOCATE( CH4_MASS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:CH4_MASS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CH4_MASS = 0e+0_fp
 
-      ALLOCATE( CH4_TROPMASS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_TROPMASS' )
+      ALLOCATE( CH4_TROPMASS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:CH4_TROPMASS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CH4_TROPMASS = 0e+0_fp
 
-      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, LMAX ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'CH4_EMIS' )
+      ALLOCATE( CH4_EMIS( IIPAR, JJPAR, LMAX ), STAT=RC )
+      CALL GC_CheckVar( 'diag_oh_mod.F:CH4_EMIS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       CH4_EMIS = 0e+0_fp
 
       END SUBROUTINE INIT_DIAG_OH

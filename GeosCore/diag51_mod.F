@@ -113,12 +113,12 @@
 !  (2 ) Added extra counters for NO, NO2, OH, O3.  Also all diagnostic counter
 !        arrays are 1-D since they only depend on longitude. (bmy, 10/25/04)
 !  (3 ) Bug fix: Now get I0 and J0 properly for nested grids (bmy, 11/9/04)
-!  (4 ) Now only archive AOD's once per chemistry timestep (bmy, 1/14/05)
+!  (4 ) Now only archive AODs once per chemistry timestep (bmy, 1/14/05)
 !  (5 ) Now references "pbl_mix_mod.f" (bmy, 2/16/05)
 !  (6 ) Now save cld frac and grid box heights (bmy, 4/20/05)
-!  (7 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
+!  (7 ) Remove TRCOFFSET since it is always zero  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids.  (bmy, 6/28/05)
-!  (8 ) Bug fix: do not save SLP if it's not allocated (bmy, 8/2/05)
+!  (8 ) Bug fix: do not save SLP if it is not allocated (bmy, 8/2/05)
 !  (9 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (10) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (11) Modified INIT_DIAG51 to save out transects (cdh, bmy, 11/30/06)
@@ -160,7 +160,6 @@
       !
       ! GOOD             : Array denoting grid boxes w/in LT limits
       ! GOOD_CT          : # of "good" times per grid box
-      ! GOOD_CT_CHEM     : # of "good" chemistry timesteps
       ! COUNT_CHEM3D     : Counter for 3D chemistry boxes
       ! I0               : Offset between global & nested grid
       ! J0               : Offset between global & nested grid
@@ -199,14 +198,8 @@
       ! Arrays
       INTEGER, ALLOCATABLE :: GOOD(:)
       INTEGER, ALLOCATABLE :: GOOD_CT(:)
-      ! For chemistry species
-      INTEGER, ALLOCATABLE :: GOOD_CHEM(:)
-      INTEGER, ALLOCATABLE :: GOOD_CT_CHEM(:)
       INTEGER, ALLOCATABLE :: COUNT_CHEM3D(:,:,:)
-      ! For emissions
-      INTEGER, ALLOCATABLE :: GOOD_EMIS(:)
-      INTEGER, ALLOCATABLE :: GOOD_CT_EMIS(:)
-      REAL(fp),  ALLOCATABLE :: Q(:,:,:,:)
+      REAL(fp),ALLOCATABLE :: Q(:,:,:,:)
 
       !=================================================================
       ! Original code from old DIAG51_MOD.  Leave here as a guide to 
@@ -461,26 +454,26 @@
 !        Also now all diagnostic counters are 1-D since they only depend on 
 !        longitude. Now only archive NO, NO2, OH, O3 on every chemistry 
 !        timestep (i.e. only when fullchem is called). (bmy, 10/25/04)
-!  (3 ) Only archive AOD's when it is a chem timestep (bmy, 1/14/05)
+!  (3 ) Only archive AODs when it is a chem timestep (bmy, 1/14/05)
 !  (4 ) Remove reference to "CMN".  Also now get PBL heights in meters and 
 !        model layers from GET_PBL_TOP_m and GET_PBL_TOP_L of "pbl_mix_mod.f".
 !        (bmy, 2/16/05)
 !  (5 ) Now reference CLDF and BXHEIGHT from "dao_mod.f".  Now save 3-D cloud 
 !        fraction as tracer #79 and box height as tracer #93.  Now remove 
 !        references to CLMOSW, CLROSW, and PBL from "dao_mod.f". (bmy, 4/20/05)
-!  (6 ) Remove TRCOFFSET since it's always zero  Also now get HALFPOLAR for
+!  (6 ) Remove TRCOFFSET since it is always zero  Also now get HALFPOLAR for
 !        both GCAP and GEOS grids.  (bmy, 6/28/05)
 !  (7 ) Now do not save SLP data if it is not allocated (bmy, 8/2/05)
 !  (8 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (9 ) Now references XNUMOLAIR from "tracer_mod.f" (bmy, 10/25/05)
 !  (10) Now account for time spent in the trop for non-tracers (phs, 1/24/07)
 !  (11) We determine points corresponding to the time window at each timestep.
-!       But accumulate only when it's time for diagnostic (longest t.s.)
+!       But accumulate only when it is time for diagnostic (longest t.s.)
 !       (ccc, 8/12/09)
 !  (12) Add outputs ("DAO-FLDS" and "BIOGSRCE" categories). Add GOOD_EMIS and 
 !       GOOD_CT_EMIS to manage emission outputs. (ccc, 11/20/09)
 !  (13) Output AOD at 3rd jv_spec.dat row wavelength.  Include all seven dust 
-!        bin's individual AOD (amv, bmy, 12/21/09)
+!        bin individual AOD (amv, bmy, 12/21/09)
 !  12 Nov 2010 - R. Yantosca - Now save out PEDGE-$ (pressure at level edges)
 !                              rather than Psurface - PTOP
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -496,14 +489,16 @@
 !  24 Mar 2015 - E. Lundgren - Remove dependency on tracer_mod
 !  25 Mar 2015 - E. Lundgren - Change tracer units from kg to kg/kg and
 !                              remove AD pointer
-!  16 Jun 2016 - K. Yu       - Now define species ID's with the Ind_ function
-!  17 Jun 2016 - R. Yantosca - Only define species ID's on the first call
+!  16 Jun 2016 - K. Yu       - Now define species IDs with the Ind_ function
+!  17 Jun 2016 - R. Yantosca - Only define species IDs on the first call
 !  22 Jun 2016 - M. Yannetti - Replace TCVV with spec db and physical const
 !  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
 !                              species ID from State_Chm%Map_Advect.
 !  11 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
 !  06 Feb 2018 - E. Lundgren - Change GET_ELAPSED_MIN to GET_ELAPSED_SEC to
 !                              match new timestep unit of seconds
+!  04 Oct 2018 - R. Yantosca - Now accumulate most quantities on every
+!                              dynamic "heartbeat" timestep.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -605,19 +600,8 @@
          FIRST       = .FALSE.
       ENDIF
 
-      ! Is it a chemistry timestep?
-      IS_CHEM = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(), 
-     &                 GET_TS_CHEM() ) == 0 )
-
-      ! Is it an emissions timestep?
-      IS_EMIS = ( MOD( GET_ELAPSED_SEC()-GET_TS_DYN(),
-     &                 GET_TS_EMIS() ) == 0 )
-      ! Is it time for diagnostic accumulation ?
-      IF ( GET_ELAPSED_SEC() == 0 ) THEN
-         IS_DIAG = .FALSE.
-      ELSE
-         IS_DIAG = ( MOD( GET_ELAPSED_SEC(), GET_TS_DIAG() ) == 0 )
-      ENDIF
+      ! Force update on every dynamic ("heartbeat") timestep
+      IS_DIAG = .TRUE.
 
       ! Echo info
       STAMP = TIMESTAMP_STRING()
@@ -636,28 +620,7 @@
          ENDDO
       ENDIF
 
-      ! Archive counter array of good points for chemistry timesteps only
-      IF ( IS_CHEM ) THEN
-         DO X = 1, ND51_NI
-            I               = GET_I( X )
-            GOOD_CT_CHEM(X) = GOOD_CT_CHEM(X) + GOOD(I)
-            ! Save GOOD points only for chemistry time steps
-            GOOD_CHEM(X) = GOOD(I)
-         ENDDO
-      ENDIF
-
-      ! Archive counter array of good points for emissions timesteps only
-      IF ( IS_EMIS ) THEN
-         DO X = 1, ND51_NI
-            I               = GET_I( X )
-            GOOD_CT_EMIS(X) = GOOD_CT_EMIS(X) + GOOD(I)
-            ! Save GOOD points only for emission time steps
-            GOOD_EMIS(X) = GOOD(I)
-         ENDDO
-      ENDIF
-
-      ! Also increment 3-D counter for boxes in the chemistry grid
-      IF ( IS_FULLCHEM .and. IS_CHEM ) THEN
+      IF ( IS_FULLCHEM  ) THEN
          
          ! Loop over levels
 !$OMP PARALLEL DO 
@@ -748,7 +711,7 @@
 !
 !               ! Accumulate data
 !               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( SAVEOH(I,J,L,id_OH) * GOOD_CHEM(X) )
+!     &              ( SAVEOH(I,J,L,id_OH) * GOOD(X) )
 !
             ELSE IF ( N == 502 .and. IS_NOy ) THEN
 
@@ -946,7 +909,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -954,7 +917,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -973,7 +936,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -981,7 +944,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1000,7 +963,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -1008,7 +971,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1027,7 +990,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -1035,7 +998,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1054,7 +1017,7 @@
                IF ( .not. LINTERP ) THEN
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) +
-     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD_CHEM(X))
+     &               (ODAER(I,J,L,IWVSELECT(1,1),ISPC) * GOOD(X))
                ELSE
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
@@ -1062,7 +1025,7 @@
                   !catch any zero values before interpolation
                   IF ((ODAER(I,J,L,IWVSELECT(2,1),ISPC).GT.0).AND.
      &                (ODAER(I,J,L,IWVSELECT(1,1),ISPC).GT.0)) THEN
-                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X)*
+                    Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X)*
      &              (ODAER(I,J,L,IWVSELECT(2,1),ISPC)*ACOEF_WV(1)**
      &              (BCOEF_WV(1)*LOG(ODAER(I,J,L,IWVSELECT(1,1),ISPC)/
      &                               ODAER(I,J,L,IWVSELECT(2,1),ISPC))))
@@ -1080,7 +1043,7 @@
                DO R = 1, NDUST 
 
                   IF ( .not. LINTERP ) THEN
-                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                            ODMDUST(I,J,L,IWVSELECT(1,1),R)
                   ELSE
                      ! Interpolated using angstrom exponent between
@@ -1090,7 +1053,7 @@
                      IF ((ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0).AND.
      &                   (ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0)) THEN
 
-                        Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                        Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                               (ODMDUST(I,J,L,IWVSELECT(2,1),R)*
      &                               ACOEF_WV(1)**(BCOEF_WV(1)*LOG(
      &                               ODMDUST(I,J,L,IWVSELECT(1,1),R)/
@@ -1112,7 +1075,7 @@
 
                ! Accumulate
                IF ( .not. LINTERP ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                  Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                         ODMDUST(I,J,L,IWVSELECT(1,1),R)
                ELSE
                   ! Interpolated using angstrom exponent between
@@ -1122,7 +1085,7 @@
                   IF ((ODMDUST(I,J,L,IWVSELECT(1,1),R).GT.0).AND.
      &                (ODMDUST(I,J,L,IWVSELECT(2,1),R).GT.0)) THEN
 
-                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD_CHEM(X) *
+                     Q(X,Y,K,W) = Q(X,Y,K,W) + GOOD(X) *
      &                            (ODMDUST(I,J,L,IWVSELECT(2,1),R)*
      &                            ACOEF_WV(1)**(BCOEF_WV(1)*LOG(
      &                            ODMDUST(I,J,L,IWVSELECT(1,1),R)/
@@ -1199,7 +1162,7 @@
 
                ! Accumulate data
                Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &              ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
+     &              ( SAVEOA(I,J,L) * GOOD(X) )
 
             ELSE IF ( N == 535 ) THEN
 
@@ -1283,7 +1246,7 @@
 !
 !               ! Accumulate data
 !               Q(X,Y,K,W) = Q(X,Y,K,W) + 
-!     &              ( SAVEGLYX(I,J,L) * GOOD_CHEM(X) )
+!     &              ( SAVEGLYX(I,J,L) * GOOD(X) )
 !
             ELSE IF ( N == 537 ) THEN
 
@@ -1295,26 +1258,26 @@
                TMP = 0d0
             
                ! Organic aerosol (ug/m3):
-               TMP = TMP + ( SAVEOA(I,J,L) * GOOD_CHEM(X) )
+               TMP = TMP + ( SAVEOA(I,J,L) * GOOD(X) )
 
                ! Sulfate (ug/m3):
-               TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD_CHEM(X) *
+               TMP = TMP + ( Spc(I,J,L,id_SO4)  * GOOD(X) *
      &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                ! Ammonium (ug/m3):
-               TMP = TMP + ( Spc(I,J,L,id_NH4)  * GOOD_CHEM(X) *
+               TMP = TMP + ( Spc(I,J,L,id_NH4)  * GOOD(X) *
      &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                ! Nitrate (ug/m3):
-               TMP = TMP + ( Spc(I,J,L,id_NIT)  * GOOD_CHEM(X) *
+               TMP = TMP + ( Spc(I,J,L,id_NIT)  * GOOD(X) *
      &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                ! Hydrophillic Black carbon (ug/m3):
-               TMP = TMP + ( Spc(I,J,L,id_BCPI)  * GOOD_CHEM(X) *
+               TMP = TMP + ( Spc(I,J,L,id_BCPI)  * GOOD(X) *
      &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                ! Hydrophobic Black carbon (ug/m3):
-               TMP = TMP + ( Spc(I,J,L,id_BCPO)  * GOOD_CHEM(X) *
+               TMP = TMP + ( Spc(I,J,L,id_BCPO)  * GOOD(X) *
      &                       1e+9+fp / State_Met%AIRVOL(I,J,L) )
 
                ! Save afternoon points
@@ -1343,7 +1306,7 @@
 
                   ! Accumulate
                   Q(X,Y,K,W) = Q(X,Y,K,W) + 
-     &                   ( ISOPOD(I,J,L,R) * SCALEAODnm * GOOD_CHEM(X) )
+     &                   ( ISOPOD(I,J,L,R) * SCALEAODnm * GOOD(X) )
                ENDDO
 
 
@@ -1375,7 +1338,7 @@
 !
 ! !IROUTINE: its_time_for_write_diag51
 !
-! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG51 returns TRUE if it's 
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_WRITE\_DIAG51 returns TRUE if it is 
 !  time to write the ND51 bpch file to disk.  We test the time at the next 
 !  dynamic timestep so that we can write to disk properly.
 !\\
@@ -1544,11 +1507,11 @@
 !        longitude.  Now only archive NO, NO2, OH, O3 on every chemistry
 !        timestep (i.e. only when fullchem is called).  Also remove reference
 !        to FIRST. (bmy, 10/25/04)
-!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CT_CHEM since
+!  (3 ) Now divide tracers 82-87 (i.e. various AOD's) by GOOD_CTjn since
 !        these are only updated once per chemistry timestep (bmy, 1/14/05)
 !  (4 ) Now save grid box heights as tracer #93.  Now save 3-D cloud fraction 
 !        as tracer #79 (bmy, 4/20/05)
-!  (5 ) Remove references to TRCOFFSET because it's always zero (bmy, 6/24/05)
+!  (5 ) Remove references to TRCOFFSET because it is always zero (bmy, 6/24/05)
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) DIVISOR is now a 3-D array.  Now zero COUNT_CHEM3D.  Now use CASE
 !        statement instead of IF statements.  Now zero counter arrays with
@@ -1648,7 +1611,14 @@
 
          SELECT CASE( Input_Opt%ND51_TRACERS(W) )
 
-            CASE( 91, 92, 76, 77 )
+            !----------------------------------------------------------
+            ! Prior to 10/4/18:
+            ! NOTE: 91 used to be pure O3, 92 used to be NO2, but
+            ! used to be OH, but these are now species and are saved
+            ! at all levels. (bmy, 10/4/18)
+            !CASE( 91, 92, 76, 77 )
+            !----------------------------------------------------------
+            CASE( 502 )
                !--------------------------------------------------------
                ! Avoid div by zero for species which are archived each
                ! chem timestep and only available in the troposphere
@@ -1659,34 +1629,13 @@
                   Q(X,Y,K,W) = 0e+0_fp
                ENDIF
 
-            CASE( 84:89, 115:121 )
-
-               !--------------------------------------------------------
-               ! Avoid division by zero for species which are archived 
-               ! on each chem timestep (at trop & strat levels)
-               !--------------------------------------------------------
-               IF ( GOOD_CT_CHEM(X) > 0 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_CHEM(X) 
-               ELSE
-                  Q(X,Y,K,W) = 0e+0_fp
-               ENDIF
-
-            CASE( 105:114 )
-
-               !--------------------------------------------------------
-               ! Avoid division by zero for species which are archived 
-               ! on each EMISSION timestep (at SURFACE)      (mpb,2009)
-               !--------------------------------------------------------
-               IF ( GOOD_CT_EMIS(X) > 0 ) THEN
-                  Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT_EMIS(X) 
-               ELSE
-                  Q(X,Y,K,W) = 0e+0_fp
-               ENDIF
-
             CASE DEFAULT
 
                !--------------------------------------------------------
                ! Avoid division by zero for all other species
+               ! NOTE: Now use GOOD_CT for all species, to make sure
+               ! that we archive contributions from every heartbeat
+               ! timestep. (bmy, 10/4/18)
                !--------------------------------------------------------
                IF ( GOOD_CT(X) > 0 ) THEN
                   Q(X,Y,K,W) = Q(X,Y,K,W) / GOOD_CT(X) 
@@ -2122,10 +2071,6 @@
       ! Zero counter arrays
       COUNT_CHEM3D = 0e+0_fp
       GOOD_CT      = 0e+0_fp
-      GOOD_CHEM    = 0e+0_fp
-      GOOD_CT_CHEM = 0e+0_fp
-      GOOD_EMIS    = 0e+0_fp
-      GOOD_CT_EMIS = 0e+0_fp
 #endif
 
       END SUBROUTINE WRITE_DIAG51
@@ -2159,7 +2104,7 @@
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
+!  02 Dec 2010 - R. Yantosca - Added dProTeX headers
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2199,6 +2144,7 @@
       USE BPCH2_MOD,     ONLY : GET_MODELNAME
       USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
+      USE ErrCode_Mod
       USE ERROR_MOD,     ONLY : ALLOC_ERR
       USE ERROR_MOD,     ONLY : ERROR_STOP
       USE GC_GRID_MOD,   ONLY : GET_XOFFSET
@@ -2218,9 +2164,9 @@
 !
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT_CHEM
+!  (1 ) Diagnostic counter arrays are now only 1-D.  Also add GOOD_CT
 !        which is the counter array of "good" boxes at each chemistry
-!        timesteps.  Now allocate GOOD_CT_CHEM. (bmy, 10/25/04)
+!        timesteps.  Now allocate GOOD_CT. (bmy, 10/25/04)
 !  (2 ) Now get I0 and J0 correctly for nested grid simulations (bmy, 11/9/04)
 !  (3 ) Now call GET_HALFPOLAR from "bpch2_mod.f" to get the HALFPOLAR flag 
 !        value for GEOS or GCAP grids. (bmy, 6/28/05)
@@ -2374,26 +2320,6 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT' )
       GOOD_CT = 0
 
-      ! Counter of "good" times per day at each grid box for chemistry species
-      ALLOCATE( GOOD_CHEM( ND51_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CHEM' )
-      GOOD_CHEM = 0
-
-      ! Counter of "good" times per day for each chemistry timestep
-      ALLOCATE( GOOD_CT_CHEM( ND51_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_CHEM' )
-      GOOD_CT_CHEM = 0
-
-      ! Array denoting where LT is between HR1 and HR2 for emissions
-      ALLOCATE( GOOD_EMIS( ND51_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_EMIS' )
-      GOOD_EMIS = 0
-
-      ! Counter of "good" times per day at each grid box for emissions
-      ALLOCATE( GOOD_CT_EMIS( ND51_NI ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'GOOD_CT_EMIS' )
-      GOOD_CT_EMIS = 0
-
       ! Accumulating array
       ALLOCATE( Q( ND51_NI, ND51_NJ, ND51_NL, Input_Opt%N_ND51),STAT=AS)
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'Q' )
@@ -2423,7 +2349,7 @@
 ! 
 ! !REVISION HISTORY: 
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Now deallocate GOOD_CT_CHEM (bmy, 10/25/04)
+!  (1 ) Now deallocate GOOD_CT (bmy, 10/25/04)
 !  (2 ) Also deallocate COUNT_CHEM3D (phs, 1/24/07)
 !  (3 ) Deallocates GOOD_EMIS and GOOD_CT_EMIS (ccc, 11/20/09)
 !  02 Dec 2010 - R. Yantosca - Added ProTeX headers
@@ -2437,10 +2363,6 @@
       IF ( ALLOCATED( COUNT_CHEM3D ) ) DEALLOCATE( COUNT_CHEM3D )
       IF ( ALLOCATED( GOOD         ) ) DEALLOCATE( GOOD         )
       IF ( ALLOCATED( GOOD_CT      ) ) DEALLOCATE( GOOD_CT      )
-      IF ( ALLOCATED( GOOD_CT_CHEM ) ) DEALLOCATE( GOOD_CT_CHEM )
-      IF ( ALLOCATED( GOOD_CHEM    ) ) DEALLOCATE( GOOD_CHEM    )
-      IF ( ALLOCATED( GOOD_CT_EMIS ) ) DEALLOCATE( GOOD_CT_EMIS )
-      IF ( ALLOCATED( GOOD_EMIS    ) ) DEALLOCATE( GOOD_EMIS    )
       IF ( ALLOCATED( Q            ) ) DEALLOCATE( Q            )
 #endif
 

@@ -20,12 +20,6 @@
       IMPLICIT NONE
       PRIVATE
 !
-! !PUBLIC DATA MEMBERS:
-!
-      ! Save H2O2 and SO2 [v/v] for sulfate chemistry
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: H2O2s(:,:,:)
-      REAL(fp), PUBLIC, ALLOCATABLE, TARGET :: SO2s(:,:,:)
-!
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CLEANUP_WETSCAV
@@ -173,6 +167,8 @@
 !                              and rename routine WETDEP_MERRA to WETDEP (the
 !                              old WETDEP routine for GEOS-5 met was removed)
 !  13 Nov 2017 - R. Yantosca - Added arrays for State_Diag diagnostics
+!  11 Oct 2018 - M. Sulprizio- Move H2O2s and SO2s to State_Chm and rename as
+!                              H2O2AfterChem and SO2AfterChem
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -221,12 +217,6 @@
       INTEGER                       :: id_SO2
       INTEGER                       :: id_SO4
 
-      ! netCDF diagnostic flags
-      LOGICAL                       :: Archive_PrecipFracLS
-      LOGICAL                       :: Archive_RainFracLS
-      LOGICAL                       :: Archive_WashFracLS
-      LOGICAL                       :: Archive_WetLossLS
-
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -248,6 +238,10 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( NC_DIAG )
+      USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
+      USE Diagnostics_Mod, ONLY : Compute_Column_Mass
+#endif
       USE ErrCode_Mod
       USE Error_Mod,       ONLY : Debug_MSG
       USE Input_Opt_Mod,   ONLY : OptInput
@@ -294,6 +288,7 @@
 !  19 Jul 2016 - R. Yantosca - Now bracket tendency calls with #ifdef USE_TEND
 !  09 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  27 Aug 2018 - E. Lundgren - Implement budget diagnostics
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -307,6 +302,10 @@
 
       ! Strings
       CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
+
+#if defined( NC_DIAG )
+      REAL(fp)                :: DT_Dyn
+#endif
 
       !=================================================================
       ! Initialize
@@ -327,6 +326,23 @@
 
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
+
+#if defined( NC_DIAG )
+      !----------------------------------------------------------
+      ! Wet deposition budget diagnostics - Part 1 of 2
+      !----------------------------------------------------------
+      IF ( State_Diag%Archive_BudgetWetDep ) THEN
+         ! Get initial column masses
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                             Input_Opt, State_Met, State_Chm, 
+     &                             State_Chm%Map_WetDep,        
+     &                             State_Diag%Archive_BudgetWetDepFull, 
+     &                             State_Diag%Archive_BudgetWetDepTrop, 
+     &                             State_Diag%Archive_BudgetWetDepPBL,  
+     &                             State_Diag%BudgetMass1, 
+     &                             RC )
+      ENDIF
+#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -354,10 +370,14 @@
       !
       ! *FracLs diagnostics might need work...
       !------------------------------------------
-      IF ( Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
-      IF ( Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
-      IF ( Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
-      IF ( Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
+      IF ( State_Diag%Archive_PrecipFracLS ) 
+     &                              State_Diag%PrecipFracLS = 0.0_f4
+      IF ( State_Diag%Archive_RainFracLS   ) 
+     &                              State_Diag%RainFracLS   = 0.0_f4
+      IF ( State_Diag%Archive_WashFracLS   ) 
+     &                              State_Diag%WashFracLS   = 0.0_f4
+      IF ( State_Diag%Archive_WetLossLS    ) 
+     &                              State_Diag%WetLossLS    = 0.0_f4
 #endif
 
 
@@ -416,6 +436,41 @@
          ErrMsg = 'Error encountered in "TEND_STAGE1"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
+      ENDIF
+#endif
+
+#if defined( NC_DIAG )
+      !----------------------------------------------------------
+      ! Wet deposition budget diagnostics - Part 2 of 2
+      !----------------------------------------------------------
+      IF ( State_Diag%Archive_BudgetWetDep ) THEN
+         ! Get final masses and compute diagnostics
+         CALL Compute_Column_Mass( am_I_Root, 
+     &                          Input_Opt, State_Met, State_Chm, 
+     &                          State_Chm%Map_WetDep,        
+     &                          State_Diag%Archive_BudgetWetDepFull, 
+     &                          State_Diag%Archive_BudgetWetDepTrop, 
+     &                          State_Diag%Archive_BudgetWetDepPBL,  
+     &                          State_Diag%BudgetMass2, 
+     &                          RC ) 
+         DT_Dyn = Get_Ts_Dyn()
+         CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Chm%Map_WetDep,
+     &                          DT_Dyn,                                
+     &                          State_Diag%Archive_BudgetWetDepFull, 
+     &                          State_Diag%Archive_BudgetWetDepTrop, 
+     &                          State_Diag%Archive_BudgetWetDepPBL,  
+     &                          State_Diag%BudgetWetDepFull,         
+     &                          State_Diag%BudgetWetDepTrop,         
+     &                          State_Diag%BudgetWetDepPBL,          
+     &                          State_Diag%BudgetMass1,          
+     &                          State_Diag%BudgetMass2,          
+     &                          RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Wetdep budget diagnostics error 2'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 #endif
 
@@ -861,6 +916,8 @@
       REAL(fp),      POINTER   :: p_CLDICE
       REAL(fp),      POINTER   :: p_CLDLIQ
       REAL(fp),      POINTER   :: p_T
+      REAL(fp),      POINTER   :: H2O2s(:,:,:)
+      REAL(fp),      POINTER   :: SO2s(:,:,:)
 
       ! Objects
       TYPE(Species), POINTER   :: SpcInfo
@@ -883,8 +940,8 @@
       p_CLDICE   => NULL()
       p_CLDLIQ   => NULL()
       p_T        => NULL()
-
-      ! Get information for this species from the species database
+      H2O2s      => State_Chm%H2O2AfterChem
+      SO2s       => State_Chm%SO2AfterChem
       SpcInfo    => State_Chm%SpcData(N)%Info
 
       ! ISOL is the wetdep ID (will be -999 if not a wetdep species)
@@ -908,7 +965,7 @@
       IF ( SpcInfo%WD_Is_SO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
@@ -992,7 +1049,7 @@
 
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = GET_F( State_Met, I, J, L, Ki )
+            F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Ki )
 
          ENDDO
          ENDDO
@@ -1008,7 +1065,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Adjust F for size-resolved aerosol (multiply by XFRAC)
          DO L = 2, LLPAR
@@ -1033,7 +1090,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Adjust F for size-resolved aerosol number
          ! (multiply by XFRAC * SOLFRAC)
@@ -1059,7 +1116,7 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, F )
+         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 
          ! Multiply by the aerosol scavenging efficiency
          ! For most species this is 1.0
@@ -1075,6 +1132,8 @@
       p_CLDICE  => NULL()
       p_CLDLIQ  => NULL()
       p_T       => NULL()
+      H2O2s     => NULL()
+      SO2s      => NULL()
       SpcInfo   => NULL()
 
       END SUBROUTINE COMPUTE_F
@@ -1200,12 +1259,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, F )
+      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE State_Met_Mod,      ONLY: MetState
+      USE Input_Opt_Mod,      ONLY: OptInput
+!
 !
 ! !INPUT PARAMETERS: 
 !
@@ -1216,6 +1277,7 @@
                                                           !  for 3 temperature
                                                           !  regimes
       TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt            ! Input Options object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1280,7 +1342,7 @@
 
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
          ! Kc now has been scaled for impaction scavenging (bmy, 9/24/15)
-         F(I,J,L) = GET_F( State_Met, I, J, L, Scaled_KC )
+         F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Scaled_KC )
             
       ENDDO
       ENDDO
@@ -1415,6 +1477,8 @@
       REAL(fp),      POINTER :: p_CLDICE
       REAL(fp),      POINTER :: p_CLDLIQ
       REAL(fp),      POINTER :: p_T
+      REAL(fp),      POINTER :: H2O2s(:,:,:)
+      REAL(fp),      POINTER :: SO2s(:,:,:)
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -1434,6 +1498,8 @@
       p_CLDICE => CLDICE(I,J,L)
       p_CLDLIQ => CLDLIQ(I,J,L)
       p_T      => State_Met%T(I,J,L)
+      H2O2s    => State_Chm%H2O2AfterChem
+      SO2s     => State_Chm%SO2AfterChem
       SpcInfo  => State_Chm%SpcData(N)%Info
 
       !=================================================================
@@ -1512,6 +1578,8 @@
       p_CLDICE => NULL()
       p_CLDLIQ => NULL()
       p_T      => NULL()
+      H2O2s   => NULL()
+      SO2s    => NULL()
       SpcInfo  => NULL()
 
       END SUBROUTINE RAINOUT
@@ -3211,9 +3279,9 @@
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited Hg2
-                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
+                  CALL ADD_Hg2_WD      ( I, J, Hg_Cat,    DEP_HG     )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_HG, 
+     &                              State_Met, State_Chm, State_Diag )
 
                ! Check if it is a HgP tag
                ELSE IF ( SpcInfo%Is_HgP ) THEN
@@ -3222,9 +3290,9 @@
                   Hg_Cat = SpcInfo%Hg_Cat
 
                   ! Archive wet-deposited HgP
-                  CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG    )
-                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, 
-     &                                                 State_Met )
+                  CALL ADD_HgP_WD      ( I, J, Hg_Cat,    DEP_HG     )
+                  CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat,    DEP_HG, 
+     &                              State_Met, State_Chm, State_Diag )
                   
                ENDIF
 
@@ -3568,7 +3636,7 @@
 
       ! NOTE: This diagnostic may need some work
       ! Units: [1]
-      IF ( Archive_PrecipFracLS ) THEN
+      IF ( State_Diag%Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Rainout
       ENDIF
@@ -3675,12 +3743,13 @@
          !--------------------------------------------------------------
 
          ! Units: [1]
-         IF ( Archive_RainFracLs .and. F_Rainout > 0.0_fp ) THEN 
+         IF ( State_Diag%Archive_RainFracLs .and. 
+     &        F_Rainout > 0.0_fp ) THEN 
             State_Diag%RainFracLs(I,J,L,NW) = RainFrac / F_Rainout
          ENDIF
 
          ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-         IF ( Archive_WetLossLs ) THEN
+         IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) =
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
      &                                     *  State_Met%Area_M2(I,J,1)
@@ -3689,7 +3758,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -3974,7 +4043,7 @@
 
       ! NOTE: This diagnostic may need some work
       ! Units: [1]
-      IF ( Archive_PrecipFracLS ) THEN
+      IF ( State_Diag%Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Washout
       ENDIF
@@ -4009,7 +4078,9 @@
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L),
      &                 TK,        QDOWN,        DT,
-     &                 TF,        H2O2s(I,J,L), SO2s(I,J,L),
+     &                 TF,        
+     &                 State_Chm%H2O2AfterChem(I,J,L),
+     &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm,    RC           )
 
@@ -4192,7 +4263,8 @@
             !-----------------------------------------------------------
             
             ! Units: [1]
-            IF ( Archive_WashFracLS .and. F_Washout > 0.0_fp ) THEN
+            IF ( State_Diag%Archive_WashFracLS .and. 
+     &           F_Washout > 0.0_fp ) THEN
                State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
             ENDIF
 #endif
@@ -4258,7 +4330,7 @@
             !-----------------------------------------------------------
             
             ! Units: [1]
-            IF ( Archive_WashFracLS ) THEN
+            IF ( State_Diag%Archive_WashFracLS ) THEN
                State_Diag%WashFracLS(I,J,L,NW) = WashFrac
             ENDIF
 #endif
@@ -4291,7 +4363,7 @@
          !--------------------------------------------------------------
 
          ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-         IF ( Archive_WetLossLs ) THEN
+         IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
      &                                     *  State_Met%Area_M2(I,J,1)
@@ -4300,7 +4372,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -4574,7 +4646,7 @@
          !--------------------------------------------------------------
 
          ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-         IF ( Archive_WetLossLs ) THEN
+         IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) = 
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
      &                                     *  State_Met%Area_M2(I,J,1)
@@ -4583,7 +4655,7 @@
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
          ENDIF
 
          !--------------------------------------------------------------
@@ -4773,7 +4845,7 @@
 
       ! NOTE: This diagnostic may need some work
       ! Units: [1]
-      IF ( Archive_PrecipFracLS ) THEN
+      IF ( State_Diag%Archive_PrecipFracLS ) THEN
          State_Diag%PrecipFracLS(I,J,L) =
      &   State_Diag%PrecipFracLS(I,J,L) + F
 
@@ -4796,7 +4868,9 @@
          CALL WASHOUT( am_I_Root, I, J, L, N,
      &                 State_Met%BXHEIGHT(I,J,L), 
      &                 TK ,       QDOWN,        DT,
-     &                 F,         H2O2s(I,J,L), SO2s(I,J,L),
+     &                 F,
+     &                 State_Chm%H2O2AfterChem(I,J,L),
+     &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
      &                 State_Met, State_Chm,    RC           )
 
@@ -4859,7 +4933,7 @@
          ! Archive the fraction of soluble species lost to washout
          ! in large-scale precipitation (WashFracLS)
          !--------------------------------------------------------------
-         IF ( Archive_WashFracLS ) THEN
+         IF ( State_Diag%Archive_WashFracLS ) THEN
 
             ! Only divide WASHFRAC by F for aerosols, since
             ! for non-aerosols this is already accounted for
@@ -4883,7 +4957,7 @@
          !--------------------------------------------------------------
 
          ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
-         IF ( Archive_WetLossLS ) THEN
+         IF ( State_Diag%Archive_WetLossLS ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
      &                                     *  State_Met%Area_M2(I,J,1)
@@ -4894,7 +4968,7 @@
          ! Archive wet loss in kg/m2/s (check source code for this routine
          ! - ewl )
 !         IF ( LSOILNOX ) THEN
-            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT )
+            CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
 !         ENDIF
 
          !-----------------------------------------------------
@@ -5073,16 +5147,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_VUD( State_Met, I, J, L ) RESULT( VUD )
+      FUNCTION GET_VUD( State_Met, Input_Opt, I, J, L ) RESULT( VUD )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
       USE State_Met_Mod,      ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput 
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN) :: I, J, L     ! Location 
 !
 ! !RETURN VALUE:
@@ -5096,6 +5172,7 @@
 !  13 Mar 2017 - C. Keller   - Bug fix: make sure VUD_DEFINED is updated after
 !                              defining VUD.
 !  01 Jun 2017 - C. Keller   - Set VUD_DEFINED only if UPDVVEL has valid values. 
+!  05 Jun 2018 - C. Keller   - Add flag for online VUD calculation
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5115,6 +5192,23 @@
       ! Use vertical updraft velocity from State_Met
       ! Convert hPa/s to m/s here
       !=================================================================
+#if defined( MODEL_GEOS )
+      IF ( Input_Opt%UseOnlineVUD ) THEN
+         IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
+            IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
+     &           State_Met%UPDVVEL(I,J,L) > 0.0_fp       ) THEN
+    
+               ! Compute VUD 
+               VUD = State_Met%UPDVVEL (I,J,L) 
+     &             * State_Met%BXHEIGHT(I,J,L) 
+     &             / State_Met%DELP    (I,J,L) 
+   
+               ! VUD is now defined
+               VUD_DEFINED = .TRUE.
+            ENDIF
+         ENDIF
+      ENDIF
+#else
       IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
          IF ( State_Met%DELP(I,J,L)    > TINY_FP .AND. 
      &        State_Met%UPDVVEL(I,J,L) > 0.0_fp       ) THEN
@@ -5126,8 +5220,9 @@
 
             ! VUD is now defined
             VUD_DEFINED = .TRUE.
-         ENDIF
-      ENDIF
+          ENDIF
+       ENDIF
+#endif
 
       !=================================================================
       ! Traditional GEOS-Chem:
@@ -5157,16 +5252,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_F( State_Met, I, J, L, K ) RESULT( F )
+      FUNCTION GET_F( State_Met, Input_Opt, I, J, L, K ) RESULT( F )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
       USE State_Met_Mod,      ONLY : MetState
+      USE Input_Opt_Mod,      ONLY : OptInput 
 !
 ! !INPUT PARAMETERS: 
 !
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
       REAL(fp),       INTENT(IN) :: K          ! Rate constant
 !
@@ -5197,7 +5294,7 @@
      &                 State_Met%BXHEIGHT(I,J,L) )
                
       ! Vertical updraft velocity [m/s]
-      Vud = GET_VUD( State_Met, I, J, L )
+      Vud = GET_VUD( State_Met, Input_Opt, I, J, L )
 
       ! Compute F (avoid div-by-zero errors)
       IF ( Vud > TINY_FP ) THEN
@@ -5296,26 +5393,6 @@
       id_SO2   = Ind_('SO2'  )
       id_SO4   = Ind_('SO4'  )
       id_H2O2  = Ind_('H2O2' )
-
-      ! Test if the wetdep diagnostics in State_Diag are activated
-      Archive_PrecipFracLS = ASSOCIATED( State_Diag%PrecipFracLS )
-      Archive_RainFracLS   = ASSOCIATED( State_Diag%RainFracLS   )
-      Archive_WashFracLS   = ASSOCIATED( State_Diag%WashFracLS   )
-      Archive_WetLossLS    = ASSOCIATED( State_Diag%WetLossLS    )
-
-      !-----------------------------------------------------------------
-      ! Allocate H2O2s and SO2s for wet deposition 
-      ! (regardless of whether wet dep is turned on or not
-      !-----------------------------------------------------------------
-      ALLOCATE( H2O2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:H2O2s', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      H2O2s = 0.0_fp
- 
-      ALLOCATE( SO2s( IIPAR, JJPAR, LLPAR ), STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:SO2s', 0, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      SO2s = 0.0_fp
 
       !-----------------------------------------------------------------
       ! Only allocate arrays if wetdep or convection is turned on
@@ -5542,6 +5619,7 @@
       ! Initialize
       PL => NULL()
       TK => NULL()
+      RC = GC_SUCCESS
 
       ! Only do computation if wetdep or convection is turned on
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
@@ -5635,7 +5713,7 @@
          ! call to SETUP_WETSCAV, store H2O2s in legacy units [v/v dry air] 
          ! for now for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_H2O2 > 0 ) THEN
-            H2O2s = State_Chm%Species(:,:,:,id_H2O2)
+            State_Chm%H2O2AfterChem = State_Chm%Species(:,:,:,id_H2O2)
      &            * ( AIRMW / State_Chm%SpcData(id_H2O2)%Info%emMW_g )
          ENDIF
 
@@ -5645,7 +5723,7 @@
          ! call to SETUP_WETSCAV, store SO2s in units [v/v dry air] for now 
          ! for use in sulfate_mod and WASHOUT (ewl, 10/15/15)
          IF ( id_SO2 > 0 ) THEN
-            SO2s = State_Chm%Species(:,:,:,id_SO2)
+            State_Chm%SO2AfterChem = State_Chm%Species(:,:,:,id_SO2)
      &           * ( AIRMW / State_Chm%SpcData(id_SO2)%Info%emMW_g )
          ENDIF
 
@@ -5712,14 +5790,6 @@
 
       IF ( ALLOCATED( QQ     ) ) DEALLOCATE( QQ,     STAT=RC )
       CALL GC_CheckVar( 'wetscav_mod.F:QQ', 2, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      IF ( ALLOCATED( H2O2s  ) ) DEALLOCATE( H2O2s,  STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:H2O2s', 2, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-
-      IF ( ALLOCATED( SO2s   ) ) DEALLOCATE( SO2s,   STAT=RC )
-      CALL GC_CheckVar( 'wetscav_mod.F:SO2s', 2, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
       IF ( ALLOCATED( REEVAP ) ) DEALLOCATE( REEVAP, STAT=RC )

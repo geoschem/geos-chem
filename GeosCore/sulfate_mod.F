@@ -298,26 +298,6 @@
       INTEGER                :: DRYNITd1,  DRYNITd2,  DRYNITd3 
       INTEGER                :: DRYNITd4
 
-      ! Diagnostic flags
-      LOGICAL                :: Archive_DryDepChm
-      LOGICAL                :: Archive_LossHNO3onSeaSalt
-      LOGICAL                :: Archive_ProdMSAfromDMS
-      LOGICAL                :: Archive_ProdNITfromHNO3UptakeOnDust
-      LOGICAL                :: Archive_ProdSO2fromDMS
-      LOGICAL                :: Archive_ProdSO2fromDMSandNO3
-      LOGICAL                :: Archive_ProdSO2fromDMSandOH
-      LOGICAL                :: Archive_ProdSO4fromGasPhase
-      LOGICAL                :: Archive_ProdSO4fromH2O2inCloud
-      LOGICAL                :: Archive_ProdSO4fromHOBrInCloud
-      LOGICAL                :: Archive_ProdSO4fromO3InCloud
-      LOGICAL                :: Archive_ProdSO4fromO2InCloudMetal
-      LOGICAL                :: Archive_ProdSO4fromO3inSeaSalt
-      LOGICAL                :: Archive_ProdSO4fromO3s
-      LOGICAL                :: Archive_ProdSO4fromOxidationOnDust
-      LOGICAL                :: Archive_ProdSO4fromSRHOBr
-      LOGICAL                :: Archive_ProdSO4fromSRO3
-      LOGICAL                :: Archive_ProdSO4fromUptakeOfH2SO4g
-
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
       !=================================================================
@@ -1911,7 +1891,8 @@
          ! NOTE: Eventually think about converting this
          ! diagnostic to more standard units [kg/m2/s]
          !-----------------------------------------------------------
-         IF ( Archive_DryDepChm ) THEN
+         IF ( State_Diag%Archive_DryDepChm .OR. 
+     &        State_Diag%Archive_DryDep        ) THEN
 
             ! Initialize
             TOT1 = 0e+0_fp
@@ -2275,23 +2256,23 @@
          LNO3 = ( XNO30 - XNO3) * BOXVL / XNUMOL_NO3
 
          ! Store P(SO2) from DMS + OH [kg S/s]
-         IF ( Archive_ProdSO2fromDMSandOH ) THEN
+         IF ( State_Diag%Archive_ProdSO2fromDMSandOH ) THEN
             State_Diag%ProdSO2fromDMSandOH(I,J,L) = XOH / DTCHEM
          ENDIF
 
          ! Store P(SO2) from DMS + NO3 [kg S/s]
-         IF ( Archive_ProdSO2fromDMSandNO3 ) THEN
+         IF ( State_Diag%Archive_ProdSO2fromDMSandNO3 ) THEN
             State_Diag%ProdSO2fromDMSandNO3(I,J,L) = XN3 / DTCHEM
          ENDIF
 
          ! Store P(SO2) from DMS + NO3 [kg S/s]
-         IF ( Archive_ProdSO2fromDMS ) THEN
+         IF ( State_Diag%Archive_ProdSO2fromDMS ) THEN
             State_Diag%ProdSO2fromDMS(I,J,L) =
      &       ( PSO2_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
 
          ! Store P(MSA) from DMS [kg S/s]
-         IF ( Archive_ProdMSAfromDMS ) THEN
+         IF ( State_Diag%Archive_ProdMSAfromDMS ) THEN
             State_Diag%ProdMSAfromDMS(I,J,L) =
      &       ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
@@ -2543,7 +2524,6 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : IS_SAFE_EXP
       USE ERROR_MOD,          ONLY : SAFE_DIV
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE State_Chm_Mod,      ONLY : ChmState
@@ -2551,8 +2531,6 @@
       USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-      USE WETSCAV_MOD,        ONLY : H2O2s
-      USE WETSCAV_MOD,        ONLY : SO2s
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
 #if defined( BPCH_DIAG ) 
       USE CMN_DIAG_MOD
@@ -2738,11 +2716,14 @@
       REAL(fp), POINTER     :: Spc(:,:,:,:)
       REAL(fp), POINTER     :: pHCloud(:,:,:)
       REAL(fp), POINTER     :: SSAlk(:,:,:,:)
+      REAL(fp), POINTER     :: H2O2s(:,:,:)
+      REAL(fp), POINTER     :: SO2s(:,:,:)
 
       ! For HEMCO update
       LOGICAL, SAVE         :: FIRST = .TRUE.
 
-      CHARACTER(LEN=255), PARAMETER :: LOC = 'CHEM_SO2 (sulfate_mod.F)'
+      CHARACTER(LEN=255)    :: ErrMsg
+      CHARACTER(LEN=255)    :: ThisLoc
 
       !=================================================================
       ! CHEM_SO2 begins here!
@@ -2751,6 +2732,9 @@
 
       ! Assume success
       RC          = GC_SUCCESS
+      ErrMsg      = ''
+      ThisLoc     = 
+     & ' -> at CHEM_SO2 (in module GeosCore/sulfate_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -2761,6 +2745,8 @@
       Spc         => State_Chm%Species
       pHCloud     => State_Chm%pHCloud
       SSAlk       => State_Chm%SSAlk
+      H2O2s       => State_Chm%H2O2AfterChem
+      SO2s        => State_Chm%SO2AfterChem
 
       ! Reset cloud pH for safety
       pHCloud(:,:,:) = 4.5e+0_fp
@@ -2785,14 +2771,24 @@
          ! Sea salt density, fine mode
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_FINE', 
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALA )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_FINE', LOC )
+
+         ! Trap potential errors
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_FINE!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
          ! Sea salt density, coarse mode 
          CALL GetHcoDiagn( am_I_Root, 'SEASALT_DENS_COARSE', 
      &          StopIfNotFound=.FALSE., RC=RC, Ptr2D=NDENS_SALC )
-         IF ( RC /= HCO_SUCCESS )
-     &      CALL ERROR_STOP( 'Cannot get SEASALT_DENS_COARSE', LOC )
+
+         ! Trap potential errors
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Cannot get HEMCO field SEASALT_DENS_COARSE!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          
          ! Adjust first flag
          FIRST = .FALSE.
@@ -3268,11 +3264,7 @@
                      ! oxidation state during the nighttime
                      FeIII = Fe_d * 0.9e+0_fp
                   ENDIF
-               ELSE
-                  !--------------------
-                  ! Invalid simulation
-                  !--------------------
-                  CALL ERROR_STOP( 'Invalid NSRCX !','CHEM_SO2')
+
                ENDIF
 
                ! Assume that dissolved Mn is in Mn(II) oxidation state all of
@@ -3699,7 +3691,6 @@
                   SRo3   = 0.e+0_fp
                   so2_sr = 0.e+0_fp
                ENDIF
-
 	    ELSE
                SR     = 0.0_fp
                SRhobr = 0.0_fp
@@ -3847,23 +3838,23 @@
      &                      TCVV_S )
 
             ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/timestep]
-            AD05(I,J,L,16) = AD05(I,J,L,15) +
+            AD05(I,J,L,16) = AD05(I,J,L,16) +
      &                       ((L5S+SRhobr)* State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRo3
-            AD05(I,J,L,17) = AD05(I,J,L,16) +
+            AD05(I,J,L,17) = AD05(I,J,L,17) +
      &                       (SRo3*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by SRhobr
-            AD05(I,J,L,18) = AD05(I,J,L,17) +
+            AD05(I,J,L,18) = AD05(I,J,L,18) +
      &                       (SRhobr*State_Met%AD(I,J,L)/TCVV_S)
 
             ! P(SO4) by o3s
-            AD05(I,J,L,19) = AD05(I,J,L,18) +
+            AD05(I,J,L,19) = AD05(I,J,L,19) +
      &                       (L3S_1*State_Met%AD(I,J,L)/TCVV_S)
 
             ! Cloud pH
-            AD05(I,J,L,20) = AD05(I,J,L,19) + HPLUS
+            AD05(I,J,L,20) = AD05(I,J,L,20) + HPLUS
 
             !tdf
             PSO4d_tot   = 0.e+0_fp
@@ -3879,18 +3870,18 @@
                END DO
 
                ! P(SO4) from O3 oxidation on dust aerosols [kg S/timestep]
-               AD05(I,J,L,12) = AD05(I,J,L,11) +
+               AD05(I,J,L,12) = AD05(I,J,L,12) +
      &                       ( PSO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
 
                ! P(NIT) from HNO3 uptake on dust [kg N/timestep]
-               AD05(I,J,L,13) = AD05(I,J,L,12) +
+               AD05(I,J,L,13) = AD05(I,J,L,13) +
      &                       ( PNITd_tot * State_Met%AD(I,J,L) /
      &                         TCVV_N )
 
                ! Included P(SO4) due to uptake of H2SO4(g)        !tdf 3/2/2K9
                ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/timestep]
-               AD05(I,J,L,14) = AD05(I,J,L,13) +
+               AD05(I,J,L,14) = AD05(I,J,L,14) +
      &                       ( PH2SO4d_tot * State_Met%AD(I,J,L) /
      &                         TCVV_S )
             ENDIF
@@ -3905,26 +3896,26 @@
          IF ( FullRun ) THEN
 
             ! P(SO4) from gas-phase oxidation [kg S/s]
-            IF ( Archive_ProdSO4fromGasPhase ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromGasPhase ) THEN
                State_Diag%ProdSO4fromGasPhase(I,J,L) = 
      &            ( L1  * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) from aqueous-phase oxidation with H2O2 [kg S/s]
-            IF ( Archive_ProdSO4fromH2O2inCloud ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromH2O2inCloud ) THEN
                State_Diag%ProdSO4fromH2O2inCloud(I,J,L) =
      &            ( L2S * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) from aqueous-phase oxidation with O3 [kg S/s]
-            IF ( Archive_ProdSO4fromO3InCloud ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromO3InCloud ) THEN
                State_Diag%ProdSO4fromO3InCloud(I,J,L) =
      &            ( ( L3S + SRo3 ) * State_Met%AD(I,J,L) / TCVV_S ) /
      &            DTCHEM
             ENDIF
 
             ! P(SO4) from aqueous-phase oxidation with HOBr [kg S/s]
-            IF ( Archive_ProdSO4fromHOBrInCloud ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromHOBrInCloud ) THEN
                State_Diag%ProdSO4fromHOBrInCloud(I,J,L) =
      &            ( ( L5S + SRhobr ) * State_Met%AD(I,J,L) / TCVV_S ) /
      &            DTCHEM
@@ -3932,32 +3923,32 @@
 
             ! P(SO4) from aqueous-phase oxidation with O2 metal-catalyzed
             ! [kg S/s]
-            IF ( Archive_ProdSO4fromO2InCloudMetal ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromO2InCloudMetal ) THEN
                State_Diag%ProdSO4fromO2InCloudMetal(I,J,L) = 
      &            ( L4S * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) from O3 in sea salt aerosol [kg S/s]
-            IF ( Archive_ProdSO4fromO3inSeaSalt ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromO3inSeaSalt ) THEN
                State_Diag%ProdSO4fromO3inSeaSalt(I,J,L) = 
      &            ( ( PSO4E + PSO4F ) * State_Met%AD(I,J,L) / TCVV_S ) /
      &            DTCHEM
             ENDIF
 
             ! P(SO4) by SRo3 [kg S/s]
-            IF ( Archive_ProdSO4fromSRO3 ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromSRO3 ) THEN
                State_Diag%ProdSO4fromSRO3(I,J,L) = 
      &            ( SRo3 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) by SRhobr [kg S/s]
-            IF ( Archive_ProdSO4fromSRHOBr ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromSRHOBr ) THEN
                State_Diag%ProdSO4fromSRHOBr(I,J,L) = 
      &            ( SRhobr * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
 
             ! P(SO4) by o3s [kg S/s]
-            IF ( Archive_ProdSO4fromO3s ) THEN
+            IF ( State_Diag%Archive_ProdSO4fromO3s ) THEN
                State_Diag%ProdSO4fromO3s(I,J,L) = 
      &            ( L3S_1 * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
             ENDIF
@@ -3979,19 +3970,20 @@
                END DO
 
                ! P(SO4) from O3 oxidation on dust aerosols [kg S/s]
-               IF ( Archive_ProdSO4fromOxidationOnDust ) THEN
+               IF ( State_Diag%Archive_ProdSO4fromOxidationOnDust ) THEN
                   State_Diag%ProdSO4fromOxidationOnDust(I,J,L) = 
      &             ( PSO4d_tot * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
                ENDIF
 
                ! P(NIT) from HNO3 uptake on dust [kg N/s]
-               IF ( Archive_ProdNITfromHNO3uptakeOnDust ) THEN
+               IF ( State_Diag%Archive_ProdNITfromHNO3uptakeOnDust ) 
+     &         THEN
                   State_Diag%ProdNITfromHNO3uptakeOnDust(I,J,L) =
      &             ( PNITd_tot * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
                ENDIF
 
                ! P(SO4) from uptake of H2SO4 on dust aerosols [kg S/s]
-               IF ( Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
+               IF ( State_Diag%Archive_ProdSO4fromUptakeOfH2SO4g ) THEN
                   State_Diag%ProdSO4fromUptakeOfH2SO4g(I,J,L) =
      &             ( PH2SO4d_tot * State_Met%AD(I,J,L) / TCVV_S )/DTCHEM
                ENDIF
@@ -4008,6 +4000,8 @@
       Spc     => NULL()
       pHCloud => NULL()
       SSAlk   => NULL()
+      H2O2s   => NULL()
+      SO2s    => NULL()
 
       END SUBROUTINE CHEM_SO2
 !EOC
@@ -4430,7 +4424,7 @@
       !=================================================================
       IF ( FullRun .and. ( ND05 > 0 .and. L <= LD05 ) ) THEN
          ! L(HNO3) on sea-salt aerosols [kg N/timestep]
-         AD05(I,J,L,14) = AD05(I,J,L,14) +
+         AD05(I,J,L,15) = AD05(I,J,L,15) +
      &                  ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N )
       ENDIF
 #endif
@@ -4441,7 +4435,7 @@
       !
       ! Loss of HNO3 on sea salt [kg/s]
       !=================================================================
-      IF ( FullRun .and. Archive_LossHNO3onSeaSalt ) THEN
+      IF ( FullRun .and. State_Diag%Archive_LossHNO3onSeaSalt ) THEN
          State_Diag%LossHNO3onSeaSalt(I,J,L) =
      &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
       ENDIF
@@ -5764,10 +5758,6 @@
 ! !INTERFACE:
 !
       SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
-!
-! !USES:
-!
-!      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP !ERROR_STOP
 !
 ! !INPUT PARAMETERS: 
 !
@@ -7116,8 +7106,8 @@
      $                             PBL_TOP, IS_LOCAL )
 !
 ! !USES:
-!                 
-      USE ERROR_MOD,    ONLY : ERROR_STOP
+!
+!###      USE ERROR_MOD,    ONLY : ERROR_STOP
       IMPLICIT NONE
 !
 ! !INPUT PARAMETERS:
@@ -7231,6 +7221,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get OH for offline aerosol sim from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7285,13 +7277,6 @@
 
          ENDIF
 
-      ELSE
-
-         !---------------------
-         ! Invalid simulation
-         !---------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_OH (sulfate_mod.f)')
-
       ENDIF
 
       END FUNCTION GET_OH
@@ -7345,6 +7330,8 @@
 !  18 Sep 2014 - M. Sulprizio- Now get NO3 for offline aerosol sims from HEMCO
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7437,13 +7424,6 @@
          ! Make sure NO3 is not negative
          NO3_MOLEC_CM3  = MAX( NO3_MOLEC_CM3, 0e+0_fp )
 
-      ELSE
-
-         !--------------------
-         ! Invalid simulation
-         !--------------------
-         CALL ERROR_STOP( 'Invalid NSRCX!','GET_NO3 (sulfate_mod.f)')
-
       ENDIF
 
       END FUNCTION GET_NO3
@@ -7494,6 +7474,8 @@
 !                              CMN_GTCM_MOD to get XNUMOLAIR.
 !  22 Dec 2015 - M. Sulprizio- Remove references to CSPEC and JLOOP. We now get
 !                              species concentrations from State_Chm%Species.
+!  11 Oct 2018 - R. Yantosca - Remove invalid simulation error check; this
+!                              can be done in Init_Sulfate.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7533,13 +7515,6 @@
          ELSE
             O3_VV = 0e+0_fp
          ENDIF
-
-      ELSE
-
-         !--------------------
-         ! Invalid simulation
-         !--------------------         
-         CALL ERROR_STOP( 'Invalid NSRCX!', 'GET_O3 (sulfate_mod.f)')
 
       ENDIF
 
@@ -8099,60 +8074,15 @@
       ThisLoc  = 
      & ' -> at Init_Sulfate (in module GeosCore/sulfate_mod.F)'
 
-      ! Check if netCDF diagnostics are turned on
-      Archive_DryDepChm = ASSOCIATED( State_Diag%DryDepChm ) .OR.
-     &                    ASSOCIATED( State_Diag%DryDep    )
-
-      Archive_LossHNO3onSeaSalt =
-     &     ASSOCIATED( State_Diag%LossHNO3onSeaSalt           )
-
-      Archive_ProdMSAfromDMS =
-     &     ASSOCIATED( State_Diag%ProdMSAFromDMS              )
-
-      Archive_ProdNITfromHNO3uptakeOnDust =
-     &     ASSOCIATED( State_Diag%ProdNITfromHNO3uptakeOnDust )
-
-      Archive_ProdSO2fromDMS = 
-     &     ASSOCIATED( State_Diag%ProdSO2fromDMS              )
-
-      Archive_ProdSO2fromDMSandNO3 = 
-     &     ASSOCIATED( State_Diag%ProdSO2fromDMSandNO3        )
-
-      Archive_ProdSO2fromDMSandOH = 
-     &     ASSOCIATED( State_Diag%ProdSO2fromDMSandOH         )
-
-      Archive_ProdSO4fromGasPhase = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromGasPhase         )
-
-      Archive_ProdSO4fromH2O2inCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromH2O2inCloud      )
-
-      Archive_ProdSO4fromHOBrInCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromHOBrInCloud      )
-
-      Archive_ProdSO4fromO3InCloud = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3InCloud        )
-
-      Archive_ProdSO4fromO2InCloudMetal = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO2InCloudMetal   )
-
-      Archive_ProdSO4fromO3inSeaSalt = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3inSeaSalt      )
-
-      Archive_ProdSO4fromO3s = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromO3s              )
-
-      Archive_ProdSO4fromOxidationOnDust = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromOxidationOnDust  )
-
-      Archive_ProdSO4fromSRO3 = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromSRO3             )
-
-      Archive_ProdSO4fromSRHOBr =
-     &     ASSOCIATED( State_Diag%ProdSO4fromSRHOBr           )
-
-      Archive_ProdSO4fromUptakeOfH2SO4g = 
-     &     ASSOCIATED( State_Diag%ProdSO4fromUptakeOfH2SO4g   )
+      !=================================================================
+      ! Error check
+      !=================================================================
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. 
+     &     ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+         ErrMsg = 'Invalid simulation for sulfate_mod!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       !=================================================================
       ! Allocate arrays

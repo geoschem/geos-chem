@@ -48,8 +48,10 @@
       INTEGER, PARAMETER :: PD17=8           
       INTEGER, PARAMETER :: PD18=8
       INTEGER, PARAMETER :: PD19=3
+#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER ) || defined( MODEL_GEOS )
       INTEGER, PARAMETER :: PD21=8+(NRHAER+NDUST)*3+(NRHAER*2)+
      &                           (NSTRATAER*3)
+#endif
       INTEGER, PARAMETER :: PD22=76
       INTEGER, PARAMETER :: PD43=4
       INTEGER, PARAMETER :: PD52=6
@@ -123,7 +125,7 @@
       INTEGER :: LD12, LD13, LD14, LD15, LD16, LD17, LD18, LD21, LD22
       INTEGER :: LD24, LD25, LD26, LD37, LD38, LD39, LD43, LD45, LD47
       INTEGER :: LD54, LD64, LD65, LD66, LD68, LD01, LD02, LD05, LD07
-      INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD58, LD59, LD60
+      INTEGER :: LD09, LD10, LD31, LD52, LD19, LD57, LD59, LD60
       INTEGER :: LD61, LD62, LD73
 
       !=================================================================
@@ -134,7 +136,7 @@
       INTEGER :: ND21, ND22, ND23, ND24, ND25, ND26, ND27, ND28, ND29
       INTEGER :: ND30, ND31, ND32, ND33, ND34, ND35, ND36, ND37, ND38
       INTEGER :: ND39, ND43, ND44, ND45, ND46, ND47
-      INTEGER :: ND52, ND54, ND55, ND57, ND58, ND59
+      INTEGER :: ND52, ND54, ND55, ND57, ND59
       INTEGER :: ND60, ND61, ND62, ND64, ND65, ND66, ND67, ND68
       INTEGER :: ND69, ND70, ND71, ND72, ND73, ND74, ND75
 #endif
@@ -216,6 +218,7 @@
 !  23 Jun 2016 - R. Yantosca - Remove references to APM code; it is no longer
 !                              compatible with the FlexChem implementation
 !  21 Jul 2016 - R. Yantosca - Remove instances of NNPAR & obsolete parameters
+!  19 Oct 2018 - R. Yantosca - Remove ND58 and LD58, they are obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC

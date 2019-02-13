@@ -38,8 +38,7 @@
       USE ErrCode_Mod
       USE ERROR_MOD,               ONLY : DEBUG_MSG
       USE FLEXCHEM_MOD,            ONLY : CLEANUP_FLEXCHEM
-      USE GEOSFP_READ_MOD,         ONLY : CLEANUP_GEOSFP_READ
-      USE GET_NDEP_MOD,            ONLY : CLEANUP_GET_NDEP
+      USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
       USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
       USE GC_GRID_MOD,             ONLY : CLEANUP_GRID
       USE GEOS_TIMERS_MOD
@@ -54,8 +53,8 @@
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
-      USE MERRA2_READ_MOD,         ONLY : CLEANUP_MERRA2_READ
       USE PBL_MIX_MOD,             ONLY : CLEANUP_PBL_MIX
+      USE POPs_Mod,                ONLY : Cleanup_POPs
       USE PJC_PFIX_MOD,            ONLY : CLEANUP_PJC_PFIX
       USE PLANEFLIGHT_MOD,         ONLY : CLEANUP_PLANEFLIGHT
       USE PRESSURE_MOD,            ONLY : CLEANUP_PRESSURE
@@ -71,17 +70,15 @@
       USE TOMS_MOD,                ONLY : CLEANUP_TOMS
       USE TPCORE_FVDAS_MOD,        ONLY : EXIT_TPCORE
       USE TPCORE_WINDOW_MOD,       ONLY : EXIT_TPCORE_WINDOW
-#if ! defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_ )
       USE TRANSPORT_MOD,           ONLY : CLEANUP_TRANSPORT
 #endif
       USE UCX_MOD,                 ONLY : CLEANUP_UCX
       USE VDIFF_PRE_Mod,           ONLY : Cleanup_VDIFF_PRE
       USE WETSCAV_MOD,             ONLY : CLEANUP_WETSCAV
 
-      ! HEMCO
-!#if !defined(ESMF_) 
+      ! HEMCO 
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
-!#endif
 
 #if   defined( RRTMG )
       USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
@@ -335,7 +332,19 @@
          RETURN
       ENDIF
 
-      CALL CLEANUP_GLOBAL_CH4()
+      CALL Cleanup_Global_Br( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Global_Br"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      CALL Cleanup_Global_CH4( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Global_CH4"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       CALL CLEANUP_GRID( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -368,11 +377,19 @@
       Call Cleanup_Set_Global_CH4()
       CALL CLEANUP_SULFATE()
       CALL CLEANUP_STRAT_CHEM()
-      CALL CLEANUP_TAGGED_CO()
-#if ! defined( ESMF_ )
+#if !defined( ESMF_ ) && !defined( MODEL_ )
       CALL CLEANUP_TRANSPORT()
 #endif
-      CALL CLEANUP_TOMS()
+
+      ! Cleanup TOMS module
+      CALL CLEANUP_TOMS( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_TOMS"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Cleanup wet scavenging module
       CALL CLEANUP_WETSCAV( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_Wetscav"!'
@@ -396,6 +413,22 @@
       CALL EXIT_TPCORE()
 #endif
 
+      ! Cleanup Tagged CO code
+      CALL CLEANUP_TAGGED_CO( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_Tagged_CO"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Cleanup POPs code
+      CALL Cleanup_POPs( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_POPs"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       ! Call extra cleanup routines, mostly from modules in Headers/
       CALL Cleanup_CMN_O3( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -407,13 +440,6 @@
       CALL Cleanup_CMN_SIZE( am_I_Root, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup_CMN_SIZE"!'
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      CALL Cleanup_Get_Ndep( am_I_Root, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Cleanup_Get_Ndep"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
@@ -431,13 +457,6 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-
-      ! Close GEOS-FP or MERRA2 met field files that may still be open
-#if defined( GEOS_FP )
-      CALL Cleanup_GeosFp_Read()
-#elif defined( MERRA2 )
-      CALL Cleanup_Merra2_Read()
-#endif
 
       END SUBROUTINE CLEANUP
 !EOC

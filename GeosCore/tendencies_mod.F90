@@ -64,7 +64,6 @@ MODULE Tendencies_Mod
 ! !USES:
 !
   USE ErrCode_Mod
-  USE Error_Mod,          ONLY : Error_Stop
   USE HCO_Error_Mod
   USE HCO_Diagn_Mod
   USE Input_Opt_Mod,      ONLY : OptInput
@@ -625,15 +624,17 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=63)        :: DiagnName
-    CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'Tend_Add (tendencies_mod.F)' 
+    CHARACTER(LEN=255)       :: ErrMsg
+    CHARACTER(LEN=255)       :: ThisLoc 
     
     !=======================================================================
     ! Tend_Add begins here!
     !=======================================================================
 
     ! Assume successful return
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = '- > at Tend_Add (in module GeosCore/tendencies_mod.F90)' 
 
     ! Initialize
     ThisTend => NULL()
@@ -664,8 +665,8 @@ CONTAINS
 
     ! Species ID must not exceed # of tendency species
     IF ( SpcID > nSpc ) THEN
-       WRITE(MSG,*) 'Species ID exceeds number of tendency species: ', SpcID, ' > ', nSpc
-       CALL ERROR_STOP( MSG, LOC ) 
+       WRITE(ErrMsg,*) 'Species ID exceeds number of tendency species: ', SpcID, ' > ', nSpc
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF 
  
@@ -678,15 +679,15 @@ CONTAINS
 
     ! Make sure array is allocated
     IF ( .NOT. ASSOCIATED(ThisTend%Tendency(SpcID)%Arr) ) THEN
-       ALLOCATE(ThisTend%Tendency(SpcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=AS)
-       IF ( AS /= 0 ) THEN
-          MSG = 'Tendency allocation error: ' // TRIM(DiagnName)
-          CALL ERROR_STOP( MSG, LOC ) 
+       ALLOCATE(ThisTend%Tendency(SpcID)%Arr(IIPAR,JJPAR,LLPAR),STAT=RC)
+       IF ( RC /= 0 ) THEN
+          ErrMsg = 'Tendency allocation error: ' // TRIM(DiagnName)
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
-#if !defined( ESMF_ )
+#if !defined(ESMF_) && defined( MODEL_GEOS )
     ! Get diagnostic parameters from the Input_Opt object
     Collection = Input_Opt%DIAG_COLLECTION
 
@@ -708,8 +709,9 @@ CONTAINS
                        RC        = RC )
    
     IF ( RC /= HCO_SUCCESS ) THEN
-       MSG = 'Cannot create diagnostics: ' // TRIM(DiagnName)
-       CALL ERROR_STOP( MSG, LOC ) 
+       ErrMsg = 'Cannot create diagnostics: ' // TRIM(DiagnName)
+       CALL GC_Error( ErrMsg, RC, ThisLoc ) 
+       RETURN
     ENDIF
 #endif
 
@@ -904,15 +906,17 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=63)        :: DiagnName
     CHARACTER(LEN=63)        :: OrigUnit 
-    CHARACTER(LEN=255)       :: MSG
-    CHARACTER(LEN=255)       :: LOC = 'TEND_STAGE2 (tendencies_mod.F)' 
+    CHARACTER(LEN=255)       :: ErrMsg
+    CHARACTER(LEN=255)       :: ThisLoc 
   
     !=======================================================================
     ! TEND_STAGE2 begins here!
     !=======================================================================
 
     ! Assume successful return
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at TEND_STAGE2 (in module GeosCore/tendencies_mod.F90)' 
 
     ! Initialize
     Ptr3d    => NULL()
@@ -978,9 +982,8 @@ CONTAINS
                Array3D=Tend, COL=Input_Opt%DIAG_COLLECTION, RC=RC )
                           
        IF ( RC /= HCO_SUCCESS ) THEN 
-          WRITE(MSG,*) 'Error in updating diagnostics with ID ', cID
-          CALL ERROR_STOP ( MSG, LOC )
-          RC = GC_FAILURE
+          WRITE(ErrMsg,*) 'Error in updating diagnostics with ID ', cID
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
 #endif

@@ -84,17 +84,6 @@
 !
 ! !PRIVATE TYPES:
 !
-#if defined( NC_DIAG )
-      ! Diagnostic flags
-      LOGICAL               :: Archive_DryDepChm
-      LOGICAL               :: Archive_AerSurfAreaDust
-      LOGICAL               :: Archive_AOD
-      LOGICAL               :: Archive_AODDust
-      LOGICAL               :: Archive_AODDustWL1
-      LOGICAL               :: Archive_AODDustWL2
-      LOGICAL               :: Archive_AODDustWL3
-#endif
-
       ! Species ID flags
       INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4  
       INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4  
@@ -133,7 +122,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
@@ -183,20 +171,26 @@
 ! !LOCAL VARIABLES:
 !
       ! SAVEd scalars
-      LOGICAL, SAVE :: FIRST = .TRUE.
+      LOGICAL, SAVE      :: FIRST = .TRUE.
 
       ! Non-SAVEd scalars
-      LOGICAL       :: LDRYD
-      LOGICAL       :: LDUST
-      LOGICAL       :: LDSTUP
-      LOGICAL       :: prtDebug
+      LOGICAL            :: LDRYD
+      LOGICAL            :: LDUST
+      LOGICAL            :: LDSTUP
+      LOGICAL            :: prtDebug
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
 
       !=================================================================
       ! CHEMDUST begins here!
       !=================================================================
 
       ! Assume success
-      RC    = GC_SUCCESS
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at CHEMDUST (in module GeosCore/dust_mod.F)'
 
       ! Copy fields from INPUT_OPT to local variables for use below
       LDRYD  = Input_Opt%LDRYD
@@ -218,9 +212,9 @@
      &        MAX( id_DST3, 0 )  + 
      &        MAX( id_DST4, 0 ) == 0 ) THEN 
             IF ( LDUST ) THEN 
-               CALL ERROR_STOP( 
-     &              'LDUST=T but dust species are undefined!',
-     &              'EMISSDUST ("dust_mod.f")' )
+               ErrMsg = 'LDUST=T but dust species are undefined!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -242,6 +236,13 @@
       CALL DRY_SETTLING( am_I_Root, Input_Opt, State_Met, State_Chm,
      &                   State_Diag, id_DST1,  id_DST4,   RC         )
    
+      ! Trap potential errors
+      IF ( RC /= GC_SUCCESS ) THEN 
+         ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
       !-------------------------------------------------------------
       ! Dust settling for acid uptake on dust species
       !
@@ -256,6 +257,12 @@
          CALL DRY_SETTLING( am_I_Root,  Input_Opt, State_Met, State_Chm,
      &                      State_Diag, id_DAL1,   id_DAL4,   RC       )
 
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN 
+            ErrMsg = 'Error encountered in call to "DRY_SETTLING"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
       ENDIF
 
       ! Debug print
@@ -519,7 +526,6 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -582,12 +588,18 @@
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
 
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg
+      CHARACTER(LEN=255) :: ThisLoc
+
       !=================================================================
       ! EMISSDUST begins here!
       !=================================================================
      
-      ! Assume success
-      RC        = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at EMISSDUST (in module GeosCore/dust_mod.F)'
 
       ! Initialize
       LDEAD     =  Input_Opt%LDEAD
@@ -600,9 +612,9 @@
          ! Return if dust ID flags are not defined
          IF ( id_DUST1 == 0 ) THEN
             IF ( LDUST ) THEN 
-               CALL ERROR_STOP( 
-     &              'LDUST=T but dust species are undefined!',
-     &              'EMISSDUST ("dust_mod.f")' )
+               ErrMsg = 'LDUST=T but dust species are undefined!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
  
@@ -936,7 +948,8 @@
 #endif
 
 #if defined( NC_DIAG )
-               IF ( Archive_DryDepChm ) THEN
+               IF ( State_Diag%Archive_DryDepChm .OR.
+     &              State_Diag%Archive_DryDep        ) THEN
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   ! Dry deposition flux loss [molec/cm2/s]
@@ -1000,12 +1013,11 @@
 !
       USE CMN_FJX_MOD
       USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD21
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -1266,7 +1278,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !=================================================================
       ! ND21 Diagnostic: 
       !
@@ -1279,7 +1291,7 @@
       ! Tracers #38-44: Dust SSA for each size bin
       ! Tracers #45-51: Dust ASYM for each size bin
       !==============================================================
-      IF ( ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
+      IF ( Input_Opt%ND21 > 0 .and. ODSWITCH .EQ. 1 ) THEN
 
 !#############################################################################
 !### Prior to 4/6/15
@@ -1304,7 +1316,7 @@
             ! equivalent to getting 21-27 in the loop for W = 1
             ! etc for W = 2 and W=3 (fills OD dust bins 1-7 for each lambda)
 
-            DO L = 1, LD21
+            DO L = 1, Input_Opt%LD21
             DO J = 1, JJPAR
             DO I = 1, IIPAR
 
@@ -1377,7 +1389,7 @@
       ENDIF
 #endif
 #if defined( NC_DIAG )
-      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+      IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD = 0.0_fp
@@ -1424,13 +1436,13 @@
             !---------------------------------------------------
             ! Set size-resolved dust optical depth diagnostic
             !---------------------------------------------------
-            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+            IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
                State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
             ENDIF
-            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+            IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
                State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
             ENDIF
-            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+            IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
                State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
             ENDIF
 
@@ -1445,7 +1457,7 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ARCHIVE_AODDust ) THEN
+         IF ( State_Diag%Archive_AODDust ) THEN
 !$OMP PARALLEL DO
 
 !$OMP+DEFAULT( SHARED )
@@ -1463,7 +1475,7 @@
       ENDIF
 
       ! Archive total dust surface area (sum across all bins)
-      IF ( Archive_AerSurfAreaDust ) THEN
+      IF ( State_Diag%Archive_AerSurfAreaDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -1509,14 +1521,13 @@
 !
       USE CMN_SIZE_MOD
       USE CMN_FJX_MOD
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       USE BPCH2_MOD,      ONLY : GET_NAME_EXT, GET_RES_EXT
       USE BPCH2_MOD,      ONLY : GET_TAU0,     READ_BPCH2
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD21
 #endif
       USE ErrCode_Mod
-      USE ERROR_MOD,      ONLY : ERROR_STOP
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
@@ -1889,7 +1900,7 @@
       ENDDO
 !$OMP END PARALLEL DO
 
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       !==============================================================
       ! ND21 Diagnostic: 
       !
@@ -1986,7 +1997,7 @@
       ENDIF
 #endif
 #if defined( NC_DIAG )
-      IF ( ARCHIVE_AOD .AND. ODSWITCH .EQ. 1 ) THEN
+      IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
          tempOD = 0.0_fp
@@ -2030,13 +2041,13 @@
             !---------------------------------------------------
             ! Set size-resolved dust optical depth diagnostic
             !---------------------------------------------------
-            IF ( ARCHIVE_AODDustWL1 .AND. W == 1 ) THEN
+            IF ( State_Diag%Archive_AODDustWL1 .AND. W == 1 ) THEN
                State_Diag%AODDustWL1(I,J,L,N) = tempOD(I,J,L,N,1)
             ENDIF
-            IF ( ARCHIVE_AODDustWL2 .AND. W == 2 ) THEN
+            IF ( State_Diag%Archive_AODDustWL2 .AND. W == 2 ) THEN
                State_Diag%AODDustWL2(I,J,L,N) = tempOD(I,J,L,N,2)
             ENDIF
-            IF ( ARCHIVE_AODDustWL3 .AND. W == 3 ) THEN
+            IF ( State_Diag%Archive_AODDustWL3 .AND. W == 3 ) THEN
                State_Diag%AODDustWL3(I,J,L,N) = tempOD(I,J,L,N,3)
             ENDIF
 
@@ -2050,7 +2061,7 @@
          !---------------------------------------------------
          ! Set dust optical depth diagnostic
          !---------------------------------------------------
-         IF ( ARCHIVE_AODDust ) THEN
+         IF ( State_Diag%Archive_AODDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2069,7 +2080,7 @@
       !------------------------------------------------------
       ! Archive total dust surface area (sum across all bins)
       !------------------------------------------------------
-      IF ( Archive_AerSurfAreaDust ) THEN
+      IF ( State_Diag%Archive_AerSurfAreaDust ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -2613,7 +2624,6 @@
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : PI, AIRMW
       USE Species_Mod,        ONLY : Species
@@ -2662,11 +2672,15 @@
 ! !LOCAL VARIABLES:
 !
       ! Non-SAVEd scalars
-      INTEGER            :: AS, N
+      INTEGER                :: AS, N
 #if   defined( TOMAS )
-      INTEGER            :: I
-      INTEGER            :: BIN
+      INTEGER                :: I
+      INTEGER                :: BIN
 #endif
+
+      ! Strings
+      CHARACTER(LEN=255)     :: ErrMsg
+      CHARACTER(LEN=255)     :: ThisLoc
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo
@@ -2676,23 +2690,10 @@
       !=================================================================
 
       ! Initialize
-      RC                 =  GC_SUCCESS
-      SpcInfo            => NULL()
-
-#if defined( NC_DIAG )
-      ! Are certain diagnostics turned on?
-      Archive_DryDepChm       = ASSOCIATED( State_Diag%DryDepChm ) .OR.
-     &                          ASSOCIATED( State_Diag%DryDep )
-      Archive_AerSurfAreaDust = ASSOCIATED( State_Diag%AerSurfAreaDust )
-      Archive_AODDust         = ASSOCIATED( State_Diag%AODDust )
-      Archive_AODDustWL1      = ASSOCIATED( State_Diag%AODDustWL1 )
-      Archive_AODDustWL2      = ASSOCIATED( State_Diag%AODDustWL2 )
-      Archive_AODDustWL3      = ASSOCIATED( State_Diag%AODDustWL3 )
-      Archive_AOD             = Archive_AODDust 
-     &                     .OR. Archive_AODDustWL1 
-     &                     .OR. Archive_AODDustWL2 
-     &                     .OR. Archive_AODDustWL3
-#endif
+      RC      =  GC_SUCCESS
+      ErrMsg  =  ''
+      ThisLoc =  '-> at INIT_DUST (in module GeosCore/dust_mod.F)'
+      SpcInfo => NULL()
 
       !=================================================================
       ! INITIALIZATION SECTION FOR STANDARD GEOS-CHEM SIMULATION
@@ -2724,8 +2725,9 @@
       IF ( Input_Opt%LDSTUP ) THEN
          IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or.  
      &        id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
-            CALL ERROR_STOP( 'Dust uptake species are undefined!', 
-     &                       'INIT_DUST (GeosCore/dust_mod.F'      )
+            ErrMsg = 'Dust uptake species are undefined!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
       ENDIF
 

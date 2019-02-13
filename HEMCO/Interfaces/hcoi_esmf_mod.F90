@@ -472,8 +472,10 @@ CONTAINS
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%BYNCY, 'BYNCY', __RC__ )
 
+#if defined( MODEL_GEOS )
       ! Get pointers to fields
       CALL HCO_Imp2Ext ( am_I_Root, HcoState, ExtState%LFR, 'LFR', __RC__ )
+#endif
 
       ! Return success
       RC = HCO_SUCCESS 
@@ -634,6 +636,7 @@ CONTAINS
 
       ENDIF ! DoUse
 
+
       ! Return success
       RETURN_(ESMF_SUCCESS)      
 
@@ -652,7 +655,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE HCO_Imp2Ext2R( am_I_Root, HcoState, ExtDat, FldName, RC )
+      SUBROUTINE HCO_Imp2Ext2R( am_I_Root, HcoState, ExtDat, FldName, RC, Fld )
 !
 ! !USES:
 !
@@ -667,6 +670,7 @@ CONTAINS
       TYPE(HCO_State),     POINTER         :: HcoState
       TYPE(ExtDat_2R),     POINTER         :: ExtDat
       INTEGER,             INTENT(INOUT)   :: RC
+      REAL(hp), OPTIONAL,  INTENT(IN)      :: Fld(HcoState%NX,HcoState%NY)
 !
 ! !REVISION HISTORY:
 !  08 Feb 2016 - C. Keller - Initial version
@@ -680,6 +684,7 @@ CONTAINS
       CHARACTER(LEN=255)           :: MSG
       INTEGER                      :: STAT
       REAL,             POINTER    :: Ptr2D(:,:)   => NULL()
+      LOGICAL                      :: Filled
 
       ! ================================================================
       ! HCO_Imp2Ext2R begins here
@@ -688,11 +693,14 @@ CONTAINS
       ! For MAPL/ESMF error handling (defines Iam and STATUS)
       __Iam__('HCO_Imp2Ext2R (HCOI_ESMF_MOD.F90)')
 
+      ! Init
+      Filled = .FALSE.
+
       ! Only do if being used...
       IF ( ExtDat%DoUse ) THEN
 
          ASSERT_( ASSOCIATED(HcoState%IMPORT) )
-         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), __RC__ )
+         CALL MAPL_GetPointer( HcoState%IMPORT, Ptr2D, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
 
          CALL HCO_ArrAssert( ExtDat%Arr, HcoState%NX, HcoState%NY, STAT )
          ASSERT_(STAT==HCO_SUCCESS)
@@ -702,12 +710,24 @@ CONTAINS
             WHERE( Ptr2D /= MAPL_UNDEF )
                ExtDat%Arr%Val = Ptr2D
             END WHERE
+            Filled = .TRUE.
+         ELSE
+            IF ( PRESENT(Fld) ) THEN
+               ExtDat%Arr%Val = Fld 
+               Filled = .TRUE.
+            ENDIF
          ENDIF
          Ptr2D => NULL()
 
+         ! Error check
+         IF ( .NOT. Filled ) THEN
+            CALL HCO_ERROR(HcoState%Config%Err,'Cannot fill '//TRIM(FldName),RC)
+            ASSERT_(.FALSE.)
+         ENDIF
+
          ! Verbose
          IF ( HCO_IsVerb(HcoState%Config%Err,2) .AND. am_I_Root ) THEN
-            CALL HCO_MSG('Passed from import to ExtState: '//TRIM(FldName))
+            CALL HCO_MSG(HcoState%Config%Err,'Passed from import to ExtState: '//TRIM(FldName))
          ENDIF
 
       ENDIF ! DoUse

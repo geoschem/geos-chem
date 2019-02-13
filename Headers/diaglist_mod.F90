@@ -368,6 +368,7 @@ CONTAINS
           ENDIF
        ENDIF
 
+#if !defined( MODEL_GEOS )  
        !====================================================================
        ! Add some extra error checks for collections that are in the 
        ! collection name list (and therefore will be archived)
@@ -509,7 +510,7 @@ CONTAINS
              CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
              RETURN
           ENDIF
-  
+
           ! Throw an error if we cannot find the gridcomp name 
           ! (e.g. "'GIGCchem',").  GCHP will choke if this isn't found.
           G = INDEX( Line, "'GIGCchem'," ) 
@@ -561,6 +562,7 @@ CONTAINS
              RETURN
           ENDIF
        ENDIF
+#endif
 
        !====================================================================
        ! Add unique diagnostic names to diag list
@@ -569,7 +571,7 @@ CONTAINS
        ! Skip line if GIGCchem not present
        ! GEOS-Chem is names 'GEOSCHEMCHEM' on NCCS discover,
        ! scan accordingly (ckeller, 12/29/17)
-#if defined( DISCOVER )
+#if defined( MODEL_GEOS )
        IF ( INDEX( Line, 'GEOSCHEMCHEM' ) .le. 0 ) CYCLE
 #else
        IF ( INDEX( Line, 'GIGCchem' ) .le. 0 ) CYCLE
@@ -1194,7 +1196,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_DiagList( am_I_Root, DiagList, substr, found, RC )
+  SUBROUTINE Check_DiagList( am_I_Root, DiagList, substr, found, RC, exact )
 !
 ! !USES:
 !
@@ -1205,6 +1207,7 @@ CONTAINS
     LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
     TYPE(DgnList),     INTENT(IN)  :: DiagList    ! Diagnostic list object
     CHARACTER(LEN=*),  INTENT(IN)  :: substr      ! Substring
+    LOGICAL,           OPTIONAL    :: exact       ! Force exact name match?
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1220,26 +1223,77 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
+    LOGICAL                :: doExactMatch
+    INTEGER                :: matchInd
+    INTEGER                :: matchLen
+
+    ! Strings
+    CHARACTER(LEN=255)     :: thisLoc
+    CHARACTER(LEN=255)     :: substr_AllCaps
+    CHARACTER(LEN=255)     :: currentName_AllCaps
+
+    ! Pointers
     TYPE(DgnItem), POINTER :: current
-    CHARACTER(LEN=255)     :: thisLoc, substr_AllCaps, currentName_AllCaps
 
     ! Initialize
-    thisLoc = 'Check_DiagList (diaglist_mod.F90)'
-    found = .FALSE.
+    RC      = GC_SUCCESS
+    thisLoc = ' -> at Check_DiagList (in module Headers/diaglist_mod.F90)'
+    found   = .FALSE.
+
+    ! Get the optional exactMatch argument, whichg determines
+    ! if we should force an exact name match or not (bmy, 10/29/18)
+    IF ( PRESENT( exact ) ) THEN
+       doExactMatch = exact
+    ELSE
+       doExactMatch = .FALSE.
+    ENDIF
 
     ! Convert strings to uppercase for comparison
     substr_AllCaps = To_Uppercase( TRIM( substr ) )
 
+    ! Get the length of subStr_AllCaps excluding whitespace
+    matchLen       = LEN_TRIM( subStr_AllCaps )
+
     ! Search for name in list
     current => DiagList%head
     DO WHILE ( ASSOCIATED( current ) )
+
+       ! Name of the diagnostic at this point in the linked list
        currentName_AllCaps = To_Uppercase( current%name )
-       IF ( INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) ) > 0 ) THEN
-          found = .TRUE.
-          EXIT
+
+       ! Test if the substring matches all or part of the diagnostic name
+       matchInd = INDEX( currentName_AllCaps, TRIM( substr_AllCaps ) )
+
+       ! Determine if we need to have an exact or partial match
+       IF ( doExactMatch ) THEN
+
+          ! Exact match: substr_AllCaps matches a sequence of characters
+          ! starting with the first character of currentName_AllCaps.
+          ! AND has the same trimmed length as currentName_AllCaps
+          IF ( ( matchInd == 1                               )   .and.       &
+               ( matchLen == LEN_TRIM( currentName_AllCaps ) ) ) THEN
+             found = .TRUE.
+             EXIT
+          ENDIF
+
+       ELSE
+
+          ! Partial match: substr_AllCaps matches a sequence of characters
+          ! somewhere within currentName_AllCaps (but not necessarily
+          ! starting from the beginning).
+          IF ( matchInd > 0 ) THEN
+             found = .TRUE.
+             EXIT
+          ENDIF
+         
        ENDIF
+
+       ! Move to next diagnostic in the linked list
        current => current%next    
     ENDDO
+
+    ! Free pointer
     current => NULL()
 
   END SUBROUTINE Check_DiagList

@@ -35,8 +35,12 @@
       PUBLIC  :: CLEANUP_PRESSURE
 
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       PUBLIC  :: Accept_External_Pedge
+#endif
+
+#if defined( MODEL_WRF )
+      PUBLIC  :: Accept_External_ApBp
 #endif
 !
 ! !REMARKS:
@@ -103,10 +107,88 @@
       REAL(fp), ALLOCATABLE :: PFLT_WET(:,:)          ! "Floating" wet sfc pres
       REAL(fp), ALLOCATABLE :: AP_FULLGRID(:)         ! "A" term for full grid
       REAL(fp), ALLOCATABLE :: BP_FULLGRID(:)         ! "B" term for full grid
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       REAL(fp), ALLOCATABLE :: EXTERNAL_PEDGE(:,:,:)  ! Pressure edges from 
                                                       !  external grid
 #endif
+
+#if defined( MODEL_GEOS )
+      REAL(fp)              :: a132_loc(133), b132_loc(133)
+
+! GEOS-5 132 levels (from /src/GMAO_Shared/GMAO_hermes/m_set_eta.F90
+! --------------
+       data a132_loc /  
+     & 1.000000,     1.996276,     3.093648,     4.651099,     
+     &  6.804155,     9.711212,     13.553898,    18.536953, 
+     & 24.887674,    32.854966,    42.708057,    54.734916,    
+     & 69.240493,    86.544776,    106.980758,   130.892382,
+     & 158.632424,   190.560538,   227.041195,   268.441904,   
+     & 315.131439,   367.478204,   425.848769,   490.606509,
+     & 562.110455,   640.714290,   726.765342,   820.603888,   
+     & 922.562490,   1032.965616,  1152.128995,  1280.359406,
+     & 1417.954457,  1565.202880,  1722.383803,  1889.767115,  
+     & 2067.613829,  2256.175598,  2455.695564,  2666.408361,
+     & 2888.539866,  3122.308425,  3367.924596,  3625.591648,  
+     & 3895.506041,  4177.787642,  4472.464900,  4779.536600,
+     & 5098.971133,  5430.705281,  5774.647623,  6130.914868,  
+     & 6500.271455,  6883.621876,  7281.985387,  7695.829790,
+     & 8126.006088,  8573.341452,  9039.303976,  9523.598485, 
+     & 10024.837122, 10541.370406, 11071.225963, 11612.410025,
+     & 12161.636274, 12714.691534, 13270.207397, 13824.594107, 
+     & 14373.151226, 14914.405313, 15444.869700, 15960.611311,
+     & 16459.769620, 16939.268383, 17396.217121, 17828.450893, 
+     & 18233.600515, 18609.343488, 18953.501254, 19264.447677,
+     & 19539.848583, 19778.217887, 19977.939176, 20137.018678, 
+     & 20254.734748, 20328.875760, 20358.523606, 20342.231101,
+     & 20278.589963, 20166.744330, 20004.982477, 19792.792832, 
+     & 19528.424768, 19211.380327, 18840.138412, 18414.132983,
+     & 17933.325139, 17400.426408, 16819.657745, 16195.578563, 
+     & 15532.946677, 14837.558610, 14115.393726, 13372.886551,
+     & 12616.479397, 11852.696266, 11087.800514, 10327.790957, 
+     & 9578.207359,  8844.157660,  8129.832058,  7440.098773, 
+     & 6777.003948,  6143.217998,  5541.186971,  4972.725810,  
+     & 4438.905073,  3940.077056,  3475.984433,  3045.886238,
+     & 2648.697264,  2283.946319,  1951.862407,  1652.526827,  
+     & 1385.902714,  1151.874101,  950.288155,   780.991556, 
+     & 643.875906,   538.919476,   466.225293,   426.071190,   
+     & 0.000000      /
+
+       data b132_loc /  
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000000,
+     & 0.000000, 0.000000, 0.000000, 0.000000, 
+     & 0.000000, 0.000000, 0.000000, 0.000007,
+     & 0.000024, 0.000059, 0.000112, 0.000198, 
+     & 0.000339, 0.000560, 0.000886, 0.001347,
+     & 0.001984, 0.002845, 0.003955, 0.005356, 
+     & 0.007104, 0.009223, 0.011758, 0.014755,
+     & 0.018243, 0.022264, 0.026854, 0.032044, 
+     & 0.037871, 0.044366, 0.051561, 0.059484,
+     & 0.068168, 0.077639, 0.087925, 0.099055, 
+     & 0.111049, 0.123939, 0.137748, 0.152499,
+     & 0.168220, 0.184930, 0.202659, 0.221424, 
+     & 0.241254, 0.262166, 0.284188, 0.307337,
+     & 0.331578, 0.356790, 0.382792, 0.409444, 
+     & 0.436599, 0.464098, 0.491782, 0.519487,
+     & 0.547056, 0.574335, 0.601181, 0.627461, 
+     & 0.653056, 0.677861, 0.701765, 0.724759,
+     & 0.746767, 0.767710, 0.787535, 0.806224, 
+     & 0.823790, 0.840276, 0.855742, 0.870260,
+     & 0.883905, 0.896733, 0.908781, 0.920085, 
+     & 0.930681, 0.940600, 0.949868, 0.958500,
+     & 0.966498, 0.973850, 0.980526, 0.986474, 1.000000 /
+#endif
+
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -240,6 +322,9 @@
       ! SET_FLOATING_PRESSURES begins here!
       !=================================================================
 
+      ! Assume success
+      RC = GC_SUCCESS
+
       !! DEBUGGING (ewl)
       !PRINT *, " "
       !PRINT *, "In SET_FLOATING_PRESSURES"
@@ -329,7 +414,7 @@
 !------------------------------------------------------------------------------
 !BOC
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       ! Pressure [hPa] at bottom edge of level L (see documentation header)
       ! Taken from the GCM fields
       PEDGE = EXTERNAL_PEDGE(I,J,L)
@@ -608,7 +693,7 @@
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BP_FULLGRID' )
       BP = 0e+0_fp
 
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       ALLOCATE( EXTERNAL_PEDGE( IIPAR, JJPAR, LLPAR+1 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'EXTERNAL_PEDGE' )
       EXTERNAL_PEDGE = 0e+0_fp
@@ -722,9 +807,24 @@
 
 #else
 
+#if defined( MODEL_GEOS )
+      !-----------------------------------------------------------------
+      ! 132 level grid
+      !-----------------------------------------------------------------
+    
+      IF ( LLPAR == 132 ) THEN
+         DO L=1,LLPAR+1
+            ! Ap [hPa] for 132 levels (133 edges)
+            AP(L) = a132_loc(LLPAR+2-L)/100.0
+            ! Bp [unitless] for 132 levels (133 edges)
+            BP(L) = b132_loc(LLPAR+2-L)
+         ENDDO
+      ELSE
+#endif
+
       !-----------------------------------------------------------------
       ! 72 level grid
-      !-----------------------------------------------------------------
+      !----------------------------------------------------------------- 
 
       ! Ap [hPa] for 72 levels (73 edges)
       AP = (/ 0.000000d+00, 4.804826d-02, 6.593752d+00, 1.313480d+01,
@@ -767,11 +867,15 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
-      
+     
+#if defined( MODEL_GEOS )
+      ENDIF
+#endif
+
 #endif
       
-#if !defined( ESMF_ ) 
-      ! Echo info to std output (skip if using ESMF interface to GEOS-5 GCM)
+#if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
+      ! Echo info to std output (skip if interfacing with external models)
       IF ( am_I_Root ) THEN
          WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
          WRITE( 6, '(a,/)' ) 'V E R T I C A L   G R I D   S E T U P'
@@ -812,14 +916,13 @@
       IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
       IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
       IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
       IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
       END SUBROUTINE CLEANUP_PRESSURE
 !EOC
-!#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-#if defined( ESMF_ )
+#if defined( ESMF_ ) || defined( MODEL_ )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -869,6 +972,62 @@
       RC             = GC_SUCCESS
       
       END SUBROUTINE Accept_External_Pedge
+!EOC
+#endif
+#if defined ( MODEL_WRF )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Accept_External_ApBp
+!
+! !DESCRIPTION: Subroutine ACCEPT\_EXTERNAL\_ApBp sets the GEOS-Chem
+!  hybrid grid AP, BP values with values obtained from an external model,
+!  such as the WRF model.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Accept_External_ApBp( am_I_Root, ApIn, BpIn, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE CMN_SIZE_MOD,      ONLY : LLPAR
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on root CPU?
+      REAL(fp),       INTENT(IN)  :: ApIn( LLPAR+1 ) ! "A" term for hybrid grid
+      REAL(fp),       INTENT(IN)  :: BpIn( LLPAR+1 ) ! "B" term for hybrid grid
+!
+! !OUTPUT ARGUMENTS:
+!
+      INTEGER,        INTENT(OUT) :: RC              ! Success or failure?
+!
+! !REMARKS:
+!  This routine is a setter for AP, BP.  It allows us to keep the
+!  AP, BP array PRIVATE to this module, which is good programming
+!  practice.
+!
+!  For WRF-GC, you need to enable the v3.9+ hybrid-sigma vertical coordinate system
+!  in the WRF model. Set hybrid_opt = 2 in &dynamics, and ./configure -hyb.
+!  Like WRF-GC itself, hybrid-sigma grids are experimental in WRF 3.9+.
+!
+! !REVISION HISTORY:
+!  17 Aug 2018 - H.P. Lin    - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+      AP             = ApIn
+      BP             = BpIn
+
+      ! Return successfully
+      RC             = GC_SUCCESS
+
+      END SUBROUTINE Accept_External_ApBp
 !EOC
 #endif
       END MODULE PRESSURE_MOD

@@ -43,6 +43,7 @@ MODULE FlexChem_Mod
 !                              us remove arrays in CMN_O3_SIZE_mod.F
 !  29 Dec 2017 - C. Keller   - Make HSAVE_KPP public (needed for GEOS-5 restart)
 !  24 Jan 2018 - E. Lundgren - Pass error handling up if RC is GC_FAILURE
+!  11 Oct 2018 - M. Sulprizio- Move HSAVE_KPP to State_Chm, rename as KPPHvalue
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -51,19 +52,24 @@ MODULE FlexChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH, id_HO2, id_O3P, id_O1D, id_CH4
+#if defined( MODEL_GEOS )
+  INTEGER               :: id_O3
+  INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2, id_DHPCARP
+  INTEGER               :: id_DIBOO,id_ETO2, id_HC5OO, id_IEPOXOO
+  INTEGER               :: id_INPN, id_ISNOOA, id_ISNOOB, id_ISNOHOO, id_LIMO2
+  INTEGER               :: id_MAOPO2, id_MO2, id_MRO2, id_PIO2, id_PO2
+  INTEGER               :: id_PRNI, id_R4NI, id_R4O2, id_RIO2, id_TRO2
+  INTEGER               :: id_VRO2, id_XRO2
+#endif
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
   LOGICAL               :: Do_ND43
-  LOGICAL               :: Archive_OHconcAfterchem
-  LOGICAL               :: Archive_HO2concAfterchem
-  LOGICAL               :: Archive_O1DconcAfterchem
-  LOGICAL               :: Archive_O3PconcAfterchem
-  LOGICAL               :: Archive_Prod
-  LOGICAL               :: Archive_Loss
-  LOGICAL               :: Archive_JVal
-  LOGICAL               :: Archive_JNoon
+#if defined( MODEL_GEOS )
+  LOGICAL               :: Archive_O3concAfterchem
+  LOGICAL               :: Archive_RO2concAfterchem
+#endif
 
   ! SAVEd scalars
   INTEGER,  SAVE        :: PrevDay   = -1
@@ -71,7 +77,6 @@ MODULE FlexChem_Mod
   
   ! Arrays
   INTEGER,  ALLOCATABLE         :: ND65_KPP_Id(:      )  ! Indices for ND65 bpch diag
-  REAL(fp), ALLOCATABLE, PUBLIC :: HSAVE_KPP  (:,:,:  )  ! H-value for Rosenbrock solver
   REAL(f4), ALLOCATABLE         :: JvCountDay (:,:,:  )  ! For daily   avg of J-values
   REAL(f4), ALLOCATABLE         :: JvCountMon (:,:,:  )  ! For daily   avg of J-values
   REAL(f4), ALLOCATABLE         :: JvSumDay   (:,:,:,:)  ! For monthly avg of J-values
@@ -119,6 +124,9 @@ CONTAINS
     USE GCKPP_Global
     USE GCKPP_Rates,          ONLY : UPDATE_RCONST, RCONST
     USE GCKPP_Initialize,     ONLY : Init_KPP => Initialize
+#if defined( MODEL_GEOS )
+    USE GcKPP_Util,           ONLY : Get_OHreactivity
+#endif
     USE GC_GRID_MOD,          ONLY : GET_YMID
     USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
@@ -233,7 +241,12 @@ CONTAINS
     INTEGER                :: ISTATUS    (                  20               )
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
+#if defined( MODEL_GEOS )
+    REAL(f4)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+    REAL(f4)               :: GLOB_JVAL  (IIPAR,JJPAR,LLPAR,JVN_             )
+#else
     REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+#endif
     REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
 
     ! For tagged CO saving
@@ -244,6 +257,13 @@ CONTAINS
 
     ! For testing only, may be removed later (mps, 4/26/16)
     LOGICAL                :: DO_HETCHEM
+
+#if defined( MODEL_GEOS )
+    ! OH reactivity
+    LOGICAL                :: DoOHreact
+    REAL(fp)               :: OHreact
+    REAL(dp)               :: Vloc(NVAR), Aout(NREACT)
+#endif
 
     !=======================================================================
     ! Do_FlexChem begins here!
@@ -281,11 +301,26 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( Archive_Loss  ) State_Diag%Loss  = 0.0_f4
-    IF ( Archive_Prod  ) State_Diag%Prod  = 0.0_f4
-    IF ( Archive_JVal  ) State_Diag%JVal  = 0.0_f4
-    IF ( Archive_JNoon ) State_Diag%JNoon = 0.0_f4
-    
+    IF ( State_Diag%Archive_Loss  ) State_Diag%Loss  = 0.0_f4
+    IF ( State_Diag%Archive_Prod  ) State_Diag%Prod  = 0.0_f4
+    IF ( State_Diag%Archive_JVal  ) State_Diag%JVal  = 0.0_f4
+    IF ( State_Diag%Archive_JNoon ) State_Diag%JNoon = 0.0_f4
+
+#if defined( MODEL_GEOS )
+    GLOB_RCONST = 0.0_f4
+    GLOB_JVAL   = 0.0_f4
+   
+    ! testing only
+    IF ( Input_Opt%NN_RxnRates > 0 ) State_Diag%RxnRates(:,:,:,:) = 0.0 
+
+    ! OH reactivity
+    DoOHreact = .FALSE.
+    IF ( State_Diag%Archive_OHreactivity ) THEN
+       DoOHreact = .TRUE.
+       State_Diag%OHreactivity(:,:,:) = 0.0
+    ENDIF
+#endif 
+
     !=======================================================================
     ! Get concentrations of aerosols in [kg/m3] 
     ! for FAST-JX and optical depth diagnostics
@@ -507,6 +542,13 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FlexChem: after FAST_JX' )
     ENDIF
 
+#if defined( MODEL_GEOS )
+    ! Init diagnostics
+    IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+       State_Diag%KppError(:,:,:) = 0.0
+    ENDIF
+#endif
+
     !=======================================================================
     ! Set up integration convergence conditions and timesteps
     ! (cf. M. J. Evans)
@@ -606,6 +648,9 @@ CONTAINS
     !$OMP PRIVATE  ( I,        J,        L,       N,     YLAT               )&
     !$OMP PRIVATE  ( SO4_FRAC, IERR,     RCNTRL,  START, FINISH, ISTATUS    )&
     !$OMP PRIVATE  ( RSTATE,   SpcID,    KppID,   F,     P                  )&
+#if defined( MODEL_GEOS )
+    !$OMP PRIVATE  ( Vloc,     Aout, OHreact                                )&
+#endif
     !$OMP PRIVATE  ( LCH4,     PCO_TOT,  PCO_CH4, PCO_NMVOC                 ) &
     !$OMP REDUCTION( +:ITIM                                                 )&
     !$OMP REDUCTION( +:RTIM                                                 )&
@@ -621,7 +666,7 @@ CONTAINS
     DO I = 1, IIPAR
 
        !====================================================================
-       ! For safety's sake, initialize certain variables for each grid
+       ! For safety sake, initialize certain variables for each grid
        ! box (I,J,L), whether or not chemistry will be done there.
        !====================================================================
        HET       = 0.0_dp            ! Het chem array
@@ -668,8 +713,14 @@ CONTAINS
        ! J-value diagnostics are defined for all levels in the column.
        ! This modification was validated by a geosfp_4x5_standard
        ! difference test. (bmy, 1/18/18)
+       !
+       ! Update SUNCOSmid threshold from 0 to cos(98 degrees) since
+       ! fast-jx allows for SZA down to 98 degrees. This is important in
+       ! the stratosphere-mesosphere where sunlight still illuminates at 
+       ! high altitudes if the sun is below the horizon at the surface
+       ! (update submitted by E. Fleming (NASA), 10/11/2018)
        !====================================================================
-       IF ( State_Met%SUNCOSmid(I,J) > 0.e+0_fp ) THEN
+       IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
 
           ! Get the fraction of H2SO4 that is available for photolysis
           ! (this is only valid for UCX-enabled mechanisms)
@@ -691,9 +742,14 @@ CONTAINS
           ! Loop over the FAST-JX photolysis species
           DO N = 1, JVN_
 
-             ! Copy photolysis rate from FAST_JX into KPP's PHOTOL array
+             ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
              PHOTOL(N) = ZPJ(L,N,I,J)
-                
+             
+#if defined( MODEL_GEOS )
+             ! Archive in local array
+             GLOB_JVAL(I,J,L,N) = PHOTOL(N)
+#endif
+
 #if defined( NC_DIAG )
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
@@ -745,14 +801,15 @@ CONTAINS
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
-                IF ( Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
+                IF ( State_Diag%Archive_JVal ) THEN
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)    &
                                             + PHOTOL(N)
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
-                IF ( Archive_JNoon .and. State_Met%IsLocalNoon(I,J) ) THEN
+                IF ( State_Diag%Archive_JNoon .and. &
+                     State_Met%IsLocalNoon(I,J) ) THEN
                    State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
                                              + ( PHOTOL(N) * JNoon_Fac )
                 ENDIF
@@ -855,7 +912,7 @@ CONTAINS
        ENDIF
 
        !==================================================================
-       ! Update KPP's rates
+       ! Update KPP rates
        !==================================================================
 
        ! VAR and FIX are chunks of array C (mps, 2/24/16)
@@ -869,6 +926,16 @@ CONTAINS
 
        ! Update the array of rate constants
        CALL Update_RCONST( )
+
+#if defined( MODEL_GEOS )
+       ! Archive 
+       CALL Fun ( VAR, FIX, RCONST, Vloc, Aout=Aout )
+       IF ( Input_Opt%NN_RxnRates > 0 ) THEN
+          DO N = 1, Input_Opt%NN_RxnRates
+             State_Diag%RxnRates(I,J,L,N) = Aout(Input_Opt%RxnRates_IDs(N))
+          ENDDO
+       ENDIF
+#endif
 
 !#if defined( DEVEL )
 !       ! Get time when rate computation finished
@@ -891,7 +958,7 @@ CONTAINS
        RCNTRL    = 0.0_fp
 
        ! Starting value for integration time step
-       RCNTRL(3) = HSAVE_KPP(I,J,L)
+       RCNTRL(3) = State_Chm%KPPHvalue(I,J,L)
 
        !=================================================================
        ! Integrate the box forwards
@@ -910,6 +977,16 @@ CONTAINS
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
+
+#if defined( MODEL_GEOS )
+       ! Print grid box indices to screen if integrate failed
+       IF ( IERR < 0 ) THEN
+          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+          IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+             State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+          ENDIF
+       ENDIF
+#endif
 
 !#if defined( DEVEL )
 !       ! Get time when integrator ends
@@ -943,7 +1020,20 @@ CONTAINS
           IF ( IERR < 0 ) THEN 
              WRITE(6,*) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)') 'Integrator error code :',IERR
+#if defined( MODEL_GEOS )
+             IF ( Input_Opt%KppStop ) THEN
+                CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+             ! Revert to start values
+             ELSE
+                VAR = C(1:NVAR)
+                FIX = C(NVAR+1:NSPEC)
+             ENDIF
+             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+                State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+             ENDIF
+#else
              CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+#endif
           ENDIF
             
        ENDIF
@@ -953,9 +1043,9 @@ CONTAINS
        C(NVAR+1:NSPEC) = FIX(:)
 
        ! Save for next integration time step
-       HSAVE_KPP(I,J,L) = RSTATE(Nhnew)
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-       ! Save rate constants in global array
+       ! Save rate constants in global array (not used)
        GLOB_RCONST(I,J,L,:) = RCONST(:)
 
        !====================================================================
@@ -1089,7 +1179,7 @@ CONTAINS
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
-       IF ( Archive_Loss ) THEN
+       IF ( State_Diag%Archive_Loss ) THEN
           DO F = 1, State_Chm%nLoss
              KppID                    = State_Chm%Map_Loss(F)
              State_Diag%Loss(I,J,L,F) = VAR(KppID) / DT
@@ -1097,7 +1187,7 @@ CONTAINS
        ENDIF
 
        ! Chemical production of species or families [molec/cm3/s]
-       IF ( Archive_Prod ) THEN
+       IF ( State_Diag%Archive_Prod ) THEN
           DO F = 1, State_Chm%nProd
              KppID                    = State_Chm%Map_Prod(F)
              State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
@@ -1105,6 +1195,18 @@ CONTAINS
        ENDIF
 #endif
 
+#if defined( MODEL_GEOS )
+       !==============================================================
+       ! Write out OH reactivity
+       ! The OH reactivity is defined here as the inverse of its life-
+       ! time. In a crude ad-hoc approach, manually add all OH reactants
+       ! (ckeller, 9/20/2017)
+       !==============================================================
+       IF ( DoOHreact ) THEN
+          CALL Get_OHreactivity ( C, RCONST, OHreact )
+          State_Diag%OHreactivity(I,J,L) = OHreact
+       ENDIF
+#endif
 
     ENDDO
     ENDDO
@@ -1230,6 +1332,20 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
+#if defined( MODEL_GEOS )
+    ! Archive all needed reaction rates in state_diag
+    IF ( Input_Opt%NN_RxnRconst > 0 ) THEN
+       DO N = 1, Input_Opt%NN_RxnRconst
+          State_Diag%RxnRconst(:,:,:,N) = GLOB_RCONST(:,:,:,Input_Opt%RxnRconst_IDs(N))
+       ENDDO
+    ENDIF
+    IF ( Input_Opt%NN_Jvals > 0 ) THEN
+       DO N = 1, Input_Opt%NN_Jvals
+          State_Diag%JValIndiv(:,:,:,N) = GLOB_JVAL(:,:,:,Input_Opt%Jval_IDs(N))
+       ENDDO
+    ENDIF
+#endif
+
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
 
@@ -1253,6 +1369,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_Mod
+    USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
@@ -1311,6 +1428,9 @@ CONTAINS
     ! Diag_OH_HO2_O1D_O3P begins here!
     !=======================================================================
 
+    ! Assume success
+    RC = GC_SUCCESS
+
     ! Point to the array of species concentrations
     AirNumDen => State_Met%AirNumDen
     Spc       => State_Chm%Species
@@ -1318,10 +1438,26 @@ CONTAINS
     ! Zero the netCDF diagnostic arrays (if activated) above the 
     ! tropopause or mesopause to avoid having leftover values
     ! from previous timesteps
-    IF ( Archive_OHconcAfterChem  ) State_Diag%OHconcAfterChem  = 0.0_f4
-    IF ( Archive_HO2concAfterChem ) State_Diag%HO2concAfterChem = 0.0_f4
-    IF ( Archive_O1DconcAfterChem ) State_Diag%O1DconcAfterChem = 0.0_f4
-    IF ( Archive_O3PconcAfterChem ) State_Diag%O3PconcAfterChem = 0.0_f4
+#if defined( MODEL_GEOS )
+    IF ( State_Diag%Archive_O3concAfterChem  ) THEN
+       State_Diag%O3concAfterChem  = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_RO2concAfterChem ) THEN
+       State_Diag%RO2concAfterChem = 0.0_f4
+    ENDIF
+#endif
+    IF ( State_Diag%Archive_OHconcAfterChem  ) THEN
+       State_Diag%OHconcAfterChem  = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_HO2concAfterChem ) THEN
+       State_Diag%HO2concAfterChem = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
+       State_Diag%O1DconcAfterChem = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
+       State_Diag%O3PconcAfterChem = 0.0_f4
+    ENDIF
 
 !$OMP PARALLEL DO        &
 !$OMP DEFAULT( SHARED )  &
@@ -1352,9 +1488,97 @@ CONTAINS
 
 #if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
-            IF ( Archive_OHconcAfterChem ) THEN
+            IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
             ENDIF
+#if defined( MODEL_GEOS )
+            IF ( State_Diag%Archive_O3concAfterChem ) THEN
+               State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
+            ENDIF
+            IF ( Archive_RO2concAfterChem ) THEN
+               IF ( id_A3O2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) +  Spc(I,J,L,id_A3O2)
+               IF ( id_ATO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
+               IF ( id_B3O2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
+               IF ( id_BRO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
+               IF ( id_DHPCARP > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DHPCARP)
+               IF ( id_DIBOO > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DIBOO)
+               IF ( id_ETO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
+               IF ( id_HC5OO > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HC5OO)
+               IF ( id_HO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
+               IF ( id_IEPOXOO > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXOO)
+               IF ( id_INPN > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INPN)
+               IF ( id_ISNOOA > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOA)
+               IF ( id_ISNOOB > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOB)
+               IF ( id_ISNOHOO > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOHOO)
+               IF ( id_LIMO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
+               IF ( id_MAOPO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MAOPO2)
+               IF ( id_MO2 > 0  ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
+               IF ( id_MRO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MRO2)
+               IF ( id_PIO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
+               IF ( id_PO2 > 0  ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
+               IF ( id_PRNI > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRNI)
+               IF ( id_R4NI > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4NI)
+               IF ( id_R4O2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
+               IF ( id_RIO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_RIO2)
+               IF ( id_TRO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
+               IF ( id_VRO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_VRO2)
+               IF ( id_XRO2 > 0 ) THEN
+                  State_Diag%RO2concAfterChem(I,J,L) = &
+                     State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
+            ENDIF
+#endif
 #endif
 
 
@@ -1376,7 +1600,7 @@ CONTAINS
 
 #if defined( NC_DIAG ) 
             ! HISTORY (aka netCDF diagnostics)
-            IF ( Archive_HO2concAfterChem ) THEN
+            IF ( State_Diag%Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
@@ -1400,7 +1624,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
-               IF ( Archive_O1DconcAfterChem ) THEN
+               IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
                   State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
 #endif
@@ -1422,7 +1646,7 @@ CONTAINS
 
 #if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
-               IF ( Archive_O3PconcAfterChem ) THEN
+               IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
                   State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF
 #endif
@@ -1523,7 +1747,7 @@ CONTAINS
     ! Assume success
     RC       = GC_SUCCESS
 
-    ! Do the following only if it's a full-chemistry simulation
+    ! Do the following only if it is a full-chemistry simulation
     ! NOTE: If future specialty simulations use the KPP solver, 
     ! modify the IF statement accordingly to allow initialization
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1553,6 +1777,36 @@ CONTAINS
     id_O1D                   = Ind_( 'O1D'          )
     id_OH                    = Ind_( 'OH'           ) 
 
+#if defined( MODEL_GEOS )
+    ! ckeller
+    id_O3                    = Ind_( 'O3'           ) 
+    id_A3O2                  = Ind_( 'A3O2'         ) 
+    id_ATO2                  = Ind_( 'ATO2'         ) 
+    id_BRO2                  = Ind_( 'BRO2'         ) 
+    id_DHPCARP               = Ind_( 'DHPCARP'      ) 
+    id_DIBOO                 = Ind_( 'DIBOO'        ) 
+    id_ETO2                  = Ind_( 'ETO2'         ) 
+    id_HC5OO                 = Ind_( 'HC5OO'        ) 
+    id_IEPOXOO               = Ind_( 'IEPOXOO'      ) 
+    id_INPN                  = Ind_( 'INPN'         ) 
+    id_ISNOOA                = Ind_( 'ISNOOA'       ) 
+    id_ISNOOB                = Ind_( 'ISNOOB'       ) 
+    id_ISNOHOO               = Ind_( 'ISNOHOO'      ) 
+    id_LIMO2                 = Ind_( 'LIMO2'        ) 
+    id_MAOPO2                = Ind_( 'MAOPO2'       ) 
+    id_MO2                   = Ind_( 'MO2'          ) 
+    id_MRO2                  = Ind_( 'MRO2'         ) 
+    id_PIO2                  = Ind_( 'PIO2'         ) 
+    id_PO2                   = Ind_( 'PO2'          ) 
+    id_PRNI                  = Ind_( 'PRNI'         ) 
+    id_R4NI                  = Ind_( 'R4NI'         ) 
+    id_R4O2                  = Ind_( 'R4O2'         ) 
+    id_RIO2                  = Ind_( 'RIO2'         ) 
+    id_TRO2                  = Ind_( 'TRO2'         ) 
+    id_VRO2                  = Ind_( 'VRO2'         ) 
+    id_XRO2                  = Ind_( 'XRO2'         ) 
+#endif
+
     ! Set flags to denote if each species is defined
     ok_HO2                   = ( id_HO2 > 0         )
     ok_O1D                   = ( id_O1D > 0         )
@@ -1562,23 +1816,13 @@ CONTAINS
     ! Is the ND43 bpch diagnostic turned on?
     Do_ND43                  = ( Input_Opt%ND43 > 0 ) 
 
-    ! Are the relevant netCDF diagnostics turned on?
-    Archive_OHconcAfterChem  = ASSOCIATED( State_Diag%OHconcAfterChem  )
-    Archive_HO2concAfterChem = ASSOCIATED( State_Diag%HO2concAfterChem )
-    Archive_Loss             = ASSOCIATED( State_Diag%Loss             )
-    Archive_Prod             = ASSOCIATED( State_Diag%Prod             )
-    Archive_JVal             = ASSOCIATED( State_Diag%Jval             )
-    Archive_JNoon            = ASSOCIATED( State_Diag%JNoon            )
-    Archive_O1DconcAfterChem = ASSOCIATED( State_Diag%O1DconcAfterChem )
-    Archive_O3PconcAfterChem = ASSOCIATED( State_Diag%O3PconcAfterChem )
-
     ! Throw an error if certain diagnostics for UCX are turned on,
     ! but the UCX mechanism is not used in this fullchem simulation
     ! NOTE: Maybe eventually move this error check to state_diag_mod.F90
     IF ( .not. Input_Opt%LUCX ) THEN  
        
        ! O1D diagnostic is only used w/ UCX
-       IF ( Archive_O1DconcAfterChem ) THEN
+       IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
           ErrMsg = 'The "O1DconcAfterChem" diagnostic is turned on ' //      &
                    'but the UCX mechanism is not being used!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1586,7 +1830,7 @@ CONTAINS
        ENDIF
 
        ! O3P diagnostic is only used w/ UCX
-       IF ( Archive_O3PconcAfterChem ) THEN
+       IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
           ErrMsg = 'The "O3PconcAfterChem" diagnostic is turned on ' //      &
                    'but the UCX mechanism is not being used!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1596,30 +1840,32 @@ CONTAINS
     ENDIF
 
     ! Should we archive OH, HO2, O1D, O3P diagnostics?
-    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                  .or.            &  
-                                    Archive_OHconcAfterChem  .or.            &
-                                    Archive_HO2concAfterChem .or.            &
-                                    Archive_O1DconcAfterChem .or.            &
-                                    Archive_O3PconcAfterChem                )
+#if defined( MODEL_GEOS )
+    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                             .or. &  
+                                    State_Diag%Archive_O3concAfterChem  .or. &
+                                    State_Diag%Archive_RO2concAfterChem .or. &
+                                    State_Diag%Archive_OHconcAfterChem  .or. &
+                                    State_Diag%Archive_HO2concAfterChem .or. &
+                                    State_Diag%Archive_O1DconcAfterChem .or. &
+                                    State_Diag%Archive_O3PconcAfterChem     )
+#else
+    Do_Diag_OH_HO2_O1D_O3P      = ( Do_ND43                             .or. &  
+                                    State_Diag%Archive_OHconcAfterChem  .or. &
+                                    State_Diag%Archive_HO2concAfterChem .or. &
+                                    State_Diag%Archive_O1DconcAfterChem .or. &
+                                    State_Diag%Archive_O3PconcAfterChem     )
+#endif
 
     !=======================================================================
     ! Allocate arrays
     !=======================================================================
-
-    !-----------------------------------------------------------------------
-    ! For archiving the H value from KPP
-    !-----------------------------------------------------------------------
-    ALLOCATE( HSAVE_KPP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
-    CALL GC_CheckVar( 'flexchem_mod.F90:HSAVE_KPP', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    HSAVE_KPP = 0.d0
 
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
     IF ( nFam > 0 ) THEN
              
-       ! Allocate mapping array for KPP Id's for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
        ALLOCATE( ND65_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'flexchem_mod.F90:ND65_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1686,12 +1932,6 @@ CONTAINS
 
     ! INitialize
     RC = GC_SUCCESS
-
-    IF ( ALLOCATED( HSave_KPP ) ) THEN
-       DEALLOCATE( HSave_KPP, STAT=RC  )
-       CALL GC_CheckVar( 'flexchem_mod.F90:Hsave_Kpp', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
 
     IF ( ALLOCATED( JvCountDay ) ) THEN
        DEALLOCATE( JvCountDay, STAT=RC  )

@@ -325,7 +325,11 @@
 #endif
       REAL(fpp),  PARAMETER :: PTOP       = 0.01e+0_fpp
 
+      ! This #endif below is to close (metfield,grid) choices 
+      ! that specified by many #elif statements above
 #endif
+
+      ! This #endif below is to distinguish between classic and HP
 #endif
 
       !-----------------------------------------------------------------

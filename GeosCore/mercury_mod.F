@@ -52,6 +52,9 @@
       PUBLIC  :: INIT_MERCURY
       PUBLIC  :: EMISSMERCURY
       PUBLIC  :: PARTITIONHG2
+#if defined( NC_DIAG )
+      PUBLIC  :: Reset_Hg_Diags
+#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -77,8 +80,6 @@
       PRIVATE :: GET_Cl
       PRIVATE :: GET_ClO
       PRIVATE :: GET_HOCl
-      
-
 !
 ! !REMARKS:
 !  Nomenclature: 
@@ -359,15 +360,14 @@
 !
 !LL      USE CHEMGRID_MOD,       ONLY : GET_TPAUSE_LEVEL
       USE CMN_SIZE_MOD
-      USE CMN_DIAG_MOD
       USE DAO_MOD,            ONLY : IS_ICE
       USE DAO_MOD,            ONLY : IS_LAND
       USE DAO_MOD,            ONLY : IS_WATER
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HG2_DD
       USE DEPO_MERCURY_MOD,   ONLY : ADD_HgP_DD
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD44
-#endif
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Hg0, AD03_Hg2_O3
       USE DIAG03_MOD,         ONLY : AD03_Hg2_Br,  AD03_Hg2_OH
       USE DIAG03_MOD,         ONLY : AD03_Hg2_BRY,  AD03_Hg2_CLY
@@ -375,9 +375,10 @@
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SS,  LD03
       USE DIAG03_MOD,         ONLY : AD03_Hg2_SSR, ND03 
       USE DIAG03_MOD,         ONLY : AD03_Br
+#endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -573,7 +574,8 @@
       REAL(fp), POINTER  :: T(:,:,:)
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC = 'CHEMMERCURY (mercury_mod.F)'
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
 !
 ! !DEFINED PARAMETERS:
 !
@@ -618,7 +620,7 @@
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 8.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 14.0e-2_fp
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -634,6 +636,8 @@
 
       ! Assume success
       RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = ' -> at ChemMercury (in GeosCore/mercury_mod.F)'
 
       ! Copy values from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
@@ -666,7 +670,6 @@
          FIRST = .FALSE.
       ENDIF
 
-
       !=================================================================
       ! Read monthly mean Br, OH, O3, and J_NO2 fields
       !=================================================================
@@ -680,67 +683,89 @@
          !-----------------------------------------------------------
          ! Some oxidants always required:
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_trop',
-     &        OH_trop, RC)
+     &                    OH_trop,   RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ('Cannot get pointer to GLOBAL_OH_trop',LOC)
+            ErrMsg = 'Cannot get pointer to GLOBAL_OH_trop!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OH_strat',
-     &        OH_strat, RC)
+     &                    OH_strat,  RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ('Cannot get pointerto GLOBAL_OH_strat',LOC)
+            ErrMsg = 'Cannot get pointer to GLOBAL_OH_strat!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_O3', 
-     &        O3,  RC )
+     &                    O3,        RC                           )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_O3', LOC )
+            ErrMsg = 'Cannot get pointer to GLOBAL_O3!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Br and BrO not directly from HEMCO
          CALL GET_GLOBAL_BR( am_I_Root, Input_Opt, State_Met, MONTH, RC)
-         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
-         !-----------------------------------------------------------
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Cannot get pointer to GLOBAL_BR!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
+         IF ( LPRT ) CALL DEBUG_MSG( '### CHEMMERC: a GET_GLOBAL_BR' )
+
+         !-------------------------------------------------------------
          ! Some oxidants only required by certain mechanisms:
          !-------------------------------------------------------------
          IF ( LHALOGENCHEM ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO2', 
      &           HEM_NO2, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO2',LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_NO', 
      &           HEM_NO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_NO', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_trop',
      &           HEM_HO2_trop, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_HO2_trop', 
-     &              LOC )
+               ErrMsg = 'Cannot get pointer to GLOBAL_HO2_trop!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HO2_strat',
      &           HEM_HO2_strat, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer GLOBAL_HO2_strat', 
-     &              LOC )
+               ErrMsg = 'Cannot get pointer to GLOBAL_HO2_strat!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_ClO',
      &           HEM_CLO, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_ClO', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_ClO!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_Cl',
      &           HEM_CL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_Cl', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_NO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -750,7 +775,9 @@
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_HOCl', 
      &           HEM_HOCL, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ('Cannot get pointer to GLOBAL_HOCl',LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_HOCl!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -759,13 +786,17 @@
          IF ( LRED_JNO2 ) THEN
             CALL HCO_GetPtr( am_I_Root, HcoState, 'JNO2', JNO2,  RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to JNO2', LOC )
+               ErrMsg = 'Cannot get pointer to JNO2!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
 
             CALL HCO_GetPtr( am_I_Root, HcoState,'GLOBAL_OA',
      &        HEM_OA, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OA', LOC)
+               ErrMsg = 'Cannot get pointer to GLOBAL_OA!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
             ENDIF
          ENDIF
 
@@ -791,6 +822,8 @@
 
       ! Partition Hg(II) between gas and aerosol
       CALL PARTITIONHG2( am_I_Root, Input_Opt, State_Chm, RC )
+
+      IF ( LPRT ) CALL DEBUG_MSG( 'CHEMMERCURY: before do loop' )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -905,9 +938,9 @@
          !-------------------------------------------------
 
          ! Concentrations of oxidants, molec/cm3
-         C_O3        = GET_O3(   I, J, L,        State_Met )
-         C_OH        = GET_OH(   I, J, L,        State_Met )
-         C_BR        = GET_BR(   I, J, L, C_BRO, State_Met )
+         C_O3        = GET_O3( I, J, L,        State_Met             )
+         C_OH        = GET_OH( I, J, L,        State_Met             )
+         C_BR        = GET_BR( I, J, L, C_BRO, State_Met, State_Diag )
 
          IF ( LHALOGENCHEM ) THEN
             C_NO2       = GET_NO2(  I, J, L, State_Met, HEM_NO(I,J,L),
@@ -1308,15 +1341,19 @@
             IF ( LHGSNOW ) THEN
                DEP_HG2_DRY =  DEP_HG2g_DRY + DEP_HG2p_DRY
                CALL ADD_HG2_SNOWPACK( I, J, N, DEP_HG2_DRY, 
-     &                                         State_Met    )
+     &                                State_Met, State_Chm, State_Diag )
             ENDIF           
 !$OMP END CRITICAL
 
 #if defined( BPCH_DIAG )
             !=================================================================
-            ! ND44 diagnostic: drydep flux of Hg(II) [molec/cm2/s]
+            ! %%%%% ND44 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Dry deposition flux of Hg(II) in molec/cm2/s
             !=================================================================
-            IF ( ( ND44 > 0 .OR. LGTMM ) .AND. (.NOT. LNLPBL) ) THEN
+            IF ( ( ND44 > 0 .OR. LGTMM )  .and. 
+     &           ( .not. LNLPBL        )  .and.
+     &           ( F_PBL > 0.1_fp      ) ) THEN
 
                ! Grid box surface area [cm2]
                AREA_CM2 = GET_AREA_CM2( I, J, L )
@@ -1349,43 +1386,84 @@
      &         AD44(I,J,HgP_Id_List(N),1) + DEP_DRY_FLX
 
             ENDIF
-#endif
 
             !==============================================================
-            ! ND03 diagnostic: Hg(II) production [kg]
+            ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Hg(II) production
+            ! Concentration of Br and BrO
+            ! Loss of Hg2 by seasalt
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
                ! Store chemistry diagnostics only for total species
-               IF ( Hg0_Id_List(N) == ID_HG_TOT) THEN
+               !--------------------------------------------------------------
+               ! Prior to 10/24/18:
+               ! According to Colin Thackray, these are Hg2 diagnostics,
+               ! that should only get updated once per timestep, for the
+               ! total Hg2 species (i.e. category N==1).  Therefore, these
+               ! diagnostics will not archive the tagged Hg2 species.
+               !
+               ! Also, the IF ( Hg0_Id_List(N) == ID_Hg_TOT ) is confusing,
+               ! but in essence it is just testing if N ==1.  Therefore we
+               ! have replaced that with IF ( N==1 ) which is much clearer
+               ! to the reader. (bmy, 10/24/18)
+               !IF ( Hg0_Id_List(N) == ID_Hg_TOT) THEN
+               !--------------------------------------------------------------
+               IF ( N == 1 ) THEN
 
                   ! Net oxidation [kg]
                   NET_OX = GROSS_OX - GROSS_RED
 
+                  ! Production of Hg2 from Hg0 [kg]
                   AD03_Hg2_Hg0(I,J,L,N)  = AD03_Hg2_Hg0(I,J,L,N) 
      &                                     + NET_OX
+
+                  ! Production of Hg2 from Br [kg]
                   AD03_Hg2_Br(I,J,L,N)   = AD03_Hg2_Br(I,J,L,N)   
      &                                     + GROSS_OX_BR 
+
+                  ! Production of Hg2 from OH [kg]
                   AD03_Hg2_OH(I,J,L,N)   = AD03_Hg2_OH(I,J,L,N)   
      &                                     + GROSS_OX_OH
+
+                  ! Production of Hg2 from O3 [kg]
                   AD03_Hg2_O3(I,J,L,N)   = AD03_Hg2_O3(I,J,L,N)   
      &                                     + GROSS_OX_O3
+
+                  ! Production of Hg2 from BrY [kg]
                   AD03_Hg2_BRY(I,J,L,N)  = AD03_Hg2_BRY(I,J,L,N)  
      &                                     + GROSS_OX_BRY
+
+                  ! Production of Hg2 from ClY [kg]
                   AD03_Hg2_CLY(I,J,L,N)  = AD03_Hg2_CLY(I,J,L,N) 
      &                                     + GROSS_OX_CLY
+
+                  ! Production of Hg2 from Br2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,1) = AD03_Hg2_Br_Y(I,J,L,1)
      &                                     + GROSS_OX_BR2
+
+                  ! Production of Hg2 from BrBrO [kg]
                   AD03_Hg2_Br_Y(I,J,L,2) = AD03_Hg2_Br_Y(I,J,L,2)
      &                                     + GROSS_OX_BRBRO
+
+                  ! Production of Hg2 from BrHO2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,3) = AD03_Hg2_Br_Y(I,J,L,3)
      &                                     + GROSS_OX_BRHO2
+
+                  ! Production of Hg2 from BrNO2 [kg]
                   AD03_Hg2_Br_Y(I,J,L,4) = AD03_Hg2_Br_Y(I,J,L,4)
      &                                     + GROSS_OX_BRNO2
+
+                  ! Production of Hg2 from BrClO [kg]
                   AD03_Hg2_Br_Y(I,J,L,5) = AD03_Hg2_Br_Y(I,J,L,5)
      &                                     + GROSS_OX_BRCLO
+
+                  ! Production of Hg2 from BrOH [kg]
                   AD03_Hg2_Br_Y(I,J,L,6) = AD03_Hg2_Br_Y(I,J,L,6)
      &                                     + GROSS_OX_BROH
+
+                  ! Concentrations of Br and BrO [molec/cm3]
                   AD03_Br(I,J,L,1) = AD03_Br(I,J,L,1) + C_BR
                   AD03_Br(I,J,L,2) = AD03_Br(I,J,L,2) + C_BRO
 
@@ -1399,8 +1477,192 @@
                   AD03_Hg2_SSR(I,J,N) = AD03_Hg2_SSR(I,J,N) + K_SALT
                ENDIF
                
-            ENDIF               
+            ENDIF  
+#endif
 
+#if defined( NC_DIAG ) 
+            !===========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Dry deposition flux of Hg(II) in molec/cm2/s
+            !
+            ! NOTE: This is only updated when using the full PBL mixing
+            ! option (aka TURBDAY).  When you use the non-local PBL 
+            ! mixing, option (aka VDIFF), the dry deposition fluxes are 
+            ! applied at the same time the PBL mixing is done.
+            !===========================================================
+            IF ( ( .not. LNLPBL ) .and. ( F_PBL > 0.1_fp ) ) THEN
+
+               ! Grid box surface area [cm2]
+               AREA_CM2 = GET_AREA_CM2( I, J, L )
+
+               ! Archive Hg(0) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or.
+     &              State_Diag%Archive_DryDep    ) THEN
+                  
+                  ! Hg0 species index
+                  NN = Hg0_Id_List(N)
+
+                  ! Amt of Hg(0) lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
+     &                 State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &                 ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+
+               ! Archive Hg(II) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or. 
+     &              State_Diag%Archive_DryDep    ) THEN
+
+                  ! Hg2 species index
+                  NN = Hg2_Id_List(N)
+
+                  ! Amt of Hg(II)g lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG2G_DRY * AVO / ( 1.e-3_fp *
+     &               State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &               ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+
+               ! Archive Hg(0) drydep flux [molec/cm2/s]
+               IF ( State_Diag%Archive_DryDepChm   .or.
+     &              State_Diag%Archive_DryDep    ) THEN
+
+                  ! HgP species index
+                  NN = HgP_Id_List(N)
+
+                  ! Amt of Hg(II)p lost to drydep [molec/cm2/s]
+                  DEP_DRY_FLX  = DEP_HG2P_DRY * AVO / ( 1.e-3_fp *
+     &                State_Chm%SpcData(NN)%Info%emMW_g ) / 
+     &                ( AREA_CM2 * DTCHEM )
+
+                  ! Archive to State_Diag (sum over levels)
+                  State_Diag%DryDepChm(I,J,NN) = 
+     &            State_Diag%DryDepChm(I,J,NN) + DEP_DRY_FLX
+               ENDIF
+            ENDIF
+
+            !===========================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Hg(II) production
+            ! Concentration of Br and BrO
+            ! Loss of Hg2 by seasalt
+            ! 
+            ! Accorrding to Colin Thackray, these are Hg2 diagnostics,
+            ! that should only get updated once per timestep, for the
+            ! total Hg2 species (i.e. category N==1).  Therefore, these
+            ! diagnostics will not archive the tagged Hg2 species.
+            !===========================================================
+            IF ( N == 1 ) THEN
+
+               ! Net oxidation [kg]
+               NET_OX = GROSS_OX - GROSS_RED
+
+               ! Concentrations of Br [molec/cm3]
+               IF ( State_Diag%Archive_ConcBr ) THEN
+                  State_Diag%ConcBr(I,J,L) = C_Br
+               ENDIF
+
+               ! Concentrations of BrO [molec/cm3]
+               IF ( State_Diag%Archive_ConcBrO) THEN
+                  State_Diag%ConcBrO(I,J,L) = C_BrO
+               ENDIF
+
+               ! Production of Hg2 from Br [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+                  State_Diag%ProdHg2fromBr(I,J,L) = 
+     &               GROSS_OX_BR / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from BrY [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromBrY ) THEN
+                  State_Diag%ProdHg2fromBrY(I,J,L) =
+     &               GROSS_OX_BRY / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from ClY [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromClY ) THEN
+                  State_Diag%ProdHg2FromClY(I,J,L) =
+     &               GROSS_OX_CLY / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from Hg0 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHg0 ) THEN
+                  State_Diag%ProdHg2fromHg0(I,J,L) =
+     &               NET_OX / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from O3 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromO3 ) THEN
+                  State_Diag%ProdHg2fromO3(I,J,L) =
+     &               GROSS_OX_O3 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from OH [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromOH ) THEN
+                  State_Diag%ProdHg2fromOH(I,J,L) =
+     &               GROSS_OX_OH / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + Br2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBr2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBr2(I,J,L) =
+     &               GROSS_OX_BR2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrBrO [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrBrO ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrBrO(I,J,L) = 
+     &               GROSS_OX_BRBRO / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrClO [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrClO ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrClO(I,J,L) =
+     &               GROSS_OX_BRCLO / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrHO2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrHO2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrHO2(I,J,L) = 
+     &               GROSS_OX_BRHO2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrNO2 [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrNO2 ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrNO2(I,J,L) = 
+     &               GROSS_OX_BRNO2 / DTCHEM
+               ENDIF
+
+               ! Production of Hg2 from HgBr + BrOH [kg/s]
+               IF ( State_Diag%Archive_ProdHg2fromHgBrPlusBrOH ) THEN
+                  State_Diag%ProdHg2fromHgBrPlusBrOH(I,J,L) = 
+     &               GROSS_OX_BROH / DTCHEM
+               ENDIF
+
+               ! Loss Hg2 by sea salt aerosol
+               ! NOTE: Sum contributions from PBL into the diagnostic
+               IF ( State_Diag%Archive_LossHg2bySeaSalt ) THEN
+                  State_Diag%LossHg2bySeaSalt(I,J,L) = 
+     &               DEP_HG2G_SALT / DTCHEM
+               ENDIF
+
+               ! Sea-salt loss rate diagnostic [/s]
+               IF ( L == 1 ) THEN
+                  IF ( State_Diag%Archive_LossRateHg2bySeaSalt ) THEN
+                     State_Diag%LossRateHg2bySeaSalt(I,J) = K_SALT
+                  ENDIF
+               ENDIF
+
+            ENDIF
+#endif
          ENDDO
 
       ENDDO
@@ -1505,11 +1767,6 @@
          ! Calculate cloud parameters for aqueous Hg chemistry                 
          !==============================================================       
 
-#if   defined ( GEOS_5 ) || defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2 )
-         !---------------------------------------------                        
-         ! GEOS-5/MERRA: Get LWC, FC from met fields                           
-         ! (jaf, bmy, 6/30/10)                                                 
-         !---------------------------------------------                        
          ! Get cloud fraction from met fields                                  
          FC      = State_Met%CLDF(I,J,L)
 
@@ -1524,25 +1781,6 @@
          ! multiplying these quantities by FC AFTER computing the aqueous      
          ! sulfur chemistry within the cloud. (lzh, jaf, bmy, 5/27/11)         
          LWC     = SAFE_DIV( LWC, FC, 0e0_fp )
-
-#else
-         !---------------------------------------------                        
-         ! Otherwise, compute FC, LWC as before                                
-         !---------------------------------------------                        
-
-         ! Volume cloud fraction (Sundqvist et al 1989) [unitless]             
-         FC      = VCLDF(I,J,L)
-         ! Liquid water content in cloudy area of grid box [m3/m3]             
-         ! LWC as returned from the GET_LWC function is the in-cloud liquid    
-         ! water content.  To improve the representation of sulfate chemistry, 
-         ! we use this LWC to compute the aqueous sulfate chemistry.  We then  
-         ! get the appropriate grid-box averaged mass of SO2 and sulfate by    
-         ! multiplying by FC AFTER computing the aqueous sulfur chemistry      
-         ! within the cloud. (lzh, jaf, bmy, 5/27/11)                          
-         LWC = GET_LWC( T )
-
-#endif
-
 
 ! Henry's law constants (M per atm)                                            
          ! Hg(0):                                                              
@@ -2358,8 +2596,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,
-     &                         State_Met, State_Chm, RC )
+      SUBROUTINE EMISSMERCURY( am_I_Root, Input_Opt,  State_Met, 
+     &                         State_Chm, State_Diag, RC         )
 !
 ! !USES:
 !
@@ -2374,6 +2612,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE LAND_MERCURY_MOD,   ONLY : SNOWPACK_MERCURY_FLUX
       USE OCEAN_MERCURY_MOD,  ONLY : OCEAN_MERCURY_FLUX
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, ITS_A_NEW_MONTH
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -2391,6 +2630,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2433,13 +2673,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL           :: LPREINDHG
       LOGICAL           :: LEMIS
 
+      ! Strings
+      CHARACTER(LEN=255)   :: ErrMsg
+      CHARACTER(LEN=255)   :: ThisLoc
+
       !=================================================================
       ! EMISSMERCURY begins here!
       !=================================================================
 
       ! Assume success
-      RC        = GC_SUCCESS
-      
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     & ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.f)'
+
       ! Copy fields from Input_Opt
       LDYNOCEAN = Input_Opt%LDYNOCEAN
       LGTMM     = Input_Opt%LGTMM
@@ -2452,11 +2699,13 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! NOTE: This is temporary until mercury code is in [kg/kg dry air]
       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
      &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+
+      ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error('Unit conversion error', RC, 
-     &                 'Routine EMISSIONS_RUN in emissions_mod.F')
+         ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF                         
+      ENDIF 
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -2464,13 +2713,21 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Check that emissions are turned on. Print error message 
          ! and stop GEOS-Chem if emissions are turned off (ewl, 9/1/15)
          IF ( .not. LEMIS ) THEN
-            PRINT *, 'ERROR: Hg emissions are need for simulation ' //
+            ErrMsg = 'ERROR: Hg emissions are need for simulation ' //
      &               'but emissions are turned off in input.geos'
-            CALL GEOS_CHEM_STOP
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
          ! Read anthro, ocean, land emissions of Hg from disk
          CALL MERCURY_READYR( am_I_Root, Input_Opt, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "MERCURY_READYR"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
 
          ! Reset first-time flag
          FIRST = .FALSE.
@@ -2487,15 +2744,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! (cdh, 4/30/09)
          EHg0_oc = 0e+0_fp
 
-         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, EHg0_oc,   RC         )
-     &                            
+         CALL OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt,  State_Met, 
+     &                            State_Chm, State_Diag, EHg0_oc,   RC )
+     &                     
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered call to "OCEAN_MERCURY_FLUX"!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF 
+       
          IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a OCEAN_FLUX' )
 
       ELSE
          EHg0_oc = 0e+0_fp
-         CALL OFFLINEOCEAN_READMO( EHg0_oc, RC, am_I_Root,
-     &                             State_met, State_Chm)
+         CALL OFFLINEOCEAN_READMO( EHg0_oc,   RC,        am_I_Root,
+     &                             State_met, State_Chm, State_Diag )
 
       ENDIF
 
@@ -2531,7 +2795,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ENDIF
 
-      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met )
+      CALL SNOWPACK_MERCURY_FLUX ( EHg0_snow, LHGSNOW, State_Met,
+     &                             State_Chm )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SNOW_FLUX' )
       
       CALL BIOMASSHG( am_I_Root, Input_Opt, EHg0_bb, RC )
@@ -2576,11 +2841,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LNLPBL ) HG_EMIS = 0.0e+0_fp
 
       ! Add Hg(0) source into State_Chm%Species [kg]
-      CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL SRCHg0( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
 
       ! Add Hg(II) source into State_Chm%Species [kg]
-      CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
+      CALL SRCHg2( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
       IF ( LPRT ) CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg2' )
 
       ! Add HgP source into State_Chm%Species [kg]
@@ -2711,17 +2976,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg0( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE SRCHg0( am_I_Root, Input_Opt,
+     &                   State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03, AD03_nat
+#endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
 !
 ! !INPUT PARAMETERS:
@@ -2732,6 +3000,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3395,8 +3664,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
          ENDDO
         
+#if defined( BPCH_DIAG )
          !==============================================================
-         ! ND03 diagnostic: Total Hg(0) emissions [kg]
+         ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+         !
+         ! Total Hg(0) emissions [kg]
          ! 1=anthro; 3=from ocean; 4=land re-emission; 5=natural src
          !==============================================================
 
@@ -3462,6 +3734,78 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
             
          ENDIF
+#endif
+
+#if defined( NC_DIAG )
+         !==============================================================
+         ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+         !
+         ! Save the various Hg0 emissions to fields of State_Diag
+         ! in units of [kg/s].
+         ! 
+         ! NOTES (bmy, 10/24/18):
+         ! (1) Normally these would go to the HEMCO_diagnostics*.nc
+         !     file, but several of these diagnostics were defined as
+         !     HEMCO manual diagnostics.  Therefore to preserve 
+         !     backwards compatibility with the existing Hg simulation, 
+         !     we save the emission fields into State_Diag.
+         !
+         ! (2) For now, save emissions only for total species
+         !     and not the tagged species.  Colin Thackray says that
+         !     the tagged Hg simulation is in some disrepair and is
+         !     not widely used.
+         !
+         ! (3) The total Hg0 emissions diagnostic is not defined; 
+         !     users can sum up the individual categories in 
+         !     post-processing.
+         !
+         ! (4) In the current Hg simulation, HgP anthro emissions are
+         !     added into the Hg2 species.  Therefore we only have
+         !     a single emissions field of State_Diag for the
+         !     combined Hg2 + HgP anthro emissions.
+         !==============================================================
+
+         ! Anthropogenic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0anthro ) THEN
+            State_Diag%EmisHg0anthro(I,J) = EHg0_an(I,J)
+         ENDIF
+
+         ! Biomass Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0biomass ) THEN
+            State_Diag%EmisHg0biomass(I,J) = EHg0_bb(I,J)
+         ENDIF
+
+         ! Geogenic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0geogenic ) THEN
+            State_Diag%EmisHg0geogenic(I,J) = EHg0_geo(I,J)
+         ENDIF
+
+         ! Land Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+            State_Diag%EmisHg0land(I,J) = EHg0_ln(I,J,1)
+         ENDIF
+
+         ! Oceanic Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0ocean ) THEN
+            State_Diag%EmisHg0ocean(I,J) = EHg0_oc(I,J,1)
+         ENDIF
+
+         ! Snow Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0snow ) THEN
+            State_Diag%EmisHg0snow(I,J) = EHg0_snow(I,J,1)
+         ENDIF
+
+         ! Soil Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0soil ) THEN
+            State_Diag%EmisHg0soil(I,J) = EHg0_so(I,J)
+         ENDIF
+
+         ! Vegetation Hg0 emissions [kg/s]
+         IF ( State_Diag%Archive_EmisHg0vegetation ) THEN
+            State_Diag%EmisHg0vegetation(I,J) = EHg0_vg(I,J)
+         ENDIF
+#endif
+
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
@@ -3482,17 +3826,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SRCHg2( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE SRCHg2( am_I_Root, Input_Opt, 
+     &                   State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS 
 !
@@ -3504,6 +3851,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3664,12 +4012,37 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
             
-            !-------------------------------
-            ! ND03 diag: Anthro Hg(II) [kg]
-            !-------------------------------
+#if defined( BPCH_DIAG )
+            !==============================================================
+            ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
+            !
+            ! Anthro Hg(II) [kg]
+            ! NOTE: HgP is emitted into Hg2 
+            !==============================================================
             IF ( ND03 > 0 ) THEN
                AD03(I,J,6,1) = AD03(I,J,6,1) + ( EHg2_an(I,J) * DTSRCE )
             ENDIF
+#endif
+
+#if defined( NC_DIAG )
+            !==============================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            !
+            ! Save the combined Hg2 + HgP emissions to State_Diag
+            ! in units of [kg/s].
+            ! 
+            ! NOTES (bmy, 10/24/18):
+            !
+            ! (1) In the current Hg simulation, HgP anthro emissions
+            !     are added into the Hg2 species.  Therefore we only
+            !     have defined a single emissions field of State_Diag
+            !     for the combined Hg2 + HgP anthro emissions.
+            !==============================================================
+            IF ( State_Diag%Archive_EmisHg2HgPanthro ) THEN
+               State_Diag%EmisHg2HgPanthro(I,J) = EHg2_an(I,J)
+            ENDIF
+#endif
+
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
@@ -3697,9 +4070,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03
+#endif
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_MAX_L
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3872,13 +4246,19 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
             ENDDO
 
-            !----------------------------
-            ! ND03 diag: Anthro HgP [kg]
-            !----------------------------
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! %%%%% ND03 (bpch) diagnostics
+            !
+            ! Anthro HgP [kg]
+            ! NOTE: This is zero, because in the current Hg simulation
+            ! HgP is emitted into the Hg2 species (bmy, 10/26/18)
+            !-----------------------------------------------------------
             IF ( ND03 > 0 ) THEN
                AD03(I,J,9,1) = AD03(I,J,9,1) + (EHgP_an(I,J) * DTSRCE)
             ENDIF
-         
+#endif
+
          ENDDO 
          ENDDO
 !$OMP END PARALLEL DO
@@ -3906,7 +4286,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr
@@ -3973,23 +4352,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(f4),        POINTER :: Ptr2D(:,:)
 
       ! Strings
-      CHARACTER(LEN=255)       :: MSG
-      CHARACTER(LEN=255)       :: LOC = 'MERCURY_READYR (mercury_mod.F)'
+      CHARACTER(LEN=255)       :: ThisLoc
+      CHARACTER(LEN=512)       :: ErrMsg
 
       !=================================================================
       ! MERCURY_READYR begins here! 
       !=================================================================
 
       ! Assume success
-      RC             = GC_SUCCESS
+      RC        = GC_SUCCESS
+      ErrMsg    = ''
+      ThisLoc   = '-> at MERCURY_READYR (in GeosCore/mercury_mod.F)'
 
       ! Initialize pointers
-      Ptr2D          => NULL()  
+      Ptr2D     => NULL()  
 
       ! Copy values from Input_Opt
-      LDYNOCEAN      = Input_Opt%LDYNOCEAN 
-      LPREINDHG      = Input_Opt%LPREINDHG
-      LSPLIT         = Input_Opt%LSPLIT
+      LDYNOCEAN = Input_Opt%LDYNOCEAN 
+      LPREINDHG = Input_Opt%LPREINDHG
+      LSPLIT    = Input_Opt%LSPLIT
 
       !=================================================================
       ! Anthropogenic Emissions
@@ -4017,8 +4398,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       ! Get HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
-         CALL ERROR_STOP ( 'HcoState not associated!', LOC )
-      ENDIF 
+         ErrMsg = 'HcoState not associated!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 
       ! No anthropogenic emissions in preindustrial simulation
       IF ( LPREINDHG ) THEN
@@ -4036,14 +4419,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Anthropogenic emissions
          DgnName = 'HG0_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg0_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
          ! Artisanal emissions
          DgnName = 'HG0_ARTISANAL'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg0_am =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
 
@@ -4055,7 +4446,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! Anthropogenic emissions
          DgnName = 'HG2_ANTHRO'
          CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-         IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+         IF ( RC /= HCO_SUCCESS ) THEN
+            ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
          EHg2_an =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
          Ptr2D   => NULL()
       ENDIF
@@ -4063,14 +4458,20 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Natural emissions
       DgnName = 'HG0_NATURAL'
       CALL GetHcoDiagn( am_I_Root, DgnName, .TRUE., RC, Ptr2D=Ptr2D )
-      IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DgnName, LOC )
+      IF ( RC /= HCO_SUCCESS ) THEN
+         ErrMsg = 'Could not get HEMCO field ' // TRIM( DgnName )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
       EHg0_geo =  Ptr2D(:,:) * HcoState%Grid%AREA_M2%Val(:,:)
       Ptr2D    => NULL()
 
       ! Soil distribution 
       CALL HCO_GetPtr( am_I_Root, HcoState, 'HG0_SOILDIST', Ptr2D, RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP ( 'Cannot get pointer to HG0_SOILDIST', LOC )
+         ErrMsg = 'Could not get pointer to HEMCO field HG0_SOILDIST!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       EHg0_dist =  Ptr2D(:,:) 
       Ptr2D     => NULL()
@@ -4573,8 +4974,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD, ONLY : ERROR_STOP, SAFE_DIV
-      USE TIME_MOD,  ONLY : GET_LOCALTIME
+      USE ERROR_MOD,     ONLY : SAFE_DIV
+      USE TIME_MOD,      ONLY : GET_LOCALTIME
       USE State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
@@ -4667,7 +5068,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD,     ONLY : ERROR_STOP, SAFE_DIV
+      USE ERROR_MOD,     ONLY : SAFE_DIV
       USE State_Met_Mod, ONLY : MetState
       USE CMN_SIZE_MOD
 !
@@ -4763,7 +5164,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met )
+      FUNCTION GET_BR( I, J, L, BRO_MOLEC_CM3, State_Met, State_Diag )
      &   RESULT( BR_MOLEC_CM3 )
 !
 ! !USES:
@@ -4771,13 +5172,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_SIZE_MOD
       USE DAO_MOD,            ONLY : GET_OBK
       USE DAO_MOD,            ONLY : IS_WATER
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03_Br,   LD03,     ND03
+#endif
       USE ERROR_MOD,          ONLY : SAFE_DIV
       USE GLOBAL_BR_MOD,      ONLY : BR_MERGE,  BR_TROP
       USE GLOBAL_BR_MOD,      ONLY : BR_STRAT,  J_BRO
       USE GLOBAL_BR_MOD,      ONLY : BRO_MERGE, BRO_TROP, BRO_STRAT
       USE GC_GRID_MOD,        ONLY : GET_YMID
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_LOCALTIME 
       USE TIME_MOD,           ONLY : ITS_A_NEW_DAY
@@ -4785,15 +5189,22 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN)  :: I              ! Longitude index
-      INTEGER,        INTENT(IN)  :: J              ! Latitude index
-      INTEGER,        INTENT(IN)  :: L              ! Level index
-      REAL(fp),       INTENT(OUT) :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
-      TYPE(MetState), INTENT(IN)  :: State_Met      ! Meteorology State object
+      INTEGER,        INTENT(IN)    :: I            ! Longitude index
+      INTEGER,        INTENT(IN)    :: J            ! Latitude index
+      INTEGER,        INTENT(IN)    :: L              ! Level index
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag
+!
+! OUTPUT PARAMETERS:
+!
+      REAL(fp),       INTENT(OUT)   :: BrO_MOLEC_CM3  ! BrO conc [molec/cm3]
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)                    :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
+      REAL(fp)                      :: BR_MOLEC_CM3   ! Br conc [molec/cm3]
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2006 - C. Holmes   - Initial version
@@ -5051,17 +5462,37 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             BR_PPTV  = BR_PPTV  + Br_POLAR
             BrO_PPTV = BrO_PPTV + BrO_POLAR
 
+#if defined( BPCH_DIAG )
             !==============================================================
-            ! ND03 diagnostic: Polar Bromine [pptv]
+            ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
+            !
+            ! Polar Br [pptv]; Polar Br [pptv]; Polar O3 [ppbv]
             !==============================================================
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
-
-                  AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
-                  AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
-                  AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
-
+               AD03_Br(I,J,L,3) = AD03_Br(I,J,L,3) + BR_POLAR
+               AD03_Br(I,J,L,4) = AD03_Br(I,J,L,4) + BRO_POLAR
+               AD03_Br(I,J,L,5) = AD03_Br(I,J,L,5) + O3_POLAR_PPB
             ENDIF ! ND03
+#endif
 
+#if defined( NC_DIAG )
+            !==============================================================
+            ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+            ! 
+            ! Polar Br [pptv]; Polar Br [pptv]; Polar O3 [ppbv]
+            !==============================================================
+            IF ( State_Diag%Archive_PolarConcBr ) THEN
+               State_Diag%PolarConcBr(I,J,L) = Br_Polar
+            ENDIF
+
+            IF ( State_Diag%Archive_PolarConcBrO ) THEN
+               State_Diag%PolarConcBr(I,J,L) = BrO_Polar
+            ENDIF
+
+            IF ( State_Diag%Archive_PolarConcO3 ) THEN
+               State_Diag%PolarConcO3(I,J,L) = O3_Polar_PPB
+            ENDIF
+#endif
          ENDIF ! Month
 
       ENDIF ! Polar BrO criteria
@@ -5656,7 +6087,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -5692,7 +6122,8 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       REAL(fp)            :: E_plant
 
       ! Strings
-      CHARACTER(LEN=255)  :: LOC = 'DO_RED_INPLUME (mercury_mod.F)'
+      CHARACTER(LEN=255)  :: ThisLoc
+      CHARACTER(LEN=512)  :: ErrMsg
 
       ! Pointers
       REAL(f4), POINTER   :: E_ELEC_Hg2(:,:)
@@ -5706,15 +6137,19 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !=================================================================
 
       ! Initialize
+      RC         =  GC_SUCCESS
+      ErrMsg     =  ''
+      ThisLoc    =  ' -> at DO_RED_INPLUME (in GeosCore/mercury_mod.F)'
       E_ELEC_Hg2 => NULL()
 
-      
       ! Get a pointer to the monthly mean OH from HEMCO (bmy, 3/11/15)
       CALL HCO_GetPtr( am_I_Root, HcoState, 
      &                'CFPP_NEI2005_Hg2', E_ELEC_Hg2, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         CALL ERROR_STOP ( 
-     &      'Cannot get pointer to CFPP_NEI2005_Hg2!', LOC )
+         ErrMsg = 
+     &     'Cannot get pointer to HEMCO field CFPP_NEI2005_Hg2!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
       ! Do the reduction
@@ -5751,23 +6186,25 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OFFLINEOCEAN_READMO(FLUX, RC, am_I_Root,
-     &                              State_Met, State_Chm)
+      SUBROUTINE OFFLINEOCEAN_READMO( FLUX,      RC,        am_I_Root,
+     &                                State_Met, State_Chm, State_Diag )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE TIME_MOD,           ONLY : EXPAND_DATE,GET_YEAR, GET_TS_EMIS !hmh 9/16/15
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH, GET_MONTH
       USE CMN_SIZE_MOD
       USE GC_GRID_MOD,        ONLY : GET_AREA_M2
+#if defined( BPCH_DIAG )
       USE DIAG03_MOD,         ONLY : AD03, ND03 ! hmh 9/16/15 for Hg_up/down
+#endif
       ! adding hmh 5/17/16
       USE DAO_MOD,            ONLY : IS_WATER 
       USE CMN_SIZE_MOD             ! Size parameters
       USE State_Chm_Mod,      ONLY : ChmState 
+      USE State_Diag_Mod,     ONLY : DgnState
       USE State_Met_Mod,      ONLY : MetState
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -5776,17 +6213,18 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 ! !INPUT PARAMETERS:
 !
       ! hmh adding 5/17/16
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm ! Chemistry State object
-      LOGICAL,        INTENT(IN)    :: am_I_Root ! Are we on the root CPU?
-
-
+      TYPE(MetState), INTENT(IN)    :: State_Met    ! Meteorology State object
+      TYPE(ChmState), INTENT(IN)    :: State_Chm    ! Chemistry State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State Object
 !
 ! !OUTPUT PARAMETERS:
 !
       REAL*8,         INTENT(OUT)   :: FLUX(IIPAR,JJPAR,1) ! hmh 9/14/15
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-      CHARACTER(LEN=255) :: LOC = 'OFFLINEOCEAN_READMO (mercury_mod.F)'
+      INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 
 ! 
 ! !REVISION HISTORY: 
@@ -5839,21 +6277,41 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! For values from Input_Opt
       LOGICAL                 :: LDYNOCEAN 
 
+      ! Characters
+      CHARACTER(LEN=255)      :: ThisLoc
+      CHARACTER(LEN=512)      :: ErrMsg
 
       !=================================================================
       ! OFFLINEOCEAN_READMO begins here! 
       !=================================================================
 
-      ! Assume success
-      RC             = GC_SUCCESS
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = ' -> at OFFLINEOCEAN_READMO (in GeosCore/mercury_mod.F)'
 
+      ! Get month
       THISMONTH = GET_MONTH()      
-
-      M = THISMONTH
+      M         = THISMONTH
 
       ! Days in each month (will use later) 9/16/15 hmh
       DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
 
+#if defined( NC_DIAG )
+      !-----------------------------------------------------------------
+      ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+      !
+      ! Zero flux arrays of State_Diag to prevent leftover values
+      ! from the last timestep from being included in the averaging
+      !-----------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxHg0fromOceanToAir ) THEN
+         State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+         State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+      ENDIF
+#endif
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! read monthly ocean evasion  !
@@ -5864,7 +6322,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          CALL HCO_GetPtr( am_I_Root, HcoState, 'GLOBAL_OCEAN', 
      &                    OCEAN_CONC,  RC )
          IF ( RC /= GC_SUCCESS ) THEN
-            CALL ERROR_STOP ( 'Cannot get pointer to GLOBAL_OCEAN', LOC)
+            ErrMsg = 'Cannot get pointer to HEMCO field GLOBAL_OCEAN!'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
          ENDIF
 
       ENDIF
@@ -5908,17 +6368,11 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ! FROCEAN is a constant, so to get correct ocean fraction we
          ! need to subtract the sea ice fraction. Don't let the fraction
          ! be less than zero (jaf, 4/26/11)
-#if   defined( MERRA ) || defined( GEOS_FP ) || defined( MERRA2)
          FRAC_L       = State_Met%FRLAND(I,J)
          FRAC_O       = MAX( State_Met%FROCEAN(I,J) -
      &                       State_Met%FRSEAICE(I,J), 0e0_fp )
          IS_OCEAN_BOX = ( ( FRAC_O > 0e0_fp                     ) .and. 
      &                    ( State_Met%SEAICE00(I,J)  > 0.5e0_fp ) )
-#else
-         FRAC_L       = State_Met%FRCLND(I,J)
-         FRAC_O       = 1e0_fp - FRAC_L
-         IS_OCEAN_BOX = ( IS_WATER( I, J, State_Met ) )
-#endif
 
          IF ( (IS_OCEAN_BOX) ) THEN
             !--------------------------------------------------------------
@@ -6040,13 +6494,44 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ! debug 2x2.5 diagnostic?
                FUP(I,J,NN) = MAX(FUP(I,J,NN), SMALLNUM )
                FDOWN(I,J,NN) = MAX(FDOWN(I,J,NN), SMALLNUM )
-               
+
+#if defined( BPCH_DIAG )
+               !--------------------------------------------------------
+               ! %%%%% ND03 (bpch) DIAGNOSTICS %%%%%
+               !
+               ! Fluxes of Hg0 from air to ocean and ocean to air [kg]
+               !--------------------------------------------------------
                IF ( ND03 > 0 ) THEN
                   AD03(I,J,16,NN) = AD03(I,J,16,NN) 
      &                 + FUP(I,J,NN) * DTSRCE
                   AD03(I,J,17,NN) = AD03(I,J,17,NN) 
      &                 + FDOWN(I,J,NN) *DTSRCE
                ENDIF
+#endif
+
+#if defined( NC_DIAG )
+               !--------------------------------------------------------
+               ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+               !
+               ! Fluxes of Hg0 from air to ocean and ocean to air [kg/s]
+               ! NOTE: Implement for total Hg species at ths time
+               !--------------------------------------------------------
+               IF ( NN == 1 ) THEN
+
+                  ! Flux of Hg0 from ocean to air [kg/s]
+                  IF ( State_Diag%Archive_FluxHg0fromOceanToAir ) THEN
+                     State_Diag%FluxHg0fromOceanToAir(I,J) =  
+     &                  FUP(I,J,NN)
+                  ENDIF
+
+                  IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+                     State_Diag%FluxHg0fromAirToOcean(I,J) =  
+     &                  FDOWN(I,J,NN)
+                  ENDIF
+
+               ENDIF
+#endif
+
             ENDDO
 
          ELSE
@@ -6067,6 +6552,125 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE OFFLINEOCEAN_READMO
 !EOC
+#if defined( NC_DIAG )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Reset_Hg_Diags
+!
+! !DESCRIPTION: Zeroes the relevant diagnostic fields of State_Diag for 
+!  the Hg and tagged Hg simulations.  Some of these need to be done
+!  for example, at the start of each timestep.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Reset_Hg_Diags( am_I_Root, Input_Opt, State_Diag, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE Time_Mod,       ONLY : Its_Time_For_Chem
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  NOTE: Not all netCDF diagnostic fields need to be zeroed.  Some fields
+!  of State_Diag are always
+!
+! !REVISION HISTORY:
+!  06 Jan 2015 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+      ! Assume success
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at Reset_Hg_Diags (in module GeosCore/mercury_mod.F'
+
+      !=================================================================
+      ! Reset_Hg_Diags begins here!
+      !=================================================================
+
+      ! Exit if it's not a Hg sim
+      IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+         ErrMsg = 'Routine "Reset_Hg_Diags" was called, but this ' //
+     &            'routine is only valid for Hg or tagHg simulations!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      !--------------------------------------------------------------
+      ! Zero diagnostics in depo_mercury_mod.F
+      !--------------------------------------------------------------
+      IF ( State_Diag%Archive_FluxHg2HgPfromAirToSnow ) THEN
+         State_Diag%FluxHg2HgPfromAirToSnow = 0.0_fp
+      ENDIF
+
+      ! These are called once per chemistry or emissions timestep
+      IF ( Its_Time_For_Chem() ) THEN
+         
+         !--------------------------------------------------------------
+         ! Zero diagnostics in mercury_mod.F
+         !--------------------------------------------------------------
+         IF ( State_Diag%Archive_DryDepChm   .or. 
+     &        State_Diag%Archive_DryDep    ) THEN
+            State_Diag%DryDepChm = 0.0_f4
+         ENDIF    
+
+         !-------------------------------------------------------------
+         ! Zero diagnostics in ocean_mercury_mod.F
+         !-------------------------------------------------------------
+         IF ( State_Diag%Archive_EmisHg2rivers ) THEN
+            State_Diag%EmisHg2rivers = 0.0_f4
+         ENDIF
+
+         IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
+            State_Diag%EmisHg2snowToOcean = 0.0_f4
+         ENDIF
+
+         IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
+            State_Diag%FluxHg0fromAirToOcean = 0.0_f4
+         ENDIF
+      
+         IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
+            State_Diag%FluxHg0fromOceanToAir = 0.0_f4
+         ENDIF
+              
+         IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
+            State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
+         ENDIF
+         
+         IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
+            State_Diag%FluxOCtoDeepOcean = 0.0_f4
+         ENDIF 
+
+      ENDIF
+
+      END SUBROUTINE Reset_Hg_Diags
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -6087,7 +6691,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       USE CMN_DIAG_MOD
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,          ONLY : ALLOC_ERR, ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -6133,7 +6736,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL                :: LHALOGENCHEM
       INTEGER                :: nAdvect
       INTEGER                :: AS, N
-      CHARACTER(LEN=255)     :: LOCATION
+
+      ! Strings
+      CHARACTER(LEN=255)     :: ThisLoc
+      CHARACTER(LEN=512)     :: ErrMsg
 
       ! Pointers
       TYPE(Species), POINTER :: SpcInfo
@@ -6156,8 +6762,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LSPLIT         = Input_Opt%LSPLIT           ! Tagged simulation?
       nAdvect        = State_Chm%nAdvect          ! # of Hg advected species
 
-      ! Location string for ERROR_STOP
-      LOCATION       = 'DEFINE_TAGGED_Hg ("mercury_mod.f")'
+      ! Location string for error messages
+      ErrMsg   = ''
+      ThisLoc  = '-> at DEFINE_TAGGED_Hg (in GeosCore/mercury_mod.f)'
 
       ! Store the # of tagged Hg categories in a module variable
       N_Hg_CATS   = State_Chm%N_Hg_CATS
@@ -6248,298 +6855,367 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'COSZM' )
+      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:COSZM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       COSZM = 0e+0_fp
 
-      ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_an' )
+      ALLOCATE( EHg0_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_an = 0e+0_fp
 
-      ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_am' )
+      ALLOCATE( EHg0_am( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_am', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_am = 0e+0_fp
 
-      ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_an' )
+      ALLOCATE( EHg2_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg2_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg2_an = 0e+0_fp
 
-      ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_an' )
+      ALLOCATE( EHgP_an( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHgP_an', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHgP_an = 0e+0_fp
 
-      ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oc' )
+      ALLOCATE( EHg0_oc( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_oc', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_oc = 0e+0_fp
 
-      ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_dist' )
+      ALLOCATE( EHg0_dist( IIPAR, JJPAR), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_dist', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_dist = 0e+0_fp
 
-      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_geo' )
+      ALLOCATE( EHg0_geo( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_Geo', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_geo = 0e+0_fp
 
-      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_bb' )
+      ALLOCATE( EHg0_bb( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_bb', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_bb = 0e+0_fp
 
-      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_snow' )
+      ALLOCATE( EHg0_snow( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:EHg0_snow', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       EHg0_snow = 0e+0_fp
 
       ! Allocate the following if tagged Hg simulation
       IF ( LSPLIT ) THEN
 
          ! Tagged Hg0 arrays (eds 8/31/10)
-         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_can' )
+         ALLOCATE( EHg0_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_can = 0e+0_fp
 
-         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_usa' )
+         ALLOCATE( EHg0_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_usa = 0e+0_fp
 
-         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_cam' )
+         ALLOCATE( EHg0_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_cam = 0e+0_fp
 
-         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sam' )
+         ALLOCATE( EHg0_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sam = 0e+0_fp
 
-         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_waf' )
+         ALLOCATE( EHg0_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_waf = 0e+0_fp
 
-         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eaf' )
+         ALLOCATE( EHg0_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eaf = 0e+0_fp
 
-         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_saf' )
+         ALLOCATE( EHg0_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_saf = 0e+0_fp
 
-         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_naf' )
+         ALLOCATE( EHg0_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_naf = 0e+0_fp
 
-         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eur' )
+         ALLOCATE( EHg0_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eur = 0e+0_fp
 
-         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eeu' )
+         ALLOCATE( EHg0_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eeu = 0e+0_fp
 
-         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_mde' )
+         ALLOCATE( EHg0_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_mde = 0e+0_fp
 
-         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sov' )
+         ALLOCATE( EHg0_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sov = 0e+0_fp
 
-         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sas' )
+         ALLOCATE( EHg0_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sas = 0e+0_fp
 
-         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_eas' )
+         ALLOCATE( EHg0_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_eas = 0e+0_fp
 
-         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_sea' )
+         ALLOCATE( EHg0_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_sea = 0e+0_fp
 
-         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_jpn' )
+         ALLOCATE( EHg0_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_jpn = 0e+0_fp
 
-         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_oce' )
+         ALLOCATE( EHg0_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_oce = 0e+0_fp
 
          ! Tagged Hg2 arrays (eds 8/31/10)
-         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_can' )
+         ALLOCATE( EHg2_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_can = 0e+0_fp
 
-         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_usa' )
+         ALLOCATE( EHg2_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_usa = 0e+0_fp
 
-         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_cam' )
+         ALLOCATE( EHg2_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_cam = 0e+0_fp
 
-         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sam' )
+         ALLOCATE( EHg2_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sam = 0e+0_fp
 
-         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_waf' )
+         ALLOCATE( EHg2_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_waf = 0e+0_fp
 
-         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eaf' )
+         ALLOCATE( EHg2_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eaf = 0e+0_fp
 
-         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_saf' )
+         ALLOCATE( EHg2_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_saf = 0e+0_fp
 
-         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_naf' )
+         ALLOCATE( EHg2_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_naf = 0e+0_fp
 
-         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eur' )
+         ALLOCATE( EHg2_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eur = 0e+0_fp
 
-         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eeu' )
+         ALLOCATE( EHg2_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eeu = 0e+0_fp
 
-         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_mde' )
+         ALLOCATE( EHg2_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_mde = 0e+0_fp
 
-         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sov' )
+         ALLOCATE( EHg2_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sov = 0e+0_fp
 
-         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sas' )
+         ALLOCATE( EHg2_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sas = 0e+0_fp
 
-         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_eas' )
+         ALLOCATE( EHg2_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:Hg2_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_eas = 0e+0_fp
 
-         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_sea' )
+         ALLOCATE( EHg2_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_sea = 0e+0_fp
 
-         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_jpn' )
+         ALLOCATE( EHg2_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_jpn = 0e+0_fp
 
-         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg2_oce' )
+         ALLOCATE( EHg2_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg2_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg2_oce = 0e+0_fp
 
          ! Tagged HgP arrays (eds 8/31/10)
-         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_can' )
+         ALLOCATE( EHgP_can( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_can', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_can = 0e+0_fp
 
-         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_usa' )
+         ALLOCATE( EHgP_usa( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_usa', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_usa = 0e+0_fp
 
-         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_cam' )
+         ALLOCATE( EHgP_cam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_cam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_cam = 0e+0_fp
 
-         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sam' )
+         ALLOCATE( EHgP_sam( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sam', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sam = 0e+0_fp
 
-         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_waf' )
+         ALLOCATE( EHgP_waf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_waf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_waf = 0e+0_fp
 
-         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eaf' )
+         ALLOCATE( EHgP_eaf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eaf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eaf = 0e+0_fp
 
-         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_saf' )
+         ALLOCATE( EHgP_saf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_saf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_saf = 0e+0_fp
 
-         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_naf' )
+         ALLOCATE( EHgP_naf( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_naf', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_naf = 0e+0_fp
 
-         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eur' )
+         ALLOCATE( EHgP_eur( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eur', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eur = 0e+0_fp
 
-         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eeu' )
+         ALLOCATE( EHgP_eeu( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eeu', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eeu = 0e+0_fp
 
-         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_mde' )
+         ALLOCATE( EHgP_mde( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_mde', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_mde = 0e+0_fp
 
-         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sov' )
+         ALLOCATE( EHgP_sov( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sov', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sov = 0e+0_fp
 
-         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sas' )
+         ALLOCATE( EHgP_sas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sas = 0e+0_fp
 
-         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_eas' )
+         ALLOCATE( EHgP_eas( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_eas', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_eas = 0e+0_fp
 
-         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_sea' )
+         ALLOCATE( EHgP_sea( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_sea', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_sea = 0e+0_fp
 
-         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_jpn' )
+         ALLOCATE( EHgP_jpn( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_jpn', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_jpn = 0e+0_fp
 
-         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHgP_oce' )
+         ALLOCATE( EHgP_oce( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHgP_oce', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHgP_oce = 0e+0_fp
 
       ENDIF
 
       IF ( LGTMM ) THEN
 
-         ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_gtm' )
+         ALLOCATE( EHg0_gtm( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_gtm', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_gtm = 0e+0_fp
 
       ELSE
 
-         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_ln' )
+         ALLOCATE( EHg0_ln( IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_ln', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_ln = 0e+0_fp
 
-         ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_vg' )
+         ALLOCATE( EHg0_vg( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_vg', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_vg = 0e+0_fp
 
-         ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'EHg0_so' )
+         ALLOCATE( EHg0_so( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:EHg0_so', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          EHg0_so = 0e+0_fp
 
       ENDIF
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TCOSZ' )
+      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:TCOSZ', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0e+0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'TTDAY' )
+      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:TTDAY', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0e+0_fp
  
       ! Allocate ZERO_DVEL if we use non-local PBL mixing or
       ! if drydep is turned off 
       IF ( LNLPBL .OR. (.not. LDRYD) ) THEN
-         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'ZERO_DVEL' )
+         ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:ZERO_DVEL', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          ZERO_DVEL = 0e+0_fp
       ENDIF
 
-      ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG2_SEASALT_LOSSRATE' )
+      ALLOCATE( HG2_SEASALT_LOSSRATE( IIPAR, JJPAR ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:HG2_SEASALT_LOSSRATE', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       HG2_SEASALT_LOSSRATE = 0e+0_fp
 
       !=================================================================
@@ -6548,23 +7224,27 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( LSPLIT ) THEN
 
          ! Species indices for tagged anthro regions
-         ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg0' )
+         ALLOCATE( AN_Hg0( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_Hg0', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg0 = 0e+0_fp
 
-         ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_Hg2' )
+         ALLOCATE( AN_Hg2( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_Hg2', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_Hg2 = 0e+0_fp
 
-         ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=AS )
-         IF ( AS /= 0 ) CALL ALLOC_ERR( 'AN_HgP' )
+         ALLOCATE( AN_HgP( IIPAR, JJPAR ), STAT=RC )
+         CALL GC_CheckVar( 'mercury_mod.F:AN_HgP', 0, RC )
+         IF ( RC /= GC_SUCCESS ) RETURN
          AN_HgP = 0e+0_fp
 
       ENDIF
 
       ! HG_EMIS is needed for non-local PBL mixing 
-      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=AS )
-      IF ( AS /= 0 ) CALL ALLOC_ERR( 'HG_EMIS' )
+      ALLOCATE ( HG_EMIS( IIPAR, JJPAR, nAdvect ), STAT=RC )
+      CALL GC_CheckVar( 'mercury_mod.F:HG_EMIS', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
       HG_EMIS = 0e+0_fp
 
       !=================================================================
@@ -6651,7 +7331,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !
 ! !USES:
 !
-      USE ERROR_MOD,         ONLY : ERROR_STOP
+      USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD, ONLY : HcoState
       USE HCO_ExtList_Mod,   ONLY : GetExtOpt
@@ -6686,7 +7366,16 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       LOGICAL :: FOUND
 
       ! Strings
-      CHARACTER(LEN=255) :: LOC='SET_OPTIONS_FROM_HEMCO (mercury_mod.F)'
+      CHARACTER(LEN=255) :: ThisLoc
+      CHARACTER(LEN=512) :: ErrMsg
+
+      !-----------------------------------------------------------------
+      ! Initialize
+      !-----------------------------------------------------------------
+      RC      = HCO_SUCCESS
+      ErrMsg  = ''
+      ThisLoc = 
+     &  ' -> at SET_OPTIONS_FROM_HEMCO (in GeosCore/mercury_mod.F)'
 
       !-----------------------------------------------------------------
       ! Set the value of chemistry flags depending on whether or not
@@ -6695,7 +7384,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LRED_JNO2',  
      &                OptValBool=LRED_JNO2, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LRED_JNO2', LOC )
+         ErrMsg = 'LRED_JNO2 not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LRED_JNO2 = .FALSE.
@@ -6704,7 +7395,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LHALOGENCHEM',  
      &                OptValBool=LHALOGENCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LHALOGENCHEM', LOC )
+         ErrMsg = 'LHALOGENCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LHALOGENCHEM = .TRUE.
@@ -6713,7 +7406,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LHGAQCHEM',  
      &                OptValBool=LHGAQCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LHGAQCHEM', LOC )
+         ErrMsg = 'LHGAQCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LHGAQCHEM = .FALSE.
@@ -6722,7 +7417,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LBRCHEM',  
      &                OptValBool=LBRCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBRCHEM', LOC )
+         ErrMsg = 'LBRCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LBRCHEM = .FALSE.
@@ -6731,7 +7428,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LBROCHEM',  
      &                OptValBool=LBROCHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LBROCHEM', LOC )
+         ErrMsg = 'LBROCHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LBROCHEM = .FALSE.
@@ -6740,7 +7439,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LOHO3CHEM',  
      &                OptValBool=LOHO3CHEM, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LOHO3CHEM', LOC )
+         ErrMsg = 'LOHO3CHEM not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LOHO3CHEM = .FALSE.
@@ -6755,7 +7456,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'BrOx_GC', 
      &                OptValBool=LGC, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt BrOx_GC', LOC )
+         ErrMsg = 'BrOx_GC not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LGC = .FALSE.
@@ -6777,7 +7480,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'NEI2005',  
      &                OptValBool=LNEI2005, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LNEI2005', LOC )
+         ErrMsg = 'NEI2005 not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LNEI2005 = .FALSE.
@@ -6790,7 +7495,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       CALL GetExtOpt( HcoState%Config, -999, 'LRED_INPLUME',  
      &                OptValBool=LInPlume, FOUND=FOUND, RC=RC )
       IF ( RC /= HCO_SUCCESS ) THEN
-         CALL ERROR_STOP( 'GetExtOpt LInPlume5', LOC )
+         ErrMsg = 'LRED_INPLUME not found in HEMCO_Config.rc file!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
       IF ( .not. FOUND ) THEN
          LInPlume = .FALSE.
