@@ -57,10 +57,10 @@ add_library(GeosCore STATIC
 	emissions_mod.F90
 	fast_jx_mod.F
 	flexchem_mod.F90
-	fvdas_convect_mod.F
 	gamap_mod.F
 	gc_environment_mod.F90
-	geosfp_read_mod.F90
+	flexgrid_read_mod.F90
+	get_met_mod.F90
 	get_ndep_mod.F
 	global_br_mod.F
 	global_ch4_mod.F
@@ -75,7 +75,6 @@ add_library(GeosCore STATIC
 	linoz_mod.F
 	mapping_mod.F90
 	mercury_mod.F
-	merra2_read_mod.F90
 	mixing_mod.F90
 	modis_lai_mod.F90
 	ndxx_setup.F
@@ -85,7 +84,6 @@ add_library(GeosCore STATIC
 	pbl_mix_mod.F
 	planeflight_mod.F
 	pops_mod.F
-	restart_mod.F
 	RnPbBe_mod.F
 	rpmares_mod.F
 	seasalt_mod.F
