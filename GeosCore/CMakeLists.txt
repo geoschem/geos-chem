@@ -1,6 +1,7 @@
 add_library(Transport STATIC
 	diag_mod.F
 	dao_mod.F
+	diagnostics_mod.F90
 	pjc_pfix_mod.F
 	tpcore_bc_mod.F
 	tpcore_fvdas_mod.F90
@@ -50,7 +51,6 @@ add_library(GeosCore STATIC
 	diag53_mod.F
 	diag56_mod.F
 	diag63_mod.F
-	diagnostics_mod.F90
 	diag_oh_mod.F
 	drydep_mod.F
 	dust_mod.F
@@ -59,8 +59,6 @@ add_library(GeosCore STATIC
 	flexchem_mod.F90
 	gamap_mod.F
 	gc_environment_mod.F90
-	flexgrid_read_mod.F90
-	get_met_mod.F90
 	get_ndep_mod.F
 	global_br_mod.F
 	global_ch4_mod.F
@@ -102,6 +100,9 @@ add_library(GeosCore STATIC
 	vdiff_pre_mod.F90
 	wetscav_mod.F
 	YuIMN_Code.F
+
+	# These files are empty for GCHP. Compile them if NOT GCHP.
+	$<$<NOT:$<STREQUAL:${IMPL},GCHP>>:flexgrid_read_mod.F90 get_met_mod.F90>
 
 	# TODO: when to omit these?
 	# exchange_mod.F
