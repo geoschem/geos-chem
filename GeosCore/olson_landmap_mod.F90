@@ -51,8 +51,8 @@ MODULE Olson_LandMap_Mod
 !  dataset are those that are not dominant at 0.25x0.25, but may be present 
 !  in the 1kmx1km dataset."
 !  
-!   The following table shows the the translation between the Olson 2001 and 
-!   Olson 1992 land maps:
+!  The following table shows the the translation between the Olson 2001 and
+!  Olson 1992 land maps:
 !
 !   Olson 2001				        Olson 1992 	# in
 !   LC# Description    		                Equivalent      Dry deposition
@@ -156,29 +156,11 @@ MODULE Olson_LandMap_Mod
 !                                                                             
 !  Arrays computed by olson_landmap_mod.F90
 !  ============================================================================
-!  (1) IREG   (in CMN_DEP_mod.F): # of Olson land types per GC grid box 
-!  (2) ILAND  (in CMN_DEP_mod.F): List of all Olson land types in GC grid box
-!  (3) IUSE   (in CMN_DEP_mod.F): Coverage of each Olson type in GC grid box
-!  (4) FRCLND (in CMN_DEP_mod.F): Fraction of G-C grid box that is not water
-!                           
-!  The variables are defined as follows:
-!      State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
-!      State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
-!      State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
+!  (1) State_Met%IREG(I,J)    : # of land types in horizontal grid cell (I,J)
+!  (2) State_Met%ILAND(I,J,T) : Land type ID for land types T=1,IREG(I,J)
+!  (3) State_Met%IUSE(I,J,T)  : Fraction area (per mil) occupied by land types
 !                               T=1,IREG(I,J) 
-!      State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
-!                                                  
-!  NOTES: 
-!  (1) IREG, ILAND, and IUSE are used by the soil NOx emissions routines
-!  (2) FRCLND is used by various GEOS-Chem routines
-!                                                                             
-!  NOTE FOR 0.5 x 0.666 grids
-!  ============================================================================
-!  As of 21 Mar 2012, the IUSE values computed by "olson_landmap_mod.F90"
-!  may slightly differ from those specified in the "vegtype.global" files
-!  for 0.5 x 0.666 nested grids.  We attribute this to roundoff error caused
-!  by the the longitude spacing being an irrational number (0.6666666...). 
-!  We are still investigating.
+!  (4) State_Met%FRCLND(I,J)  : Fraction area occupied by land for cell (I,J)
 !
 ! !REVISION HISTORY:
 !  13 Mar 2012 - R. Yantosca - Initial version
@@ -215,7 +197,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: compute_olson_landmap_gchp
+! !IROUTINE: compute_olson_landmap
 !
 ! !DESCRIPTION: Subroutine COMPUTE\_OLSON\_LANDMAP computes the 
 !  GEOS-Chem State\_Met variables that are dependent on the Olson Landmap, 
@@ -224,28 +206,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_Landmap( am_I_Root, State_Met, RC )
+  SUBROUTINE Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
     USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    LOGICAL,         INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(OptInput),  INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
-    INTEGER,         INTENT(INOUT) :: RC
+    TYPE(MetState),  INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
-! !REMARKS:
-! 
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
+!
 ! !REVISION HISTORY: 
 !  27 Sep 2016 - E. Lundgren - Initial version
 !  14 Feb 2019 - R. Yantosca - Changed name to Compute_Olson_Landmap, since
 !                              we now also use this for GC-Classic, etc.
+!  14 Feb 2019 - R. Yantosca - Now pass Input_Opt as an argument (since it
+!                              has the core number in Input_Opt%MyPet
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -256,7 +243,7 @@ CONTAINS
     INTEGER :: typeCounter, maxFracInd(1), sumIUSE
 
     !======================================================================
-    ! Initialize
+    ! Compute_Olson_Landmap begins here!
     !======================================================================
     
     ! Loop over all grid cells to set State_Met variables
@@ -308,7 +295,7 @@ CONTAINS
        sumIUSE =  SUM(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
        IF ( sumIUSE /= 1000 ) THEN
           State_Met%IUSE(I,J,maxFracInd) = State_Met%IUSE(I,J,maxFracInd) &
-                                           + ( 1000 - sumIUSE )
+                                         + ( 1000 - sumIUSE )
 
        ENDIF
 
@@ -322,7 +309,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_LandTypeFrac
+! !IROUTINE: init_landtypefrac
 !
 ! !DESCRIPTION: Attaches pointers from the MODIS XLAI data read in by
 !  HEMCO to the LandTypeFrac field of State_Met.
@@ -334,24 +321,29 @@ CONTAINS
 !
 ! !USES: 
 !
+    USE CMN_SIZE_Mod
     USE ErrCode_Mod
     USE Hco_Interface_Mod, ONLY : HcoState
-    USE Hco_EmisList_Mod,  ONLY : HCO_GetPtr
+    USE Hco_EmisList_Mod,  ONLY : Hco_GetPtr
     USE Input_Opt_Mod,     ONLY : OptInput
     USE State_Met_Mod,     ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
-
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT) :: State_Met    ! Meteorology State object
-    INTEGER,        INTENT(INOUT) :: RC
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
+!  This follows the same methodology for GCHP, except that GCHP obtains the
+!  land type fractions via MAPL, and here we obtain them via HEMCO.
 !
 ! !REVISION HISTORY:
 !  13 Feb 2019 - R. Yantosca - Initial version

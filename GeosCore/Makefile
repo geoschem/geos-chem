@@ -712,7 +712,7 @@ main.o                      : main.F                                         \
                               diagnostics_mod.o       toms_mod.o             \
                               gc_environment_mod.o    global_ch4_mod.o       \
                               input_mod.o             linoz_mod.o            \
-                              mapping_mod.o           toms_mod.o             \
+                              toms_mod.o                                     \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
@@ -726,8 +726,6 @@ main.o                      : main.F                                         \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
                               aerosol_mod.o           flexgrid_read_mod.o    \
                               gc_classic_version.H
-
-mapping_mod.o               : mapping_mod.F90                              
 
 mercury_mod.o               : mercury_mod.F                                  \
                               dao_mod.o                                      \
@@ -744,8 +742,7 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               pbl_mix_mod.o           tendencies_mod.o       \
                               hco_interface_mod.o     vdiff_mod.o
 
-modis_lai_mod.o             : modis_lai_mod.F90                              \
-                              mapping_mod.o
+modis_lai_mod.o             : modis_lai_mod.F90
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               diag_mod.o                                     \

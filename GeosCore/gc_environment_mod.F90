@@ -665,7 +665,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
     USE Mercury_Mod,        ONLY : Init_Mercury
-    USE Modis_Lai_Mod,      ONLY : Init_Modis_Lai
     USE Ocean_Mercury_Mod,  ONLY : Init_Ocean_Mercury
     USE POPs_Mod,           ONLY : Init_POPs
     USE Seasalt_Mod,        ONLY : Init_SeaSalt
@@ -734,8 +733,9 @@ CONTAINS
 !  07 Nov 2017 - R. Yantosca - Now accept Diag_List as an argument
 !  07 Nov 2017 - R. Yantosca - Return error condition to main level
 !  26 Jan 2018 - M. Sulprizio- Moved to gc_environment_mod.F90 from input_mod.F
-!  07 Aug 2018 - H.P. Lin    - Unify init routines to accept Input_Opt, State_Chm,
-!                              State_Diag
+!  07 Aug 2018 - H.P. Lin    - Unify init routines to accept Input_Opt,
+!                              State_Chm, State_Diag
+!  14 Feb 2019 - R. Yantosca - Remove call to Init_Modis_Lai, it's obsolete
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -820,16 +820,6 @@ CONTAINS
     !=================================================================
     ! Call setup routines from other F90 modules
     !=================================================================
-
-    !-----------------------------------------------------------------
-    ! Initialize the MODIS leaf area index module
-    !-----------------------------------------------------------------
-    CALL Init_Modis_LAI( am_I_Root, Input_Opt, State_Chm, State_Diag, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_Modis_LAI"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !-----------------------------------------------------------------
     ! Call SET_VDIFF_VALUES so that we can pass several values from 

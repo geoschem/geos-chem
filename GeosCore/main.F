@@ -331,7 +331,6 @@
       LOGICAL                  :: LUCX
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
-      LOGICAL                  :: wasModisRead
       LOGICAL                  :: prtDebug
       LOGICAL                  :: TimeForEmis
 
@@ -345,7 +344,6 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
 
       ! Reals
@@ -373,7 +371,6 @@
       !-----------------------------
       ! Derived type objects 
       !-----------------------------
-      TYPE(MapWeight), POINTER :: mapping(:,:)
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
@@ -426,10 +423,7 @@
 
       ! For error trapping
       ErrMsg                  = ''
-      ThisLoc                 = 'GEOS-Chem (in GeosCore/main.F)'
-
-      ! Initialize pointers
-      mapping => NULL()
+      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
 
       ! Display current grid resolution and data set type
       CALL Display_Grid_and_Model()
@@ -820,17 +814,6 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-      ! Initialize the derived type object containing
-      ! mapping information for the MODIS LAI routines
-      CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                   1440, 720, IIPAR, JJPAR, mapping, RC )
-
-      ! Trap potential errors
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_Mapping"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
       ! Populate the State_Met%LandTypeFrac field with data from HEMCO
       CALL Init_LandTypeFrac( am_I_Root, Input_Opt, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -840,7 +823,7 @@
 
       ! Compute the Olson landmap fields of State_Met
       ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
-      CALL Compute_Olson_Landmap( am_I_Root, State_Met, RC )
+      CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Compute_Olson_Landmap"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1289,41 +1272,30 @@
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
          !==============================================================
-         !              ***** D A I L Y   D A T A *****
+         !        ***** L E A F   A R E A   I N D I C E S *****
          !==============================================================
-         laiMM = -1
-         wasModisRead = .FALSE.
-         IF ( ITS_A_NEW_DAY() ) THEN 
+         IF ( ITS_A_NEW_DAY() ) THEN
 
-            ! Find the proper month and year for LAI  based on the current 
-            ! month & year.  LAI months begin in the middle of the month.
-            CALL Find_Lai_Month( day_of_year, month, year, 
-     &                                        laiMM, laiYYYY )
-            
-            ! Read MODIS LAI from disk (if it is a new LAI month)
-            ! Logical flag MODISREAD determines if data was just read in
-            CALL Read_Modis_Lai( am_I_Root, Input_Opt,    laiYYYY, 
-     &                           laiMM,     wasModisRead, RC       )
+            ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
+            CALL Get_XlaiNative_from_HEMCO( am_I_Root, Input_Opt,
+     &                                      State_Met, RC         )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Read_Modis_LaiI"!'
+               ErrMsg =
+     &           'Error encountered in "Get_XlaiNative_from_HEMCO"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-            ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met, 
-     &                              day_of_year,  laiMM,     mapping,
-     &                              wasModisRead, RC )
+            ! Compute State_Met%XLAI (for drydep) and State_Met%MODISLAI,
+            ! which is the average LAI per grid box (for soil NOx emissions)
+            CALL Compute_Xlai( am_I_Root, Input_Opt, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Compute_Modis_Lai"!'
+               ErrMsg = 'Error encountered in "Compute_Xlai"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
-
-            !### Debug
-            IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a DAILY DATA' )
          ENDIF
 
          !==============================================================
@@ -2605,9 +2577,6 @@
          ErrMsg = 'Error encountered in "Cleanup"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-
-      ! Deallocate the derived type object w/ mapping info
-      CALL Cleanup_Mapping( mapping )
 
 #if defined( NC_DIAG )
       ! Deallocate fields of the diagnostics list object
