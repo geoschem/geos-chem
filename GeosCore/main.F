@@ -47,7 +47,6 @@
       USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
       USE Input_Opt_Mod         ! Derived type for Input Options 
       USE INPUT_MOD             ! For reading settings from "input.geos"
-      USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
@@ -832,19 +831,20 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Compute the Olson land types that occur in each grid box
-      ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap( am_I_Root, Input_Opt, RC )
-
-      ! Trap potential errors
+      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
+      CALL Init_LandTypeFrac( am_I_Root, Input_Opt, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_Olson_Landmap"!'
+         ErrMsg = 'Error encountered in "Init_LandTypeFrac"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Continue computing the Olson landmap
-      CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
-      CALL Cleanup_Olson_Landmap( am_I_Root                       )
+      ! Compute the Olson landmap fields of State_Met
+      ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
+      CALL Compute_Olson_Landmap( am_I_Root, State_Met, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Compute_Olson_Landmap"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)
