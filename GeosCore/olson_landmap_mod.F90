@@ -211,6 +211,7 @@ CONTAINS
 ! !USES:
 !
     USE CMN_SIZE_Mod
+    USE ErrCode_Mod
     USE Input_Opt_Mod, ONLY : OptInput
     USE State_Met_Mod, ONLY : MetState
 !
@@ -239,14 +240,28 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER :: I,           J,             T
     INTEGER :: typeCounter, maxFracInd(1), sumIUSE
 
-    !======================================================================
+    ! Arrays
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+    !=======================================================================
     ! Compute_Olson_Landmap begins here!
-    !======================================================================
+    !=======================================================================
     
+    ! Initialize
+    RC     = GC_SUCCESS
+    ErrMsg = ''
+    ThisLoc = &
+     '-> at Compute_Olson_Landmap (in module GeosCore/olson_landmap_mod.F90)'
+
+    !-----------------------------------------------------------------------
     ! Loop over all grid cells to set State_Met variables
+    !-----------------------------------------------------------------------
     DO J = 1, JJPAR
     DO I = 1, IIPAR
 
@@ -258,7 +273,9 @@ CONTAINS
        maxFracInd  = 0       ! type index with greatest coverage
        sumIUSE     = 0       ! total coverage across all types [mil]
 
+       !--------------------------------------------------------------------
        ! Loop over all landmap types to set IREG, ILAND, and IUSE
+       !--------------------------------------------------------------------
        DO T = 1, NSURFTYPE
 
           ! If this type has non-zero coverage in this grid box, update vars
@@ -277,25 +294,46 @@ CONTAINS
              ! Store fractional coverage in IUSE array for this grid cell.
              ! Units are [mil] for compatibility with legacy drydep code.
              State_Met%IUSE(I,J,typeCounter) = State_Met%LandTypeFrac(I,J,T) &
-                                               * 1000
+                                             * 1000
 
              ! If this type is water, set fraction land
              IF ( T .eq. 1 ) THEN
-                State_Met%FRCLND(I,J) = 1.e+0_fp                          &
+                State_Met%FRCLND(I,J) = 1.e+0_fp                             &
                                         - State_Met%LandTypeFrac(I,J,T)
              ENDIF
 
           ENDIF
        ENDDO
 
-        ! Get IUSE type index with maximum coverage [mil]
-       maxFracInd  = MAXLOC(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
+       !--------------------------------------------------------------------
+       ! Make sure that State_Met%IUSE sums up to 1000 (per mil)
+       !--------------------------------------------------------------------
 
-       ! Force IUSE to sum to 1000 by updating max value if necessary
-       sumIUSE =  SUM(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
-       IF ( sumIUSE /= 1000 ) THEN
-          State_Met%IUSE(I,J,maxFracInd) = State_Met%IUSE(I,J,maxFracInd) &
-                                         + ( 1000 - sumIUSE )
+       ! Get IUSE type index with maximum coverage [mil]
+       ! (NOTE: MAXLOC returns a vector with 1 element)
+       maxFracInd = MAXLOC( State_Met%IUSE(I,J,1:State_Met%IREG(I,J)) )
+
+       ! Make sure we find the index of IUSE with maximum coverage
+       IF ( maxFracInd(1) > 0 ) THEN
+
+          ! Force IUSE to sum to 1000 by updating max value if necessary
+          sumIUSE =  SUM(State_Met%IUSE(I,J,1:State_Met%IREG(I,J)))
+          IF ( sumIUSE /= 1000 ) THEN
+             State_Met%IUSE(I,J,maxFracInd(1)) =                             &
+             State_Met%IUSE(I,J,maxFracInd(1)) + ( 1000 - sumIUSE )
+          ENDIF
+
+       ELSE
+
+          ! If we could not find the index IUSE with maximum coverage,
+          ! then this indicates a potential problem with the regridding.
+          ! Throw an error and exit the routine here.
+          WRITE( ErrMsg, 100 ) I, J
+ 100      FORMAT( 'Error: State_Met%IUSE is zero at grid box (',             &
+                  i6, ', ', i6,                                              &
+                  '!  This indicates a potential regridding problem! ' )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
 
        ENDIF
 
