@@ -154,10 +154,8 @@ CONTAINS
     USE GLOBAL_CH4_MOD,     ONLY : EMISSCH4
     USE HCOI_GC_MAIN_MOD,   ONLY : HCOI_GC_RUN
     USE Input_Opt_Mod,      ONLY : OptInput
-#if defined( NC_DIAG )
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
     USE Precision_Mod
-#endif
     USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
@@ -165,10 +163,8 @@ CONTAINS
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
 #endif
-#if defined( NC_DIAG )
     USE Time_Mod,           ONLY : Get_Ts_Emis
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#endif
 
     ! Setting other surface VMRs
     Use sfcVMR_Mod,         Only : fixSfcVMR
@@ -340,7 +336,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if defined( NC_DIAG )
     ! For the POPS simulation, copy values from several HEMCO-based manual 
     ! diagnostics (defined in hcoi_gc_diagn_mod.F90) from the HEMCO state 
     ! object into the State_Diag object.  This will allow us to save these
@@ -355,7 +350,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN

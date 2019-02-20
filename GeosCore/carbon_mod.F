@@ -893,7 +893,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -905,7 +904,6 @@
          IF ( State_Diag%Archive_ProdBCPIfromBCPO ) THEN
             State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
          ENDIF
-#endif
 
          ! Store new concentration back into species array
          TC(I,J,L) = CNEW
@@ -1155,7 +1153,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1167,7 +1164,6 @@
          IF ( State_Diag%Archive_ProdOCPIfromOCPO ) THEN
             State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
          ENDIF
-#endif
 
          ! Store modified OC concentration back in species array
          TC(I,J,L) = CNEW
@@ -5252,9 +5248,7 @@ ccc
 #if defined( BPCH_DIAG )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
-      !%%%% which is only called if BPCH_DIAG=y.  Wrap this block of   %%%%
-      !%%%% code with an #ifdef BPCH_DIAG to prvent compilation issues %%%%
-      !%%%% when NC_DIAG=y.  (bmy, 8/7/18)                             %%%%
+      !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()

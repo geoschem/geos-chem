@@ -883,8 +883,6 @@
                ENDIF
 #endif
 
-
-#if defined( NC_DIAG )
                !--------------------------------------------------------
                ! HISTORY (aka netCDF diagnostics)
                ! OH concentration in [molec/cm3] after chemistry
@@ -893,7 +891,6 @@
                   State_Diag%OHconcAfterChem(I,J,L) =
      &                 ( BOH(I,J,L) * XNUMOL_OH / CM3PERM3 )
                ENDIF
-#endif
 
             ENDIF
          ENDDO
@@ -1054,7 +1051,6 @@
       ! Point to the chemical species array
       Spc => State_Chm%Species
 
-#if defined( NC_DIAG )
       !=================================================================
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -1068,7 +1064,6 @@
       IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
          State_Diag%LossCH4byOHinTrop = 0.0_f4
       ENDIF
-#endif
 
       !=================================================================
       ! Compute decay of CH4 by OH and Cl in the troposphere
@@ -1145,7 +1140,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -1162,7 +1156,6 @@
                State_Diag%LossCH4byOHinTrop(I,J,L) = 
      &            ( GCH4 * KRATE * C_OH ) / Spc2GCH4
             ENDIF
-#endif
 
             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt) 
             GCH4 = GCH4 * ( 1e+0_fp - KRATE    * C_OH * DT )
@@ -1453,7 +1446,6 @@
       ! If unified chemistry is active, ignore all of this
       IF ( .not. LUCX ) THEN
 
-#if defined( NC_DIAG )
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -1464,7 +1456,6 @@
          IF ( State_Diag%Archive_LossCH4inStrat ) THEN
             State_Diag%LossCH4inStrat = 0.0_f4
          ENDIF
-#endif
 
          ! Chemistry timestep [s]
          DT  = GET_TS_CHEM()
@@ -1511,7 +1502,6 @@
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                !------------------------------------------------------------
                ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
                !
@@ -1520,7 +1510,6 @@
                IF ( State_Diag%Archive_LossCH4inStrat ) THEN
                   State_Diag%LossCH4inStrat(I,J,L) = LRATE / Spc2GCH4
                ENDIF
-#endif
 
             ENDIF
          ENDDO

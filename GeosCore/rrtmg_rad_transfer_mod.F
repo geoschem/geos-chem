@@ -1693,7 +1693,6 @@
        ENDIF
 #endif
 
-#if defined( NC_DIAG )
        !================================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -1785,7 +1784,6 @@
           ENDIF
 
        ENDIF
-#endif
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 

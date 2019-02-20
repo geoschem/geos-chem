@@ -750,7 +750,6 @@ CONTAINS
              GLOB_JVAL(I,J,L,N) = PHOTOL(N)
 #endif
 
-#if defined( NC_DIAG )
              !--------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -815,7 +814,6 @@ CONTAINS
                 ENDIF
 
              ENDIF
-#endif
           ENDDO
        ENDIF
 
@@ -1167,7 +1165,6 @@ CONTAINS
 #endif
 #endif
 
-#if defined( NC_DIAG )
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
@@ -1193,7 +1190,6 @@ CONTAINS
              State_Diag%Prod(I,J,L,F) = VAR(KppID) / DT
           ENDDO
        ENDIF
-#endif
 
 #if defined( MODEL_GEOS )
        !==============================================================
@@ -1486,7 +1482,6 @@ CONTAINS
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
                State_Diag%OHconcAfterChem(I,J,L) = Spc(I,J,L,id_OH)
@@ -1579,8 +1574,6 @@ CONTAINS
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
             ENDIF
 #endif
-#endif
-
 
          ENDIF
 
@@ -1598,13 +1591,12 @@ CONTAINS
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             ! HISTORY (aka netCDF diagnostics)
             IF ( State_Diag%Archive_HO2concAfterChem ) THEN
                State_Diag%HO2concAfterChem(I,J,L) = ( Spc(I,J,L,id_HO2)      &
                                                   /   AirNumDen(I,J,L)      )
             ENDIF
-#endif
+
          ENDIF
 
          IF ( Input_Opt%LUCX ) THEN
@@ -1622,12 +1614,11 @@ CONTAINS
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( State_Diag%Archive_O1DconcAfterChem ) THEN
                   State_Diag%O1DconcAfterChem(I,J,L) = Spc(I,J,L,id_O1D)
                ENDIF
-#endif
+
             ENDIF
 
 
@@ -1644,12 +1635,10 @@ CONTAINS
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                ! HISTORY (aka netCDF diagnostics)
                IF ( State_Diag%Archive_O3PconcAfterChem ) THEN
                   State_Diag%O3PconcAfterChem(I,J,L) = Spc(I,J,L,id_O3P)
                ENDIF
-#endif
 
             ENDIF
 

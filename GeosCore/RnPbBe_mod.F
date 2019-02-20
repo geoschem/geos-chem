@@ -309,7 +309,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -320,7 +319,6 @@
             IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,1) = Rn_LOST(I,J,L) / DTCHEM
             ENDIF
-#endif
 
             ! Subtract Rn_LOST from Spc [kg]
             Spc(I,J,L,id_Rn222) = Spc(I,J,L,id_Rn222) - Rn_LOST(I,J,L)
@@ -363,7 +361,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -374,7 +371,6 @@
             IF ( State_Diag%Archive_PbFromRnDecay ) THEN
                State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb / DTCHEM ) 
             ENDIF
-#endif
 
             ! Add 210Pb gained by decay from 222Rn into Spc [kg]
             Spc(I,J,L,id_Pb210) = Spc(I,J,L,id_Pb210) + ADD_Pb          
@@ -408,7 +404,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -420,7 +415,6 @@
                State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
                State_Diag%RadDecay(I,J,L,3) = ( PbStrat_LOST /DTCHEM )
             ENDIF
-#endif
 
             ! Subtract 210Pb lost to decay from Spc [kg]
             Spc(I,J,L,id_Pb210) = Spc(I,J,L,id_Pb210) - Pb_LOST
@@ -471,7 +465,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -483,7 +476,6 @@
                State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST      / DTCHEM )
                State_Diag%RadDecay(I,J,L,5) = ( Be7Strat_LOST / DTCHEM )
             ENDIF
-#endif
 
             ! Subtract amount of 7Be lost to decay from Spc [kg]
             Spc(I,J,L,id_Be7) = Spc(I,J,L,id_Be7) - Be7_LOST
@@ -534,7 +526,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -546,7 +537,6 @@
                State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST      / DTCHEM)
                State_Diag%RadDecay(I,J,L,7) = ( Be10Strat_LOST / DTCHEM)
             ENDIF
-#endif
 
             ! Subtract amount of 10Be lost to decay from Spc [kg]
             Spc(I,J,L,id_Be10) = Spc(I,J,L,id_Be10) - Be10_LOST

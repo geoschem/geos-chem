@@ -352,7 +352,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !==========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             ! 
@@ -364,7 +363,6 @@
      &                                         * 1e4_fp      ! => kg/m2/s
 
             ENDIF
-#endif
 
             ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
             ! (ewl, 9/11/15)

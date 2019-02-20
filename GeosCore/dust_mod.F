@@ -484,9 +484,9 @@
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 #endif
-#if defined( NC_DIAG )
-               ! Add later when TOMAS diagnostics are implemented
-#endif
+
+            ! Add to State_Diag later when TOMAS diagnostics are implemented
+
          ENDDO
          ENDDO
 
@@ -947,7 +947,6 @@
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                IF ( State_Diag%Archive_DryDepChm .OR.
      &              State_Diag%Archive_DryDep        ) THEN
                   !-----------------------------------------------------
@@ -976,7 +975,6 @@
                   ! Drydep flux in chemistry only
                   State_Diag%DryDepChm(I,J,ND) = FLUX
                ENDIF
-#endif
             ENDDO 
          ENDDO    
 
@@ -1096,11 +1094,9 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
-#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
-#endif
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1388,7 +1384,7 @@
 !#############################################################################
       ENDIF
 #endif
-#if defined( NC_DIAG )
+
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
@@ -1489,7 +1485,6 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif 
 
       ! Free pointers
       ERADIUS  => NULL()
@@ -1667,11 +1662,9 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
-#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
-#endif
 
       !=================================================================
       ! RDUST begins here!
@@ -1996,7 +1989,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-#if defined( NC_DIAG )
+
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
@@ -2094,7 +2087,6 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
 
          ! Save the current month
          ! Set diagnostic to aggregate next call time. 

@@ -127,10 +127,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-#endif
       USE ErrCode_Mod
       USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -186,10 +184,7 @@
       ! Scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-#if defined ( USE_TEND ) || defined ( NC_DIAG )
       REAL(fp)           :: DT_Dyn
-#endif
 
       !=================================================================
       ! DO_TRANSPORT begins here!
@@ -201,7 +196,6 @@
       ThisLoc = 
      &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Transport (advection) budget diagnostics - Part 1 of 2
       !----------------------------------------------------------
@@ -221,7 +215,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       ! First-time initialization
       IF ( FIRST ) THEN 
@@ -310,10 +303,8 @@
 
       ENDIF
 
-#if defined ( USE_TEND ) || defined ( NC_DIAG )
       ! Dynamic timestep [s]
       DT_Dyn = GET_TS_DYN()
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -331,7 +322,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Transport (advection) budget diagnostics - Part 2 of 2
       !----------------------------------------------------------
@@ -363,7 +353,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
@@ -605,8 +594,11 @@
      &                   MG,        nAdvect,  Ap,       Bp,
      &                   p_UWND,    p_VWND,   P_TP1,    P_TP2,
      &                   P_TEMP,    p_Spc,    IORD,     JORD,      
-     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,     p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS,
+     &                   LFILL,
+#if defined( BPCH_DIAG )
+     &                   p_MFLEW,   p_MFLNS,  p_MFLUP,
+#endif
      &                   A_M2,      ND24x,    ND25x,    ND26x,
      &                   State_Diag                            )
 

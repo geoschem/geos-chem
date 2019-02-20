@@ -176,7 +176,6 @@
       INTEGER :: id_SOAIE, id_SOAME
       INTEGER :: id_INDIOL,id_LVOCOA,id_ISN1OA
 
-#if defined( NC_DIAG )
       ! Index to map between NRHAER and species database hygroscopic species
       ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F (e.g. if there is
       ! a new hygroscopic species) requires manual update of this mapping
@@ -194,7 +193,6 @@
       REAL(fp)           :: Fac_SOAIE
       REAL(fp)           :: Fac_SOAME
       REAL(fp)           :: Fac_SOAMG
-#endif
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -1186,9 +1184,7 @@
       USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD21
 #endif
-#if defined( NC_DIAG )
       USE Species_Mod,        ONLY : Species
-#endif
 
       IMPLICIT NONE
 !
@@ -1382,7 +1378,6 @@
 #if defined( BPCH_DIAG ) || defined( MODEL_GEOS )
       INTEGER             :: IOUT, IISOPAOD, IAERAQVOL
 #endif
-#if defined( NC_DIAG )
       LOGICAL                :: IsWL1
       LOGICAL                :: IsWL2
       LOGICAL                :: IsWL3
@@ -1391,7 +1386,6 @@
       CHARACTER(LEN=255)     :: ErrMsg
       !INTEGER                :: M
       TYPE(Species), POINTER :: SpcInfo
-#endif
 
       !=================================================================
       ! RDAER begins here!
@@ -1436,7 +1430,6 @@
       ENDIF
 #endif
 
-# if defined( NC_DIAG )
       ! Initialize the mapping between hygroscopic species in the
       ! species database and the species order in NRHAER
       IF ( FIRST ) THEN
@@ -1470,7 +1463,6 @@
          
          ENDDO
       ENDIF
-#endif
 
       !=================================================================
       ! S U L F A T E   A E R O S O L S
@@ -1983,7 +1975,7 @@
      &                                    SCALEOD
                ENDIF
 #endif
-#if defined ( NC_DIAG )
+
                !----------------------------------------------------
                ! Netcdf diagnostics computed here:
                !  Hygroscopic growth of SO4                [unitless]
@@ -1995,7 +1987,7 @@
      &              L <= LLCHEM .AND. ODSWITCH.EQ.1 ) THEN
                   State_Diag%AerHygGrowth(I,J,L,Map_NRHAER(N)) = SCALEOD
                ENDIF
-#endif
+
                !=======================================================
                !now calulate the surface areas
                !==============================================================
@@ -2082,7 +2074,7 @@
                   AD21(I,J,L,IAERAQVOL) = AD21(I,J,L,IAERAQVOL)+TAERVOL
                ENDIF
 #endif
-#if defined( NC_DIAG )
+
                !----------------------------------------------------
                ! Netcdf diagnostics computed here:
                !  Aqueous aerosol volume
@@ -2092,7 +2084,6 @@
      &                         TAREA(I,J,L, N+NDUST) ) / 3.D0
 
                ENDIF
-#endif
 
             ENDIF !Surface area calcs (1st wavelength only, non-strat)
          ENDDO
@@ -2117,7 +2108,7 @@
             ! For ND21
             IOUT = 5 + 2*NRHAER + 3*(NDUST+NRHAER) + (ISTRAT-1)*3
 #endif
-#if defined( NC_DIAG )
+
             ! Assume ISTRAT == 1 is strat liquid aerosol and
             ! ISTRAT == 2 is polar strat cloud
             IsSLA = .FALSE.
@@ -2132,7 +2123,6 @@
      &                            "not defined for NSTRATAER " //
      &                            "greater than 2!" 
             END SELECT
-#endif
 
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
@@ -2184,7 +2174,7 @@
                   ENDIF
                ENDIF
 #endif
-#if defined( NC_DIAG )
+
                !----------------------------------------------------
                ! Netcdf diagnostics computed here:
                !  Strat aerosol liquid surface area
@@ -2243,7 +2233,6 @@
                      ENDIF
                   ENDIF
                ENDIF
-#endif                  
 
             ENDDO
             ENDDO
@@ -2367,7 +2356,7 @@
      
       ENDIF
 #endif
-#if defined( NC_DIAG )
+
       IF ( State_Diag%Archive_AOD .and. ODSWITCH .EQ. 1 ) THEN
          ! Loop over aerosol types (dust handled in dust_mod.f)
 !$OMP PARALLEL DO
@@ -2514,7 +2503,6 @@
          ENDDO ! end of loop over hygroscopic aerosols
 !$OMP END PARALLEL DO
       ENDIF
-#endif
 
       ! Turn off radiative effects of stratospheric aerosols?
       IF ( LUCX .and. .not.(LSTRATOD)) THEN
@@ -2930,7 +2918,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
       ! SAVEd scalars
       LOGICAL                  :: First = .TRUE.
       
@@ -3361,7 +3348,6 @@
       Spc      => NULL()
       AirDen   => NULL()
       
-#endif
       END SUBROUTINE Set_AerMass_Diagnostic
 !EOC
       END MODULE AEROSOL_MOD

@@ -4571,7 +4571,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: ExtNr, HcoID, I, N, COL
+    INTEGER            :: ExtNr, HcoID, I, N
     CHARACTER(LEN=1)   :: ISTR
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
@@ -4608,16 +4608,6 @@ CONTAINS
        HcoID = GetHemcoId( 'NO', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       ! Define collection: in development mode or if netCDF is enabled,
-       ! add it to the default HEMCO collection. Otherwise, add it to the
-       ! manual collection and the diagnostics will be written to the
-       ! bpch file in diag3.F.
-#if defined( NC_DIAG )
-       COL = HcoState%Diagn%HcoDiagnIDDefault
-#else
-       COL = HcoState%Diagn%HcoDiagnIDManual
-#endif
-
        ! Loop over lighthing flash quantities
        DO I = 1, 3
 
@@ -4647,7 +4637,7 @@ CONTAINS
                              LevIDx    = -1,                &
                              OutUnit   = 'flashes/min/km2', &
                              OutOper   = 'Mean',            &
-                             COL       = COL,               &
+                             COL       = HcoState%Diagn%HcoDiagnIDDefault, &
                              AutoFill  = 0,                 &
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4674,7 +4664,7 @@ CONTAINS
                           LevIDx    = -1,                &
                           OutUnit   = '1',               &
                           OutOper   = 'Mean',            &
-                          COL       = COL,               &
+                          COL       = HcoState%Diagn%HcoDiagnIDDefault, &
                           AutoFill  = 0,                 &
                           RC        = RC                  ) 
        IF ( RC /= HCO_SUCCESS ) RETURN
@@ -4933,11 +4923,9 @@ CONTAINS
     ! Exit if the POPs simulation is not selected
     IF ( .not. Input_Opt%ITS_A_POPS_SIM ) RETURN
 
-#if defined( NC_DIAG ) 
     ! For the HISTORY netCDF diagnostics, we want to get the instantaneous
     ! values archived by HEMCO and then let HISTORY do the averaging.
     OutOper = 'Instantaneous'
-#endif
 
 #if defined( BPCH_DIAG )
     ! Exit if ND53 diagnostics aren't turned on
