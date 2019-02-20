@@ -742,7 +742,8 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               pbl_mix_mod.o           tendencies_mod.o       \
                               hco_interface_mod.o     vdiff_mod.o
 
-modis_lai_mod.o             : modis_lai_mod.F90
+modis_lai_mod.o             : modis_lai_mod.F90                              \
+                              hco_interface_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               diag_mod.o                                     \
@@ -769,7 +770,7 @@ endif
 ##############################################################################
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
-                              mapping_mod.o
+                              hco_interface_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               tendencies_mod.o        diagnostics_mod.o      \
