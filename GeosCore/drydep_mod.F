@@ -644,12 +644,10 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             ! Archive dry dep velocity [cm/s]
             IF ( State_Diag%Archive_DryDepVel ) THEN
                State_Diag%DryDepVel(I,J,D) = DVZ
             ENDIF
-#endif
 
             ! Free pointer
             SpcInfo => NULL()

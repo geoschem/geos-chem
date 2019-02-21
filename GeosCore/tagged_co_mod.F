@@ -1042,7 +1042,6 @@
                   ENDIF
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
                   ! ND65 (bpch) diagnostic
                   !
@@ -1053,7 +1052,6 @@
      &                                        *   Spc(I,J,L,N) 
      &                                        *   STTCO        )
                   ENDIF
-#endif
 
                   ! Loss
                   Spc(I,J,L,N) = Spc(I,J,L,N) * ( 1.0_fp - CO_OH )
@@ -1181,7 +1179,6 @@
                   ENDIF
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
                   ! HISTORY (aka netCDF diagnostics)
                   !
@@ -1195,7 +1192,6 @@
      &                                        *   Spc(I,J,L,N) 
      &                                        *   STTCO        )
                   ENDIF
-#endif
 
                   ! Use tropospheric rate constant 
                   Spc(I,J,L,N) = Spc(I,J,L,N) *
@@ -1264,7 +1260,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1275,8 +1270,6 @@
          IF ( State_Diag%Archive_Loss ) THEN
             State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
          ENDIF   
-#endif
-
 
       ENDDO
       ENDDO

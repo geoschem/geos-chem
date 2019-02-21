@@ -429,7 +429,6 @@
 !----------------------------------------------------------------------------
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -441,7 +440,6 @@
      &      State_Diag%FluxHg2HgPfromAirToSnow(I,J) +
      &         ( FRAC_SNOW_OR_ICE * MAX( DEP_HG2, 0e+0_fp ) ) !/ DT
          ENDIF
-#endif
 
       ENDIF
 

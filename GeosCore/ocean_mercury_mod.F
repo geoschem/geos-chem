@@ -791,7 +791,6 @@
      &         ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
 #endif
 
-#if defined( NC_DIAG )
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -801,7 +800,6 @@
                State_Diag%EmisHg2snowToOcean(I,J) = 
      &          ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) ) / DT
             ENDIF
-#endif
 
             ! Zero reservoirs over ocean box, since we've added it
             ! all to the ocean
@@ -1938,7 +1936,6 @@
      &                                A_M2 * DTSRCE * FRAC_O
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -1949,7 +1946,7 @@
                      State_Diag%EmisHg2rivers(I,J) = 
      &                  ( RIVER_HG * A_M2 * FRAC_O )
                   ENDIF
-#endif
+
                ENDIF
                   
                !--------------------------------------------------------
@@ -2105,7 +2102,6 @@
                   ENDIF
 #endif
 
-#if defined( NC_DIAG )
                   !-----------------------------------------------------
                   ! %%%%% ND03 (bpch) DIAGNOSTIC %%%%%
                   !
@@ -2115,7 +2111,6 @@
                      State_Diag%FluxOCtoDeepOcean(I,J) = JorgC_kg
      &                                                 / DTSRCE
                   ENDIF                  
-#endif
                 
                !- eds 8/31/10 -----------------------------------------
                !ENDIF
@@ -2287,7 +2282,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! %%%%% HISTORY (aka netCDF) DIAGNOSTICS %%%%%
             !
@@ -2350,7 +2344,6 @@
                State_Diag%FluxHg2HgPfromAirToOcean(I,J) = TOTDEP
      &                                                  / DTSRCE
             ENDIF
-#endif
            
          !==============================================================
          ! If we are not in an ocean box, set Hg(0) flux to zero

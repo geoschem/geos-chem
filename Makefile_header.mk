@@ -208,6 +208,7 @@
 #                              models driving GEOS-Chem externally (by calling
 #                              its libraries)
 #  28 Aug 2018 - M. Sulprizio- Export EXE_NEEDED to be used in GeosCore/Makefile
+#  20 Feb 2019 - M. Sulprizio- Remove NC_DIAG switch, it should always be used
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -244,9 +245,6 @@ ERR_COUPLE           :="Select a coupled choice: COUPLE=yes"
 
 # Error message for bad GIGC config
 ERR_GIGC             :="Unable to find the GIGC configuration file. Have you downloaded the GIGC?"
-
-# Error message for TOMAS error message
-ERR_MICPHYS           :="At present, microphysics packages (TOMAS, APM) cannot be used when NC_DIAG=y!"
 
 ###############################################################################
 ###                                                                         ###
@@ -469,42 +467,21 @@ ifdef BPCH_DIAG
 endif
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(BPCH_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-  USER_DEFS        += -DBPCH_DIAG
+  USER_DEFS          += -DBPCH_DIAG
 endif
 
-# %%%%% Turn netCDF diagnostics on by default to save out restart file %%%%%
-REGEXP               :=(^[Nn]|^[Nn][Oo])
-ifeq ($(shell [[ "$(NC_DIAG)" =~ $(REGEXP) ]] && echo true),true)
-
-  # Set a flag to denote netCDF diagnostics are off
-  IS_NC_DIAG         :=0
-
-  # If netCDF diagnostics have not been explicitly specified, then activate
-  # bpch diagnostics, bpch timeseries, AND bpch code for nested-grid BC's
-  USER_DEFS          += -DBPCH_DIAG -DBPCH_TIMESER -DBPCH_TPBC
-
-else
-
-  # Set a flag to denote netCDF diagnostics are on
-  IS_NC_DIAG         :=1
-
-  # Turn on netCDF diagnostics if explicitly specified
-  USER_DEFS          += -DNC_DIAG
-
-  # If we are compiling GEOS-Chem "Classic", then also activate all bpch
-  # timeseries diagnostics.  At this point (v11-02) there are some special
-  # timeseries diagnostics that require local-time binning, which is not
-  # yet available in the netCDF diagnostic output.  This will preserve
-  # backwards compatibility for the time being. (bmy, 4/11/18)
-  ifeq ($(IS_HPC),0)
-     USER_DEFS       += -DBPCH_TIMESER
-  endif
-
-  # Turn on bpch code for nested-grid BC's by default
-  # Needed for both global and nested simulations
-  USER_DEFS          += -DBPCH_TPBC
-
+# If we are compiling GEOS-Chem "Classic", then also activate all bpch
+# timeseries diagnostics.  At this point (v11-02) there are some special
+# timeseries diagnostics that require local-time binning, which is not
+# yet available in the netCDF diagnostic output.  This will preserve
+# backwards compatibility for the time being. (bmy, 4/11/18)
+ifeq ($(IS_HPC),0)
+   USER_DEFS         += -DBPCH_TIMESER
 endif
+
+# Turn on bpch code for nested-grid BC's by default
+# Needed for both global and nested simulations
+USER_DEFS            += -DBPCH_TPBC
 
 #------------------------------------------------------------------------------
 # KPP settings chemistry solver settings.  NOTE: We can't redefine CHEM 
@@ -835,57 +812,36 @@ endif
 
 #------------------------------------------------------------------------------
 # Aerosol microphysics settings
-# At present, TOMAS or APM cannot be compiled with NC_DIAG=y! (bmy, 8/7/18)
 #------------------------------------------------------------------------------
 
 # %%%%% TOMAS, 30 bins (default) %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(IS_NC_DIAG),1) 
-    $(error $(ERR_MICPHYS))
-  else
-    USER_DEFS        += -DTOMAS
-  endif
+  USER_DEFS          += -DTOMAS
 endif
 
 # %%%%% TOMAS, 40 bins %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS40)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(IS_NC_DIAG),1) 
-    $(error $(ERR_MICPHYS))
-  else
-    USER_DEFS        += -DTOMAS -DTOMAS40
-  endif
+  USER_DEFS          += -DTOMAS -DTOMAS40
 endif
 
 # %%%%% TOMAS, 15 bins %%%%% 
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS15)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(IS_NC_DIAG),1) 
-    $(error $(ERR_MICPHYS))
-  else
-    USER_DEFS        += -DTOMAS -DTOMAS15
-  endif
+  USER_DEFS          += -DTOMAS -DTOMAS15
 endif
 
 # %%%%% TOMAS, 12 bins %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(TOMAS12)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(IS_NC_DIAG),1) 
-    $(error $(ERR_MICPHYS))
-  else
-    USER_DEFS        += -DTOMAS -DTOMAS12
-  endif
+  USER_DEFS          += -DTOMAS -DTOMAS12
 endif
 
 # %%%%% APM %%%%%
 REGEXP               :=(^[Yy]|^[Yy][Ee][Ss])
 ifeq ($(shell [[ "$(APM)" =~ $(REGEXP) ]] && echo true),true)
-  ifeq ($(IS_NC_DIAG),1) 
-    $(error $(ERR_MICPHYS))
-  else
-    USER_DEFS        += -DAPM
-  endif
+  USER_DEFS          += -DAPM
 endif
 
 #------------------------------------------------------------------------------
@@ -1565,7 +1521,6 @@ export IS_GNU_8
 #	@@echo "IS_NC_CONFIG     : $(IS_NC_CONFIG)"
 #	@@echo "NC_INC_CMD       : $(NC_INC_CMD)"
 #	@@echo "NC_LINK_CMD      : $(NC_LINK_CMD)"
-#	@@echo "NC_DIAG          : $(NC_DIAG)"
 #	@@echo "BPCH_DIAG        : $(BPCH_DIAG)"
 #	@@echo "NO_REDUCED       : $(NO_REDUCED)"
 

@@ -104,10 +104,8 @@ CONTAINS
     USE CMN_DIAG_MOD  
 #endif
     USE CMN_SIZE_MOD
-#if defined( NC_DIAG )
     USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-#endif
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod      
@@ -290,9 +288,7 @@ CONTAINS
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
-#if defined( USE_TEND ) || defined( NC_DIAG )
     REAL(fp)           :: DT_Chem
-#endif
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -340,7 +336,6 @@ CONTAINS
        id_NK1  = Ind_('NK1' )
     ENDIF
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 1 of 2
     !----------------------------------------------------------
@@ -360,7 +355,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
 #if defined( USE_TEND )
     !=======================================================================
@@ -1021,10 +1015,8 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( USE_TEND ) || defined( NC_DIAG )
     ! Chemistry timestep [s]
     DT_Chem = Get_Ts_Chem()
-#endif
 
 #if defined( USE_TEND )
     !=======================================================================
@@ -1043,7 +1035,6 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
@@ -1075,7 +1066,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
   END SUBROUTINE DO_CHEMISTRY
 !EOC

@@ -1273,8 +1273,6 @@ CONTAINS
     State_Diag%ObsPack_Species_Name                => NULL()
     State_Diag%ObsPack_Species_LName               => NULL()
 
-#if defined( NC_DIAG )
-
     ! Write header
     IF ( am_I_Root ) THEN
     WRITE( 6, 10 )
@@ -6229,8 +6227,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-#endif
 
   END SUBROUTINE Init_State_Diag
 !EOC

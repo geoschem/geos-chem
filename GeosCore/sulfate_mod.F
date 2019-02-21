@@ -1883,7 +1883,7 @@
 
          ENDIF
 #endif
-#if defined( NC_DIAG )
+
          !-----------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          ! Dry deposition flux loss [molec/cm2/s]
@@ -1916,7 +1916,7 @@
             ! Drydep flux in chemistry only
             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
          ENDIF
-#endif
+
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -2234,7 +2234,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -2276,7 +2275,6 @@
             State_Diag%ProdMSAfromDMS(I,J,L) =
      &       ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
-#endif
 
          !==============================================================
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
@@ -3889,7 +3887,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
          !=================================================================
@@ -3989,7 +3986,6 @@
                ENDIF
             ENDIF
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -4429,7 +4425,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
       !=================================================================
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -4439,8 +4434,6 @@
          State_Diag%LossHNO3onSeaSalt(I,J,L) =
      &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
       ENDIF
-#endif
-      
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       ! Remove species molecular weight from equation (bmy, 2/10/17)

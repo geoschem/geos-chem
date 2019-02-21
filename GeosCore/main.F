@@ -463,9 +463,7 @@
       CALL GEOS_Timer_Add( "=> HEMCO diagnostics",                 RC )
       CALL GEOS_Timer_Add( "=> Binary punch diagnostics",          RC )
       CALL GEOS_Timer_Add( "=> ObsPack diagnostics",               RC )
-#if defined( NC_DIAG )
       CALL GEOS_Timer_Add( "=> History (netCDF diags)",            RC )
-#endif
       CALL GEOS_Timer_Add( "Input",                                RC )
       CALL GEOS_Timer_Add( "Output",                               RC )
       CALL GEOS_Timer_Add( "Finalization",                         RC )
@@ -543,7 +541,6 @@
       ! Debug output
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a READ_INPUT_FILE' )
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! %%%% REPLICATING GCHP FUNCTIONALITY IN EXISTING GEOS-CHEM %%%%
       !
@@ -573,8 +570,6 @@
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "All diagnostics",           RC )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
-
 #endif
 
       !-----------------------------------------------------------------
@@ -726,7 +721,6 @@
       TAU   = GET_TAU()
       TAUb  = GET_TAUb()
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       !    ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
       !-----------------------------------------------------------------
@@ -752,8 +746,6 @@
       CALL GEOS_Timer_End( "All diagnostics",           RC )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif   
-
-#endif  
 
       !-----------------------------------------------------------------
       !        ***** I N I T I A L I Z A T I O N  continued *****
@@ -1019,7 +1011,6 @@
             CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
          ENDIF
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! %%%%% HISTORY (netCDF diagnostics) %%%%%
          !
@@ -1045,8 +1036,6 @@
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "All diagnostics",           RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
-
 #endif
 
          !==============================================================
@@ -2018,7 +2007,6 @@
          !==============================================================
          !      ***** D I A G N O S T I C S   A R C H I V A L *****
          !==============================================================
-#if defined( NC_DIAG )
  
          !--------------------------------------------------------------
          !           ***** H I S T O R Y   U P D A T E  *****
@@ -2081,8 +2069,6 @@
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
 #endif
 
-#endif
-
          !--------------------------------------------------------------
          !      ***** O B S P A C K   D I A G N O S T I C S *****
          !--------------------------------------------------------------
@@ -2109,9 +2095,9 @@
          !--------------------------------------------------------------
          !   ***** P L A N E F L I G H T   D I A G   S E T U P  *****
          !
-         ! %%%%% NOTE: Works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
-         ! %%%%% but for timing purposes, count this as bpch  %%%%%
-         ! %%%%% because it is not computed with History.     %%%%%
+         ! %%%%% NOTE: Works whether BPCH_DIAG=y or n        %%%%%
+         ! %%%%% but for timing purposes, count this as bpch %%%%%
+         ! %%%%% because it is not computed with History.    %%%%%
          !--------------------------------------------------------------
          IF ( ND40 > 0 .and. DO_DIAG_WRITE ) THEN 
             IF ( ITS_A_NEW_DAY() ) THEN
@@ -2227,7 +2213,7 @@
          ! with species array and not be biased by emissions, kyu 30
          ! jan 2015
          !
-         ! %%%%% NOTE: works whether BPCH_DIAG=y or NC_DIAG=y %%%%%
+         ! %%%%% NOTE: works whether BPCH_DIAG=y or n %%%%%
          !--------------------------------------------------------------
          IF ( ND40 > 0 ) THEN 
             ! Archive data along the flight track
@@ -2389,7 +2375,6 @@
 
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          !            ***** H I S T O R Y   W R I T E *****
          !--------------------------------------------------------------
@@ -2413,8 +2398,6 @@
          CALL GEOS_Timer_End( "All diagnostics",           RC )
          CALL GEOS_Timer_End( "Output",                    RC )
          CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
-
 #endif
 
          !==============================================================
@@ -2578,7 +2561,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-#if defined( NC_DIAG )
       ! Deallocate fields of the diagnostics list object
       CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2586,7 +2568,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup Diag_List' )
-#endif
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -2771,13 +2752,9 @@
 #endif
 
       !-----------------------------------------------------------------
-      ! Print status of netCDF diagnostics (aka History)
+      ! Print status of netCDF diagnostics (aka History) - always on
       !-----------------------------------------------------------------
-#if defined( NC_DIAG ) 
       WRITE( 6, 170 ) 'ON'
-#else
-      WRITE( 6, 170 ) 'OFF'
-#endif
 
       !-----------------------------------------------------------------
       ! Print msg if netCDF compression is supported

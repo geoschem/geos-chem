@@ -153,7 +153,6 @@
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
       ! Strings
       CHARACTER(LEN=63)  :: DgnName
       CHARACTER(LEN=255) :: ErrMsg
@@ -161,7 +160,6 @@
 
       ! Pointers
       REAL(f4), POINTER  :: Ptr2D(:,:)
-#endif
 
       !=================================================================
       ! GetPopsDiagsFromHemco begins here!
@@ -169,7 +167,6 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-#if defined( NC_DIAG )
       ErrMsg  = ''
       ThisLoc =
      & '-> at GetPopsDiagsFromHemco (in module GeosCore/pops_mod.F)'
@@ -498,7 +495,6 @@
          ! Free pointer
          Ptr2D   => NULL()
       ENDIF
-#endif
 
       END SUBROUTINE GetPopsDiagsFromHemco
 !EOC
@@ -588,7 +584,6 @@
       ! Point to columns of derived-type object fields (hplin, 12/1/18)
       DEPSAV            => State_Chm%DryDepSav
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -601,7 +596,6 @@
      &     State_Diag%Archive_DryDep    ) THEN
          State_Diag%DryDepChm = 0.0_f4
       ENDIF
-#endif
 
       !=================================================================
       ! Get pointers to fields that are read in by HEMCO.
@@ -1069,8 +1063,6 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
      
-
-#if defined( NC_DIAG )
       !================================================================
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -1138,7 +1130,6 @@
       !----------------------------------------------------------------
       Archive_Drydep = ( State_Diag%Archive_DryDepChm .or.
      &                   State_Diag%Archive_DryDep         )
-#endif
 
       ! Eventually should parallelize this ...
       DO L = 1, LLPAR
@@ -1436,7 +1427,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -1479,8 +1469,6 @@
             ENDIF
 
          ENDIF
-#endif
-
 
          !==============================================================
          ! HYDROPHOBIC PARTICULATE POPS DECAY TO HYDROPHILIC (clf, 2/12/2012)
@@ -1936,7 +1924,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
          !==============================================================
          ! %%%%% HISTORY (netCDF DIAGNOSTICS) %%%%%
          !
@@ -2114,7 +2101,6 @@
             State_Diag%ProdPOPPBCPIfromNO3(I,J,L) = GROSS_OX_NO3_BCPI
      &                                            / DTCHEM
          ENDIF
-#endif
 
       ENDDO
       ENDDO

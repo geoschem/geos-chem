@@ -271,7 +271,6 @@
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-#if defined( NC_DIAG )
       !=================================================================
       !         ***** H I S T O R Y   C L E A N U P *****
       !
@@ -292,8 +291,6 @@
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
-
 #endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
