@@ -2403,33 +2403,93 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  04 Mar 2015 - C. Keller - Initial version
+!  24 Feb 2019 - C. Keller - Now use julian dates via YMDhm2jd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 ! 
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: diff1, diff2 
+    REAL(dp)              :: diff1, diff2 
+    REAL(dp)              :: jdc, jd1, jd2 
 
     !=================================================================
     ! GetWeights begins here! 
     !=================================================================
 
+    ! Convert dates to Julian dates 
+    jdc = YMDhm2jd ( cur  ) 
+    jd1 = YMDhm2jd ( int1 ) 
+    jd2 = YMDhm2jd ( int2 ) 
+
     ! Check if outside of range
-    IF ( cur <= int1 ) THEN
+    IF ( jdc <= jd1 ) THEN
        wgt1 = 1.0_sp
-    ELSEIF ( cur >= int2 ) THEN
+    ELSEIF ( jdc >= jd2 ) THEN
        wgt1 = 0.0_sp
     ELSE
-       diff1 = int2 - cur 
-       diff2 = int2 - int1 
-       wgt1  = REAL(diff1,kind=sp) / REAL(diff2,kind=sp)
+       diff1 = jd2 - jdc 
+       diff2 = jd2 - jd1 
+       wgt1  = diff1 / diff2
     ENDIF
 
     ! second weight is just complement of wgt1
     wgt2  = 1.0_sp - wgt1 
 
   END SUBROUTINE GetWeights 
+!EOC
+!------------------------------------------------------------------------------
+!                  Harvard-NASA Emissions Component (HEMCO)                   !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: YMDhm2jd
+!
+! !DESCRIPTION: returns the julian date of element YMDhm.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION YMDhm2jd ( YMDhm ) RESULT ( jd ) 
+!
+! !USES:
+!
+    USE Julday_Mod
+!
+! !INPUT PARAMETERS:
+!
+    REAL(dp), INTENT(IN)  :: YMDhm
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    REAL(hp) :: jd 
+!
+! !REVISION HISTORY:
+!  24 Feb 2019 - C. Keller - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+! 
+! !LOCAL VARIABLES:
+!
+    INTEGER               :: yr, mt, dy, hr, mn
+    REAL(dp)              :: utc, day
+
+    !=================================================================
+    ! YMDh2jd begins here! 
+    !=================================================================
+    yr  = FLOOR( MOD( YMDhm, 1.0e12_dp ) / 1.0e8_dp )
+    mt  = FLOOR( MOD( YMDhm, 1.0e8_dp  ) / 1.0e6_dp ) 
+    dy  = FLOOR( MOD( YMDhm, 1.0e6_dp  ) / 1.0e4_dp ) 
+    hr  = FLOOR( MOD( YMDhm, 1.0e4_dp  ) / 1.0e2_dp ) 
+    mn  = FLOOR( MOD( YMDhm, 1.0e2_dp  ) ) 
+    utc = ( REAL(hr,dp) / 24.0_dp    ) + &
+          ( REAL(mn,dp) / 1440.0_dp  ) + &
+          ( REAL(0 ,dp) / 86400.0_dp )
+    day = REAL(dy,dp) + utc
+    jd  = JULDAY( yr, mt, day )
+
+  END FUNCTION YMDhm2jd
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
