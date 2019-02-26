@@ -1636,21 +1636,21 @@ CONTAINS
     ! Loop over the requested # of months
     DO T = 0, nMonths-1
 
-       ! Increment the month
-       MM = MM + 1
-
-       ! Increment the year if we straddle New Year's Day
-       IF ( MM > 12 ) THEN
-          MM   = 1
-          YYYY = YYYY + 1
-       ENDIF
-
        ! Keep a running total of the number of days in the interval
        nDays = nDays + DpM(MM)
 
        ! Add the leap year day if necessary
        IF ( Its_A_LeapYear( YYYY ) .and. MM == 2 ) THEN
           nDays = nDays + 1
+       ENDIF
+
+       ! Increment the month for next iteration
+       MM = MM + 1
+
+       ! Also increment the year if we straddle New Year's Day
+       IF ( MM > 12 ) THEN
+          MM   = 1
+          YYYY = YYYY + 1
        ENDIF
 
     ENDDO
