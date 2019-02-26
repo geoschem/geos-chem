@@ -24,6 +24,7 @@ MODULE History_Util_Mod
 !
   PUBLIC :: Compute_Julian_Date
   PUBLIC :: Compute_Elapsed_Time
+  PUBLIC :: Compute_DeltaYmdHms_For_End
 !
 ! !DEFINED PARAMETERS:
 !
@@ -190,5 +191,108 @@ CONTAINS
     ElapsedSec = NINT( ElapsedSec )
 
   END SUBROUTINE Compute_Elapsed_Time
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute_DeltaYmdHms_For_End
+!
+! !DESCRIPTION: Returns the DeltaYMD and DeltaHMS parameters for collections
+!  that are specified with "End".
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Compute_DeltaYmdHms_For_End( yyyymmdd,     hhmmss,              &
+                                          yyyymmdd_end, hhmmss_end,          &
+                                          deltaYmd,     deltaHms            )
+!
+! !USES:
+!
+    USE Time_Mod, ONLY : Ymd_Extract
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER, INTENT(IN)  :: yyyymmdd       ! Simulation start date
+    INTEGER, INTENT(IN)  :: hhmmss         ! Simulation start time
+    INTEGER, INTENT(IN)  :: yyyymmdd_end   ! Simulation end date
+    INTEGER, INTENT(IN)  :: hhmmss_end     ! Simulation end time
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: deltaYmd       ! YMD interval for the collection
+    INTEGER, INTENT(OUT) :: deltaHms       ! HMS interval for the collection
+!
+! !REMARKS:
+!  NOTE: This algorithm should work for most typical model start and end dates
+!  (which are usually integral intervals of months, days, hours, or minutes.
+!  There may be some edge cases that will cause this to fail.  But it is an
+!  improvement over the prior situation. (bmy, 2/26/19)
+!
+! !REVISION HISTORY:
+!  26 Feb 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: Year0, Month0, Day0, Hour0, Minute0, Second0
+    INTEGER :: Year1, Month1, Day1, Hour1, Minute1, Second1
+    INTEGER :: dYear, dMonth, dDay, dHour, dMinute, dSecond
+
+    !=======================================================================
+    ! GetRestartDeltaYmdHms begins here!
+    !=======================================================================
+
+    ! Split starting date
+    CALL Ymd_Extract( yyyymmdd,     Year0, Month0,  Day0    )
+    CALL Ymd_Extract( hhmmss,       Hour0, Minute0, Second0 )
+
+    ! Split ending date
+    CALL Ymd_Extract( yyyymmdd_end, Year1, Month1,  Day1    )
+    CALL Ymd_Extract( hhmmss_end,   Hour1, Minute1, Second1 )
+
+    ! Compute intervals
+    dYear    = Year1   - Year0
+    dMonth   = Month1  - Month0
+    dDay     = Day1    - Day0
+    dHour    = Hour1   - Hour0
+    dMinute  = Minute1 - Minute0
+    dSecond  = Second1 - Second0
+
+    ! Adjust intervals (NOTE: Might not be as robust, more testing needed)
+    IF ( dSecond < 0 ) THEN
+       dSecond = dSecond + 60
+       dMinute = MAX( dMinute - 1, 0 )
+    ENDIF
+
+    IF ( dMinute < 0 ) THEN
+       dMinute = dMinute + 60
+       dHour   = MAX( dHour - 1, 0 )
+    ENDIF
+
+    IF ( dHour < 0 ) THEN
+       dHour   = dHour + 24
+       dDay    = MAX( dDay - 1, 0 )
+    ENDIF
+
+    IF ( dDay < 0 ) THEN
+       dDay    = dDay + Day0
+       dMonth  = MAX( dMonth - 1, 0 )
+    ENDIF
+
+    IF ( dMonth < 0 ) THEN
+       dMonth  = dMonth + 12
+       dYear   = MAX( dYear - 1, 0 )
+    ENDIF
+
+    ! Construct the YMD and HMS intervals
+    deltaYmd = ( dYear * 10000 ) + ( dMonth  * 100 ) + dDay
+    deltaHms = ( dHour * 10000 ) + ( dMinute * 100 ) + dSecond
+
+  END SUBROUTINE Compute_DeltaYmdHms_For_End
 !EOC
 END MODULE History_Util_Mod
