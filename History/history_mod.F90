@@ -584,8 +584,14 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
-    deltaYMD       =  yyyymmdd_end - yyyymmdd
-    deltaHMS       =  hhmmss_end   - hhmmss
+
+    ! Compute the YMD and HMS intervals for collections specified with "End",
+    ! such as for restart files.  NOTE: This algorithm should work with most
+    ! common model simulation intervals, but there might be some edge cases
+    ! that will cause it to fail.  It is still an improvement. (bmy, 2/26/19)
+    CALL Compute_DeltaYmdHms_For_End( yyyymmdd,     hhmmss,                  &
+                                      yyyymmdd_end, hhmmss_end,              &
+                                      deltaYMD,     deltaHMS                )
 
     ! Convert the HeartBeatDtSec into hours:minutes:seconds
     ! for defining the Update interval for time-averaged collections

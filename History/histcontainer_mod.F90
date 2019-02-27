@@ -30,13 +30,18 @@ MODULE HistContainer_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HistContainer_Create
-  PUBLIC :: HistContainer_Print
-  PUBLIC :: HistContainer_Destroy
-  PUBLIC :: HistContainer_SetTime
-  PUBLIC :: HistContainer_UpdateIvalSet
-  PUBLIC :: HistContainer_FileCloseIvalSet
-  PUBLIC :: HistContainer_FileWriteIvalSet
+  PUBLIC  :: HistContainer_Create
+  PUBLIC  :: HistContainer_Print
+  PUBLIC  :: HistContainer_Destroy
+  PUBLIC  :: HistContainer_SetTime
+  PUBLIC  :: HistContainer_UpdateIvalSet
+  PUBLIC  :: HistContainer_FileCloseIvalSet
+  PUBLIC  :: HistContainer_FileWriteIvalSet
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: AlarmIncrementMonths
+  PRIVATE :: AlarmIncrementYears
 !
 ! !PUBLIC TYPES:
 !
@@ -185,12 +190,6 @@ MODULE HistContainer_Mod
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  ! Days in non-leap-year months:   J  F  M  A  M  J  J  A  S  O  N  D
-  INTEGER :: DaysPerMonth(12) = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -1108,6 +1107,7 @@ CONTAINS
 !                              longer than a day.
 !  08 Aug 2018 - R. Yantosca - Modify algorithm following FileWriteAlarm:
 !                              allow for update intervals of months or years
+!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1117,7 +1117,6 @@ CONTAINS
     ! Scalars
     INTEGER            :: Year,   Month,   Day
     INTEGER            :: Hour,   Minute,  Second
-    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1136,43 +1135,37 @@ CONTAINS
     IF ( Container%UpdateYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
-       ! File close interval is one or more years
+       ! Update interval is one year or greater
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
     
-       ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( Year ) ) THEN
-          Container%UpdateIvalSec = 366.0_f8 * SECONDS_PER_DAY
-       ELSE
-          Container%UpdateIvalSec = 365.0_f8 * SECONDS_PER_DAY
-       ENDIF
+       ! Update the alarm increment
+       CALL AlarmIncrementYears( IntervalYmd = Container%UpdateYmd,          &
+                                 Year        = Year,                         &
+                                 Increment   = Container%UpdateIvalSec      )
        
-    ELSE IF ( Container%UpdateYmd >= 000100 ) THEN
+    ELSE IF ( Container%UpdateYmd <  001200  .and.                           &
+              Container%UpdateYmd >= 000100 ) THEN
        
        !--------------------------------------------------------------------
-       ! File close interval is one or more months but less than a year
+       ! Update interval is between 1 month and 1 year
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
 
-       ! Number of days in the month
-       nDays = DaysPerMonth(Month)
+       ! Update the alarm increment
+       CALL AlarmIncrementMonths( IntervalYmd = Container%UpdateYmd,         &
+                                  Year        = Year,                        &
+                                  Month       = Month,                       &
+                                  Increment   = Container%UpdateIvalSec     )
 
-       ! Adjust for leap year
-       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
-          nDays = nDays + 1
-       ENDIF
-
-       ! Convert to minutes and set this as the file write interval
-       Container%UpdateIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
-      
     ELSE
 
        !--------------------------------------------------------------------
-       ! File close interval is less than a month
+       ! Update interval is less than 1 month
        !--------------------------------------------------------------------
 
        ! Split the file close interval date/time into its constituent values
@@ -1229,6 +1222,7 @@ CONTAINS
 !  06 Sep 2017 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Now return file close interval in seconds
 !  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
+!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1238,7 +1232,6 @@ CONTAINS
     ! Scalars
     INTEGER            :: Year,   Month,   Day
     INTEGER            :: Hour,   Minute,  Second
-    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1257,43 +1250,37 @@ CONTAINS
     IF ( Container%FileCloseYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
-       ! File close interval is one or more years
+       ! File close interval is 1 year or greater
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
     
-       ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( Year ) ) THEN
-          Container%FileCloseIvalSec = 366.0_f8 * SECONDS_PER_DAY
-       ELSE
-          Container%FileCloseIvalSec = 365.0_f8 * SECONDS_PER_DAY
-       ENDIF
-       
-    ELSE IF ( Container%FileCloseYmd >= 000100 ) THEN
+       ! Update the alarm increment
+       CALL AlarmIncrementYears( IntervalYmd = Container%FileCloseYmd,       &
+                                 Year        = Year,                         &
+                                 Increment   = Container%FileCloseIvalSec   )
+
+    ELSE IF ( Container%FileCloseYmd <  001200  .and.                        &
+              Container%FileCloseYmd >= 000100 ) THEN
        
        !--------------------------------------------------------------------
-       ! File close interval is one or more months but less than a year
+       ! File close interval is between 1 month and 1 year
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
 
-       ! Number of days in the month
-       nDays = DaysPerMonth(Month)
+       ! Update the alarm increment
+       CALL AlarmIncrementMonths( IntervalYmd = Container%FileCloseYmd,      &
+                                  Year        = Year,                        &
+                                  Month       = Month,                       &
+                                  Increment   = Container%FileCloseIvalSec  )
 
-       ! Adjust for leap year
-       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
-          nDays = nDays + 1
-       ENDIF
-
-       ! Convert to minutes and set this as the file write interval
-       Container%FileCloseIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
-      
     ELSE
 
        !--------------------------------------------------------------------
-       ! File close interval is less than a month
+       ! File close interval is less than 1 month
        !--------------------------------------------------------------------
 
        ! Split the file close interval date/time into its constituent values
@@ -1350,6 +1337,7 @@ CONTAINS
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  18 Sep 2017 - R. Yantosca - Now return file write interval in seconds
 !  26 Oct 2017 - R. Yantosca - Add modifications for a little more efficiency
+!  26 Feb 2019 - R. Yantosca - Alarm intervals are more robust for leap years
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1359,7 +1347,6 @@ CONTAINS
     ! Scalars
     INTEGER            :: Year,   Month,   Day
     INTEGER            :: Hour,   Minute,  Second
-    INTEGER            :: nDays
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -1378,42 +1365,36 @@ CONTAINS
     IF ( Container%FileWriteYmd >= 010000 ) THEN
 
        !--------------------------------------------------------------------
-       ! File write interval is one year or more
+       ! File write interval is one year or greater
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
-    
-       ! Set the file write interval, accounting for leap year
-       IF ( Its_A_LeapYear( Year ) ) THEN
-          Container%FileWriteIvalSec = 366.0_f8 * SECONDS_PER_DAY
-       ELSE
-          Container%FileWriteIvalSec = 365.0_f8 * SECONDS_PER_DAY
-       ENDIF
-       
-    ELSE IF ( Container%FileWriteYmd >= 000100 ) THEN
+
+       ! Update the alarm increment
+       CALL AlarmIncrementYears( IntervalYmd = Container%FileWriteYmd,       &
+                                 Year        = Year,                         &
+                                 Increment   = Container%FileWriteIvalSec   )
+
+    ELSE IF ( Container%FileWriteYmd <  001200  .and.                        &
+              Container%FileWriteYmd >= 000100 ) THEN
        
        !--------------------------------------------------------------------
        ! File write interval is one or more months but less than a year
        ! 
-       ! This will probably be the most common option.  This algorithm
-       ! may not be as robust if more than one month at a time is selected.
+       ! This will probably be the most common option.
+       ! Now accounts properly for leap year days. (bmy, 2/26/19)
        !--------------------------------------------------------------------
 
        ! Split the current date & time into its constituent values
        CALL Ymd_Extract( Container%CurrentYmd, Year, Month, Day )
 
-       ! Number of days in the month
-       nDays = DaysPerMonth(Month)
+       ! Update the alarm increment
+       CALL AlarmIncrementMonths( IntervalYmd = Container%FileWriteYmd,      &
+                                  Year        = Year,                        &
+                                  Month       = Month,                       &
+                                  Increment   = Container%FileWriteIvalSec  )
 
-       ! Adjust for leap year
-       IF ( Its_A_LeapYear( Year ) .AND. Month == 2 ) THEN
-          nDays = nDays + 1
-       ENDIF
-
-       ! Convert to minutes and set this as the file write interval
-       Container%FileWriteIvalSec = DBLE( nDays ) * SECONDS_PER_DAY
-      
     ELSE
 
        !--------------------------------------------------------------------
@@ -1529,6 +1510,155 @@ CONTAINS
 
 
   END SUBROUTINE HistContainer_SetTime
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ComputeAlarmIncrementYears
+!
+! !DESCRIPTION: Given an interval, computes the number of seconds to add
+!  to an alarm, properly accounting for leap years.  This is for the case
+!  when the update frequency is 1 year or greater.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AlarmIncrementYears( IntervalYmd, Year, Increment )
+!
+! !USES:
+!
+    USE History_Util_Mod, ONLY : SECONDS_PER_DAY
+    USE Time_Mod,         ONLY : Its_A_Leapyear
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN)  :: IntervalYmd  ! Update frequency in YYYYMMDD format
+    INTEGER,  INTENT(IN)  :: Year         ! Current year
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(f8), INTENT(OUT) :: Increment    ! Number of seconds to add to alarm
+!
+! !REVISION HISTORY:
+!  26 Feb 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: nYears, T, YYYY
+
+    !=======================================================================
+    ! AlarmIncrementYears begins here!
+    !=======================================================================
+
+    ! Initialize
+    Increment = 0.0_fp
+    nYears    = IntervalYmd / 10000
+
+    ! Loop over the requested # of years
+    DO T = 0, nYears-1
+
+       ! Increment the year from the starting year
+       YYYY = Year + T
+
+       ! Compute the increment, accounting for leap years
+       IF ( Its_A_LeapYear( YYYY ) ) THEN
+          Increment = Increment + ( 366.0_f8 * SECONDS_PER_DAY )
+       ELSE
+          Increment = Increment + ( 365.0_f8 * SECONDS_PER_DAY )
+       ENDIF
+
+    ENDDO
+
+  END SUBROUTINE AlarmIncrementYears
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: AlarmIncremenmtMonths
+!
+! !DESCRIPTION: Given an interval, computes the number of seconds to add
+!  to an alarm, properly accounting for leap years.  This is for the case
+!  when the update frequency is between 1 month and 1 year.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE AlarmIncrementMonths( IntervalYmd, Year, Month, Increment )
+!
+! !USES:
+!
+    USE History_Util_Mod, ONLY : SECONDS_PER_DAY
+    USE Time_Mod,         ONLY : Its_A_Leapyear
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,  INTENT(IN)  :: IntervalYmd  ! Update frequency in YYYYMMDD format
+    INTEGER,  INTENT(IN)  :: Year         ! Current year
+    INTEGER,  INTENT(IN)  :: Month        ! Current month
+!
+! !OUTPUT PARAMETERS:
+!
+    REAL(f8), INTENT(OUT) :: Increment    ! Number of seconds to add to alarm
+!
+! !REVISION HISTORY:
+!  26 Feb 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: MM, nDays, nMonths, T, YYYY
+!
+! !DEFINED PARAMETERS:
+!
+    ! Days in non-leap-year months:     J  F  M  A  M  J  J  A  S  O  N  D
+    INTEGER, PARAMETER :: DpM(12) = (/ 31,28,31,30,31,30,31,31,30,31,30,31 /)
+
+    !=======================================================================
+    ! AlarmIncrememntMonths begins here!
+    !=======================================================================
+
+    ! Initialize
+    Increment = 0.0_fp
+    MM        = Month
+    nDays     = 0
+    nMonths   = IntervalYmd / 100
+    YYYY      = Year
+
+    ! Loop over the requested # of months
+    DO T = 0, nMonths-1
+
+       ! Keep a running total of the number of days in the interval
+       nDays = nDays + DpM(MM)
+
+       ! Add the leap year day if necessary
+       IF ( Its_A_LeapYear( YYYY ) .and. MM == 2 ) THEN
+          nDays = nDays + 1
+       ENDIF
+
+       ! Increment the month for next iteration
+       MM = MM + 1
+
+       ! Also increment the year if we straddle New Year's Day
+       IF ( MM > 12 ) THEN
+          MM   = 1
+          YYYY = YYYY + 1
+       ENDIF
+
+    ENDDO
+
+    ! Convert from days to seconds
+    Increment = DBLE( nDays ) * SECONDS_PER_DAY
+
+  END SUBROUTINE AlarmIncrementMonths
 !EOC
 END MODULE HistContainer_Mod
 
