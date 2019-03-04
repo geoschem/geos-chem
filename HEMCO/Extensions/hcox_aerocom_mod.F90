@@ -488,12 +488,16 @@ CONTAINS
        IF ( MM == 2 .AND. DD > 28 ) DD = 28
 #endif
 
-       ! OMI-based volcanic SO2 emissions are available for 2005-2012
-       ! Use closest year available (mps, 3/28/18)
-       IF ( TRIM(Inst%VolcSource) == 'OMI' ) THEN
-          IF ( YYYY < 2005 ) YYYY = 2005
-          IF ( YYYY > 2012 ) YYYY = 2012
-       ENDIF
+!------------------------------------------------------------------------------
+! Prior to 3/4/19:
+! These data are now available for 1979-present (mps, 3/4/19)
+!       ! OMI-based volcanic SO2 emissions are available for 2005-2012
+!       ! Use closest year available (mps, 3/28/18)
+!       IF ( TRIM(Inst%VolcSource) == 'OMI' ) THEN
+!          IF ( YYYY < 1979 ) YYYY = 1979
+!          IF ( YYYY > 2018 ) YYYY = 2018
+!       ENDIF
+!------------------------------------------------------------------------------
 
        ! Get file name
        ThisFile = Inst%FileName
