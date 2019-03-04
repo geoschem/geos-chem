@@ -2713,6 +2713,7 @@
       ! Pointers
       REAL(fp), POINTER     :: Spc(:,:,:,:)
       REAL(fp), POINTER     :: pHCloud(:,:,:)
+      REAL(fp), POINTER     :: isCloud(:,:,:) ! jmm 3/1/19
       REAL(fp), POINTER     :: SSAlk(:,:,:,:)
       REAL(fp), POINTER     :: H2O2s(:,:,:)
       REAL(fp), POINTER     :: SO2s(:,:,:)
@@ -2742,12 +2743,15 @@
       ! Point to chemical species array [v/v dry]
       Spc         => State_Chm%Species
       pHCloud     => State_Chm%pHCloud
+      isCloud     => State_Chm%isCloud ! jmm 3/1/19
       SSAlk       => State_Chm%SSAlk
       H2O2s       => State_Chm%H2O2AfterChem
       SO2s        => State_Chm%SO2AfterChem
 
       ! Reset cloud pH for safety
-      pHCloud(:,:,:) = 4.5e+0_fp
+      pHCloud(:,:,:) = 0.0e+0_fp
+      isCloud(:,:,:) = 0.0e+0_fp ! jmm 3/1/19
+
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM()
@@ -3177,6 +3181,7 @@
 
             ! Store the cloud pH
             pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
+            isCloud(I,J,L) = 1.0e+0_fp ! jmm 3/1/19
 
             IF ( Input_Opt%LMETALCATSO2 ) THEN
 
@@ -3995,6 +4000,7 @@
       ! Free pointers
       Spc     => NULL()
       pHCloud => NULL()
+      isCloud => NULL()
       SSAlk   => NULL()
       H2O2s   => NULL()
       SO2s    => NULL()
