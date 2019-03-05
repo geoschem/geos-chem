@@ -969,7 +969,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
-    ! TSKIN [1]
+    ! TSKIN [K]
     !-------------------------
     ALLOCATE( State_Met%TSKIN( IM, JM ), STAT=RC )
     CALL GC_CheckVar( 'State_Met%TSKIN', 0, RC )
