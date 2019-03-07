@@ -2128,6 +2128,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
     USE HistContainer_Mod,     ONLY : HistContainer
+    USE HistContainer_Mod,     ONLY : HistContainer_UpdateIvalSet
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
@@ -2151,6 +2152,8 @@ CONTAINS
 !  16 Aug 2017 - R. Yantosca - Now call TestTimeForAction to test if it is
 !                              time to update the diagnostic collection.
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
+!  05 Mar 2019 - R. Yantosca - Call HistContainer_UpdateIvalSet to recompute
+!                              the UpdateAlarm interval for intervals > 1 mon.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2218,7 +2221,7 @@ CONTAINS
  100      FORMAT( '     - Updating collection: ', a20 ) 
        ENDIF
 #endif
-       
+
        !--------------------------------------------------------------------
        ! If it is time to update the collection, then loop through all of
        ! the associated HISTORY ITEMS and either copy or accumulate the
@@ -2432,6 +2435,12 @@ CONTAINS
        !------------------------------------------------------------------
        ! Prepare to go to the next collection
        !------------------------------------------------------------------ 
+
+       ! Recompute the update alarm interval if it 1 month or longer,
+       ! as we will have to take into account leap years, etc.
+       IF ( Container%UpdateYmd >= 000100 ) THEN
+          CALL HistContainer_UpdateIvalSet( am_I_Root, Container, RC )
+       ENDIF
 
        ! Update the "UpdateAlarm" time for the next updating interval.
        Container%UpdateAlarm = Container%UpdateAlarm +                    &

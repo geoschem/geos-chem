@@ -2043,23 +2043,27 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
+         ! Increment the timestep values by the heartbeat time
+         ! This is because we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         !
+         ! NOTE: This should now go before HISTORY_UPDATE, so that we
+         ! can recompute the update alarm interval properly for monthly
+         ! or yearly intervals spanning leap years. (bmy, 3/5/19)
+         CALL History_SetTime( am_I_Root, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Update"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-
-         ! Increment the timestep values by the heartbeat time
-         ! This is becasue we need to write out data with the timestamp
-         ! at the end of the heartbeat timestep (i.e. at end of run)
-         CALL History_SetTime( am_I_Root, RC )
-
-         ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_SetTime"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 

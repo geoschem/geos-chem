@@ -2386,6 +2386,11 @@ CONTAINS
        IF ( tidx2 < 0 ) THEN
           tidx2 = tidx1 + 1
 
+          ! Make sure that tidx2 does not exceed nTime, which is
+          ! the number of time slices in the file. This can cause
+          ! an out-of-bounds error. (bmy, 3/7/19)
+          IF ( tidx2 > nTime ) tidx2 = nTime
+
           ! Prompt warning
           WRITE(MSG,*) 'Having problems in finding the next time slice ', &
                 'to interpolate from, just take the next available ',     &

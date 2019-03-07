@@ -323,6 +323,8 @@ CONTAINS
 !                               at the same times w/r/t the "legacy" diags
 !  18 Sep 2017 - R. Yantosca - Now accept heartbeat dt in seconds
 !  02 Jan 2018 - R. Yantosca - Fix construction of default file template
+!  05 Mar 2019 - R. Yantosca - Do not subtract the heartbeat timestep from
+!                              the initial update alarm.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -743,17 +745,41 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Initialize the alarms
+    ! Initialize the alarms (elapsed seconds since start of run)
     !=======================================================================
 
-    ! Get the initial alarm inervals (in elapsed seconds since start of run)
-    CALL HistContainer_UpdateIvalSet   ( am_I_Root, Container, RC )
+    !----------------------------------
+    ! Initial UpdateAlarm interval
+    !----------------------------------
+    CALL HistContainer_UpdateIvalSet( am_I_Root, Container, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_UpdateIvalSet"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !----------------------------------
+    ! Initial FileCloseAlarm interval
+    !----------------------------------
     CALL HistContainer_FileCloseIvalSet( am_I_Root, Container, RC )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_FileCloseIvalSet"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !----------------------------------
+    ! Initial FileWriteAlarm interval
+    !----------------------------------
     CALL HistContainer_FileWriteIvalSet( am_I_Root, Container, RC )
 
-    ! Trap potential error
-    IF ( RC /= GC_SUCCESS ) THEN 
-       ErrMsg = 'Error encountered in "HistContainer_AlarmIntervalSet"!'
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "HistContainer_FileWriteIvalSet"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -762,12 +788,23 @@ CONTAINS
     ! Initial "UpdateAlarm" setting
     !--------------------------------------
 
+    !-------------------------------------------------------------------------
+    ! Prior to 3/5/19:
     ! Subtract the "heartbeat" timestep in seconds from UpdateAlarm.
     ! This will ensure that (1) Instantaneous file collections will be
     ! updated just before the file write, (2) Time-averaged collections
     ! will be averaged on the same timestep as the "historical" GEOS-Chem
     ! diagnostics, thus allowing for a direct comparison.
-    Container%UpdateAlarm = Container%UpdateIvalSec - Container%HeartBeatDtSec
+    !Container%UpdateAlarm = Container%UpdateIvalSec - Container%HeartBeatDtSec
+    !-------------------------------------------------------------------------
+
+    ! Set the initial UpdateAlarm value to the update interval in seconds
+    ! NOTE: We no longer have to subtract the heartbeat timestep, because
+    ! in the main program, we now call History_SetTime to advance the
+    ! clock before calling History_Update to update the diagnostics.
+    ! This will now allow us to recompute monthly or yearly intervals
+    ! that span leap year days properly. (bmy, 3/5/19)
+    Container%UpdateAlarm = Container%UpdateIvalSec
 
     ! Trap error if negative
     IF ( Container%UpdateAlarm < 0 ) THEN
@@ -1120,7 +1157,7 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
+    logical :: debug
     !=======================================================================
     ! Initialize
     !=======================================================================
@@ -1350,7 +1387,6 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
     !=======================================================================
     ! Initialize
     !=======================================================================
