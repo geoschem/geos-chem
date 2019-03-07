@@ -265,7 +265,10 @@ CONTAINS
     ! Read all fields?
     RdAll = .FALSE.
     IF ( PRESENT(ReadAll) ) RdAll = ReadAll
-    IF ( HcoClock_First( HcoState%Clock, .FALSE. ) ) RdAll = .TRUE.
+    ! Now use internal counter to determine first-time reading
+    ! (ckeller, 02/07/2019).
+    !IF ( HcoClock_First( HcoState%Clock, .FALSE. ) ) RdAll = .TRUE.
+    IF ( HcoState%ReadLists%Counter == 0 ) RdAll = .TRUE
 
     ! Read content from one-time list on the first call 
     IF ( RdAll ) THEN
@@ -324,6 +327,9 @@ CONTAINS
     ENDIF
     CALL ReadList_Fill ( am_I_Root, HcoState, HcoState%ReadLists%Always, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
+
+    ! Update counter
+    HcoState%ReadLists%Counter = HcoState%ReadLists%Counter + 1
 
     ! Leave w/ success
     CALL HCO_LEAVE ( HcoState%Config%Err, RC ) 
@@ -633,6 +639,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  20 Apr 2013 - C. Keller - Initial version
+!  07 Feb 2019 - C. Keller - Added counter 
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -666,6 +673,9 @@ CONTAINS
     ! No file in buffer yet
     ReadLists%FileInArchive = ''
     ReadLists%FileLun       = -1
+
+    ! Initialize counter
+    ReadLists%Counter       = 0
 
   END SUBROUTINE ReadList_Init
 !EOC

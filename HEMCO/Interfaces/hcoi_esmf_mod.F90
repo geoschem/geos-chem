@@ -137,7 +137,8 @@ CONTAINS
       LOGICAL                    :: FOUND, DefaultSet
       CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
       CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
-      CHARACTER(LEN=63)          :: SNAME, LNAME, UnitName 
+      CHARACTER(LEN=63)          :: SNAME, UnitName
+ 
       CHARACTER(LEN=63), POINTER :: Spc(:)
       TYPE(ListCont),    POINTER :: CurrCont
 
@@ -280,6 +281,9 @@ CONTAINS
             DO I = 1, LEN(TRIM(ADJUSTL(UnitName)))
                IF ( UnitName(I:I) == '_' ) UnitName(I:I) = ' '
             ENDDO 
+            DO I = 1, LEN(TRIM(ADJUSTL(lName)))
+               IF ( lName(I:I) == '_' ) lName(I:I) = ' '
+            ENDDO
  
             ! Add to export state 
             CALL MAPL_AddExportSpec(GC,       &
