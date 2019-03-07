@@ -131,9 +131,11 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m 
      REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
      REAL(f4),  POINTER :: MoninObukhov    (:,:    ) ! MoninObukhov length 
+     REAL(f4),  POINTER :: Bry             (:,:,:  ) ! MoninObukhov length 
      LOGICAL :: Archive_DryDepRa2m
      LOGICAL :: Archive_DryDepRa10m
      LOGICAL :: Archive_MoninObukhov
+     LOGICAL :: Archive_Bry
 #endif
 
      ! Chemistry
@@ -283,7 +285,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_TotalBiogenicOA 
 
 #if defined( MODEL_GEOS )
-     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
      REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
      REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
      REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
@@ -818,9 +819,11 @@ CONTAINS
     State_Diag%DryDepRa2m                          => NULL()
     State_Diag%DryDepRa10m                         => NULL()
     State_Diag%MoninObukhov                        => NULL()
+    State_Diag%Bry                                 => NULL()
     State_Diag%Archive_DryDepRa2m                  = .FALSE.
     State_Diag%Archive_DryDepRa10m                 = .FALSE.
     State_Diag%Archive_MoninObukhov                = .FALSE.
+    State_Diag%Archive_Bry                         = .FALSE.
 #endif
 
     ! Chemistry, J-value, Prod/Loss diagnostics
@@ -1813,6 +1816,24 @@ CONTAINS
        State_Diag%MoninObukhov = 0.0_f4
        State_Diag%Archive_MoninObukhov = .TRUE.
        CALL Register_DiagField( am_I_Root, diagID, State_Diag%MoninObukhov,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !--------------------------------------------
+    ! Bry 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%Bry'
+    diagID  = 'Bry'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%Bry( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Bry = 0.0_f4
+       State_Diag%Archive_Bry = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%Bry,  &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -6484,6 +6505,13 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%MoninObukhov => NULL()
     ENDIF
+
+    IF ( ASSOCIATED( State_Diag%Bry ) ) THEN
+       DEALLOCATE( State_Diag%Bry, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Bry', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Bry => NULL()
+    ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
@@ -8132,6 +8160,11 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
        IF ( isUnits   ) Units = 'm'
        IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BRY' ) THEN
+       IF ( isDesc    ) Desc  = 'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN

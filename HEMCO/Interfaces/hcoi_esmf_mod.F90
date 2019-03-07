@@ -137,8 +137,8 @@ CONTAINS
       LOGICAL                    :: FOUND, DefaultSet
       CHARACTER(LEN=31)          :: cName, SpcName, OutUnit 
       CHARACTER(LEN=63)          :: DefaultSNAME, DefaultLNAME, DefaultUnit
-      CHARACTER(LEN=63)          :: SNAME, UnitName
- 
+      CHARACTER(LEN=63)          :: SNAME, UnitName 
+      CHARACTER(LEN=127)         :: LNAME
       CHARACTER(LEN=63), POINTER :: Spc(:)
       TYPE(ListCont),    POINTER :: CurrCont
 

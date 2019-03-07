@@ -513,7 +513,11 @@ CONTAINS
                    ! Use UCX/GMI O3 P/L if both LINOZ and SYNOZ are deactivated.
                    ! This is for test use in assimilation mode (ckeller, 3/7/16)
                    IF ( IT_IS_A_FULLCHEM_SIM .and. NN .eq. id_O3 .AND. &
+#if defined( MODEL_GEOS )
+                        .NOT. Input_Opt%LGMIOZ ) CYCLE
+#else
                         ( LLINOZ .OR. LSYNOZ ) ) CYCLE
+#endif
 
                    ! Molecular weight for the species [g]
                    MW_g = State_Chm%SpcData(NN)%Info%emMW_g

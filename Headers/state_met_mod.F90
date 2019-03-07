@@ -203,6 +203,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: AD            (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL        (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
+     REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Age of air for diagnosing transport
@@ -1347,6 +1348,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%DP_DRY_PREV= 0.0_fp
     CALL Register_MetField( am_I_Root, 'DPDRYPREV', State_Met%DP_DRY_PREV, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SPHU_PREV [g/kg]
+    !-------------------------
+    ALLOCATE( State_Met%SPHU_PREV( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SPHU_PREV', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SPHU_PREV= 0.0_fp
+    CALL Register_MetField( am_I_Root, 'SPHUPREV', State_Met%SPHU_PREV, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -3605,6 +3617,12 @@ CONTAINS
        CASE ( 'DPDRYPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
           IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'SPHUPREV' )
+          IF ( isDesc  ) Desc  = 'Previous State_Met%SPHU_PREV'
+          IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 

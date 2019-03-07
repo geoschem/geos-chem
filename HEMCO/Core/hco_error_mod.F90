@@ -125,6 +125,7 @@ MODULE HCO_Error_Mod
 !                              and 8-byte variables from being elevated
 !                              when using -r8 (or equivalent flags)
 !  29 Dec 2017 - C. Keller   - Update to v2.1.004
+!  07 Feb 2019 - C. Keller   - Update to v2.1.011
 !EOP
 !------------------------------------------------------------------------------
 !BOC

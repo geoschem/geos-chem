@@ -205,9 +205,10 @@ CONTAINS
              dCH4 = CH4 - State_Chm%Species(I,J,L,id_CH4)
              ! Convert to kg/kg dry
              dCH4 = dCH4 * MWCH4 / AIRMW
-             ! Convert to kg/m2/s
-             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
-                  * State_Met%BXHEIGHT(I,J,L) / DT
+!             ! Convert to kg/m2/s
+!             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
+!                  * State_Met%BXHEIGHT(I,J,L) / DT
+              dCH4 = dCH4 * State_Met%AD(I,J,L) / State_Met%AREA_M2(I,J,1) / DT
              ! Accumulate statistics 
              State_Diag%CH4pseudoFlux(I,J) = &
                 State_Diag%CH4pseudoFlux(I,J) + dCH4
