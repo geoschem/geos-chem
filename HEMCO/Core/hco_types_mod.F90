@@ -348,6 +348,7 @@ MODULE HCO_TYPES_MOD
      INTEGER                     :: tShift(2) ! time stamp shift in months & seconds 
      INTEGER                     :: CycleFlag ! cycle flag
      LOGICAL                     :: MustFind  ! file must be found
+     LOGICAL                     :: UseSimYear! use simulation year 
      INTEGER                     :: UpdtFlag  ! update flag 
      LOGICAL                     :: ncRead    ! read from source?
      TYPE(Arr3D_SP),     POINTER :: V3(:)     ! vector of 3D fields
