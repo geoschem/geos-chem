@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Initialize.f90
-! Time                 : Fri Mar  8 16:08:47 2019
-! Working directory    : /work/home/ts551/GEOSChem/geos-chem_FORKED_PUBLIC/KPP/SOA_SVPOA
+! Time                 : Fri Mar  8 16:08:29 2019
+! Working directory    : /work/home/ts551/GEOSChem/geos-chem_FORKED_PUBLIC/KPP/Custom
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
