@@ -101,7 +101,7 @@
       INTEGER, PARAMETER :: MAX_DIAG   = 80
 #endif
 
-      INTEGER, PARAMETER  :: MAX_TRACER = 600      ! Large placeholder value
+      INTEGER, PARAMETER  :: MAX_TRACER = 850      ! Large placeholder value
 !
 ! !PUBLIC DATA MEMBERS:
 !
