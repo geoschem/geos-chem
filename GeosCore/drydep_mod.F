@@ -1842,16 +1842,20 @@
 !     test for special treatment for O3 drydep to ocean
                N_SPC = State_Chm%Map_DryDep(K)
                IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                  IF State_Met%Salinity(I,J,GET_MONTH()) > *** THEN
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
-                  CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
-     &                 O3_DIAGS,I,J,Input_Opt,State_Met)
+                     CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
+     &                    O3_DIAGS,I,J,Input_Opt,State_Met)
 !     now convert to the new rc value(s) can probably tidy this up a bit
-                  alpha = 10.0_f8**(-0.25-0.013*(
-     &                 State_Met%TSKIN(I,J)-273.16_f8))
-                  RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw(0))
-                  O3_DIAGS(I,J,5) = W10(I,J)
-                  O3_DIAGS(I,J,7) = alpha
+                     alpha = 10.0_f8**(-0.25-0.013*(
+     &                    State_Met%TSKIN(I,J)-273.16_f8))
+                     RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw(0))
+                     O3_DIAGS(I,J,5) = W10(I,J)
+                     O3_DIAGS(I,J,7) = alpha
+                  ELSE
+                     RSURFC(K,LDT) = 2000.0_f8
+                  ENDIF
                ENDIF
 
                !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)

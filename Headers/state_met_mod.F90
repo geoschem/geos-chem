@@ -177,6 +177,7 @@ MODULE State_Met_Mod
                                                 !  [hPa/s]
      REAL(fp), POINTER :: V             (:,:,:) ! N/S component of wind [m s-1]
      REAL(fp), POINTER :: Iodide_Conc   (:,:,:) ! temp home of the sea surface iodide
+     REAL(fp), POINTER :: Salinity      (:,:,:) ! water salinity
      !----------------------------------------------------------------------
      ! Air quantities assigned in AIRQNT
      !----------------------------------------------------------------------
@@ -1203,11 +1204,21 @@ CONTAINS
     ALLOCATE( State_Met%Iodide_Conc( IM, JM, 1:12), STAT=RC )
     !CALL GC_CheckVar( 'State_Met%', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
-    State_Met%AD = 0.0_fp
+    State_Met%Iodide_Conc = 0.0_fp
     !CALL SeaSurface_Iodide(am_I_Root,State_Met%Iodide_Conc)
     !CALL Register_MetField( am_I_Root, 'AD', State_Met%AD, &
     !                        State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! Water Salinity
+    !-------------------------
+    ALLOCATE( State_Met%Salinity( IM, JM, 1:12), STAT=RC )
+    !CALL GC_CheckVar( 'State_Met%', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%Salinity = 0.0_fp
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 
     !-------------------------
     ! AD [kg]

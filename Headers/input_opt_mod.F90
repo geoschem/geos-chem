@@ -237,6 +237,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: FixedMicroLayer
      REAL(f8)                    :: MicroLayerSize
      REAL(f8)                    :: C0ScaleFactor
+     CHARACTER(LEN=255)          :: Salinity
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -925,6 +926,7 @@ CONTAINS
      Input_Opt%FixedMicroLayer       = .FALSE.
      Input_Opt%MicroLayerSize        = 0.0_f8
      Input_Opt%C0ScaleFactor         = 0.0_f8
+     Input_Opt%IodideFile            = ''
 
     !----------------------------------------
     ! GAMAP_MENU fields

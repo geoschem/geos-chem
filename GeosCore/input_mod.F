@@ -3482,6 +3482,13 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%C0ScaleFactor
 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Salinity', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%Salinity      
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN

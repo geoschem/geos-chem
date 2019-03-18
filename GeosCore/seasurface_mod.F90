@@ -297,6 +297,208 @@ CONTAINS
     IF ( ALLOCATED( lonedge ) ) DEALLOCATE( lonedge )
     IF ( ALLOCATED( latedge ) ) DEALLOCATE( latedge )
 
+    nc_path = TRIM(Input_Opt%Salinity)
+
+    IIodide = 1440
+    JIodide = 720
+    ITime   = 12
+
+    D_LON = 0.25_f8
+    D_LAT = 0.25_f8
+
+    ALLOCATE(Lat(JIodide))
+    ALLOCATE(Lon(IIodide))
+    ALLOCATE(Time(1:ITime))
+    ALLOCATE(indLON(IIodide))
+    ALLOCATE(shiftLon(IIodide))
+    ALLOCATE(lonedge(IIodide+1))
+    ALLOCATE(latedge(JIodide+1))
+    ALLOCATE(Iodide_Map(IIodide,JIodide,ITime))
+
+    !open file for reading
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
+
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+       WRITE( 6, 110 ) TRIM(nc_path)
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: lon
+    !----------------------------------------
+
+    ! Variable name
+    v_name = "lon"
+
+    ! Read lon from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ IIodide /)
+    CALL NcRd( Lon, fId, TRIM(v_name), st1d, ct1d )
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: lat
+    !----------------------------------------
+
+    ! Variable name
+    v_name = "lat"
+
+    ! Read lat from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ JIodide /)
+    CALL NcRd( Lat, fId, TRIM(v_name), st1d, ct1d )
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: time
+    !----------------------------------------
+
+    ! Variable name
+    v_name = "time"
+
+    ! Read lat from file
+    st1d   = (/ 1       /)
+    ct1d   = (/ ITime /)
+    CALL NcRd( Time, fId, TRIM(v_name), st1d, ct1d )
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: Salinity
+    !----------------------------------------
+    !****
+    ! Variable name
+    v_name = "Ensemble Monthly mean"
+
+    ! Read lat from file
+    st3d   = (/ 1,       1,       1     /)
+    ct3d   = (/ IIodide, JIodide, ITime /)
+    CALL NcRd( Iodide_Map, fId, TRIM(v_name), st3d, ct3d )
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 130 ) TRIM(v_name)!, TRIM(a_val) 
+    ENDIF
+
+    !=================================================================
+    ! Cleanup and close
+    !=================================================================
+
+    ! Close netCDF file
+    CALL NcCl( fId )
+
+    ! Echo info to stdout
+    IF ( am_I_Root ) THEN
+       WRITE( 6, 140 )
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+    ENDIF
+
+    ! Be lazy, construct lon edges from lon centers
+    DO I = 1, IIodide
+       lonedge(I)      = DBLE( lon(I) ) - ( D_LON * 0.5e+0_f8 )
+       indLon(I)       = I
+    ENDDO
+    lonedge(IIodide+1) = lonedge(IIodide) + D_LON
+
+    ! Be lazy, construct lat edges from lat centers
+    DO J = 1, JIodide
+       latedge(J)      = DBLE( lat(J) ) - ( D_LAT * 0.5e+0_f8 )
+    ENDDO
+    latedge(JIodide+1) = latedge(JIodide) + D_LAT
+
+    ! Shift longitudes by 2 degrees to the west for date-line handling
+    shiftLon           = CSHIFT( indLon, -20 )
+
+    !$OMP PARALLEL DO                                                  &
+    !$OMP DEFAULT( SHARED )                                            &
+    !$OMP PRIVATE( I,        J,         xedgeC_w, yedgeC_s, xedgeC_e ) &
+    !$OMP PRIVATE( yedgeC_n, dxdy4,     SumBoxs,  JJ,       III      ) &
+    !$OMP PRIVATE( dxdy,     mapWt,     II,       xedge_w,  yedge_s  ) &
+    !$OMP PRIVATE( xedge_e,  yedge_n,   SumIodide,IG                 ) &
+    !$OMP SCHEDULE( DYNAMIC )
+    DO Month = 1, 12
+       print*, 'averaging salinity for month ', Month
+       DO J = 1, JJPAR
+          DO I = 1, IIPAR
+
+             IG = I + I_LO - 1
+
+             ! Edges of this GEOS-CHEM GRID box
+             xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
+             yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
+             xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
+             yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
+
+             ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
+             dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )
+
+             SumIodide = 0.0_f8
+             SumBoxs = 0
+
+             ! Loop over latitudes on the NATIVE GRID
+             DO JJ  = 1, JIodide
+
+                ! Latitude edges of this NATIVE GRID box
+                yedge_s    = latedge(JJ  )                ! S edge
+                yedge_n    = latedge(JJ+1)                ! N edge
+
+                DO III = 1, IIodide
+                   ! Initialize
+                   dxdy = 0.0_f8
+                   mapWt = 0.0_f8
+                   IF ( IG == 1 ) THEN
+                      II = shiftLon(III)
+                   ELSE
+                      II = indLon(III)
+                   ENDIF
+
+                   ! Edges of this NATIVE GRID box
+                   xedge_w    = lonedge(II  )                ! W edge
+                   xedge_e    = lonedge(II+1)                ! E edge
+
+                   IF ( IG == 1 .and. II >= shiftLon(1) )  THEN
+                      xedge_w = xedge_w - 360.0_f8
+                      xedge_e = xedge_e - 360.0_f8
+                   ENDIF
+
+                   ! "Area" of the NATIVE GRID BOX in degrees (DLON * DLAT)
+                   dxdy = ( xedge_e - xedge_w )*( yedge_n - yedge_s )
+
+                   CALL GET_MAP_WT( xedge_w, xedge_e, xedgeC_w, xedgeC_e,  &
+                        yedge_s, yedge_n, yedgeC_s, yedgeC_n,  &
+                        mapWt                                 )
+
+                   IF ( mapWt <= 0e0 .or. mapWt > 1e0 ) CYCLE
+
+                   SumBoxs = SumBoxs + 1
+                   SumIodide = SumIodide + Iodide_Map(II,JJ,Month)
+                END DO
+             ENDDO
+
+             State_Met%Salinity(I,J,Month) = SumIodide/REAL(SumBoxs,f8)
+
+          END DO
+       END DO
+    END DO
+    !$OMP END PARALLEL DO
+    print*, 'Completed averaging for Iodide'
+
+    IF ( ALLOCATED( Lon   ) ) DEALLOCATE( Lon   )
+    IF ( ALLOCATED( Lat   ) ) DEALLOCATE( Lat   )
+    IF ( ALLOCATED( Time  ) ) DEALLOCATE( Time  )
+    IF ( ALLOCATED( Iodide_Map ) ) DEALLOCATE( Iodide_Map  )
+    IF ( ALLOCATED( indLON ) ) DEALLOCATE( indLON )
+    IF ( ALLOCATED( shiftLon ) ) DEALLOCATE( shiftLon )
+    IF ( ALLOCATED( lonedge ) ) DEALLOCATE( lonedge )
+    IF ( ALLOCATED( latedge ) ) DEALLOCATE( latedge )
 
   END SUBROUTINE SeaSurface_Iodide
 
