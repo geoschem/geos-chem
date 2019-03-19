@@ -1842,7 +1842,7 @@
 !     test for special treatment for O3 drydep to ocean
                N_SPC = State_Chm%Map_DryDep(K)
                IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                  IF State_Met%Salinity(I,J,GET_MONTH()) > *** THEN
+                  IF State_Met%Salinity(I,J,GET_MONTH()) > 0.0_f8 THEN
 !     Now apply the Luhar et al. [2018] equations for the special treatment 
 !     of O3 dry deposition to the ocean surface 
                      CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),DEPVw,
