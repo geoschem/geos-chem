@@ -367,6 +367,8 @@
 !                              Consolidate MEGAN_SOA option into MEGAN_Mono
 !                              since there is essentially no difference between
 !                              the two now that SOA (MTPA/MTPO/LIMO) is standard
+!  19 Mar 2019 - R. Yantosca - Bug fix: CO, MTPA, MTPO, LIMO, and SESQ should
+!                              use Inst%ExtNrMono in calls to HCO_EmisAdd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1517,7 +1519,7 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXCO, Inst%IDTCO, 
-     &                     RC,        ExtNr=Inst%ExtNr )
+     &                     RC,        ExtNr=Inst%ExtNrMono )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXCO', RC )
@@ -1567,7 +1569,7 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPA, Inst%IDTMTPA, 
-     &                     RC,        ExtNr=Inst%ExtNr )
+     &                     RC,        ExtNr=Inst%ExtNrMono )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXMTPA', RC )
@@ -1583,7 +1585,7 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXMTPO, Inst%IDTMTPO, 
-     &                     RC,        ExtNr=Inst%ExtNr )
+     &                     RC,        ExtNr=Inst%ExtNrMono )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXMTPO', RC )
@@ -1599,7 +1601,7 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXLIMO, Inst%IDTLIMO, 
-     &                     RC,        ExtNr=Inst%ExtNr )
+     &                     RC,        ExtNr=Inst%ExtNrMono )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXLIMO', RC )
@@ -1615,7 +1617,7 @@
 
          ! Add flux to emission array
          CALL HCO_EmisAdd( am_I_Root, HcoState, FLUXSESQ, Inst%IDTSESQ, 
-     &                     RC,        ExtNr=Inst%ExtNr )
+     &                     RC,        ExtNr=Inst%ExtNrMono )
          IF ( RC /= HCO_SUCCESS ) THEN
             CALL HCO_ERROR( HcoState%Config%Err,
      &                  'HCO_EmisAdd error: FLUXSESQ', RC )
