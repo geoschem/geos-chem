@@ -116,7 +116,7 @@ MODULE HCOX_STATE_MOD
      INTEGER                   :: Wetland_CH4    ! Methane emiss from wetlands
      INTEGER                   :: TOMAS_Jeagle   ! TOMAS Jeagle sea salt
      INTEGER                   :: TOMAS_DustDead ! TOMAS sectional Dead Dust
-     INTEGER                   :: AeroCom        ! AeroCom volcano 
+     INTEGER                   :: Volcano        ! Volcano emissions
      INTEGER                   :: Inorg_Iodine   ! Oceanic inorganic iodine emissions
 
      !----------------------------------------------------------------------
@@ -322,7 +322,7 @@ CONTAINS
     ExtState%Wetland_CH4    = -1 
     ExtState%TOMAS_Jeagle   = -1
     ExtState%TOMAS_DustDead = -1
-    ExtState%AeroCom        = -1
+    ExtState%Volcano        = -1
     ExtState%Inorg_Iodine   = -1
 
     !-----------------------------------------------------------------------
