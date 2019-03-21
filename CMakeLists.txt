@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran)
+project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran C CXX)
 
 # Add our module path and include our helpers
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/CMakeScripts)
