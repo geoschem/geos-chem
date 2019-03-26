@@ -282,7 +282,7 @@
 !                              the SUM*CO arrays, they will remain zeroed out.
 !  12 Oct 2016 - R. Yantosca - Bug fix: convert OH from kg/m3 (which HEMCO
 !                              brings in from disk) to molec/cm3.
-!  27 Mar 2017 - R. Yantosca - Now compute ND65 diagnostic before applying the
+!  27 Mar 2017 - R. Yantosca - Now compute 
 !                              loss to the CO tagged species 
 !  24 Apr 2017 - M. Sulprizio- Update CO + OH (+M) rate constant for JPL 15-10
 !  03 Nov 2017 - R. Yantosca - Now accept State_Diag as an argument
@@ -413,6 +413,13 @@
       ! Zero diagnostic archival arrays to make sure that we don't have any
       ! leftover values from the last timestep near the top of the chemgrid
       IF ( State_Diag%Archive_Loss ) State_Diag%Loss = 0.0_f4
+      IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+         State_Diag%ProdCOfromCH4 = 0.0_f4
+      ENDIF
+
+      IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+         State_Diag%ProdCOfromNMVOC = 0.0_f4
+      ENDIF
 
       !=================================================================
       ! Get pointers from HEMCO for OH, P(CO), and L(CO) fields
@@ -1035,7 +1042,7 @@
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
 
-                  ! Units: [kg/s]
+                  ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) +
      &                               ( CORATE * Spc(I,J,L,N) * STTCO)
@@ -1043,14 +1050,15 @@
 #endif
 
                   !-----------------------------------------------------
-                  ! ND65 (bpch) diagnostic
+                  ! HISTORY (aka netCDF diagnostics)
                   !
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
+
+                  !Units: [kg/s]
                   IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( CORATE 
-     &                                        *   Spc(I,J,L,N) 
-     &                                        *   STTCO        )
+     &                                        *   Spc(I,J,L,N) )
                   ENDIF
 
                   ! Loss
@@ -1172,7 +1180,7 @@
                   ! Loss of CO by OH for "tagged" species
                   !-----------------------------------------------------
 
-                  ! Units: [kg/s]
+                  ! Units: [molec CO/cm3/s]
                   IF ( ND65 > 0 .and. L <= LD65 ) THEN
                      AD65(I,J,L,N) = AD65(I,J,L,N) + 
      &                   ( KRATE * OH_MOLEC_CM3 * Spc(I,J,L,N) * STTCO )
@@ -1189,8 +1197,7 @@
                   IF ( State_Diag%Archive_Loss ) THEN
                      State_Diag%Loss(I,J,L,N) = ( KRATE       
      &                                        *   OH_MOLEC_CM3 
-     &                                        *   Spc(I,J,L,N) 
-     &                                        *   STTCO        )
+     &                                        *   Spc(I,J,L,N) )
                   ENDIF
 
                   ! Use tropospheric rate constant 
@@ -1228,7 +1235,7 @@
          !==============================================================
          IF ( ND65 > 0 .and. L <= LD65 ) THEN
 
-            ! Loss of CO by OH (global) [s-1]
+            ! Loss of CO by OH (global) [molec CO/cm3/s]
             N             = 1
             AD65(I,J,L,N) = AD65(I,J,L,N) + ( CO_OH / DTCHEM )
 
@@ -1259,6 +1266,23 @@
             ENDIF
          ENDIF
 #endif
+         !==============================================================
+         ! HISTORY (aka netCDF diagnostics)
+         !
+         ! Production of CO species 
+         !==============================================================
+
+         ! Units: [kg/s] Production of CO from CH4
+         IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+            State_Diag%ProdCOfromCH4(I,J,L) = CO_CH4
+     &                                     / STTCO / DTCHEM
+         ENDIF
+
+         ! Units: [kg/s] Production of CO from NMVOCs
+         IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+            State_Diag%ProdCOfromNMVOC(I,J,L) = CO_NMVOC
+     &                                     / STTCO / DTCHEM
+         ENDIF
 
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
@@ -1268,7 +1292,7 @@
 
          ! Units: [kg/s]
          IF ( State_Diag%Archive_Loss ) THEN
-            State_Diag%Loss(I,J,L,1) = ( CO_OH / DTCHEM )
+            State_Diag%Loss(I,J,L,1) = ( CO_OH / STTCO / DTCHEM )
          ENDIF   
 
       ENDDO
