@@ -402,6 +402,12 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_LossCH4byOHinTrop
      LOGICAL :: Archive_LossCH4inStrat
 
+     ! CO specialty simulation
+     REAL(f4), POINTER :: ProdCOfromCH4 (:,:,:)
+     REAL(f4), POINTER :: ProdCOfromNMVOC (:,:,:)
+     LOGICAL :: Archive_ProdCOfromCH4
+     LOGICAL :: Archive_ProdCOfromNMVOC
+
      ! Persistent Organic Pollutants (POPS) specialty simulation
      REAL(f4), POINTER :: EmisPOPG                (:,:  )
      REAL(f4), POINTER :: EmisPOPPOCPO            (:,:  )
@@ -1157,6 +1163,12 @@ CONTAINS
     State_Diag%Archive_LossCH4byClinTrop           = .FALSE.
     State_Diag%Archive_LossCH4byOHinTrop           = .FALSE.
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
+
+    ! CO specialtiy simulation diagnostics
+    State_Diag%ProdCOfromCH4                          => NULL()
+    State_Diag%ProdCOfromNMVOC                        => NULL()
+    State_Diag%Archive_ProdCOfromCH4                  = .FALSE.
+    State_Diag%Archive_ProdCOfromNMVOC                = .FALSE.
 
     ! Hg specialty simulation diagnostics
     !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
@@ -5220,6 +5232,85 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! These diagnostics are only relevant for:
+    !
+    ! THE CO SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Production of CO from CH4
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdCOfromCH4'
+       diagID  = 'ProdCOfromCH4'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdCOfromCH4(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdCOfromCH4 = 0.0_f4
+          State_Diag%Archive_ProdCOfromCH4 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdCOfromCH4,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of CO from NMVOC
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdCOfromNMVOC'
+       diagID  = 'ProdCOfromNMVOC'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdCOfromNMVOC(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdCOfromNMVOC = 0.0_f4
+          State_Diag%Archive_ProdCOfromNMVOC = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdCOfromNMVOC,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! Persistent Organic Pollutants (POPS).
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 2
+
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'ProdCOfromCH4'
+             CASE( 2  )
+                diagID = 'ProdCOfromNMVOC'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE.           )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for the '             // &
+                      'tagged CO specialty simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+    ENDIF
+
+    !=======================================================================
     ! The production and loss diagnostics are only relevant for:
     !
     ! THE Hg and TAGGED Hg SPECIALTY SIMULATIONS
@@ -7540,6 +7631,20 @@ CONTAINS
        State_Diag%LossCH4inStrat => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ProdCOfromCH4 ) ) THEN
+       DEALLOCATE( State_Diag%ProdCOfromCH4, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ProdCOfromCH4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdCOfromCH4 => NULL()
+    ENDIF 
+
+    IF ( ASSOCIATED( State_Diag%ProdCOfromNMVOC ) ) THEN
+       DEALLOCATE( State_Diag%ProdCOfromNMVOC, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ProdCOfromNMVOC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdCOfromNMVOC => NULL()
+    ENDIF 
+
     IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
        DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
@@ -9025,6 +9130,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Loss of CH4 in the stratosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMCH4' ) THEN
+       IF ( isDesc    ) Desc  = 'Porduction of CO by CH4'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMNMVOC' ) THEN
+       IF ( isDesc    ) Desc  = 'Porduction of CO by NMVOC'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3 
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0ANTHRO' ) THEN
        IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg0'
