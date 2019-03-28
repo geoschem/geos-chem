@@ -1473,7 +1473,8 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from volcanoes (eruptive) ...
-       ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       !ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
        CALL Diagn_Create( am_I_Root,                           & 
                           HcoState  = HcoState,                &
@@ -1491,7 +1492,8 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from volcanoes (non-eruptive / degassing) ...
-       ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       !ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
        CALL Diagn_Create( am_I_Root,                           & 
                           HcoState  = HcoState,                &
