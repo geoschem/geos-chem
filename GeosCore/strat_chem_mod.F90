@@ -83,7 +83,7 @@ MODULE Strat_Chem_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   PUBLIC  :: SChem_Tend
-  PUBLIC  :: Minit_Is_Set
+  PUBLIC  :: Minit_Is_Set   ! NOTE: Also need to remove in GCHP/GEOS-5
 !
 ! !REMARKS:
 !
@@ -115,6 +115,8 @@ MODULE Strat_Chem_Mod
 !  23 Mar 2018 - M. Sulprizio- Restore using prod/loss rates from GMI for UCX-
 !                              based simulations. Tropchem-based simulations
 !                              will use the rates from UCX.
+!  28 Mar 2019 - R. Yantosca - Comment out references to MINIT.  This prevents
+!                              memory from being allocated to an unused array.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -191,7 +193,12 @@ MODULE Strat_Chem_Mod
   INTEGER               :: NymdInit, NhmsInit  ! Initial date
   REAL(fp)              :: TpauseL_Cnt         ! Tropopause counter
   REAL(fp), ALLOCATABLE :: TpauseL(:,:)        ! Tropopause level aggregator
-  REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
+!-----------------------------------------------------------------------------
+! Prior to 3/28/19:
+! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
+! routine, which has likewise been commented out. (bmy, 3/29/18)
+!  REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
+!-----------------------------------------------------------------------------
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
   ! Species ID flags
@@ -428,20 +435,26 @@ CONTAINS
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
 
-#if defined( ESMF_ )
-    ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
-    IF ( .NOT. Minit_Is_Set ) THEN
-       CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
-                       State_Chm, errCode )
-
-       ! Trap potential errors
-       IF ( errCode /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Set_Minit"!'
-          CALL GC_Error( ErrMsg, errCode, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 3/28/19:
+! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
+! routine, which has likewise been commented out. (bmy, 3/29/18)
+!
+!#if defined( ESMF_ )
+!    ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
+!    IF ( .NOT. Minit_Is_Set ) THEN
+!       CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
+!                       State_Chm, errCode )
+!
+!       ! Trap potential errors
+!       IF ( errCode /= GC_SUCCESS ) THEN
+!          ErrMsg = 'Error encountered in "Set_Minit"!'
+!          CALL GC_Error( ErrMsg, errCode, ThisLoc )
+!          RETURN
+!       ENDIF
+!    ENDIF
+!#endif
+!-----------------------------------------------------------------------------
 
     !======================-================================================
     ! FULL CHEMISTRY SIMULATIONS
@@ -1847,24 +1860,29 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
     ! Allocate and initialize arrays for STE calculation !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-
-    ! Array to hold initial state of atmosphere at the beginning
-    ! of the period over which to estimate STE. Populate with
-    ! initial atm. conditions from restart file converted to [kg/kg].
-    ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
-    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
-    MInit = 0.0_fp
-
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
-    ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
-    ! is not yet filled during initialization. (ckeller, 4/6/16)
-    CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "Set_MInit"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
+!-----------------------------------------------------------------------------
+! Prior to 3/28/19:
+! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
+! routine, which has likewise been commented out. (bmy, 3/29/18)
+!
+!    ! Array to hold initial state of atmosphere at the beginning
+!    ! of the period over which to estimate STE. Populate with
+!    ! initial atm. conditions from restart file converted to [kg/kg].
+!    ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
+!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
+!    MInit = 0.0_fp
+!
+!#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+!    ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
+!    ! is not yet filled during initialization. (ckeller, 4/6/16)
+!    CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       ErrMsg = 'Error encountered in routine "Set_MInit"!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
+!#endif
+!------------------------------------------------------------------------------
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
@@ -1882,119 +1900,124 @@ CONTAINS
 
   END SUBROUTINE INIT_STRAT_CHEM
 !EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
+!-----------------------------------------------------------------------------
+! Prior to 3/28/19:
+! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
+! routine, which has likewise been commented out. (bmy, 3/29/18)
+!!------------------------------------------------------------------------------
+!!                  GEOS-Chem Global Chemical Transport Model                  !
+!!------------------------------------------------------------------------------
+!!BOP
+!!
+!! !IROUTINE: Set_Minit 
+!!
+!! !DESCRIPTION: Sets the MINIT array to current values in State\_Chm%Species.
+!!\\
+!!\\
+!! !INTERFACE:
+!!      
+!  SUBROUTINE SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!!
+!! !USES:
+!!
+!    USE ErrCode_Mod
+!    USE Input_Opt_Mod, ONLY : OptInput
+!    USE State_Chm_Mod, ONLY : ChmState
+!    USE State_Met_Mod, ONLY : MetState
+!    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
 !
-! !IROUTINE: Set_Minit 
+!    IMPLICIT NONE
+!!
+!! !INPUT PARAMETERS:
+!!
+!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!!
+!! !INPUT/OUTPUT PARAMETERS:
+!!
+!    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!!
+!! !OUTPUT PARAMETERS:
+!!
+!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!! 
+!! !REVISION HISTORY:
+!!  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
+!!                              INIT_STRAT_CHEM so that it can be called from
+!!                              within DO_STRAT_CHEM (for ESMF applications).
+!!  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
+!!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
+!!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
+!!EOP
+!!------------------------------------------------------------------------------
+!!BOC
+!!
+!! !LOCAL VARIABLES:
+!!
+!    ! Scalars
+!    INTEGER            :: N, NA
+!    LOGICAL            :: UNITCHANGE
 !
-! !DESCRIPTION: Sets the MINIT array to current values in State\_Chm%Species.
-!\\
-!\\
-! !INTERFACE:
-!      
-  SUBROUTINE SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+!    ! Strings
+!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+!    CHARACTER(LEN=63)  :: OrigUnit
 !
-! !USES:
+!    !=================================================================
+!    ! SET_MINIT begins here!
+!    !=================================================================
+!    
+!    ! Initialize
+!    RC      = GC_SUCCESS
+!    ErrMsg  = ''
+!    ThisLoc = '-> Set_MInit (in GeosCore/strat_chem_mod.F90)'
 !
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Chm_Mod, ONLY : ChmState
-    USE State_Met_Mod, ONLY : MetState
-    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
-
-    IMPLICIT NONE
+!    ! Assume no unit change is necessary and species are already in kg
+!    UNITCHANGE = .FALSE.
 !
-! !INPUT PARAMETERS:
+!    ! Safety check that the advected species are non-zero.
+!    IF ( SUM( State_Chm%Species(:,:,:,1:State_Chm%nAdvect) ) <= 0.0_fp ) THEN
+!       ErrMsg = 'One or more advected species have negative concentrations!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!    ! Convert species to [kg] so that initial state of atmosphere is 
+!    ! in same units as chemistry (ewl, 8/10/15)
+!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       ErrMsg = 'Unit conversion error!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF 
 !
-! !INPUT/OUTPUT PARAMETERS:
+!    ! Loop over only the advected species
+!    DO NA = 1, State_Chm%nAdvect
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!       ! Get the species ID from the advected species ID
+!       N = State_Chm%Map_Advect(NA)
 !
-! !OUTPUT PARAMETERS:
+!       ! Save initial conditions in MINIT
+!       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY:
-!  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
-!                              INIT_STRAT_CHEM so that it can be called from
-!                              within DO_STRAT_CHEM (for ESMF applications).
-!  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
-!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+!    ENDDO
 !
-! !LOCAL VARIABLES:
+!    ! Convert species units back to original unit 
+!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
+!                            State_Chm, OrigUnit,  RC )
+!    IF ( RC /= GC_SUCCESS ) THEN
+!       ErrMsg = 'Unit conversion error!'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF  
 !
-    ! Scalars
-    INTEGER            :: N, NA
-    LOGICAL            :: UNITCHANGE
-
-    ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    CHARACTER(LEN=63)  :: OrigUnit
-
-    !=================================================================
-    ! SET_MINIT begins here!
-    !=================================================================
-    
-    ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = '-> Set_MInit (in GeosCore/strat_chem_mod.F90)'
-
-    ! Assume no unit change is necessary and species are already in kg
-    UNITCHANGE = .FALSE.
-
-    ! Safety check that the advected species are non-zero.
-    IF ( SUM( State_Chm%Species(:,:,:,1:State_Chm%nAdvect) ) <= 0.0_fp ) THEN
-       ErrMsg = 'One or more advected species have negative concentrations!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Convert species to [kg] so that initial state of atmosphere is 
-    ! in same units as chemistry (ewl, 8/10/15)
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF 
-
-    ! Loop over only the advected species
-    DO NA = 1, State_Chm%nAdvect
-
-       ! Get the species ID from the advected species ID
-       N = State_Chm%Map_Advect(NA)
-
-       ! Save initial conditions in MINIT
-       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-
-    ENDDO
-
-    ! Convert species units back to original unit 
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF  
-
-    ! Minit is now set
-    MInit_Is_Set = .TRUE.
-
-  END SUBROUTINE SET_MINIT 
+!    ! Minit is now set
+!    MInit_Is_Set = .TRUE.
+!
+!  END SUBROUTINE SET_MINIT 
 !EOC
+!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2024,7 +2047,12 @@ CONTAINS
     INTEGER :: I
 
     ! Deallocate arrays
-    IF ( ALLOCATED( MInit          ) ) DEALLOCATE( MInit          )
+!-----------------------------------------------------------------------------
+! Prior to 3/28/19:
+! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
+! routine, which has likewise been commented out. (bmy, 3/29/18)
+!    IF ( ALLOCATED( MInit          ) ) DEALLOCATE( MInit          )
+!-----------------------------------------------------------------------------
     IF ( ALLOCATED( TPAUSEL        ) ) DEALLOCATE( TPAUSEL        )
     IF ( ALLOCATED( SCHEM_TEND     ) ) DEALLOCATE( SCHEM_TEND     )
     IF ( ALLOCATED( TrName         ) ) DEALLOCATE( TrName         )
