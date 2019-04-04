@@ -141,6 +141,7 @@ MODULE State_Diag_Mod
      ! Chemistry
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
+     REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
@@ -153,6 +154,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
      LOGICAL :: Archive_JVal            
      LOGICAL :: Archive_JNoon           
+     LOGICAL :: Archive_JNoonFrac
      LOGICAL :: Archive_RxnRates        
      LOGICAL :: Archive_UVFluxDiffuse   
      LOGICAL :: Archive_UVFluxDirect    
@@ -835,6 +837,7 @@ CONTAINS
     ! Chemistry, J-value, Prod/Loss diagnostics
     State_Diag%JVal                                => NULL()
     State_Diag%JNoon                               => NULL()
+    State_Diag%JNoonFrac                           => NULL()
     State_Diag%RxnRates                            => NULL()
     State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%UVFluxDirect                        => NULL()
@@ -847,6 +850,7 @@ CONTAINS
     State_Diag%Prod                                => NULL()
     State_Diag%Archive_JVal                        = .FALSE.
     State_Diag%Archive_JNoon                       = .FALSE.
+    State_Diag%Archive_JNoonFrac                   = .FALSE.
     State_Diag%Archive_RxnRates                    = .FALSE.
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
     State_Diag%Archive_UVFluxDirect                = .FALSE.
@@ -2455,6 +2459,24 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       ! Counter array for noontime J-value boxes
+       ! Must be saved in conjunction with State_Diag%JNoon
+       arrayID = 'State_Diag%JNoonFrac'
+       diagID  = 'JNoonFrac'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%JNoonFrac( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%JNoonFrac = 0.0_f4
+          State_Diag%Archive_JNoonFrac = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%JNoonFrac,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Diffuse UV flux per wavelength bin
        !--------------------------------------------------------------------
@@ -2942,7 +2964,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 25
+       DO N = 1, 26
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -2953,48 +2975,50 @@ CONTAINS
              CASE( 3  ) 
                 diagID = 'JNoon'
              CASE( 4  ) 
-                diagID = 'UvFluxDiffuse'
+                diagID = 'JNoonFrac'
              CASE( 5  ) 
-                diagID = 'UvFluxDirect'
+                diagID = 'UvFluxDiffuse'
              CASE( 6  ) 
+                diagID = 'UvFluxDirect'
+             CASE( 7  ) 
                 diagID = 'UvFluxNet'
-             CASE( 7  )
-                diagID = 'HO2concAfterChem'
              CASE( 8  )
-                diagID = 'O1DconcAfterChem'
+                diagID = 'HO2concAfterChem'
              CASE( 9  )
-                diagID = 'O3PconcAfterChem'
+                diagID = 'O1DconcAfterChem'
              CASE( 10 )
-                diagID = 'ProdSO4fromHOBrInCloud'
+                diagID = 'O3PconcAfterChem'
              CASE( 11 )
-                diagID = 'ProdSO4fromSRHOBr'
+                diagID = 'ProdSO4fromHOBrInCloud'
              CASE( 12 )
-                diagID = 'AerMassASOA'
+                diagID = 'ProdSO4fromSRHOBr'
              CASE( 13 )
-                diagID = 'AerMassINDIOL'
+                diagID = 'AerMassASOA'
              CASE( 14 )
-                diagID = 'AerMassISN1OA'
+                diagID = 'AerMassINDIOL'
              CASE( 15 )
-                diagID = 'AerMassISOA'
+                diagID = 'AerMassISN1OA'
              CASE( 16 )
-                diagID = 'AerMassLVOCOA'
+                diagID = 'AerMassISOA'
              CASE( 17 )
-                diagID = 'AerMassOPOA'
+                diagID = 'AerMassLVOCOA'
              CASE( 18 )
-                diagID = 'AerMassPOA'
+                diagID = 'AerMassOPOA'
              CASE( 19 )
-                diagID = 'AerMassSOAGX'
+                diagID = 'AerMassPOA'
              CASE( 20 )
-                diagID = 'AerMassSOAIE'
+                diagID = 'AerMassSOAGX'
              CASE( 21 )
-                diagID = 'AerMassSOAME'
+                diagID = 'AerMassSOAIE'
              CASE( 22 )
-                diagID = 'AerMassSOAMG'
+                diagID = 'AerMassSOAME'
              CASE( 23 )
-                diagID = 'AerMassTSOA'
+                diagID = 'AerMassSOAMG'
              CASE( 24 )
-                diagID = 'BetaNO'      
+                diagID = 'AerMassTSOA'
              CASE( 25 )
+                diagID = 'BetaNO'
+             CASE( 26 )
                 diagID = 'TotalBiogenicOA'
           END SELECT
 
@@ -6628,6 +6652,13 @@ CONTAINS
        State_Diag%JNoon => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%JNoonFrac ) ) THEN
+       DEALLOCATE( State_Diag%JNoonFrac, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%JNoonFrac', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JNoonFrac => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
        DEALLOCATE( State_Diag%RxnRates, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%RxnRates', 2, RC )
@@ -8283,6 +8314,11 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOONFRAC' ) THEN
+       IF ( isDesc    ) Desc  = 'Fraction of the time when local noon occurred at each surface location' 
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'

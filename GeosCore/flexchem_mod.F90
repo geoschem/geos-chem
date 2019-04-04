@@ -225,7 +225,7 @@ CONTAINS
     INTEGER                :: Day
     REAL(fp)               :: Start,     Finish,   rtim,      itim
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
-    REAL(fp)               :: JNoon_Fac, TOUT
+    REAL(fp)               :: TOUT
 
     ! Strings
     CHARACTER(LEN=63)      :: OrigUnit
@@ -305,6 +305,17 @@ CONTAINS
     IF ( State_Diag%Archive_Prod  ) State_Diag%Prod  = 0.0_f4
     IF ( State_Diag%Archive_JVal  ) State_Diag%JVal  = 0.0_f4
     IF ( State_Diag%Archive_JNoon ) State_Diag%JNoon = 0.0_f4
+
+    ! Keep track of the boxes where it is local noon in the JNoonFrac
+    ! diagnostic. When time-averaged, this will be the fraction of time
+    ! that local noon occurred at a grid box. (bmy, 4/2/19)
+    IF ( State_Diag%Archive_JNoonFrac ) THEN
+       WHERE( State_Met%IsLocalNoon )
+          State_Diag%JNoonFrac = 1.0_f4
+       ELSEWHERE
+          State_Diag%JNoonFrac = 0.0_f4
+       ENDWHERE
+    ENDIF
 
 #if defined( MODEL_GEOS )
     GLOB_RCONST = 0.0_f4
@@ -573,11 +584,6 @@ CONTAINS
     TIN       = T
     TOUT      = T + DT
 
-    ! Factor that we need to multiply the JNoon netCDF diagnostic by 
-    ! to  account for the number of times the diagnostic array will be 
-    ! divided each day.
-    JNoon_Fac = 86400.0_fp / DT
-
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
     ! Absolute tolerance
@@ -782,18 +788,11 @@ CONTAINS
              ! To match the legacy bpch diagnostic, we archive the sum of 
              ! photolysis rates for a given GEOS-Chem species over all of 
              ! the reaction branches.
-             !
-             !    NOTE: The legacy ND22 bpch diagnostic divides by the
-             !    number of times the when grid box (I,J,L) was between
-             !    11am and 1pm local solar time.  Because the HISTORY
-             !    component can only divide by the number of times the
-             !    diagnostic was updated, we counteract this by multiplying
-             !    by the factor 86400 [sec/day] / chemistry timestep [sec].
              !--------------------------------------------------------------
              
              ! GC photolysis species index
              P = GC_Photo_Id(N)
-             
+
              ! If this FAST_JX photolysis species maps to a valid 
              ! GEOS-Chem photolysis species (for this simulation)...
              IF ( P > 0 ) THEN
@@ -801,18 +800,18 @@ CONTAINS
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Diag%Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)    &
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
                                             + PHOTOL(N)
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_JNoon .and. &
-                     State_Met%IsLocalNoon(I,J) ) THEN
-                   State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
-                                             + ( PHOTOL(N) * JNoon_Fac )
+                IF ( State_Met%IsLocalNoon(I,J) ) THEN
+                   IF ( State_Diag%Archive_JNoon ) THEN
+                      State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
+                                                + PHOTOL(N)
+                   ENDIF
                 ENDIF
-
              ENDIF
           ENDDO
        ENDIF
