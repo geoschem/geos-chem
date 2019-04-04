@@ -251,6 +251,12 @@ MODULE State_Met_Mod
                                                 !  and 13 local solar time?
 
      !----------------------------------------------------------------------
+     ! Offline lightning fields
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: FLASH_DENS    (:,:  ) ! Lightning flash density [#/km2/s]
+     REAL(fp), POINTER :: CONV_DEPTH    (:,:  ) ! Convective cloud depth [m]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
      !----------------------------------------------------------------------
      CHARACTER(LEN=3)             :: State     = 'MET'    ! Name of this state
@@ -314,6 +320,7 @@ MODULE State_Met_Mod
 !  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
 !  08 Jan 2018 - R. Yantosca - Added logical query fields
 !  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
+!  20 Jan 2019 - L. Murray   - Add offline lightning flash rates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -533,6 +540,8 @@ CONTAINS
     State_Met%IsLocalNoon    => NULL()
     State_Met%LocalSolarTime => NULL()
     State_Met%AgeOfAir       => NULL()
+    State_Met%FLASH_DENS     => NULL()
+    State_Met%CONV_DEPTH     => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -1925,6 +1934,28 @@ CONTAINS
                             State_Met, RC                             )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-----------------------------
+    ! Lightning density [#/km2/s]
+    !-----------------------------
+    ALLOCATE( State_Met%FLASH_DENS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FLASH_DENS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FLASH_DENS = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'FLASH_DENS', State_Met%FLASH_DENS, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! Convective Depth [m]
+    !-------------------------
+    ALLOCATE( State_Met%CONV_DEPTH( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%CONV_DEPTH', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%CONV_DEPTH = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'CONV_DEPTH', State_Met%CONV_DEPTH, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
@@ -2441,6 +2472,20 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IREG', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IREG => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%FLASH_DENS ) ) THEN
+       DEALLOCATE( State_Met%FLASH_DENS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%FLASH_DENS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FLASH_DENS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CONV_DEPTH ) ) THEN
+       DEALLOCATE( State_Met%CONV_DEPTH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%CONV_DEPTH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CONV_DEPTH => NULL()
     ENDIF
 
     !========================================================================
@@ -3540,6 +3585,16 @@ CONTAINS
        CASE ( 'LOCALSOLARTIME' )
           IF ( isDesc  ) Desc  = 'Local solar time'
           IF ( isUnits ) Units = 'hours'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'FLASH_DENS' )
+          IF ( isDesc  ) Desc  = 'Lightning flash density'
+          IF ( isUnits ) Units = 'km-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'CONV_DEPTH' )
+          IF ( isDesc  ) Desc  = 'Convective cloud depth'
+          IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'AD' )

@@ -158,6 +158,8 @@ MODULE HCOX_STATE_MOD
      TYPE(ExtDat_2R),  POINTER :: LAI         ! daily leaf area index [cm2/cm2]
      TYPE(ExtDat_2R),  POINTER :: CHLR        ! daily chlorophyll-a [mg/m3]
      TYPE(ExtDat_2I),  POINTER :: TropLev     ! Tropopause level [1]
+     TYPE(ExtDat_2R),  POINTER :: FLASH_DENS  ! Lightning flash density [#/km2/s]
+     TYPE(ExtDat_2R),  POINTER :: CONV_DEPTH  ! Convective cloud depth [m]
      INTEGER,          POINTER :: PBL_MAX     ! Max height of PBL [level]
      TYPE(ExtDat_3R),  POINTER :: CNV_MFC     ! Convective cloud mass flux [kg/m2/s] 
      TYPE(ExtDat_3R),  POINTER :: FRAC_OF_PBL ! Fraction of grid box in PBL
@@ -425,6 +427,12 @@ CONTAINS
     CALL ExtDat_Init ( ExtState%CHLR, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
+    CALL ExtDat_Init ( ExtState%FLASH_DENS, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    CALL ExtDat_Init ( ExtState%CONV_DEPTH, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
     CALL ExtDat_Init ( ExtState%JNO2, RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN
 
@@ -555,6 +563,8 @@ CONTAINS
        CALL ExtDat_Cleanup( ExtState%CLDFRC     )
        CALL ExtDat_Cleanup( ExtState%LAI        )
        CALL ExtDat_Cleanup( ExtState%CHLR       )
+       CALL ExtDat_Cleanup( ExtState%FLASH_DENS )
+       CALL ExtDat_Cleanup( ExtState%CONV_DEPTH )
        CALL ExtDat_Cleanup( ExtState%JNO2       )
        CALL ExtDat_Cleanup( ExtState%JOH        )
        CALL ExtDat_Cleanup( ExtState%CNV_MFC    )
