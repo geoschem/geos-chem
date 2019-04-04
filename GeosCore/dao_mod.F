@@ -596,7 +596,7 @@
          !==============================================================  
                                                                           
 #if defined( ESMF_ )                                                      
-            AREA_M2                = State_Met%AREA_M2(I,J,1)
+            AREA_M2                = State_Met%AREA_M2(I,J)
 #else
             AREA_M2                = GET_AREA_M2( I,J,L )
 #endif                                                                    

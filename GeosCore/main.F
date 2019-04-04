@@ -630,7 +630,7 @@
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
       ! and are independent of area
-      State_Met%AREA_M2 =  AREA_M2
+      State_Met%AREA_M2 = AREA_M2(:,:,1)
 
       ! Define advected species ID flags for use below
       id_H2O   = Ind_('H2O'     ,'A')

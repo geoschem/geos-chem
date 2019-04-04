@@ -2327,7 +2327,7 @@ ENDIF
     !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                  * State_Met%AREA_M2(I,J,1)
+                                  * State_Met%AREA_M2(I,J)
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -2399,7 +2399,7 @@ ENDIF
     !$OMP PRIVATE( N      ) 
     DO N = 1, State_Chm%nSpecies
        State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)    &
-                                  / State_Met%AREA_M2(I,J,1)
+                                  / State_Met%AREA_M2(I,J)
     ENDDO
     !$OMP END PARALLEL DO
 

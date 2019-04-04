@@ -3712,7 +3712,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
          ENDIF
 #endif
 
@@ -3738,7 +3738,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) =
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -4192,7 +4192,7 @@
                ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
                IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
-     &                        * State_Met%AREA_M2(I,J,1)
+     &                        * State_Met%AREA_M2(I,J)
                ELSE
                   ErrorMsg= 'Unexpected species units: ' // 
      &                       TRIM( State_Chm%Spc_Units )
@@ -4326,7 +4326,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
 
          ENDIF
 #endif
@@ -4344,7 +4344,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -4573,7 +4573,7 @@
      &                                          'kg/m2' ) THEN
                            REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
      &                                  / 64e+0_fp )
-     &                                  * State_Met%AREA_M2(I,J,1)
+     &                                  * State_Met%AREA_M2(I,J)
                         ELSE
                            Spc    => NULL()
                            ErrorMsg = 'Unexpected species units: ' 
@@ -4607,7 +4607,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
 
          ENDIF
 #endif
@@ -4625,7 +4625,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) = 
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -4895,7 +4895,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
          ENDIF
 #endif
 
@@ -4932,7 +4932,7 @@
          IF ( State_Diag%Archive_WetLossLS ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s (check source code for this routine
