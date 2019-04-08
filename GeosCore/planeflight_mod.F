@@ -588,6 +588,11 @@
                IF ( LINE == 'GMAO_JJEV'  ) PVAR(N) = 1008
                IF ( LINE == 'GMAO_LLEV'  ) PVAR(N) = 1009
                IF ( LINE == 'GMAO_RH'    ) PVAR(N) = 1010
+               IF ( LINE == 'GMAO_PVRT'  ) PVAR(N) = 1011
+               IF ( LINE == 'GMAO_PSLV'  ) PVAR(N) = 1012
+               IF ( LINE == 'GMAO_AVGW'  ) PVAR(N) = 1013
+               IF ( LINE == 'GMAO_THTA'  ) PVAR(N) = 1014
+               IF ( LINE == 'GMAO_PRES'  ) PVAR(N) = 1015
                IF ( LINE == 'GMAO_ICE00' ) PVAR(N) = 1100
                IF ( LINE == 'GMAO_ICE10' ) PVAR(N) = 1101
                IF ( LINE == 'GMAO_ICE20' ) PVAR(N) = 1102
@@ -1813,6 +1818,44 @@
                   !--------------------------------
                   CASE ( 1010 )
                      VARI(V) = State_Met%RH(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Ertel's potential vorticity
+                  !--------------------------
+                  CASE ( 1011 )
+                     ! Disable for now. State_Met%PV is not defined.
+                     !VARI(V) = State_Met%PV(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Sea Level pressure [hPa]
+                  !--------------------------
+                  CASE ( 1012 )
+                     VARI(V) = State_Met%SLP(I,J)
+
+                  !--------------------------
+                  ! GEOS-Chem Water Vapor
+                  !  mixing ratio [v/v]
+                  !--------------------------
+                  CASE ( 1013 )
+                     VARI(V) = State_Met%AVGW(I,J,L)
+
+                  !--------------------------
+                  ! GEOS-Chem Potential Temp
+                  !  (Theta) [k]
+                  !  (same calc used in diag1.F)
+                  !--------------------------
+                  CASE ( 1014 )
+                   VARI(V) = State_Met%T(I,J,L) *
+     &                     ( State_Met%PEDGE(I,J,1) /
+     &                       State_Met%PMID(I,J,L) )**0.286
+
+                  !--------------------------
+                  ! GEOS-Chem Pressure
+                  ! at center of grid box [hPa]
+                  !--------------------------
+                  CASE ( 1015 )
+                  VARI(V) = State_Met%PMID(I,J,L)
+
 
                   !--------------------------
                   ! GEOS-Chem SEAICE frac's

@@ -13,8 +13,8 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Global.f90
-! Time                 : Sat Oct 27 18:02:27 2018
-! Working directory    : /n/home08/xnw/Code.v11-02d_v09/KPP/Standard
+! Time                 : Thu Apr  4 11:48:12 2019
+! Working directory    : /n/home08/xnw/Code.v11-02_Cl/KPP/Standard
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
 ! 
@@ -39,7 +39,7 @@ MODULE gckpp_Global
   REAL(kind=dp) :: FIX(NFIX)
 ! VAR, FIX are chunks of array C
 !      EQUIVALENCE( C(1),VAR(1) )
-!      EQUIVALENCE( C(248),FIX(1) )
+!      EQUIVALENCE( C(250),FIX(1) )
 ! RCONST - Rate constants (global)
   REAL(kind=dp) :: RCONST(NREACT)
 ! TIME - Current integration time

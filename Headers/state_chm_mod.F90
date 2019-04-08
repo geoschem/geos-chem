@@ -149,6 +149,9 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: fupdateHOBr(:,:,:  ) ! Correction factor for
                                                         ! HOBr removal by SO2
                                                         ! [unitless]
+     REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for
+                                                        ! HOCl removal by SO2
+                                                        ! [unitless]
 
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -399,6 +402,7 @@ CONTAINS
     State_Chm%HSO3_AQ     => NULL()
     State_Chm%SO3_AQ      => NULL()
     State_Chm%fupdateHOBr => NULL()
+    State_Chm%fupdateHOCl => NULL()
 
     ! Local variables
     Ptr2data                => NULL()
@@ -1046,8 +1050,11 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%SSAlk', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%SSAlk = 0e+0_fp
-       CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
-                               State_Chm, RC                                )
+       DO N =1, 2
+         CALL Register_ChmField( am_I_Root, chmID, State_Chm%SSAlK,         &
+                               State_Chm, RC, Ncat=N )
+         IF ( RC /= GC_SUCCESS ) RETURN
+       ENDDO
 
        !------------------------------------------------------------------
        ! HSO3_AQ
@@ -1084,6 +1091,20 @@ CONTAINS
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOBr,     &
                                State_Chm, RC                               )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       !------------------------------------------------------------------
+       ! fupdateHOCl
+       !------------------------------------------------------------------
+       chmID = 'fupdateHOCl'
+       ALLOCATE( State_Chm%fupdateHOCl( IM, JM, LM ) , STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%fupdateHOCl = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%fupdateHOCl,     &
+                               State_Chm, RC                               )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+
     ENDIF
 
     !=======================================================================
@@ -1567,6 +1588,12 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%fupdateHOBr ) ) THEN
        DEALLOCATE( State_Chm%fupdateHOBr, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%fupdateHOBr', 3, RC )
+       RETURN
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%fupdateHOCl ) ) THEN
+       DEALLOCATE( State_Chm%fupdateHOCl, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%fupdateHOCl', 3, RC )
        RETURN
     ENDIF
 
@@ -2098,6 +2125,11 @@ CONTAINS
 
        CASE ( 'FUPDATEHOBR' )
           IF ( isDesc  ) Desc  = 'Correction factor for HOBr removal by SO2'
+          IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  =  3
+
+       CASE ( 'FUPDATEHOCL' )
+          IF ( isDesc  ) Desc  = 'Correction factor for HOCl removal by SO2'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  =  3
        
