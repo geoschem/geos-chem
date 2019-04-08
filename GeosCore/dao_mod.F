@@ -400,7 +400,6 @@
       ! Arrays
       LOGICAL             :: IsLocNoon(IIPAR)
       REAL(f8)            :: LocTime  (IIPAR)
-      REAL(f8)            :: Nearest  (IIPAR)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -446,12 +445,13 @@
       ! NOTE: Local time only depends on longitude
       DO I = 1, IIPAR
          LocTime(I) = GET_LOCALTIME( I, 1, 1 )
-         Nearest(I) = ABS( LocTime(I) - 12.0_fp )
-      ENDDO
 
-      ! Find the box that is nearest to local noon
-      IsLocNoon                      = .FALSE.
-      IsLocNoon( MINLOC( Nearest ) ) = .TRUE.
+         ! Set a flag if the location is within 1hr of local noon,
+         ! which matches what we did for the bpch diagnostics.
+         ! (Avoid roundoff by setting an epsilon of 0.00001.)
+         IsLocNoon(I) = ( LocTime(I) >= 10.99999_f8 .and.
+     &                    LocTime(I) <= 13.00001_f8       )
+      ENDDO
 
       !=============================================================
       ! Update air quantities
@@ -596,7 +596,7 @@
          !==============================================================  
                                                                           
 #if defined( ESMF_ )                                                      
-            AREA_M2                = State_Met%AREA_M2(I,J,1)
+            AREA_M2                = State_Met%AREA_M2(I,J)
 #else
             AREA_M2                = GET_AREA_M2( I,J,L )
 #endif                                                                    

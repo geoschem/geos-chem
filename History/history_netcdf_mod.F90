@@ -738,11 +738,6 @@ CONTAINS
     ! Compute the time stamp value for the current time slice
     !=======================================================================
 
-!    ! Compute the elapsed time in seconds since the file creation
-!    CALL Compute_Elapsed_Time( CurrentJd  = Container%CurrentJd,             &
-!                               TimeBaseJd = Container%ReferenceJd,           & 
-!                               ElapsedSec = Container%TimeStamp             )
-
     ! Compute the elapsed time in seconds since the file creation
     CALL Compute_Elapsed_Time( CurrentJsec  = Container%CurrentJsec,         &
                                TimeBaseJsec = Container%ReferenceJsec,       & 

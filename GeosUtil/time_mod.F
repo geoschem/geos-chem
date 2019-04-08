@@ -2101,11 +2101,16 @@
       ENDIF
 
       ! Local time  = GMT time [hrs] + longitude / 15
-      THISLOCALTIME = GMT_HRS + ( GET_XMID( I, J, L ) / 15e+0_f8 ) 
+      THISLOCALTIME = GMT_HRS + ( GET_XMID( I, J, L ) / 15.0_f8 )
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
-      IF ( THISLOCALTIME > 24 ) THISLOCALTIME = THISLOCALTIME - 24e+0_f8
-      IF ( THISLOCALTIME < 0  ) THISLOCALTIME = THISLOCALTIME + 24e+0_f8
+      IF ( THISLOCALTIME > 24.0_f8 ) THEN
+         THISLOCALTIME = THISLOCALTIME - 24.0_f8
+      ENDIF
+
+      IF ( THISLOCALTIME < 0.0_f8 ) THEN
+         THISLOCALTIME = THISLOCALTIME + 24.0_f8
+      ENDIF
 
       ! Return to calling program
       END FUNCTION GET_LOCALTIME

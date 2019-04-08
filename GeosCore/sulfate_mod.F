@@ -7828,9 +7828,9 @@
 
          ! kg/m2/s --> kg. Weight by fraction of PBL
          ALK1 = MAX(ALK1,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
          ALK2 = MAX(ALK2,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
 !         IF ( ASSOCIATED(NDENS_SALA) ) THEN

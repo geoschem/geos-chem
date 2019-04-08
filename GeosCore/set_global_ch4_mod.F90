@@ -208,7 +208,7 @@ CONTAINS
 !             ! Convert to kg/m2/s
 !             dCH4 = dCH4 * State_Met%AIRDEN(I,J,L) &
 !                  * State_Met%BXHEIGHT(I,J,L) / DT
-              dCH4 = dCH4 * State_Met%AD(I,J,L) / State_Met%AREA_M2(I,J,1) / DT
+              dCH4 = dCH4 * State_Met%AD(I,J,L) / State_Met%AREA_M2(I,J) / DT
              ! Accumulate statistics 
              State_Diag%CH4pseudoFlux(I,J) = &
                 State_Diag%CH4pseudoFlux(I,J) + dCH4
