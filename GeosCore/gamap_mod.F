@@ -5494,7 +5494,7 @@
                   CASE( 31 )
                      NAME(T,22) = 'JETHLN'
                   CASE( 32 )
-                     NAME(T,22) = 'JDHDN'
+                     NAME(T,22) = 'JDHDC'
                   CASE( 33 )
                      NAME(T,22) = 'JHPALD'
                   CASE( 34 )
