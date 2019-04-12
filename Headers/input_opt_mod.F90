@@ -238,6 +238,7 @@ MODULE Input_Opt_Mod
      REAL(f8)                    :: MicroLayerSize
      REAL(f8)                    :: C0ScaleFactor
      CHARACTER(LEN=255)          :: Salinity
+     CHARACTER(LEN=4)            :: ReactCoeff
 
      !----------------------------------------
      ! GAMAP MENU fields

@@ -823,7 +823,19 @@
          Iodide = State_Met%Iodide_Conc(I,J,GET_MONTH())*1.0E-9_f8
       ENDIF
      
-      a = Iodide*EXP((-8772.2/TEMPK1)+51.5)
+      IF (Input_Opt%ReactCoeff .EQ. 'MAGI') THEN
+         a = Iodide*EXP((-8772.2/TEMPK1)+51.5)
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'GARL') THEN
+         a = Iodide*2.0E9_f8
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'LIU_') THEN
+         a = Iodide*1.2E9_f8
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HU__') THEN
+         a = Iodide*4.0E9_f8
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'LOW_') THEN
+         a = Iodide*EXP((-8796.2/TEMPK1)+50.8)
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HU__') THEN
+         a = Iodide*EXP((-9261.6/TEMPK1)+53.6)
+      ENDIF
       !a = Iodide*EXP((-8772.2/289.15)+51.5)
 
       D = -1896.0/TEMPK1

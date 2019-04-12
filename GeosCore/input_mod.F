@@ -3489,6 +3489,14 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%Salinity      
 
+      ! which k to use
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ReactCoeff', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%ReactCoeff
+
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN
