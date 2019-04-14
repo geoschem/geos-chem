@@ -159,7 +159,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE WRITE_DIAG03( am_I_Root,  Input_Opt, State_Chm,
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
@@ -170,10 +171,9 @@
       USE CMN_DIAG_MOD
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IU_BPCH
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_CT_EMIS
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
@@ -184,6 +184,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -260,7 +261,8 @@
       INTEGER           :: JFIRST,    LFIRST,      LMAX
       INTEGER           :: M,         N,           NN
       INTEGER           :: NT,        N_Hg_CATS
-      REAL(f4)          :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)          :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                           State_Grid%NZ)
       REAL(f4)          :: LONRES,    LATRES
       REAL(fp)          :: SCALE
       REAL(f8)          :: DIAGb,     DIAGe
@@ -287,12 +289,12 @@
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
-      LATRES    = DJSIZE
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
+      LATRES    = State_Grid%DY
       LFIRST    = 1
-      LONRES    = DISIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_EMIS() ) + 1e-32_fp
       NCHEMSTEP = DBLE( GET_CT_CHEM() ) + TINY( 1e+0_fp ) !CDH for sea salt loss rat   
@@ -706,7 +708,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NT,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
@@ -780,7 +782,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                 HALFPOLAR, CENTER180, CATEGORY, NN,
      &                 UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                 IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                 State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
      &                 JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
@@ -1033,7 +1035,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                 IIPAR,     JJPAR,     LMAX,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LMAX, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LMAX) )
 
          ENDDO
@@ -1055,13 +1057,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG03( State_Chm )
+      SUBROUTINE INIT_DIAG03( State_Chm, State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD 
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1096,59 +1103,73 @@
       N_HG_CATS = State_Chm%N_Hg_CATS
 
       ! Get number of levels for 3-D arrays
-      LD03 = MIN( ND03, LLPAR )
+      LD03 = MIN( ND03, State_Grid%NZ )
 
       ! 3-D array ("HG-SRCE")
-      ALLOCATE( AD03( IIPAR, JJPAR, PD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03( State_Grid%NX, State_Grid%NY, PD03, N_HG_CATS ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03' )
 
       ! 4-D arrays ("PL-HG2-$")
-      ALLOCATE( AD03_Hg2_Hg0( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_Hg0( State_Grid%NX, State_Grid%NY, LD03,
+     &                        N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Hg0' )
 
-      ALLOCATE( AD03_Hg2_OH( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_OH( State_Grid%NX, State_Grid%NY, LD03,
+     &                       N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_OH' )
 
-      ALLOCATE( AD03_Hg2_Br( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_Br( State_Grid%NX, State_Grid%NY, LD03,
+     &                       N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br' )
 
-      ALLOCATE( AD03_Hg2_Br_Y( IIPAR, JJPAR, LD03, 6 ), STAT=AS )
+      ALLOCATE( AD03_Hg2_Br_Y( State_Grid%NX, State_Grid%NY, LD03, 6 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_Br_Y' )
 
-      ALLOCATE( AD03_Hg2_BRY( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_BRY( State_Grid%NX, State_Grid%NY, LD03,
+     &                        N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_BrY' )
 
-      ALLOCATE( AD03_Hg2_CLY( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_CLY( State_Grid%NX, State_Grid%NY, LD03,
+     &                        N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_ClY' )
 
-      ALLOCATE( AD03_Hg2_O3( IIPAR, JJPAR, LD03, N_HG_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_O3( State_Grid%NX, State_Grid%NY, LD03,
+     &                       N_HG_CATS ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_O3' )
 
-      ALLOCATE( AD03_Hg2_SS( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_SS( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &           STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SS' )
 
-      ALLOCATE( AD03_nat( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      ALLOCATE( AD03_nat( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_nat' )
 
-      ALLOCATE( AD03_Hg2_SSR( IIPAR, JJPAR, N_Hg_CATS ), STAT=AS )
+      ALLOCATE( AD03_Hg2_SSR( State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_Hg2_SSR' )
 
-      ALLOCATE( AD03_Br( IIPAR, JJPAR, LLPAR, 5 ), STAT=AS )
+      ALLOCATE( AD03_Br(State_Grid%NX, State_Grid%NY, State_Grid%NZ, 5),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_BR' )
       !End CDH
 
 ! add hma 20100216-------------------------------------------------------
       ! Reactive particulate mercury
-      ALLOCATE( AD03_PBM( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( AD03_PBM( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_PBM' )
 
       ! Reactive gaseous mercury
-      ALLOCATE( AD03_RGM( IIPAR, JJPAR, LLPAR ), STAT=AS )
+      ALLOCATE( AD03_RGM( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RGM' )
 !------------------------------------------------------------------------
 
       ! Arctic river Hg
-      ALLOCATE( AD03_RIV( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( AD03_RIV( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD03_RIV' )
 
       ! Zero arrays

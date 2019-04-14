@@ -124,8 +124,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_ISOROPIAII( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_ISOROPIAII( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -140,6 +140,7 @@
       USE State_Chm_Mod,        ONLY : ChmState
       USE State_Diag_Mod,       ONLY : DgnState
       USE State_Chm_Mod,        ONLY : Ind_
+      USE State_Grid_Mod,       ONLY : GrdState
       USE State_Met_Mod,        ONLY : MetState
       USE TIME_MOD,             ONLY : GET_MONTH
       USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
@@ -153,6 +154,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -324,7 +326,7 @@
          ENDIF
 
          ! Initialize arrays
-         CALL INIT_ISOROPIAII()
+         CALL INIT_ISOROPIAII( State_Grid )
 
          ! Check to see if we need to get HNO3 from HEMCO
          IF ( id_HNO3 <= 0 ) THEN
@@ -395,9 +397,9 @@
 !$OMP+PRIVATE( DEN_SAV, HNO3_DEN, OutOfBounds                    )
 !$OMP+PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP                     )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Only applying ISORROPIA II in troposphere
          IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
@@ -954,12 +956,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_ISOROPIAII
+      SUBROUTINE INIT_ISOROPIAII( State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE ERROR_MOD,   ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  06 Jul 2007 - H. O. T. Pye - Initial version
@@ -977,11 +983,13 @@
       ! INIT_ISOROPIAII begins here!
       !=================================================================
 
-      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+      ALLOCATE( HNO3_sav( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0e+0_fp
 
-      ALLOCATE( GAS_HNO3( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+      ALLOCATE( GAS_HNO3( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
       GAS_HNO3 = 0e+0_fp
 

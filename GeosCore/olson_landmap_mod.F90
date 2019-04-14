@@ -248,15 +248,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Met, RC )
+  SUBROUTINE Compute_Olson_Landmap_GCHP( am_I_Root, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE State_Met_Mod, ONLY : MetState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid   ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -282,8 +284,8 @@ CONTAINS
 
     
     ! Loop over all grid cells to set State_Met variables
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Initialize fraction land for this grid cell
        State_Met%FRCLND(I,J) = 1.e+0_fp ! Initialized as all land
@@ -583,20 +585,28 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Olson_LandMap( am_I_Root, mapping, State_Met )
+  SUBROUTINE Compute_Olson_LandMap( am_I_Root, State_Grid, State_Met, &
+                                    mapping,   RC )
 !
 ! !USES:
 !
+    USE ErrCode_Mod
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN)    :: am_I_Root    ! Are we on the root CPU?
+    TYPE(GrdState),  INTENT(IN)    :: State_Grid   ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MapWeight), POINTER       :: mapping(:,:) ! "fine" -> "coarse" mapping
     TYPE(MetState),  INTENT(INOUT) :: State_Met    ! Meteorology State object
+    TYPE(MapWeight), POINTER       :: mapping(:,:) ! "fine" -> "coarse" mapping
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,         INTENT(OUT  ) :: RC
 !
 ! !REMARKS:
 !  This routine supplies arrays that are required for legacy code routines:
@@ -639,7 +649,10 @@ CONTAINS
     REAL*4  :: xedgeC_w,  xedgeC_e,  yedgeC_s, yedgeC_n
     REAL*4  :: dxdy,      dxdy4,     mapWt,    area
     REAL*4  :: sumArea
-    
+
+    REAL(fp) :: latThresh
+    REAL(fp) :: lonThresh
+
     ! Generic arrays
     INTEGER :: maxIuse(1)
     
@@ -650,33 +663,33 @@ CONTAINS
     REAL*4  :: latedge (          J_OLSON+1         ) ! Lat edges   [degrees]
     
     ! Arrays on the GEOS-CHEM GRID                 
-    INTEGER :: ctOlson (IIPAR, JJPAR, 0:NSURFTYPE-1) ! Count of land types/box
-    REAL*4  :: frOlson (IIPAR, JJPAR, 0:NSURFTYPE-1) ! Frac of land types/box
-    INTEGER :: ordOlson(IIPAR, JJPAR, 0:NSURFTYPE-1) ! Order of land types
+    INTEGER :: ctOlson (State_Grid%NX, State_Grid%NY, 0:NSURFTYPE-1) ! Count of land types/box
+    REAL*4  :: frOlson (State_Grid%NX, State_Grid%NY, 0:NSURFTYPE-1) ! Frac of land types/box
+    INTEGER :: ordOlson(State_Grid%NX, State_Grid%NY, 0:NSURFTYPE-1) ! Order of land types
 
     ! Pointers
     INTEGER,  POINTER :: IREG(:,:)
     INTEGER,  POINTER :: ILAND(:,:,:)
     INTEGER,  POINTER :: IUSE(:,:,:)
     REAL(fp), POINTER :: FRCLND(:,:)
-!
-! !DEFINED PARAMETERS:
-!
-! The following parameters are used to skip over Olson NATIVE GRID boxes
-! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
-! the Olson computation by a factor of 100 or more!
-!
-#if defined( GRID05x0625 ) || defined( GRID025x03125 )
-    REAL(fp), PARAMETER :: latThresh = 1e+0_fp   ! Lat threshold, nested grid
-    REAL(fp), PARAMETER :: lonThresh = 1e+0_fp   ! Lon threshold, nested grid
-#else
-    REAL(fp), PARAMETER :: latThresh = 5e+0_fp   ! Lat threshold, global
-    REAL(fp), PARAMETER :: lonThresh = 6e+0_fp   ! Lon threshold, global
-#endif
 
     !======================================================================
     ! NATIVE GRID parameters (i.e. 0.5 x 0.5 "GENERIC")
     !======================================================================
+
+    ! Assume success 
+    RC = GC_SUCCESS
+    
+    ! The following parameters are used to skip over Olson NATIVE GRID boxes
+    ! that are too far away from the GEOS-CHEM GRID BOX.  This can speed up
+    ! the Olson computation by a factor of 100 or more!
+    IF ( State_Grid%NestedGrid ) THEN
+       latThresh = 1e+0_fp   ! Lat threshold, nested grid
+       lonThresh = 1e+0_fp   ! Lon threshold, nested grid
+    ELSE
+       latThresh = 5e+0_fp   ! Lat threshold, global
+       lonThresh = 6e+0_fp   ! Lon threshold, global
+    ENDIF
 
     ! Be lazy, construct lon edges from lon centers
     DO I = 1, I_OLSON
@@ -711,7 +724,7 @@ CONTAINS
     ctOlson  = 0
     frOlson  = 0e0
     ordOlson = -999
-    isGlobal = ( .not. ITS_A_NESTED_GRID() )
+    isGlobal = ( .not. State_Grid%NestedGrid )
 
     !======================================================================
     ! Loop over all GEOS-CHEM GRID BOXES and initialize variables
@@ -724,17 +737,17 @@ CONTAINS
     !$OMP PRIVATE( xedge_e,  yedge_n,   area,     type,     maxIuse  ) &
     !$OMP PRIVATE( sumIUse,  uniqOlson, C,        IG                 ) &
     !$OMP SCHEDULE( DYNAMIC )
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Global lon index (needed for when running in ESMF)
-       IG = I + I_LO - 1
+       IG = I + State_Grid%XMin - 1
 
        ! Edges of this GEOS-CHEM GRID box
-       xedgeC_w  = GET_XEDGE( I,   J,   1 )          ! W edge
-       yedgeC_s  = GET_YEDGE( I,   J,   1 )          ! S edge
-       xedgeC_e  = GET_XEDGE( I+1, J,   1 )          ! E edge
-       yedgeC_n  = GET_YEDGE( I,   J+1, 1 )          ! N edge
+       xedgeC_w  = State_Grid%XEdge( I,   J,   1 )          ! W edge
+       yedgeC_s  = State_Grid%XEdge( I,   J,   1 )          ! S edge
+       xedgeC_e  = State_Grid%XEdge( I+1, J,   1 )          ! E edge
+       yedgeC_n  = State_Grid%XEdge( I,   J+1, 1 )          ! N edge
        
        ! "Area" of the GEOS-CHEM GRID box in degrees (DLON * DLAT)
        dxdy4     = ( xedgeC_e - xedgeC_w ) * ( yedgeC_n - yedgeC_s )

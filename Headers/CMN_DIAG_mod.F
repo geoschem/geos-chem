@@ -237,19 +237,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Init_CMN_DIAG( am_I_Root, RC )
+      SUBROUTINE Init_CMN_DIAG( am_I_Root, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC          ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  19 Nov 2012 - R. Yantosca - Added ProTeX headers
@@ -261,7 +263,7 @@
       
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       ! Set PD65 (for backwards compatibility, for now)
-      PD65 = LLPAR*MAXFAM 
+      PD65 = State_Grid%NZ * MAXFAM 
       PD64 = W_
 #endif
 

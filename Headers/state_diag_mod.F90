@@ -21,7 +21,7 @@ MODULE State_Diag_Mod
 !
 ! USES:
 
-  USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
+  USE CMN_Size_Mod,    ONLY : NDUST
   USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
@@ -626,20 +626,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( am_I_Root, Input_Opt,  State_Chm, &
-                              Diag_List, State_Diag, RC )
+  SUBROUTINE Init_State_Diag( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, Diag_List, State_Diag, RC )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
     TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
-
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -691,9 +692,9 @@ CONTAINS
     Is_UCX    = Input_Opt%LUCX
     
     ! Shorten grid parameters for readability
-    IM        = IIPAR ! # latitudes
-    JM        = JJPAR ! # longitudes
-    LM        = LLPAR ! # levels
+    IM        = State_Grid%NX ! # latitudes
+    JM        = State_Grid%NY ! # longitudes
+    LM        = State_Grid%NZ ! # levels
 
     ! Number of species per category
     nSpecies  = State_Chm%nSpecies

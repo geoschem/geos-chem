@@ -151,21 +151,25 @@ CMN_DIAG_mod.o         : CMN_DIAG_mod.F           \
                          CMN_SIZE_mod.o           \
                          CMN_FJX_MOD.o            \
                          errcode_mod.o            \
-                         precision_mod.o
+                         precision_mod.o          \
+                         state_grid_mod.o
 
 CMN_FJX_MOD.o          : CMN_FJX_MOD.F            \
                          CMN_SIZE_mod.o           \
-                         precision_mod.o
+                         precision_mod.o          \
+                         state_grid_mod.o
 
 CMN_O3_mod.o           : CMN_O3_mod.F             \
                          CMN_SIZE_mod.o           \
                          errcode_mod.o            \
-                         precision_mod.o
+                         precision_mod.o          \
+                         state_grid_mod.o
 
 CMN_SIZE_mod.o         : CMN_SIZE_mod.F           \
                          errcode_mod.o            \
                          input_opt_mod.o          \
-                         precision_mod.o
+                         precision_mod.o          \
+                         state_grid_mod.o
 
 commsoil_mod.o         : commsoil_mod.F90         \
                          CMN_SIZE_mod.o           \
@@ -193,7 +197,8 @@ state_chm_mod.o        : state_chm_mod.F90        \
                          precision_mod.o          \
                          registry_mod.o           \
                          species_mod.o            \
-                         species_database_mod.o
+                         species_database_mod.o   \
+                         state_grid_mod.o
 
 state_diag_mod.o       : state_diag_mod.F90       \
                          charpak_mod.o            \
@@ -202,14 +207,21 @@ state_diag_mod.o       : state_diag_mod.F90       \
                          precision_mod.o          \
                          input_opt_mod.o          \
                          registry_mod.o           \
-                         state_chm_mod.o
+                         state_chm_mod.o          \
+                         state_grid_mod.o
+
+state_grid_mod.o       : state_grid_mod.F90       \
+                         errcode_mod.o            \
+                         precision_mod.o          \
+                         input_opt_mod.o
 
 state_met_mod.o        : state_met_mod.F90        \
                          charpak_mod.o            \
                          errcode_mod.o            \
                          CMN_SIZE_mod.o           \
                          precision_mod.o          \
-                         registry_mod.o
+                         registry_mod.o           \
+                         state_grid_mod.o
 
 physconstants.o        : physconstants.F          \
                          precision_mod.o

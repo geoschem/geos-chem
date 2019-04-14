@@ -112,8 +112,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_PBL_MIX( am_I_Root,  DO_TURBDAY, Input_Opt,
-     &                       State_Met,  State_Chm,  State_Diag, RC )
+      SUBROUTINE DO_PBL_MIX( am_I_Root, DO_TURBDAY, Input_Opt,
+     &                       State_Chm, State_Diag, State_Grid,
+     &                       State_Met, RC )
 !
 ! !USES:
 !
@@ -123,9 +124,10 @@
       USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
 #endif
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CONV
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
@@ -142,6 +144,7 @@
       LOGICAL,        INTENT(IN)    :: DO_TURBDAY  ! =T means call TURBDAY 
                                                    !    for full PBL mixing
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -204,7 +207,7 @@
       IF ( FIRST ) THEN
 
          ! Allocate arrays etc.
-         CALL INIT_PBL_MIX( am_I_Root, RC )
+         CALL INIT_PBL_MIX( am_I_Root, State_Grid, RC )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -228,8 +231,8 @@
          !-------------------------------------------------
          IF ( State_Diag%Archive_BudgetMixing ) THEN
             ! Get initial column masses
-            CALL Compute_Column_Mass( am_I_Root,                 
-     &                    Input_Opt, State_Met, State_Chm,     
+            CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                    State_Chm, State_Grid, State_Met,   
      &                    State_Chm%Map_Advect,                
      &                    State_Diag%Archive_BudgetMixingFull, 
      &                    State_Diag%Archive_BudgetMixingTrop, 
@@ -250,9 +253,9 @@
          !--------------------------
 
          ! Convert species to v/v dry
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'v/v dry', RC, 
-     &                           OrigUnit=OrigUnit )
+         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                           State_Grid, State_Met, 'v/v dry',
+     &                           RC,         OrigUnit=OrigUnit )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -269,19 +272,20 @@
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies. Tracers are 
          ! already in v/v (ckeller, 7/15/2015)
-         CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', RC )
+         CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm,
+     &                     State_Met, 'PBLMIX', RC )
 #endif
 
          ! Do complete mixing of tracers in the PBL
-         CALL TURBDAY( am_I_Root, Input_Opt,  State_Met,
-     &                 State_Chm, State_Diag, RC         )
+         CALL TURBDAY( am_I_Root,  Input_Opt,  State_Chm,
+     &                 State_Diag, State_Grid, State_Met, RC )
 
 #if defined( USE_TEND ) 
          ! Archive species concentrations for tendencies (ckeller, 7/15/2015)
          DT_TEND = GET_TS_CONV()
-         CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met,
-     &                     State_Chm, 'PBLMIX', DT_TEND, RC )
+         CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, 'PBLMIX',
+     &                     DT_TEND,    RC )
 #endif
 
          !--------------------------
@@ -289,8 +293,8 @@
          !--------------------------
 
          ! Convert species back to original units
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, OrigUnit,  RC )
+         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                           State_Grid, State_Met, OrigUnit,  RC )
 
          ! Trap potential error
          IF ( RC /= GC_SUCCESS ) THEN
@@ -310,15 +314,16 @@
           DT_Dyn = Get_Ts_Dyn()
 
           ! Get final column masses and compute diagnostics
-          CALL Compute_Column_Mass( am_I_Root,              
-     &                  Input_Opt, State_Met, State_Chm,     
+          CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                  State_Chm, State_Grid, State_Met,
      &                  State_Chm%Map_Advect,                
      &                  State_Diag%Archive_BudgetMixingFull, 
      &                  State_Diag%Archive_BudgetMixingTrop, 
      &                  State_Diag%Archive_BudgetMixingPBL,  
      &                  State_Diag%BudgetMass2,              
      &                  RC )    
-          CALL Compute_Budget_Diagnostics( am_I_Root,       
+          CALL Compute_Budget_Diagnostics( am_I_Root,
+     &                  State_Grid,
      &                  State_Chm%Map_Advect,                
      &                  DT_Dyn,                              
      &                  State_Diag%Archive_BudgetMixingFull, 
@@ -356,18 +361,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_PBL_HEIGHT( am_I_Root, State_Met, RC )
+      SUBROUTINE COMPUTE_PBL_HEIGHT( am_I_Root, State_Grid, State_Met,
+     &                               RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD             ! Size parameters
       USE ErrCode_Mod
       USE PhysConstants            ! Scale height
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -402,7 +410,7 @@
       LOGICAL  :: Bad_Sum
       INTEGER  :: I,     J,      L,    LTOP
       REAL(fp) :: BLTOP, BLTHIK, DELP
-      REAL(fp) :: P(0:LLPAR)
+      REAL(fp) :: P(0:State_Grid%NZ)
 
       !=================================================================
       ! COMPUTE_PBL_HEIGHT begins here!
@@ -416,8 +424,8 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !----------------------------------------------
          ! Define pressure edges:
@@ -426,7 +434,7 @@
          !----------------------------------------------
 
          ! Pressure at level edges [hPa]
-         DO L = 0, LLPAR
+         DO L = 0, State_Grid%NZ
             P(L) = State_Met%PEDGE(I,J,L+1)
          ENDDO
          
@@ -449,7 +457,7 @@
          LTOP = 0
 
          ! Loop over levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Exit when we get to the PBL top level
             IF ( BLTOP > P(L) ) THEN
@@ -491,9 +499,12 @@
          PBL_THICK(I,J)           = BLTHIK
 
          !==============================================================
-         ! Loop up to edge of chemically-active grid
+         ! Loop over grid levels
          !==============================================================
-         DO L = 1, LLCHEM
+         DO L = 1, State_Grid%NZ
+
+            ! Skip non-chemistry grid boxes
+            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Thickness of grid box (I,J,L) [hPa]
             DELP = P(L-1) - P(L)
@@ -606,8 +617,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TURBDAY( am_I_root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC         )
+      SUBROUTINE TURBDAY( am_I_root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -620,16 +631,17 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : AIRMW
       USE State_Chm_Mod,  ONLY : ChmState
-      USE State_Met_Mod,  ONLY : MetState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_CONV
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options Object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Metoerology State object
-
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -679,7 +691,7 @@
 !        Also remove IREF, JREF and some debug output. (bmy, 9/25/01)
 !  (15) Removed obsolete commented out code from 9/01 (bmy, 10/24/01)
 !  (16) Now takes in P=PS-PTOP instead of PS.  Redimension SIGE to 
-!        (1:LLPAR+1).  
+!        (1:State_Grid%NZ+1).  
 !  (17) Renamed PS to PZ so as not to conflict w/ the existing P variable.
 !        Now pass P-PTOP thru PZ, in order to ensure that P and AD are
 !        consistent w/ each other.  Added parallel DO-loops. Updated comments,
@@ -723,8 +735,9 @@
       REAL(fp)           :: AA,   CC, CC_AA, AREA_M2, DTCONV
 
       ! Arrays
-      REAL(fp)           :: A(IIPAR,JJPAR)
-      REAL(fp)           :: DTC(IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)  
+      REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
+      REAL(fp)           :: DTC(State_Grid%NX,State_Grid%NY,
+     &                          State_Grid%NZ,State_Chm%nAdvect)  
 
       ! Pointers
       REAL(fp), POINTER  :: AD(:,:,:)
@@ -767,8 +780,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NA, N, AA, CC, CC_AA ) 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
   
          ! We assume full mixing in the boundary layer, so the A
          ! coefficients are 1 everywhere, day & night (bmy, 2/11/03)
@@ -890,15 +903,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FRAC_OF_PBL( I, J, L ) RESULT( FRAC )
+      FUNCTION GET_FRAC_OF_PBL( I, J, L, State_Met ) RESULT( FRAC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD   ! Size parameters
+      USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L    ! Lon, lat, lev indices
+      INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, lev indices
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
@@ -914,7 +928,7 @@
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
-      IF ( L <= LLCHEM ) THEN
+      IF ( State_Met%InChemGrid(I,J,L) ) THEN
          FRAC = F_OF_PBL(I,J,L)
       ELSE
          FRAC = 0e+0_fp
@@ -936,19 +950,21 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L ) RESULT( FRAC )
+      FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+     &     RESULT( FRAC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                 ! Size parameters
+      USE State_Met_Mod, ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: I, J, L   ! Lon, lat, level indices
+      INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
+      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
 !
 ! !RETURN VALUE:
 !
-      REAL(fp)              :: FRAC      ! Fraction of box (I,J,L) below PBL top
+      REAL(fp) :: FRAC      ! Fraction of box (I,J,L) below PBL top
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -956,7 +972,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( L <= LLCHEM ) THEN
+      IF ( State_Met%InChemGrid(I,J,L) ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
          FRAC = 0e+0_fp
@@ -1141,20 +1157,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PBL_MIX( am_I_root, RC )
+      SUBROUTINE INIT_PBL_MIX( am_I_root, State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN)  :: am_I_Root ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: RC           ! Success or failure?
+      INTEGER,        INTENT(OUT) :: RC         ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  11 Feb 2005 - R. Yantosca - Initial version
@@ -1185,42 +1202,44 @@
       PBL_MAX_L = 0
 
       ! Arrays
-      ALLOCATE( IMIX( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( IMIX( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:IMIX', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       IMIX = 0
 
-      ALLOCATE( FPBL( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( FPBL( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:FPBL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       FPBL = 0.0_fp
 
-      ALLOCATE( F_OF_PBL( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( F_OF_PBL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:F_OF_PBL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       F_OF_PBL = 0.0_fp
 
-      ALLOCATE( F_UNDER_TOP( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( F_UNDER_TOP( State_Grid%NX, State_Grid%NY,
+     &                       State_Grid%NZ ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:F_UNDER_TOP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       F_UNDER_TOP = 0.0_fp
 
-      ALLOCATE( PBL_TOP_hPa( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( PBL_TOP_hPa( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_hPa', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PBL_TOP_hPa = 0.0_fp
 
-      ALLOCATE( PBL_TOP_L( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( PBL_TOP_L( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_L', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PBL_TOP_L = 0.0_fp
 
-      ALLOCATE( PBL_TOP_m( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( PBL_TOP_m( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:PBL_TOP_m', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PBL_TOP_m = 0.0_fp
 
-      ALLOCATE( PBL_THICK( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( PBL_THICK( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:PBL_THICK', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PBL_THICK = 0.0_fp

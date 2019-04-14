@@ -111,7 +111,6 @@
       USE CONVECTION_MOD        ! For deep cloud convection
       USE LINOZ_MOD             ! For LINOX linear strat chemistry
       USE PBL_MIX_MOD           ! To compute PBL height 
-      USE TPCORE_BC_MOD         ! For nested-grid boundary conditions
       USE TRANSPORT_MOD         ! Driver routines for advection
       USE VDIFF_MOD             ! For non-local PBL mixing (J. Lin)
 
@@ -384,7 +383,6 @@
       LOGICAL                  :: LTURB
       LOGICAL                  :: LUCX
       LOGICAL                  :: LWETD
-      LOGICAL                  :: LWINDO
 
       !=================================================================
       ! GEOS-CHEM starts here!                                            
@@ -502,12 +500,17 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      ! Initialize GEOS-Chem horizontal grid structure
+      CALL GC_Init_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error in "GC_Init_Grid"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
-      ! allocatable arrays used by GEOS-Chem.  The IIPAR and JJPAR
-      ! dimensions are not declared as PARAMETERs, but are module
-      ! variables that are initialized in this call.
-      CALL GC_Allocate_All( am_I_root, Input_Opt, RC )
+      ! allocatable arrays used by GEOS-Chem.
+      CALL GC_Allocate_All( am_I_root, Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Allocate_All"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -544,7 +547,6 @@
       LTURB               =  Input_Opt%LTURB
       LUCX                =  Input_Opt%LUCX
       LWETD               =  Input_Opt%LWETD
-      LWINDO              =  Input_Opt%LWINDO
 
       ! Set a flag to denote if we should print ND70 debug output
       prtDebug            = ( LPRT .and. am_I_Root )
@@ -608,16 +610,10 @@
 
       ! Initialize State_Met, State_Chm, and State_Diag objects
       CALL GC_Init_StateObj( am_I_Root, Diag_List,  Input_Opt, 
-     &                       State_Chm, State_Diag, State_Met, RC )
+     &                       State_Chm, State_Diag, State_Grid,
+     &                       State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Init_All!"!'
-         CALL Error_Stop( ErrMsg, ThisLoc )
-      ENDIF
-
-      ! Initialize GEOS-Chem horizontal grid structure
-      CALL GC_Init_Grid( am_I_Root, Input_Opt, RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error in "GC_Init_Grid"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
@@ -627,24 +623,18 @@
       ! which is required when connecting to the GEOS-5 GCM w/ ESMF.
       ! (bmy, 3/4/13)
       CALL GC_Init_Extra( am_I_Root, Diag_List,  Input_Opt, 
-     &                    State_Chm, State_Diag, RC         )
+     &                    State_Chm, State_Diag, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "GC_Init_Extra"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
       ! Initialize the regridding module by storing shadow copies
-      CALL GC_Init_Regridding( am_I_Root, Input_Opt, RC )
+      CALL GC_Init_Regridding( am_I_Root, Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Initialize_Regridding"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-
-      ! Copy surface area info from AREA_M2 array of grid_mod.F90
-      ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
-      ! NOTE: Most routines now use either mixing ratio or kg/m2
-      ! and are independent of area
-      State_Met%AREA_M2 =  AREA_M2
 
       ! Define advected species ID flags for use below
       id_CLOCK = Ind_('CLOCK','A')
@@ -657,8 +647,8 @@
       !-----------------------------------------------------------------
       ! Initialize RRTMG routines (in rrtmg_rad_transfer_mod.F)
       !-----------------------------------------------------------------
-      CALL Init_surface_Rad()
-      CALL Init_Mcica_Clouds()
+      CALL Init_surface_Rad(  State_Grid )
+      CALL Init_Mcica_Clouds( State_Grid )
 
       ! Initialization
       CALL Rrtmg_Lw_Ini()
@@ -677,14 +667,14 @@
       !-----------------------------------------------------------------
       ! Initialize the hybrid pressure module.  Define Ap and Bp.
       !-----------------------------------------------------------------
-      CALL Init_Pressure( am_I_Root )
+      CALL Init_Pressure( am_I_Root, State_Grid )
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INIT_PRESSURE' )
 
       !-----------------------------------------------------------------
       ! Register the horizontal and vertical grid information so that 
       ! the History component can use it for netCDF metadata
       !-----------------------------------------------------------------
-      CALL Init_Grid_Registry( am_I_Root, RC )
+      CALL Init_Grid_Registry( am_I_Root, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -764,8 +754,8 @@
       CALL GEOS_Timer_Start( "HEMCO", RC )
 #endif
 
-      CALL Emissions_Init( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      CALL Emissions_Init( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -775,9 +765,9 @@
        
       ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
       ! and restart file fields
-      CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met,
-     &                    State_Chm, State_Diag,  TimeForEmis,
-     &                    0,         RC )
+      CALL Emissions_Run( am_I_Root,   Input_Opt,  State_Chm,
+     &                    State_Diag,  State_Grid, State_Met,
+     &                    TimeForEmis, 0,          RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -801,8 +791,10 @@
 
       ! Initialize the derived type object containing
       ! mapping information for the MODIS LAI routines
-      CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                   1440, 720, IIPAR, JJPAR, mapping, RC )
+      CALL Init_Mapping( am_I_Root,     Input_Opt,
+     &                   1440,          720,
+     &                   State_Grid%NX, State_Grid%NY,
+     &                   mapping,       RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -821,13 +813,14 @@
       ENDIF
 
       ! Continue computing the Olson landmap
-      CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
+      CALL Compute_Olson_Landmap( am_I_Root, State_Grid, State_Met,
+     &                            mapping,   RC )
       CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)
-      CALL Init_Mixing( am_I_Root, Input_Opt,  State_Met,
-     &                  State_Chm, State_Diag, RC         )
+      CALL Init_Mixing( am_I_Root,  Input_Opt,  State_Chm,
+     &                  State_Diag, State_Grid, State_Met, RC     )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -840,8 +833,8 @@
       ! PBL mixing BEFORE the first call of the chemistry routines
       ! (ckeller, 05/19/14).
       IF ( ITS_A_FULLCHEM_SIM .OR. ITS_AN_AEROSOL_SIM ) THEN
-         CALL Init_Chemistry( am_I_Root, Input_Opt,
-     &                        State_Chm, State_Diag, RC )
+         CALL Init_Chemistry( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -856,7 +849,8 @@
 
       ! Initialize the UCX module
       IF ( LUCX ) THEN
-         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag )
+         CALL INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag,
+     &                  State_Grid )
          IF ( prtDebug ) CALL DEBUG_MSG( '### MAIN: a INIT_UCX' )
       ENDIF
 
@@ -864,8 +858,8 @@
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
       ! and are converted locally to [kg] for chemistry (ewl, 9/18/15)
       IF ( LSCHEM ) THEN
-         CALL Init_Strat_Chem( am_I_Root, Input_Opt, State_Chm, 
-     &                         State_Met, RC                    )
+         CALL Init_Strat_Chem( am_I_Root, Input_Opt,  State_Chm, 
+     &                         State_Met, State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -889,9 +883,8 @@
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
       ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL StdRun( am_I_Root,    Input_Opt,  State_Met,
-     &                State_Chm,    State_Diag, RC,
-     &                LBEGIN=.TRUE.                        )
+         CALL StdRun( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+     &                State_Grid, State_Met, RC,        LBEGIN=.TRUE. )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -901,8 +894,8 @@
       ENDIF
 
 #if defined( USE_TIMERS )
-      CALL GEOS_Timer_End( "All diagnostics",                  RC )
-      CALL GEOS_Timer_End( "=> Binary punch diagnostics",      RC )
+      CALL GEOS_Timer_End( "All diagnostics",             RC )
+      CALL GEOS_Timer_End( "=> Binary punch diagnostics", RC )
       CALL GEOS_Timer_End( "Output",                      RC )
 #endif 
 
@@ -914,27 +907,26 @@
 ! 
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! %%%%% NOTE: THIS OPTION WAS PROBABLY BROKEN WITH THE ADDITION OF HEMCO %%%%%
-! %%%%% AND FLEXCHEM INTO GEOS-CHEM V10-01 AND v11-01.  BUYER BEWARE.    %%%%%
+! %%%%% (v10-01), FLEXCHEM (v11-01), AND FLEXGRID (12.5.0). BUYER BEWARE.%%%%%
 ! %%%%%  --  Bob Yantosca (22 Jan 2018)                                  %%%%%
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 #if defined( EXCHANGE )
-
       ! Initialize the two-way nesting.  This will only get done if you
       ! compile GEOS-Chem with EXCHANGE=yes. (yanyy, 03/28/14)
-      CALL INIT_EXCHANGE( am_I_Root )
+      CALL INIT_EXCHANGE( am_I_Root, State_Grid )
 
-#if defined( GRID4x5 ) || defined( GRID2x25 )
+      IF ( State_Grid%NestedGrid ) THEN
 
-      ! Initialize exchange of global boundary conditions
-      CALL EXCHANGE_GLOBAL_INIT()
+         ! Initialize exchange of nested boundary conditions
+         CALL EXCHANGE_NESTED_INIT()
 
-#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
-      ! Initialize exchange of nested boundary conditions
-      CALL EXCHANGE_NESTED_INIT()
+      ELSE
 
-#endif
+         ! Initialize exchange of global boundary conditions
+         CALL EXCHANGE_GLOBAL_INIT()
 
+      ENDIF
 #endif
 !-----------------------------------------------------------------------------
 
@@ -1051,9 +1043,9 @@
          TimeForEmis = ITS_TIME_FOR_EMIS()
 
          ! Run HEMCO Phase 1
-         CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met, 
-     &                       State_Chm, State_Diag,  TimeForEmis, 
-     &                       1,         RC )
+         CALL Emissions_Run( am_I_Root,   Input_Opt,  State_Chm, 
+     &                       State_Diag,  State_Grid, State_Met,
+     &                       TimeForEmis, 1,          RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1116,8 +1108,8 @@
             IF ( DO_DIAG_WRITE ) THEN
 
                ! Write data to the "trac_avg." bpch file
-               CALL DIAG3
-     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL DIAG3( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 
                ! Flush file units
                CALL CTM_FLUSH()
@@ -1221,8 +1213,8 @@
                ENDDO
                CALL UPDATE_DEP( N )
             ENDIF
-            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, NYMD, 
-     &                              NHMS,      TAU,       RC    )
+            CALL MAKE_GTMM_RESTART( am_I_Root, Input_Opt, State_Grid,
+     &                              NYMD, NHMS, TAU, RC )
          ENDIF
 
          !==============================================================
@@ -1254,9 +1246,9 @@
             ENDIF
 
             ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met, 
-     &                              day_of_year,  laiMM,     mapping,
-     &                              wasModisRead, RC )
+            CALL Compute_Modis_Lai( am_I_Root, Input_Opt,    State_Grid, 
+     &                              State_Met, day_of_year,  laiMM,
+     &                              mapping,   wasModisRead, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1274,14 +1266,15 @@
 
          ! Interpolate I-3 fields to current dynamic timestep, 
          ! based on their values at NSEC and NSEC+N_DYN
-         CALL Interp( NSECb, ELAPSED_TODAY,
-     &                N_DYN, Input_Opt,     State_Met )
+         CALL Interp( NSECb,     ELAPSED_TODAY, N_DYN,
+     &                Input_Opt, State_Grid,    State_Met )
 
          ! If we are not doing transport, then make sure that
          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
          ! Now also includes PSC2_DRY (ewl, 5/4/16)
          IF ( .not. LTRAN ) THEN
-            CALL Set_Floating_Pressures( am_I_Root, State_Met, RC )
+            CALL Set_Floating_Pressures( am_I_Root, State_Grid,
+     &                                   State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1293,8 +1286,8 @@
          ! Compute updated airmass quantities at each grid box 
          ! and update tracer concentration to conserve tracer mass
          ! (ewl, 10/28/15)
-         CALL AirQnt( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
-     &                Update_Mixing_Ratio=.TRUE. )
+         CALL AirQnt( am_I_Root, Input_opt, State_Chm, State_Grid,
+     &                State_Met, RC,        Update_Mixing_Ratio=.TRUE. )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1310,9 +1303,10 @@
          ! therefore this routine may call AIRQNT again to update
          ! air quantities and tracer concentrations (ewl, 10/28/15)
          IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
-            CALL SET_H2O_TRAC( am_I_Root, 
+            CALL Set_H2O_Trac( am_I_Root, 
      &                         ( ( .not. LUCX ) .or. LSETH2O ),
-     &                         Input_Opt, State_Met, State_Chm, RC )
+     &                         Input_Opt, State_Chm, State_Grid,
+     &                         State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1328,7 +1322,8 @@
          ! State_Met%SUNCOS     = at the current time
          ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
          ! State_Met%SUNCOSmid5 = at the midpt of the chem timestep 5hrs ago
-         CALL Get_Cosine_SZA( am_I_Root, Input_Opt, State_Met, RC )
+         CALL Get_Cosine_SZA( am_I_Root, Input_Opt, State_Grid,
+     &                        State_Met, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1369,7 +1364,7 @@
          ! Placed after interpolation to get correct value of TROPP. 
          ! (ccc, 12/9/08)
          !-------------------------------------------------------------
-         CALL DIAG_2PM( State_Met )
+         CALL DIAG_2PM( State_Grid, State_Met )
 
 #if defined( USE_TIMERS )
          CALL GEOS_Timer_End( "All diagnostics",              RC )
@@ -1426,8 +1421,9 @@
             ! Read data required for Hg2 gas-particle partitioning 
             ! (H Amos, 25 Oct 2011)
             IF ( ITS_A_MERCURY_SIM ) THEN 
-               CALL Read_Hg2_Partitioning
-     &            ( am_I_Root, Input_Opt, State_Met, MONTH, RC )
+               CALL Read_Hg2_Partitioning( am_I_Root,  Input_Opt,
+     &                                     State_Grid, State_Met,
+     &                                     MONTH,      RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1451,8 +1447,8 @@
             ENDIF
             
             ! Set CH4 concentrations
-            CALL SET_CH4( am_I_Root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC )
+            CALL SET_CH4( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1470,22 +1466,22 @@
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
 
-#if defined( BPCH_TPBC )
-            ! Output BC's
-            ! Save boundary conditions (global grid) for future nested run
-            IF ( LWINDO ) THEN
-               CALL Save_Global_Tpcore_BC
-     &            ( am_I_Root, Input_Opt, State_Chm, RC )
-
-               ! Trap potential errors
-               IF ( RC /= GC_SUCCESS ) THEN
-                  ErrMsg = 
-     &               'Error encountered in "Save_Global_Tpcore_BC"!'
-                  CALL Error_Stop( ErrMsg, ThisLoc )
-               ENDIF
-
-            ENDIF
-#endif
+!#if defined( BPCH_TPBC )
+!            ! Output BC's
+!            ! Save boundary conditions (global grid) for future nested run
+!            IF ( LWINDO ) THEN
+!               CALL Save_Global_Tpcore_BC( am_I_Root, Input_Opt,
+!     &                                     State_Chm, State_Grid, RC )
+!
+!               ! Trap potential errors
+!               IF ( RC /= GC_SUCCESS ) THEN
+!                  ErrMsg = 
+!     &               'Error encountered in "Save_Global_Tpcore_BC"!'
+!                  CALL Error_Stop( ErrMsg, ThisLoc )
+!               ENDIF
+!
+!            ENDIF
+!#endif
 
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
@@ -1493,37 +1489,38 @@
 !
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! %%%%% NOTE: THIS OPTION WAS PROBABLY BROKEN WITH THE ADDITION OF HEMCO %%%%%
-! %%%%% AND FLEXCHEM INTO GEOS-CHEM V10-01 AND v11-01.  BUYER BEWARE.    %%%%%
+! %%%%% (v10-01), FLEXCHEM (v11-01), and FLEXGRID (12.5.0). BUYER BEWARE.%%%%%
 ! %%%%%  --  Bob Yantosca (22 Jan 2018)                                  %%%%%
 ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 #if defined( EXCHANGE )
+            IF ( State_Grid%NestedGrid ) THEN
 
-#if defined( GRID4x5 ) || defined( GRID2x25 )
+               ! Exchange the position of POST (nested-grid simulations)
+               IF ( ITS_TIME_FOR_EXCHANGE() ) THEN
+                  CALL EXCHANGE_NESTED_POST( am_I_Root, Input_Opt,
+     &                                       State_Chm, State_Grid,
+     &                                       State_Met, RC )
+               ENDIF
 
-            ! Exchange the position of POST (global simulations)
-            IF ( ITS_TIME_FOR_EXCHANGE() ) THEN 
-               CALL EXCHANGE_GLOBAL_POST
-     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            ELSE
+
+               ! Exchange the position of POST (global simulations)
+               IF ( ITS_TIME_FOR_EXCHANGE() ) THEN 
+                  CALL EXCHANGE_GLOBAL_POST( am_I_Root, Input_Opt,
+     &                                       State_Chm, State_Grid,
+     &                                       State_Met, RC )
+               ENDIF
+
             ENDIF
-
-#elif defined( NESTED_CH ) || defined( NESTED_NA ) || defined( NESTED_EU )
-
-            ! Exchange the position of POST (nested-grid simulations)
-            IF ( ITS_TIME_FOR_EXCHANGE() ) THEN
-               CALL EXCHANGE_NESTED_POST
-     &              ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
-            ENDIF
-
-#endif
-
 #endif
 !-----------------------------------------------------------------------------
 
             ! Call the appropriate version of TPCORE
             IF ( LTRAN ) THEN 
-               CALL Do_Transport( am_I_Root, Input_Opt,  State_Met,
-     &                            State_Chm, State_Diag, RC         )
+               CALL Do_Transport( am_I_Root,  Input_Opt,  State_Chm,
+     &                            State_Diag, State_Grid, State_Met,
+     &                            RC )
 
                ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1542,8 +1539,8 @@
             ! the airmass quantities are reset after transport
 #if defined ( TOMAS )
             ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
-            CALL Setup_WetScav( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+            CALL Setup_WetScav( am_I_Root, Input_Opt, State_Chm,
+     &                          State_Grid, State_Met, RC )
 
                ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1557,8 +1554,8 @@
             ! ... Standard GEOS-Chem: Call INIT_WETSCAV if   ...
             ! ... convection or wet scavenging or chemistry are turned on ...
             IF ( LCONV .or. LWETD .or. LCHEM ) THEN
-               CALL Setup_WetScav( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+               CALL Setup_WetScav( am_I_Root,  Input_Opt, State_Chm,
+     &                             State_Grid, State_Met, RC )
 
                ! Trap potential error
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1582,7 +1579,7 @@
 
          ! SDE 10/16/13: Set clock tracer if relevant
          IF ( id_CLOCK > 0 ) THEN
-            CALL Set_Clock_Trac( GET_TS_DYN(), State_Chm )
+            CALL Set_Clock_Trac( GET_TS_DYN(), State_Chm, State_Grid )
          ENDIF
 
 
@@ -1596,7 +1593,7 @@
          ! Move this call from the PBL mixing routines because the PBL
          ! height is used by drydep and some of the emissions routines.
          ! (ckeller, 3/5/15) 
-         CALL Compute_PBL_Height( am_I_Root, State_Met, RC )
+         CALL Compute_PBL_Height( am_I_Root, State_Grid, State_Met, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -1634,8 +1631,8 @@
                CALL GEOS_Timer_Start( "Dry deposition", RC )
 #endif
                ! Compute drydep velocities
-               CALL Do_Drydep( am_I_Root, Input_Opt,  State_Met, 
-     &                         State_Chm, State_Diag, RC )
+               CALL Do_Drydep( am_I_Root,  Input_Opt,  State_Chm, 
+     &                         State_Diag, State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1673,9 +1670,9 @@
             ! only calculates emissions. All data has been read to disk
             ! in phase 1 at the beginning of the time step. 
             ! (ckeller, 4/1/15)
-            CALL Emissions_Run( am_I_Root, Input_Opt,   State_Met, 
-     &                          State_Chm, State_Diag,  TimeForEmis, 
-     &                          2,         RC )
+            CALL Emissions_Run( am_I_Root,  Input_Opt,  State_Chm, 
+     &                          State_Diag, State_Grid, State_Met,
+     &                          TimeForEmis, 2,         RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1723,8 +1720,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [v/v dry air] for mixing. Eventually mixing should
             ! be updated to use [kg/kg total air] (ewl, 9/18/15)
-            CALL Do_Mixing( am_I_Root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+            CALL Do_Mixing( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1750,8 +1747,9 @@
                ! Call the appropriate convection routine
                ! NOTE: Tracer concentration units are converted locally
                ! to [kg/kg total air] for convection (ewl, 9/18/15)
-               CALL Do_Convection( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, RC         )
+               CALL Do_Convection( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1794,7 +1792,7 @@
             ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
             IF ( ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                CALL Set_H2O_Trac( am_I_Root, (.not. LUCX), Input_Opt ,
-     &                            State_Met, State_Chm, RC )
+     &                            State_Chm, State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1807,8 +1805,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg] for all of chemistry. We will replace use of [kg] 
             ! once FlexChem is implemented (ewl, 9/18/15)
-            CALL Do_Chemistry( am_I_Root, Input_Opt,  State_Met, 
-     &                         State_Chm, State_Diag, RC         ) 
+            CALL Do_Chemistry( am_I_Root,  Input_Opt,  State_Chm, 
+     &                         State_Diag, State_Grid, State_Met, RC ) 
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1835,8 +1833,8 @@
             ! NOTE: Tracer concentration units are converted locally
             ! to [kg/m2] in wet deposition to enable calculations
             ! along the column (ewl, 9/18/15)
-            CALL Do_WetDep( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
+            CALL Do_WetDep( am_I_Root,  Input_Opt,  State_Chm, 
+     &                      State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1864,8 +1862,8 @@
             ! in the Radiation Menu. This must be done before the call to any
             ! diagnostic and only on a chemistry timestep.
             ! (skim, 02/05/11)
-            CALL Recompute_OD( am_I_Root, Input_Opt,  State_Met,
-     &                         State_Chm, State_Diag, RC         )
+            CALL Recompute_OD( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -1920,8 +1918,8 @@
                CALL DO_RRTMG_RAD_TRANSFER( am_I_Root,  DAY,
      &                                     MONTH,      ICLD,
      &                                     0,          ISEED,
-     &                                     Input_Opt,  State_Met,
-     &                                     State_Chm,  State_Diag, RC )
+     &                                     Input_Opt,  State_Chm,
+     &                                     State_Diag, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -1941,12 +1939,12 @@
                   IF (LSPECRADMENU(N).EQ.1) THEN
                      !generate mask for species in RT
                      CALL SET_SPECMASK(N)
-                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root, DAY,
-     &                                           MONTH,     ICLD,
-     &                                           N,         ISEED,
-     &                                           Input_Opt, State_Met, 
-     &                                           State_Chm, State_Diag,
-     &                                           RC )
+                     CALL DO_RRTMG_RAD_TRANSFER( am_I_Root,  DAY,
+     &                                           MONTH,      ICLD,
+     &                                           N,          ISEED,
+     &                                           Input_Opt,  State_Chm, 
+     &                                           State_Diag, State_Grid,
+     &                                           State_Met,  RC )
 
                      ! Trap potential errors
                      IF ( RC /= GC_SUCCESS ) THEN
@@ -1996,8 +1994,8 @@
 
          ! Set State_Diag arrays that rely on state at end of timestep
          CALL Set_Diagnostics_EndofTimestep( am_I_Root,  Input_Opt,  
-     &                                       State_Met,  State_Chm, 
-     &                                       State_Diag, RC         )
+     &                                       State_Chm,  State_Diag,
+     &                                       State_Grid, State_Met, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2009,8 +2007,8 @@
          ! Archive aerosol mass and PM2.5 diagnostics
          IF ( State_Diag%Archive_AerMass ) THEN
             CALL Set_AerMass_Diagnostic( am_I_Root,  Input_Opt,  
-     &                                   State_Met,  State_Chm, 
-     &                                   State_Diag, RC         )
+     &                                   State_Chm,  State_Diag,
+     &                                   State_Grid, State_Met, RC )
          ENDIF
 
          ! Trap potential errors
@@ -2066,8 +2064,8 @@
 #endif      
 
                ! Initialize planeflight diagnostic
-               CALL Setup_PlaneFlight( am_I_Root, Input_Opt, 
-     &                                 State_Chm, State_Met, RC )
+               CALL Setup_PlaneFlight( am_I_Root,  Input_Opt, State_Chm,
+     &                                 State_Grid, State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2100,8 +2098,9 @@
 !            CF_PRIOR = COST_FUNC
 !------------------------------------------------------------------------------
 
-               CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm,
-     &                                    State_Met, COST_FUNC )
+               CALL CALC_GOSAT_CH4_FORCE( Input_Opt,  State_Chm,
+     &                                    State_Grid, State_Met,
+     &                                    COST_FUNC )
 
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -2125,8 +2124,9 @@
 !            CF_PRIOR = COST_FUNC
 !------------------------------------------------------------------------------
 
-               CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm,
-     &                                    State_Met, COST_FUNC )
+               CALL CALC_TCCON_CH4_FORCE( Input_Opt,  State_Chm,
+     &                                    State_Grid, State_Met,
+     &                                    COST_FUNC )
 
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -2174,8 +2174,8 @@
          !--------------------------------------------------------------
          IF ( ND40 > 0 ) THEN 
             ! Archive data along the flight track
-            CALL PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC )
+            CALL PLANEFLIGHT( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2194,7 +2194,8 @@
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: b DIAGNOSTICS' )
 
             ! Accumulate several diagnostic quantities
-            CALL Diag1( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL Diag1( am_I_Root,  Input_Opt, State_Chm,
+     &                  State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2207,7 +2208,7 @@
 #if defined( BPCH_DIAG )
             ! ND41: save PBL height in 1200-1600 LT (amf)
             ! (for comparison w/ Holzworth, 1967)
-            IF ( ND41 > 0 ) CALL DIAG41()
+            IF ( ND41 > 0 ) CALL DIAG41( State_Grid )
             IF ( prtDebug ) CALL Debug_Msg( '### MAIN: after DIAG41' )
 
             ! ND42: SOA concentrations [ug/m3]
@@ -2226,8 +2227,8 @@
 
             ! 24-hr timeseries
             IF ( Input_Opt%DO_ND50 ) THEN
-               CALL DIAG50
-     &            ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+               CALL DIAG50( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                      State_Met, RC )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN
@@ -2254,8 +2255,8 @@
 
          ! Station timeseries
          IF ( ITS_TIME_FOR_DIAG48( Input_Opt ) ) THEN
-            CALL DIAG48
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL DIAG48( am_I_Root,  Input_Opt, State_Chm, 
+     &                   State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2267,8 +2268,8 @@
 
          ! 3-D timeseries
          IF ( ITS_TIME_FOR_DIAG49( Input_Opt ) ) THEN
-            CALL DIAG49( am_I_Root, Input_Opt,  State_Met,
-     &                   State_Chm, State_Diag, RC         )
+            CALL DIAG49( am_I_Root,  Input_Opt,  State_Chm,
+     &                   State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2292,8 +2293,8 @@
 
          ! Morning or afternoon timeseries
          IF ( Input_Opt%DO_ND51 ) THEN
-            CALL DIAG51
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL DIAG51( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                   State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2303,8 +2304,8 @@
          ENDIF
 
          IF ( Input_Opt%DO_ND51b ) THEN
-            CALL DIAG51b
-     &         ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+            CALL DIAG51b( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                    State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -2413,8 +2414,8 @@
       ! NOTE: Species concentrations enter the subroutine in [kg/kg dry air]
       ! and are converted locally to [kg] (mps, 11/29/16)
       IF ( LSTDRUN ) THEN 
-         CALL StdRun( am_I_Root, Input_Opt,  State_Met,
-     &                State_Chm, State_Diag, RC,        Lbegin=.FALSE. )
+         CALL StdRun( am_I_Root,  Input_Opt, State_Chm, State_Diag,
+     &                State_Grid, State_Met, RC,        Lbegin=.FALSE. )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2478,7 +2479,7 @@
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Met' )
 
       ! Deallocate dynamic module arrays
-      CALL CleanUp( am_I_Root, .FALSE., RC )
+      CALL CleanUp( am_I_Root, State_Grid, .FALSE., RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Cleanup"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2673,7 +2674,7 @@
  180  FORMAT(    '===> netCDF file compression   : ', a             )
  190  FORMAT( /, '===> SIMULATION START TIME: ',      a, ' <===', / )
 
-      END SUBROUTINE DISPLAY_GRID_AND_MODEL
+      END SUBROUTINE Display_Model_Info
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2804,7 +2805,8 @@
              
             ! Get the overhead O3 column for FAST-J.  Take either the
             ! TOMS O3 data or the column O3 directly from the met fields
-            CALL Compute_Overhead_O3( am_I_Root,  
+            CALL Compute_Overhead_O3( am_I_Root,
+     &                                State_Grid, 
      &                                DAY,
      &                                Input_Opt%USE_O3_FROM_MET, 
      &                                State_Met%TO3 )

@@ -105,7 +105,6 @@
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
       USE CMN_O3_MOD	      ! Pure O3, SAVENO2
       USE ERROR_MOD,          ONLY : SAFE_DIV, ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,     GET_YOFFSET
       USE HCO_DIAGN_MOD
       USE HCO_ERROR_MOD
       USE HCO_TYPES_MOD,      ONLY : DiagnCont
@@ -490,52 +489,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: get_i
-!
-! !DESCRIPTION: Function GET\_I returns the absolute longitude index (I), 
-!  given the relative longitude index (X).
-!\\
-!\\
-! !INTERFACE:
-!
-      FUNCTION GET_I( X ) RESULT( I )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD         ! Size parameters
-!
-! !INPUT PARAMETERS: 
-!
-      INTEGER, INTENT(IN) :: X   ! Relative longitude index (used by Q array)
-!
-! !RETURN VALUE:
-!
-      INTEGER             :: I   ! Absolute longitude index
-! 
-! !REVISION HISTORY: 
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  02 Dec 2010 - R. Yantosca - Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC      
-      !=================================================================
-      ! GET_I begins here!
-      !=================================================================
-#if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      ! Add the offset to X to get I  
-      I = IOFF + X
-
-      ! Handle wrapping around the date line, if necessary
-      IF ( I > IIPAR ) I = I - IIPAR
-#endif
-
-      END FUNCTION GET_I
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: init_diag63
 !
 ! !DESCRIPTION: Subroutine INIT\_DIAG63 allocates and zeroes all module 
@@ -544,27 +497,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG63( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG63( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE BPCH2_MOD,     ONLY : GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
+      USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD         ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE ERROR_MOD,      ONLY : ERROR_STOP
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -603,13 +555,8 @@
       !=================================================================
 
       ! Get grid offsets for error checking
-      IF ( ITS_A_NESTED_GRID() ) THEN
-         I0 = GET_XOFFSET()
-         J0 = GET_YOFFSET()
-      ELSE
-         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-         J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      ENDIF
+      I0 = State_Grid%XMinOffset
+      J0 = State_Grid%YMinOffset
 
       !-----------
       ! Longitude
@@ -617,13 +564,13 @@
 
       ! Error check ND63_IMIN
       IF ( Input_Opt%ND63_IMIN+I0 < 1       .or.
-     &     Input_Opt%ND63_IMIN+I0 > IGLOB ) THEN
+     &     Input_Opt%ND63_IMIN+I0 > State_Grid%DX ) THEN
          CALL ERROR_STOP( 'Bad ND63_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND63_IMAX
       IF ( Input_Opt%ND63_IMAX+I0 < 1       .or.
-     &     Input_Opt%ND63_IMAX+I0 > IGLOB ) THEN
+     &     Input_Opt%ND63_IMAX+I0 > State_Grid%DX ) THEN
          CALL ERROR_STOP( 'Bad ND63_IMAX value!', LOCATION )
       ENDIF
 
@@ -632,13 +579,13 @@
       IF ( Input_Opt%ND63_IMAX >= Input_Opt%ND63_IMIN ) THEN
          ND63_NI = ( Input_Opt%ND63_IMAX - Input_Opt%ND63_IMIN ) + 1
       ELSE 
-         ND63_NI = ( IIPAR - Input_Opt%ND63_IMIN ) + 1 +
+         ND63_NI = ( State_Grid%NX - Input_Opt%ND63_IMIN ) + 1 +
      &               Input_Opt%ND63_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
-      ! Make sure that ND63_NI <= IIPAR
-      IF ( ND63_NI > IIPAR ) THEN
+      ! Make sure that ND63_NI <= DX
+      IF ( ND63_NI > State_Grid%DX ) THEN
          CALL ERROR_STOP( 'Too many longitudes!', LOCATION )
       ENDIF
 
@@ -648,13 +595,13 @@
       
       ! Error check JMIN_AREA
       IF ( Input_Opt%ND63_JMIN+J0 < 1       .or.
-     &     Input_Opt%ND63_JMIN+J0 > JGLOB ) THEN
+     &     Input_Opt%ND63_JMIN+J0 > State_Grid%DY ) THEN
          CALL ERROR_STOP( 'Bad ND63_JMIN value!', LOCATION)
       ENDIF
      
       ! Error check JMAX_AREA
       IF ( Input_Opt%ND63_JMAX+J0 < 1       .or.
-     &     Input_Opt%ND63_JMAX+J0 > JGLOB ) THEN
+     &     Input_Opt%ND63_JMAX+J0 > State_Grid%DY ) THEN
          CALL ERROR_STOP( 'Bad ND63_JMAX value!', LOCATION)
       ENDIF
 
@@ -669,7 +616,7 @@
       ! Altitude
       !-----------
 
-      ! # of levels to save in ND53 timeseries
+      ! # of levels to save in ND63 timeseries
       ND63_NL = 1
 
 
@@ -683,14 +630,11 @@
       ! For bpch
       !-----------
       TITLE     = 'GEOS-CHEM DIAG63 instantaneous timeseries'
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
       
-      ! Reset grid offsets to global values for bpch write
-      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
 #endif
 
       END SUBROUTINE INIT_DIAG63

@@ -200,6 +200,7 @@
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -208,6 +209,7 @@
 ! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(INOUT) :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -335,7 +337,8 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
-            CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, RC )
+            CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
+     &                               RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Timestep_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -596,7 +599,7 @@
 #endif
 
       ! Check GEOS-CHEM timesteps
-      CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
+      CALL CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error in "Check_Time_Steps"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -931,18 +934,21 @@
       !-----------------------------------------------------------------
 
       ! Meteorology field
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Met_Field', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'MetField', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%Met_Field
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%MetField
 
       ! Make sure a valid met field is specified
-      Met = To_UpperCase( TRIM( Input_Opt%Met_Field) )
-      IF ( TRIM(Met) /= 'GEOS-FP' .and. TRIM(Met) /= 'GEOSFP' .and.
-     &     TRIM(Met) /= 'MERRA-2' .and. TRIM(Met) /= 'MERRA2' ) THEN
-         ErrMsg = Trim( Input_Opt%Met_Field) // ' is not a valid '  //
+      Met = To_UpperCase( TRIM( Input_Opt%MetField) )
+      IF ( TRIM(Met) == 'GEOS-FP' .or. TRIM(Met) == 'GEOSFP' ) THEN
+         Input_Opt%MetField = 'GEOSFP'
+      ELSE IF ( TRIM(Met) == 'MERRA-2' .or. TRIM(Met) == 'MERRA2' ) THEN
+         Input_Opt%MetField = 'MERRA2'
+      ELSE
+         ErrMsg = Trim( Input_Opt%MetField) // ' is not a valid '  //
      &            ' met field. Supported met fields are GEOS-FP '   //
      &            ' and MERRA-2. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -976,7 +982,7 @@
          WRITE( 6, 110 ) 'CHEM_INPUTS directory       : ',
      &                    TRIM( Input_Opt%CHEM_INPUTS_DIR )
          WRITE( 6, 110 ) 'Meteorology field           : ',
-     &                    TRIM( Input_Opt%Met_Field )
+     &                    TRIM( Input_Opt%MetField )
       ENDIF
 
       ! Format statements
@@ -1111,6 +1117,8 @@
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
+      CHARACTER(LEN=10)  :: XMin_Str, XMax_Str
+      CHARACTER(LEN=10)  :: YMin_Str, YMax_Str
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
@@ -1124,7 +1132,9 @@
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = ' -> at Read_Grid_Menu (in GeosCore/input_mod.F)'
 
-      ! Start YYYYMMDD, HHMMSS
+      !-----------------------------------------------------------------
+      ! Grid resolution
+      !-----------------------------------------------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Grid resolution', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1133,10 +1143,10 @@
       READ( SUBSTRS(1:N), * ) State_Grid%GridRes
 
       ! Make sure grid resolution is valid
-      IF ( TRIM( State_Grid%GridRes) /= '4x5'           .and.
-     &     TRIM( State_Grid%GridRes) /= '2x2.5'         .and.
-     &     TRIM( State_Grid%GridRes) /= '0.5x625'       .and.
-     &     TRIM( State_Grid%GridRes) /= '0.25x0.3125' ) THEN
+      IF ( TRIM(State_Grid%GridRes) /= '4x5'           .and.
+     &     TRIM(State_Grid%GridRes) /= '2x2.5'         .and.
+     &     TRIM(State_Grid%GridRes) /= '0.5x0.625'     .and.
+     &     TRIM(State_Grid%GridRes) /= '0.25x0.3125' ) THEN
 
         ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes) //
      &            ' is not a valid grid resolution! Supported'      //
@@ -1151,45 +1161,110 @@
 
       ! Stop with error if there are more than two substrings
       IF ( nSubStrs /= 2 ) THEN
-         ErrMsg = 'Error in extracting dx and dy values from'   //
+         ErrMsg = 'Error in extracting delta X and Y values from'   //
      &            ' State_Grid%GridRes. Values must be separated by' // 
      &            ' an x. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
       ENDIF
 
-      ! Save the delta Lon and Lat values
-      READ( SubStrs(1), '(f10.4)' ) State_Grid%dx
-      READ (SubStrs(2), '(f10.4)' ) State_Grid%dy
+      ! Save the delta X and Y values
+      READ( SubStrs(1), '(f10.4)' ) State_Grid%DY
+      READ( SubStrs(2), '(f10.4)' ) State_Grid%DX
 
+      !-----------------------------------------------------------------
       ! Longitude range
+      !-----------------------------------------------------------------
+
+      ! Read in min and max longitude
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) State_Grid%MinLon, State_Grid%MaxLon
+      READ( SUBSTRS(1:N), * ) State_Grid%XMin, State_Grid%XMax
 
+      ! Make sure values are in valid range
+      IF ( State_Grid%XMin >= State_Grid%XMax ) THEN
+         WRITE( XMin_Str, '(i10)' ) State_Grid%XMin
+         WRITE( XMax_Str, '(i10)' ) State_Grid%XMax
+         ErrMsg = 'Lower lon must be smaller than upper lon: ' //
+     &             TRIM( XMin_Str ) // ' ' // TRIM( XMax_Str )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Compute X grid dimension
+      State_Grid%NX = FLOOR( ( State_Grid%XMax - State_Grid%XMin ) / 
+     &                         State_Grid%DX )
+
+      !-----------------------------------------------------------------
       ! Latitude range
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lon min/max', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1:N), * ) State_Grid%MinLat, State_Grid%MaxLat
+      !-----------------------------------------------------------------
 
-      ! Number of levels
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'nz', RC )
+      ! Read in min and max latitude
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'Lat min/max', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) State_Grid%nz
+      READ( SUBSTRS(1:N), * ) State_Grid%YMin, State_Grid%YMax
+
+      ! Make sure values are in valid range
+      IF ( State_Grid%YMin >= State_Grid%YMax ) THEN
+         WRITE( YMin_Str, '(i10)' ) State_Grid%YMin
+         WRITE( YMax_Str, '(i10)' ) State_Grid%YMax
+         ErrMsg = 'Lower lat must be smaller than upper lat: ' //
+     &             TRIM( YMin_Str ) // ' ' // TRIM( YMax_Str )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Restrict latitude values to -90.0 and 90.0
+      IF ( State_Grid%YMin < -90.0_fp ) THEN
+         WRITE( YMin_Str, '(i10)' ) State_Grid%YMin
+         ErrMsg = 'Lower latitude must be between -90 and 90 degN: ' //
+     &             TRIM( YMin_Str )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      IF ( State_Grid%YMax > 90.0_fp ) THEN
+         WRITE( YMax_Str, '(i10)' ) State_Grid%YMax
+         ErrMsg = 'Upper latitude must be between -90 and 90 degN: ' //
+     &             TRIM( YMax_Str )
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Compute Y grid dimension
+      State_Grid%NY = FLOOR( ( State_Grid%YMax - State_Grid%YMin ) / 
+     &                         State_Grid%DY ) + 1
+
+      ! Use half-sized polar boxes?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Half Polar', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) State_Grid%HalfPolar
+
+      !-----------------------------------------------------------------
+      ! Level range
+      !-----------------------------------------------------------------
+
+      ! Read in number of levels
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'NZ', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) State_Grid%NZ
 
       ! Make sure number of levels is valid
-      IF ( State_Grid%nz /= 47  .and. 
-     &     State_Grid%nz /= 72 ) THEN 
-        WRITE( nLev, * ) State_Grid%nz
-        ErrMsg = 'Input%Opt%nz = ' // TRIM( nLev )                  //
+      IF ( State_Grid%NZ /= 47  .and. 
+     &     State_Grid%NZ /= 72 ) THEN 
+        WRITE( nLev, * ) State_Grid%NZ
+        ErrMsg = 'Input%Opt%NZ = ' // TRIM( nLev )                 //
      &            ' is not a valid vertical resolution! Supported' //
      &            ' number of levels are 47 and 72. Please check'  //
      &            ' your "input.geos" file.'
@@ -1197,37 +1272,35 @@
          RETURN
       ENDIF
 
+      !-----------------------------------------------------------------
+      ! Nested grid settings
+      !-----------------------------------------------------------------
+
       ! Is it a nested grid?
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LWINDO', RC )
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Nested grid', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) State_Grid%ITS_A_NESTED_GRID
+      READ( SUBSTRS(1:N), * ) State_Grid%NestedGrid
 
-      !-----------------------------------------------------------------
-      ! Define resolution-specific directory name RES_DIR
-      !-----------------------------------------------------------------
-      IF ( TRIM( State_Grid%GridRes ) == '4x5' ) THEN
-         Input_Opt%RES_DIR = 'GEOS_4x5/'
-      ELSE IF ( TRIM( State_Grid%GridRes ) == '2x2.5' ) THEN 
-         Input_Opt%RES_DIR = 'GEOS_2x2.5/'
-      ELSE IF ( TRIM( State_Grid%GridRes ) == '0.5x0.625' ) THEN
-         IF ( State_Grid%Its_A_Nested_Grid ) THEN
-            Input_Opt%RES_DIR = 'GEOS_0.5x0.625_AS/'
-            !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_EU/'
-            !Input_Opt%RES_DIR = 'GEOS_0.5x0.625_NA/'
-         ELSE
-            Input_Opt%RES_DIR = 'GEOS_0.5x0.625/'
-         ENDIF
-      ELSE IF ( TRIM( State_Grid%GridRes ) == '0.25x0.3125') THEN
-         IF ( State_Grid%Its_A_Nested_Grid ) THEN
-            Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_CH/'
-            !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_EU/'
-            !Input_Opt%RES_DIR = 'GEOS_0.25x0.3125_NA/'
-         ELSE
-            Input_Opt%RES_DIR = 'GEOS_0.25x0.3125/'
-         ENDIF
+      ! Nested grid transport offsets 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Buffers N/S/E/W', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) State_Grid%Buffer_N,
+     &                        State_Grid%Buffer_S,
+     &                        State_Grid%Buffer_E,
+     &                        State_Grid%Buffer_W
+
+      ! Set buffers to zero for global grids
+      IF ( .not. State_Grid%NestedGrid ) THEN
+         State_Grid%Buffer_N = 0
+         State_Grid%Buffer_S = 0
+         State_Grid%Buffer_E = 0
+         State_Grid%Buffer_W = 0
       ENDIF
 
       ! Separator line
@@ -1249,22 +1322,32 @@
          WRITE( 6, 100 ) 'Grid resolution             : ', 
      &                    TRIM( State_Grid%GridRes )
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
-     &                    State_Grid%MinLon, State_Grid%MaxLon
+     &                    State_Grid%XMin, State_Grid%XMax
+         WRITE( 6, 120 ) 'X grid dimension            : ',
+     &                    State_Grid%NX
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
-     &                    State_Grid%MinLat, State_Grid%MaxLat
-         WRITE( 6, 120 ) 'Number of levels            : ', 
-     &                    State_Grid%nz
+     &                    State_Grid%YMin, State_Grid%YMax
+         WRITE( 6, 120 ) 'Y grid dimension            : ',
+     &                    State_Grid%NY
+         WRITE( 6, 130 ) ' Use half-sized polar boxes?: ', 
+     &                    State_Grid%HalfPolar
+         WRITE( 6, 120 ) 'Z grid dimension            : ', 
+     &                    State_Grid%NZ
          WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
-     &                    State_Grid%ITS_A_NESTED_GRID
-         WRITE( 6, 100 ) 'Resolution-specific dir     : ',
-     &                    TRIM( Input_Opt%RES_DIR )
+     &                    State_Grid%NestedGrid
+         WRITE( 6, 140 ) 'Buffer zone (N S E W )      : ', 
+     &                    State_Grid%Buffer_N,
+     &                    State_Grid%Buffer_S,
+     &                    State_Grid%Buffer_E,
+     &                    State_Grid%Buffer_W
       ENDIF
 
       ! Format statements
- 100  FORMAT( A, A              )
+ 100  FORMAT( A, A                )
  110  FORMAT( A, F10.4, 1X, F10.4 )
- 120  FORMAT( A, I5             )
- 130  FORMAT( A, L5             )
+ 120  FORMAT( A, I5               )
+ 130  FORMAT( A, L5               )
+ 140  FORMAT( A, 4I5              )
 
       END SUBROUTINE READ_GRID_MENU
 !EOC
@@ -1281,16 +1364,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_TIMESTEP_MENU( am_I_Root, Input_Opt, RC )
+      SUBROUTINE READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
+     &                               RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1380,7 +1466,8 @@
          ENDIF
       ENDIF
 
-#if   defined( MERRA2 ) && defined( GRID05x0625 )
+      IF ( TRIM(Input_Opt%MetField) == 'MERRA2' .and.
+     &     TRIM(State_Grid%GridRes)  == '0.5x0.625' ) THEN
       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM ) THEN
          IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 ) THEN
             IF ( am_I_Root ) THEN
@@ -1408,7 +1495,7 @@
             ENDIF
          ENDIF
       ENDIF
-#endif
+      ENDIF
 
       ! Return success
       RC = GC_SUCCESS
@@ -7664,7 +7751,6 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
-      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID 
       USE TIME_MOD,      ONLY : EXPAND_DATE
 !
 ! !INPUT PARAMETERS:
@@ -7732,79 +7818,6 @@
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF
-
-      ! Only validate the TPCORE BC directories if we need it
-      IF ( ITS_A_NESTED_GRID() ) THEN
-#if   defined( NESTED_NA)
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_NA, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-#elif defined( NESTED_EU)
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_EU, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-#elif defined( NESTED_CH)
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-#elif defined( NESTED_AS)
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_AS, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-
-#endif
-      ENDIF
-
-      IF ( Input_Opt%LWINDO_CU ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-
-      IF ( Input_Opt%LWINDO_NA ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_NA, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-
-      IF ( Input_Opt%LWINDO_EU ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_EU, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-
-      IF ( Input_Opt%LWINDO_CH ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_CH, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
-      ENDIF
-
-      IF ( Input_Opt%LWINDO_AS ) THEN
-         CALL CHECK_DIRECTORY( Input_Opt, Input_Opt%TPBC_DIR_AS, RC )
-         IF ( RC /= GC_SUCCESS ) THEN
-            CALL GC_Error( ErrMsg, RC, ThisLoc )
-            RETURN
-         ENDIF
       ENDIF
 
       END SUBROUTINE VALIDATE_DIRECTORIES
@@ -7906,18 +7919,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHECK_TIME_STEPS( am_I_Root, Input_Opt, RC )
+      SUBROUTINE CHECK_TIME_STEPS( am_I_Root, Input_Opt, State_Grid, RC)
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE TIME_MOD,      ONLY : SET_TIMESTEPS
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : SET_TIMESTEPS
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7986,17 +8001,17 @@
       TS_UNIT = -1
 
       ! Define maximum timestep for transport
-#if   defined( GRID4x5   ) 
-      MAX_DYN = 1800
-#elif defined( GRID2x25  )
-      MAX_DYN = 900
-#elif defined( GRID05x0625 )
-      MAX_DYN = 600 
-#elif defined( GRID025x03125 )
-      MAX_DYN = 300
-#else
-      MAX_DYN = 3600
-#endif
+      IF ( TRIM(State_Grid%GridRes) == '4x5') THEN
+         MAX_DYN = 1800
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+         MAX_DYN = 900
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+         MAX_DYN = 600 
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+         MAX_DYN = 300
+      ELSE
+         MAX_DYN = 3600
+      ENDIF
 
       ! If TS_DYN is greater than MAX_DYN, then stop w/ error
       IF ( .not. Input_Opt%HPC ) THEN

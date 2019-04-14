@@ -218,8 +218,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_STRAT_CHEM( am_I_Root, Input_Opt,          &
-                            State_Met, State_Chm, errCode )
+  SUBROUTINE DO_STRAT_CHEM( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, errCode )
 !
 ! !USES:
 !
@@ -230,6 +230,7 @@ CONTAINS
     USE LINOZ_MOD,          ONLY : DO_LINOZ
     USE PhysConstants,      ONLY : XNUMOLAIR, AIRMW, AVO
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
@@ -241,6 +242,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object 
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -333,8 +335,9 @@ CONTAINS
     CHARACTER(LEN=512) :: ErrMsg
 
     ! Arrays
-    REAL(fp)           :: Spc0  (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
-    REAL(fp)           :: BEFORE(IIPAR,JJPAR,LLPAR                  )
+    REAL(fp)           :: Spc0  (State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
+                                 State_Chm%nAdvect)
+    REAL(fp)           :: BEFORE(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
     REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -362,17 +365,20 @@ CONTAINS
     AD                   => NULL()
     T                    => NULL()
 
-#if defined( MODEL_GEOS )
-    ! Skip strat chem if chemistry is over entire vertical domain
-    SKIP = .FALSE.
-    IF ( LLCHEM == LLPAR ) THEN
-       SKIP = .TRUE.
-       IF ( FIRST .AND. am_I_Root ) THEN
-          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
-       ENDIF 
-    ENDIF
-    IF ( .NOT. SKIP ) THEN
-#endif
+!------------------------------------------------------------------------------
+! Comment out to work with FlexGrid (mps, 3/3/19)
+!#if defined( MODEL_GEOS )
+!    ! Skip strat chem if chemistry is over entire vertical domain
+!    SKIP = .FALSE.
+!    IF ( LLCHEM == State_Grid%NZ ) THEN
+!       SKIP = .TRUE.
+!       IF ( FIRST .AND. am_I_Root ) THEN
+!          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
+!       ENDIF 
+!    ENDIF
+!    IF ( .NOT. SKIP ) THEN
+!#endif
+!------------------------------------------------------------------------------
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )
@@ -431,8 +437,8 @@ CONTAINS
 #if defined( ESMF_ )
     ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
     IF ( .NOT. Minit_Is_Set ) THEN
-       CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, &
-                       State_Chm, errCode )
+       CALL SET_MINIT( am_I_Root,  Input_Opt, State_Chm, &
+                       State_Grid, State_Met, errCode )
 
        ! Trap potential errors
        IF ( errCode /= GC_SUCCESS ) THEN
@@ -475,16 +481,16 @@ CONTAINS
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED )                                               &
        !$OMP PRIVATE( I, J, L, N, NN, NA, k, P, M0, MW_g, SpcConc, Num, Den )
-       DO J=1,JJPAR
-          DO I=1,IIPAR
+       DO J=1,State_Grid%NY
+          DO I=1,State_Grid%NX
 
              ! Add to tropopause level aggregator for later determining STE flux
              TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
-             DO L = 1, LLPAR
+             ! assume a minimum tropopause level.  Loop from 1,State_Grid%NZ
+             ! instead. (bmy, 7/18/12)
+             DO L = 1, State_Grid%NZ
 
                 ! For safety's sake, zero variables at each (I,J,L) box
                 Den     = 0.0_fp
@@ -639,11 +645,11 @@ CONTAINS
 
           ! Do Linoz or Synoz
           IF ( LLINOZ ) THEN
-             CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                            State_Met, State_Chm, RC=errCode )
+             CALL Do_Linoz( am_I_Root,  Input_Opt, State_Chm,           &
+                            State_Grid, State_Met, RC=errCode )
           ELSE
-             CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                            State_Met, State_Chm, RC=errCode )
+             CALL Do_Synoz( am_I_Root,  Input_Opt, State_Chm,           &
+                            State_Grid, State_Met, RC=errCode )
           ENDIF
 
           ! Put ozone back to [kg]
@@ -670,13 +676,13 @@ CONTAINS
        !$OMP PARALLEL DO &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L, M, TK, RC, RDLOSS, T1L, mOH, BOXVL )
-       DO J=1,JJPAR
-          DO I=1,IIPAR  
+       DO J=1,State_Grid%NY
+          DO I=1,State_Grid%NX  
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
-             DO L = 1, LLPAR
+             ! assume a minimum tropopause level.  Loop from 1,State_Grid%NZ
+             ! instead. (bmy, 7/18/12)
+             DO L = 1, State_Grid%NZ
 
                 IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
@@ -767,11 +773,11 @@ CONTAINS
              ISBR2  = ( Gc_Bry_TrId(NN) == id_Br2 )
 
              ! NOTE: For compatibility w/ the GEOS-5 GCM, we can no longer
-             ! assume a minimum tropopause level.  Loop from 1,LLPAR instead.
-             ! (bmy, 7/18/12)
-             DO L = 1, LLPAR
-             DO J = 1, JJPAR
-             DO I = 1, IIPAR  
+             ! assume a minimum tropopause level.  Loop from 1,State_Grid%NZ
+             ! instead. (bmy, 7/18/12)
+             DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX  
                  
                 LCYCLE = State_Met%InChemGrid(I,J,L)
                 IF ( LCYCLE ) CYCLE
@@ -848,9 +854,9 @@ CONTAINS
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
           ! Convert units to [v/v dry air] for Linoz and Synoz (ewl, 10/05/15)
-          CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                                  State_Chm, 'v/v dry', errCode,   &
-                                  OrigUnit=OrigUnit )
+          CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                                  State_Grid, State_Met, 'v/v dry', &
+                                  errCode,    OrigUnit=OrigUnit )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -861,16 +867,16 @@ CONTAINS
 
           ! Do LINOZ or SYNOZ
           IF ( LLINOZ ) THEN
-             CALL Do_Linoz( am_I_Root, Input_Opt,             &
-                            State_Met, State_Chm, errCode )
+             CALL Do_Linoz( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, errCode )
           ELSE 
-             CALL Do_Synoz( am_I_Root, Input_Opt,             &
-                            State_Met, State_Chm, errCode )
+             CALL Do_Synoz( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, errCode )
           ENDIF
 
          ! Convert species units back to original unit 
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                                 State_Chm, OrigUnit,  errCode )
+         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                                 State_Grid, State_Met, OrigUnit,  errCode )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -887,8 +893,8 @@ CONTAINS
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           TpauseL(I,J) = TpauseL(I,J) + State_Met%TropLev(I,J)
        ENDDO
        ENDDO
@@ -1303,9 +1309,9 @@ CONTAINS
 !    CHARACTER(LEN=63)      :: OrigUnit
 !
 !    ! Arrays
-!    INTEGER                :: LTP(IIPAR,JJPAR      )
-!    REAL(fp)               :: M1 (IIPAR,JJPAR,LLPAR)
-!    REAL(fp)               :: M2 (IIPAR,JJPAR,LLPAR)
+!    INTEGER                :: LTP(State_Grid%NX,State_Grid%NY      )
+!    REAL(fp)               :: M1 (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+!    REAL(fp)               :: M2 (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 !
 !
 !    ! Pointers
@@ -1338,8 +1344,9 @@ CONTAINS
 !#else
 !
 !    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
-!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-!                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+!                            State_Grid, State_Met, 'kg',      &
+!                            RC,         OrigUnit=OrigUnit )
 !    IF ( RC /= GC_SUCCESS ) THEN
 !       CALL GC_Error('Unit conversion error', RC, &
 !                     'Calc_STE in strat_chem_mod.F')
@@ -1353,8 +1360,8 @@ CONTAINS
 !    !$OMP PARALLEL DO                               &
 !    !$OMP DEFAULT( SHARED )                         &
 !    !$OMP PRIVATE( I,  J  )
-!    DO J = 1,JJPAR
-!    DO I = 1,IIPAR
+!    DO J = 1,State_Grid%NY
+!    DO I = 1,State_Grid%NX
 !       LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
 !    ENDDO
 !    ENDDO
@@ -1399,8 +1406,8 @@ CONTAINS
 !       !$OMP PARALLEL DO &
 !       !$OMP DEFAULT( SHARED ) &
 !       !$OMP PRIVATE( I,  J  )
-!       DO J = 1, JJPAR  
-!       DO I = 1, IIPAR
+!       DO J = 1, State_Grid%NY  
+!       DO I = 1, State_Grid%NX
 !          M2(I,J,1:LTP(I,J)) = 0e+0_fp
 !          M1(I,J,1:LTP(I,J)) = 0e+0_fp
 !       ENDDO
@@ -1456,8 +1463,8 @@ CONTAINS
 !    ENDDO
 !
 !    ! Convert species units back to original unit 
-!    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-!                            State_Chm, OrigUnit,  RC )
+!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+!                            State_Grid, State_Met, OrigUnit,  RC )
 !    IF ( RC /= GC_SUCCESS ) THEN
 !       CALL GC_Error('Unit conversion error', RC, &
 !                     'Calc_STE in strat_chem_mod.F')
@@ -1484,7 +1491,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE INIT_STRAT_CHEM( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE INIT_STRAT_CHEM( am_I_Root,  Input_Opt, State_Chm, State_Met, &
+                              State_Grid, RC )
 !
 ! !USES:
 !
@@ -1495,6 +1503,7 @@ CONTAINS
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TAU
     USE TIME_MOD,           ONLY : GET_NYMD
@@ -1507,6 +1516,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1847,14 +1857,16 @@ CONTAINS
     ! Array to hold initial state of atmosphere at the beginning
     ! of the period over which to estimate STE. Populate with
     ! initial atm. conditions from restart file converted to [kg/kg].
-    ALLOCATE( MInit( IIPAR, JJPAR, LLPAR, nAdvect ), STAT=AS )
+    ALLOCATE( MInit( State_Grid%NX, State_Grid%NY, State_Grid%NZ, nAdvect ), &
+              STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
     MInit = 0.0_fp
 
 #if !defined( ESMF_ ) && !defined( MODEL_WRF )
     ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
     ! is not yet filled during initialization. (ckeller, 4/6/16)
-    CALL SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL SET_MINIT( am_I_Root,  Input_Opt, State_Chm, &
+                    State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Set_MInit"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1864,12 +1876,13 @@ CONTAINS
 
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
-    ALLOCATE( TPAUSEL( IIPAR, JJPAR ), STAT=AS )
+    ALLOCATE( TPAUSEL( State_Grid%NX, State_Grid%NY ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'TPAUSEL' )
     TPAUSEL = 0e+0_fp
 
     ! Array to aggregate the stratospheric chemical tendency [kg period-1]
-    ALLOCATE( SCHEM_TEND(IIPAR,JJPAR,LLPAR,nAdvect), STAT=AS )
+    ALLOCATE( SCHEM_TEND(State_Grid%NX,State_Grid%NY,State_Grid%NZ,nAdvect), &
+              STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCHEM_TEND' )
     SCHEM_TEND = 0e0
 
@@ -1890,15 +1903,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !      
-  SUBROUTINE SET_MINIT( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE SET_MINIT( am_I_Root,  Input_Opt, State_Chm, &
+                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Chm_Mod, ONLY : ChmState
-    USE State_Met_Mod, ONLY : MetState
-    USE UnitConv_Mod,  ONLY : Convert_Spc_Units
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -1906,6 +1921,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1958,8 +1974,9 @@ CONTAINS
 
     ! Convert species to [kg] so that initial state of atmosphere is 
     ! in same units as chemistry (ewl, 8/10/15)
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, 'kg',      &
+                            RC,         OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1978,8 +1995,8 @@ CONTAINS
     ENDDO
 
     ! Convert species units back to original unit 
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2072,7 +2089,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_Synoz( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+  SUBROUTINE Do_Synoz( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                       State_Met, RC )
 !
 ! !USES:
 !
@@ -2081,6 +2099,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_YEAR
 
@@ -2090,6 +2109,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2209,48 +2229,10 @@ CONTAINS
     INTEGER              :: I, J, L, L70mb, N, NA, nAdvect
     REAL(fp)             :: P1, P2, P3, T1, T2, DZ, ZUP
     REAL(fp)             :: DTCHEM, H70mb, PO3, PO3_vmr
-    REAL(fp)             :: STFLUX(IIPAR,JJPAR,LLPAR)
+    REAL(fp)             :: STFLUX(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     ! Pointers
     REAL(fp), POINTER    :: Spc(:,:,:,:)
-!
-! !DEFINED PARAMETERS:
-!
-    ! Select the grid boxes at the edges of the O3 release region, 
-    ! for the proper model resolution (qli, bmy, 12/1/04)
-#if defined( GRID4x5 )
-    INTEGER, PARAMETER   :: J30S = 16, J30N = 31 
-
-#elif defined( GRID2x25 ) 
-    INTEGER, PARAMETER   :: J30S = 31, J30N = 61
-
-#elif defined( GRID05x0625 )
-
-    !%%% ADD PLACEHOLDER VALUES, THESE AREN'T REALLY USED ANYMORE %%%
-#if   defined( NESTED_AS )
-    INTEGER, PARAMETER :: J30S = 1,  J30N = 83
-#elif defined( NESTED_NA )
-    INTEGER, PARAMETER :: J30S = 1,  J30N = 41
-#elif defined( NESTED_EU )
-    INTEGER, PARAMETER :: J30S = 1,  J30N = 1  ! add later-checked . it is ok Anna Prot
-#endif
-
-#elif defined( GRID025x03125 )
-
-#if   defined( NESTED_CH )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161
-#elif defined( NESTED_NA )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 161 !I think it should be 202/Anna Prot
-!Anna Prot added 8 May 2015
-#elif defined( NESTED_EU )
-    INTEGER, PARAMETER   :: J30S = 1, J30N = 115
-#endif
-
-#elif defined( EXTERNAL_GRID )
-    ! THIS HAS TO BE DEFINED SPECIFICALLY! HOW?
-    INTEGER, PARAMETER   :: J30S = 31, J30N = 61
-
-#endif
 
     ! Lower pressure bound for O3 release (unit: mb)
     ! REAL(fp),  PARAMETER   :: P70mb = 70e+0_fp !PHS
@@ -2320,15 +2302,22 @@ CONTAINS
     ! Only initialize on first time step
     IF ( FIRST ) STFLUX = 0e+0_fp
 
-    ! Loop over latitude (30S -> 30N) and longitude
+    ! Loop over latitude and longitude
     !$OMP PARALLEL DO                               &
     !$OMP DEFAULT( SHARED )                         &
     !$OMP PRIVATE( I,  J,  L,  P2,  L70mb, P1, P3 ) &
     !$OMP PRIVATE( T2, T1, DZ, ZUP, H70mb, PO3    )
-    DO J = J30S, J30N 
-       DO I = 1,    IIPAR
+    DO J = 1, State_Grid%NY
 
-          DO L = 1, LLPAR
+       ! Skip grid boxes outside of O3 release region (30S -> 30N)
+       IF ( State_Grid%GlobalYMid(1,J,1) < -30.0_fp .or. &
+            State_Grid%GlobalYMid(1,J,1) <  30.0_fp ) THEN
+          CYCLE
+       ENDIF
+
+       DO I = 1, State_Grid%NX
+
+          DO L = 1, State_Grid%NZ
 
              ! P2 = pressure [hPa] at the sigma center of level L70mb
              P2 = State_Met%PMID(I,J,L) 
@@ -2383,7 +2372,7 @@ CONTAINS
           !=========================================================== 
           ! Distribute O3 into the region (30S-30N, 70mb-10mb)
           !=========================================================== 
-          DO L = L70mb, LLPAR 
+          DO L = L70mb, State_Grid%NZ 
 
              ! Convert O3 in grid box (I,J,L) from v/v/s to v/v/box
              PO3 = PO3_vmr * DTCHEM 
@@ -2392,7 +2381,8 @@ CONTAINS
              ! grid box centers.  However, the O3 release region is 
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
              ! or 30N grid boxes, divide the O3 flux by 2.
-             IF ( J == J30S .or. J == J30N ) THEN
+             IF ( State_Grid%GlobalYMid(1,J,1) == -30.0_fp .or. &
+                  State_Grid%GlobalYMid(1,J,1) ==  30.0_fp ) THEN
                 PO3 = PO3 / 2e+0_fp
              ENDIF
 

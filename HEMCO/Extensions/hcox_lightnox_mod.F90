@@ -1667,6 +1667,7 @@ CONTAINS
     ! lun of error log
     INTEGER :: cYr, cMt
     REAL*8  :: DY
+    REAL*8  :: ANN_AVG_FLASHRATE
 
     !=================================================================
     ! Define the average annual flash rate (flashes per second), as
@@ -1679,31 +1680,37 @@ CONTAINS
     ! Slight difference in global mean total when averaging over different
     ! GEOS-Chem horizontal resolutions.
     !=================================================================
-#if   defined( GRID2x25      ) 
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
 
-#elif defined( GRID4x5       )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 46.019893d0
+    IF ( TRIM(HcoState%Config%GridRes)  == '2x2.5' ) THEN
+       ANN_AVG_FLASHRATE = 46.019893d0
+    ELSE IF ( TRIM(HcoState%Config%GridRes)  == '4x5' ) THEN
+       ANN_AVG_FLASHRATE = 46.019893d0
+    ENDIF
 
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.8334473d0    
-
-#elif defined( GRID025x03125 ) && defined( NESTED_EU )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3384335d0
-
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.4666451d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_AS )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.2583674d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_EU )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.7925457d0
-
-#elif defined( GRID05x0625   ) && defined( NESTED_NA )
-    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7011175d0
-    
-#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 4/13/19:
+! Need to set factors in HEMCO_Config.rc for FlexGrid. Keep factors for
+! 4x5 and 2x2.5 above for now. (mps, 4/13/19)
+!#elif defined( GRID025x03125 ) && defined( NESTED_CH )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 4.8334473d0    
+!
+!#elif defined( GRID025x03125 ) && defined( NESTED_EU )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.3384335d0
+!
+!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.4666451d0
+!
+!#elif defined( GRID05x0625   ) && defined( NESTED_AS )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 9.2583674d0
+!
+!#elif defined( GRID05x0625   ) && defined( NESTED_EU )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 1.7925457d0
+!
+!#elif defined( GRID05x0625   ) && defined( NESTED_NA )
+!    REAL*8, PARAMETER     :: ANN_AVG_FLASHRATE = 6.7011175d0
+!    
+!#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     !=================================================================
     ! GET_OTD_LIS_SCALE begins here!
@@ -1737,7 +1744,8 @@ CONTAINS
     ! Initialize
     BETA = 1d0
 
-#if   defined( GEOS_FP ) && defined( GRID4x5 ) 
+    IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and. &
+         TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
 
     !---------------------------------------
     ! GEOS-FP: 4 x 5 global simulation
@@ -1750,7 +1758,8 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 85.362449d0
     ENDIF
 
-#elif defined( GEOS_FP ) && defined( GRID2x25 )
+    ELSE IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and. &
+              TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
 
     !---------------------------------------
     ! GEOS-FP: 2 x 2.5 global simulation
@@ -1763,46 +1772,52 @@ CONTAINS
        BETA = ANN_AVG_FLASHRATE / 269.13945d0
     ENDIF
     
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 4/13/19:
+! Need to set factors in HEMCO_Config.rc for FlexGrid. Keep factors for
+! 4x5 and 2x2.5 above for now. (mps, 4/13/19)
+!#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_CH )
+!
+!    !---------------------------------------
+!    ! GEOS-FP: Nested China simulation
+!    !---------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! April 2012 - Jul 2017. Will need to be updated as more
+!    ! met fields become available (ltm, 2017-09-28).
+!    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+!       BETA = ANN_AVG_FLASHRATE / 1030.6438d0
+!    ENDIF
+!
+!#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
+!
+!    !---------------------------------------
+!    ! GEOS-FP: Nested Europe simulation
+!    !---------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! April 2012 - Jul 2017. Will need to be updated as more
+!    ! met fields become available (ltm, 2017-09-28).
+!    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
+!       BETA = ANN_AVG_FLASHRATE / 90.403359d0
+!    ENDIF
+!
+!#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
+!
+!    !---------------------------------------
+!    ! GEOS-FP: Nested North America simulation
+!    !---------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! April 2012 - Jan 2017. Will need to be updated as more
+!    ! met fields become available (ltm, 2017-09-28).
+!    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
+!       BETA = ANN_AVG_FLASHRATE / 770.29078d0
+!    ENDIF
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    !---------------------------------------
-    ! GEOS-FP: Nested China simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 1030.6438d0
-    ENDIF
-
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_EU )
-
-    !---------------------------------------
-    ! GEOS-FP: Nested Europe simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jul 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN
-       BETA = ANN_AVG_FLASHRATE / 90.403359d0
-    ENDIF
-
-#elif defined( GEOS_FP ) && defined( GRID025x03125 ) && defined( NESTED_NA )
-
-    !---------------------------------------
-    ! GEOS-FP: Nested North America simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! April 2012 - Jan 2017. Will need to be updated as more
-    ! met fields become available (ltm, 2017-09-28).
-    IF ( ( cYr .eq. 2017 .and. cMt .le. 7 ) .or. cYr .le. 2016 ) THEN    
-       BETA = ANN_AVG_FLASHRATE / 770.29078d0
-    ENDIF
-
-#elif defined( MERRA2 ) && defined( GRID4x5 )
+    ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and. &
+              TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
 
     !---------------------------------------
     ! MERRA2: 4 x 5 global simulation
@@ -1813,7 +1828,8 @@ CONTAINS
     ! Does not need to be updated (ltm, 2017-09-24).
     BETA = ANN_AVG_FLASHRATE / 102.38173d0
 
-#elif defined( MERRA2 ) && defined( GRID2x25 )
+    ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and. &
+              TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
 
     !---------------------------------------
     ! MERRA2: 2 x 2.5 global simulation
@@ -1824,40 +1840,45 @@ CONTAINS
     ! Does not need to be updated (ltm, 2017-09-24).
     BETA = ANN_AVG_FLASHRATE / 322.83040d0
 
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
-    
-    !---------------------------------------
-    ! MERRA-2: Nested Asia simulation
-    !---------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-28).
-    BETA = ANN_AVG_FLASHRATE / 1177.4952d0
-    
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_EU )
-
-    !------------------------------------------
-    ! MERRA-2: Nested Europe simulation
-    !------------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-23).
-    BETA = ANN_AVG_FLASHRATE / 47.187111d0
-    
-#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
-
-    !------------------------------------------
-    ! MERRA-2: Nested North America simulation
-    !------------------------------------------
-
-    ! Constrained with simulated "climatology" for
-    ! full LIS/OTD observational period (May 1995-Dec 2014). 
-    ! Does not need to be updated (ltm, 2017-09-28).
-    BETA = ANN_AVG_FLASHRATE / 305.06467d0
-    
-#endif
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+! Prior to 4/13/19:
+! Need to set factors in HEMCO_Config.rc for FlexGrid. Keep factors for
+! 4x5 and 2x2.5 above for now. (mps, 4/13/19)
+!#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_AS )
+!    
+!    !---------------------------------------
+!    ! MERRA-2: Nested Asia simulation
+!    !---------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+!    ! Does not need to be updated (ltm, 2017-09-28).
+!    BETA = ANN_AVG_FLASHRATE / 1177.4952d0
+!    
+!#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_EU )
+!
+!    !------------------------------------------
+!    ! MERRA-2: Nested Europe simulation
+!    !------------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+!    ! Does not need to be updated (ltm, 2017-09-23).
+!    BETA = ANN_AVG_FLASHRATE / 47.187111d0
+!    
+!#elif defined( MERRA2 ) && defined( GRID05x0625  ) && defined( NESTED_NA )
+!
+!    !------------------------------------------
+!    ! MERRA-2: Nested North America simulation
+!    !------------------------------------------
+!
+!    ! Constrained with simulated "climatology" for
+!    ! full LIS/OTD observational period (May 1995-Dec 2014). 
+!    ! Does not need to be updated (ltm, 2017-09-28).
+!    BETA = ANN_AVG_FLASHRATE / 305.06467d0
+!    
+!#endif
+    ENDIF
 
     ! If not defined yet, try to estimate it from grid spacing
     ! ckeller, 6/6/2017

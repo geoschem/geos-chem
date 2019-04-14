@@ -107,21 +107,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE FAST_JX( WLAOD,     am_I_Root, Input_Opt, 
-     &                    State_Met, State_Chm, State_Diag, RC )
+      SUBROUTINE FAST_JX( WLAOD,     am_I_Root,  Input_Opt, 
+     &                    State_Chm, State_Diag, State_Grid,
+     &                    State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_SIZE_MOD,       ONLY : NDUST
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP, ALLOC_ERR
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_DAY, GET_DAY_OF_YEAR
       USE TIME_MOD,           ONLY : GET_TAU,   GET_YEAR
@@ -149,12 +149,13 @@
                                                    ! (1: 550 nm, 0: 999 nm)
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options 
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State obj
-      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State obj
+      TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State obj
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -249,24 +250,24 @@
       INTEGER       :: NLON, NLAT, DAY,  MONTH, DAY_OF_YR, L, N
       INTEGER       :: IOPT, LCHEM
       REAL(fp)      :: CSZA, PRES, SFCA, YLAT,  O3_TOMS
-      REAL(fp)      :: O3_CTM(LLPAR+1)
-      REAL(fp)      :: T_CTM(LLPAR+1), OPTD(LLPAR)
-      REAL(fp)      :: OPTDUST(LLPAR,NDUST)
-      REAL(fp)      :: OPTAER(LLPAR,A_)
+      REAL(fp)      :: O3_CTM(State_Grid%NZ+1)
+      REAL(fp)      :: T_CTM(State_Grid%NZ+1), OPTD(State_Grid%NZ)
+      REAL(fp)      :: OPTDUST(State_Grid%NZ,NDUST)
+      REAL(fp)      :: OPTAER(State_Grid%NZ,A_)
 
       ! Local variables for cloud overlap (hyl, phs)
       INTEGER       :: NUMB, KK, I
-      INTEGER       :: INDIC(LLPAR+1)
-      INTEGER       :: INDGEN(LLPAR+1)! = (/ (i,i=1,LLPAR+1) /)
-      INTEGER       :: KBOT(LLPAR)
-      INTEGER       :: KTOP(LLPAR)
-      INTEGER       :: INDICATOR(LLPAR+2)
-      REAL(fp)      :: FMAX(LLPAR)     ! maximum cloud fraction 
+      INTEGER       :: INDIC(State_Grid%NZ+1)
+      INTEGER       :: INDGEN(State_Grid%NZ+1)! = (/ (i,i=1,State_Grid%NZ+1) /)
+      INTEGER       :: KBOT(State_Grid%NZ)
+      INTEGER       :: KTOP(State_Grid%NZ)
+      INTEGER       :: INDICATOR(State_Grid%NZ+2)
+      REAL(fp)      :: FMAX(State_Grid%NZ)     ! maximum cloud fraction 
                                        !  in a block, size can be to 
-                                       !  FIX(LLPAR)+1
-      REAL(fp)      :: CLDF1D(LLPAR)
-      REAL(fp)      :: ODNEW(LLPAR)
-      REAL(fp)      :: P_CTM(LLPAR+2)
+                                       !  FIX(State_Grid%NZ)+1
+      REAL(fp)      :: CLDF1D(State_Grid%NZ)
+      REAL(fp)      :: ODNEW(State_Grid%NZ)
+      REAL(fp)      :: P_CTM(State_Grid%NZ+2)
 
       LOGICAL       :: AOD999
 
@@ -318,8 +319,8 @@
 
 #if defined( USE_MAXIMUM_RANDOM_OVERLAP )
          ! Special setup only for max random overlap
-         DO i = 1,LLPAR+1
-            INDGEN(i) = i       !(/(i,i=1,LLPAR+1)/)
+         DO i = 1,State_Grid%NZ+1
+            INDGEN(i) = i       !(/(i,i=1,State_Grid%NZ+1)/)
          ENDDO
 #endif
          
@@ -347,30 +348,31 @@
 !$OMP+SCHEDULE( DYNAMIC )
 
       ! Loop over latitudes
-      DO NLAT = 1, JJPAR
+      DO NLAT = 1, State_Grid%NY
 
          ! Loop over longitudes
-         DO NLON = 1, IIPAR
+         DO NLON = 1, State_Grid%NX
 
             ! Grid box latitude [degrees]
-            YLAT            = GET_YMID( NLON, NLAT, 1 )
+            YLAT            = State_Grid%YMid( NLON, NLAT, 1 )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA            = State_Met%SUNCOSmid(NLON,NLAT)
 
             ! Define the P array here
-            DO L = 1, LLPAR+1
+            DO L = 1, State_Grid%NZ+1
                P_CTM(L)     = State_Met%PEDGE( NLON, NLAT, L )
             ENDDO
 
             ! Top edge of P_CTM is top of atmosphere (bmy, 2/13/07)
-            P_CTM(LLPAR+2)  = 0e+0_fp
+            P_CTM(State_Grid%NZ+2)  = 0e+0_fp
 
             ! Temperature profile [K] at (NLON,NLAT)
-            T_CTM(1:LLPAR)  = State_Met%T(NLON,NLAT,1:LLPAR)
+            T_CTM(1:State_Grid%NZ)  = State_Met%T( NLON, NLAT,
+     &                                             1:State_Grid%NZ)
 
             ! Top of atmosphere
-            T_CTM(LLPAR+1)  = T_CTM(LLPAR)
+            T_CTM(State_Grid%NZ+1)  = T_CTM(State_Grid%NZ)
 
             ! Surface albedo [unitless] at (NLON,NLAT)
             SFCA            = State_Met%UVALBEDO(NLON,NLAT)
@@ -393,13 +395,13 @@
             !use IRHARR to map to correct OPTAER bin (DAR 08/13)
             OPTAER = 0.0e+0_fp
             DO N = 1, NAER
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
                OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
             DO N = 1, NDUST
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
               OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,IWV1000,N)
             ENDDO
             ENDDO
@@ -409,7 +411,7 @@
 !            OPTDUST         = ODMDUST(NLON,NLAT,:,IWV1000,:)
 
             ! Cloud OD profile [unitless] at (NLON,NLAT)
-            OPTD            = State_Met%OPTD(NLON,NLAT,1:LLPAR)
+            OPTD            = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
 
             !-----------------------------------------------------------
             !### If you want to exclude aerosol OD, mineral dust OD,
@@ -427,7 +429,7 @@
             !===========================================================
 
             ! Column cloud fraction (not less than zero)
-            CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
+            CLDF1D = State_Met%CLDF(NLON,NLAT,1:State_Grid%NZ)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
                
             ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
@@ -438,11 +440,12 @@
             OPTD = OPTD * CLDF1D
 
             ! Call FAST-JX routines to compute J-values
-            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
-     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
-     &                     OPTDUST,   OPTD,      NLON,   NLAT,
-     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                     am_I_Root, Input_Opt, State_Diag  )
+            CALL PHOTO_JX( CSZA,       SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,     O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,    OPTD,      NLON,   NLAT,
+     &                     YLAT,       DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root,  Input_Opt, State_Diag,
+     &                     State_Grid, State_Met )
 
 
 #elif defined( USE_APPROX_RANDOM_OVERLAP )
@@ -453,7 +456,7 @@
             !===========================================================
 
             ! Column cloud fraction (not less than zero)
-            CLDF1D = State_Met%CLDF(NLON,NLAT,1:LLPAR)
+            CLDF1D = State_Met%CLDF(NLON,NLAT,1:State_Grid%NZ)
             WHERE ( CLDF1D < 0e+0_fp ) CLDF1D = 0e+0_fp
 
             ! NOTE: For GEOS-FP and MERRA-2 met fields, the optical
@@ -464,11 +467,12 @@
             OPTD = OPTD * ( CLDF1D )**1.5e+0_fp
 
             ! Call FAST-JX routines to compute J-values
-            CALL PHOTO_JX( CSZA,      SFCA,      P_CTM,  T_CTM,
-     &                     O3_CTM,    O3_TOMS,   AOD999, OPTAER,
-     &                     OPTDUST,   OPTD,      NLON,   NLAT,
-     &                     YLAT,      DAY_OF_YR, MONTH,  DAY,
-     &                     am_I_Root, Input_Opt, State_Diag  )
+            CALL PHOTO_JX( CSZA,       SFCA,      P_CTM,  T_CTM,
+     &                     O3_CTM,     O3_TOMS,   AOD999, OPTAER,
+     &                     OPTDUST,    OPTD,      NLON,   NLAT,
+     &                     YLAT,       DAY_OF_YR, MONTH,  DAY,
+     &                     am_I_Root,  Input_Opt, State_Diag,
+     &                     State_Grid, State_Met )
 
 #elif defined( USE_MAXIMUM_RANDOM_OVERLAP )
             !===========================================================
@@ -511,7 +515,7 @@
 !               ! Initialize
 !               FMAX(:)   = 0d0  ! max cloud fraction in each cloud block
 !               ODNEW(:)  = 0d0  ! in-cloud optical depth
-!               CLDF1D    = State_Met%CLDF(1:LLPAR,NLON,NLAT)
+!               CLDF1D    = State_Met%CLDF(1:State_Grid%NZ,NLON,NLAT)
 !               INDICATOR = 0
 !
 !               ! set small negative CLDF or OPTD to zero. 
@@ -520,7 +524,7 @@
 !                  CLDF1D               = 0d0
 !                  OPTD                 = 0D0
 !               ELSEWHERE
-!                  INDICATOR(2:LLPAR+1) = 1
+!                  INDICATOR(2:State_Grid%NZ+1) = 1
 !               ENDWHERE
 !
 !               ! Prevent negative opt depth
@@ -530,7 +534,7 @@
 !               ! Generate cloud blocks & get their Bottom and Top levels
 !               !--------------------------------------------------------
 !               INDICATOR = CSHIFT(INDICATOR, 1) - INDICATOR
-!               INDIC     = INDICATOR(1:LLPAR+1)
+!               INDIC     = INDICATOR(1:State_Grid%NZ+1)
 !
 !               ! Number of cloud block
 !               NUMB      = COUNT( INDIC == 1 ) 
@@ -576,7 +580,7 @@
 !                     CALL MMRAN_16( NUMB,  NLON,  NLAT,      YLAT,   
 !     &                              DAY,   MONTH, DAY_OF_YR, CSZA,    
 !     &                              TEMP,  SFCA,  OPTDUST,   OPTAER, 
-!     &                              LLPAR, FMAX,  ODNEW,     KBOT,   
+!     &                              State_Grid%NZ, FMAX,  ODNEW,     KBOT,   
 !     &                              KTOP,  O3COL, am_I_Root )
 !
 !               END SELECT
@@ -1725,8 +1729,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_FJX( am_I_Root, Input_Opt, 
-     &                     State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_FJX( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1739,16 +1743,15 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_      
       USE State_Diag_Mod, ONLY : DgnState
-#if defined( MODEL_GEOS )
-      USE CMN_SIZE_MOD,   ONLY : IIPAR, JJPAR, LLPAR
-#endif
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1971,8 +1974,8 @@ c---check on overflow of arrays, cut off JXTRA at lower L if too many levels
 
 #if defined( MODEL_GEOS )
       ! Diagnostics arrays 
-      ALLOCATE(EXTRAL_NLEVS(IIPAR,JJPAR))
-      ALLOCATE(EXTRAL_NITER(IIPAR,JJPAR))
+      ALLOCATE(EXTRAL_NLEVS(State_Grid%NX,State_Grid%NY))
+      ALLOCATE(EXTRAL_NITER(State_Grid%NX,State_Grid%NY))
       EXTRAL_NLEVS(:,:) = 0.0
       EXTRAL_NITER(:,:) = 0.0
 #endif
@@ -3181,7 +3184,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
      &                     ODCLOUD_COL_IN, ILON,      ILAT,
      &                     YLAT,           DAY_OF_YR, MONTH,
      &                     DAY,            am_I_Root, Input_Opt,
-     &                     State_Diag )
+     &                     State_Diag,     State_Grid, State_Met )
 !
 ! !USES:
 !
@@ -3191,6 +3194,8 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 #endif
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3209,6 +3214,8 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
       LOGICAL,        INTENT(IN)                      :: AOD999
       LOGICAL,        INTENT(IN)                      :: am_I_Root
       TYPE(OptInput), INTENT(IN)                      :: Input_Opt
+      TYPE(GrdState), INTENT(IN)                      :: State_Grid
+      TYPE(MetState), INTENT(IN)                      :: State_Met
 !                                                    
 ! !INPUT/OUTPUT PARAMETERS:                          
 !                                                    
@@ -3230,7 +3237,7 @@ c---Zero / Set index arrays that map Jvalue(j) onto rates
 !
 c-----------------------------------------------------------------------
 c---key LOCAL atmospheric data needed to solve plane-parallel J----
-c-----these are dimensioned JXL_, and must have JXL_ .ge. LLPAR
+c-----these are dimensioned JXL_, and must have JXL_ .ge. State_Grid%NZ
       real(fp), dimension(JXL1_)      :: DDJ,OOJ
       real(fp), dimension(JXL1_+1)    :: PPJ,ZZJ
       integer,dimension(JXL2_+1)      :: JXTRA
@@ -3285,7 +3292,7 @@ C-----------------------------------------------------------------------
       ! PHOTO_JX begins here!
       !=================================================================
 
-      if (LLPAR+1 .gt. JXL1_) then
+      if (State_Grid%NZ+1 .gt. JXL1_) then
         call EXITC(' PHOTO_JX: not enough levels in JX')
       endif
 
@@ -3326,7 +3333,7 @@ c                        or         99.0                 80 km
      &               ODMDUST_COL, ODAER_COL, O3_COL,
      &               O3_TOMS,     AERX_COL,  T_CLIM,
      &               OOJ,         ZZJ,       DDJ,
-     &               Input_Opt )
+     &               Input_Opt,   State_Grid )
 
       ! Fill out PPJ and TTJ with CTM data to replace fixed climatology
       DO L=1,L1_
@@ -3547,7 +3554,7 @@ c---values at L1_=L_+1 are a pseudo/climatol layer above the top CTM layer (L_)
       enddo
 C-----------------------------------------------------------------------
       call OPMIE (DTAUX,POMEGAX,U0,RFL,AMF2,JXTRA,
-     &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,LLPAR)
+     &        AVGF,FJTOP,FJBOT,FSBOT,FJFLX,FLXD,FLXD0,State_Grid%NZ)
 
 !C-----------------------------------------------------------------------
 
@@ -3560,27 +3567,29 @@ C-----------------------------------------------------------------------
       enddo
 
       ! Calculate photolysis rates
-      call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,LLCHEM,NJX)
+      call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,State_Grid%NZ,NJX)
 
-      ! Fill out common-block array of J-rates
-      DO L=1,LLCHEM
-         DO J=1,NRATJ
-            IF (JIND(J).gt.0) THEN
-               ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
-            ELSE
-               ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
-            ENDIF
-         ENDDO
-      ENDDO
-      
-      ! Set J-rates outside the chemgrid to zero
-      IF (LLCHEM.lt.L_) THEN
-         DO L=LLCHEM+1,L_
+      DO L=1,State_Grid%NZ
+         IF ( State_Met%InChemGrid(ILON,ILAT,L) ) THEN
+
+            ! Fill out common-block array of J-rates
+            DO J=1,NRATJ
+               IF (JIND(J).gt.0) THEN
+                  ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
+               ELSE
+                  ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
+               ENDIF
+            ENDDO
+
+         ELSE
+
+            ! Set J-rates outside the chemgrid to zero
             DO J=1,NRATJ
                ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
             ENDDO
-         ENDDO
-      ENDIF
+
+         ENDIF
+      ENDDO
 
 #if defined( BPCH_DIAG )
       !=================================================================
@@ -4562,12 +4571,13 @@ C---Always does PL(2) = P[1]
       SUBROUTINE SET_PROF (YLAT,     MONTH,  DAY,     T_CTM,  P_CTM,
      &                     CLDOD,    DSTOD,  AEROD,   O3_CTM, O3_TOMS,
      &                     AERCOL,   T_CLIM, O3_CLIM, Z_CLIM, AIR_CLIM,
-     &                     Input_Opt )
+     &                     Input_Opt, State_Grid )
 !
 ! !USES:
 !
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW, AVO, g0, BOLTZ
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -4582,6 +4592,7 @@ C---Always does PL(2) = P[1]
       REAL(fp), INTENT(IN)       :: AEROD(L_,A_)      ! Aerosol OD
       REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
       TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
+      TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -4818,7 +4829,8 @@ C---Always does PL(2) = P[1]
 
          ! Use online O3 values in the chemistry grid if selected
          IF ( (USE_ONLINE_O3) .and. 
-     &        (I.le.LLCHEM)   .and. (O3_CTM(I) > 0e+0_fp) ) THEN
+     &        (I <= State_Grid%MaxChemLev) .and.
+     &        (O3_CTM(I) > 0e+0_fp) ) THEN
 
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))

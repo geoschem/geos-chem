@@ -1345,18 +1345,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Print_Global_Species_Kg( State_Chm, State_Met, LOC )
+      SUBROUTINE Print_Global_Species_Kg( State_Chm, State_Grid,
+     &                                    State_Met, LOC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       CHARACTER(LEN=*), INTENT(IN)    :: LOC
       TYPE(ChmState),   INTENT(IN)    :: State_Chm 
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid
       TYPE(MetState),   INTENT(IN)    :: State_Met 
 ! 
 ! !REMARKS:
@@ -1382,8 +1385,10 @@
       REAL(fp)           :: SpcTotal(nSums)
 
       ! Arrays
-      REAL(fp)           :: Species_Kg    (IIPAR,JJPAR,LLPAR      )
-      REAL(fp)           :: Sum_Species_Kg(IIPAR,JJPAR,LLPAR,nSums)
+      REAL(fp)           :: Species_Kg    (State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ)
+      REAL(fp)           :: Sum_Species_Kg(State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ,nSums)
 
       ! Strings
       CHARACTER(LEN=12)  :: SpcName
@@ -1412,9 +1417,9 @@
       DO N = 1, nSpecies
 
          ! Compute sum at each grid box
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             Sum_Species_Kg(I,J,L,N) = Sum_Species_Kg(I,J,L,N)
      &                              + ( State_Chm%Species(I,J,L,N)
      &                              *   State_Met%AD     (I,J,L)   ) 

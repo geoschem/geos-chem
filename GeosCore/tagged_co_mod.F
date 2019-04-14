@@ -164,8 +164,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_TAGGED_CO( am_I_Root, Input_Opt,  State_Met,
-     &                           State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_TAGGED_CO( am_I_Root,  Input_Opt,  State_Chm,
+     &                           State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -176,7 +176,6 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : CHECK_VALUE
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE HCO_Error_Mod
       USE HCO_Interface_Mod,  ONLY : HcoState, GetHcoID
@@ -184,6 +183,7 @@
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM,     GET_TS_EMIS
       USE TIME_MOD,           ONLY : GET_MONTH,       GET_YEAR
@@ -193,6 +193,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -401,7 +402,7 @@
 
       ! Compute diurnal cycle for OH every day (check for new day inside
       ! subroutine) - jaf 7/10/14
-      CALL CALC_DIURNAL()
+      CALL CALC_DIURNAL( State_Grid )
 
       ! Check HEMCO state object
       IF ( .NOT. ASSOCIATED(HcoState) ) THEN
@@ -586,12 +587,12 @@
 !$OMP+PRIVATE( KCO2,    OH_MOLEC_CM3, FAC_DIURNAL, SUNCOS,     ERR_LOC ) 
 !$OMP+PRIVATE( PCO_CH4_MCM3S,         PCO_NMVOC_MCM3S,         CO_NMVOC)
 !$OMP+PRIVATE( ERR_VAR, ERR_MSG,      BOXVL                            )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          
          ! Latitude of grid box
-         YMID     = GET_YMID( I, J, L )
+         YMID     = State_Grid%YMid( I, J, L )
 
          ! Grid box volume [cm3]
          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1305,15 +1306,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_DIURNAL
+      SUBROUTINE CALC_DIURNAL( State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_YMID_R
+      USE State_Grid_Mod, ONLY : GrdState
       USE TIME_MOD, ONLY : ITS_A_NEW_DAY
       USE TIME_MOD, ONLY : GET_MINUTE,    GET_SECOND,      GET_HOUR
       USE TIME_MOD, ONLY : GET_TS_CHEM,   GET_DAY_OF_YEAR, GET_LOCALTIME
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  12 Mar 2014 - J. Fisher   - Copied from OHNO3TIME in carbon_mod and
@@ -1385,17 +1390,17 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR, SUNTMP_MID )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Zero SUNTMP_MID
                SUNTMP_MID = 0d0
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R( I, J, 1 )
 
                ! Local time at box (I,J) [hours]
-               TIMLOC = GET_LOCALTIME( I, J, 1, GMT=GMT_MID )
+               TIMLOC = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID)
 
                ! Hour angle at box (I,J) [radians]
                AHR = ABS( TIMLOC - 12d0 ) * 15d00 * PI_180
@@ -1534,7 +1539,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TAGGED_CO( am_I_Root, Input_Opt, State_Diag, RC )
+      SUBROUTINE INIT_TAGGED_CO( am_I_Root,  Input_Opt, State_Diag,
+     &                           State_Grid, RC )
 !
 ! !USES:
 !
@@ -1542,12 +1548,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostic state object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1593,31 +1601,31 @@
      &     ' -> at Init_Tagged_CO (in module GeosCore/tagged_co_mod.F)'
 
       ! Allocate SUMISOPCO -- array for CO from isoprene
-      ALLOCATE( SUMISOPCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMISOPCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMISOPCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMISOPCO = 0.0_fp 
 
       ! Allocate SUMMONOCO -- array for CO from monoterpenes
-      ALLOCATE( SUMMONOCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMMONOCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMMONOCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMMONOCO = 0.0_fp 
 
       ! Allocate SUMCH3OH -- array for CO from CH3OH
-      ALLOCATE( SUMCH3OHCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMCH3OHCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMCH3OHCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMCH3OHCO = 0.0_fp 
 
       ! Allocate SUMACETCO -- array for CO from isoprene
-      ALLOCATE( SUMACETCO( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SUMACETCO( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:SUMACETCO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SUMACETCO = 0.0_fp 
 
       ! Allocate TCOSZ -- array for sum of COS(SZA)
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'tagged_co_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp

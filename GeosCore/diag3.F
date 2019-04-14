@@ -11,7 +11,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      SUBROUTINE DIAG3( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                  State_Met, RC )
 !
 ! !USES:
 !
@@ -24,15 +25,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AVO     ! Avogadro's #
       USE PRECISION_MOD                      ! For GEOS-Chem Precision (fp)
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
 
       ! Modules from GeosUtil directory
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD                           
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET, GET_XOFFSET
       USE TIME_MOD
 
       ! Modules from GeosCore directory
@@ -69,6 +69,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -294,7 +295,7 @@
       INTEGER            :: NN1    ! TOMAS tracers
       INTEGER            :: NBIN   ! TOMAS bin counter (win, 1/25/10)
 
-      REAL(fp)           :: SCALE_TMP(IIPAR,JJPAR)
+      REAL(fp)           :: SCALE_TMP(State_Grid%NX,State_Grid%NY)
       REAL(fp)           :: SCALE_A1,   SCALE_A3  
       REAL(fp)           :: SCALED,     SCALEDYN
       REAL(fp)           :: SCALECONV,  SCALESRCE,  SCALECHEM  
@@ -307,7 +308,8 @@
       
       ! For binary punch file, version 2.0
       CHARACTER (LEN=40) :: CATEGORY 
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR+1)
+      REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                            State_Grid%NX+1)
       REAL(f4)           :: LONRES, LATRES
       INTEGER            :: IFIRST, JFIRST, LFIRST
       INTEGER            :: HALFPOLAR
@@ -322,7 +324,7 @@
       CHARACTER(LEN=2)   :: ISTR2
 
       ! For ND60 TOMAS diagnostic, avoids an array temporary (bmy, 1/28/14)
-      REAL(f4)           :: ARR2D(JJPAR,LLPAR)
+      REAL(f4)           :: ARR2D(State_Grid%NY,State_Grid%NZ)
 #endif
 
       ! Pointers
@@ -511,18 +513,18 @@
 !  Setup for binary punch file:
 !
 !  IFIRST, JFIRST, LFIRST = I, J, L indices of the starting grid box 
-!  LONRES                 = DISIZE, cast to REAL*4
-!  LATRES                 = DJSIZE, cast to REAL*4
+!  LONRES                 = State_Grid%DX, cast to REAL*4
+!  LATRES                 = State_Grid%DY, cast to REAL*4
 !******************************************************************************
 !
-      IFIRST = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
+      IFIRST = State_Grid%XMinOffset + 1
+      JFIRST = State_Grid%YMinOffset + 1
       LFIRST = 1
-      LONRES = DISIZE
-      LATRES = DJSIZE
+      LONRES = State_Grid%DX
+      LATRES = State_Grid%DY
 
       ! Get the proper model name and HALFPOLAR setting for the bpch file
-      MODELNAME = GET_MODELNAME()
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
 
       ! HEMCO interface: get pointer to HcoState object (of hcoi_gc_main_mod.F90)
@@ -583,7 +585,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, id_Pb,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD01, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
          ENDIF
 
@@ -627,7 +629,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD02,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD02, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD02) )
          ENDDO
       ENDIF
@@ -637,14 +639,15 @@
 !******************************************************************************
 !
       IF ( ND03 > 0 ) THEN
-         CALL WRITE_DIAG03( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL WRITE_DIAG03( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, RC )
       ENDIF
 !
 !******************************************************************************
 !  ND04: Diagnostics from CO2 simulation (pns, bmy, 7/26/05)
 !******************************************************************************
 !
-      IF ( ND04 > 0 ) CALL WRITE_DIAG04
+      IF ( ND04 > 0 ) CALL WRITE_DIAG04( Input_Opt, State_Grid )
 !
 !******************************************************************************
 !  ND05: Production/Loss for coupled fullchem/aerosol runs (NSRCX==3) or
@@ -689,7 +692,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD05,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD05, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD05) )
          ENDDO
       ENDIF
@@ -833,7 +836,7 @@
                   CASE ( 1 ) 
                      CATEGORY = TRIM(SpcName)//'-ANTH'
                      SRCNAME  = 'ANTHRO'
-                     Levs     = LLPAR
+                     Levs     = State_Grid%NZ
                   CASE ( 2 ) 
                      CATEGORY = TRIM(SpcName)//'-BIOF'
                      SRCNAME  = 'BIOFUEL'
@@ -875,7 +878,7 @@
      &                            * HcoState%Grid%AREA_M2%Val(:,:)
                   ELSE
                      ! Anthro emissions are 3D
-                     DO L = 1, LLPAR
+                     DO L = 1, State_Grid%NZ
                         ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L)
      &                               * FACTOR
      &                               * HcoState%Grid%AREA_M2%Val(:,:)
@@ -921,7 +924,7 @@
      &                            * HcoState%Grid%AREA_M2%Val(:,:) )
                   ELSE
                      ! Anthro emissions are 3D
-                     DO L = 1, LLPAR
+                     DO L = 1, State_Grid%NZ
                         ARRAY(:,:,L) = ARRAY(:,:,L) 
      &                               + ( DiagnCnt%Arr3D%Val(:,:,L)
      &                               *   FACTOR 
@@ -938,7 +941,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, N,
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     Levs,     IFIRST,     
+     &                     State_Grid%NX, State_Grid%NY, Levs, IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:Levs) )
       
                ! Free pointer
@@ -961,7 +964,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &               IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD07, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
 
 
@@ -993,7 +996,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD07,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD07, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
          ENDIF
 
@@ -1117,7 +1120,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
             ENDIF
 
@@ -1220,7 +1223,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
             ENDIF
 
@@ -1310,7 +1313,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     1,        IFIRST,     
+     &                     State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
             ENDIF
          
@@ -1355,7 +1358,7 @@
                   CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                        HALFPOLAR, CENTER180, CATEGORY, NN,
      &                        UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                        IIPAR,     JJPAR,     LD07,     IFIRST,
+     &                        State_Grid%NX, State_Grid%NY, LD07,IFIRST,
      &                        JFIRST,    LFIRST,    ARRAY(:,:,1:LD07) )
                ENDIF ! NN
 
@@ -1459,7 +1462,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     LD09,     IFIRST,
+     &                     State_Grid%NX, State_Grid%NY, LD09, IFIRST,
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD09) )
 
             ELSE 
@@ -1485,7 +1488,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                     IIPAR,     JJPAR,     1,        IFIRST,
+     &                     State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1) )
             ENDIF
          ENDDO
@@ -1559,7 +1562,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLCHEM,   IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
       ENDIF
 !
@@ -1611,7 +1614,7 @@
          CATEGORY = 'SO2-AC-$'
          FACTOR   = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Anthro SO2 %%%%%
@@ -1619,7 +1622,7 @@
          CATEGORY  = 'SO2-AN-$'
          FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1643,7 +1646,7 @@
          CATEGORY  = 'SO2-EV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Volcano SO2 (degassing) %%%%%
@@ -1651,7 +1654,7 @@
          CATEGORY  = 'SO2-NV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Ship SO2 %%%%%
@@ -1671,7 +1674,7 @@
          CATEGORY  = 'SO4-AN-$'
          FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO4, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
@@ -1692,7 +1695,7 @@
          CATEGORY  = 'NH3-ANTH'
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, LLPAR, .FALSE., FACTOR, RC )
+     &                   UNIT, id_NH3, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
@@ -1746,7 +1749,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD14,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD14, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD14) )
          ENDDO
       ENDIF
@@ -1776,7 +1779,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD15,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD15, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD15) )
          ENDDO
       ENDIF
@@ -1806,7 +1809,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD16,     IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD16, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD16) )
 
       ENDIF
@@ -1854,7 +1857,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD17,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD17, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD17) )
          ENDDO
       ENDIF
@@ -1902,7 +1905,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD18,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD18, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD18) )
          ENDDO
       ENDIF
@@ -1931,7 +1934,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD19,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD19, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD19) )
 
          ENDDO
@@ -2096,7 +2099,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD21,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD21, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD21) )
            ENDIF
          ENDDO    
@@ -2179,7 +2182,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD22,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD22, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD22) )
 
          ENDDO 
@@ -2208,13 +2211,14 @@
             IF ( N > nAdvect ) CYCLE
             NN = N
             
-            ARRAY(:,:,1:LD24) = MASSFLEW(:,:,LLPAR:LLPAR-LD24+1:-1,N) /
-     &                          SCALEDYN
+            ARRAY(:,:,1:LD24) =
+     &        MASSFLEW(:,:,State_Grid%NZ:State_Grid%NZ-LD24+1:-1,N) /
+     &         SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD24,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD24, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD24) )
          ENDDO
       ENDIF
@@ -2241,13 +2245,14 @@
             IF ( N > nAdvect ) CYCLE
             NN = N
 
-            ARRAY(:,:,1:LD25) = MASSFLNS(:,:,LLPAR:LLPAR-LD25+1:-1,N) /
-     &                          SCALEDYN
+            ARRAY(:,:,1:LD25) =
+     &         MASSFLNS(:,:,State_Grid%NZ:State_Grid%NZ-LD25+1:-1,N) /
+     &         SCALEDYN
 
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD25,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD25, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD25) )
          ENDDO
       ENDIF
@@ -2274,13 +2279,14 @@
             IF ( N > nAdvect ) CYCLE
             NN = N
             
-            ARRAY(:,:,1:LD26) = MASSFLUP(:,:,LLPAR:LLPAR-LD26+1:-1,N) /
-     &                          SCALEDYN
+            ARRAY(:,:,1:LD26) =
+     &         MASSFLUP(:,:,State_Grid%NZ:State_Grid%NZ-LD26+1:-1,N) /
+     &         SCALEDYN
                
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES, 
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD26,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD26, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD26) )
          ENDDO
       ENDIF
@@ -2573,7 +2579,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       
          ! Free pointer
@@ -2654,7 +2660,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          
             ! Free pointer
@@ -2799,7 +2805,7 @@
             SELECT CASE ( N )
                CASE( 1 )
                   DiagnName = 'ANTHROPOGENIC_CO'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 2 )
                   DiagnName = 'BIOMASS_CO'
                CASE( 3 )
@@ -2814,40 +2820,40 @@
                ! Tagged CO: Anthro sectors, USA
                CASE( 7 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_US'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 8 ) 
                   DiagnName = 'AIRCRAFT_TAGCO_US'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 9 )
                   DiagnName = 'SHIP_TAGCO_US'
 
                ! Tagged CO: Anthro sectors, Europe
                CASE( 10 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_EUR'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 11 )
                   DiagnName = 'AIRCRAFT_TAGCO_EUR'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 12 )
                   DiagnName = 'SHIP_TAGCO_EUR'
 
                ! Tagged CO: Anthro sectors, Asia
                CASE( 13 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_ASIA'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 14 )
                   DiagnName = 'AIRCRAFT_TAGCO_ASIA'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 15 ) 
                   DiagnName = 'SHIP_TAGCO_ASIA'
 
                ! Tagged CO: Anthro sectors, rest of world
                CASE( 16 )
                   DiagnName = 'ANTHRO_BIOFUEL_TAGCO_OTHER'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 17 )
                   DiagnName = 'AIRCRAFT_TAGCO_OTHER'
-                  Levs      = LLPAR
+                  Levs      = State_Grid%NZ
                CASE( 18 )
                   DiagnName = 'SHIP_TAGCO_OTHER'
 
@@ -2901,7 +2907,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDIF
 !
@@ -2931,7 +2937,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD31,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD31, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD31) )
       ENDIF
 
@@ -2941,7 +2947,7 @@
 !
 !  Levels        : Field                  : Units       : Scale Factor
 !  -------------------------------------------------------------------------
-!  1 - LLCHEM    : Aircraft NOx           : molec/cm2/s : SCALESRCE
+!  1 - NZ        : Aircraft NOx           : molec/cm2/s : SCALESRCE
 !  1 - ?         : Anthropogenic NOx      : molec/cm2/s : SCALESRCE
 !  Surface       : Biomass Burning NOx    : molec/cm2/s : SCALESRCE
 !  Surface       : Biofuel Burning NOx    : molec/cm2/s : SCALESRCE
@@ -2958,7 +2964,7 @@
 !  (2) ND32 now uses allocatable arrays instead of AIJ. (bmy 3/16/00)
 !  (3) Added biofuel burning to ND32 diagnostic (bmy, 9/12/00)
 !  (4) Replaced NOx emissions with NO emissions (mpayer, 3/14/13)
-!  (5) Aircraft NOx emissions now extend to LLPAR for AEIC inventory
+!  (5) Aircraft NOx emissions now extend to State_Grid%NZ for AEIC inventory
 !       (mpayer, 7/31/13)
 !  (6) ND32 is now tracked by HEMCO (bmy, 8/15/14)
 !******************************************************************************
@@ -2981,7 +2987,7 @@
          DiagnName = 'AIRCRAFT_NO' 
          CATEGORY  = 'NO-AC-$'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT, N, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Anthropogenic NO %%%%%
@@ -3006,7 +3012,7 @@
 
          ! Save into ARRAY. Convert to units
          IF ( FLAG == HCO_SUCCESS ) THEN
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                ARRAY(:,:,L) = DiagnCnt%Arr3D%Val(:,:,L) * FACTOR 
             ENDDO
          ELSE
@@ -3043,8 +3049,9 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LLPAR,    IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LLPAR) )
+     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &               IFIRST,        JFIRST,        LFIRST,
+     &               ARRAY(:,:,1:State_Grid%NZ) )
 
          ! Free pointer
          DiagnCnt => NULL()
@@ -3074,7 +3081,7 @@
          DiagnName = 'LIGHTNING_NO'
          CATEGORY  = 'NO-LI-$'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                   UNIT,      N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                   UNIT, N, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
                
          !%%%%% Soil NO %%%%%
@@ -3117,7 +3124,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,     
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
@@ -3393,7 +3400,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF  
@@ -3659,7 +3666,8 @@
             IF ( N > 0 ) THEN
                ! kg/m2/s to molec/cm2/s 
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, N, 1, LLPAR, .TRUE., FACTOR, RC )
+     &                         UNIT, N, 1, State_Grid%NZ, .TRUE., FACTOR,
+     &                         RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
 
@@ -3705,7 +3713,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD37,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD37, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD37) )
          ENDDO
       ENDIF
@@ -3750,7 +3758,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD38,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD38, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD38) )
          ENDDO
 
@@ -3794,7 +3802,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD39,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD39, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD39) )
          ENDDO
 
@@ -3804,13 +3812,13 @@
 !  ND41: Afternoon boundary layer heights
 !******************************************************************************
 !
-      IF ( ND41 > 0 ) CALL WRITE_DIAG41
+      IF ( ND41 > 0 ) CALL WRITE_DIAG41( State_Grid )
 !
 !******************************************************************************
 !  ND42: SOA concentrations [ug/m3]
 !******************************************************************************
 !
-      IF ( ND42 > 0 ) CALL WRITE_DIAG42( Input_Opt )
+      IF ( ND42 > 0 ) CALL WRITE_DIAG42( Input_Opt, State_Grid )
 !
 !******************************************************************************
 !  ND42: Free diagnostic as of 11/24/99
@@ -3885,7 +3893,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD43,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD43, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
          ENDDO
 
@@ -3934,7 +3942,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                     HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                     UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                     IIPAR,     JJPAR,     LD43,     IFIRST,     
+     &                     State_Grid%NX, State_Grid%NY, LD43, IFIRST,     
      &                     JFIRST,    LFIRST,    ARRAY(:,:,1:LD43) )
             ENDDO
 
@@ -4059,13 +4067,13 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN1,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 #else
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 #endif
 
@@ -4108,7 +4116,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
          ENDDO
@@ -4148,7 +4156,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD45,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD45, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
          ENDDO
@@ -4293,7 +4301,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
@@ -4692,7 +4700,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
@@ -4791,7 +4799,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD47,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD47, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD47) )
 
          ENDDO
@@ -4826,7 +4834,7 @@
             CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
      &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,      JJPAR,     LD52,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD52, IFIRST,
      &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD52) )
          ENDDO
 
@@ -4964,7 +4972,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, N,
      &                  UNIT ,     DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
@@ -5150,7 +5158,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ! Write the remaining ND53 diagnostics 
-         CALL WRITE_DIAG53
+         CALL WRITE_DIAG53( State_Grid )
 
       ENDIF
 !
@@ -5173,7 +5181,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD54,     IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD54, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD54) )
       ENDIF
 !
@@ -5210,7 +5218,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     1,        IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
@@ -5281,7 +5289,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, NN,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD57,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD57, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD57) )
       ENDIF
 #if   defined( TOMAS )
@@ -5320,7 +5328,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5339,7 +5347,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5358,7 +5366,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5377,7 +5385,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5396,7 +5404,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5415,7 +5423,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5434,7 +5442,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5453,7 +5461,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,
      &                  UNIT,      DIAGb,     DIAGe,     RESERVED,   
-     &                  IIPAR,     JJPAR,     2,         IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 2, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:2) )
      
          ENDDO
@@ -5505,7 +5513,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
@@ -5534,7 +5542,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
@@ -5563,7 +5571,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
@@ -5592,7 +5600,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
@@ -5621,7 +5629,7 @@
              CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
           ENDDO
 
@@ -5650,7 +5658,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  1,         JJPAR,     LD60,     IFIRST,
+     &                  1,         State_Grid%NY,     LD60,     IFIRST,
      &                  JFIRST,    LFIRST,    ARR2D(:,1:LD60)  )
          ENDDO
 
@@ -5690,7 +5698,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,     JJPAR,     LD61,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD61, IFIRST,
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD61)  )
          ENDDO
       ENDIF
@@ -5735,11 +5743,11 @@
             ! NOTE: Assumes 1:1 mapping of tracer and species indexes
             SpcInfo => State_Chm%SpcData(N)%Info
 
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Grid box surface area [cm2]
-               AREA_M2 = GET_AREA_M2( I, J, 1 )
+               AREA_M2 = State_Grid%Area_M2( I, J, 1 )
                ARRAY(I,J,1) = ( SUM( Spc(I,J,:,N)   *
      &                               AD (I,J,:  ) ) * AVO    )
      &                        / ( SpcInfo%emMW_g
@@ -5757,7 +5765,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
 
             ! Free pointer
@@ -5801,7 +5809,7 @@
                 CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                      HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                      UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                      IIPAR,     JJPAR,     LD64,     IFIRST,     
+     &                      State_Grid%NX, State_Grid%NY, LD64, IFIRST,     
      &                      JFIRST,    LFIRST,    ARRAY(:,:,1:LD64) )
             ENDDO
          ENDDO
@@ -5867,7 +5875,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD65,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD65, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD65) )
          ENDDO       
       ENDIF
@@ -5943,7 +5951,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD66,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD66, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD66) )
          ENDDO
       ENDIF
@@ -6073,7 +6081,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
@@ -6114,7 +6122,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD68,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD68, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD68) )
          ENDDO
       ENDIF
@@ -6139,7 +6147,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,    
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &               JFIRST,    LFIRST,    AD69(:,:,1) )
 
          ! Set ND69 = 0 so we won't print it out again
@@ -6196,7 +6204,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, NN,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     1,        IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1) )
          ENDDO
       ENDIF
@@ -6277,13 +6285,13 @@
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              !for other outputs check species has been selected
              ELSE IF (IS.GE.2) THEN
               IF (LSPECRADMENU(IS-1).EQ.1) THEN
-               DO I=1,IIPAR
-                DO J=1,JJPAR
+               DO I=1,State_Grid%NX
+                DO J=1,State_Grid%NY
                  !store as difference in flux from baseline
                  ARRAY(I,J,1) = (AD72(I,J,(N-1)*NSPECOUT+1) - 
      &                           AD72(I,J,NN))/SCALEX
@@ -6293,7 +6301,7 @@
                CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
               ENDIF
              ENDIF
@@ -6307,7 +6315,7 @@
               CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                   HALFPOLAR, CENTER180, CATEGORY, NN,
      &                   UNIT,      DIAGb,     DIAGe,    RESERVED,
-     &                   IIPAR,     JJPAR,     1,        IFIRST,
+     &                   State_Grid%NX, State_Grid%NY, 1, IFIRST,
      &                   JFIRST,    LFIRST,    ARRAY(:,:,1) )
              ENDIF
             ENDIF !flux vs optics check
@@ -6352,7 +6360,7 @@
             CALL BPCH2( IU_BPCH,    MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR,  CENTER180, CATEGORY, NN,
      &                  UNIT,       DIAGb,     DIAGe,    RESERVED,
-     &                  IIPAR,      JJPAR,     LD73,     IFIRST,
+     &                  State_Grid%NX, State_Grid%NY, LD73, IFIRST,
      &                  JFIRST,     LFIRST,    ARRAY(:,:,1:LD73) )
          ENDDO
       ENDIF
@@ -6513,7 +6521,7 @@
       CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &            HALFPOLAR, CENTER180, bCat,     bN,
      &            bUnit,     DIAGb,     DIAGe,    RESERVED,   
-     &            IIPAR,     JJPAR,     LEVS,     IFIRST,     
+     &            State_Grid%NX, State_Grid%NY, LEVS,     IFIRST,     
      &            JFIRST,    LFIRST,    ARRAY(:,:,1:levs) )
 
       ! Return w/ success

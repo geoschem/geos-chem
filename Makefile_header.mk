@@ -208,6 +208,8 @@
 #                              models driving GEOS-Chem externally (by calling
 #                              its libraries)
 #  28 Aug 2018 - M. Sulprizio- Export EXE_NEEDED to be used in GeosCore/Makefile
+#  06 Jan 2019 - M. Sulprizio- Remove Met, Grid, and Nest options. They are now
+#                              specified in input.geos as part of FlexGrid
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -226,15 +228,6 @@ ERR_CMPLR            :="Unknown Fortran compiler!  Must be one of ifort, gfortra
 
 # Error message for unknown compiler/OS combintation
 ERR_OSCOMP           :="Makefile_header.mk not set up for this compiler/OS combination"
-
-# Error message for bad MET input
-ERR_MET              :="Select a met field: MET=geosfp, MET=merra2"
-
-# Error message for bad GRID input
-ERR_GRID             :="Select a horizontal grid: GRID=4x5. GRID=2x25, GRID=05x0625, GRID=025x03125"
-
-# Error message for bad NEST input
-ERR_NEST             :="Select a nested grid: NEST=as, NEST=ch, NEST=eu, NEST=na, NEST=cu"
 
 # Error message for bad two-way coupled model input (yanyy,6/18/14)
 ERR_COUPLECH         :="Select a coupled grid for China/SE Asia: COUPLECH=2x25ch, COUPLECH=4x5ch"
@@ -587,192 +580,6 @@ ifeq ($(shell [[ "$(RRTMG)" =~ $(REGEXP) ]] && echo true),true)
   RRTMG_NEEDED       :=1
   USER_DEFS          += -DRRTMG
 endif
-
-#------------------------------------------------------------------------------
-# Met field settings
-#------------------------------------------------------------------------------
-
-# If the user has omitted MET, then throw an error UNLESS we are trying
-# to compile with "clean", "distclean", "realclean", "doc", "help",
-# "ncdfcheck", or "libnc".  These targets don't depend on the value of MET.
-ifndef MET
-  REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.)
-  ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ $(REGEXP) ]] && echo true),true)
-    NO_MET_NEEDED    :=1
-  else
-    $(error $(ERR_MET))
-  endif
-endif
-
-# We can skip the following checks for targets that don't require MET
-ifndef NO_MET_NEEDED 
-
-  # %%%%% MERRA-2 %%%%%
-  REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2|^[Mm][Ee][Rr][Rr][Aa].2)
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS      += -DMERRA2
-  endif
-
-  # %%%%% GEOS-FP %%%%%
-  REGEXP             :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGEOS_FP
-  endif
-
-  # %%%%% FLEXGRID %%%%%
-  REGEXP             :=(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
-  ifeq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DFLEXGRID
-  endif
-
-  # %%%%% REDUCED VERTICAL GRID (default, unless specified otherwise) %%%%
-  ifndef NO_REDUCED
-    NO_REDUCED       :=no
-  endif
-  REGEXP              :=(^[Nn]|^[Nn][Oo])
-  ifeq ($(shell [[ "$(NO_REDUCED)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRIDREDUCED
-  endif
-
-  # %%%%% ERROR CHECK!  Make sure our MET selection is valid! %%%%%
-  REGEXP             :=(\-DGEOS_FP|\-DMERRA2)
-  ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-    $(error $(ERR_MET))
-  endif
-
-endif  # NO_MET_NEEDED
-
-#------------------------------------------------------------------------------
-# Horizontal grid settings
-#------------------------------------------------------------------------------
-
-# We can skip the following checks for targets that don't require GRID
-
-# If the user has omitted GRID, then throw an error UNLESS we are trying
-# to compile with "clean", "distclean", "realclean", "doc", "help",
-# "ncdfcheck", or "libnc".  These targets don't depend on the value of GRID.
-ifndef NO_GRID_NEEDED
-  ifndef GRID
-    REGEXP :=($clean|^doc|^help|^libnc|^ncdfcheck|gigc_debug|the_nuclear_option|wipeout|wipeout.|baselib.|^wipeout)
-    ifeq ($(shell [[ $(MAKECMDGOALS) =~ $(REGEXP) ]] && echo true),true)
-      NO_GRID_NEEDED :=1
-    else
-      $(error $(ERR_GRID))
-    endif
-  endif
-endif
-
-# We can skip the following checks for targets that don't require GRID
-ifndef NO_GRID_NEEDED
-
-  # %%%%% 4 x 5 %%%%%
-  REGEXP             :=(^4.5|^4\.0.5\.0)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID4x5
-  endif
-
-  # %%%%% 2 x 2.5 %%%%%
-  REGEXP             :=(^2.25|^2.2\.5|^2\.0.2\.5)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DGRID2x25
-  endif
-
-  # %%%%% 0.5 x 0.625 %%%%%
-  REGEXP             :=(^05.0625|^0\.5.0\.625)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=merra2
-    REGEXP           :=(^[Mm][Ee][Rr][Rr][Aa]2)|(^[Mm][Ee][Rr][Rr][Aa].2)|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=05x0625, you can only use MET=merra2)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    # NOTE: For safety's sake: if a nested-grid option is selected then 
-    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DBPCH_TPBC -DGRID05x0625 
-    endif
-  endif
-
-  # %%%%% 0.25 x 0.3125 %%%%%
-  REGEXP             :=(^025.03125|^0\.25.0\.3125)
-  ifeq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-
-    # Ensure that MET=geosfp
-    REGEXP           :=(^[Gg][Ee][Oo][Ss][Ff][Pp])|(^[Gg][Ee][Oo][Ss].[Ff][Pp])|(^[Ff][Ll][Ee][Xx][Gg][Rr][Ii][Dd])
-    ifneq ($(shell [[ "$(MET)" =~ $(REGEXP) ]] && echo true),true)
-      $(error When GRID=025x03125, you can only use MET=geosfp)
-    endif
-
-    # Ensure that a nested-grid option is selected
-    # NOTE: For safety's sake: if a nested-grid option is selected then 
-    # define the BPCH_TPBC cpp switch even if BPCH_TPBC=n was passed.
-    ifndef NEST
-      $(error $(ERR_NEST))
-    else
-      NEST_NEEDED    :=1
-      USER_DEFS      += -DBPCH_TPBC -DGRID025x03125
-    endif
-  endif
-
-  # %%%%% ERROR CHECK!  Make sure our GRID selection is valid! %%%%%
-  REGEXP             := ((\-DGRID)?4x5|2x25|1x125|05x0666|05x0625|025x03125)
-  ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-    $(error $(ERR_GRID))
-  endif
-
-#------------------------------------------------------------------------------
-# Nested grid settings
-#------------------------------------------------------------------------------
-
-  # %%%%% China (CH) %%%%%
-  REGEXP             :=(^[Cc][Hh])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_CH
-  endif
-
-  # %%%%% Asia (AS) %%%%%
-  REGEXP             :=(^[Aa][Ss])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    # Ensure that GRID=05x0625
-    REGEXP           :=(^05.0625|^0\.5.0\.625)
-    ifneq ($(shell [[ "$(GRID)" =~ $(REGEXP) ]] && echo true),true)
-      $(error NEST=as can only be used with GRID=05x0625)
-    endif
-    USER_DEFS        += -DNESTED_AS
-  endif
-
-  # %%%%% Europe (EU) %%%%%
-  REGEXP             :=(^[Ee][Uu])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_EU
-  endif
-
-  # %%%%% North America (NA) %%%%%
-  REGEXP             :=(^[Nn][Aa])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_NA
-  endif
-
-  # %%%%% Custom (CU) %%%%%
-  REGEXP             :=(^[Cc][Uu])
-  ifeq ($(shell [[ "$(NEST)" =~ $(REGEXP) ]] && echo true),true)
-    USER_DEFS        += -DNESTED_CU
-  endif
-
-  # %%%%% ERROR CHECK!  Make sure our NEST selection is valid! %%%%%
-  ifdef NEST_NEEDED
-    REGEXP           :=((\-DNESTED_)?AS|CH|EU|NA|CU)
-    ifneq ($(shell [[ "$(USER_DEFS)" =~ $(REGEXP) ]] && echo true),true)
-      $(error $(ERR_NEST))
-    endif
-  endif
-
-endif  # NO_GRID_NEEDED
 
 #------------------------------------------------------------------------------
 # Coupled grid settings (yanyy,6/18/14)

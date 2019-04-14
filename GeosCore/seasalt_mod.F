@@ -159,8 +159,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSEASALT( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMSEASALT( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -170,13 +170,15 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -241,10 +243,9 @@
       ! Accumulation mode wet settling
       !=================================================================
       IF ( id_SALA > 0 ) THEN
-       CALL WET_SETTLING( am_I_Root,  Input_Opt,
-     &                    State_Met,  State_Chm,
-     &                    State_Diag, Spc(:,:,:,id_SALA),
-     &                    1,          RC                  )
+       CALL WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    Spc(:,:,:,id_SALA), 1,  RC )
 
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
@@ -255,10 +256,9 @@
       ! Coarse mode wet settling
       !=================================================================
       IF ( id_SALC > 0 ) THEN
-        CALL WET_SETTLING( am_I_Root,  Input_Opt,
-     &                     State_Met,  State_Chm,
-     &                     State_Diag, Spc(:,:,:,id_SALC),
-     &                     2,          RC                  )
+        CALL WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met,
+     &                     Spc(:,:,:,id_SALC), 2,  RC )
 
          IF ( prtDebug ) THEN 
             CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
@@ -272,8 +272,8 @@
 
          ! Chemistry for hydrophobic MOA
          IF ( id_MOPO > 0 ) THEN
-            CALL CHEM_MOPO( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+            CALL CHEM_MOPO( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
             ENDIF
@@ -281,8 +281,8 @@
 
          ! Chemistry for hydrophilic MOA
          IF ( id_MOPI > 0 ) THEN
-            CALL CHEM_MOPI( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+            CALL CHEM_MOPI( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
             ENDIF
@@ -308,9 +308,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WET_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                         State_Chm, State_Diag, TC, 
-     &                         N,         RC                     )
+      SUBROUTINE WET_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, State_Met,
+     &                         TC,         N,          RC )
 !
 ! !USES:
 !
@@ -322,11 +322,11 @@
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -336,13 +336,16 @@
                                                    ! 2=coarse mode
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! MeteorologyState
       TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-      REAL(fp),       INTENT(INOUT) :: TC(IIPAR,JJPAR,LLPAR) ! Sea salt [kg]
+      REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX, ! Sea salt [kg]
+     &                                    State_Grid%NY,
+     &                                    State_Grid%NZ)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -397,8 +400,8 @@
       ! replace RCM with RUM (radis in micron) jaegle 5/11/11
       REAL(fp)                 :: RUM,    RWET,  RATIO_R
       REAL(fp)                 :: TOT1,   TOT2,  DTCHEM
-      REAL(fp)                 :: VTS(LLPAR)  
-      REAL(fp)                 :: TC0(LLPAR)
+      REAL(fp)                 :: VTS(State_Grid%NZ)  
+      REAL(fp)                 :: TC0(State_Grid%NZ)
       ! New variables (jaegle 5/11/11)
       REAL(fp)                 :: SW
       REAL(fp)                 :: R0,       R1, NR, DEDGE, SALT_MASS
@@ -553,16 +556,16 @@
 !$OMP+PRIVATE( AREA_CM2, FLUX,  ID,    SALT_MASS_TOTAL, VTS_WEIGHT )
 !$OMP+PRIVATE( DMIDW,    RHO1,  WTP,   SALT_MASS,       ND         )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR       
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX       
 
          ! Initialize 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             VTS(L) = 0e+0_fp
          ENDDO
 
          ! Loop over levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Pressure at center of the level [kPa]
             P       = State_Met%PMID(I,J,L) * 0.1e+0_fp
@@ -706,17 +709,17 @@
          ! implicit and first order accurate in z (rjp, 1/24/02)
 
          ! Save initial tracer concentration in column
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             TC0(L) = TC(I,J,L)
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = LLCHEM
+         L    = State_Grid%MaxTropLev
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
-         DO L = LLCHEM-1, 1, -1
+         DO L = State_Grid%MaxTropLev-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
@@ -740,13 +743,13 @@
             TOT2 = 0e+0_fp
 
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -774,13 +777,13 @@
             TOT2 = 0e+0_fp
 
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -817,8 +820,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPO( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+      SUBROUTINE CHEM_MOPO( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -827,12 +830,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -897,9 +902,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initial OC [kg]
          TC0  = Spc(I,J,L,id_MOPO)
@@ -946,8 +951,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MOPI( am_I_Root, Input_Opt,
-     &                      State_Chm, State_Diag, RC )
+      SUBROUTINE CHEM_MOPI( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -956,12 +961,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root             ! Root CPU?
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -970,7 +977,7 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 ! 
@@ -1004,9 +1011,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TC0, CCV, CNEW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initial H-philic OC [kg]
          TC0 = Spc(I,J,L,id_MOPI)
@@ -1053,8 +1060,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SEASALT( am_I_Root, Input_Opt,
-     &                         State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_SEASALT( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -1066,6 +1073,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1073,6 +1081,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1137,7 +1146,8 @@
 
       ! Allocate OCCONV only for marine-POA simulations (bmy, 10/13/16)
       IF ( Input_Opt%LMPOA ) THEN
-         ALLOCATE( OCCONV( IIPAR, JJPAR, LLPAR ), STAT=AS )
+         ALLOCATE( OCCONV( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONV' )
          OCCONV = 0e+0_fp
       ENDIF
@@ -1235,7 +1245,6 @@
       USE DAO_MOD,            ONLY : IS_WATER
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
@@ -1252,8 +1261,8 @@
 !
       ! TC1 : Aerosol number tracer array [no.]
       ! TC2 (REAL(fp) ) : Sea salt tracer array [kg]
-      REAL(fp),  INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp),  INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
 ! 
 ! !AUTHOR:
 !  Contact: Win Trivitayanurak (win@cmu.edu)  
@@ -1345,22 +1354,21 @@
       !=================================================================
 
       ! Depending on the grid resolution. 4x5 (default) doesn't need adjusting coeff
-#if   defined( GRID4x5  )
-      COEF = 1.e+0_fp
-#elif defined( GRID2x25 )
-      COEF = 1.e+0_fp
-#else
-      CALL ERROR_STOP('Adjust seasalt emiss coeff for your model res.?',
-     &                'SRCSALT30: seasalt_mod.f')
-#endif
-
+      IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+         COEF = 1.e+0_fp
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+         COEF = 1.e+0_fp
+      ELSE
+         CALL ERROR_STOP('Adjust seasalt emiss coeff for grid res.?',
+     &                   'SRCSALT30: seasalt_mod.f')
+      ENDIF
 
       ! Emission timestep [s]
       DTEMIS = GET_TS_EMIS()
 
       ! Loop over grid cells
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
          A_M2  = GET_AREA_M2( I, J, 1 )
@@ -1405,7 +1413,7 @@
                DO L = 1, NTOP
 
                   ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-                  FEMIS = GET_FRAC_OF_PBL( I, J, L )
+                  FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Met )
 
                !================================================================
                ! Add sea-salt number to the tracer array

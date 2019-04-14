@@ -171,7 +171,7 @@ module TPCORE_WINDOW_MOD
 CONTAINS
 
 !-------------------------------------------------------------------------
- subroutine init_WINDOW(im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
+ subroutine init_WINDOW(State_Grid, im,jm,km,jfirst,jlast,ng, mg, dt, ae, clat)
 !-------------------------------------------------------------------------
 
 #if defined(SPMD)
@@ -183,6 +183,7 @@ CONTAINS
  use mod_comm, only : gid, y_decomp
 #endif
 #endif
+ USE State_Grid_Mod, ONLY : GrdState
 
  implicit none
 
@@ -190,6 +191,7 @@ CONTAINS
 ! Input
 !-------
 
+ TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
  integer, intent(in):: im       ! Global E-W dimension
  integer, intent(in):: jm       ! Global N-S dimension
  integer, intent(in):: km       ! Vertical dimension
@@ -299,11 +301,11 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
-#if   defined( GRID025x03125 )
- dlon = 2.*pi / float(1152)      !(dan)
-#elif defined( GRID05x0625 )
- dlon = 2.*pi / float(576)       !(dan)
-#endif
+ IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    dlon = 2.*pi / float(1152)      !(dan)
+ ELSEIF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    dlon = 2.*pi / float(576)       !(dan)
+ ENDIF
 
     ! dan for window
     !elat(1) = -0.5*pi         ! S. Pole

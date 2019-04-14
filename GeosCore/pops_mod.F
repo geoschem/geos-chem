@@ -515,8 +515,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMPOPS( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMPOPS( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -530,12 +530,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -648,7 +650,7 @@
       !=================================================================
 
       ! Compute diurnal scaling for OH
-      CALL OHNO3TIME()
+      CALL OHNO3TIME( State_Grid )
       IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
 
       !-------------------------
@@ -661,10 +663,10 @@
 
          ! Dry deposition occurs with PBL mixing,
          ! pass zero deposition frequency
-         CALL CHEM_POPGP( ZERO_DVEL, ZERO_DVEL,  ZERO_DVEL,
-     &                    ZERO_DVEL, ZERO_DVEL,
-     &                    am_I_Root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC )
+         CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met,
+     &                    ZERO_DVEL,  ZERO_DVEL,  ZERO_DVEL,
+     &                    ZERO_DVEL,  ZERO_DVEL,  RC )
          
       ELSE
 
@@ -678,102 +680,110 @@
          
             ! Dry deposition active for both POP-Gas and POP-Particle; 
             ! pass drydep frequency to CHEM_POPGP (NOTE: DEPSAV has units 1/s)
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,
+     &                       State_Diag, State_grid, State_Met,
+     &                       DEPSAV(:,:,dd_POPG), 
      &                       DEPSAV(:,:,dd_POPP_OCPO),
      &                       DEPSAV(:,:,dd_POPP_OCPI), 
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC)
 
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO >  0 .and. 
      &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG and POPP_OC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG), 
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,
+     &                       State_Diag, State_Grid, State_Met, 
+     &                       DEPSAV(:,:,dd_POPG), 
      &                       DEPSAV(:,:,dd_POPP_OCPO),
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
 
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
      &            dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPG and POPP_BC dry deposition are active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,
+     &                       State_Diag, State_Grid, State_Met,
+     &                       DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL, 
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
          
          ELSEIF ( dd_POPG      >  0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
      &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPG dry deposition is active
-            CALL CHEM_POPGP( DEPSAV(:,:,dd_POPG),
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,    
+     &                       State_Diag, State_Grid, State_Met,
+     &                       DEPSAV(:,:,dd_POPG),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
             
          ELSEIF ( dd_POPG      <= 0 .and.
      &              dd_POPP_OCPO >  0 .and. 
      &              dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPP dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,    
+     &                       State_Diag, State_Grid, State_Met,
+     &                       ZERO_DVEL,
      &                       DEPSAV(:,:,dd_POPP_OCPO), 
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
 
          ELSEIF ( dd_POPG      <= 0 .and.
      &            dd_POPP_OCPO >  0 .and. 
      &            dd_POPP_BCPO <= 0 ) THEN
 
             ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,    
+     &                       State_Diag, State_Grid, State_Met,
+     &                       ZERO_DVEL,
      &                       DEPSAV(:,:,dd_POPP_OCPO),
      &                       DEPSAV(:,:,dd_POPP_OCPI),
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
 
          ELSEIF ( dd_POPG      <= 0 .and.
      &            dd_POPP_OCPO <= 0 .and. 
      &            dd_POPP_BCPO >  0 ) THEN
 
             ! Only POPP_OC dry deposition is active
-            CALL CHEM_POPGP( ZERO_DVEL,
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,    
+     &                       State_Diag, State_Grid, State_Met,
+     &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       DEPSAV(:,:,dd_POPP_BCPO),
      &                       DEPSAV(:,:,dd_POPP_BCPI),
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       RC )
 
          ELSE
 
             ! No dry deposition, pass zero deposition frequency
-            CALL CHEM_POPGP( ZERO_DVEL,
+            CALL CHEM_POPGP( am_I_Root,  Input_Opt,  State_Chm,    
+     &                       State_Diag, State_Grid, State_Met,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
      &                       ZERO_DVEL,
-     &                       am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC )
+     &                       ZERO_DVEL,
+     &                       RC )
          ENDIF
 
       ENDIF      
@@ -796,12 +806,10 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_POPGP ( V_DEP_G,
-     &                        V_DEP_P_OCPO, V_DEP_P_OCPI,
-     &                        V_DEP_P_BCPO, V_DEP_P_BCPI,
-     &                        am_I_Root,    Input_Opt,
-     &                        State_Met,    State_Chm,
-     7                        State_Diag,   RC )
+      SUBROUTINE CHEM_POPGP ( am_I_Root,    Input_Opt,    State_Chm,    
+     &                        State_Diag,   State_Grid,   State_Met,
+     &                        V_DEP_G,      V_DEP_P_OCPO, V_DEP_P_OCPI,
+     &                        V_DEP_P_BCPO, V_DEP_P_BCPI, RC )
 !
 ! !USES:
 !
@@ -814,27 +822,33 @@
       USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : DEBUG_MSG
       USE ERROR_MOD,      ONLY : SAFE_DIV
-      USE GC_GRID_MOD,    ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Dry deposition frequencies [/s]
-      REAL(fp),       INTENT(IN)    :: V_DEP_G(IIPAR,JJPAR)
-      REAL(fp),       INTENT(IN)    :: V_DEP_P_OCPO(IIPAR,JJPAR)
-      REAL(fp),       INTENT(IN)    :: V_DEP_P_BCPO(IIPAR,JJPAR)
-      REAL(fp),       INTENT(IN)    :: V_DEP_P_OCPI(IIPAR,JJPAR)
-      REAL(fp),       INTENT(IN)    :: V_DEP_P_BCPI(IIPAR,JJPAR)
-
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+      ! Dry deposition frequencies [/s]
+      REAL(fp),       INTENT(IN)    :: V_DEP_G(State_Grid%NX,
+     &                                         State_Grid%NY)
+      REAL(fp),       INTENT(IN)    :: V_DEP_P_OCPO(State_Grid%NX,
+     &                                              State_Grid%NY)
+      REAL(fp),       INTENT(IN)    :: V_DEP_P_BCPO(State_Grid%NX,
+     &                                              State_Grid%NY)
+      REAL(fp),       INTENT(IN)    :: V_DEP_P_OCPI(State_Grid%NX,
+     &                                              State_Grid%NY)
+      REAL(fp),       INTENT(IN)    :: V_DEP_P_BCPI(State_Grid%NX,
+     &                                              State_Grid%NY)
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -1133,9 +1147,9 @@
 #endif
 
       ! Eventually should parallelize this ...
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NZ
 
          ! Zero concentrations in loop
          MPOP_G            = 0e+0_fp
@@ -1233,7 +1247,7 @@
      &           State_Met%AIRDEN(I,J,L) * 1e-6_fp
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L )
+         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
 
          ! Define K for the oxidation reaction with POPG [/s]
          K_OH  = K_POPG_OH * C_OH
@@ -1846,7 +1860,7 @@
      &        ( F_PBL > 0.0_fp         ) ) THEN
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
+            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
 
             ! Amt of POPG lost to drydep [molec/cm2/s]
             DEP_DRY_FLXG  = DEP_POPG_DRY * AVO / ( 1.e-3_fp *
@@ -1944,7 +1958,7 @@
      &        ( F_PBL > 0.0_fp         ) ) THEN
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, L )
+            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
 
             !----------------------------------
             ! Save drydep flux for POPG
@@ -2408,14 +2422,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME()
+      SUBROUTINE OHNO3TIME( State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY: 
 !  20 Sep 2010 - N.E. Selin  - Initial Version for POPS_MOD
@@ -2431,7 +2448,7 @@
       INTEGER             :: I, J, L, N, NT, NDYSTEP
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)            :: SUNTMP(IIPAR,JJPAR)
+      REAL(fp)            :: SUNTMP(State_Grid%NX,State_Grid%NY)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -2477,14 +2494,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, YMID_R, TIMLOC, AHR )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R( I, J, 1 )
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 +
-     &                  GET_XMID( I, J, 1 )/15.0
+     &                  State_Grid%XMid( I, J, 1 )/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -2552,21 +2569,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_POPS( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE INIT_POPS( am_I_Root, Input_Opt, State_Chm,
+     &                      State_Grid, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Chm_Mod, ONLY : Ind_
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Chm_Mod,  ONLY : Ind_
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2602,17 +2622,17 @@
       ! Allocate and initialize arrays
       ! NOTE: These might have to go into state_chm_mod.F90 eventually
       !=================================================================
-      ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( COSZM( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pops_mod.F:COSZM', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       COSZM = 0.0_fp
 
-      ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pops_mod.F:TCOSZ', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TCOSZ = 0.0_fp
 
-      ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( TTDAY( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pops_mod.F:TTDAY', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       TTDAY = 0.0_fp
@@ -2620,7 +2640,7 @@
       ! Now always allocate ZERO_DVEL.  This is needed because the calls
       ! to CHEM_POPGP have been modified in the CHEMPOPS routine above.
       ! (bmy, 3/10/15)
-      ALLOCATE( ZERO_DVEL( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( ZERO_DVEL( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'pops_mod.F:ZERO_DVEL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       ZERO_DVEL = 0.0_fp

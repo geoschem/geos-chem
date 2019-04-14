@@ -90,17 +90,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! State Grid object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -136,31 +138,31 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
                                 
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY)     ! Temporary data arrray
 
     ! Read FRLAKE
     v_name = "FRLAKE"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
     ! Read FRLAND
     v_name = "FRLAND"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAND = Q
 
     ! Read FRLANDIC
     v_name = "FRLANDIC"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRLANDIC = Q
     
     ! Read FROCEAN
     v_name = "FROCEAN"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FROCEAN = Q
     
     ! Read PHIS
     v_name = "PHIS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PHIS = Q
 
     ! Echo info
@@ -197,11 +199,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -210,6 +214,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -271,7 +276,7 @@ CONTAINS
     INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
                 
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY) ! Temporary data arrray
 
     !======================================================================
     ! Skip if we have already read data for this date & time
@@ -290,75 +295,75 @@ CONTAINS
     
     ! Read ALBEDO
     v_name = "ALBEDO"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%ALBD = Q
 
     ! Read CLDTOT
     v_name = "CLDTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%CLDFRC = Q
 
     ! Read EFLUX
     v_name = "EFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%EFLUX = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read EVAP
     !v_name = "EVAP"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%EVAP = Q
     !--------------------------------------------------------------------------
 
     ! Read FRSEAICE
     v_name = "FRSEAICE"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRSEAICE = Q
 
     ! Read FRSNO
     v_name = "FRSNO"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%FRSNO = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read GRN
     !v_name = "GRN"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%GRN = Q
     !--------------------------------------------------------------------------
 
     ! Read GWETROOT
     v_name = "GWETROOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%GWETROOT = Q
 
     ! Read GWETTOP
     v_name = "GWETTOP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%GWETTOP = Q
 
     ! Read HFLUX from file
     v_name = "HFLUX"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%HFLUX = Q
 
     ! Read LAI
     v_name = "LAI"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%LAI = Q
 
     ! Read LWI
     v_name = "LWI"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%LWI = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT 
     !v_name = "LWGNT"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%RADLWG = Q
     !--------------------------------------------------------------------------
 
@@ -366,169 +371,169 @@ CONTAINS
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read LWTUP
     !v_name = "LWTUP"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%LWTUP = Q
     !-----------------------------------------------------------------------
 
     ! Read PARDF
     v_name = "PARDF"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PARDF = Q
 
     ! Read PARDR
     v_name = "PARDR"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PARDR = Q
 
     ! Read PBLH
     v_name = "PBLH"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PBLH = Q
 
     ! Read PRECANV
     v_name = "PRECANV"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECANV = Q
 
     ! Read PRECCON
     v_name = "PRECCON"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECCON = Q
 
     ! Read PRECLSC
     v_name = "PRECLSC"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECLSC = Q
 
     !--------------------------------------------------------------------------
     ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read PRECSNO
     !v_name = "PRECSNO"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%PRECSNO = Q
     !--------------------------------------------------------------------------
 
     ! Read PRECTOT
     v_name = "PRECTOT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%PRECTOT = Q
 
     !-----------------------------------------------------------------------
     ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
     !! Read QV2M
     !v_name = "QV2M"
-    !CALL Get_Met_2D( Q, TRIM(v_name) )
+    !CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     !State_Met%QV2M = Q
     !-----------------------------------------------------------------------
 
     ! Read SEAICE00
     v_name = "SEAICE00"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE00 = Q
 
     ! Read SEAICE10
     v_name = "SEAICE10"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE10 = Q
 
     ! Read SEAICE20
     v_name = "SEAICE20"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE20 = Q
 
     ! Read SEAICE30
     v_name = "SEAICE30"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE30 = Q
 
     ! Read SEAICE40
     v_name = "SEAICE40"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE40 = Q
 
     ! Read SEAICE50
     v_name = "SEAICE50"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE50 = Q
 
     ! Read SEAICE60 
     v_name = "SEAICE60"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE60 = Q
 
     ! Read SEAICE70
     v_name = "SEAICE70"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE70 = Q
 
     ! Read SEAICE80
     v_name = "SEAICE80"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE80 = Q
 
     ! Read SEAICE90
     v_name = "SEAICE90"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SEAICE90 = Q
 
     ! Read SLP
     v_name = "SLP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SLP = Q
 
     ! Read SNODP
     v_name = "SNODP"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SNODP = Q
 
     ! Read SNOMAS
     v_name = "SNOMAS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SNOMAS = Q
 
     ! Read SWGDN
     v_name = "SWGDN"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%SWGDN  = Q
 
     ! Read TO3
     v_name = "TO3"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TO3 = Q
 
     ! Read TROPPT
     v_name = "TROPPT"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TROPP = Q
 
     ! Read TS
     v_name = "TS"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TSKIN = Q
 
     ! Read T2M
     v_name = "T2M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%TS = Q
 
     ! Read U10M
     v_name = "U10M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%U10M = Q
 
     ! Read USTAR
     v_name = "USTAR"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%USTAR = Q
 
     ! Read V10M
     v_name = "V10M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met% V10M = Q
 
     ! Read Z0M
     v_name = "Z0M"
-    CALL Get_Met_2D( Q, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q, TRIM(v_name) )
     State_Met%Z0 = Q
 
     ! Echo info
@@ -549,11 +554,11 @@ CONTAINS
     State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
     State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
 
-#if defined( MERRA2 )
-    ! Convert pressure quantities from [Pa] -> [hPa]
-    State_Met%SLP     = State_Met%SLP     * 1e-2_fp
-    State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
-#endif
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert pressure quantities from [Pa] -> [hPa]
+       State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+       State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
+    ENDIF
 
 #if defined( BPCH_DIAG )
     ! ND67 diagnostic: surface fields
@@ -605,11 +610,13 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -617,6 +624,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -657,10 +665,14 @@ CONTAINS
     lastTime = HHMMSS
 
     ! Read all the diffeent A3 files
-    CALL FlexGrid_Read_A3cld ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3dyn ( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
-    CALL FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+    CALL FlexGrid_Read_A3cld ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3dyn ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstC( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstE( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
 
     !======================================================================
     ! Cleanup and quit
@@ -688,11 +700,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -701,6 +715,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -740,7 +755,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                   
     ! Arrays                                 
-    REAL*4             :: Q(IIPAR,JJPAR,LLPAR)     ! Temporary data arrray
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY,State_Grid%NZ)     ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -748,32 +763,32 @@ CONTAINS
     
     ! Read CLOUD
     v_name = "CLOUD"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%CLDF = Q
     
     ! Read OPTDEPTH
     v_name = "OPTDEPTH"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%OPTD = Q
 
     ! Read QI
     v_name = "QI"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%QI = Q
 
     ! Read QL
     v_name = "QL"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%QL = Q
 
     ! Read TAUCLI
     v_name = "TAUCLI"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%TAUCLI = Q
 
     ! Read TAUCLW
     v_name = "TAUCLW"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%TAUCLW = Q
 
     ! Echo info
@@ -808,12 +823,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput  
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE Get_Met_Mod
 !
 ! !INPUT PARAMETERS:
@@ -821,6 +838,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -860,7 +878,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
 
     ! Arrays                                 
-    REAL*4             :: Q (IIPAR,JJPAR,LLPAR  )  ! Temporary data arrray
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ  )  ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -868,27 +886,27 @@ CONTAINS
 
     ! Read DTRAIN
     v_name = "DTRAIN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DTRAIN = Q
 
     ! Read OMEGA
     v_name = "OMEGA"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%OMEGA = Q
 
     ! Read RH
     v_name = "RH"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%RH = Q
 
     ! Read U
     v_name = "U"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%U = Q
 
     ! Read V
     v_name = "V"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%V = Q
 
     ! Echo info
@@ -934,11 +952,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -947,6 +967,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! State Grid object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -982,7 +1003,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q (IIPAR,JJPAR,LLPAR)    ! Temporary data arrray
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -990,22 +1011,22 @@ CONTAINS
     
     ! Read DQRCU  from file
     v_name = "DQRCU"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DQRCU = Q
 
     ! Read DQRLSAN
     v_name = "DQRLSAN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%DQRLSAN = Q
 
     ! Read REEVAPCN
     v_name = "REEVAPCN"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%REEVAPCN = Q
 
     ! Read  from file
     v_name = "REEVAPLS"
-    CALL Get_Met_3D( Q, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q, TRIM(v_name) )
     State_Met%REEVAPLS = Q
 
     ! Echo info
@@ -1033,11 +1054,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -1046,6 +1069,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1084,7 +1108,7 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                              
     ! Arrays                                 
-    REAL*4             :: Qe(IIPAR,JJPAR,LLPAR+1)  ! Temporary data arrray
+    REAL*4             :: Qe(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)  ! Temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1092,27 +1116,27 @@ CONTAINS
     
     ! Read CMFMC (only in GEOSFP*.nc files)
     v_name = "CMFMC"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%CMFMC = Qe
 
     ! Read PFICU
     v_name = "PFICU"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFICU = Qe
 
     ! Read PFILSAN
     v_name = "PFILSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFILSAN = Qe
 
     ! Read PFLCU
     v_name = "PFLCU"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFLCU = Qe
 
     ! Read  from file
     v_name = "PFLLSAN"
-    CALL Get_Met_3De( Qe, TRIM(v_name) )
+    CALL Get_Met_3De( State_Grid, Qe, TRIM(v_name) )
     State_Met%PFLLSAN = Qe
 
     ! Echo info
@@ -1125,10 +1149,10 @@ CONTAINS
     !=================================================================
 
     ! CLDTOPS = highest location of CMFMC in the column (I,J)
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
        State_Met%CLDTOPS(I,J) = 1
-       DO L = LLPAR, 1, -1
+       DO L = State_Grid%NZ, 1, -1
           IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
              State_Met%CLDTOPS(I,J) = L + 1
              EXIT
@@ -1159,11 +1183,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -1172,6 +1198,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1215,8 +1242,8 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! 3D temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1228,7 +1255,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS1"
-    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
     State_Met%PS1_WET = Q2
 
     !-------------------------------------------------
@@ -1240,19 +1267,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "SPHU1"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%SPHU1 = Q3
 
     ! Read T
     v_name = "TMPU1"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%TMPU1 = Q3
 
     ! Echo info
@@ -1276,10 +1303,10 @@ CONTAINS
 
     ENDWHERE
 
-#if defined( MERRA2 )
-    ! Convert PS1_WET from [Pa] to [hPa]
-    State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
-#endif
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert PS1_WET from [Pa] to [hPa]
+       State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+    ENDIF
 
     ! Initialize State_Met%T to State_Met%TMPU1 and State_Met%SPHU to
     ! State_Met%SPHU1.  After all future MET field reads (geosfp_read_i3_2)
@@ -1319,11 +1346,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Met )
+  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
 !
@@ -1332,6 +1361,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
     INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1373,8 +1403,8 @@ CONTAINS
     CHARACTER(LEN=255) :: v_name                   ! netCDF variable name 
                                     
     ! Arrays                                 
-    REAL*4             :: Q2(IIPAR,JJPAR      )    ! 2D temporary data arrray
-    REAL*4             :: Q3(IIPAR,JJPAR,LLPAR)    ! 3D temporary data arrray
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )    ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! 3D temporary data arrray
 
     !======================================================================
     ! Get met fields from HEMCO
@@ -1386,7 +1416,7 @@ CONTAINS
 
     ! Read PS
     v_name = "PS2"
-    CALL Get_Met_2D( Q2, TRIM(v_name) )
+    CALL Get_Met_2D( State_Grid, Q2, TRIM(v_name) )
     State_Met%PS2_WET = Q2
 
     !-------------------------------------------------
@@ -1398,19 +1428,19 @@ CONTAINS
     ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
     !! Read PV
     !v_name = "PV"
-    !CALL Get_Met_3D( Q3, TRIM(v_name) )
+    !CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
     !State_Met%PV = Q3
     !----------------------------------------------------------------
 
     ! Read QV
     v_name = "SPHU2"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%SPHU2 = Q3
 
     ! Read T
     v_name = "TMPU2"
-    CALL Get_Met_3D( Q3, TRIM(v_name) )
+    CALL Get_Met_3D( State_Grid, Q3, TRIM(v_name) )
     State_Met%TMPU2 = Q3
 
     ! Echo info

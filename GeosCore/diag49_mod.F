@@ -196,8 +196,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG49( am_I_Root, Input_Opt,  State_Met,
-     &                   State_Chm, State_Diag, RC         )
+      SUBROUTINE DIAG49( am_I_Root,  Input_Opt,  State_Chm,
+     &                   State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -205,6 +205,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2,   OPEN_BPCH2_FOR_WRITE
@@ -219,7 +220,6 @@
 !------------------------------------------------------------------------------
       USE ErrCode_Mod
       USE FILE_MOD,           ONLY : IOERROR
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE inquireMod,         ONLY : findFreeLun
       USE PhysConstants            ! XTRA2, XNUMOLAIR
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
@@ -235,6 +235,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -524,7 +525,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
 
                !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                !%%%  MASS CONSERVATION TEST (ewl, 6/24/15)           %%%
@@ -612,7 +613,7 @@
 !            DO Y = 1, ND49_NJ
 !               J = JOFF + Y
 !            DO X = 1, ND49_NI
-!               I = GET_I( X )
+!               I = GET_I( X, State_Grid )
 !               !Q(X,Y,K) = SAVEOH(I,J,L)
 !
 !               ! We are in units of [kg/kg dry] here.  Follow the same
@@ -656,7 +657,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )  
+               I = GET_I( X, State_Grid )  
 
                ! Temp variable for accumulation
                TMP = 0e0_fp
@@ -737,7 +738,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%RH(I,J,L)
             ENDDO
             ENDDO
@@ -762,7 +763,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%CLDF(I,J,K)
             ENDDO
             ENDDO
@@ -785,7 +786,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = SUM( State_Met%OPTD(I,J,:) )
             ENDDO
             ENDDO
@@ -809,7 +810,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%PEDGE(I,J,State_Met%CLDTOPS(I,J))
             ENDDO
             ENDDO
@@ -834,7 +835,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%AIRDEN(I,J,L) * XNUMOLAIR * 1d-6
             ENDDO
             ENDDO
@@ -859,7 +860,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
               Q(X,Y,K) = ( SPC(I,J,L,id_SALA) + SPC(I,J,L,id_SALC) ) *
      &                     ( AIRMW
      &                       / State_Chm%SpcData(id_SALA)%Info%emMW_g )     
@@ -884,7 +885,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = GET_PBL_TOP_m( I, J )
             ENDDO
             ENDDO
@@ -906,7 +907,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = GET_PBL_TOP_L( I, J )
             ENDDO
             ENDDO
@@ -930,7 +931,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%BXHEIGHT(I,J,L)
             ENDDO
             ENDDO
@@ -955,7 +956,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%PEDGE(I,J,K)
             ENDDO
             ENDDO
@@ -978,7 +979,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%SLP(I,J)
             ENDDO
             ENDDO
@@ -1002,7 +1003,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%U(I,J,L)
             ENDDO
             ENDDO
@@ -1027,7 +1028,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%V(I,J,L)
             ENDDO
             ENDDO
@@ -1052,7 +1053,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Met%T(I,J,L)
             ENDDO
             ENDDO
@@ -1080,7 +1081,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1096,7 +1097,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1135,7 +1136,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1151,7 +1152,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1190,7 +1191,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1206,7 +1207,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1245,7 +1246,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1261,7 +1262,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1300,7 +1301,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODAER(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1316,7 +1317,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1356,7 +1357,7 @@
                   DO Y = 1, ND49_NJ
                      J = JOFF + Y
                   DO X = 1, ND49_NI
-                     I = GET_I( X )
+                     I = GET_I( X, State_Grid )
                      Q(X,Y,K) = Q(X,Y,K) +
      $                          ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
                   ENDDO
@@ -1372,7 +1373,7 @@
                   DO Y = 1, ND49_NJ
                      J = JOFF + Y
                   DO X = 1, ND49_NI
-                     I = GET_I( X )
+                     I = GET_I( X, State_Grid )
                    ! Interpolated using angstrom exponent between
                    ! Closest available wavelengths
                    ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1414,7 +1415,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   Q(X,Y,K) = Q(X,Y,K) +
      $                       ODMDUST(I,J,L,IWVSELECT(1,1),ISPC)
                ENDDO
@@ -1430,7 +1431,7 @@
                DO Y = 1, ND49_NJ
                   J = JOFF + Y
                DO X = 1, ND49_NI
-                  I = GET_I( X )
+                  I = GET_I( X, State_Grid )
                   ! Interpolated using angstrom exponent between
                   ! Closest available wavelengths
                   ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -1464,7 +1465,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%PARDF(I,J)
             ENDDO
             ENDDO
@@ -1486,7 +1487,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%PARDR(I,J)
             ENDDO
             ENDDO
@@ -1508,7 +1509,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%MODISLAI(I,J) 
             ENDDO
             ENDDO
@@ -1531,7 +1532,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%TS( I , J )
             ENDDO
             ENDDO
@@ -1559,7 +1560,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) =  State_Met%PRECTOT(I,J)
             ENDDO
             ENDDO
@@ -1581,7 +1582,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,1) = State_Met%SUNCOSmid( I, J )
             ENDDO
             ENDDO
@@ -1605,7 +1606,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = SAVEOA(I,J,L)
             ENDDO
             ENDDO
@@ -1631,7 +1632,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Chm%phSav(I,J,L)
             ENDDO
             ENDDO
@@ -1657,7 +1658,7 @@
             DO Y = 1, ND49_NJ
                J = JOFF + Y
             DO X = 1, ND49_NI
-               I = GET_I( X )
+               I = GET_I( X, State_Grid )
                Q(X,Y,K) = State_Chm%WaterSav(I,J,L)
             ENDDO
             ENDDO
@@ -1683,7 +1684,7 @@
 !            DO Y = 1, ND49_NJ
 !               J = JOFF + Y
 !            DO X = 1, ND49_NI
-!               I = GET_I( X )
+!               I = GET_I( X, State_Grid )
 !               TMPO3 = SPC(I,J,1,id_O3) * ( AIRMW 
 !     &                 / State_Chm%SpcData(id_O3)%Info%emMW_g ) ! v/v
 !               
@@ -1908,15 +1909,17 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_I( X ) RESULT( I )
+      FUNCTION GET_I( X, State_Grid ) RESULT( I )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: X   ! Relative longitude index (used by Q array)
+      INTEGER,        INTENT(IN) :: X          ! Relative longitude index
+                                               ! (used by Q array)
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !RETURN VALUE:
 !
@@ -1936,7 +1939,7 @@
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
-      IF ( I > IIPAR ) I = I - IIPAR
+      IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 #endif
 
       END FUNCTION GET_I
@@ -1954,27 +1957,26 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG49( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG49( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE BPCH2_MOD,     ONLY : GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
-      USE CMN_SIZE_MOD        ! Size parameters
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
+      USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
+      USE CMN_SIZE_MOD         ! Size parameters
       USE ErrCode_Mod
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
+      USE ERROR_MOD,       ONLY : ERROR_STOP
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2020,13 +2022,8 @@
       !=================================================================
 
       ! Get grid offsets for error checking
-      IF ( ITS_A_NESTED_GRID() ) THEN
-         I0 = GET_XOFFSET()
-         J0 = GET_YOFFSET()
-      ELSE
-         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-         J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-      ENDIF
+      I0 = State_Grid%XMinOffset
+      J0 = State_Grid%YMinOffset
 
       !-----------
       ! Longitude
@@ -2034,13 +2031,13 @@
 
       ! Error check ND49_IMIN
       IF ( Input_Opt%ND49_IMIN+I0 < 1       .or.
-     &     Input_Opt%ND49_IMIN+I0 > IIPAR ) THEN
+     &     Input_Opt%ND49_IMIN+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND49_IMAX
       IF ( Input_Opt%ND49_IMAX+I0 < 1       .or.
-     &     Input_Opt%ND49_IMAX+I0 > IIPAR ) THEN
+     &     Input_Opt%ND49_IMAX+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND49_IMAX value!', LOCATION )
       ENDIF
 
@@ -2049,13 +2046,13 @@
       IF ( Input_Opt%ND49_IMAX >= Input_Opt%ND49_IMIN ) THEN
          ND49_NI = ( Input_Opt%ND49_IMAX - Input_Opt%ND49_IMIN ) + 1
       ELSE 
-         ND49_NI = ( IIPAR - Input_Opt%ND49_IMIN ) + 1 +
+         ND49_NI = ( State_Grid%NX - Input_Opt%ND49_IMIN ) + 1 +
      &             Input_Opt%ND49_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping over the date line!'
       ENDIF
 
-      ! Make sure that ND49_NI <= IIPAR
-      IF ( ND49_NI > IIPAR ) THEN
+      ! Make sure that ND49_NI <= NX
+      IF ( ND49_NI > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Too many longitudes!', LOCATION )
       ENDIF
 
@@ -2065,13 +2062,13 @@
       
       ! Error check JMIN_AREA
       IF ( Input_Opt%ND49_JMIN+J0 < 1       .or.
-     &     Input_Opt%ND49_JMIN+J0 > JJPAR ) THEN
+     &     Input_Opt%ND49_JMIN+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMIN value!', LOCATION)
       ENDIF
      
       ! Error check JMAX_AREA
       IF ( Input_Opt%ND49_JMAX+J0 < 1       .or.
-     &     Input_Opt%ND49_JMAX+J0 > JJPAR ) THEN
+     &     Input_Opt%ND49_JMAX+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND49_JMAX value!', LOCATION)
       ENDIF
 
@@ -2088,7 +2085,7 @@
 
       ! Error check ND49_LMIN, ND49_LMAX
       IF ( Input_Opt%ND49_LMIN < 1       .or.
-     &     Input_Opt%ND49_LMAX > LLPAR ) THEN 
+     &     Input_Opt%ND49_LMAX > State_Grid%NZ ) THEN 
          CALL ERROR_STOP( 'Bad ND49 altitude values!', LOCATION )
       ENDIF
 
@@ -2110,14 +2107,11 @@
       ! For bpch
       !-----------
       TITLE     = 'GEOS-CHEM DIAG49 instantaneous timeseries'
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
       
-      ! Reset grid offsets to global values for bpch write
-      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0        = GET_YOFFSET( GLOBAL=.TRUE. )      
 #endif
 
       END SUBROUTINE INIT_DIAG49

@@ -86,9 +86,9 @@ MODULE Regrid_A2A_Mod
   ! GEOS-Chem.  This avoids depending on GEOS-Chem code within the core
   ! HEMCO modules. (bmy, 7/14/14)
   !---------------------------------------------------------------------------
-  CHARACTER(LEN=255)  :: NC_DIR        ! Directory w/ netCDF files
-  INTEGER             :: IIPAR         ! # of longitudes (x-dimension) in grid
-  INTEGER             :: JJPAR         ! # of latitudes  (y-dimension) in grid
+  CHARACTER(LEN=255)    :: NC_DIR        ! Directory w/ netCDF files
+  INTEGER               :: OUTNX         ! # of longitudes (x-dimension) in grid
+  INTEGER               :: OUTNY         ! # of latitudes  (y-dimension) in grid
   REAL(fp), ALLOCATABLE :: OUTLON (:  )  ! Longitude on output grid
   REAL(fp), ALLOCATABLE :: OUTSIN (:  )  ! Sines of latitudes on output grid
   REAL(fp), ALLOCATABLE :: OUTAREA(:,:)  ! Surface areas on output grid
@@ -141,7 +141,7 @@ CONTAINS
     INTEGER,          INTENT(IN)    :: JM
 
     ! Data array on the input grid
-    REAL(fp),           INTENT(IN)    :: INGRID(IM,JM)
+    REAL(fp),           INTENT(IN)  :: INGRID(IM,JM)
 
     ! IS_MASS=0 if data is units of concentration (molec/cm2/s, unitless, etc.)
     ! IS_MASS=1 if data is units of mass (kg/yr, etc.); we will need to convert
@@ -154,7 +154,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Data array on the OUTPUT GRID
-    REAL(fp),           INTENT(OUT)   :: OUTGRID(IIPAR,JJPAR) 
+    REAL(fp),           INTENT(OUT) :: OUTGRID(OUTNX,OUTNY)
 !
 ! !REMARKS:
 !  The netCDF optional argument is now obsolete, because we now always read
@@ -188,15 +188,15 @@ CONTAINS
     INTEGER           :: I,        J
     INTEGER           :: IOS,      M
     INTEGER           :: IU_REGRID
-    REAL(fp)            :: INAREA,   RLAT
+    REAL(fp)          :: INAREA,   RLAT
     CHARACTER(LEN=15) :: HEADER1
     CHARACTER(LEN=20) :: FMT_LAT,  FMT_LON, FMT_LEN
     LOGICAL           :: USE_NETCDF
 
     ! Arrays
-    REAL(fp)            :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
-    REAL(fp)            :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
-    REAL(fp)            :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
+    REAL(fp)          :: INLON  (IM+1    )  ! Lon edges        on INPUT GRID
+    REAL(fp)          :: INSIN  (    JM+1)  ! SIN( lat edges ) on INPUT GRID
+    REAL(fp)          :: IN_GRID(IM, JM  )  ! Shadow variable for INGRID
 
     !======================================================================
     ! Initialization
@@ -232,7 +232,7 @@ CONTAINS
 
     ! Call MAP_A2A to do the regridding
     CALL MAP_A2A( IM,    JM,    INLON,  INSIN,  IN_GRID,        &
-                  IIPAR, JJPAR, OUTLON, OUTSIN, OUTGRID, 0, 0 )
+                  OUTNX, OUTNY, OUTLON, OUTSIN, OUTGRID, 0, 0 )
 
     ! Convert back from "per area" if necessary
     IF ( IS_MASS == 1 ) THEN
@@ -240,8 +240,8 @@ CONTAINS
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J   )
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, OUTNY
+       DO I = 1, OUTNX
           OUTGRID(I,J) = OUTGRID(I,J) * OUTAREA(I,J)
        ENDDO
        ENDDO
@@ -2884,9 +2884,9 @@ CONTAINS
 !
     INTEGER,          INTENT(IN) :: NX             ! # of longitudes
     INTEGER,          INTENT(IN) :: NY             ! # of latitudes
-    REAL(fp),           INTENT(IN) :: LONS (NX+1 )   ! Longitudes
-    REAL(fp),           INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
-    REAL(fp),           INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
+    REAL(fp),         INTENT(IN) :: LONS (NX+1 )   ! Longitudes
+    REAL(fp),         INTENT(IN) :: SINES(NY+1 )   ! Sines of latitudes
+    REAL(fp),         INTENT(IN) :: AREAS(NX,NY)   ! Surface areas [m2]
     CHARACTER(LEN=*), INTENT(IN) :: DIR            ! Dir for netCDF files w/ 
                                                    !  grid definitions
 !
@@ -2930,8 +2930,8 @@ CONTAINS
     !------------------------------------------
     ! Store values in local shadow variables
     !------------------------------------------
-    IIPAR   = NX
-    JJPAR   = NY
+    OUTNX   = NX
+    OUTNY   = NY
     OUTLON  = LONS
     OUTSIN  = SINES
     OUTAREA = AREAS

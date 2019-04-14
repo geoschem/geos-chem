@@ -24,6 +24,7 @@ MODULE State_Grid_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Init_State_Grid
+  PUBLIC :: Alloc_State_Grid
   PUBLIC :: Cleanup_State_Grid
 !
 ! !PUBLIC DATA MEMBERS:
@@ -34,47 +35,52 @@ MODULE State_Grid_Mod
   TYPE, PUBLIC :: GrdState
 
      !----------------------------------------
-     ! GRID MENU fields
+     ! User-defined grid fields
      !----------------------------------------
-     CHARACTER(LEN=255)          :: GridRes
-     REAL(fp)                    :: dx
-     REAL(fp)                    :: dy
-     REAL(fp)                    :: MinLon
-     REAL(fp)                    :: MaxLon
-     REAL(fp)                    :: MinLat
-     REAL(fp)                    :: MaxLat
-     INTEGER                     :: nx
-     INTEGER                     :: ny
-     INTEGER                     :: nz
-     LOGICAL                     :: Its_A_Nested_Grid
-     CHARACTER(LEN=255)          :: Res_Dir
-     INTEGER                     :: Nested_I0
-     INTEGER                     :: Nested_J0
- 
+     CHARACTER(LEN=255) :: GridRes     ! Grid resolution
+     REAL(fp)           :: DX          ! Delta X         [degrees longitude]
+     REAL(fp)           :: DY          ! Delta Y         [degrees latitude]
+     REAL(fp)           :: XMin        ! Minimum X value [degrees longitude]
+     REAL(fp)           :: XMax        ! Maximum X value [degrees longitude]
+     REAL(fp)           :: YMin        ! Minimum Y value [degrees latitude]
+     REAL(fp)           :: YMax        ! Maximum Y value [degrees latitude]
+     INTEGER            :: NX          ! # of grid boxes in X-direction
+     INTEGER            :: NY          ! # of grid boxes in Y-direction
+     INTEGER            :: NZ          ! # of grid boxes in Z-direction
+     LOGICAL            :: HalfPolar   ! Use half-sized polar boxes?
+     LOGICAL            :: NestedGrid  ! Is it a nested grid sim?
+     INTEGER            :: Buffer_N    ! # buffer grid boxes on N edge
+     INTEGER            :: Buffer_S    ! # buffer grid boxes on S edge
+     INTEGER            :: Buffer_W    ! # buffer grid boxes on W edge
+     INTEGER            :: Buffer_E    ! # buffer grid boxes on E edge
+
      !----------------------------------------
-     ! NESTED GRID MENU fields
+     ! Grid fields computed in gc_grid_mod.F90
      !----------------------------------------
-     LOGICAL                     :: LWINDO
-     LOGICAL                     :: LWINDO2x25
-     LOGICAL                     :: LWINDO_NA
-     CHARACTER(LEN=255)          :: TPBC_DIR_NA
-     LOGICAL                     :: LWINDO_EU
-     CHARACTER(LEN=255)          :: TPBC_DIR_EU
-     LOGICAL                     :: LWINDO_CH
-     CHARACTER(LEN=255)          :: TPBC_DIR_CH
-     LOGICAL                     :: LWINDO_AS
-     CHARACTER(LEN=255)          :: TPBC_DIR_AS
-     LOGICAL                     :: LWINDO_CU
-     CHARACTER(LEN=255)          :: TPBC_DIR
-     INTEGER                     :: NESTED_TS
-     INTEGER                     :: NESTED_I1
-     INTEGER                     :: NESTED_J1
-     INTEGER                     :: NESTED_I2
-     INTEGER                     :: NESTED_J2
-     INTEGER                     :: NESTED_I0W
-     INTEGER                     :: NESTED_J0W
-     INTEGER                     :: NESTED_I0E
-     INTEGER                     :: NESTED_J0E
+     INTEGER            :: GlobalNX    ! NX on the global grid
+     INTEGER            :: GlobalNY    ! NY on the global grid
+     INTEGER            :: NativeNZ    ! NZ on the native-resolution grid
+     INTEGER            :: MaxChemLev  ! Max # levels in chemistry grid
+     INTEGER            :: MaxStratLev ! Max # levels below strat
+     INTEGER            :: MaxTropLev  ! Max # levels below trop
+     INTEGER            :: XMinOffset  ! X offset from global grid
+     INTEGER            :: XMaxOffset  ! X offset from global grid
+     INTEGER            :: YMinOffset  ! Y offset from global grid
+     INTEGER            :: YMaxOffset  ! Y offset from global grid
+
+     ! Arrays
+     REAL(fp),  POINTER :: GlobalXMid(:,:,:) ! Lon centers on global grid [deg]
+     REAL(fp),  POINTER :: GlobalYMid(:,:,:) ! Lat centers on global grid [deg]
+     REAL(fp),  POINTER :: XMid      (:,:,:) ! Lon centers [degrees]
+     REAL(fp),  POINTER :: XEdge     (:,:,:) ! Lon edges   [degrees]
+     REAL(fp),  POINTER :: YMid      (:,:,:) ! Lat centers [degrees]
+     REAL(fp),  POINTER :: YEdge     (:,:,:) ! Lat edges   [degrees]
+     REAL(fp),  POINTER :: YMid_R    (:,:,:) ! Lat centers [radians]
+     REAL(fp),  POINTER :: YEdge_R   (:,:,:) ! Lat edges   [radians]
+     REAL(fp),  POINTER :: YSIN      (:,:,:) ! SIN( lat edges )
+     REAL(fp),  POINTER :: Area_M2   (:,:,:) ! Grid box area [m2]
+     REAL(fp),  POINTER :: DeltaX    (:,:,:) ! Array of delta-X [degrees]
+     REAL(fp),  POINTER :: DeltaY    (:,:,:) ! Array of delta-Y [degrees]
 
   END TYPE GrdState
 !
@@ -130,50 +136,161 @@ CONTAINS
     RC            =  GC_SUCCESS
 
     !----------------------------------------
-    ! GRID MENU fields
+    ! User-defined grid fields
     !----------------------------------------
-    Input_Opt%GridRes                = ''
-    Input_Opt%dx                     = 0e+0_fp
-    Input_Opt%dy                     = 0e+0_fp
-    Input_Opt%MinLon                 = 0e+0_fp
-    Input_Opt%MaxLon                 = 0e+0_fp
-    Input_Opt%MinLat                 = 0e+0_fp
-    Input_Opt%MaxLat                 = 0e+0_fp
-    Input_Opt%nx                     = 0
-    Input_Opt%ny                     = 0
-    Input_Opt%nz                     = 0
-    Input_Opt%Its_A_Nested_Grid      = .FALSE.
-    Input_Opt%Res_Dir                = './'
+    State_Grid%GridRes      = ''
+    State_Grid%DX           = 0e+0_fp
+    State_Grid%DY           = 0e+0_fp
+    State_Grid%XMin         = 0e+0_fp
+    State_Grid%XMax         = 0e+0_fp
+    State_Grid%YMin         = 0e+0_fp
+    State_Grid%YMax         = 0e+0_fp
+    State_Grid%NX           = 0
+    State_Grid%NY           = 0
+    State_Grid%NZ           = 0
+    State_Grid%HalfPolar    = .FALSE.
+    State_Grid%NestedGrid   = .FALSE.
+    State_Grid%Buffer_N     = 0
+    State_Grid%Buffer_S     = 0
+    State_Grid%Buffer_W     = 0
+    State_Grid%Buffer_E     = 0
 
-    Input_Opt%NESTED_I0              = 0
-    Input_Opt%NESTED_J0              = 0
+    !----------------------------------------
+    ! Grid fields computed in gc_grid_mod.F90
+    !----------------------------------------
+    State_Grid%GlobalNX     = 0
+    State_Grid%GlobalNY     = 0
+    State_Grid%NativeNZ     = 0
+    State_Grid%MaxChemLev   = 0
+    State_Grid%MaxStratLev  = 0
+    State_Grid%MaxTropLev   = 0
+    State_Grid%XMinOffset   = 0
+    State_Grid%XMaxOffset   = 0
+    State_Grid%YMinOffset   = 0
+    State_Grid%YMaxOffset   = 0
 
-    !----------------------------------------
-    ! NESTED GRID MENU fields
-    !----------------------------------------
-    Input_Opt%LWINDO                 = .FALSE.
-    Input_Opt%LWINDO2x25             = .FALSE.
-    Input_Opt%LWINDO_NA              = .FALSE.
-    Input_Opt%TPBC_DIR_NA            = './'
-    Input_Opt%LWINDO_EU              = .FALSE.
-    Input_Opt%TPBC_DIR_EU            = './'
-    Input_Opt%LWINDO_CH              = .FALSE.
-    Input_Opt%TPBC_DIR_CH            = './'
-    Input_Opt%LWINDO_AS              = .FALSE.
-    Input_Opt%TPBC_DIR_AS            = './'
-    Input_Opt%LWINDO_CU              = .FALSE.
-    Input_Opt%TPBC_DIR               = './'
-    Input_Opt%NESTED_TS              = 0
-    Input_Opt%NESTED_I1              = 0
-    Input_Opt%NESTED_J1              = 0
-    Input_Opt%NESTED_I2              = 0
-    Input_Opt%NESTED_J2              = 0
-    Input_Opt%NESTED_I0W             = 0
-    Input_Opt%NESTED_J0W             = 0 
-    Input_Opt%NESTED_I0E             = 0
-    Input_Opt%NESTED_J0E             = 0 
+    !---------------------------------------------------------------
+    ! Nullify all fields for safety's sake before allocating them
+    ! These arrays are allocated in gc_grid_mod.F90
+    !---------------------------------------------------------------
+    State_Grid%GlobalXMid   => NULL()
+    State_Grid%GlobalYMid   => NULL()
+    State_Grid%XMid         => NULL()
+    State_Grid%XEdge        => NULL()
+    State_Grid%YMid         => NULL()
+    State_Grid%YEdge        => NULL()
+    State_Grid%YMid_R       => NULL()
+    State_Grid%YEdge_R      => NULL()
+    State_Grid%YSIN         => NULL()
+    State_Grid%Area_M2      => NULL()
+    State_Grid%DeltaX       => NULL()
+    State_Grid%DeltaY       => NULL()
 
    END SUBROUTINE Init_State_Grid
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_Grid
+!
+! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
+!  module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Alloc_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod,  ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU 
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(INOUT) :: State_Grid  ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REVISION HISTORY:
+!  10 Mar 2019 - M. Sulprizio- Initial version, based on Init_Grid formerly in
+!                              gc_grid_mod.F90
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+! 
+    ! Scalars
+    INTEGER :: AS
+
+    !======================================================================
+    ! Initialize module variables
+    !======================================================================
+
+    ! Assume success
+    RC        = GC_SUCCESS
+
+    ALLOCATE( State_Grid%XMid( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%XMid', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%XMid = 0e+0_fp
+    
+    ALLOCATE( State_Grid%XEdge( State_Grid%NX+1, State_Grid%NY, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%XEdge', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%XEdge = 0e+0_fp
+    
+    ALLOCATE( State_Grid%YMid( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YMid', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YMid = 0e+0_fp
+    
+    ALLOCATE( State_Grid%YEdge( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YEdge', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YEdge = 0e+0_fp
+
+    ALLOCATE( State_Grid%YSIN( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YSIN', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YSIN = 0e+0_fp
+
+    ALLOCATE( State_Grid%YMid_R( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YMid_R', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YMid_R = 0e+0_fp
+   
+    ALLOCATE( State_Grid%YEdge_R( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YEdge_R', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YEdge_R = 0e+0_fp
+
+    ALLOCATE( State_Grid%Area_M2( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%Area_M2', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%Area_M2 = 0e+0_fp
+
+    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DeltaX', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%DeltaX = 0e+0_fp
+
+    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DeltaY', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%DeltaY = 0e+0_fp
+
+  END SUBROUTINE Alloc_State_Grid
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -213,6 +330,79 @@ CONTAINS
 
     ! Assume success
     RC      = GC_SUCCESS
+
+    !=======================================================================
+    ! Deallocate arrays
+    !=======================================================================
+    IF ( ASSOCIATED( State_Grid%XMid ) ) THEN
+       DEALLOCATE( State_Grid%XMid, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%XMid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%XMid => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%XEdge ) ) THEN
+       DEALLOCATE( State_Grid%XEdge, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%XEdge', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%XEdge => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YMid ) ) THEN
+       DEALLOCATE( State_Grid%YMid, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%XMid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%XMid => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YEdge ) ) THEN
+       DEALLOCATE( State_Grid%YEdge, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%YEdge', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%YEdge => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YSIN ) ) THEN
+       DEALLOCATE( State_Grid%YSIN, STAT=RC ) 
+       CALL GC_CheckVar( 'State_Grid%YSIN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%YSIN => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YMid_R ) ) THEN
+       DEALLOCATE( State_Grid%Ymid_R, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%YMid_R', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%YMid_R => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YEdge_R ) ) THEN
+       DEALLOCATE( State_Grid%YEdge_R, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%YEdge_R', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%YEdge_R => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%Area_M2 ) ) THEN
+       DEALLOCATE( State_Grid%Area_M2, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%Area_M2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%Area_M2 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%DeltaX ) ) THEN
+       DEALLOCATE( State_Grid%DeltaX, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DeltaX', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%DeltaX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%DeltaY ) ) THEN
+       DEALLOCATE( State_Grid%DeltaY, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DeltaY', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%DeltaY => NULL()
+    ENDIF
 
   END SUBROUTINE Cleanup_State_Grid
 !EOC

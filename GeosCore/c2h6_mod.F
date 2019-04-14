@@ -102,8 +102,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMC2H6( am_I_Root, Input_Opt,
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEMC2H6( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -114,6 +114,7 @@
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH, GET_TS_CHEM
 
@@ -121,6 +122,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -227,9 +229,9 @@
 !$OMP PARALLEL DO 
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, N, KRATE )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          
          ! Loss rate [molec2 C2H6/cm6/s]^-1
          KRATE = 8.7e-12_fp * EXP( -1070.0e+0_fp / State_Met%T(I,J,L) )
@@ -322,19 +324,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_C2H6( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_C2H6( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -361,7 +364,7 @@
       RC = GC_SUCCESS
 
       ! Allocate NGASC2H6 array
-      ALLOCATE( NGASC2H6( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( NGASC2H6( State_Grid%NX, State_Grid%NY ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'NGASC2H6' )
 
       ! Zero NGASC2H6 array

@@ -128,7 +128,6 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AREA_M2       (:,:,:) ! Grid box surface area [cm2]
      REAL(fp), POINTER :: CLDF          (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC         (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DQRCU         (:,:,:) ! Conv precip production rate 
@@ -331,15 +330,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Met( am_I_Root, State_Met, RC )
+  SUBROUTINE Init_State_Met( am_I_Root, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
+    USE CMN_SIZE_MOD,   ONLY : NSURFTYPE
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -392,13 +393,13 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC    =  GC_SUCCESS
+    RC      =  GC_SUCCESS
     ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
 
     ! Shorten grid parameters for readability
-    IM = IIPAR ! # latitudes
-    JM = JJPAR ! # longitudes
-    LM = LLPAR ! # levels
+    IM = State_grid%NX ! # latitudes
+    JM = State_Grid%NY ! # longitudes
+    LM = State_Grid%NZ ! # levels
 
     !=======================================================================
     ! Nullify all fields for safety's sake before allocating them
@@ -473,7 +474,6 @@ CONTAINS
     State_Met%AIRDEN         => NULL()
     State_Met%MAIRDEN        => NULL()
     State_Met%AIRVOL         => NULL()
-    State_Met%AREA_M2        => NULL()
     State_Met%BXHEIGHT       => NULL()
     State_Met%CLDF           => NULL()
     State_Met%CMFMC          => NULL()
@@ -1248,17 +1248,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AIRVOL = 0.0_fp
     CALL Register_MetField( am_I_Root, 'AIRVOL', State_Met%AIRVOL, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
-    ! AREA_M2 [m2]
-    !-------------------------
-    ALLOCATE( State_Met%AREA_M2( IM, JM, 1 ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN           
-    State_Met%AREA_M2  = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'AREAM2', State_Met%AREA_M2, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -2489,17 +2478,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%AIRVOL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AIRVOL => NULL()
-#endif
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%AREA_M2 => NULL()
-#else
-       DEALLOCATE( State_Met%AREA_M2, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%AREA_M2 => NULL()
 #endif
     ENDIF
 

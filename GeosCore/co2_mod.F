@@ -147,8 +147,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSCO2( am_I_Root, Input_Opt,  State_Met, 
-     &                     State_Chm, State_Diag, RC         )
+      SUBROUTINE EMISSCO2( am_I_Root,  Input_Opt,  State_Chm, 
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -164,12 +164,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -282,9 +284,9 @@
          ! Error check: For now, the emission grid must be
          ! on the simulation grid.
          !--------------------------------------------------------------
-         IF ( HcoState%NX /= IIPAR .OR. 
-     &        Hcostate%NY /= JJPAR .OR.
-     &        Hcostate%NZ /= LLPAR     ) THEN
+         IF ( HcoState%NX /= State_Grid%NX .OR. 
+     &        Hcostate%NY /= State_Grid%NY .OR.
+     &        Hcostate%NZ /= State_Grid%NZ     ) THEN
             ErrMsg = 'The HEMCO grid not same as the sim. grid!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
@@ -327,9 +329,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, E_CO2, N )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Production is in [kg/m3], convert to [molec/cm2/s]
             E_CO2 = CO2_COPROD(I,J,L)                        ! kg/m3
@@ -403,16 +405,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F( REGION )
+      SUBROUTINE DEF_BIOSPH_CO2_REGIONS_F( State_Grid, REGION )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE FILE_MOD,      ONLY : IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+      INTEGER,        INTENT(OUT) :: REGION(State_Grid%NX,State_Grid%NY)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -431,11 +437,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, IOS, IU_FILE
-      INTEGER                :: TMP(IIPAR,JJPAR)
-      INTEGER                :: LAND_REG(IIPAR,JJPAR)
+      INTEGER                :: TMP(State_Grid%NX,State_Grid%NY)
+      INTEGER                :: LAND_REG(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=255)     :: LANDFILE
       CHARACTER(LEN=144)     :: ROW
-      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
+      CHARACTER(LEN=1)       :: CHAR1(State_Grid%NX,State_Grid%NY)
 
       !=================================================================
       ! Reading LAND BIOSPHERE REGIONS
@@ -459,14 +465,16 @@
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
 
       ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+      DO J = 1, State_Grid%NY
+         IF (State_Grid%NX ==  72) 
+     &      READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+         IF (State_Grid%NX == 144)
+     &      READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
          WRITE (*,'(A)') ROW
 
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
 
-         DO I = 1, IIPAR
+         DO I = 1, State_Grid%NX
             CHAR1(I,J) = ROW(I:I)
             IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
             READ (CHAR1(I,J),'(I1)') TMP(I,J)
@@ -477,9 +485,9 @@
       CLOSE( IU_FILE )
 
       ! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         LAND_REG(I,J) = TMP(I,JJPAR-J+1)
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         LAND_REG(I,J) = TMP(I,State_Grid%NY-J+1)
       ENDDO
       ENDDO
       WRITE(*,*) ' '
@@ -488,8 +496,8 @@
       ! Loop over entire globe -- multiprocessor
       !=================================================================
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 !-----------------------------------------------------------------------
          ! Species #13 -- Canadian Tundra       
          IF (LAND_REG(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
@@ -626,16 +634,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEF_OCEAN_CO2_REGIONS_F( REGION )
+      SUBROUTINE DEF_OCEAN_CO2_REGIONS_F( State_Grid, REGION )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE FILE_MOD,      ONLY : IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT)  :: REGION(IIPAR,JJPAR)
+      INTEGER,        INTENT(OUT) :: REGION(State_Grid%NX,State_Grid%NY)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -652,10 +664,11 @@
 !
 ! !LOCAL VARIABLES:
       INTEGER               :: I, J, IU_FILE, IOS
-      INTEGER               :: TMP(IIPAR,JJPAR), OCEAN_REG(IIPAR,JJPAR)
+      INTEGER               :: TMP(State_Grid%NX,State_Grid%NY)
+      INTEGER               :: OCEAN_REG(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=255)    :: OCEANFILE
       CHARACTER(LEN=144)    :: ROW
-      CHARACTER(LEN=1)      :: CHAR1(IIPAR,JJPAR)
+      CHARACTER(LEN=1)      :: CHAR1(State_Grid%NX,State_Grid%NY)
 
       !=================================================================
       ! DEF_CO2_OCEAN_REGIONS begins here!
@@ -679,14 +692,16 @@
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
 
       ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+      DO J = 1, State_Grid%NY
+         IF (State_Grid%NX ==  72)
+     &      READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+         IF (State_Grid%NX == 144)
+     &      READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
          WRITE (*,'(A)') ROW
 
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
 
-         DO I = 1, IIPAR
+         DO I = 1, State_Grid%NX
             CHAR1(I,J) = ROW(I:I)
             IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
             READ (CHAR1(I,J),'(I1)') TMP(I,J)
@@ -697,9 +712,9 @@
       CLOSE( IU_FILE )
 
       ! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         OCEAN_REG(I,J) = TMP(I,JJPAR-J+1)
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         OCEAN_REG(I,J) = TMP(I,State_Grid%NY-J+1)
       ENDDO
       ENDDO
       WRITE(*,*) ' '
@@ -708,8 +723,8 @@
       ! Loop over entire globe -- multiprocessor
       !=================================================================
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 !-----------------------------------------------------------------------
          ! Species #41 -- Arctic Ocean       
          IF       (OCEAN_REG(I,J) == 5 .and. J > 60) THEN
@@ -778,16 +793,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F( REGION )
+      SUBROUTINE DEF_FOSSIL_CO2_REGIONS_F( State_Grid, REGION )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD        ! Size parameters
-      USE FILE_MOD,      ONLY : IOERROR
+      USE FILE_MOD,       ONLY : IOERROR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT)   :: REGION(IIPAR,JJPAR)
+      INTEGER,        INTENT(OUT) :: REGION(State_Grid%NX,State_Grid%NY)
 !
 ! !REMARKS:
 !  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -805,10 +824,11 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER                :: I, J, IU_FILE, IOS
-      INTEGER                :: TMP(IIPAR,JJPAR), REG_CODE(IIPAR,JJPAR)
+      INTEGER                :: TMP(State_Grid%NX,State_Grid%NY)
+      INTEGER                :: REG_CODE(State_Grid%NX,State_Grid%NY)
       CHARACTER(LEN=255)     :: FILENAME
       CHARACTER(LEN=144)     :: ROW
-      CHARACTER(LEN=1)       :: CHAR1(IIPAR,JJPAR)
+      CHARACTER(LEN=1)       :: CHAR1(State_Grid%NX,State_Grid%NY)
 
       !=================================================================
       ! DEF_CO2_FOSSIL_REGIONS begins here!
@@ -831,14 +851,16 @@
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:1' )      
 
       ! Read data
-      DO J = 1, JJPAR
-         IF (IIPAR ==  72) READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
-         IF (IIPAR == 144) READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
+      DO J = 1, State_Grid%NY
+         IF (State_Grid%NX ==  72)
+     &      READ( IU_FILE, '(72A)', IOSTAT=IOS ) ROW
+         IF (State_Grid%NX == 144)
+     &      READ( IU_FILE,'(144A)', IOSTAT=IOS ) ROW
          WRITE (*,'(A)') ROW
                 
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_FILE, 'read_regions:2' )
 
-         DO I = 1, IIPAR
+         DO I = 1, State_Grid%NX
             CHAR1(I,J) = ROW(I:I)
             IF (CHAR1(I,J) == ' ') CHAR1(I,J) = '0'
             READ (CHAR1(I,J),'(I1)') TMP(I,J)
@@ -849,17 +871,17 @@
       CLOSE( IU_FILE )
 
       ! Flip array in the North-South Direction
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         REG_CODE(I,J) = TMP(I,JJPAR-J+1)
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         REG_CODE(I,J) = TMP(I,State_Grid%NY-J+1)
       ENDDO
       ENDDO
 
       !=================================================================
       ! Loop over entire globe -- multiprocessor
       !=================================================================
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 !-----------------------------------------------------------------------
          ! Species #13 -- Canadian Tundra       
          IF (REG_CODE(I,J) == 1 .and. I > 5 .and. I <= 60) THEN
@@ -996,20 +1018,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_CO2( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_CO2( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-      ! References to F90 modules
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1065,17 +1087,17 @@
       LPLANETAG   = Input_Opt%LPLANETAG
 
       ! Array for Fossil Fuel regions
-      ALLOCATE( FOSSIL_REGION( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( FOSSIL_REGION( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FOSSIL_REGION' )
       FOSSIL_REGION = 0
 
       ! Array for Biospheric regions
-      ALLOCATE( BIOSPH_REGION( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( BIOSPH_REGION( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'BIOSPH_REGION' )
       BIOSPH_REGION = 0
 
       ! Array for Ocean Regions
-      ALLOCATE( OCEAN_REGION( IIPAR, JJPAR ), STAT=AS )
+      ALLOCATE( OCEAN_REGION( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCEAN_REGION' )
       OCEAN_REGION = 0
 
@@ -1085,13 +1107,13 @@
 
       ! Set up tagged regions for balanced biosphere & ocean
       IF ( Input_Opt%LBIOSPHTAG ) THEN
-         CALL DEF_BIOSPH_CO2_REGIONS_F( BIOSPH_REGION )
-         CALL DEF_OCEAN_CO2_REGIONS_F( OCEAN_REGION )
+         CALL DEF_BIOSPH_CO2_REGIONS_F( State_Grid, BIOSPH_REGION )
+         CALL DEF_OCEAN_CO2_REGIONS_F( State_Grid, OCEAN_REGION )
       ENDIF
 
       ! Set up tagged regions for fossil fuel
       IF ( Input_Opt%LFOSSILTAG ) THEN
-         CALL DEF_FOSSIL_CO2_REGIONS_F( FOSSIL_REGION )
+         CALL DEF_FOSSIL_CO2_REGIONS_F( State_Grid, FOSSIL_REGION )
       ENDIF
 
       ! Reset IS_INIT flag

@@ -92,8 +92,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_CONVECTION( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_CONVECTION( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -110,12 +110,12 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
-      USE GC_GRID_MOD,     ONLY : GET_AREA_M2
       USE Input_Opt_Mod,   ONLY : OptInput
       USE PhysConstants    
       USE Species_Mod,     ONLY : Species
       USE State_Chm_Mod,   ONLY : ChmState
       USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Grid_Mod,  ONLY : GrdState
       USE State_Met_Mod,   ONLY : MetState
       USE TIME_MOD,        ONLY : GET_TS_DYN
       USE TIME_MOD,        ONLY : GET_TS_CONV
@@ -131,6 +131,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -225,11 +226,12 @@
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
       ! Arrays        
-      REAL(fp)           :: PEDGE  (          LLPAR+1                  )
-      REAL(fp)           :: DIAG14 (            LLPAR,State_Chm%nAdvect)
-      REAL(fp)           :: DIAG38 (            LLPAR,State_Chm%nWetDep)
-      REAL(fp)           :: F      (            LLPAR,State_Chm%nAdvect)
-      REAL(fp), TARGET   :: FSOL   (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+      REAL(fp)           :: PEDGE (State_Grid%NZ+1)
+      REAL(fp)           :: DIAG14(State_Grid%NZ,State_Chm%nAdvect)
+      REAL(fp)           :: DIAG38(State_Grid%NZ,State_Chm%nWetDep)
+      REAL(fp)           :: F     (State_Grid%NZ,State_Chm%nAdvect)
+      REAL(fp), TARGET   :: FSOL  (State_Grid%NX,State_Grid%NY,
+     &                             State_Grid%NZ,State_Chm%nAdvect)
 
       ! Pointers
       REAL(fp), POINTER  :: p_FSOL (:,:,:)
@@ -253,8 +255,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetConvection ) THEN
          ! Get initial column masses
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                          Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                          State_Chm, State_Grid, State_Met, 
      &                          State_Chm%Map_Advect,        
      &                          State_Diag%Archive_BudgetConvectionFull, 
      &                          State_Diag%Archive_BudgetConvectionTrop, 
@@ -286,8 +288,8 @@
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', RC )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, 
+     &                  State_Met, 'CONV', RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -317,8 +319,9 @@
          p_FSOL => FSOL(:,:,:,NA)
 
          ! Fraction of soluble species
-         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,    ISOL, 
-     &                   Input_Opt, State_Met, State_Chm, RC=EC ) 
+         CALL COMPUTE_F( am_I_Root, N,         p_FSOL,     ISOL, 
+     &                   Input_Opt, State_Chm, State_Grid, State_Met,
+     &                   RC=EC ) 
 
          ! Trap potential errors (we can't exit an OpenMP loop)
          IF ( EC /= GC_SUCCESS ) THEN
@@ -375,22 +378,22 @@
 !$OMP+PRIVATE( J,      I,      AREA_M2, L, F,  EC ) 
 !$OMP+PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! PRIVATE error trapping variable
          EC = GC_SUCCESS
 
          ! Skip buffer zone for nested grids (lzh, 4/1/15)
-         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-            IF ( J <=         Input_Opt%NESTED_J0W  ) CYCLE
-            IF ( J >  JJPAR - Input_Opt%NESTED_J0E  ) CYCLE
-            IF ( I <=         Input_Opt%NESTED_I0W  ) CYCLE
-            IF ( I >  IIPAR - Input_Opt%NESTED_I0E  ) CYCLE
+         IF ( State_Grid%NestedGrid ) THEN
+            IF ( J <=                 State_Grid%Buffer_S ) CYCLE
+            IF ( J >  State_Grid%NY - State_Grid%Buffer_N ) CYCLE
+            IF ( I <=                 State_Grid%Buffer_W ) CYCLE
+            IF ( I >  State_Grid%NX - State_Grid%Buffer_E ) CYCLE
          ENDIF
 
          ! Grid box surface area [m2]
-         AREA_M2 =  GET_AREA_M2( I, J, 1 )
+         AREA_M2 =  State_Grid%Area_M2( I, J, 1 )
 
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.
@@ -401,9 +404,10 @@
          !--------------------------
          CALL DO_CLOUD_CONVECTION( am_I_Root  = am_I_Root,
      &                             Input_Opt  = Input_Opt,
-     &                             State_Met  = State_Met,
      &                             State_Chm  = State_Chm,
      &                             State_Diag = State_Diag,
+     &                             State_Grid = State_Grid,
+     &                             State_Met  = State_Met,
      &                             I          = I,
      &                             J          = J,
      &                             AREA_M2    = AREA_M2,
@@ -459,7 +463,7 @@
          !--------------------------------------------------------------
          IF ( State_Diag%Archive_CloudConvFlux ) THEN
             DO N = 1, State_Chm%nAdvect
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                State_Diag%CloudConvFlux(I,J,L,N) = Diag14(L,N)
             ENDDO
             ENDDO
@@ -473,7 +477,7 @@
          !--------------------------------------------------------------
          IF ( State_Diag%Archive_WetLossConv ) THEN
             DO NW = 1, State_Chm%nWetDep 
-            DO L  = 1, LLPAR
+            DO L  = 1, State_Grid%NZ
                State_Diag%WetLossConv(I,J,L,NW) = Diag38(L,NW)
             ENDDO
             ENDDO
@@ -501,8 +505,9 @@
       ! Calculate tendencies and write to diagnostics 
       ! (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'CONV', DT_Conv, RC )
+      CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, 
+     &                  State_Grid, State_Met, 'CONV',
+     &                  DT_Conv,    RC )
 
        ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -518,8 +523,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetConvection ) THEN
          ! Get final masses and compute diagnostics
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                          Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_Advect,        
      &                          State_Diag%Archive_BudgetConvectionFull, 
      &                          State_Diag%Archive_BudgetConvectionTrop, 
@@ -527,6 +532,7 @@
      &                          State_Diag%BudgetMass2, 
      &                          RC )       
          CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Grid,
      &                          State_Chm%Map_Advect,
      &                          DT_Conv,                                
      &                          State_Diag%Archive_BudgetConvectionFull, 
@@ -564,9 +570,10 @@
 !
       SUBROUTINE DO_CLOUD_CONVECTION( am_I_Root,  
      &                                Input_Opt,
-     &                                State_Met,  
      &                                State_Chm,
      &                                State_Diag,
+     &                                State_Grid,
+     &                                State_Met,
      &                                I,          
      &                                J,
      &                                AREA_M2,    
@@ -591,6 +598,7 @@
       USE PhysConstants
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE WETSCAV_MOD,        ONLY : WASHOUT
@@ -601,6 +609,7 @@
 !  
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)    :: I, J        ! Lon & lat indices
       REAL(fp),       INTENT(IN)    :: AREA_M2     ! Surface area [m2]
@@ -752,8 +761,8 @@
       CHARACTER(LEN=255)     :: ErrMsg, ThisLoc
 
       ! Arrays               
-      REAL(fp)               :: BMASS    (LLPAR    )    
-      REAL(fp)               :: PDOWN    (LLPAR    )
+      REAL(fp)               :: BMASS    (State_Grid%NZ)    
+      REAL(fp)               :: PDOWN    (State_Grid%NZ)
 
       ! Pointers
       REAL(fp),      POINTER :: BXHEIGHT (:        )
@@ -782,7 +791,8 @@
       
       ! Point to columns of derived-type object fields
       BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
-      CMFMC    => State_Met%CMFMC   (I,J,2:LLPAR+1) ! Cloud mass flux [kg/m2/s] 
+      CMFMC    => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
+                                                            ! [kg/m2/s] 
       DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
       DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
       REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
@@ -795,13 +805,15 @@
       SpcInfo  => NULL()                            ! Species database entry
 
       ! PFICU and PFLCU are on level edges
-      PFICU    => State_Met%PFICU   (I,J,2:LLPAR+1) ! Dwnwd flx of conv 
-                                                    !  ice precip [kg/m2/s]
-      PFLCU    => State_Met%PFLCU   (I,J,2:LLPAR+1) ! Dwnwd flux of conv   
-                                                    !  liquid precip [kg/m2/s]
+      PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv 
+                                                            !  ice precip
+                                                            !  [kg/m2/s]
+      PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
+                                                            !  liquid precip
+                                                            !  [kg/m2/s]
         
       ! # of levels and # of species
-      NLAY     = LLPAR
+      NLAY     = State_Grid%NZ
       NC       = State_Chm%nAdvect
 
       ! Top level for convection

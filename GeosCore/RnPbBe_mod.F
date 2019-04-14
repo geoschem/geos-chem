@@ -102,8 +102,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMRnPbBe( am_I_Root, Input_Opt,  State_Met,
-     &                       State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEMRnPbBe( am_I_Root,  Input_Opt,  State_Chm,
+     &                       State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -118,6 +118,7 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
@@ -125,6 +126,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -189,7 +191,8 @@
       CHARACTER(LEN=255)  :: ThisLoc
 
       ! Arrays
-      REAL(fp)            :: Rn_LOST(IIPAR,JJPAR,LLPAR)
+      REAL(fp)            :: Rn_LOST(State_Grid%NX,State_Grid%NY,
+     &                               State_Grid%NZ)
 
       ! Pointers
       REAL(fp), POINTER   :: Spc(:,:,:,:)
@@ -262,9 +265,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
             Rn_LOST(I,J,L) = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
@@ -316,9 +319,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
            
             ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
             ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO 
@@ -402,9 +405,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, Be_LOST )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Amount of 7Be lost to decay [kg]
             Be_LOST = Spc(I,J,L,N) * ( 1d0 - EXP_Be )

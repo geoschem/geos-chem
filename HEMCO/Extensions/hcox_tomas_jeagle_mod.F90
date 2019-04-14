@@ -491,24 +491,26 @@ CONTAINS
     !=======================================================================
     ! Allocate quantities depending on horizontal resolution
     !=======================================================================
-#if defined( GRID4x5  )
+    IF ( TRIM( HcoState%Config%GridRes) == '4x5' ) THEN
 
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 4 x 5 global resolution
-    !-----------------------------------------------------------------------
-    TOMAS_COEF = 1.d0
+       !-----------------------------------------------------------------------
+       ! TOMAS simulations at 4 x 5 global resolution
+       !-----------------------------------------------------------------------
+       TOMAS_COEF = 1.d0
 
-#elif defined( GRID2x25 )
+    ELSE IF ( TRIM( HcoState%Config%GridRes) == '2x2.5' ) THEN
 
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 2 x 2.5 global resolution
-    !-----------------------------------------------------------------------
-    TOMAS_COEF = 1.d0
+       !-----------------------------------------------------------------------
+       ! TOMAS simulations at 2 x 2.5 global resolution
+       !-----------------------------------------------------------------------
+       TOMAS_COEF = 1.d0
 
-#else
-    MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'
-      call HCO_ERROR(HcoState%Config%Err,MSG, RC )
-#endif
+    ELSE
+
+       MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+
+    ENDIF
 
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses
