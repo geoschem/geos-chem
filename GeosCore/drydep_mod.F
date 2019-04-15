@@ -833,7 +833,7 @@
          a = Iodide*4.0E9_f8
       ELSEIF (Input_Opt%ReactCoeff .EQ. 'LOW_') THEN
          a = Iodide*EXP((-8796.2/TEMPK1)+50.8)
-      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HU__') THEN
+      ELSEIF (Input_Opt%ReactCoeff .EQ. 'HIGH') THEN
          a = Iodide*EXP((-9261.6/TEMPK1)+53.6)
       ENDIF
       !a = Iodide*EXP((-8772.2/289.15)+51.5)
