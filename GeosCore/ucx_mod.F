@@ -5881,7 +5881,7 @@
 #if defined( MODEL_GEOS )
      &        'UCX_201710/Init1D/Montreal.nc'
 #else
-     &        'UCX_201403/Init1D/Montreal.nc'
+     &        'UCX_201904/Montreal_fix.nc'
 #endif
 
       ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
