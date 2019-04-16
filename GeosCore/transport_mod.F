@@ -824,8 +824,8 @@
       BUFF_SIZE   =  2
       IM_W1       =  State_Grid%NX + 2 * BUFF_SIZE
       JM_W1       =  State_Grid%NY + 2 * BUFF_SIZE
-      I0_W1       =  State_Grid%Buffer_W - BUFF_SIZE
-      J0_W1       =  State_Grid%buffer_S - BUFF_SIZE
+      I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
+      J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
 
       ! Define shadow variables for ND24, ND25, ND26
 #if defined( BPCH_DIAG )
@@ -1319,8 +1319,8 @@
       BUFF_SIZE = 2
       IM_W1     = State_Grid%NX + 2 * BUFF_SIZE
       JM_W1     = State_Grid%NY + 2 * BUFF_SIZE
-      I0_W1     = State_Grid%Buffer_W - BUFF_SIZE
-      J0_W1     = State_Grid%Buffer_S - BUFF_SIZE
+      I0_W1     = State_Grid%WestBuffer  - BUFF_SIZE
+      J0_W1     = State_Grid%SouthBuffer - BUFF_SIZE
 
       ! YMID_R is latitude of grid box center [radians]
       DO J =0, State_Grid%NY+1

@@ -1290,17 +1290,17 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) State_Grid%Buffer_N,
-     &                        State_Grid%Buffer_S,
-     &                        State_Grid%Buffer_E,
-     &                        State_Grid%Buffer_W
+      READ( SUBSTRS(1:N), * ) State_Grid%NorthBuffer,
+     &                        State_Grid%SouthBuffer,
+     &                        State_Grid%EastBuffer,
+     &                        State_Grid%WestBuffer
 
       ! Set buffers to zero for global grids
       IF ( .not. State_Grid%NestedGrid ) THEN
-         State_Grid%Buffer_N = 0
-         State_Grid%Buffer_S = 0
-         State_Grid%Buffer_E = 0
-         State_Grid%Buffer_W = 0
+         State_Grid%NorthBuffer = 0
+         State_Grid%SouthBuffer = 0
+         State_Grid%EastBuffer  = 0
+         State_Grid%WestBuffer  = 0
       ENDIF
 
       ! Separator line
@@ -1336,10 +1336,10 @@
          WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
      &                    State_Grid%NestedGrid
          WRITE( 6, 140 ) 'Buffer zone (N S E W )      : ', 
-     &                    State_Grid%Buffer_N,
-     &                    State_Grid%Buffer_S,
-     &                    State_Grid%Buffer_E,
-     &                    State_Grid%Buffer_W
+     &                    State_Grid%NorthBuffer,
+     &                    State_Grid%SouthBuffer,
+     &                    State_Grid%EastBuffer,
+     &                    State_Grid%WestBuffer
       ENDIF
 
       ! Format statements

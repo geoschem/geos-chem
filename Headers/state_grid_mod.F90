@@ -49,10 +49,10 @@ MODULE State_Grid_Mod
      INTEGER            :: NZ          ! # of grid boxes in Z-direction
      LOGICAL            :: HalfPolar   ! Use half-sized polar boxes?
      LOGICAL            :: NestedGrid  ! Is it a nested grid sim?
-     INTEGER            :: Buffer_N    ! # buffer grid boxes on N edge
-     INTEGER            :: Buffer_S    ! # buffer grid boxes on S edge
-     INTEGER            :: Buffer_W    ! # buffer grid boxes on W edge
-     INTEGER            :: Buffer_E    ! # buffer grid boxes on E edge
+     INTEGER            :: NorthBuffer ! # buffer grid boxes on North edge
+     INTEGER            :: SouthBuffer ! # buffer grid boxes on South edge
+     INTEGER            :: EastBuffer  ! # buffer grid boxes on East edge
+     INTEGER            :: WestBuffer  ! # buffer grid boxes on West edge
 
      !----------------------------------------
      ! Grid fields computed in gc_grid_mod.F90
@@ -150,10 +150,10 @@ CONTAINS
     State_Grid%NZ           = 0
     State_Grid%HalfPolar    = .FALSE.
     State_Grid%NestedGrid   = .FALSE.
-    State_Grid%Buffer_N     = 0
-    State_Grid%Buffer_S     = 0
-    State_Grid%Buffer_W     = 0
-    State_Grid%Buffer_E     = 0
+    State_Grid%NorthBuffer  = 0
+    State_Grid%SouthBuffer  = 0
+    State_Grid%EastBuffer   = 0
+    State_Grid%WestBuffer   = 0
 
     !----------------------------------------
     ! Grid fields computed in gc_grid_mod.F90

@@ -386,10 +386,10 @@
 
          ! Skip buffer zone for nested grids (lzh, 4/1/15)
          IF ( State_Grid%NestedGrid ) THEN
-            IF ( J <=                 State_Grid%Buffer_S ) CYCLE
-            IF ( J >  State_Grid%NY - State_Grid%Buffer_N ) CYCLE
-            IF ( I <=                 State_Grid%Buffer_W ) CYCLE
-            IF ( I >  State_Grid%NX - State_Grid%Buffer_E ) CYCLE
+            IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
+            IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+            IF ( I <=                 State_Grid%WestBuffer  ) CYCLE
+            IF ( I >  State_Grid%NX - State_Grid%EastBuffer  ) CYCLE
          ENDIF
 
          ! Grid box surface area [m2]

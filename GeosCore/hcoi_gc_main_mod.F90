@@ -56,6 +56,7 @@ MODULE HCOI_GC_Main_Mod
 #if !defined(ESMF_) && !defined( MODEL_WRF )
   PRIVATE :: Get_GC_Restart
   PRIVATE :: Get_Met_Fields
+  PRIVATE :: Get_Boundary_Conditions
 #endif
 !
 ! !REMARKS:
@@ -3816,7 +3817,7 @@ CONTAINS
    USE HCO_INTERFACE_MOD,  ONLY : HcoState
    USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr 
    USE OCEAN_MERCURY_MOD,  ONLY : CHECK_OCEAN_MERCURY
-   USE PHYSCONSTANTS,      ONLY : BOLTZ, AIRMW
+   USE PHYSCONSTANTS,      ONLY : AIRMW
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : Species
    USE State_Chm_Mod,      ONLY : ChmState
@@ -4587,6 +4588,197 @@ CONTAINS
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_boundary_conditions
+!
+! !DESCRIPTION: Subroutine GET\_BOUNDARY\_CONDITIONS calls the various routines
+! to get boundary conditions from HEMCO for nested grid simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
+                                     State_Grid, State_Met, Phase,     RC )
+!
+! ! USES:
+!
+   USE ErrCode_Mod
+   USE HCO_INTERFACE_MOD,      ONLY : HcoState
+   USE HCO_EMISLIST_MOD,       ONLY : HCO_GetPtr 
+   USE Input_Opt_Mod,          ONLY : OptInput
+   USE PHYSCONSTANTS,          ONLY : AIRMW
+   USE Species_Mod,            ONLY : Species
+   USE State_Chm_Mod,          ONLY : ChmState
+   USE State_Grid_Mod,         ONLY : GrdState
+   USE State_Met_Mod,          ONLY : MetState
+   USE Time_Mod
+!
+! !INPUT PARAMETERS:
+!
+   LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
+   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
+   TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
+   INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
+   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
+   INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+! 
+! !REMARKS:
+!
+! !REVISION HISTORY: 
+!  14 Apr 2019 - M. Sulprizio- Initial version
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
+   LOGICAL              :: FOUND              ! Found in restart file?
+   CHARACTER(LEN=60)    :: Prefix             ! utility string
+   CHARACTER(LEN=255)   :: LOC                ! routine location
+   CHARACTER(LEN=255)   :: MSG                ! message 
+   CHARACTER(LEN=255)   :: v_name             ! variable name 
+   REAL(fp)             :: MW_g               ! species molecular weight
+   REAL(fp)             :: SMALL_NUM          ! small number threshold
+   CHARACTER(LEN=16)    :: STAMP
+   
+   ! Temporary arrays and pointers
+   REAL*4,  TARGET      :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+   REAL*4,  POINTER     :: Ptr3D(:,:,:)
+   REAL(fp), POINTER    :: Spc(:,:,:,:)
+
+   ! Objects
+   TYPE(Species), POINTER :: SpcInfo
+   
+   !=================================================================
+   ! READ_BOUNDARY_CONDITIONS begins here!
+   !=================================================================
+
+   ! Assume success
+   RC        = GC_SUCCESS
+   
+   ! Initialize pointers
+   Ptr3D     => NULL()
+   SpcInfo   => NULL()
+
+   ! Point to species array [kg/kg]
+   Spc       => State_Chm%Species
+   
+   ! Name of this routine
+   LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hcoi_gc_main_mod.F)'
+
+   ! Set minimum value threshold for [mol/mol]
+   SMALL_NUM = 1.0e-30_fp
+
+   !=================================================================
+   ! Read species concentrations from NetCDF [mol/mol] and
+   ! store in State_Chm%BoundaryCond in [kg/kg dry]
+   !=================================================================
+
+   ! IMPORTANT NOTE: the unit conversion from mol/mol to kg/kg uses
+   ! the molecular weight stored in the species database which is
+   ! a meaningful value for advected species but is a bad value (-1)
+   ! for all others. Non-advected species should NOT be used when 
+   ! State_Chm%Species units are in mass mixing ratio. Current
+   ! units can be determined at any point by looking at 
+   ! State_Chm%Spc_Units. (ewl, 8/11/16)
+   
+   ! Initialize BCs to all zeroes
+   State_Chm%BoundaryCond = 0.e+0_fp
+
+   ! Loop over advected species
+   DO NA = 1, State_Chm%nAdvect
+
+      ! Get the species ID from the advected species ID
+      N = State_Chm%Map_Advect(NA)
+      
+      ! Get info about this species from the species database
+      SpcInfo => State_Chm%SpcData(N)%Info
+      MW_g    =  SpcInfo%emMW_g
+
+      ! Define variable name
+      v_name = 'BC_' // TRIM( SpcInfo%Name )
+
+      ! Initialize temporary array for this species and point to it
+      Temp3D = 0.0_fp
+      Ptr3D => Temp3D
+
+      ! Get variable from HEMCO and store in local array
+      CALL HCO_GetPtr( am_I_Root, HcoState, TRIM(v_name), &
+                       Ptr3D,     RC,       FOUND=FOUND )
+
+      ! Check if BCs are found
+      IF ( FOUND ) THEN
+
+         ! Copy data from file to State_Chm%BoundaryCond
+         ! and convert from [mol/mol] to [kg/kg dry]
+         State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
+
+         ! Loop over grid boxes and apply BCs to the specified buffer zone
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+         DO L = 1, State_Grid%NZ
+
+            ! First loop over all latitudes of the nested domain
+            DO J = 1, State_Grid%NY
+
+               ! West BC 
+               DO I = 1, State_Grid%WestBuffer
+                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+
+               ! East BC
+               DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+                  State_Chm%Species(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+         
+            ENDDO
+            
+            ! Then loop over the longitudes of the nested domain
+            DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
+              
+               ! South BC
+               DO J = 1, State_Grid%SouthBuffer
+                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+
+               ! North BC
+               DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+                  Spc(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N)
+               ENDDO
+            ENDDO
+            
+         ENDDO
+!OMP END PARALLEL DO
+         
+      ELSE
+
+         MSG = 'No boundary condition found for '// TRIM( SpcInfo%Name )
+         CALL GC_Error( MSG, RC, LOC)
+         RETURN
+
+      ENDIF
+
+      ! Free pointer
+      SpcInfo => NULL()
+
+   ENDDO
+      
+   ! Echo output
+   STAMP = TIMESTAMP_STRING()
+   WRITE( 6, 110 ) STAMP
+110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at', a )
+
+      
+ END SUBROUTINE Get_Boundary_Conditions
+!EOC 
 #endif
-!EOC
 END MODULE Hcoi_GC_Main_Mod

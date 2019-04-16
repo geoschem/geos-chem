@@ -106,9 +106,16 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Chemical species
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
+     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
+                                                        !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
+     !----------------------------------------------------------------------
+     ! Boundary conditions
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BoundaryCond(:,:,:,:)! Boundary conditions
+                                                        !  [kg/kg dry air]
+     
      !----------------------------------------------------------------------
      ! Aerosol quantities
      !----------------------------------------------------------------------
@@ -408,6 +415,9 @@ CONTAINS
     ! Chemical species
     State_Chm%Species       => NULL()
     State_Chm%Spc_Units     = ''
+
+    ! Boundary conditions
+    State_Chm%BoundaryCond  => NULL()
 
     ! Species database
     State_Chm%SpcData       => NULL()
@@ -796,6 +806,19 @@ CONTAINS
     State_Chm%Species = 0.0_fp
     CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
     CALL GC_CheckVar( 'State_Chm%Species', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !=======================================================================
+    ! Allocate and initialize boundary condition fields
+    !======================================================================= 
+    chmID = 'BoundaryCond'
+    ALLOCATE( State_Chm%BoundaryCond( IM, JM, LM, State_Chm%nSpecies ), STAT=RC)
+    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%BoundaryCond = 0.0_fp
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%BoundaryCond, &
+                            State_Chm, RC )
+    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
 #if defined( MODEL_GEOS )
@@ -1723,9 +1746,16 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
        DEALLOCATE( State_Chm%Species, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_Species', 2, RC )
+       CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Species => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
+       DEALLOCATE( State_Chm%BoundaryCond, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BoundaryCond', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BoundaryCond => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN

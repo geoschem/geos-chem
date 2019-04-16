@@ -840,10 +840,10 @@ CONTAINS
 
        ! Skipping buffer zone (lzh, 08/10/2014)
        IF ( State_Grid%NestedGrid ) THEN
-          IF ( J <=                 State_Grid%Buffer_S ) CYCLE
-          IF ( J >  State_Grid%NY - State_Grid%Buffer_N ) CYCLE
-          IF ( I <=                 State_Grid%Buffer_W ) CYCLE
-          IF ( I >  State_Grid%NX - State_Grid%Buffer_E ) CYCLE
+          IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
+          IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+          IF ( I <=                 State_Grid%EastBuffer  ) CYCLE
+          IF ( I >  State_Grid%NX - State_Grid%WestBuffer  ) CYCLE
        ENDIF
 
        !====================================================================
