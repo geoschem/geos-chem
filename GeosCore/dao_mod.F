@@ -398,8 +398,8 @@
       LOGICAL             :: UpdtMR
 
       ! Arrays
-      LOGICAL             :: IsLocNoon(IIPAR)
-      REAL(f8)            :: LocTime  (IIPAR)
+      LOGICAL             :: IsLocNoon(IIPAR,JJPAR)
+      REAL(f8)            :: LocTime  (IIPAR,JJPAR)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -442,15 +442,20 @@
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
-      ! NOTE: Local time only depends on longitude
+      DO J = 1, JJPAR
       DO I = 1, IIPAR
-         LocTime(I) = GET_LOCALTIME( I, 1, 1 )
+
+         ! Local time only depends on longitude, but longitude is a
+         ! function of (I,J) for cubed-sphere grids.  Therefore, use
+         ! (I,J) in the call to GET_LOCALTIME. (bmy, 4/16/19)
+         LocTime(I,J) = GET_LOCALTIME( I, J, 1 )
 
          ! Set a flag if the location is within 1hr of local noon,
          ! which matches what we did for the bpch diagnostics.
          ! (Avoid roundoff by setting an epsilon of 0.00001.)
-         IsLocNoon(I) = ( LocTime(I) >= 10.99999_f8 .and.
-     &                    LocTime(I) <= 13.00001_f8       )
+         IsLocNoon(I,J) = ( LocTime(I,J) >= 10.99999_f8 .and.
+     &                      LocTime(I,J) <= 13.00001_f8       )
+      ENDDO
       ENDDO
 
       !=============================================================
@@ -810,8 +815,8 @@
          !--------------------------------------------------------------
          ! Local solar time and box that is nearest to local noon
          !--------------------------------------------------------------
-         State_Met%LocalSolarTime(I,J) = LocTime(I)
-         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
+         State_Met%LocalSolarTime(I,J) = LocTime(I,J)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I,J)
 
          !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere
