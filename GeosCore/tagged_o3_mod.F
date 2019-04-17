@@ -657,7 +657,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !===========================================================
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -677,7 +676,6 @@
                State_Diag%Loss(I,J,L,N) = Spc(I,J,L,N) * L24H(I,J,L) 
      &                                  * BOXVL        / TS_EMIS
             ENDIF
-#endif
 
             !===========================================================
             ! Apply chemical P(O3) - L(O3) to each tagged species

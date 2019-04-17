@@ -583,8 +583,14 @@ CONTAINS
     hhmmss         =  Input_Opt%NhmsB
     yyyymmdd_end   =  Input_Opt%NymdE
     hhmmss_end     =  Input_Opt%NhmsE
-    deltaYMD       =  yyyymmdd_end - yyyymmdd
-    deltaHMS       =  hhmmss_end   - hhmmss
+
+    ! Compute the YMD and HMS intervals for collections specified with "End",
+    ! such as for restart files.  NOTE: This algorithm should work with most
+    ! common model simulation intervals, but there might be some edge cases
+    ! that will cause it to fail.  It is still an improvement. (bmy, 2/26/19)
+    CALL Compute_DeltaYmdHms_For_End( yyyymmdd,     hhmmss,                  &
+                                      yyyymmdd_end, hhmmss_end,              &
+                                      deltaYMD,     deltaHMS                )
 
     ! Convert the HeartBeatDtSec into hours:minutes:seconds
     ! for defining the Update interval for time-averaged collections
@@ -2121,6 +2127,7 @@ CONTAINS
     USE ErrCode_Mod
     USE HistItem_Mod,          ONLY : HistItem
     USE HistContainer_Mod,     ONLY : HistContainer
+    USE HistContainer_Mod,     ONLY : HistContainer_UpdateIvalSet
     USE History_Util_Mod
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer
     USE MetaHistItem_Mod,      ONLY : MetaHistItem
@@ -2144,6 +2151,8 @@ CONTAINS
 !  16 Aug 2017 - R. Yantosca - Now call TestTimeForAction to test if it is
 !                              time to update the diagnostic collection.
 !  21 Aug 2017 - R. Yantosca - Now get yyyymmdd, hhmmss from the container
+!  05 Mar 2019 - R. Yantosca - Call HistContainer_UpdateIvalSet to recompute
+!                              the UpdateAlarm interval for intervals > 1 mon.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2211,7 +2220,7 @@ CONTAINS
  100      FORMAT( '     - Updating collection: ', a20 ) 
        ENDIF
 #endif
-       
+
        !--------------------------------------------------------------------
        ! If it is time to update the collection, then loop through all of
        ! the associated HISTORY ITEMS and either copy or accumulate the
@@ -2425,6 +2434,12 @@ CONTAINS
        !------------------------------------------------------------------
        ! Prepare to go to the next collection
        !------------------------------------------------------------------ 
+
+       ! Recompute the update alarm interval if it 1 month or longer,
+       ! as we will have to take into account leap years, etc.
+       IF ( Container%UpdateYmd >= 000100 ) THEN
+          CALL HistContainer_UpdateIvalSet( am_I_Root, Container, RC )
+       ENDIF
 
        ! Update the "UpdateAlarm" time for the next updating interval.
        Container%UpdateAlarm = Container%UpdateAlarm +                    &

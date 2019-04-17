@@ -6641,10 +6641,10 @@ C     and get the nucleation rate and critical cluster size
       ! Determine factor used to convert Spc to units of [kg] locally
       ! (ewl, 9/29/15)
       IF ( TRIM( State_Chm%Spc_Units ) == 'kg/m2' ) THEN
-         UNITFACTOR = State_Grid%AREA_M2( I, J, 1 )
+         UNITFACTOR = State_Grid%AREA_M2(I,J)
 
       ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg dry' ) THEN
-         UNITFACTOR = State_Met%AD( I, J, L )
+         UNITFACTOR = State_Met%AD(I,J,L)
 
       ELSE 
          MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)

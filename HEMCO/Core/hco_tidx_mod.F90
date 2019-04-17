@@ -764,7 +764,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER   :: cYr, cMt, cDy, cWd, cHr, cMn 
+    INTEGER   :: cYr, cMt, cDy, cWd, cHr, cMn, sYr
     LOGICAL   :: InRange
 
     !-----------------------------------
@@ -777,9 +777,13 @@ CONTAINS
     ! Get current time
     CALL HcoClock_Get( am_I_Root, HcoState%Clock,                   &
                        cYYYY    = cYr, cMM = cMt, cDD = cDy,        &
-                       cWEEKDAY = cWd, cH  = cHr, cM  = cMn, RC = RC ) 
+                       cWEEKDAY = cWd, cH  = cHr, cM  = cMn,        &
+                       sYYYY    = sYr, RC = RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
+    ! Always use simulation year when specified
+    IF ( Lct%Dct%Dta%UseSimYear ) cYr = sYr
+    
     ! preferred minute is always current one
     readMn = cMn
 

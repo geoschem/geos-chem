@@ -119,10 +119,8 @@
 ! !USES:
 !
       USE ErrCode_Mod
-#if defined( NC_DIAG )
       USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
       USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
-#endif
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
@@ -132,9 +130,7 @@
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
 #endif
-#if defined( NC_DIAG )
       USE Time_Mod,           ONLY : Get_Ts_Dyn
-#endif
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
 !
@@ -188,9 +184,7 @@
       CHARACTER(LEN=63)  :: OrigUnit 
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-#if defined( NC_DIAG )
       REAL(fp)           :: DT_Dyn
-#endif
 
       !=================================================================
       ! DO_PBL_MIX begins here!
@@ -225,7 +219,6 @@
       !=================================================================
       IF ( DO_TURBDAY ) THEN
 
-#if defined( NC_DIAG )
          !-------------------------------------------------
          ! Full PBL mixing budget diagnostics - Part 1 of 2
          !-------------------------------------------------
@@ -246,7 +239,6 @@
                RETURN
             ENDIF
          ENDIF
-#endif
 
          !--------------------------
          ! Unit conversion #1
@@ -304,7 +296,6 @@
             RETURN
          ENDIF
 
-#if defined( NC_DIAG )
        !-------------------------------------------------
        ! Full PBL mixing budget diagnostics - Part 2 of 2
        !-------------------------------------------------
@@ -342,7 +333,6 @@
              RETURN
           ENDIF
        ENDIF
-#endif
 
       ENDIF
 
@@ -751,7 +741,7 @@
       RC = GC_SUCCESS
 
       ! First-time initialization
-      IF ( FIRST .and. Input_Opt%RootCPU ) THEN
+      IF ( FIRST .and. am_I_Root ) THEN
 
          ! Echo info
          WRITE( 6, '(a)' ) REPEAT( '=', 79 )

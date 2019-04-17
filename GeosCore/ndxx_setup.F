@@ -296,7 +296,8 @@
       !=================================================================
       IF ( ND01 > 0 ) THEN 
          LD01 = MIN( ND01, State_Grid%NZ )
-         ALLOCATE( AD01( State_Grid%NX, State_Grid%NY, LD01 ), STAT=AS )
+         ALLOCATE( AD01( State_Grid%NX, State_Grid%NY, LD01, 2 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD01' )
       ENDIF
 

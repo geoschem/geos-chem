@@ -110,7 +110,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Init
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Init
     USE HCOX_CH4WetLand_MOD,    ONLY : HCOX_CH4WETLAND_Init
-    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Init
+    USE HCOX_Volcano_Mod,       ONLY : HCOX_Volcano_Init
     USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Init
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Init
@@ -257,9 +257,9 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
     !-----------------------------------------------------------------------
-    ! AeroCom volcano emissions 
+    ! Volcano emissions 
     !-----------------------------------------------------------------------
-    CALL HCOX_AeroCom_Init( amIRoot,  HcoState, 'AeroCom_Volcano', &
+    CALL HCOX_Volcano_Init( amIRoot,  HcoState, 'Volcano', &
                             ExtState,  RC ) 
     IF ( RC /= HCO_SUCCESS ) RETURN 
 
@@ -341,7 +341,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Run
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Run
     USE HCOX_CH4WetLand_mod,    ONLY : HCOX_CH4Wetland_Run
-    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Run
+    USE HCOX_Volcano_Mod,       ONLY : HCOX_Volcano_Run
     USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Run
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Run
@@ -530,8 +530,8 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! AeroCom volcano emissions 
     !-----------------------------------------------------------------------
-    IF ( ExtState%AeroCom > 0 ) THEN
-       CALL HCOX_AeroCom_Run( amIRoot, ExtState, HcoState, RC )
+    IF ( ExtState%Volcano > 0 ) THEN
+       CALL HCOX_Volcano_Run( amIRoot, ExtState, HcoState, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN 
     ENDIF
 
@@ -594,7 +594,7 @@ CONTAINS
     USE HCOX_GC_RnPbBe_Mod,     ONLY : HCOX_GC_RnPbBe_Final
     USE HCOX_GC_POPs_Mod,       ONLY : HCOX_GC_POPs_Final
     USE HCOX_CH4WetLand_Mod,    ONLY : HCOX_CH4Wetland_Final
-    USE HCOX_AeroCom_Mod,       ONLY : HCOX_AeroCom_Final
+    USE HCOX_Volcano_Mod,       ONLY : HCOX_Volcano_Final
     USE HCOX_Iodine_Mod,        ONLY : HCOX_Iodine_Final
 #if defined( TOMAS )
     USE HCOX_TOMAS_Jeagle_Mod,   ONLY : HCOX_TOMAS_Jeagle_Final
@@ -662,7 +662,7 @@ CONTAINS
        ENDIF
 #endif
        IF ( ExtState%DustGinoux > 0 ) THEN
-          CALL HCOX_DustGinoux_Final()
+          CALL HCOX_DustGinoux_Final( ExtState )
        ENDIF
 
        IF ( ExtState%SeaSalt > 0  ) THEN
@@ -686,19 +686,19 @@ CONTAINS
        ENDIF
 
        IF ( ExtState%GC_RnPbBe > 0 ) THEN
-          CALL HCOX_GC_RnPbBe_Final()
+          CALL HCOX_GC_RnPbBe_Final( ExtState )
        ENDIF
 
        IF ( ExtState%GC_POPs > 0  ) THEN
-          CALL HCOX_GC_POPs_Final()
+          CALL HCOX_GC_POPs_Final( ExtState )
        ENDIF
 
        IF ( ExtState%Wetland_CH4 > 0 ) THEN
           CALL HCOX_CH4Wetland_Final( ExtState )
        ENDIF
 
-       IF ( ExtState%AeroCom > 0 ) THEN
-          CALL HCOX_AeroCom_Final( ExtState )
+       IF ( ExtState%Volcano > 0 ) THEN
+          CALL HCOX_Volcano_Final( ExtState )
        ENDIF
 
        IF ( ExtState%Inorg_Iodine > 0 ) THEN
@@ -706,7 +706,7 @@ CONTAINS
        ENDIF
 #if defined( TOMAS )
        IF ( ExtState%TOMAS_Jeagle > 0  ) THEN
-          CALL HCOX_TOMAS_Jeagle_Final()
+          CALL HCOX_TOMAS_Jeagle_Final( ExtState )
        eNDIF
 #endif       
 

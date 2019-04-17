@@ -3,17 +3,17 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: hcox_aerocom_mod.F90
+! !MODULE: hcox_volcano_mod.F90
 !
-! !DESCRIPTION: Module HCOX\_AeroCom\_Mod.F90 is a HEMCO extension to use
-! AeroCom volcano emissions from ascii tables. This module reads the daily
-! AeroCom tables and emits the emissions according to the information in 
-! this file.
+! !DESCRIPTION: Module HCOX\_Volcano\_Mod.F90 is a HEMCO extension to use
+!  volcano emissions (such as AeroCom or OMI) from ascii tables. This module
+!  reads the daily data tables and emits the emissions according to the
+!  information in this file.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE HCOX_AeroCom_Mod 
+MODULE HCOX_Volcano_Mod
 !
 ! !USES:
 !
@@ -21,16 +21,16 @@ MODULE HCOX_AeroCom_Mod
   USE HCO_Diagn_MOD
   USE HCOX_TOOLS_MOD
   USE HCOX_State_MOD, ONLY : Ext_State
-  USE HCO_State_MOD,  ONLY : HCO_State 
+  USE HCO_State_MOD,  ONLY : HCO_State
 
   IMPLICIT NONE
   PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: HCOX_AeroCom_Run
-  PUBLIC :: HCOX_AeroCom_Init
-  PUBLIC :: HCOX_AeroCom_Final
+  PUBLIC :: HCOX_Volcano_Run
+  PUBLIC :: HCOX_Volcano_Init
+  PUBLIC :: HCOX_Volcano_Final
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -38,34 +38,34 @@ MODULE HCOX_AeroCom_Mod
   PRIVATE :: EmitVolc
 !
 ! !REMARKS:
-! Each AeroCom table is expected to list the volcano location, sulfur 
-! emissions (in kg S/s), and the volcano elevation as well as the 
-! volcano plume column height. These entries need be separated by space
+! Each volcano table (e.g. AeroCom or OMI) is expected to list the volcano
+! location, sulfur emissions (in kg S/s), and the volcano elevation as well
+! as the volcano plume column height. These entries need be separated by space
 ! characters. For example:
 !                                                                             .
 ! ###  LAT (-90,90), LON (-180,180), SULFUR [kg S/s], ELEVATION [m], CLOUD_COLUMN_HEIGHT [m]
 ! ### If elevation=cloud_column_height, emit in layer of elevation
 ! ### else, emit in top 1/3 of cloud_column_height
 ! volcano::
-! 50.170 6.850 3.587963e-03 600. 600. 
+! 50.170 6.850 3.587963e-03 600. 600.
 ! ::
 !                                                                             .
 ! The sulfur read from table is emitted as the species defined in the
-! AeroCom settings section. More than one species can be provided. Mass
+! Volcano settings section. More than one species can be provided. Mass
 ! sulfur is automatically converted to mass of emitted species (using the
 ! emitted molecular weight and molecular ratio of the corresponding HEMCO
 ! species). Additional scale factors can be defined in the settings section
 ! by using the (optional) setting 'Scaling_<SpecName>'.
 ! For example, to emit SO2 and BrO from volcanoes, with an additional scale
 ! factor of 1e-4 kg BrO / kgS for BrO, use the following setting:
-!115     AeroCom_Volcano   : on    SO2/BrO
+!115     Volcano           : on    SO2/BrO
 !    --> Scaling_BrO       :       1.0e-4
 !    --> Volcano_Source    :       OMI
-!    --> AeroCom_Table     :       $ROOT/VOLCANO/v2018-03/$YYYY/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
+!    --> Volcano_Table     :       $ROOT/VOLCANO/v2018-03/$YYYY/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
 !                                                                             .
 ! This extension was originally added for usage within GEOS-5 and AeroCom
 ! volcanic emissions, but has been modified to work with OMI-based volcanic
-! emissions from Ge et al. (2016). 
+! emissions from Ge et al. (2016).
 !                                                                             .
 ! When using this extension, you should turn off any other volcano emission
 ! inventories!
@@ -78,7 +78,7 @@ MODULE HCOX_AeroCom_Mod
 !       3446-3464, doi:10.1002/2015JD023134, 2016.
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !  28 Mar 2018 - M. Sulprizio- Update to allow for OMI-based volcanic emissions;
 !                              Added Volcano_Source option to specify AeroCom
 !                              or OMI emissions because the latter are only
@@ -95,14 +95,14 @@ MODULE HCOX_AeroCom_Mod
    INTEGER                         :: CatErupt  = -1   ! Category of eruptive emissions
    INTEGER                         :: CatDegas  = -1   ! Category of degassing emissions
    INTEGER                         :: nSpc      =  0   ! # of species
-   INTEGER                         :: nVolc     =  0   ! # of volcanoes in buffer 
+   INTEGER                         :: nVolc     =  0   ! # of volcanoes in buffer
    INTEGER,  ALLOCATABLE           :: SpcIDs(:)        ! HEMCO species IDs
    REAL(sp), ALLOCATABLE           :: SpcScl(:)        ! Species scale factors
    REAL(sp), ALLOCATABLE           :: VolcSlf(:)       ! Sulface emissions [kg S/s]
    REAL(sp), ALLOCATABLE           :: VolcElv(:)       ! Elevation [m]
    REAL(sp), ALLOCATABLE           :: VolcCld(:)       ! Cloud column height [m]
-   INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index 
-   INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index 
+   INTEGER,  ALLOCATABLE           :: VolcIdx(:)       ! Lon grid index
+   INTEGER,  ALLOCATABLE           :: VolcJdx(:)       ! Lat grid index
    CHARACTER(LEN=255)              :: FileName         ! Volcano file name
    CHARACTER(LEN=255)              :: VolcSource       ! Volcano data source
    CHARACTER(LEN=61), ALLOCATABLE  :: SpcScalFldNme(:) ! Names of scale factor fields
@@ -112,8 +112,8 @@ MODULE HCOX_AeroCom_Mod
   ! Pointer to instances
   TYPE(MyInst), POINTER            :: AllInst => NULL()
 
-  ! AeroCom data is in kgS. Will be converted to kg emitted species.
-  ! MW_S is the molecular weight of sulfur 
+  ! Volcano data is in kgS. Will be converted to kg emitted species.
+  ! MW_S is the molecular weight of sulfur
   REAL(hp), PARAMETER             :: MW_S = 32.0_hp
 
 CONTAINS
@@ -123,15 +123,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_AeroCom_Run
+! !IROUTINE: HCOX_Volcano_Run
 !
-! !DESCRIPTION: Subroutine HCOX\_AeroCom\_Run is the driver routine 
-! for the customizable HEMCO extension. 
+! !DESCRIPTION: Subroutine HCOX\_Volcano\_Run is the driver routine
+! for the customizable HEMCO extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_AeroCom_Run( am_I_Root, ExtState, HcoState, RC )
+  SUBROUTINE HCOX_Volcano_Run( am_I_Root, ExtState, HcoState, RC )
 !
 ! !USES:
 !
@@ -144,72 +144,104 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state 
+    TYPE(HCO_State), POINTER       :: HcoState    ! Hemco state
     INTEGER,         INTENT(INOUT) :: RC          ! Success or failure
-!
-! !REMARKS:
-!  
 !
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version
 !  26 Oct 2016 - R. Yantosca - Don't nullify local ptrs in declaration stmts
+!  20 Mar 2019 - R. Yantosca - Remove MinDiagLev=2 from calls to HCO_EmisAdd
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER               :: N
-    REAL(sp)              :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ) ! degassing
-    REAL(sp)              :: SO2erupt(HcoState%NX,HcoState%NY,HcoState%NZ) ! eruptive
-    REAL(sp)              :: iFlx    (HcoState%NX,HcoState%NY,HcoState%NZ)
     LOGICAL               :: ERR
-    TYPE(MyInst), POINTER :: Inst
+
+    ! Strings
     CHARACTER(LEN=255)    :: MSG
 
+    ! Arrays
+    REAL(sp)              :: SO2degas(HcoState%NX,HcoState%NY,HcoState%NZ)
+    REAL(sp)              :: SO2erupt(HcoState%NX,HcoState%NY,HcoState%NZ)
+    REAL(sp)              :: iFlx    (HcoState%NX,HcoState%NY,HcoState%NZ)
+
+    ! Pointers
+    TYPE(MyInst), POINTER :: Inst
+
     !=================================================================
-    ! HCOX_AEROCOM_RUN begins here!
+    ! HCOX_VOLCANO_RUN begins here!
     !=================================================================
 
     ! Sanity check: return if extension not turned on
-    IF ( ExtState%AeroCom <= 0 ) RETURN
+    IF ( ExtState%Volcano <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Run (hcox_aerocom_mod.F90)', RC )
+    CALL HCO_Enter( HcoState%Config%Err,                                     &
+                    'HCOX_Volcano_Run (hcox_volcano_mod.F90)', RC           )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get instance
     Inst => NULL()
-    CALL InstGet ( ExtState%AeroCom, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) THEN 
-       WRITE(MSG,*) 'Cannot find AeroCom instance Nr. ', ExtState%AeroCom
-       CALL HCO_ERROR(HcoState%Config%Err,MSG,RC)
+    CALL InstGet( ExtState%Volcano, Inst, RC )
+    IF ( RC /= HCO_SUCCESS ) THEN
+       WRITE(MSG,*) 'Cannot find Volcano instance Nr. ', ExtState%Volcano
+       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
-    ! Read/update the volcano data (will be done only if this is a new
-    ! day) 
-    CALL ReadVolcTable ( am_I_Root, HcoState, ExtState, Inst, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN 
-
-    ! Emit volcanos into SO2degas and SO2erupt
-    CALL EmitVolc ( am_I_Root, HcoState, ExtState, Inst, SO2degas, SO2erupt, RC )
+    !----------------------------------------------
+    ! Read/update the volcano data
+    ! (will be done only if this is a new day
+    !----------------------------------------------
+    CALL ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Add eruptive and degassing emissions to emission arrays & diagnostics 
+    ! Emit volcanos into SO2degas and SO2erupt arrays [kg S/m2/s]
+    CALL EmitVolc( am_I_Root, HcoState, ExtState,                            &
+                   Inst,      SO2degas, SO2erupt, RC                        )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+
+    ! Add eruptive and degassing emissions to emission arrays & diagnostics
     DO N = 1, Inst%nSpc
-       iFlx = SO2degas * Inst%SpcScl(N) 
-       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(Inst%SpcScalFldNme(N)), RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, Inst%SpcIDs(N), &
-                         RC,        ExtNr=Inst%ExtNr, Cat=Inst%CatDegas, MinDiagnLev=2 )
+
+       !-------------------------------------------
+       ! Add degassing emissions
+       !-------------------------------------------
+
+       ! Convert from [kg S/m2/s] to [kg species/m2/s]
+       iFlx = SO2degas * Inst%SpcScl(N)
+
+       ! Apply user-defined scaling (if any) for this species
+       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
+                        iFlx,      TRIM(Inst%SpcScalFldNme(N)), RC          )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
-       iFlx = SO2erupt * Inst%SpcScl(N) 
-       CALL HCOX_SCALE( am_I_Root, HcoState, iFlx, TRIM(Inst%SpcScalFldNme(N)), RC )
+       ! Add degassing emissions into the HEMCO state
+       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
+                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
+                         Cat=Inst%CatDegas                                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
-       CALL HCO_EmisAdd( am_I_Root, HcoState,    iFlx, Inst%SpcIDs(N), &
-                         RC,        ExtNr=Inst%ExtNr, Cat=Inst%CatErupt, MinDiagnLev=2 )
+
+       !-------------------------------------------
+       ! Add eruptive emissions
+       !-------------------------------------------
+
+       ! Convert from [kg S/m2/s] to [kg species/m2/s]
+       iFlx = SO2erupt * Inst%SpcScl(N)
+
+       ! Apply user-defined scaling (if any) for this species
+       CALL HCOX_Scale( am_I_Root, HcoState,                                 &
+                        iFlx, TRIM(Inst%SpcScalFldNme(N)), RC               )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ! Add eruptive emissions to the HEMCO state
+       CALL HCO_EmisAdd( am_I_Root,       HcoState,    iFlx,                 &
+                         Inst%SpcIDs(N),  RC,          ExtNr=Inst%ExtNr,     &
+                         Cat=Inst%CatErupt                                  )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
     ENDDO !N
@@ -220,23 +252,23 @@ CONTAINS
     ! Return w/ success
     CALL HCO_LEAVE( HcoState%Config%Err, RC )
 
-  END SUBROUTINE HCOX_AeroCom_Run
+  END SUBROUTINE HCOX_Volcano_Run
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_AeroCom_Init
+! !IROUTINE: HCOX_Volcano_Init
 !
-! !DESCRIPTION: Subroutine HCOX\_AeroCom\_Init initializes the HEMCO
+! !DESCRIPTION: Subroutine HCOX\_Volcano\_Init initializes the HEMCO
 ! CUSTOM extension.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_AeroCom_Init( am_I_Root, HcoState, ExtName, &
-                                ExtState,  RC                  )
+  SUBROUTINE HCOX_Volcano_Init( am_I_Root, HcoState, ExtName,                &
+                                ExtState,  RC                               )
 !
 ! !USES:
 !
@@ -249,22 +281,22 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root
     CHARACTER(LEN=*), INTENT(IN   ) :: ExtName    ! Extension name
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
-    INTEGER,          INTENT(INOUT) :: RC 
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state
+    INTEGER,          INTENT(INOUT) :: RC
 
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-    TYPE(MyInst), POINTER          :: Inst 
+    TYPE(MyInst), POINTER          :: Inst
     REAL(sp)                       :: ValSp
     INTEGER                        :: ExtNr, N, Dum
     LOGICAL                        :: FOUND
@@ -272,7 +304,7 @@ CONTAINS
     CHARACTER(LEN=255)             :: MSG, Str
 
     !=================================================================
-    ! HCOX_AEROCOM_INIT begins here!
+    ! HCOX_VOLCANO_INIT begins here!
     !=================================================================
 
     ! Extension Nr.
@@ -280,37 +312,42 @@ CONTAINS
     IF ( ExtNr <= 0 ) RETURN
 
     ! Enter
-    CALL HCO_ENTER( HcoState%Config%Err, 'HCOX_AeroCom_Init (hcox_aerocom_mod.F90)', RC )
+    CALL HCO_Enter( HcoState%Config%Err,                                     &
+                    'HCOX_Volcano_Init (hcox_volcano_mod.F90)', RC          )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
-    ! Create AeroCom instance for this simulation
+    ! Create Volcano instance for this simulation
     Inst => NULL()
-    CALL InstCreate ( ExtNr, ExtState%AeroCom, Inst, RC )
+    CALL InstCreate( ExtNr, ExtState%Volcano, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
+       CALL HCO_Error( HcoState%Config%Err,                                  &
+                      'Cannot create Volcano instance', RC                  )
        RETURN
     ENDIF
 
-    ! Get species IDs. 
-    CALL HCO_GetExtHcoID( HcoState, ExtNr, Inst%SpcIDs, SpcNames, Inst%nSpc, RC )
+    ! Get species IDs.
+    CALL HCO_GetExtHcoID( HcoState, ExtNr,     Inst%SpcIDs,                  &
+                          SpcNames, Inst%nSpc, RC                           )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! There must be at least one species
     IF ( Inst%nSpc == 0 ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'No AeroCom species specified', RC )
+       CALL HCO_Error( HcoState%Config%Err,                                  &
+                      'No Volcano species specified', RC                    )
        RETURN
     ENDIF
 
-    ! Determine scale factor to be applied to each species. This is 1.00 
+    ! Determine scale factor to be applied to each species. This is 1.00
     ! by default, but can be set in the HEMCO configuration file via setting
-    ! Scaling_<SpcName>. 
-    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
-                       SpcNames, 'Scaling', 1.0_sp, Inst%SpcScl, RC )
+    ! Scaling_<SpcName>.
+    CALL GetExtSpcVal( HcoState%Config, ExtNr,  Inst%nSpc,   SpcNames,       &
+                       'Scaling',       1.0_sp, Inst%SpcScl, RC             )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Get species mask fields
-    CALL GetExtSpcVal( HcoState%Config, ExtNr, Inst%nSpc, &
-                       SpcNames, 'ScaleField', HCOX_NOSCALE, Inst%SpcScalFldNme, RC )
+    CALL GetExtSpcVal( HcoState%Config,    ExtNr,        Inst%nSpc,          &
+                       SpcNames,           'ScaleField', HCOX_NOSCALE,       &
+                       Inst%SpcScalFldNme, RC                               )
     IF ( RC /= HCO_SUCCESS ) RETURN
 
     ! Add conversion factor from kg S to kg of emitted species
@@ -320,44 +357,40 @@ CONTAINS
     ENDDO
 
     ! Get location of volcano table. This must be provided.
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'AeroCom_Table', &
-                    OptValChar=Inst%FileName, FOUND=FOUND, RC=RC )
-                    
+    CALL GetExtOpt( HcoState%Config, ExtNr, 'Volcano_Table',                 &
+                    OptValChar=Inst%FileName, FOUND=FOUND, RC=RC            )
+
     IF ( RC /= HCO_SUCCESS .OR. .NOT. FOUND ) THEN
-       MSG = 'Cannot properly read AeroCom table file name. Please provide ' // &
-             'the AeroCom table as a setting to the AeroCom extension. The ' // &
-             'name of this setting must be `AeroCom_Table`.'
-       CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC )
+       MSG = 'Cannot read Volcano table file name. Please provide '       // &
+             'the Volcano table as a setting to the Volcano extension. '  // &
+             'The name of this setting must be `Volcano_Table`.'
+       CALL HCO_Error( HcoState%Config%Err, MSG, RC )
        RETURN
     ENDIF
 
     ! See if emissions data source is given
     ! As of v11-02f, options are AeroCom or OMI
     Inst%VolcSource = 'AeroCom'
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Volcano_Source', & 
-                    OptValChar=Str,  FOUND=FOUND, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr,       'Volcano_Source',          &
+                    OptValChar=Str,  FOUND=FOUND, RC=RC                     )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%VolcSource = Str
-
-#if !defined( MODEL_GEOS )
-    Print*, Inst%VolcSource
-#endif
 
     ! See if eruptive and degassing hierarchies are given
     Inst%CatErupt = 51
     Inst%CatDegas = 52
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Degassing', & 
-                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr,       'Cat_Degassing',           &
+                    OptValInt=Dum,   FOUND=FOUND, RC=RC                     )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%CatDegas = Dum
-    CALL GetExtOpt( HcoState%Config, ExtNr, 'Cat_Eruptive', &
-                    OptValInt=Dum, FOUND=FOUND, RC=RC )
+    CALL GetExtOpt( HcoState%Config, ExtNr,       'Cat_Eruptive',            &
+                    OptValInt=Dum,   FOUND=FOUND, RC=RC                    )
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( FOUND ) Inst%CatErupt = Dum
 
     ! Verbose mode
     IF ( am_I_Root ) THEN
-       MSG = 'Use emissions extension `AeroCom_Volcano`:'
+       MSG = 'Use emissions extension `Volcano`:'
        CALL HCO_MSG( HcoState%Config%Err,  MSG )
 
        MSG = ' - use the following species (Name, HcoID, Scaling relative to kgS):'
@@ -376,20 +409,20 @@ CONTAINS
        CALL HCO_MSG( HcoState%Config%Err,  MSG )
     ENDIF
 
-    ! Cleanup 
+    ! Cleanup
     Inst => NULL()
     IF ( ALLOCATED(SpcNames) ) DEALLOCATE(SpcNames)
 
-    CALL HCO_LEAVE( HcoState%Config%Err, RC ) 
+    CALL HCO_Leave( HcoState%Config%Err, RC )
 
-  END SUBROUTINE HCOX_AeroCom_Init
+  END SUBROUTINE HCOX_Volcano_Init
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: HCOX_AeroCom_Final
+! !IROUTINE: HCOX_Volcano_Final
 !
 ! !DESCRIPTION: Subroutine HCOX\_AeroCom\_Final finalizes the HEMCO
 !  AeroCom extension.
@@ -397,11 +430,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOX_AeroCom_Final ( ExtState )
+  SUBROUTINE HCOX_Volcano_Final( ExtState )
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State), POINTER :: ExtState   ! Module options
 !
 ! !REVISION HISTORY:
 !  04 Jun 2015 - C. Keller   - Initial version 
@@ -409,26 +442,26 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
     !=================================================================
-    ! HCOX_AEROCOM_FINAL begins here!
+    ! HCOX_VOLCANO_FINAL begins here!
     !=================================================================
-    CALL InstRemove ( ExtState%AeroCom )
+    CALL InstRemove( ExtState%Volcano )
 
-  END SUBROUTINE HCOX_AeroCom_Final
+  END SUBROUTINE HCOX_Volcano_Final
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: ReadVolcTable 
+! !IROUTINE: ReadVolcTable
 !
 ! !DESCRIPTION: Subroutine ReadVolcTable reads the AeroCom volcano table of the
-! current day. 
+!  current day.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ReadVolcTable ( am_I_Root, HcoState, ExtState, Inst, RC ) 
+  SUBROUTINE ReadVolcTable( am_I_Root, HcoState, ExtState, Inst, RC )
 !
 ! !USES:
 !
@@ -436,22 +469,22 @@ CONTAINS
     USE inquireMod,         ONLY : findfreeLun
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_NewDay
     USE HCO_CLOCK_MOD,      ONLY : HcoClock_Get
-    USE HCO_GeoTools_MOD,   ONLY : HCO_GetHorzIJIndex 
+    USE HCO_GeoTools_MOD,   ONLY : HCO_GetHorzIJIndex
     USE HCO_EXTLIST_MOD,    ONLY : HCO_GetOpt
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state
     TYPE(MyInst),     POINTER       :: Inst
-    INTEGER,          INTENT(INOUT) :: RC 
+    INTEGER,          INTENT(INOUT) :: RC
 
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !  28 Mar 2018 - M. Sulprizio- Add check for OMI-based emissions and use closest
 !                              available year if simulation year is outside
 !                              2005-2012
@@ -469,8 +502,8 @@ CONTAINS
     REAL(hp), ALLOCATABLE :: VolcLat(:)      ! Volcano latitude  [deg N]
     LOGICAL               :: FileExist, EOF
     CHARACTER(LEN=255)    :: ThisFile, ThisLine
-    CHARACTER(LEN=255)    :: MSG 
-    CHARACTER(LEN=255)    :: LOC = 'ReadVolcTable (hcox_aerocom_mod.F90)' 
+    CHARACTER(LEN=255)    :: MSG
+    CHARACTER(LEN=255)    :: LOC = 'ReadVolcTable (hcox_volcano_mod.F90)'
 
     !=================================================================
     ! ReadVolcTable begins here!
@@ -487,13 +520,6 @@ CONTAINS
        ! Error trap: skip leap days
        IF ( MM == 2 .AND. DD > 28 ) DD = 28
 #endif
-
-       ! OMI-based volcanic SO2 emissions are available for 2005-2012
-       ! Use closest year available (mps, 3/28/18)
-       IF ( TRIM(Inst%VolcSource) == 'OMI' ) THEN
-          IF ( YYYY < 2005 ) YYYY = 2005
-          IF ( YYYY > 2012 ) YYYY = 2012
-       ENDIF
 
        ! Get file name
        ThisFile = Inst%FileName
@@ -523,26 +549,26 @@ CONTAINS
           RETURN
        ENDIF
 
-       ! Get number of volcano records 
+       ! Get number of volcano records
        nVolc = 0
-       DO 
+       DO
           CALL GetNextLine( am_I_Root, LUN, ThisLine, EOF, RC )
           IF ( RC /= HCO_SUCCESS ) RETURN
           IF ( EOF ) EXIT
-          
+
           ! Skip any entries that contain '::'
           IF ( INDEX( TRIM(ThisLine), '::') > 0 ) CYCLE
 
           ! If we make it to here, this is a valid entry
           nVolc = nVolc + 1
-       ENDDO 
+       ENDDO
 
        ! Verbose
        IF ( HCO_IsVerb(HcoState%Config%Err,2) ) THEN
-          WRITE(MSG,*) 'Number of volcanoes: ', nVolc 
+          WRITE(MSG,*) 'Number of volcanoes: ', nVolc
           CALL HCO_MSG( HcoState%Config%Err, MSG)
        ENDIF
- 
+
        ! Allocate arrays
        IF ( nVolc > 0 ) THEN
           ! Eventually deallocate previously allocated data
@@ -575,17 +601,17 @@ CONTAINS
           WRITE(MSG,*) 'No volcano data found for year/mm/dd: ', YYYY, MM, DD
           CALL HCO_WARNING(HcoState%Config%Err,MSG,RC,WARNLEV=1,THISLOC=LOC)
        ENDIF
-    
+
        ! Now read records
        IF ( nVolc > 0 ) THEN
           REWIND( LUN )
-  
-          N = 0 
-          DO 
+
+          N = 0
+          DO
              CALL GetNextLine( am_I_Root, LUN, ThisLine, EOF, RC )
              IF ( RC /= HCO_SUCCESS ) RETURN
              IF ( EOF ) EXIT
-          
+
              ! Skip any entries that contain '::'
              IF ( INDEX( TRIM(ThisLine), '::') > 0 ) CYCLE
 
@@ -597,8 +623,8 @@ CONTAINS
                              TRIM(ThisFile), '. This line: ', TRIM(ThisLine)
                 CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
                 RETURN
-             ENDIF   
-     
+             ENDIF
+
              CALL HCO_CharSplit( TRIM(ThisLine), ' ', &
                                  HCO_GetOpt(HcoState%Config%ExtList,'Wildcard'), &
                                  Dum, nCol, RC )
@@ -613,9 +639,9 @@ CONTAINS
                 RETURN
              ENDIF
 
-             ! Now pass to vectors 
+             ! Now pass to vectors
                   VolcLat(N) = Dum(1)
-                  VolcLon(N) = Dum(2) 
+                  VolcLon(N) = Dum(2)
              Inst%VolcSlf(N) = Dum(3)
              Inst%VolcElv(N) = Dum(4)
              Inst%VolcCld(N) = Dum(5)
@@ -627,7 +653,7 @@ CONTAINS
                           ' - This error occurred when reading ', TRIM(ThisFile)
              CALL HCO_ERROR ( HcoState%Config%Err, MSG, RC, THISLOC = LOC )
              RETURN
-          ENDIF 
+          ENDIF
 
        ENDIF
 
@@ -651,24 +677,24 @@ CONTAINS
     IF ( ALLOCATED(VolcLat) ) DEALLOCATE(VolcLat)
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
-  END SUBROUTINE ReadVolcTable 
+  END SUBROUTINE ReadVolcTable
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: EmitVolc 
+! !IROUTINE: EmitVolc
 !
 ! !DESCRIPTION: Subroutine EmitVolc reads the AeroCom volcano table of the
-! current day. 
+!  current day.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE EmitVolc ( am_I_Root, HcoState, ExtState, Inst, SO2d, SO2e, RC ) 
+  SUBROUTINE EmitVolc( am_I_Root, HcoState, ExtState, Inst, SO2d, SO2e, RC )
 !
 ! !USES:
 !
@@ -676,13 +702,13 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   ) :: am_I_Root
-    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options      
+    TYPE(Ext_State),  POINTER       :: ExtState   ! Module options
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state 
+    TYPE(HCO_State),  POINTER       :: HcoState   ! Hemco state
     TYPE(MyInst),     POINTER       :: Inst
-    INTEGER,          INTENT(INOUT) :: RC 
+    INTEGER,          INTENT(INOUT) :: RC
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -690,7 +716,7 @@ CONTAINS
     REAL(sp),         INTENT(  OUT) :: SO2d(HcoState%NX,HcoState%NY,HcoState%NZ)
 !
 ! !REVISION HISTORY:
-!  04 Jun 2015 - C. Keller   - Initial version 
+!  04 Jun 2015 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -703,8 +729,8 @@ CONTAINS
     REAL(sp)           :: z1,   z2
     REAL(sp)           :: tmp1, tmp2, Frac
     REAL(sp)           :: totE, totD, volcE, volcD
-    CHARACTER(LEN=255) :: MSG 
-    CHARACTER(LEN=255) :: LOC = 'EmitVolc (hcox_aerocom_mod.F90)'
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'EmitVolc (hcox_volcano_mod.F90)'
 
     !=================================================================
     ! EmitVolc begins here!
@@ -732,7 +758,7 @@ CONTAINS
                        'Grid box heights not defined', RC, THISLOC=LOC )
        RETURN
     ENDIF
- 
+
     ! Do for every volcano
     IF ( Inst%nVolc > 0 ) THEN
        DO N = 1, Inst%nVolc
@@ -758,20 +784,20 @@ CONTAINS
           zBot = MAX(Inst%VolcElv(N),z1)
           zTop = MAX(Inst%VolcCld(N),z1)
 
-          ! If volcano is eruptive, zBot /= zTop. In this case, evenly 
+          ! If volcano is eruptive, zBot /= zTop. In this case, evenly
           ! distribute emissions in top 1/3 of the plume
           IF ( zBot /= zTop ) THEN
              zBot  = zTop - ( ( zTop - zBot ) / 3.0_sp )
              Erupt = .TRUE.
           ELSE
              Erupt = .FALSE.
-          ENDIF       
+          ENDIF
 
           ! Volcano plume height
           PlumeHgt = zTop - zBot
 
           ! Distribute emissions into emission arrays. The volcano plume
-          ! ranges from zBot to zTop. 
+          ! ranges from zBot to zTop.
           DO L = 1, HcoState%NZ
 
              ! Get top height of this box
@@ -789,9 +815,9 @@ CONTAINS
 
              ! If we make it to here, the volcano plume is at least partly
              ! within this level. Determine the fraction of the plume that
-             ! is within heights z1 to z2. 
-            
-             ! Get the bottom and top height of the plume within this layer. 
+             ! is within heights z1 to z2.
+
+             ! Get the bottom and top height of the plume within this layer.
              tmp1 = MAX(z1,zBot)  ! this layer's plume bottom
              tmp2 = MIN(z2,zTop)  ! this layer's plume top
 
@@ -805,25 +831,25 @@ CONTAINS
              IF ( PlumeHgt == 0.0_sp ) THEN
                 Frac = 1.0_sp
              ELSE
-                Frac = (tmp2-tmp1) / PlumeHgt 
-             ENDIF              
- 
+                Frac = (tmp2-tmp1) / PlumeHgt
+             ENDIF
+
              ! Distribute emissions
              IF ( Erupt ) THEN
-                SO2e(I,J,L) = SO2e(I,J,L) + ( Frac * nSo2 ) 
+                SO2e(I,J,L) = SO2e(I,J,L) + ( Frac * nSo2 )
                 volcE       = volcE &
                             + ( Frac * nSo2 * HcoState%Grid%AREA_M2%Val(I,J) )
              ELSE
-                SO2d(I,J,L) = SO2d(I,J,L) + ( Frac * nSo2 ) 
+                SO2d(I,J,L) = SO2d(I,J,L) + ( Frac * nSo2 )
                 volcD       = volcD &
                             + ( Frac * nSo2 * HcoState%Grid%AREA_M2%Val(I,J) )
-             ENDIF 
+             ENDIF
 
              ! The top height is the new bottom
              z1 = z2
           ENDDO
 
-          ! testing 
+          ! testing
           !IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
           !   WRITE(MSG,*) 'Total eruptive  emissions of volcano ', N, ' [kgS/s]: ', volcE
           !   CALL HCO_MSG(HcoState%Config%Err,MSG)
@@ -831,39 +857,39 @@ CONTAINS
           !   CALL HCO_MSG(HcoState%Config%Err,MSG)
           !ENDIF
 
-          ! total 
+          ! total
           totE = totE + volcE
           totD = totD + volcD
- 
-       ENDDO 
+
+       ENDDO
     ENDIF
 
     ! verbose
     IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
-       WRITE(MSG,*) 'Total eruptive  emissions [kgS/s]: ', totE 
+       WRITE(MSG,*) 'Total eruptive  emissions [kgS/s]: ', totE
        CALL HCO_MSG(HcoState%Config%Err,MSG)
        WRITE(MSG,*) 'Total degassing emissions [kgS/s]: ', totD
        CALL HCO_MSG(HcoState%Config%Err,MSG)
     ENDIF
 
     ! Return w/ success
-    RC = HCO_SUCCESS 
+    RC = HCO_SUCCESS
 
-  END SUBROUTINE EmitVolc 
+  END SUBROUTINE EmitVolc
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstGet 
+! !IROUTINE: InstGet
 !
-! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance. 
+! !DESCRIPTION: Subroutine InstGet returns a poiner to the desired instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstGet ( Instance, Inst, RC, PrevInst ) 
+  SUBROUTINE InstGet( Instance, Inst, RC, PrevInst )
 !
 ! !INPUT PARAMETERS:
 !
@@ -873,7 +899,7 @@ CONTAINS
     TYPE(MyInst),     POINTER, OPTIONAL :: PrevInst
 !
 ! !REVISION HISTORY:
-!  18 Feb 2016 - C. Keller   - Initial version 
+!  18 Feb 2016 - C. Keller   - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -882,11 +908,11 @@ CONTAINS
     !=================================================================
     ! InstGet begins here!
     !=================================================================
- 
+
     ! Get instance. Also archive previous instance.
-    PrvInst => NULL() 
+    PrvInst => NULL()
     Inst    => AllInst
-    DO WHILE ( ASSOCIATED(Inst) ) 
+    DO WHILE ( ASSOCIATED(Inst) )
        IF ( Inst%Instance == Instance ) EXIT
        PrvInst => Inst
        Inst    => Inst%NextInst
@@ -903,21 +929,21 @@ CONTAINS
     PrvInst => NULL()
     RC = HCO_SUCCESS
 
-  END SUBROUTINE InstGet 
+  END SUBROUTINE InstGet
 !EOC
 !------------------------------------------------------------------------------
 !                  Harvard-NASA Emissions Component (HEMCO)                   !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstCreate 
+! !IROUTINE: InstCreate
 !
-! !DESCRIPTION: Subroutine InstCreate creates a new instance. 
+! !DESCRIPTION: Subroutine InstCreate creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstCreate ( ExtNr, Instance, Inst, RC ) 
+  SUBROUTINE InstCreate( ExtNr, Instance, Inst, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -930,7 +956,7 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    INTEGER,       INTENT(INOUT)    :: RC 
+    INTEGER,       INTENT(INOUT)    :: RC
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -946,7 +972,7 @@ CONTAINS
     !=================================================================
 
     ! ----------------------------------------------------------------
-    ! Generic instance initialization 
+    ! Generic instance initialization
     ! ----------------------------------------------------------------
 
     ! Initialize
@@ -963,7 +989,7 @@ CONTAINS
     ! Create new instance
     ALLOCATE(Inst)
     Inst%Instance = nnInst + 1
-    Inst%ExtNr    = ExtNr 
+    Inst%ExtNr    = ExtNr
 
     ! Attach to instance list
     Inst%NextInst => AllInst
@@ -986,18 +1012,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: InstRemove 
+! !IROUTINE: InstRemove
 !
-! !DESCRIPTION: Subroutine InstRemove creates a new instance. 
+! !DESCRIPTION: Subroutine InstRemove creates a new instance.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE InstRemove ( Instance ) 
+  SUBROUTINE InstRemove( Instance )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: Instance 
+    INTEGER :: Instance
 !
 ! !REVISION HISTORY:
 !  18 Feb 2016 - C. Keller   - Initial version
@@ -1013,15 +1039,15 @@ CONTAINS
     ! InstRemove begins here!
     !=================================================================
 
-    ! Init 
+    ! Init
     PrevInst => NULL()
     Inst     => NULL()
-    
+
     ! Get instance. Also archive previous instance.
     CALL InstGet ( Instance, Inst, RC, PrevInst=PrevInst )
 
     ! Instance-specific deallocation
-    IF ( ASSOCIATED(Inst) ) THEN 
+    IF ( ASSOCIATED(Inst) ) THEN
        IF ( ALLOCATED(Inst%VolcSlf      ) ) DEALLOCATE ( Inst%VolcSlf       )
        IF ( ALLOCATED(Inst%VolcElv      ) ) DEALLOCATE ( Inst%VolcElv       )
        IF ( ALLOCATED(Inst%VolcCld      ) ) DEALLOCATE ( Inst%VolcCld       )
@@ -1030,7 +1056,7 @@ CONTAINS
        IF ( ALLOCATED(Inst%SpcIDs       ) ) DEALLOCATE ( Inst%SpcIDs        )
        IF ( ALLOCATED(Inst%SpcScl       ) ) DEALLOCATE ( Inst%SpcScl        )
        IF ( ALLOCATED(Inst%SpcScalFldNme) ) DEALLOCATE ( Inst%SpcScalFldNme )
-   
+
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
           PrevInst%NextInst => Inst%NextInst
@@ -1038,9 +1064,9 @@ CONTAINS
           AllInst => Inst%NextInst
        ENDIF
        DEALLOCATE(Inst)
-       Inst => NULL() 
+       Inst => NULL()
     ENDIF
-   
+
    END SUBROUTINE InstRemove
 !EOC
-END MODULE HCOX_AeroCom_Mod
+END MODULE HCOX_Volcano_Mod

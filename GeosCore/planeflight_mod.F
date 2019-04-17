@@ -1070,7 +1070,7 @@
             PRINT*, ' Outside nested domain, skipping record ', N
             CYCLE
          ENDIF
-
+ 
          ! Convert from altitude to pressure if we have CCCG data or
          ! tower data
          NAME = ADJUSTL(PTYPE(N))
@@ -1676,9 +1676,13 @@
             PTAUS = PTAUE - ( GET_TS_DIAG() / 3600d0 )
          ! Otherwise write out only half a timestep's worth of data
          ELSE
-            ! Write half hour only if we are on last time step, otherwise
-            ! exit the subroutine
-            IF (MOD(GET_ELAPSED_SEC(), (GET_TS_DIAG()*1440)) == 0) THEN 
+            ! Flush the last timestep to the output file (bmy, 3/28/19)
+            ! NOTE: Luke Schiferl pointed out we should test against
+            ! 86400 seconds instead of GET_TS_DIAG*1440.  GET_TS_DIAG
+            ! by now is already in seconds and 1440 is minutes/day,
+            ! so there's a mismatch.  This caused planeflight data
+            ! for the last timestep of a day not to be written out.
+            IF (MOD(GET_ELAPSED_SEC(), 86400) == 0) THEN
                PTAUS = PTAUE - ( GET_TS_DIAG() / (2.0 * 3600d0) )
             ELSE
                EXIT

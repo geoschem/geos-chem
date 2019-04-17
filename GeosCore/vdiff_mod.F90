@@ -1926,7 +1926,6 @@ contains
 #if defined( BPCH_DIAG )
     USE DIAG_MOD,           ONLY : AD44
 #endif
-    USE DRYDEP_MOD,         ONLY : DEPSAV
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
     USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
@@ -2098,6 +2097,8 @@ contains
     REAL(fp),  POINTER :: p_t1    (:,:,:  )
     REAL(fp),  POINTER :: p_as2   (:,:,:,:)
 
+    REAL(fp),  POINTER :: DEPSAV  (:,:,:  )  ! IM, JM, nDryDep
+
     ! For values from Input_Opt
     LOGICAL            :: IS_CH4,    IS_FULLCHEM, IS_Hg
     LOGICAL            :: IS_TAGCO,  IS_AEROSOL,  IS_RnPbBe, LDYNOCEAN
@@ -2153,6 +2154,7 @@ contains
 
     ! Initialize pointers
     SpcInfo => NULL()
+    DEPSAV  => State_Chm%DryDepSav
 
     ! Initialize local arrays. (ccc, 12/21/10)
     pmid    = 0e+0_fp
@@ -2575,7 +2577,7 @@ contains
                              * 1.e-4_fp * GET_TS_CONV() / GET_TS_CHEM() 
           ENDIF
 #endif
-#if defined( NC_DIAG )
+
           !-----------------------------------------------------------------
           ! HISTORY: Update dry deposition flux loss [molec/cm2/s]
           !
@@ -2610,7 +2612,6 @@ contains
                                             * 1.0e-4_fp               &
                                             * ( AVO / EmMW_kg  )
           ENDIF
-#endif
 
           !-----------------------------------------------------------------
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
@@ -2827,6 +2828,9 @@ contains
 !      !### Debug
     IF ( LPRT ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
 
+    ! Nullify pointers
+    NULLIFY( DEPSAV )
+
   END SUBROUTINE VDIFFDR
 !EOC
 !------------------------------------------------------------------------------
@@ -2852,7 +2856,10 @@ contains
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,       ONLY : ND44
 #endif
+    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
     USE DAO_MOD,            ONLY : AIRQNT
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -2863,12 +2870,8 @@ contains
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#if defined( NC_DIAG )
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE Time_Mod,           ONLY : Get_Ts_Dyn
-#endif
+    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 
     IMPLICIT NONE
 !
@@ -2926,9 +2929,7 @@ contains
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
-#if defined( NC_DIAG )
     REAL(fp)           :: DT_Dyn
-#endif
 
     !=======================================================================
     ! DO_PBL_MIX_2 begins here!
@@ -2977,7 +2978,6 @@ contains
     !-----------------------------------------------------------------------
     IF ( DO_VDIFF ) THEN
 
-#if defined( NC_DIAG )
        !------------------------------------------------------
        ! Non-local PBL mixing budget diagnostics - Part 1 of 2
        ! 
@@ -3005,7 +3005,6 @@ contains
              RETURN
           ENDIF
        ENDIF       
-#endif
 
        !----------------------------------------
        ! Unit conversion #1
@@ -3083,7 +3082,6 @@ contains
           RETURN
        ENDIF
 
-#if defined( NC_DIAG )
        !------------------------------------------------------
        ! Non-local PBL mixing budget diagnostics - Part 2 of 2
        !------------------------------------------------------
@@ -3120,7 +3118,6 @@ contains
              RETURN
           ENDIF
        ENDIF
-#endif
 
     ENDIF
 

@@ -1907,7 +1907,7 @@
 
          ENDIF
 #endif
-#if defined( NC_DIAG )
+
          !-----------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          ! Dry deposition flux loss [molec/cm2/s]
@@ -1940,7 +1940,7 @@
             ! Drydep flux in chemistry only
             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
          ENDIF
-#endif
+
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
@@ -2260,7 +2260,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -2302,7 +2301,6 @@
             State_Diag%ProdMSAfromDMS(I,J,L) =
      &       ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) / TCVV_S ) / DTCHEM
          ENDIF
-#endif
 
          !==============================================================
          ! For a coupled fullchem/aerosol run, save OH [molec/cm3] 
@@ -3921,7 +3919,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
          !=================================================================
@@ -4021,7 +4018,6 @@
                ENDIF
             ENDIF
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -4133,7 +4129,7 @@
 !  (4 ) Bug fix for mass balance, replace TITR_HNO3 w/ HNO3_SSC in the
 !        expression for HNO3_ss.  Bug fix: now do equivalent computation 
 !        for GET_GNO3, which is now no longer called because it's in 
-!        "isoropia_mod.f". (bec, bmy, 7/30/08)
+!        "isorropia_mod.f". (bec, bmy, 7/30/08)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
@@ -4461,7 +4457,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
       !=================================================================
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -4471,8 +4466,6 @@
          State_Diag%LossHNO3onSeaSalt(I,J,L) =
      &      ( HNO3_ss * State_Met%AD(I,J,L) / TCVV_N ) / DTCHEM
       ENDIF
-#endif
-      
 
       ! NITS produced converted from [eq/timestep] to [v/v/timestep] 
       ! Remove species molecular weight from equation (bmy, 2/10/17)
@@ -7881,9 +7874,9 @@
 
          ! kg/m2/s --> kg. Weight by fraction of PBL
          ALK1 = MAX(ALK1,0.0e+0_fp) 
-     &        * State_Grid%Area_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS 
          ALK2 = MAX(ALK2,0.0e+0_fp) 
-     &        * State_Grid%Area_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
 !         IF ( ASSOCIATED(NDENS_SALA) ) THEN

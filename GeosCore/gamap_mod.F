@@ -1732,7 +1732,6 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,        ONLY : NSPECRADMENU
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD,       ONLY : PD64, PD68, PD72R
       USE DIAG03_MOD,         ONLY : ND03, PD03, PD03_PL
@@ -1910,10 +1909,10 @@
                CASE( 1 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 5.6397E+22
-               CASE( 2 ) 
+               CASE( 2, 3 ) 
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 2.6141E+19
-               CASE( 3 )
+               CASE( 4, 5, 6, 7 )
                   UNIT (T,45) = 'mBq/SCM'
                   SCALE(T,45) = 4.0513E+21
                CASE DEFAULT
@@ -6243,12 +6242,12 @@
                   UNIT (T,42) = 'dimless'
                   MWT  (T,42) = 1e-6
                CASE( 10 )
-                  NAME (T,42) = 'POA'
+                  NAME (T,42) = 'POA_C'
                   FNAME(T,42) = 'Aer from SVOCs'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
                CASE( 11 )
-                  NAME (T,42) = 'OPOA'
+                  NAME (T,42) = 'OPOA_C'
                   FNAME(T,42) = 'Aer prods of pog ox'
                   UNIT (T,42) = 'ugC/m3'
                   MWT  (T,42) = 12e-3
@@ -7582,10 +7581,10 @@
 
          ! Number of tracers
          IF ( Input_Opt%LUCX ) THEN
-            NTRAC(72) = (NSPECRADMENU+1)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU+1)*PD72R
          ELSE
             ! Skip strat aer
-            NTRAC(72) = (NSPECRADMENU)*PD72R
+            NTRAC(72) = (Input_Opt%NSPECRADMENU)*PD72R
          ENDIF
 
          ! Loop over tracers
@@ -7599,10 +7598,10 @@
 
             !get number of current flux type
             IF ( Input_Opt%LUCX ) THEN
-               T0 = ((T-1)/(NSPECRADMENU+1))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T0 = ((T-1)/(NSPECRADMENU))+1
+               T0 = ((T-1)/(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T0 )
@@ -7687,10 +7686,10 @@
 
             ! Get name long-name (and sometimes, unit)
             IF ( Input_Opt%LUCX ) THEN
-               T1=MOD((T-1),(NSPECRADMENU+1))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU+1))+1
             ELSE
                ! Skip strat aer
-               T1=MOD((T-1),(NSPECRADMENU))+1
+               T1=MOD((T-1),(Input_Opt%NSPECRADMENU))+1
             ENDIF
 
             SELECT CASE( T1 )

@@ -250,7 +250,6 @@ CONTAINS
     ! ----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. Input_Opt%LNLPBL ) THEN
 
-#if defined( NC_DIAG )
        !--------------------------------------------------------------------
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -264,7 +263,6 @@ CONTAINS
             State_Diag%Archive_DryDep        ) THEN
           State_Diag%DryDepMix = 0.0_f4
        ENDIF
-#endif
 
        ! Non-local mixing
        CALL DO_PBL_MIX_2( am_I_Root, Input_Opt%LTURB, Input_Opt,             &
@@ -316,7 +314,6 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%LTURB .AND. .NOT. Input_Opt%LNLPBL ) THEN
 
-#if defined( NC_DIAG )
        ! Initialize the diagnostic array for the History Component. This 
        ! will prevent leftover values from being carried over to this 
        ! timestep. (For example, if on the last iteration, the PBL height 
@@ -326,7 +323,6 @@ CONTAINS
             State_Diag%Archive_DryDep        ) THEN
           State_Diag%DryDepMix = 0.0_f4
        ENDIF
-#endif
 
        ! Full PBL mixing
        CALL DO_PBL_MIX( am_I_Root, Input_Opt%LTURB, Input_Opt,               &
@@ -362,7 +358,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE DRYDEP_MOD,         ONLY : DEPSAV
+    USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
+    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
+    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : SAFE_DIV
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
@@ -383,10 +381,6 @@ CONTAINS
 #endif
 #if defined( USE_TEND )
     USE TENDENCIES_MOD
-#endif
-#if defined( NC_DIAG )
-    USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
-    USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -473,6 +467,7 @@ CONTAINS
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
+    REAL(fp),      POINTER  :: DEPSAV       (:,:,:  )  ! IM, JM, nDryDep
 
     ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
     LOGICAL                 :: ITS_A_CH4_SIM
@@ -480,9 +475,7 @@ CONTAINS
                                                          State_Grid%NY, &
                                                          State_Grid%NZ)
 
-#if defined( NC_DIAG )
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-#endif
 
     !=================================================================
     ! DO_TEND begins here!
@@ -491,10 +484,8 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-#if defined( NC_DIAG )
     ErrMsg  = ''
     ThisLoc = ' -> at DO_TEND (in module GeosCore/mixing_mod.F90)'
-#endif
 
     ! Special case that there is no dry deposition and emissions
     IF ( .NOT. Input_Opt%LDRYD .AND. .NOT. Input_Opt%LEMIS ) RETURN
@@ -509,8 +500,8 @@ CONTAINS
 
     ! Initialize pointer
     SpcInfo           => NULL()
+    DEPSAV            => State_Chm%DryDepSav
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 1 of 2
     !----------------------------------------------------------
@@ -530,7 +521,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
@@ -859,7 +849,7 @@ CONTAINS
                                              * GET_TS_CONV() / GET_TS_CHEM() 
                    ENDIF
 #endif
-#if defined( NC_DIAG )
+
                    !--------------------------------------------------------
                    ! HISTORY: Archive drydep flux loss from mixing 
                    ! Units = molec/cm2/s
@@ -888,7 +878,6 @@ CONTAINS
                           DryDepID > 0 ) THEN
                       State_Diag%DryDepMix(I,J,DryDepId) = Flux
                    ENDIF
-#endif
 
                 ENDIF ! apply drydep
              ENDIF ! L <= PBLTOP
@@ -1022,7 +1011,6 @@ CONTAINS
        RETURN
     ENDIF  
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Emissions/dry deposition budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
@@ -1055,7 +1043,9 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
+
+  ! Nullify pointers
+  NULLIFY( DEPSAV )
 
   END SUBROUTINE DO_TEND 
 !EOC

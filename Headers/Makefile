@@ -190,6 +190,7 @@ input_opt_mod.o        : input_opt_mod.F90        \
 inquiremod.o           : inquireMod.F90
 
 state_chm_mod.o        : state_chm_mod.F90        \
+                         CMN_SIZE_mod.o           \
                          charpak_mod.o            \
                          physconstants.o          \
                          errcode_mod.o            \
@@ -201,6 +202,7 @@ state_chm_mod.o        : state_chm_mod.F90        \
                          state_grid_mod.o
 
 state_diag_mod.o       : state_diag_mod.F90       \
+                         CMN_SIZE_mod.o           \
                          charpak_mod.o            \
                          diaglist_mod.o           \
                          errcode_mod.o            \

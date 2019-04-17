@@ -129,10 +129,13 @@
 !
       ! FMOL_CO2     - kg CO2 / mole CO2 
       REAL(fp),  PARAMETER   :: FMOL_CO2   = 44e-3_fp
+      ! FMOL_C       - kg C   / mole C 
+      REAL(fp),  PARAMETER   :: FMOL_C     = 12e-3_fp
 
       ! XNUMOL_CO2   - molecules CO2 / kg CO2 
       REAL(fp),  PARAMETER   :: XNUMOL_CO2 = AVO / FMOL_CO2
-
+      ! XNUMOL_C     - molecules C / kg C
+      REAL(fp),  PARAMETER   :: XNUMOL_C = AVO / FMOL_C
       CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -333,12 +336,12 @@
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
 
-            ! Production is in [kg/m3], convert to [molec/cm2/s]
+            ! Production is in [kg C/m3], convert to [molec/cm2/s]
             E_CO2 = CO2_COPROD(I,J,L)                        ! kg/m3
      &            / CM3PERM3                                 ! => kg/cm3
-     &            * XNUMOL_CO2                               ! => molec/cm3
+     &            * XNUMOL_C                                 ! => molec/cm3
      &            / DTSRCE                                   ! => molec/cm3/s
-     &            * 100                                      ! => molec/cm2/s
+     &            *State_Met%BXHEIGHT(I,J,L) * 100           ! => molec/cm2/s
 
 #if defined( BPCH_DIAG )
             !==========================================================
@@ -351,7 +354,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !==========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             ! 
@@ -363,7 +365,6 @@
      &                                         * 1e4_fp      ! => kg/m2/s
 
             ENDIF
-#endif
 
             ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
             ! (ewl, 9/11/15)

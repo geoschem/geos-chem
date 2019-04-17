@@ -761,7 +761,7 @@
             AD44(I,J,ND,1) = AD44(I,J,ND,1) + FLUX
          ENDIF
 #endif
-#if defined( NC_DIAG )
+
          !-----------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          ! Dry deposition flux loss [molec/cm2/s]
@@ -797,7 +797,7 @@
             ! Drydep flux in chemistry only
             State_Diag%DryDepChm(I,J,ND) = FLUX
          ENDIF
-#endif
+
       ENDDO ! I
       ENDDO ! J
 !$OMP END PARALLEL DO
