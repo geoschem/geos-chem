@@ -4884,7 +4884,7 @@ ccc
             IF ( FOUND ) THEN
                ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
                TMPFLX           = Emis * GET_TS_EMIS() 
-     &                            * State_Grid%Area_M2(I,J,1)
+     &                            * State_Grid%Area_M2(I,J)
                ORVC_SESQ(I,J,L) = ORVC_SESQ(I,J,L)
      &                          + ( F_OF_PBL  * TMPFLX )
             ENDIF
@@ -4903,13 +4903,13 @@ ccc
          IF ( HCOPOG1 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG1)%Emis%Val(I,J,:))
-     &               * GET_TS_EMIS() * State_Grid%Area_M2(I,J,1)
+     &               * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
             POAEMISS(I,J,L,1) = F_OF_PBL * TMPFLX
          ENDIF 
          IF ( HCOPOG2 > 0 ) THEN
             ! Units from HEMCO are kgC/m2/s. Convert to kgC/box here.
             TMPFLX = SUM(HcoState%Spc(HCOPOG2)%Emis%Val(I,J,:))
-     &               * GET_TS_EMIS() * State_Grid%Area_M2(I,J,1)
+     &               * GET_TS_EMIS() * State_Grid%Area_M2(I,J)
             POAEMISS(I,J,L,2) = F_OF_PBL * TMPFLX
          ENDIF 
       ENDDO
@@ -5584,10 +5584,10 @@ ccc
             DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = State_Grid%YMid_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R(I,J)
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
-     &                  State_Grid%XMid( I, J, 1 ) / 15.0
+     &                  State_Grid%XMid(I,J) / 15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0

@@ -702,7 +702,7 @@ CONTAINS
        PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC
 
        ! Grid-box latitude [degrees]
-       YLAT      = State_Grid%YMid( I, J, L )
+       YLAT      = State_Grid%YMid(I,J)
 
        ! Temperature [K]
        TEMP      = State_Met%T(I,J,L)

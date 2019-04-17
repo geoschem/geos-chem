@@ -2456,7 +2456,7 @@ contains
        ! dflx(I,J,:) = dflx(I,J,:) * pmid(I,J,1) / rair / vtemp * BXHEIGHT(I,J,1)
        ! alternate method to convert from s-1 to kg/m2/s
        dflx(I,J,:) = dflx(I,J,:) * State_Met%AD(I,J,1) / &
-                     State_Grid%Area_M2( I, J, 1 ) 
+                     State_Grid%Area_M2(I,J) 
 
        ! Now that dflx is in kg/m2/s, add PARANOX loss to this term. The PARANOX
        ! loss term is already in kg/m2/s. PARANOX loss (deposition) is calculated
@@ -2490,7 +2490,7 @@ contains
              SpcInfo => State_Chm%SpcData(N)%Info
 
              ! Deposition mass, kg
-             DEP_KG = dflx( I, J, N ) * State_Grid%Area_M2( I, J, 1 ) &
+             DEP_KG = dflx( I, J, N ) * State_Grid%Area_M2(I,J) &
                     * GET_TS_CONV()
 
              IF ( SpcInfo%Is_Hg2 ) THEN
@@ -2856,7 +2856,6 @@ contains
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,       ONLY : ND44
 #endif
-    USE CMN_Size_Mod,       ONLY : IIPAR, JJPAR
     USE DAO_MOD,            ONLY : AIRQNT
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics

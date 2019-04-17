@@ -1105,18 +1105,18 @@ CONTAINS
 
     ! Initialize longitudes [deg]
     DO I = 1, State_Grid%NX+1
-       LONEDG(I) = State_Grid%XEdge( I, 1, 1 )
+       LONEDG(I) = State_Grid%XEdge(I,1)
     ENDDO
 
     ! Initialize sines of latitude [1]
     DO J = 1, State_Grid%NY+1
-       LATSIN(J) = State_Grid%YSIN( 1, J, 1 )
+       LATSIN(J) = State_Grid%YSIN(1,J)
     ENDDO
 
     ! Initialize surface areas [m2]
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       AREAS(I,J) = State_Grid%Area_M2( I, J, 1 )
+       AREAS(I,J) = State_Grid%Area_M2(I,J)
     ENDDO
     ENDDO
 

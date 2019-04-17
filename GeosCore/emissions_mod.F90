@@ -416,7 +416,8 @@ CONTAINS
     IF ( doMaintainMixRatio ) THEN
 
        ! Compute the surface flux needed to restore the total burden
-       CALL MMR_Compute_Flux( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+       CALL MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, RC )
 
     ENDIF
 
@@ -493,13 +494,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MMR_Compute_Flux( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                               State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod
     USE ErrCode_Mod
-    USE GC_GRID_MOD,        ONLY : GET_YMID
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
@@ -507,6 +508,7 @@ CONTAINS
     USE PhysConstants
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
@@ -514,6 +516,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -540,8 +543,8 @@ CONTAINS
     REAL(fp)                   :: YMID
 
     ! Arrays
-    REAL(fp)                   :: Flux(IIPAR,JJPAR)
-    REAL(fp)                   :: Mask(IIPAR,JJPAR)
+    REAL(fp)                   :: Flux(State_Grid%NX,State_Grid%NY)
+    REAL(fp)                   :: Mask(State_Grid%NX,State_Grid%NY)
 
     ! Strings
     CHARACTER(LEN=63)          :: OrigUnit
@@ -575,8 +578,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,        Input_Opt, State_Met,          &
-                            State_Chm,        'v/v dry',      RC,            &
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, 'v/v dry', RC,           &
                             OrigUnit=OrigUnit                               )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
@@ -605,9 +608,9 @@ CONTAINS
           Mask        = 1.0e+0_fp
 
           ! Loop over grid boxes
-          DO L = 1, LLPAR
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
@@ -619,7 +622,7 @@ CONTAINS
              IF ( L == 1 ) THEN
 
                 ! Latitude of grid box
-                YMID = GET_YMID( I, J, L )
+                YMID = State_Grid%YMid(I,J)
 
                 ! Define mask if needed
                 IF (TRIM(SpcInfo%Name)=='NHEmis90dayTracer') THEN
@@ -627,7 +630,7 @@ CONTAINS
                 ELSE IF (TRIM(SpcInfo%Name)=='SHEmis90dayTracer') THEN
                    IF ( YMID >= 0.0 ) MASK(I,J) = 0.0e+0_fp
                 ENDIF
-                Total_Area = Total_Area + State_Met%Area_M2(I,J) * MASK(I,J)
+                Total_Area = Total_Area + State_Grid%Area_M2(I,J) * MASK(I,J)
              ENDIF
 
           ENDDO
@@ -651,8 +654,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,          &
-                            State_Chm, OrigUnit,  RC                   )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, OrigUnit,  RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

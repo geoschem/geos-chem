@@ -133,7 +133,7 @@ CONtAINS
     ! Initialize
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
-       Area(I,J) = State_Grid%Area_M2( I, J, 1 )
+       Area(I,J) = State_Grid%Area_M2(I,J)
     ENDDO
     ENDDO
 
@@ -407,7 +407,7 @@ CONtAINS
 
     ! Initialize
     DO J = 1, State_Grid%NY
-       Lat(J) = State_Grid%YMid( 1, J, 1 )
+       Lat(J) = State_Grid%YMid( 1, J )
     ENDDO
 
     ! Register
@@ -438,7 +438,7 @@ CONtAINS
 
     ! Initialize
     DO I = 1, State_Grid%NX
-       Lon(I) = State_Grid%XMid( I, 1, 1 )
+       Lon(I) = State_Grid%XMid( I, 1 )
     ENDDO
 
     ! Register

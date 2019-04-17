@@ -223,23 +223,23 @@
 
       DO I = 1, State_Grid%NX
          TOTAL_Z1 = TOTAL_Z1 
-     &            + State_Grid%Area_M2( I, 1,       1 ) * Z(I,1      )
+     &            + State_Grid%Area_M2(I,1) * Z(I,1      )
 
          TOTAL_Z2 = TOTAL_Z2 
-     &            + State_Grid%Area_M2( I, 2,       1 ) * Z(I,2      )
+     &            + State_Grid%Area_M2(I,2) * Z(I,2      )
 
          TOTAL_Z3 = TOTAL_Z3 
-     &            + State_Grid%Area_M2( I, State_Grid%NY-1, 1 )
+     &            + State_Grid%Area_M2(I,State_Grid%NY-1)
      &            * Z(I,State_Grid%NY-1)
 
          TOTAL_Z4 = TOTAL_Z4 
-     &            + State_Grid%Area_M2( I, State_Grid%NY,   1 )
+     &            + State_Grid%Area_M2(I,State_Grid%NY)
      &            * Z(I,State_Grid%NY  )
 
-         TOTAL_A1 = TOTAL_A1 + State_Grid%Area_M2(I,1,1 ) 
-         TOTAL_A2 = TOTAL_A2 + State_Grid%Area_M2(I,2,1 )
-         TOTAL_A3 = TOTAL_A3 + State_Grid%Area_M2(I,State_Grid%NY-1,1)
-         TOTAL_A4 = TOTAL_A4 + State_Grid%Area_M2(I,State_Grid%NY,1)
+         TOTAL_A1 = TOTAL_A1 + State_Grid%Area_M2(I,1) 
+         TOTAL_A2 = TOTAL_A2 + State_Grid%Area_M2(I,2)
+         TOTAL_A3 = TOTAL_A3 + State_Grid%Area_M2(I,State_Grid%NY-1)
+         TOTAL_A4 = TOTAL_A4 + State_Grid%Area_M2(I,State_Grid%NY)
       ENDDO
 
       DO I = 1, State_Grid%NX
@@ -617,7 +617,7 @@
          ! in using AREA_M2 for grid boxes (I, J, L > 1)                  
          !                                                                
          State_Met%AIRVOL(I,J,L) = State_Met%BXHEIGHT(I,J,L) * 
-     &                             State_Grid%AREA_M2(I,J,1)
+     &                             State_Grid%AREA_M2(I,J)
                                                                           
          !==============================================================
          ! Set grid box dry air partial pressures at grid box edges
@@ -667,7 +667,7 @@
          ! wet edge pressures. This distinction is important for
          ! mass conservation.
          State_Met%AD(I,J,L) = ( State_Met%DELP_DRY(I,J,L) * G0_100 )
-     &                       * State_Grid%AREA_M2(I,J,1)
+     &                       * State_Grid%AREA_M2(I,J)
 
          !==============================================================
          ! Set grid box dry air partial pressures at grid box 
@@ -1060,8 +1060,8 @@
          IF ( L == 1 ) THEN
 
             ! North & south edges of box
-            YSOUTH     = State_Grid%YEdge( I, J,   L )
-            YNORTH     = State_Grid%YEdge( I, J+1, L )
+            YSOUTH     = State_Grid%YEdge(I,J  )
+            YNORTH     = State_Grid%YEdge(I,J+1)
 
             ! Interpolate wet pressure [hPa] to the end of the dynamic timestep
             State_Met%PSC2_WET(I,J)  = State_Met%PS1_WET(I,J) +
@@ -1186,8 +1186,8 @@
       DO I = 1, IM
       
          ! North & south edges of box
-         YSOUTH = State_Grid%YEdge( I, J,   1 )
-         YNORTH = State_Grid%YEdge( I, J+1, 1 )
+         YSOUTH = State_Grid%YEdge(I,J  )
+         YNORTH = State_Grid%YEdge(I,J+1)
       
          ! Cap tropopause height at 200 hPa polewards of 60N and 60S
          IF ( YSOUTH >= 60d0 .or. YNORTH <= -60d0 ) THEN
@@ -1835,7 +1835,7 @@
       DO I = 1, State_Grid%NX
 
          ! Latitude of grid box [radians]
-         YMID_R     = State_Grid%YMid_R( I, J, 1 )
+         YMID_R     = State_Grid%YMid_R(I,J)
 
          ! Pre-compute sin & cos of DEC outside of I loop (for efficiency)
          S_YMID_R   = SIN( YMID_R )
@@ -1909,17 +1909,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Set_Met_AgeOfAir( State_Met )
+      SUBROUTINE Set_Met_AgeOfAir( State_Grid, State_Met )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_DYN
 !
+! !INPUT PARAMETERS: 
+!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
 ! !OUTPUT PARAMETERS: 
 !
-      TYPE(MetState), INTENT(INOUT) :: State_Met
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  21 Dec 2018 - M. Sulprizio- Initial version
@@ -1942,9 +1946,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L=1,LLPAR
-      DO J=1,JJPAR
-      DO I=1,IIPAR
+      DO L=1,State_Grid%NZ
+      DO J=1,State_Grid%NY
+      DO I=1,State_Grid%NX
 
          IF ( L == 1 ) THEN
             ! Set the surface to a sink

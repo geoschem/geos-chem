@@ -363,7 +363,7 @@ cdbg  print *, dryd(:)
             IF ( ND44 > 0 ) THEN 
 
                ! Surface area [cm2]
-               AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Initialize
                TOT1 = 0d0

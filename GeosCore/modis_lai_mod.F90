@@ -81,6 +81,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE HCO_EmisList_Mod,  ONLY : Hco_GetPtr
     USE HCO_Interface_Mod, ONLY : HcoState

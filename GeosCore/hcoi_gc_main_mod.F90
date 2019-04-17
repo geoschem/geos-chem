@@ -2813,12 +2813,12 @@ CONTAINS
     ENDIF
 
     ! Set pointers to grid variables
-    HcoState%Grid%XMID%Val       => State_Grid%XMid   (:,:,1)
-    HcoState%Grid%YMID%Val       => State_Grid%YMid   (:,:,1)
-    HcoState%Grid%XEDGE%Val      => State_Grid%XEdge  (:,:,1)
-    HcoState%Grid%YEDGE%Val      => State_Grid%YEdge  (:,:,1)
-    HcoState%Grid%YSIN%Val       => State_Grid%YSIN   (:,:,1)
-    HcoState%Grid%AREA_M2%Val    => State_Grid%Area_M2(:,:,1)
+    HcoState%Grid%XMID%Val       => State_Grid%XMid   (:,:)
+    HcoState%Grid%YMID%Val       => State_Grid%YMid   (:,:)
+    HcoState%Grid%XEDGE%Val      => State_Grid%XEdge  (:,:)
+    HcoState%Grid%YEDGE%Val      => State_Grid%YEdge  (:,:)
+    HcoState%Grid%YSIN%Val       => State_Grid%YSIN   (:,:)
+    HcoState%Grid%AREA_M2%Val    => State_Grid%Area_M2(:,:)
 !    HcoState%Grid%ZSFC%Val       => State_Met%PHIS      ! Surface geopotential height
 !    HcoState%Grid%BXHEIGHT_M%Val => State_Met%BXHEIGHT  ! Grid box heights
 
@@ -3449,10 +3449,10 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Grid box latitude center [radians]
-             YMID_R = State_Grid%YMid_R( I, J, 1 )
+             YMID_R = State_Grid%YMid_R(I,J)
 
              TIMLOC = real(LHR0) + real(NT)/3600.0 + &
-                      State_Grid%XMid( I, J, 1 ) / 15.0
+                      State_Grid%XMid(I,J) / 15.0
          
              DO WHILE (TIMLOC .lt. 0)
                 TIMLOC = TIMLOC + 24.0

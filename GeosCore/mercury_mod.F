@@ -1360,7 +1360,7 @@
      &           ( F_PBL > 0.1_fp      ) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = State_Grid%Area_M2( I, J, L ) * 1e+4_fp
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Amt of Hg(0) lost to drydep [molec/cm2/s]
                DEP_DRY_FLX  = DEP_HG0 * AVO / ( 1.e-3_fp *
@@ -1497,7 +1497,7 @@
             IF ( ( .not. LNLPBL ) .and. ( F_PBL > 0.1_fp ) ) THEN
 
                ! Grid box surface area [cm2]
-               AREA_CM2 = State_Grid%Area_M2( I, J, L ) * 1e+4_fp
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Archive Hg(0) drydep flux [molec/cm2/s]
                IF ( State_Diag%Archive_DryDepChm   .or.
@@ -2819,14 +2819,14 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
 
-!            IF ( State_Grid%XMid( I, J, 1 ) > -125 .AND. 
-!     &           State_Grid%XMid( I, J, 1 ) < -65  .AND.
-!     &           State_Grid%YMid( I, J, 1 ) >  25  .AND. 
-!     &           State_Grid%YMid( I, J, 1 ) < 50 ) THEN
-            IF ( State_Grid%XMid( I, J, 1 ) > -140 .AND.
-     &           State_Grid%XMid( I, J, 1 ) < -40  .AND.
-     &           State_Grid%YMid( I, J, 1 ) >  10  .AND.
-     &           State_Grid%YMid( I, J, 1 ) <  70 ) THEN
+!            IF ( State_Grid%XMid(I,J) > -125 .AND. 
+!     &           State_Grid%XMid(I,J) < -65  .AND.
+!     &           State_Grid%YMid(I,J) >  25  .AND. 
+!     &           State_Grid%YMid(I,J) < 50 ) THEN
+            IF ( State_Grid%XMid(I,J) > -140 .AND.
+     &           State_Grid%XMid(I,J) < -40  .AND.
+     &           State_Grid%YMid(I,J) >  10  .AND.
+     &           State_Grid%YMid(I,J) <  70 ) THEN
                
                EHg0_An(I,J) = 0e+0_fp
                EHg2_An(I,J) = 0e+0_fp
@@ -2947,7 +2947,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          !--------------------------------------------------------------
 
          ! Surface area [m2]
-         AM2             = State_Grid%Area_M2(I,J,1)
+         AM2             = State_Grid%Area_M2(I,J)
 
          ! Emission timestep
          TS              = GET_TS_EMIS()
@@ -5465,7 +5465,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       IF ( (L_ADD_MBL_BR) .OR. (LPOLARBR) ) THEN
          ! Fraction of grid box mass which is within the mixed layer
-         FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L) 
+         FPBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met) 
       ENDIF
       
       IF ( L_ADD_MBL_BR ) THEN
@@ -5502,9 +5502,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 !     &     ( State_Met%LWI(I,J)      == 2     ) .AND. 
 !     &       GET_OBK(I,J,State_Met)  >  0e+0_fp   ) THEN
 !
-!         IF ( ( (State_Grid%YMid(I,J,L) > 60e+0_fp) .AND. 
+!         IF ( ( (State_Grid%YMid(I,J) > 60e+0_fp) .AND. 
 !     &          (GET_MONTH() >= 3) .AND. (GET_MONTH() <= 5)  ) .OR.
-!     &        ( (State_Grid%YMid(I,J,L) < -50e+0_fp) .AND. 
+!     &        ( (State_Grid%YMid(I,J) < -50e+0_fp) .AND. 
 !     &          (GET_MONTH() >= 9) .AND. (GET_MONTH() <= 11)  ) ) THEN
 !
 !            ! Br concentration due to bromine explosion, pptv
@@ -5603,9 +5603,9 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &     (SWRAD > 1e+2_fp) .AND. (State_Met%TS(I,J) <= 273e+0_fp) ) 
      &     THEN 
 
-         IF ( ((State_Grid%YMid(I,J,L) > 0e+0_fp) .AND.
+         IF ( ((State_Grid%YMid(I,J) > 0e+0_fp) .AND.
      &          (GET_MONTH() >= 2) .AND. (GET_MONTH() <= 6)) .OR.
-     &        ((State_Grid%YMid(I,J,L) < 0e+0_fp) .AND.
+     &        ((State_Grid%YMid(I,J) < 0e+0_fp) .AND.
      &          (GET_MONTH() >= 8) .AND. (GET_MONTH() <= 12)) ) THEN
 
             ! [BrO] is a linear function of temperature derived based on
@@ -5783,10 +5783,10 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = State_Grid%YMid_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R( I, J )
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 
-     &                + State_Grid%XMid(I,J,1)/15.0
+     &                + State_Grid%XMid(I,J)/15.0
          
                DO WHILE (TIMLOC < 0)
                   TIMLOC = TIMLOC + 24.0
@@ -6041,7 +6041,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
      &            - A3*COS( 3e+0_fp*R ) + B3*SIN( 3e+0_fp*R )
 
          ! Latitude of grid box [radians]
-         YMID_R = State_Grid%YMid_R( I, J, L )
+         YMID_R = State_Grid%YMid_R( I, J )
 
          ! Cosine of solar zenith angle at local noon
          CSZANOON = SIN( YMID_R ) * SIN( DEC ) +
@@ -6336,7 +6336,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
              
          ! Hg emission in CFPP sector decreased for 45.14% during 2005-2010 
          ! Convert [kg/m2/s] --> [kg/s]
-         E_plant = E_ELEC_Hg2(I,J) * State_Grid%Area_M2(I,J,1)
+         E_plant = E_ELEC_Hg2(I,J) * State_Grid%Area_M2(I,J)
 
          ! Reduce the Hg2 from plume
          CALL RED_INPLUME_GRID( I, J, E_plant )
@@ -6539,7 +6539,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2       = State_Grid%Area_M2( I, J, 1 )
+         A_M2       = State_Grid%Area_M2( I, J )
          ! Initialize values
          Kw         = 0e0_fp
          TK         = 0e0_fp

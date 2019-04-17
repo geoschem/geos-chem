@@ -1310,7 +1310,7 @@
             IF ( L .GT. 1 ) THEN 
                CH4EMIS = 0e+0_fp
             ELSE
-               AREA_M2 = State_Grid%Area_M2(I,J,1 )
+               AREA_M2 = State_Grid%Area_M2(I,J)
 
                ! [kg/m2/s]  --> [molec/box/s]
                CH4EMIS  = CH4_EMIS(I,J,1)

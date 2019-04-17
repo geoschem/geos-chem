@@ -1673,7 +1673,8 @@
          CATEGORY = 'SO2-AC-$'
          FACTOR   = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Anthro SO2 %%%%%
@@ -1681,7 +1682,8 @@
          CATEGORY  = 'SO2-AN-$'
          FACTOR    =  S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .FALSE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
          
          !%%%%% Biomass SO2 (convert kg/m2/s --> kg S) %%%%%
@@ -1705,7 +1707,8 @@
          CATEGORY  = 'SO2-EV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Volcano SO2 (degassing) %%%%%
@@ -1713,7 +1716,8 @@
          CATEGORY  = 'SO2-NV-$'
          FACTOR    = S_SO2
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE., FACTOR, RC )
+     &                   UNIT, id_SO2, 1, State_Grid%NZ, .TRUE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Ship SO2 %%%%%
@@ -1733,7 +1737,8 @@
          CATEGORY  = 'SO4-AN-$'
          FACTOR    = S_SO4
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_SO4, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
+     &                   UNIT, id_SO4, 1, State_Grid%NZ, .FALSE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%% Biofuel SO4 %%%%%
@@ -1754,7 +1759,8 @@
          CATEGORY  = 'NH3-ANTH'
          FACTOR    = 1.0e+0_fp
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY, 
-     &                   UNIT, id_NH3, 1, State_Grid%NZ, .FALSE., FACTOR, RC )
+     &                   UNIT, id_NH3, 1, State_Grid%NZ, .FALSE.,
+     &                   FACTOR, RC )
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP ( DiagnName, LOC )
 
          !%%%%%  Natural source NH3 %%%%%
@@ -5806,7 +5812,7 @@
             DO I = 1, State_Grid%NX
 
                ! Grid box surface area [cm2]
-               AREA_M2 = State_Grid%Area_M2( I, J, 1 )
+               AREA_M2 = State_Grid%Area_M2(I,J)
                ARRAY(I,J,1) = ( SUM( Spc(I,J,:,N)   *
      &                               AD (I,J,:  ) ) * AVO    )
      &                        / ( SpcInfo%emMW_g

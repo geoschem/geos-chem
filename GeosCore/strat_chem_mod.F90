@@ -2343,8 +2343,8 @@ CONTAINS
     DO J = 1, State_Grid%NY
 
        ! Skip grid boxes outside of O3 release region (30S -> 30N)
-       IF ( State_Grid%GlobalYMid(1,J,1) < -30.0_fp .or. &
-            State_Grid%GlobalYMid(1,J,1) <  30.0_fp ) THEN
+       IF ( State_Grid%GlobalYMid(1,J) < -30.0_fp .or. &
+            State_Grid%GlobalYMid(1,J) <  30.0_fp ) THEN
           CYCLE
        ENDIF
 
@@ -2414,8 +2414,8 @@ CONTAINS
              ! grid box centers.  However, the O3 release region is 
              ! edged by 30S and 30N.  Therefore, if we are at the 30S
              ! or 30N grid boxes, divide the O3 flux by 2.
-             IF ( State_Grid%GlobalYMid(1,J,1) == -30.0_fp .or. &
-                  State_Grid%GlobalYMid(1,J,1) ==  30.0_fp ) THEN
+             IF ( State_Grid%GlobalYMid(1,J) == -30.0_fp .or. &
+                  State_Grid%GlobalYMid(1,J) ==  30.0_fp ) THEN
                 PO3 = PO3 / 2e+0_fp
              ENDIF
 

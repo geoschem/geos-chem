@@ -265,8 +265,8 @@
       IF ( .not. ITS_IN_TROP ) RETURN
 
       ! Longitude and latitude [degrees]
-      X          = State_Grid%XMid( I, J, L )   
-      Y          = State_Grid%YMid( I, J, L )
+      X          = State_Grid%XMid(I,J)   
+      Y          = State_Grid%YMid(I,J)
 
       ! PBLTOP is the model level at ~ 750 hPa
       ! MTTOP  is the model level at ~ 350 hPa

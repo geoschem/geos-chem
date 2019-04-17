@@ -534,7 +534,8 @@
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 Input_Opt, State_Chm, 
+     &                                 State_Grid, State_Met,
      &                                 "do_global_adv: pre-advection", 
      &                                 RC )
       ENDIF
@@ -638,7 +639,8 @@
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                                 Input_Opt, State_Met, State_Chm, 
+     &                                 Input_Opt, State_Chm, 
+     &                                 State_Grid, State_Met,
      &                                 "do_global_adv: post-airqnt", 
      &                                 RC )
          CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
@@ -848,9 +850,10 @@
 
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                            Input_Opt, State_Met, State_Chm, 
+     &                                 Input_Opt,  State_Chm,
+     &                                 State_Grid, State_Met,
      &                            "do_window_transport: pre-advection", 
-     &                            RC )
+     &                                 RC )
       ENDIF
 
 !$OMP PARALLEL DO
@@ -1012,9 +1015,10 @@
       !### Debug
       IF ( LPRT ) THEN
          CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                               Input_Opt, State_Met, State_Chm, 
+     &                                Input_Opt, State_Chm, 
+     &                                State_Grid, State_Met, 
      &                               "do_window_transport: post-airqnt", 
-     &                               RC )
+     &                                RC )
          CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
       ENDIF
 
@@ -1141,7 +1145,7 @@
 
       ! Surface area [m2]
       DO J = 1, State_Grid%NY
-         A_M2(J) = State_Grid%Area_M2( 1, J, 1 )
+         A_M2(J) = State_Grid%Area_M2(1,J)
       ENDDO
 
       !=================================================================
@@ -1156,7 +1160,7 @@
 
       ! YMID_R is latitude of grid box center [radian]
       DO J = 1,State_Grid%NY
-         YMID_R(J) = State_Grid%YMid_R( 1, J, 1 )
+         YMID_R(J) = State_Grid%YMid_R(1,J)
       ENDDO
 
       REAL_N_DYN = N_DYN
@@ -1302,7 +1306,7 @@
 
       ! Surface area [m2]
       DO J = 1, State_Grid%NY
-         A_M2(J) = State_Grid%Area_M2( 1, J, 1 )
+         A_M2(J) = State_Grid%Area_M2(1,J)
       ENDDO
 
       !=================================================================
@@ -1324,7 +1328,7 @@
 
       ! YMID_R is latitude of grid box center [radians]
       DO J =0, State_Grid%NY+1
-         YMID_R_W(J) = State_Grid%YMid_R( 1, J, 1 )
+         YMID_R_W(J) = State_Grid%YMid_R(1,J)
       ENDDO
 
       REAL_N_DYN = N_DYN

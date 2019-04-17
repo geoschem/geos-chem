@@ -203,12 +203,12 @@
 ! !OUTPUT PARAMETERS:
 !
       REAL(fp),       INTENT(OUT) :: XMASS(State_Grid%NX, ! E-W mass fluxes
-     &                                    State_Grid%NY,  !  [mixing ratio]
-     &                                    State_Grid%NZ)
+     &                                     State_Grid%NY, !  [mixing ratio]
+     &                                     State_Grid%NZ)
 
       REAL(fp),       INTENT(OUT) :: YMASS(State_Grid%NX, ! N-S mass fluxes
-     &                                    State_Grid%NY,  !  [mixing ratio]
-     &                                    State_Grid%NZ)
+     &                                     State_Grid%NY, !  [mixing ratio]
+     &                                     State_Grid%NZ)
 !
 ! !AUTHOR:
 !  Brendan Field and Bob Yantosca (5/8/03) 
@@ -2052,7 +2052,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = State_Grid%Area_M2( I, J, 1 )
+         MCOR(I,J) = State_Grid%Area_M2(I,J)
       ENDDO
       ENDDO
 
@@ -2078,7 +2078,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = State_Grid%YMid_R( 1, J, 1 )
+         CLAT_FV(J) = State_Grid%YMid_R(1,J)
       ENDDO
 
       ! Longitude spacing

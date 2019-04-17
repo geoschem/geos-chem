@@ -204,7 +204,7 @@
 
             ! base lat band selection on midpoint
             ! latitude of the box
-            LAT_MID = State_Grid%YMid( I, J, L )
+            LAT_MID = State_Grid%YMid(I,J)
 
             ! Selecting the latitude bands:
             IF ( LAT_MID > 55e+0_fp ) THEN

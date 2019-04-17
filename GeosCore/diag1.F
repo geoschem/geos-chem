@@ -235,7 +235,7 @@
          IF ( Input_Opt%ND69 > 0 ) THEN
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
-               AD69(I,J,1) = State_Grid%Area_M2( I, J, 1 )
+               AD69(I,J,1) = State_Grid%Area_M2(I,J)
             ENDDO
             ENDDO
          ENDIF

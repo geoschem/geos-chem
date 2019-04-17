@@ -1183,8 +1183,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Sample( am_I_Root, yyyymmdd,  hhmmss,     Input_Opt,    &
-                             State_Met, State_Chm, State_Diag, RC           )
+  SUBROUTINE ObsPack_Sample( am_I_Root, yyyymmdd,   hhmmss,     Input_Opt,    &
+                             State_Chm, State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1192,8 +1192,9 @@ CONTAINS
     USE Error_Mod,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Met_Mod,  ONLY : MetState
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
@@ -1203,6 +1204,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: yyyymmdd    ! Current date
     INTEGER,        INTENT(IN)    :: hhmmss      ! Current time
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1257,8 +1259,8 @@ CONTAINS
     ! what the units are prior to this call.  After we sample
     ! the species, we'll call this again requesting that the
     ! species are converted back to the InUnit values.
-    CALL Convert_Spc_Units( am_I_root, Input_Opt, State_Met,                 &
-                            State_Chm, "v/v dry", RC,       PriorUnit       )
+    CALL Convert_Spc_Units( am_I_root, Input_Opt, State_Chm, State_Grid,    &
+                            State_Met, "v/v dry", RC,       PriorUnit       )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1306,7 +1308,8 @@ CONTAINS
           ENDIF
 
           ! Return grid box indices for the chemistry region
-          CALL ObsPack_Get_Indices( N, State_Met, State_Diag, I, J, L, RC )
+          CALL ObsPack_Get_Indices( N, State_Diag, State_Grid, State_Met,    &
+                                    I, J, L, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1373,8 +1376,8 @@ CONTAINS
 
     ! Return State_Chm%SPECIES to whatever units they had
     ! coming into this routine
-    call Convert_Spc_Units( am_I_root, Input_Opt, State_Met,                 &
-                            State_Chm, PriorUnit, RC                        )
+    call Convert_Spc_Units( am_I_root, Input_Opt, State_Chm, State_Grid,     &
+                            State_Met, PriorUnit, RC                        )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1399,22 +1402,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Get_Indices( iObs, State_Met, State_Diag, I, J, L, RC )
+  SUBROUTINE ObsPack_Get_Indices( iObs, State_Diag, State_Grid, State_Met, &
+                                  I, J, L, RC )
 !
 ! !USES:
 !
-    USE GC_GRID_MOD,    ONLY : GET_XOFFSET
-    USE GC_GRID_MOD,    ONLY : GET_YOFFSET
-    USE CMN_SIZE_MOD,   ONLY : LLPAR, DISIZE, DJSIZE, IIPAR
     USE ErrCode_Mod
-    USE State_Met_Mod,  ONLY : MetState
     USE State_Diag_Mod, ONLY : DgnState 
+    USE State_Grid_Mod, ONLY : GrdState 
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
     INTEGER,        INTENT(IN)  :: iObs         ! ObsPack Observation number
-    TYPE(MetState), INTENT(IN)  :: State_Met    ! Meteorology State object
     TYPE(DgnState), INTENT(IN)  :: State_Diag   ! Diagnostics State object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State object
+    TYPE(MetState), INTENT(IN)  :: State_Met    ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
 !
@@ -1467,31 +1470,31 @@ CONTAINS
 
     ! Added correct definitions for I and J based on nested regions 
     ! (lds, 8/25/11)
-    I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-    J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+    I0 = State_Grid%XMinOffset
+    J0 = State_Grid%YMinOffset
 
     !-----------------------------------------------------------------------
     ! Find I corresponding to the ObsPack longitude value
     !-----------------------------------------------------------------------
     I = INT( ( State_Diag%ObsPack_Longitude(iObs) + 180.0_f8                 &
-                                                  - ( I0 * DISIZE ) )        &
-                                                  / DISIZE + 1.5d0    )
+                                                  - ( I0 * State_Grid%DX ) ) &
+                                                  / State_Grid%DX + 1.5d0  )
 
     ! Handle date line correctly (bmy, 4/23/04)
-    IF ( I > IIPAR ) I = I - IIPAR
+    IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 
     !-----------------------------------------------------------------------
     ! Find J corresponding to the ObsPack latitude value
     !-----------------------------------------------------------------------
     J = INT( ( State_Diag%ObsPack_Latitude(iObs)  +  90.0_f8                 &
-                                                  - ( J0 * DJSIZE ) )        &
-                                                  / DJSIZE + 1.5d0    )
+                                                  - ( J0 * State_Grid%DY ) ) &
+                                                  / State_Grid%DY + 1.5d0  )
 
     !-----------------------------------------------------------------------
     ! Find L corresponding to the ObsPack altitude value
     !-----------------------------------------------------------------------
     Z = 0.0_f8
-    DO L = 1, LLPAR
+    DO L = 1, State_Grid%NZ
        Z = Z + State_Met%BXHEIGHT(I,J,L)
        IF ( Z >= State_Diag%ObsPack_Altitude(iObs) ) RETURN 
     ENDDO
@@ -1502,7 +1505,7 @@ CONTAINS
     !WRITE (6,*) 'At I,J =',i,j
     !FLUSH(6)
 
-    DO L = 1,LLPAR
+    DO L = 1,State_Grid%NZ
        Z=Z+State_Met%BXHEIGHT(I,J,L)
        WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L),Z
     ENDDO

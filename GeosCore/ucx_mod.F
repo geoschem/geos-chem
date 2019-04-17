@@ -2906,7 +2906,7 @@
                ! Now do IS_POLAR check for every grid box separately
                ! and using mid-point instead of edges. This is to be
                ! applicable to cube-sphere systems (ckeller, 1/16/15).
-               BOX_LAT  = State_Grid%YMid(I,J,1)
+               BOX_LAT  = State_Grid%YMid(I,J)
                IS_POLAR = ( (BOX_LAT <= PSC_MINLAT) .OR.
      &                      (BOX_LAT >= PSC_MAXLAT)     )
 
@@ -4911,7 +4911,7 @@
 
          ! Between 30S-30N, find the level of cold point tropopause,
          ! the altitude with the coldest temperature below 10 hPa
-         IF ( ABS(State_Grid%YMid(I,J,1)) <= 30 ) THEN
+         IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
             ! Level with minimum temperature, 
             ! use MASK to screen for >10 hPa
             LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, 
@@ -5698,7 +5698,7 @@
          JJNOX = -1
 
          ! Get latitude in degrees north on simulation grid
-         LAT = State_Grid%YMid( IISIM, JJSIM, 1 )
+         LAT = State_Grid%YMid( IISIM, JJSIM )
 
          ! Loop over all latitudes of the NOx grid until we reach the grid
          ! box where the simulation latitude sits in. 
@@ -6186,10 +6186,10 @@
 
       ! Calculate the scaling matrix
       ! Note cosine (area-weighted)
-      JMAX_OUT = State_Grid%YEdge(1,1,1)
+      JMAX_OUT = State_Grid%YEdge(1,1)
       DO JOUT=1,State_Grid%NY
          JMIN_OUT = JMAX_OUT
-         JMAX_OUT = State_Grid%YEdge(1,JOUT+1,1)
+         JMAX_OUT = State_Grid%YEdge(1,JOUT+1)
          JDIF_OUT = SIN( JMAX_OUT * PI_180 )
      &            - SIN( JMIN_OUT * PI_180 )
          DEG_SUM = 0e+0_fp

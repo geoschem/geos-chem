@@ -152,11 +152,11 @@
       ! Write LAT/LON to new file
       ! Does not wrap around date line
       DO I = 0, NI-1
-         LON(I+1) = State_Grid%XMid(I+IMIN,1,1)
+         LON(I+1) = State_Grid%XMid(I+IMIN,1)
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = State_Grid%YMid(1,J+JMIN,1)
+         LAT(J+1) = State_Grid%YMid(1,J+JMIN)
       ENDDO
 
       DO I = 1,2

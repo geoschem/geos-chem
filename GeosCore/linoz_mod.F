@@ -177,7 +177,7 @@
 
       ! if new month, get new parameters?
       IF ( MONTH /= LASTMONTH ) THEN
-         CALL LINOZ_STRATL( am_I_Root,  Input_Opt, State_Chm
+         CALL LINOZ_STRATL( am_I_Root,  Input_Opt, State_Chm,
      &                      State_Grid, RC )
          LASTMONTH =  MONTH
       ENDIF
@@ -462,7 +462,7 @@
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) *
      &                 State_Met%AD(I,J,L) / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
-     &                 / ( State_Grid%Area_M2(I,J,L) * 1e+4_fp ) 
+     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp ) 
      &                 * AVO / (AIRMW / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
@@ -471,7 +471,7 @@
                   dcolo3(i,j,l) = (Spc(i,j,l,NTRACER) * 
      &                 State_Met%AD(I,J,L) / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )) 
-     &                 / ( State_Grid%Area_M2(I,J,L) * 1e+4_fp )
+     &                 / ( State_Grid%Area_M2(I,J) * 1e+4_fp )
      &                 * AVO / (AIRMW / ( AIRMW 
      &                 / State_Chm%SpcData(NTRACER)%Info%emMW_g )
      &                 *1e-3_fp) / 2.687e+16_fp
@@ -701,7 +701,7 @@
       !! JLATMD(J) is the nearest-neighbor LINOZ data column corresponding
       !! to each GEOS-Chem latitude index J. (dbj, 6/25/03)
       !DO J = 1, State_Grid%NY
-      !   JXXX      = INT( 0.1e+0_fp * State_Grid%YMid(1,J,1) + 10.e+0_fp )
+      !   JXXX      = INT( 0.1e+0_fp * State_Grid%YMid(1,J) + 10.e+0_fp )
       !   JLATMD(J) = MIN( 18,     MAX( 1, JXXX )          )
       !ENDDO
 
@@ -751,7 +751,7 @@
             ! Now explicitly calculate for every grid box to account for
             ! curvilinear grids. (ckeller, 10/19/15)
             ! JJ = JLATMD(J)
-            JXXX = INT( 0.1e+0_fp * State_Grid%YMid(I,J,1) + 10.e+0_fp )
+            JXXX = INT( 0.1e+0_fp * State_Grid%YMid(I,J) + 10.e+0_fp )
             JJ   = MIN( 18, MAX( 1, JXXX ) )
 
             ! Loop over the # of levels in the LINOZ climatology

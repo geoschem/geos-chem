@@ -211,6 +211,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CMN_SIZE_Mod,   ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
@@ -360,6 +361,7 @@ CONTAINS
 !
 ! !USES: 
 !
+    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE Hco_Interface_Mod, ONLY : HcoState
     USE Hco_EmisList_Mod,  ONLY : Hco_GetPtr

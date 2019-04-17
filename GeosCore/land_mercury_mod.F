@@ -580,7 +580,7 @@
      &           DRYSOIL_HG * SOIL_EMIS_FAC
 
             ! Grid box surface area [m2]
-            AREA_M2   = State_Grid%Area_M2( I, J, 1 )
+            AREA_M2   = State_Grid%Area_M2(I,J)
  
             ! convert soilnat from ng /m2 /h -> kg /gridbox /s
             EHg0_so(I,J) = SOIL_EMIS * AREA_M2 * 1e-12_fp / 

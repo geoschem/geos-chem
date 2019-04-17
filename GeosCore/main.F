@@ -1605,7 +1605,7 @@
          ENDIF
 
          ! Update age of air
-         CALL Set_Met_AgeOfAir( State_Met )
+         CALL Set_Met_AgeOfAir( State_Grid, State_Met )
 
          !==============================================================
          !     ***** C O M P U T E   P B L   H E I G H T  etc. *****
@@ -2092,8 +2092,8 @@
 
             ! Sample the observations in today's ObsPack file
             CALL ObsPack_Sample( am_I_Root,  NYMD,      NHMS, 
-     &                           Input_Opt,  State_Met, State_Chm, 
-     &                           State_Diag, RC                    )
+     &                           Input_Opt,  State_Chm, State_Diag,
+     &                           State_Grid, State_Met, RC        )
 
 #if defined( USE_TIMERS )
             CALL GEOS_Timer_End( "All diagnostics",        RC ) 

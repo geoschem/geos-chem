@@ -1274,10 +1274,10 @@
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2 = State_Grid%Area_M2( I, J, 1 )
+         A_M2 = State_Grid%Area_M2(I,J)
 
          ! Grid-box latitude [degrees]
-         Y = State_Grid%YMid( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
 
          ! Use fractional land type information from met fields (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
@@ -1334,10 +1334,10 @@
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2       = State_Grid%Area_M2( I, J, 1 )
+         A_M2       = State_Grid%Area_M2(I,J)
 
          ! Grid-box latitude [degrees]
-         Y          = State_Grid%YMid( I, J, 1 )
+         Y          = State_Grid%YMid(I,J)
 
          ! Initialize values
          Kw         = 0e+0_fpp
@@ -1669,10 +1669,10 @@
 
                ! Move to start of loop for use earlier (jaf, 12/8/11)
                ! Grid-box latitude [degrees]
-               !Y = State_Grid%YMid( I, J, 1 )
+               !Y = State_Grid%YMid(I,J)
          
                ! Grid box longitude [degrees]
-               X = State_Grid%XMid( I, J, 1 )
+               X = State_Grid%XMid(I,J)
 
                ! Get Hg category #
                IF ( C == 1 ) NN = ID_Hg_tot
@@ -2594,10 +2594,10 @@
       DO I = 1, State_Grid%NX
 
          ! Grid-box longitude [degrees]
-         X = State_Grid%XMid( I, J, 1 )
+         X = State_Grid%XMid(I,J)
 
          ! Grid-box latitude [degrees]
-         Y = State_Grid%YMid( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
 
           ! In central Arctic, overwrite MLD values where global MLD
           ! dataset is based on very limited information. Instead use
@@ -2770,7 +2770,7 @@
       ENDIF
 
       ! Grid box surface area [m2]
-      A_M2   = State_Grid%Area_M2( I, J, 1 )
+      A_M2   = State_Grid%Area_M2(I,J)
 
       ! Fraction of box that is ocean
       ! Use fractional land type information from met fields (jaf, 4/26/11)
@@ -2804,10 +2804,10 @@
          ! Add Cdeepatl to North Atlantic and Cdeep to rest if the world (anls, 01/05/09)
 
          ! Grid-box latitude [degrees]
-         Y = State_Grid%YMid( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
          
          ! Grid box longitude [degrees]
-         X = State_Grid%XMid( I, J, 1 )
+         X = State_Grid%XMid(I,J)
 
          ! Loop over total Hg (and ocean Hg if necessary)
          DO C = 1, N_tot_oc

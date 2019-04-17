@@ -749,7 +749,7 @@
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -783,7 +783,7 @@
             ENDDO
 
             ! Surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert sea salt flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -1261,8 +1261,10 @@
 !
       ! TC1 : Aerosol number tracer array [no.]
       ! TC2 (REAL(fp) ) : Sea salt tracer array [kg]
-      REAL(fp),  INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
-      REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ,IBINS)
+      REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ,IBINS)
 ! 
 ! !AUTHOR:
 !  Contact: Win Trivitayanurak (win@cmu.edu)  
@@ -1371,7 +1373,7 @@
       DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2  = GET_AREA_M2( I, J, 1 )
+         A_M2  = State_Grid%Area_M2(I,J)
          
          ! Check if over ocean assuming only gridcells that are
          ! at least 50% water are oceans (J. Pierce, 3/10/14)

@@ -354,7 +354,7 @@
          DO NLON = 1, State_Grid%NX
 
             ! Grid box latitude [degrees]
-            YLAT            = State_Grid%YMid( NLON, NLAT, 1 )
+            YLAT            = State_Grid%YMid( NLON, NLAT )
 
             ! Cosine of solar zenith angle [unitless] at (NLON,NLAT)
             CSZA            = State_Met%SUNCOSmid(NLON,NLAT)

@@ -69,18 +69,18 @@ MODULE State_Grid_Mod
      INTEGER            :: YMaxOffset  ! Y offset from global grid
 
      ! Arrays
-     REAL(fp),  POINTER :: GlobalXMid(:,:,:) ! Lon centers on global grid [deg]
-     REAL(fp),  POINTER :: GlobalYMid(:,:,:) ! Lat centers on global grid [deg]
-     REAL(fp),  POINTER :: XMid      (:,:,:) ! Lon centers [degrees]
-     REAL(fp),  POINTER :: XEdge     (:,:,:) ! Lon edges   [degrees]
-     REAL(fp),  POINTER :: YMid      (:,:,:) ! Lat centers [degrees]
-     REAL(fp),  POINTER :: YEdge     (:,:,:) ! Lat edges   [degrees]
-     REAL(fp),  POINTER :: YMid_R    (:,:,:) ! Lat centers [radians]
-     REAL(fp),  POINTER :: YEdge_R   (:,:,:) ! Lat edges   [radians]
-     REAL(fp),  POINTER :: YSIN      (:,:,:) ! SIN( lat edges )
-     REAL(fp),  POINTER :: Area_M2   (:,:,:) ! Grid box area [m2]
-     REAL(fp),  POINTER :: DeltaX    (:,:,:) ! Array of delta-X [degrees]
-     REAL(fp),  POINTER :: DeltaY    (:,:,:) ! Array of delta-Y [degrees]
+     REAL(fp),  POINTER :: GlobalXMid(:,:) ! Lon centers on global grid [deg]
+     REAL(fp),  POINTER :: GlobalYMid(:,:) ! Lat centers on global grid [deg]
+     REAL(fp),  POINTER :: XMid      (:,:) ! Lon centers [degrees]
+     REAL(fp),  POINTER :: XEdge     (:,:) ! Lon edges   [degrees]
+     REAL(fp),  POINTER :: YMid      (:,:) ! Lat centers [degrees]
+     REAL(fp),  POINTER :: YEdge     (:,:) ! Lat edges   [degrees]
+     REAL(fp),  POINTER :: YMid_R    (:,:) ! Lat centers [radians]
+     REAL(fp),  POINTER :: YEdge_R   (:,:) ! Lat edges   [radians]
+     REAL(fp),  POINTER :: YSIN      (:,:) ! SIN( lat edges )
+     REAL(fp),  POINTER :: Area_M2   (:,:) ! Grid box area [m2]
+     REAL(fp),  POINTER :: DeltaX    (:,:) ! Array of delta-X [degrees]
+     REAL(fp),  POINTER :: DeltaY    (:,:) ! Array of delta-Y [degrees]
 
   END TYPE GrdState
 !
@@ -240,52 +240,56 @@ CONTAINS
     ! Assume success
     RC        = GC_SUCCESS
 
-    ALLOCATE( State_Grid%XMid( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    ! NOTE: State_Grid%GlobalXMid and State_Grid%GlobalYMid are allocated
+    ! in gc_grid_mod.F90 after computing State_Grid%GlobalNX and
+    ! State_Grid%GlobalNY
+
+    ALLOCATE( State_Grid%XMid( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%XMid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%XMid = 0e+0_fp
     
-    ALLOCATE( State_Grid%XEdge( State_Grid%NX+1, State_Grid%NY, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%XEdge( State_Grid%NX+1, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%XEdge', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%XEdge = 0e+0_fp
     
-    ALLOCATE( State_Grid%YMid( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%YMid( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YMid', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YMid = 0e+0_fp
     
-    ALLOCATE( State_Grid%YEdge( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%YEdge( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YEdge', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YEdge = 0e+0_fp
 
-    ALLOCATE( State_Grid%YSIN( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%YSIN', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%YSIN = 0e+0_fp
-
-    ALLOCATE( State_Grid%YMid_R( State_Grid%NX, State_Grid%NY, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%YMid_R( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YMid_R', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YMid_R = 0e+0_fp
    
-    ALLOCATE( State_Grid%YEdge_R( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%YEdge_R( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%YEdge_R', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YEdge_R = 0e+0_fp
 
-    ALLOCATE( State_Grid%Area_M2( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%YSIN( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%YSIN', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%YSIN = 0e+0_fp
+
+    ALLOCATE( State_Grid%Area_M2( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%Area_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
 
-    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DeltaX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DeltaX = 0e+0_fp
 
-    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY+1, 1 ), STAT=RC )
+    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DeltaY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DeltaY = 0e+0_fp
@@ -334,6 +338,20 @@ CONTAINS
     !=======================================================================
     ! Deallocate arrays
     !=======================================================================
+    IF ( ASSOCIATED( State_Grid%GlobalXMid ) ) THEN
+       DEALLOCATE( State_Grid%GlobalXMid, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%GlobalXMid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%GlobalXMid => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%GlobalYMid ) ) THEN
+       DEALLOCATE( State_Grid%GlobalYMid, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%GlobalYMid', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%GlobalYMid => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Grid%XMid ) ) THEN
        DEALLOCATE( State_Grid%XMid, STAT=RC )
        CALL GC_CheckVar( 'State_Grid%XMid', 2, RC )
@@ -362,13 +380,6 @@ CONTAINS
        State_Grid%YEdge => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Grid%YSIN ) ) THEN
-       DEALLOCATE( State_Grid%YSIN, STAT=RC ) 
-       CALL GC_CheckVar( 'State_Grid%YSIN', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%YSIN => NULL()
-    ENDIF
-
     IF ( ASSOCIATED( State_Grid%YMid_R ) ) THEN
        DEALLOCATE( State_Grid%Ymid_R, STAT=RC )
        CALL GC_CheckVar( 'State_Grid%YMid_R', 2, RC )
@@ -381,6 +392,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Grid%YEdge_R', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Grid%YEdge_R => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Grid%YSIN ) ) THEN
+       DEALLOCATE( State_Grid%YSIN, STAT=RC ) 
+       CALL GC_CheckVar( 'State_Grid%YSIN', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%YSIN => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Grid%Area_M2 ) ) THEN

@@ -385,7 +385,7 @@
          ENDIF
 
          ! Grid box surface area [m2]
-         AREA_M2 =  State_Grid%Area_M2( I, J, 1 )
+         AREA_M2 =  State_Grid%Area_M2(I,J)
 
          ! NOTE: For some reason the code chokes when we try
          ! to use a pointer, so we'll use a 2D array here.

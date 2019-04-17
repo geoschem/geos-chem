@@ -439,7 +439,7 @@
          DO I = 1, State_Grid%NX
 
             ! Surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
          
             FLUXD = 0e+0_fp
             FLUXN = 0e+0_fp
@@ -858,7 +858,7 @@
             DO I = 1, State_Grid%NX
 
                ! Surface area [cm2]
-               AREA_CM2 = State_Grid%AREA_M2( I, J, 1 ) * 1e+4_fp
+               AREA_CM2 = State_Grid%AREA_M2(I,J) * 1e+4_fp
 
                ! Initialize settling velocity
                DO L = 1, State_Grid%NZ

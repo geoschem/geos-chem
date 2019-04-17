@@ -504,9 +504,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Amount of 10Be lost to decay [kg]
             Be10_LOST = Spc(I,J,L,id_Be10) * ( 1d0 - EXP_Be10 )

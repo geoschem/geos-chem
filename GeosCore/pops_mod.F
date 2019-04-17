@@ -1856,7 +1856,7 @@
      &        ( F_PBL > 0.0_fp         ) ) THEN
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Amt of POPG lost to drydep [molec/cm2/s]
             DEP_DRY_FLXG  = DEP_POPG_DRY * AVO / ( 1.e-3_fp *
@@ -1953,7 +1953,7 @@
      &        ( F_PBL > 0.0_fp         ) ) THEN
 
             ! Grid box surface area [cm2]
-            AREA_CM2 = State_Grid%Area_M2(I,J,1) * 1e+4_fp
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             !----------------------------------
             ! Save drydep flux for POPG
@@ -2492,10 +2492,10 @@
             DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = State_Grid%YMid_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R( I, J )
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 +
-     &                  State_Grid%XMid( I, J, 1 )/15.0
+     &                  State_Grid%XMid( I, J )/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0

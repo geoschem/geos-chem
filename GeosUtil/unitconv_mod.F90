@@ -263,13 +263,15 @@ ENDIF
        CASE ( 'kg/kg total' )
           SELECT CASE ( TRIM(OutUnit) )
              CASE ( 'kg/kg dry' )
-                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
-                                                      State_Chm, RC ) 
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
              CASE ( 'kg' )
-                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
-                                                      State_Chm, RC ) 
-                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root, State_Met, &
-                                               State_Chm, RC ) 
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                                      State_Grid, State_Met, &
+                                                      RC ) 
+                CALL ConvertSpc_KgKgDry_to_Kg( am_I_Root,  State_Chm, &
+                                               State_Grid, State_Met, RC ) 
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -382,9 +384,9 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE Print_Global_Species_Kg( am_I_Root, I, J, L,       &
-                                          Spc, Input_Opt, State_Met,  &
-                                          State_Chm, LOC, RC )
+      SUBROUTINE Print_Global_Species_Kg( am_I_Root, I, J, L,         &
+                                          Spc, Input_Opt, State_Chm,  &
+                                          State_Grid, State_Met, LOC, RC )
 !
 ! !USES:
 !
@@ -398,6 +400,7 @@ ENDIF
       CHARACTER(LEN=*), INTENT(IN)    :: Spc       ! Species abbrev string
       CHARACTER(LEN=*), INTENT(IN)    :: LOC       ! Call location string
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt ! Input Options object
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid! Grid State object
       TYPE(MetState),   INTENT(IN)    :: State_Met ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -443,8 +446,9 @@ ENDIF
       !PRINT *, TRIM(LOC), ', 1,', State_Chm%Species(I,J,L,N)
 
       ! Convert species conc units to kg
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                              State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,  &
+                              State_Grid, State_Met, 'kg', RC,   &
+                              OrigUnit=OrigUnit )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -482,8 +486,8 @@ ENDIF
  120  FORMAT( / )
 
       ! Convert species concentration back to original unit
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                              State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, OrigUnit,  RC )
 
       !PRINT *, TRIM(LOC), ', 2,', State_Chm%Species(I,J,L,N)
 
@@ -847,8 +851,8 @@ ENDIF
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root, State_Met, &
-                                              State_Chm, RC ) 
+  SUBROUTINE ConvertSpc_KgKgTotal_to_KgKgDry( am_I_Root,  State_Chm, &
+                                              State_Grid, State_Met, RC ) 
 !
 ! USES: 
 !
@@ -856,6 +860,7 @@ ENDIF
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -910,9 +915,9 @@ ENDIF
     DO N = 1, State_Chm%nSpecies
 
        ! Loop over grid boxes and do the unit conversion
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
          State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)   &
                         / ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
        ENDDO

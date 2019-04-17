@@ -599,7 +599,7 @@
       DO I = 1, State_Grid%NX
          
          ! Latitude of grid box
-         YMID     = State_Grid%YMid( I, J, L )
+         YMID     = State_Grid%YMid(I,J)
 
          ! Grid box volume [cm3]
          BOXVL    = State_Met%AIRVOL(I,J,L) * 1e+6_fp
@@ -1414,7 +1414,7 @@
                SUNTMP_MID = 0d0
 
                ! Grid box latitude center [radians]
-               YMID_R = State_Grid%YMid_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R(I,J)
 
                ! Local time at box (I,J) [hours]
                TIMLOC = GET_LOCALTIME( I, J, 1, State_Grid, GMT=GMT_MID)

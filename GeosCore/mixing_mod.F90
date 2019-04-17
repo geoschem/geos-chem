@@ -358,7 +358,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD,       ONLY : IIPAR,   JJPAR,   LLPAR
     USE Diagnostics_Mod,    ONLY : Compute_Column_Mass
     USE Diagnostics_Mod,    ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod

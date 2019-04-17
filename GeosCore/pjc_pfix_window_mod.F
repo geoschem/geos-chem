@@ -1903,7 +1903,7 @@ c     --------------------------------------
       ! Grid box surface areas [m2]
       DO J = JU1_GL, J2_GL
       DO I =  I1_GL, I2_GL
-         MCOR(I,J) = State_Grid%Area_M2( I, J, 1 )
+         MCOR(I,J) = State_Grid%Area_M2(I,J)
       ENDDO
       ENDDO
 
@@ -1929,7 +1929,7 @@ c     --------------------------------------
          
       ! Grid box center latitudes [radians]
       DO J = JU1_GL, J2_GL
-         CLAT_FV(J) = State_Grid%YMid_R( 1, J, 1 )
+         CLAT_FV(J) = State_Grid%YMid_R(1,J)
       ENDDO
 
       ! Longitude spacing

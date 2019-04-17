@@ -2109,7 +2109,7 @@
       ENDIF
 
       ! Local time  = GMT time [hrs] + longitude / 15
-      THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J,L) / 15.0_f8 ) 
+      THISLOCALTIME = GMT_HRS + ( State_Grid%XMid(I,J) / 15.0_f8 ) 
 
       ! Make sure that THISLOCALTIME is in the range 0-24 hours
       IF ( THISLOCALTIME > 24.0_f8 ) THEN
