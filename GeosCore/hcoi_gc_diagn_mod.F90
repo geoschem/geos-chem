@@ -2670,8 +2670,12 @@ CONTAINS
              MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
              CALL HCO_Warning( MSG, RC, THISLOC=LOC )
           ENDIF
-   
-          DiagnName = 'FERTILIZER_NO'
+
+          ! Rename to match convention used in HEMCO_Diagn.rc. SOIL_NO
+          ! can stay as-is because it is not a manual diagnostic.
+          ! (mps, 4/18/19)
+          !DiagnName = 'FERTILIZER_NO'
+          DiagnName = 'EmisNO_Fert'
           CALL Diagn_Create ( am_I_Root,                     & 
                               HcoState  = HcoState,          &
                               cName     = TRIM( DiagnName ), &

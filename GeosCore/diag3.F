@@ -3123,7 +3123,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Fertilizer NO %%%%%
-         DiagnName = 'FERTILIZER_NO' 
+         DiagnName = 'EmisNO_Fert' 
          CATEGORY  = 'NO-FERT'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 0, -1, .TRUE., FACTOR, RC )
