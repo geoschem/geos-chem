@@ -275,6 +275,8 @@
       USE PhysConstants, ONLY : AIRMW, AVO
       USE Pressure_Mod
       USE Time_Mod,      ONLY : Get_LocalTime
+      USE Time_Mod,      ONLY : Get_LocalTime_In_Sec
+      USE Time_Mod,      ONLY : Get_Ts_Dyn
 !
 ! !INPUT PARAMETERS:
 !
@@ -388,6 +390,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER             :: Dt_Sec
       INTEGER             :: I,         J,          L
       INTEGER             :: L_CG,      L_TP,       N
       REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
@@ -395,11 +398,12 @@
       REAL(fp)            :: EsatB,     EsatC,      EsatD,     AREA_M2
       REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
       REAL(fp)            :: Pb,        Pt
-      LOGICAL             :: UpdtMR
+      LOGICAL             :: UpdtMR     
 
       ! Arrays
-      LOGICAL             :: IsLocNoon(IIPAR,JJPAR)
-      REAL(f8)            :: LocTime  (IIPAR,JJPAR)
+      LOGICAL             :: IsLocNoon (IIPAR,JJPAR)
+      REAL(f8)            :: LocTime   (IIPAR,JJPAR)
+      INTEGER             :: LocTimeSec(IIPAR,JJPAR)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -436,27 +440,33 @@
       RC       = GC_SUCCESS
       ErrMsg   = ''
       ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
+      Dt_Sec   = Get_Ts_Dyn()
 
       ! Shadow variable for mixing ratio update
       UpdtMR = .TRUE.
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J   )
       DO J = 1, JJPAR
       DO I = 1, IIPAR
 
          ! Local time only depends on longitude, but longitude is a
          ! function of (I,J) for cubed-sphere grids.  Therefore, use
-         ! (I,J) in the call to GET_LOCALTIME. (bmy, 4/16/19)
-         LocTime(I,J) = GET_LOCALTIME( I, J, 1 )
+         ! (I,J) in the call to GET_LOCALTIME.  Obtain the local time
+         ! both in hours and in seconds (bmy, 4/18/19)
+         LocTime   (I,J) = Get_LocalTime       ( I, J, 1 )
+         LocTimeSec(I,J) = Get_LocalTime_In_Sec( I, J, 1 )
 
-         ! Set a flag if the location is within 1hr of local noon,
-         ! which matches what we did for the bpch diagnostics.
-         ! (Avoid roundoff by setting an epsilon of 0.00001.)
-         IsLocNoon(I,J) = ( LocTime(I,J) >= 10.99999_f8 .and.
-     &                      LocTime(I,J) <= 13.00001_f8       )
+         ! Pick the boxes that are closest to local noon (12hr = 43200 s).
+         ! Use local time in seconds, which avoids roundoff issues.
+         IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. 
+     &                      LocTimeSec(I,J) + Dt_Sec >= 43200 )
       ENDDO
       ENDDO
+!$OMP END PARALLEL DO
 
       !=============================================================
       ! Update air quantities
