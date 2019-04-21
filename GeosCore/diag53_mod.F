@@ -137,7 +137,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG53( State_Grid )
+      SUBROUTINE WRITE_DIAG53( Input_Opt, State_Grid )
 !
 ! !USES:
 !
@@ -145,6 +145,7 @@
       USE BPCH2_MOD,      ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
 #endif
       USE FILE_MOD,       ONLY : IU_BPCH
+      USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
       USE TIME_MOD,       ONLY : GET_CT_EMIS, GET_DIAGb,  GET_DIAGe
       USE TIME_MOD,       ONLY : GET_CT_CHEM ! CDH for sea salt loss rate
@@ -154,6 +155,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 
 !
@@ -480,19 +482,19 @@
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_O3' )
 
-      ALLOCATE( AD53_POPP_OCPO_NO3( State_Grid%NX, State_Grid%NY, LD53 ),
+      ALLOCATE( AD53_POPP_OCPO_NO3( State_Grid%NX, State_Grid%NY, LD53),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPO_NO3' )
 
-      ALLOCATE( AD53_POPP_OCPI_NO3( State_Grid%NX, State_Grid%NY, LD53 ),
+      ALLOCATE( AD53_POPP_OCPI_NO3( State_Grid%NX, State_Grid%NY, LD53),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_OCPI_NO3' )
 
-      ALLOCATE( AD53_POPP_BCPO_NO3( State_Grid%NX, State_Grid%NY, LD53 ),
+      ALLOCATE( AD53_POPP_BCPO_NO3( State_Grid%NX, State_Grid%NY, LD53),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPO_NO3' )
 
-      ALLOCATE( AD53_POPP_BCPI_NO3( State_Grid%NX, State_Grid%NY, LD53 ),
+      ALLOCATE( AD53_POPP_BCPI_NO3( State_Grid%NX, State_Grid%NY, LD53),
      &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD53_POPP_BCPI_NO3' )
     

@@ -678,8 +678,8 @@
       !-----------------------------------------------------------------
       ! Initialize bpch diagnostic arrays and counters
       !-----------------------------------------------------------------
-      CALL Initialize( am_I_Root, Input_Opt, 2, RC )
-      CALL Initialize( am_I_Root, Input_Opt, 3, RC )
+      CALL Initialize( am_I_Root, Input_Opt, State_Grid, 2, RC )
+      CALL Initialize( am_I_Root, Input_Opt, State_Grid, 3, RC )
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INITIALIZE' )
 #endif
 
@@ -1217,8 +1217,8 @@
             !===========================================================
             !   ***** Z E R O   B P C H   D I A G N O S T I C S *****
             !===========================================================
-            CALL INITIALIZE( am_I_Root, Input_Opt, 2, RC )  ! Zero diag arrays
-            CALL INITIALIZE( am_I_Root, Input_Opt, 3, RC )  ! Zero counters
+            CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 2, RC )
+            CALL INITIALIZE( am_I_Root, Input_Opt, State_Grid, 3, RC )
 #endif
 
          ENDIF
@@ -2269,8 +2269,8 @@
 
             ! ND42: SOA concentrations [ug/m3]
             IF ( ND42 > 0 ) THEN
-               CALL Diag42( am_I_Root, Input_Opt, State_Met,
-     &                      State_Chm, RC                    )
+               CALL Diag42( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, State_Met, RC                )
 
                ! Trap potential errors
                IF ( RC /= GC_SUCCESS ) THEN

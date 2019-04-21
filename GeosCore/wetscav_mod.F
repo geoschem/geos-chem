@@ -3507,6 +3507,7 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD39                  ! ND39 diag array
@@ -3833,6 +3834,7 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
@@ -4440,6 +4442,7 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )                              
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
@@ -4722,6 +4725,7 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )                               
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array

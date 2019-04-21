@@ -332,10 +332,12 @@
       IF ( ND07 > 0 .and. LCARB ) THEN 
          LD07 = MIN( ND07, State_Grid%NZ )
 
-         ALLOCATE( AD07_BC( State_Grid%NX, State_Grid%NY, LD07 ), STAT=AS )
+         ALLOCATE( AD07_BC( State_Grid%NX, State_Grid%NY, LD07 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_BC' )
 
-         ALLOCATE( AD07_OC( State_Grid%NX, State_Grid%NY, LD07 ), STAT=AS )
+         ALLOCATE( AD07_OC( State_Grid%NX, State_Grid%NY, LD07 ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD07_OC' )
 
          ! SOAupdate (hotp 6/15/09)

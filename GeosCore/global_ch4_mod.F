@@ -975,6 +975,7 @@
 ! !USES:
 !
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD19   	      
 #endif
       USE ErrCode_Mod
@@ -1639,7 +1640,9 @@
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+#endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : Ind_

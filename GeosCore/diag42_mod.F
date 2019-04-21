@@ -72,13 +72,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
+      SUBROUTINE DIAG42( am_I_Root,  Input_Opt, State_Chm, 
+     &                   State_Grid, State_Met, RC)
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE State_Chm_Mod,      ONLY : Ind_
@@ -102,6 +104,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
@@ -232,7 +235,7 @@
 !$OMP+PRIVATE( I, J, L )  
       DO L = 1, LD42  
       DO J = 1, State_Grid%NY 
-      DO I = 1, IIPAR
+      DO I = 1, State_Grid%NX
 
          !--------------------------------------------------------------
          ! TSOA [ug/m3]

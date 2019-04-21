@@ -501,7 +501,7 @@
  110     FORMAT( '     - DIAG20: Writing ', a )
 
          ! Write P(Ox) and L(Ox) to disk
-         CALL WRITE20( State_Diag )
+         CALL WRITE20( Input_Opt, State_Grid )
 
          ! Reset variables for the next diagnostic interval
          COUNT = 0
@@ -526,7 +526,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE20( State_Grid )
+      SUBROUTINE WRITE20( Input_Opt, State_Grid )
 !
 ! !USES:
 !
@@ -537,10 +537,12 @@
 #endif
       USE CMN_SIZE_MOD         ! Size parameters
       USE inquireMod,     ONLY : findFreeLUN
+      USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid   ! Grid State object
 ! 
 ! !REMARKS:
@@ -647,7 +649,7 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY, 2,           
      &            UNIT,      TAU0,      TAU1,     RESERVED,  
-     &            State_Grid%NX, State_Grid%NY, State_Grid%NX,IFIRST,
+     &            State_Grid%NX, State_Grid%NY, State_Grid%NX,
      &            IFIRST,        JFIRST,        LFIRST,
      &            ARRAY )
 

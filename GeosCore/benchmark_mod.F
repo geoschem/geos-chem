@@ -58,8 +58,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE STDRUN( am_I_Root, Input_Opt,  State_Met, 
-     &                   State_Chm, State_Diag, State_Grid, RC,
+      SUBROUTINE STDRUN( am_I_Root,  Input_Opt,  State_Chm, 
+     &                   State_Diag, State_Grid, State_Met, RC,
      &                   LBEGIN )
 !
 ! !USES:
@@ -235,7 +235,7 @@
             CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY,  N,    
      &                  UNIT,      TAU,       TAU,       RESERVED,   
-     &                  State_Grid%NX, State_Grid%NY, State_Grid%NZ
+     &                  State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &                  IFIRST,        JFIRST,        LFIRST,
      &                  ARRAY(:,:,:) )
 
@@ -257,7 +257,7 @@
          CALL BPCH2( IU_FILE,   MODELNAME, LONRES,    LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY,  id_O3,
      &               UNIT,      TAU,       TAU,       RESERVED,
-     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ
+     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ,
      &               IFIRST,        JFIRST,        LFIRST,
      &               ARRAY(:,:,:) )
 

@@ -99,12 +99,13 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG56( State_Grid )
+      SUBROUTINE WRITE_DIAG56( Input_Opt, State_Grid )
 !
 ! !USES:
 !
       USE BPCH2_MOD,       ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
       USE FILE_MOD,        ONLY : IU_BPCH
+      USE Input_Opt_Mod,   ONLY : OptInput
       USE State_Grid_Mod,  ONLY : GrdState
       USE TIME_MOD,        ONLY : GET_CT_A3, GET_CT_I3
       USE TIME_MOD,        ONLY : GET_DIAGb,  GET_DIAGe
@@ -114,6 +115,7 @@
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid   ! Grid State object
 !
 ! !REMARKS:

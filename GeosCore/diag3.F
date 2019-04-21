@@ -586,7 +586,7 @@
             CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &                  HALFPOLAR, CENTER180, CATEGORY, id_Pb210,    
      &                  UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &                  IIPAR,     JJPAR,     LD01,     IFIRST,     
+     &                  State_Grid%NX, State_Grid%NY, LD01, IFIRST,     
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD01) )
          ENDIF
 
@@ -1621,8 +1621,9 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ, IFIRST,     
-     &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD12) )
+     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &               IFIRST,        JFIRST,        LFIRST,
+     &               ARRAY(:,:,1:LD12) )
       ENDIF
 !
 !******************************************************************************
@@ -3731,8 +3732,8 @@
             IF ( N > 0 ) THEN
                ! kg/m2/s to molec/cm2/s 
                CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
-     &                         UNIT, N, 1, State_Grid%NZ, .TRUE., FACTOR,
-     &                         RC )
+     &                         UNIT, N, 1, State_Grid%NZ, .TRUE.,
+     &                         FACTOR, RC )
                IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
             ENDIF
 
@@ -3877,7 +3878,7 @@
 !  ND41: Afternoon boundary layer heights
 !******************************************************************************
 !
-      IF ( ND41 > 0 ) CALL WRITE_DIAG41( State_Grid )
+      IF ( ND41 > 0 ) CALL WRITE_DIAG41( Input_Opt, State_Grid )
 !
 !******************************************************************************
 !  ND42: SOA concentrations [ug/m3]
@@ -5223,7 +5224,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          ! Write the remaining ND53 diagnostics 
-         CALL WRITE_DIAG53( State_Grid )
+         CALL WRITE_DIAG53( Input_Opt, State_Grid )
 
       ENDIF
 !
