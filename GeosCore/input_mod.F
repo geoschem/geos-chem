@@ -333,7 +333,7 @@
          ELSE IF ( INDEX( LINE, 'GRID MENU' ) > 0 ) THEN
             CALL READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error in "Grid_Timestep_Menu"!'
+               ErrMsg = 'Error in "Read_Grid_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
@@ -1153,14 +1153,14 @@
       READ( SUBSTRS(1:N), * ) State_Grid%GridRes
 
       ! Make sure grid resolution is valid
-      IF ( TRIM(State_Grid%GridRes) /= '4x5'           .and.
-     &     TRIM(State_Grid%GridRes) /= '2x2.5'         .and.
+      IF ( TRIM(State_Grid%GridRes) /= '4.0x5.0'       .and.
+     &     TRIM(State_Grid%GridRes) /= '2.0x2.5'       .and.
      &     TRIM(State_Grid%GridRes) /= '0.5x0.625'     .and.
      &     TRIM(State_Grid%GridRes) /= '0.25x0.3125' ) THEN
 
         ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes) //
-     &            ' is not a valid grid resolution! Supported'      //
-     &            ' resoltuions are 4x5, 2x2.5, 0.5x0.625, and'     //
+     &            ' is not a valid grid resolution! Supported'        //
+     &            ' resoltuions are 4.0x5.0, 2.0x2.5, 0.5x0.625, and' //
      &            ' 0.25x0.3125. Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -1294,6 +1294,11 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) State_Grid%NestedGrid
 
+      ! For now hardcode HalfPolar to false when using a nested grid
+      IF ( State_Grid%NestedGrid ) THEN
+         State_Grid%HalfPolar = .FALSE.
+      ENDIF
+
       ! Nested grid transport offsets 
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Buffers N/S/E/W', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1333,19 +1338,19 @@
      &                    TRIM( State_Grid%GridRes )
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
      &                    State_Grid%XMin, State_Grid%XMax
-         WRITE( 6, 120 ) 'X grid dimension            : ',
-     &                    State_Grid%NX
          WRITE( 6, 110 ) 'Min/max longitude           : ', 
      &                    State_Grid%YMin, State_Grid%YMax
+         WRITE( 6, 120 ) 'X grid dimension            : ',
+     &                    State_Grid%NX
          WRITE( 6, 120 ) 'Y grid dimension            : ',
      &                    State_Grid%NY
-         WRITE( 6, 130 ) ' Use half-sized polar boxes?: ', 
-     &                    State_Grid%HalfPolar
          WRITE( 6, 120 ) 'Z grid dimension            : ', 
      &                    State_Grid%NZ
+         WRITE( 6, 130 ) 'Use half-sized polar boxes? : ', 
+     &                    State_Grid%HalfPolar
          WRITE( 6, 130 ) 'Is this a nested-grid sim?  : ', 
      &                    State_Grid%NestedGrid
-         WRITE( 6, 140 ) 'Buffer zone (N S E W )      : ', 
+         WRITE( 6, 140 ) ' --> Buffer zone (N S E W ) : ', 
      &                    State_Grid%NorthBuffer,
      &                    State_Grid%SouthBuffer,
      &                    State_Grid%EastBuffer,

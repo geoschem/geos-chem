@@ -249,15 +249,20 @@ CONTAINS
     !----------------------------------------
 
     ! Define global array of delta-X and delta-Y values
-    State_Grid%DeltaX(:,:) = State_Grid%DX
-    State_Grid%DeltaY(:,:) = State_Grid%DY
+    ! Loop over horizontal grid
+    DO J = 1, State_Grid%GlobalNY
+    DO I = 1, State_Grid%GlobalNX
+       State_Grid%DeltaX(I,J) = State_Grid%DX
+       State_Grid%DeltaY(I,J) = State_Grid%DY
 
-    ! If using half-sized polar boxes on a global grid,
-    ! multiply delta-Y by 1/2 at the South and North Poles
-    IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid ) THEN
-       State_Grid%DeltaY(:,1)             = State_Grid%DY * 0.5_fp
-       State_Grid%DeltaY(:,State_Grid%NY) = State_Grid%DY * 0.5_fp
-    ENDIF
+       ! If using half-sized polar boxes on a global grid,
+       ! multiply delta-Y by 1/2 at the South and North Poles
+       IF ( (J == 1 .or. J == State_Grid%NY) .and. State_Grid%HalfPolar ) THEN
+          State_Grid%DeltaY(I,J) = State_Grid%DY * 0.5_fp
+       ENDIF
+
+    ENDDO
+    ENDDO
 
     !----------------------------------------------------------------------
     ! Calculate grid box centers on global grid
@@ -315,9 +320,13 @@ CONTAINS
     DO I = 1, State_Grid%GlobalNX
        IF ( State_Grid%GlobalXMid(I,1) >= State_Grid%XMin ) THEN
           State_Grid%XMinOffset = I-1
+          EXIT
        ENDIF
-       IF ( State_Grid%GlobalXMid(I,1) >= State_Grid%XMax ) THEN
+    ENDDO
+    DO I = 1, State_Grid%GlobalNX
+       IF ( State_Grid%GlobalXMid(I,1)+State_Grid%DX >= State_Grid%XMax ) THEN
           State_Grid%XMaxOffset = I
+          EXIT
        ENDIF
     ENDDO
 
@@ -325,9 +334,13 @@ CONTAINS
     DO J = 1, State_Grid%GlobalNY
        IF ( State_Grid%GlobalYMid(1,J) >= State_Grid%YMin ) THEN
           State_Grid%YMinOffset = J-1
+          EXIT
        ENDIF
-       IF ( State_Grid%GlobalYMid(1,J) >= State_Grid%YMax ) THEN
+    ENDDO
+    DO J = 1, State_Grid%GlobalNY
+       IF ( State_Grid%GlobalYMid(1,J)+State_Grid%DY >= State_Grid%YMax ) THEN
           State_Grid%YMaxOffset = J
+          EXIT
        ENDIF
     ENDDO
 
@@ -630,13 +643,13 @@ CONTAINS
        WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XMid(I,1), I=1,State_Grid%NX )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box longitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XEdge(I,1), I=1,State_Grid%NX )
+       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%XEdge(I,1), I=1,State_Grid%NX+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude centers [degrees]: '')' )
        WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YMid(1,J), J=1,State_Grid%NY )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''Grid box latitude edges [degrees]: '')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YEdge(1,J), J=1,State_Grid%NY )
+       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''SIN( grid box latitude edges )'')' )
        WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY )

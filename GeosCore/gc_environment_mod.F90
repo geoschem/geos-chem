@@ -452,13 +452,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD
     USE ErrCode_Mod
-    USE GC_GRID_MOD,        ONLY : COMPUTE_GRID
+    USE GC_Grid_Mod,        ONLY : Compute_Grid
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : Alloc_State_Grid
+    USE State_Grid_Mod,     ONLY : Allocate_State_Grid
     USE State_Grid_Mod,     ONLY : GrdState
-    USE TRANSFER_MOD,       ONLY : INIT_TRANSFER
 !
 ! !INPUT PARAMETERS:
 !
@@ -505,10 +503,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    INTEGER            :: JSP,    JNP
-
-    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=================================================================
@@ -524,6 +518,14 @@ CONTAINS
     !=================================================================
     ! Initialize the horizontal grid
     !=================================================================
+
+    ! Allocate State_Grid arrays
+    CALL Allocate_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Compute_Grid"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     CALL Compute_Grid( am_I_Root, Input_Opt, State_Grid, RC)

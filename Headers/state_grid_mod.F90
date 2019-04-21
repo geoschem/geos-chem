@@ -24,7 +24,7 @@ MODULE State_Grid_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Init_State_Grid
-  PUBLIC :: Alloc_State_Grid
+  PUBLIC :: Allocate_State_Grid
   PUBLIC :: Cleanup_State_Grid
 !
 ! !PUBLIC DATA MEMBERS:
@@ -171,7 +171,6 @@ CONTAINS
 
     !---------------------------------------------------------------
     ! Nullify all fields for safety's sake before allocating them
-    ! These arrays are allocated in gc_grid_mod.F90
     !---------------------------------------------------------------
     State_Grid%GlobalXMid   => NULL()
     State_Grid%GlobalYMid   => NULL()
@@ -193,15 +192,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Init_Grid
+! !IROUTINE: Allocate_State_Grid
 !
-! !DESCRIPTION: Subroutine INIT\_GRID initializes variables and allocates
-!  module arrays.
+! !DESCRIPTION: Subroutine ALLOCATE\_STATE\_GRID initializes variables and!
+!  allocates module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Alloc_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
+  SUBROUTINE Allocate_State_Grid( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
@@ -279,22 +278,22 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%YSIN = 0e+0_fp
 
-    ALLOCATE( State_Grid%Area_M2( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    ALLOCATE( State_Grid%Area_M2( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%Area_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
 
-    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DeltaX', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DeltaX = 0e+0_fp
 
-    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DeltaY', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DeltaY = 0e+0_fp
 
-  END SUBROUTINE Alloc_State_Grid
+  END SUBROUTINE Allocate_State_Grid
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
