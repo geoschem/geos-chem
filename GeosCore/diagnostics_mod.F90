@@ -380,9 +380,10 @@ CONTAINS
     ! Exit if species concentration is not a diagnostics in HISTORY.rc
     IF ( ASSOCIATED( Ptr2Data ) ) THEN
 
-       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' ) THEN
+       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' .or. &
+            TRIM( DiagMetadataID ) == 'SpeciesBC' ) THEN
 
-          ! For GEOS-Chem restart collection force units to v/v dry
+          ! For GEOS-Chem restart and BC collections force units to v/v dry
           Units = 'v/v dry'
 
        ELSE

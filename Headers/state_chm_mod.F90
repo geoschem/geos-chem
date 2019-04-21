@@ -2206,6 +2206,12 @@ CONTAINS
           IF ( isRank    ) Rank  = 3
           IF ( isSpecies ) PerSpecies = 'ALL'
 
+       CASE( 'BOUNDARYCOND' )
+          IF ( isDesc    ) Desc  = 'Boundary conditions for species'
+          IF ( isUnits   ) Units = 'v/v'
+          IF ( isRank    ) Rank  = 3
+          IF ( isSpecies ) PerSpecies = 'ALL'
+
        CASE ( 'AEROAREAMDUST1' )
           IF ( isDesc  ) Desc  = 'Dry aerosol area for mineral dust (0.15 um)'
           IF ( isUnits ) Units = 'cm2/cm3'
