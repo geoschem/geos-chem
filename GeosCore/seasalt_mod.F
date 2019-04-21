@@ -1356,9 +1356,9 @@
       !=================================================================
 
       ! Depending on the grid resolution. 4x5 (default) doesn't need adjusting coeff
-      IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
          COEF = 1.e+0_fp
-      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          COEF = 1.e+0_fp
       ELSE
          CALL ERROR_STOP('Adjust seasalt emiss coeff for grid res.?',

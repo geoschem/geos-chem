@@ -568,7 +568,7 @@
 
       ! size information
       ! Eventually need to remove hardcoding for FlexGrid (mps, 4/13/19)
-      IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
          I0_BC_CH = 50
          IM_BC_CH = 17
          J0_BC_CH = 20
@@ -581,7 +581,7 @@
          IM_BC_EU = 17
          J0_BC_EU = 30
          JM_BC_EU = 11
-      ELSEIF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      ELSEIF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          I0_BC_CH = 100
          IM_BC_CH = 33
          J0_BC_CH = 39

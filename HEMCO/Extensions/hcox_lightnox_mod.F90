@@ -1681,9 +1681,9 @@ CONTAINS
     ! GEOS-Chem horizontal resolutions.
     !=================================================================
 
-    IF ( TRIM(HcoState%Config%GridRes)  == '2x2.5' ) THEN
+    IF ( TRIM(HcoState%Config%GridRes)  == '2.0x2.5' ) THEN
        ANN_AVG_FLASHRATE = 46.019893d0
-    ELSE IF ( TRIM(HcoState%Config%GridRes)  == '4x5' ) THEN
+    ELSE IF ( TRIM(HcoState%Config%GridRes)  == '4.0x5.0' ) THEN
        ANN_AVG_FLASHRATE = 46.019893d0
     ENDIF
 
@@ -1745,7 +1745,7 @@ CONTAINS
     BETA = 1d0
 
     IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and. &
-         TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
+         TRIM(HcoState%Config%GridRes)  == '4.0x5.0'  ) THEN
 
     !---------------------------------------
     ! GEOS-FP: 4 x 5 global simulation
@@ -1759,7 +1759,7 @@ CONTAINS
     ENDIF
 
     ELSE IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and. &
-              TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
+              TRIM(HcoState%Config%GridRes)  == '2.0x2.5'  ) THEN
 
     !---------------------------------------
     ! GEOS-FP: 2 x 2.5 global simulation
@@ -1817,7 +1817,7 @@ CONTAINS
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and. &
-              TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
+              TRIM(HcoState%Config%GridRes)  == '4.0x5.0'  ) THEN
 
     !---------------------------------------
     ! MERRA2: 4 x 5 global simulation
@@ -1829,7 +1829,7 @@ CONTAINS
     BETA = ANN_AVG_FLASHRATE / 102.38173d0
 
     ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and. &
-              TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
+              TRIM(HcoState%Config%GridRes)  == '2.0x2.5'  ) THEN
 
     !---------------------------------------
     ! MERRA2: 2 x 2.5 global simulation

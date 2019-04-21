@@ -713,7 +713,7 @@
          ! determine ion rate
 !         ionrate = 10. ! set as constant now !!jrp
 
-         IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+         IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
 
             if( (pres / 100.) .lt. cplevels(9) ) then
                ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
@@ -6345,9 +6345,9 @@ C     and get the nucleation rate and critical cluster size
       DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'TOMAS_201402/'
 
       ! Define subgrid coagulation timescale (win, 10/28/08)
-      IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
          SGCTSCALE = 10.*3600.  ! 10 hours
-      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          SGCTSCALE = 5.*3600.  
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
          SGCTSCALE = 1.*3600.

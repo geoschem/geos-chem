@@ -5551,8 +5551,8 @@
       ! available for 2x25 and 4x5. Use 2x25 for any different grid
       ! and map NOx coeffs onto simulation grid when calling 
       ! GET_NOXCOEFF.
-      IF ( TRIM(State_Grid%GridRes) == '4x5'   .or.
-     &     TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' .or.
+     &     TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          JJNOXCOEFF = State_Grid%NY
       ELSE
          JJNOXCOEFF = 91
@@ -5616,7 +5616,7 @@
          ! Read in data
          DO ILEV = 1,UCX_NLEVS
 
-            IF ( TRIM(State_Grid%GridRes) =='4x5' ) THEN
+            IF ( TRIM(State_Grid%GridRes) =='4.0x5.0' ) THEN
                READ(IU_FILE, 110, IOSTAT=IOS )
      &            NOXCOEFF(:,ILEV,ITRAC,IMON)
  110           FORMAT(46E10.3)
@@ -5877,8 +5877,8 @@
       ! Regridding of netCDF input data is currently not supported.
       IF (UCXNETCDF) THEN
 
-         IF ( TRIM(State_Grid%GridRes) /= '4x5'   .and.
-     &        TRIM(State_Grid%GridRes) /= '2x2.5' ) THEN
+         IF ( TRIM(State_Grid%GridRes) /= '4.0x5.0'   .and.
+     &        TRIM(State_Grid%GridRes) /= '2.0x2.5' ) THEN
             DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25' //
      &               ' and 4x5 - try setting the module variable'   //
      &               ' UCXNETCDF=.FALSE.'
@@ -5908,7 +5908,7 @@
       ! check above (USE2DDATA). 
       ELSE
 
-         IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+         IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
             GRIDSPEC = 'Grid4x5/InitCFC_'
          ELSE
             GRIDSPEC = 'Grid2x25/InitCFC_'

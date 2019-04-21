@@ -1148,9 +1148,9 @@
 !      AREA3D(:,:,2) = AREA(:,:)
 
       ! Define subgrid coagulation timescale (win, 10/28/08)
-      IF ( TRIM(State_Grid%GridRes) == '4x5' ) THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
          TSCALE = 10.*3600.  ! 10 hours
-      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          TSCALE = 5.*3600.  
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
          TSCALE = 1.*3600.

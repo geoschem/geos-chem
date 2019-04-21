@@ -532,14 +532,14 @@ CONTAINS
     !=======================================================================
     ! Allocate quantities depending on horizontal resolution
     !=======================================================================
-    IF ( TRIM( HcoState%Config%GridRes) == '4x5' ) THEN
+    IF ( TRIM( HcoState%Config%GridRes) == '4.0x5.0' ) THEN
 
        !-----------------------------------------------------------------------
        ! TOMAS simulations at 4 x 5 global resolution
        !-----------------------------------------------------------------------
        Inst%TOMAS_COEF = 1.d0
 
-    ELSE IF ( TRIM( HcoState%Config%GridRes) == '2x2.5' ) THEN
+    ELSE IF ( TRIM( HcoState%Config%GridRes) == '2.0x2.5' ) THEN
 
        !-----------------------------------------------------------------------
        ! TOMAS simulations at 2 x 2.5 global resolution

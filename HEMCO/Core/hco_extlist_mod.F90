@@ -1509,9 +1509,9 @@ CONTAINS
        DEF_NC_VER = 'nc4'   ! NetCDF extension
     ENDIF
 
-    IF ( TRIM(CF%GridRes) == '4x5' ) THEN
+    IF ( TRIM(CF%GridRes) == '4.0x5.0' ) THEN
        DEF_RES = '4x5'
-    ELSE IF ( TRIM(CF%GridRes) == '2x2.5' ) THEN
+    ELSE IF ( TRIM(CF%GridRes) == '2.0x2.5' ) THEN
        DEF_RES = '2x25'
     ELSE IF ( TRIM(CF%GridRes) == '0.5x0.625' ) THEN
        DEF_RES = '05x0625'

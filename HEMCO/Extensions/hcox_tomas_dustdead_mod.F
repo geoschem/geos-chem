@@ -5529,7 +5529,7 @@ c Fix up for negative argument, erf, etc.
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and.
-     &     TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
+     &     TRIM(HcoState%Config%GridRes)  == '2.0x2.5'  ) THEN
 
       !----------------------------------------------------------------
       ! Based on results from GEOS-FP 2x25 for 08/2012-08/2013
@@ -5548,7 +5548,7 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 4.9d-4 * 1.0289d0
 
       ELSE IF ( TRIM(HcoState%Config%MetField) == 'GEOSFP'   .and.
-     &          TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
+     &          TRIM(HcoState%Config%GridRes)  == '4.0x5.0'  ) THEN
 
       !----------------------------------------------------------------
       ! Based on results from GEOS-FP 4x5 for 08/2012-08/2013
@@ -5625,7 +5625,7 @@ c Fix up for negative argument, erf, etc.
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and.
-     &          TRIM(HcoState%Config%GridRes)  == '2x2.5'  ) THEN
+     &          TRIM(HcoState%Config%GridRes)  == '2.0x2.5'  ) THEN
 
       !----------------------------------------------------------------
       ! Based on results from MERRA2 2x2.5 for 2012 (Chi Li, 7/8/16)
@@ -5633,7 +5633,7 @@ c Fix up for negative argument, erf, etc.
       FLX_MSS_FDG_FCT = 4.9d-4 * 0.971141
 
       ELSE IF ( TRIM(HcoState%Config%MetField) == 'MERRA2'   .and.
-     &          TRIM(HcoState%Config%GridRes)  == '4x5'    ) THEN
+     &          TRIM(HcoState%Config%GridRes)  == '4.0x5.0'    ) THEN
 
       !----------------------------------------------------------------
       ! Based on results from MERRA2 4x5 for 2012

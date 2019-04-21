@@ -8167,9 +8167,9 @@
       TS_UNIT = -1
 
       ! Define maximum timestep for transport
-      IF ( TRIM(State_Grid%GridRes) == '4x5') THEN
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0') THEN
          MAX_DYN = 1800
-      ELSE IF ( TRIM(State_Grid%GridRes) == '2x2.5' ) THEN
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
          MAX_DYN = 900
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
          MAX_DYN = 600 
