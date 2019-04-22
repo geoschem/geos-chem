@@ -686,7 +686,11 @@
       !-----------------------------------------------------------------
       ! Initialize the hybrid pressure module.  Define Ap and Bp.
       !-----------------------------------------------------------------
-      CALL Init_Pressure( am_I_Root, State_Grid )
+      CALL Init_Pressure( am_I_Root, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Init_Pressure"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INIT_PRESSURE' )
 
       !-----------------------------------------------------------------

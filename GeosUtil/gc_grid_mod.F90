@@ -652,7 +652,7 @@ CONTAINS
        WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YEdge(1,J), J=1,State_Grid%NY+1 )
        WRITE( 6, '(a)' )
        WRITE( 6, '(''SIN( grid box latitude edges )'')' )
-       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY )
+       WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
     ENDIF
 
   END SUBROUTINE DoGridComputation 

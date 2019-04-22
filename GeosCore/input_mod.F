@@ -1158,7 +1158,7 @@
      &     TRIM(State_Grid%GridRes) /= '0.5x0.625'     .and.
      &     TRIM(State_Grid%GridRes) /= '0.25x0.3125' ) THEN
 
-        ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes) //
+         ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes)//
      &            ' is not a valid grid resolution! Supported'        //
      &            ' resoltuions are 4.0x5.0, 2.0x2.5, 0.5x0.625, and' //
      &            ' 0.25x0.3125. Please check your "input.geos" file.'

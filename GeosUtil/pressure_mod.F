@@ -627,18 +627,23 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PRESSURE( am_I_Root, State_Grid )
+      SUBROUTINE INIT_PRESSURE( am_I_Root, State_Grid, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD         ! PTOP
+      USE ErrCode_Mod
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
-      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version 
@@ -671,9 +676,16 @@
       INTEGER :: AS
       INTEGER :: L
 
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
+
       !=================================================================
       ! INIT_PRESSURE begins here!
       !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ThisLoc = ' -> at Init_Pressure (in GeosUtil/pressure_mod.F)'
+
       ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PFLT_DRY' )
       PFLT_DRY = 0e+0_fp
@@ -705,7 +717,7 @@
       EXTERNAL_PEDGE = 0e+0_fp
 #endif
 
-#if   defined( GRIDREDUCED )
+      IF ( State_Grid%NZ == 47 ) THEN
 
       !-----------------------------------------------------------------
       ! 47-level reduced vertical grid
@@ -811,22 +823,7 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
 
-#else
-
-#if defined( MODEL_GEOS )
-      !-----------------------------------------------------------------
-      ! 132 level grid
-      !-----------------------------------------------------------------
-    
-      IF ( State_Grid%NZ == 132 ) THEN
-         DO L=1,State_Grid%NZ+1
-            ! Ap [hPa] for 132 levels (133 edges)
-            AP(L) = a132_loc(State_Grid%NZ+2-L)/100.0
-            ! Bp [unitless] for 132 levels (133 edges)
-            BP(L) = b132_loc(State_Grid%NZ+2-L)
-         ENDDO
-      ELSE
-#endif
+      ELSE IF (State_Grid%NZ == 72 ) THEN
 
       !-----------------------------------------------------------------
       ! 72 level grid
@@ -873,12 +870,32 @@
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00,
      &        0.000000d+00 /)
-     
+
+      ELSE IF ( State_Grid%NZ == 132 ) THEN
+
 #if defined( MODEL_GEOS )
-      ENDIF
-#endif
+      !-----------------------------------------------------------------
+      ! 132 level grid
+      !-----------------------------------------------------------------
+    
+         DO L=1,State_Grid%NZ+1
+            ! Ap [hPa] for 132 levels (133 edges)
+            AP(L) = a132_loc(State_Grid%NZ+2-L)/100.0
+            ! Bp [unitless] for 132 levels (133 edges)
+            BP(L) = b132_loc(State_Grid%NZ+2-L)
+         ENDDO
 
 #endif
+
+      ELSE
+
+         WRITE( nLev, * ) State_Grid%NZ
+         ErrMSg = 'Ap and Bp not defined for ' // TRIM( nLev ) //
+     &            ' levels. See subroutine INIT_PRESSURE.'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+
+      ENDIF
       
 #if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
       ! Echo info to std output (skip if interfacing with external models)
