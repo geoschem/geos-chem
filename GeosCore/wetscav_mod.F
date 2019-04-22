@@ -2793,8 +2793,8 @@
       ! soluble species for a given (I,J) column
       REAL(fp)               :: DSpc(State_Chm%nWetDep,
      &                               State_Grid%NZ,
-     &                               State_Grid%NY,
-     &                               State_Grid%NX)
+     &                               State_Grid%NX,
+     &                               State_Grid%NY)
  
       ! Strings
       CHARACTER(LEN=255)     :: ErrMsg, ErrorMsg, ThisLoc
@@ -5406,21 +5406,21 @@
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
          ! Allocate PDOWN on first call
-         ALLOCATE( PDOWN( State_Grid%NZ, State_Grid%NY, State_Grid%NX ),
+         ALLOCATE( PDOWN( State_Grid%NZ, State_Grid%NX, State_Grid%NY ),
      &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:PDOWN', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          PDOWN = 0e+0_fp
       
          ! Allocate QQ on first call
-         ALLOCATE( QQ( State_Grid%NZ, State_Grid%NY, State_Grid%NX ),
+         ALLOCATE( QQ( State_Grid%NZ, State_Grid%NX, State_Grid%NY ),
      &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:QQ', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          QQ = 0e+0_fp
 
          ! Allocate REEVAP on first call
-         ALLOCATE( REEVAP( State_Grid%NZ, State_Grid%NY, State_Grid%NX),
+         ALLOCATE( REEVAP( State_Grid%NZ, State_Grid%NX, State_Grid%NY),
      &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:REEVAP', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN

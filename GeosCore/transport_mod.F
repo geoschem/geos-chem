@@ -533,7 +533,7 @@
 
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
      &                                 Input_Opt, State_Chm, 
      &                                 State_Grid, State_Met,
      &                                 "do_global_adv: pre-advection", 
@@ -638,7 +638,7 @@
 
       !### DEBUG: Print a few global species sums
       IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
      &                                 Input_Opt, State_Chm, 
      &                                 State_Grid, State_Met,
      &                                 "do_global_adv: post-airqnt", 
