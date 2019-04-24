@@ -8,6 +8,15 @@ include(GC-Helpers)
 # Define the base target (which will store the build configuration properties)
 add_library(BaseTarget INTERFACE)
 
+# Set default CMAKE_BUILD_TYPE to Release
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE "Release" 
+		CACHE STRING
+		"Choose the type of build, options are: Debug Release."
+		FORCE
+	)
+endif()
+
 # Put all mod files in mod subdirectory
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
 target_include_directories(BaseTarget 

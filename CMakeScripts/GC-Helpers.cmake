@@ -93,7 +93,11 @@ function(stringify_list LIST)
     
     if(${BETTER_PRINT})
         string(ASCII 27 Esc)
-        string(REGEX REPLACE "\\[([a-zA-Z0-9_\\.]+)\\]" "${Esc}[32m\\1${Esc}[m" COLORIZED "${STR}")
+        if(${CMAKE_COLOR_MAKEFILE})
+            string(REGEX REPLACE "\\[([a-zA-Z0-9_\\.]+)\\]" "${Esc}[32m\\1${Esc}[m" COLORIZED "${STR}")
+        else()
+            set(COLORIZED "${STR}")
+        endif()
 	string(REGEX REPLACE "\n$" "" COLORIZED "${COLORIZED}")
         message("${COLORIZED}")
     endif()
@@ -282,4 +286,68 @@ function(set_dynamic_option VAR)
 
     # Export to parent scope
     set(${VAR} ${${VAR}} PARENT_SCOPE)
+endfunction()
+
+#[[ get_cwd_last_commit_hash
+
+Variable with name ${VARNAME} gets set to first 7 characters of the hash
+of the last commit to the repo at ${DIR}.
+
+Usage:
+    get_cwd_last_commit_hash(VARNAME DIR)
+    
+]]
+macro(get_cwd_last_commit_hash VARNAME DIR)
+    execute_process(
+        COMMAND git rev-parse --short HEAD 
+        WORKING_DIRECTORY ${DIR}
+        OUTPUT_VARIABLE ${VARNAME}
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+endmacro()
+
+#[[ get_warning_suppression_flags
+
+Returns the appropriate flags for suppressing a list of warnings, depending
+on the compiler. 
+
+Usage:
+    get_warning_suppression_flags(VAR 
+        [LANGUAGE <language>]
+        [INTEL <warning code> ...]
+        [GNU   <warning code> ...]
+    )
+
+Options:
+    LANGUAGE        Returns flags will only be on for this language.
+
+    INTEL           A list of warning codes for Intel compilers.
+
+    GNU             A list of warnings for GCC compilers.
+    
+]]
+function(get_warning_suppression_flags VARNAME)
+    cmake_parse_arguments(DCW
+        ""
+        "LANGUAGE"
+        "INTEL;GNU"
+        ${ARGN}
+    )
+
+    if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
+        string(REPLACE ";" "," INTEL_FLAGS "${DCW_INTEL}")
+        set(FLAGS "-diag-disable ${INTEL_FLAGS}")
+    elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+        string(REPLACE ";" " -Wno-" GNU_FLAGS "${DCW_GNU}")
+        set(FLAGS "-Wno-${GNU_FLAGS}")
+    else()
+        message(WARNING "Unknown compiler ID.")
+        return()
+    endif()
+
+    if(DEFINED DCW_LANGUAGE)
+        set(${VARNAME} "$<$<COMPILE_LANGUAGE:${DCW_LANGUAGE}>:${FLAGS}>" PARENT_SCOPE)    
+    else()
+        set(${VARNAME} "${FLAGS}" PARENT_SCOPE)     
+    endif()
 endfunction()
