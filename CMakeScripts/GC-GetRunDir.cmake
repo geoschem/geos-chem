@@ -19,7 +19,8 @@ endif()
 
 # Get the implementation
 message(STATUS "GEOS-Chem implementation type:")
-set_dynamic_option(IMPL "${IMPL_GUESS}"
+set_dynamic_option(IMPL 
+    DEFAULT "${IMPL_GUESS}"
     LOG IMPL_LOG
     SELECT_EXACTLY 1
     OPTIONS "Classic" "GCHP"

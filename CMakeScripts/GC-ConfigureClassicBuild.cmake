@@ -90,74 +90,82 @@ endif()
 #[[     Settings TUI with defaults from the run directory inspection.        ]]
 
 # MET field
-set_dynamic_option(MET ${RUNDIR_MET}
+set_dynamic_option(MET 
+    DEFAULT ${RUNDIR_MET}
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "GEOS_FP" "MERRA2"
 )
-set_dynamic_default(GC_DEFINES ${MET})
+set_dynamic_default(GC_DEFINES DEFAULT ${MET})
 
 # Check for nested grid
-set_dynamic_option(NESTED "${RUNDIR_NESTED}"
+set_dynamic_option(NESTED 
+    DEFAULT "${RUNDIR_NESTED}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "TRUE" "FALSE"
 )
 if(${NESTED})
     # Which nested grid?
-    set_dynamic_option(REGION "${RUNDIR_REGION}"
+    set_dynamic_option(REGION 
+        DEFAULT "${RUNDIR_REGION}"
         LOG GENERAL_OPTIONS_LOG
         SELECT_EXACTLY 1
         OPTIONS "AS" "CH" "CU" "EU" "NA" 
     )
-    set_dynamic_default(GC_DEFINES NESTED NESTED_${REGION})
+    set_dynamic_default(GC_DEFINES DEFAULT NESTED NESTED_${REGION})
 endif()
 
 # Horizontal grid
 if(${NESTED})
     if("${MET}" STREQUAL "MERRA2") # Nested w/ MERRA2 
-        set_dynamic_option(GRID "${RUNDIR_GRID}"
+        set_dynamic_option(GRID 
+            DEFAULT "${RUNDIR_GRID}"
             LOG GENERAL_OPTIONS_LOG
             SELECT_EXACTLY 1
             OPTIONS "0.5x0.625"
         )
     else() # Nested w/ GEOS_FP
-        set_dynamic_option(GRID "${RUNDIR_GRID}"
+        set_dynamic_option(GRID 
+            DEFAULT "${RUNDIR_GRID}"
             LOG GENERAL_OPTIONS_LOG
             SELECT_EXACTLY 1
             OPTIONS "0.25x0.3125"
         )
     endif()
 else() # Not nested
-    set_dynamic_option(GRID "${RUNDIR_GRID}"
+    set_dynamic_option(GRID 
+        DEFAULT "${RUNDIR_GRID}"
         LOG GENERAL_OPTIONS_LOG
         SELECT_EXACTLY 1
         OPTIONS "4x5" "2x2.5"
     )
 endif()
 string(REPLACE "." "" TEMP "GRID${GRID}")
-set_dynamic_default(GC_DEFINES ${TEMP})
+set_dynamic_default(GC_DEFINES DEFAULT ${TEMP})
 
 # Chemistry mechanism
-set_dynamic_option(MECH "${RUNDIR_MECH}"
+set_dynamic_option(MECH 
+    DEFAULT "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "Standard" "Tropchem" "SOA_SVPOA" "benchmark"
 )
 
 if(${MECH} STREQUAL "Tropchem")
-    set_dynamic_default(GC_DEFINES GRIDREDUCED)
+    set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
 endif()
 
 
 # Build RRTMG?
-set_dynamic_option(RRTMG "FALSE"
+set_dynamic_option(RRTMG 
+    DEFAULT "FALSE"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "TRUE" "FALSE"
 )
 if(${RRTMG})
-    set_dynamic_default(GC_DEFINES "RRTMG")
+    set_dynamic_default(GC_DEFINES DEFAULT "RRTMG")
 endif()
 
 message(STATUS "General settings:")
@@ -165,21 +173,22 @@ dump_log(GENERAL_OPTIONS_LOG)
 
 
 # Get diagnostics
-set_dynamic_default(DIAG 
-    "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC"
-
+set_dynamic_default(DIAG
+    DEFAULT 
+        "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC" 
     LOG EXTRA_DEFS_LOG
 )
-set_dynamic_default(GC_DEFINES ${DIAG})
+set_dynamic_default(GC_DEFINES DEFAULT ${DIAG})
 
 
 # Get extra defines
 set_dynamic_default(EXTRA 
-    "UCX" "USE_REAL8" "USE_TIMERS"
+    DEFAULT
+        "UCX" "USE_REAL8" "USE_TIMERS"
     
     LOG EXTRA_DEFS_LOG
 )
-set_dynamic_default(GC_DEFINES ${EXTRA})
+set_dynamic_default(GC_DEFINES DEFAULT ${EXTRA})
 
 message(STATUS "Additional definitions:")
 dump_log(EXTRA_DEFS_LOG)
@@ -200,18 +209,19 @@ unset(GC_DEFINES)
 
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_dynamic_default(FC_OPTIONS
-        -fPIC -cpp -w -auto -noalign -convert big_endian -vec-report0 
-        -fp-model source -mcmodel=medium -shared-intel -traceback -qopenmp
-        -DLINUX_IFORT
+        DEFAULT
+            -fPIC -cpp -w -auto -noalign -convert big_endian -vec-report0 
+            -fp-model source -mcmodel=medium -shared-intel -traceback -qopenmp
+            -DLINUX_IFORT
 
         LOG RESULTING_DEFINES_LOG
     )
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
-        -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian -fno-range-check 
-        -funroll-loops -mcmodel=medium -fbacktrace -g 
-        
-        -DLINUX_GFORTRAN
+        DEFAULT
+            -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian -fno-range-check 
+            -funroll-loops -mcmodel=medium -fbacktrace -g 
+            -DLINUX_GFORTRAN
 
         LOG RESULTING_DEFINES_LOG
     )

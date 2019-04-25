@@ -143,7 +143,7 @@ function(set_dynamic_default VAR)
     cmake_parse_arguments(SDD
 		"IS_DIRECTORY"
         "LOG"
-        ""
+        "DEFAULT"
         ${ARGN}
     )
 
@@ -155,7 +155,7 @@ function(set_dynamic_default VAR)
 
     # If ${VAR} is mutable, export it
     if(${${VAR}_IS_MUTABLE})
-        set(${VAR} ${${VAR}} ${SDD_UNPARSED_ARGUMENTS})
+        set(${VAR} ${${VAR}} ${SDD_DEFAULT})
         set(${VAR} ${${VAR}} PARENT_SCOPE)
     endif()
 
@@ -178,12 +178,15 @@ function(set_dynamic_default VAR)
 
 	# if IS_DIRECTORY, check that the specified path is valid.
 	if(SDD_IS_DIRECTORY)
-		if("${${VAR}}" STREQUAL "${SDD_UNPARSED_ARGUMENTS}")
+		if("${${VAR}}" STREQUAL "${SDD_DEFAULT}")
 			dump_log(${SDD_LOG})
-			message(FATAL_ERROR "You haven't set ${VAR}!")
-		elseif(NOT IS_ABSOLUTE "${${VAR}}")
-			dump_log(${SDD_LOG})
-			message(FATAL_ERROR "Invalid ${VAR}. An absolute path is required.")
+            message(FATAL_ERROR "You haven't set ${VAR}!")
+        endif()
+
+        # If not absolute, force it to
+        if(NOT IS_ABSOLUTE "${${VAR}}")
+            set(${VAR} ${CMAKE_BINARY_DIR}/${${VAR}} ${SDD_DEFAULT})
+            set(${VAR} ${${VAR}} PARENT_SCOPE)
 		endif()
 
 		if(NOT EXISTS "${${VAR}}")
@@ -223,12 +226,12 @@ function(set_dynamic_option VAR)
     cmake_parse_arguments(SDO  
         ""
         "SELECT_AT_LEAST;SELECT_AT_MOST;SELECT_EXACTLY;LOG" 
-        "OPTIONS" 
+        "OPTIONS;DEFAULT" 
         ${ARGN}
     )
     
     # Set/get value
-    set_dynamic_default(${VAR} ${SDO_UNPARSED_ARGUMENTS})
+    set_dynamic_default(${VAR} DEFAULT ${SDO_DEFAULT})
     if(DEFINED SDO_LOG)
         set(STR "${SDO_OPTIONS}")
 
