@@ -4097,7 +4097,7 @@
 !  (4 ) Bug fix for mass balance, replace TITR_HNO3 w/ HNO3_SSC in the
 !        expression for HNO3_ss.  Bug fix: now do equivalent computation 
 !        for GET_GNO3, which is now no longer called because it's in 
-!        "isoropia_mod.f". (bec, bmy, 7/30/08)
+!        "isorropia_mod.f". (bec, bmy, 7/30/08)
 !  22 Dec 2011 - M. Payer    - Added ProTeX headers
 !  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
 !                              derived type object
@@ -7828,9 +7828,9 @@
 
          ! kg/m2/s --> kg. Weight by fraction of PBL
          ALK1 = MAX(ALK1,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
          ALK2 = MAX(ALK2,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J,1) * TS_EMIS * FEMIS 
+     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
 !         IF ( ASSOCIATED(NDENS_SALA) ) THEN

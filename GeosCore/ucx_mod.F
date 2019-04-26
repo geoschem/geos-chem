@@ -5744,6 +5744,7 @@
 !  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
 !                                to radians and use the SIN function instead
 !  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
+!  12 Feb 2019 - C. Keller     - Now point to updated ODS boundary conditions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5904,7 +5905,8 @@
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
 #if defined( MODEL_GEOS )
-     &      'UCX_201710/Montreal/'
+!!!     &      'UCX_201710/Montreal/'
+     &      'UCX_201902/Montreal/'
 #else
      &      'UCX_201403/Montreal/'
 #endif

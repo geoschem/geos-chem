@@ -1413,13 +1413,13 @@ CONTAINS
        !-------------------------------------------
        ! %%%%% SO2 %%%%%
        !-------------------------------------------
-       ExtNr = 0
 
        ! HEMCO species ID
        HcoID = GetHemcoId( 'SO2', HcoState, LOC, RC )
        IF ( RC /= HCO_SUCCESS ) RETURN
 
        ! ... from aircrafts ...
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_AIRCRAFT'
        CALL Diagn_Create( am_I_Root,                     &   
                           HcoState  = HcoState,          &
@@ -1437,6 +1437,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... anthropogenic ...
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_ANTHROPOGENIC'
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
@@ -1454,6 +1455,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... biofuel ...
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_BIOFUEL'
        CALL Diagn_Create( am_I_Root,                     &
                           HcoState  = HcoState,          &
@@ -1471,6 +1473,8 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from volcanoes (eruptive) ...
+       !ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_VOLCANO_ERUPT'
        CALL Diagn_Create( am_I_Root,                           & 
                           HcoState  = HcoState,                &
@@ -1488,6 +1492,8 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from volcanoes (non-eruptive / degassing) ...
+       !ExtNr     = GetExtNr( HcoState%Config%ExtList, 'AeroCom_Volcano' )
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_VOLCANO_DEGAS'
        CALL Diagn_Create( am_I_Root,                           & 
                           HcoState  = HcoState,                &
@@ -1505,6 +1511,7 @@ CONTAINS
        IF ( RC /= HCO_SUCCESS ) RETURN 
 
        ! ... from ships ...
+       ExtNr     = 0
        DiagnName = 'AD13_SO2_SHIP'
        CALL Diagn_Create( am_I_Root,                     & 
                           HcoState  = HcoState,          &
@@ -4505,7 +4512,7 @@ CONTAINS
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
                              LevIDx    = -1,                &
-                             OutUnit   = 'kg/m2/s',   &
+                             OutUnit   = 'kgC/m2/s',   &
                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
                              AutoFill  = 1,                 &
                              RC        = RC                  )

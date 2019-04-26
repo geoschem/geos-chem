@@ -619,7 +619,7 @@ CONTAINS
                 ELSE IF (TRIM(SpcInfo%Name)=='SHEmis90dayTracer') THEN
                    IF ( YMID >= 0.0 ) MASK(I,J) = 0.0e+0_fp
                 ENDIF
-                Total_Area = Total_Area + State_Met%Area_M2(I,J,L)* MASK(I,J)
+                Total_Area = Total_Area + State_Met%Area_M2(I,J) * MASK(I,J)
              ENDIF
 
           ENDDO

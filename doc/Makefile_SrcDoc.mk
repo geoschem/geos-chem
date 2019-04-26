@@ -145,7 +145,7 @@ $(CORE)/carbon_mod.F                  \
 $(CORE)/dust_mod.F                    \
 $(CORE)/seasalt_mod.F                 \
 $(CORE)/sulfate_mod.F                 \
-$(CORE)/isoropiaII_mod.F              \
+$(CORE)/isorropiaII_mod.F             \
 ./gc_met.P                            \
 $(CORE)/dao_mod.F                     \
 $(CORE)/merra2_read_mod.F90           \

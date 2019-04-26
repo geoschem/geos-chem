@@ -2729,6 +2729,7 @@
       !=================================================================
 
       ! Cannot use Synoz with linearized mesospheric chemistry
+#if !defined( MODEL_GEOS )
       IF ( Input_Opt%LUCX .and. Input_Opt%LSCHEM ) THEN
          IF (.not.Input_Opt%LLINOZ) THEN
             ErrMsg = 'Cannot use Synoz with linearized meso. chem.!'
@@ -2736,6 +2737,7 @@
             RETURN
          ENDIF
       ENDIF
+#endif
 
       ! Cannot have active H2O without stratospheric chemistry
       IF ( (.not.Input_Opt%LUCX) .and. Input_Opt%LACTIVEH2O ) THEN

@@ -410,21 +410,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,           &
-                       KppSpcId,        oFullName,      oFormula,            &
-                       oMW_g,           oEmMW_g,        oMolecRatio,         &
-                       oBackgroundVV,   oHenry_K0,      oHenry_CR,           &
-                       oHenry_PKA,      oDensity,       oRadius,             &
-                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,      &
-                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,             &
-                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,      &
-                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,      &
-                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,      &
-                       oWD_CoarseAer,                                        &
-                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth,     &
-                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,       &
-                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,             &
-                       Found,           Underscores,    RC                  )
+  SUBROUTINE Spc_Info( am_I_Root,       iName,          Input_Opt,       &
+                       KppSpcId,        oFullName,      oFormula,        &
+                       oMW_g,           oEmMW_g,        oMolecRatio,     &
+                       oBackgroundVV,   oHenry_K0,      oHenry_CR,       &
+                       oHenry_PKA,      oDensity,       oRadius,         &
+                       oDD_AeroDryDep,  oDD_DustDryDep, oDD_DvzAerSnow,  &
+                       oDD_DvzMinVal,   oDD_F0,         oDD_KOA,         &
+                       oDD_HStar_Old,   oMP_SizeResAer, oMP_SizeResNum,  &
+                       oWD_RetFactor,   oWD_LiqAndGas,  oWD_ConvFacI2G,  &
+                       oWD_AerScavEff,  oWD_KcScaleFac, oWD_RainoutEff,  &
+                       oWD_CoarseAer,                                    &
+                       oIs_Drydep,      oIs_Gas,        oIs_HygroGrowth, &
+                       oIs_Photolysis,  oIs_Wetdep,     oIs_InRestart,   &
+                       oIs_Hg0,         oIs_Hg2,        oIs_HgP,         &
+                       oDiagName,       Found,          Underscores,     &
+                       RC )
 !
 ! !USES:
 !
@@ -480,6 +481,7 @@ CONTAINS
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg0           ! Denotes Hg0 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_Hg2           ! Denotes Hg2 species
     LOGICAL, INTENT(OUT), OPTIONAL    :: oIs_HgP           ! Denotes HgP species
+    CHARACTER(LEN=*), INTENT(OUT), OPTIONAL   :: oDiagName ! Diagnostics long-name 
     INTEGER, INTENT(OUT)              :: RC                ! Return code
     LOGICAL, INTENT(OUT), OPTIONAL    :: Found             ! Species found? If arg present, 
                                                            ! no error if not found 
@@ -546,6 +548,8 @@ CONTAINS
     LOGICAL             :: Uscore    
     INTEGER             :: C !ramnarine 12/2018
     
+    CHARACTER(LEN=8)    :: sMW
+
     ! Arrays
     REAL(fp)            :: DvzMinVal(2)
     REAL(fp)            :: KcScale(3)
@@ -3027,7 +3031,7 @@ CONTAINS
              WD_RetFactor  = 2.0e-2_fp
 
           CASE( 'SALA' )
-             FullName = 'Accumulation mode sea salt aerosol'
+             FullName = 'Fine (0.01-0.05 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3064,7 +3068,7 @@ CONTAINS
              WD_RainoutEff = RainEff
 
           CASE( 'SALC' )
-             FullName = 'Coarse mode sea salt aerosol'
+             FullName = 'Coarse (0.5-8 microns) sea salt aerosol'
              IF ( Present(oRadius) ) THEN
                 IF ( .NOT. Present(Input_Opt) ) THEN
                    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -3317,7 +3321,7 @@ CONTAINS
              WD_RainoutEff = RainEff
 
           CASE( 'SOAP' )
-             FullName      = 'SOA Precursor - lumped species for simplified SOA paramterization'
+             FullName = 'SOA Precursor - lumped species for simplified SOA parameterization'
 
              !SOAPis not removed because it is a simple parameterization,
              !not a physical model
@@ -5230,10 +5234,6 @@ CONTAINS
           END DO
        ENDIF
     ENDIF
-
-    !=======================================================================
-    ! Assign species database values to the optional output arguments
-    !=======================================================================
     IF ( PRESENT( oFormula        ) ) oFormula          = Formula
     IF ( PRESENT( oMW_g           ) ) oMW_g             = MW_g
     IF ( PRESENT( oEmMW_g         ) ) oEmMW_g           = EmMW_g
@@ -5269,6 +5269,36 @@ CONTAINS
     IF ( PRESENT( oIs_Hg0         ) ) oIs_Hg0           = Is_Hg0
     IF ( PRESENT( oIs_Hg2         ) ) oIs_Hg2           = Is_Hg2
     IF ( PRESENT( oIs_HgP         ) ) oIs_HgP           = Is_HgP
+
+    ! Diagnostics name: long name, formula, MW
+    IF ( PRESENT(oDiagName) ) THEN
+       oDiagName = FullName
+       IF ( TRIM(Formula) /= '' ) THEN
+          oDiagName = TRIM(oDiagName)//' ('//TRIM(Formula)
+       ENDIF
+       IF ( MW_g /= MISSING_MW ) THEN
+          WRITE(sMW,'(f6.2)') MW_g
+          IF ( TRIM(Formula) /= '' ) THEN
+             oDiagName = TRIM(oDiagName)//', MW ='
+          ELSE
+             oDiagName = TRIM(oDiagName)//' (MW ='
+          ENDIF
+          oDiagName = TRIM(oDiagName)//' '//TRIM(ADJUSTL(sMW))//' g mol-1'
+       ENDIF
+       IF ( TRIM(Formula) /= '' .OR. MW_g /= MISSING_MW ) THEN
+          oDiagName = TRIM(oDiagName)//')'
+       ENDIF
+       IF ( Uscore ) THEN
+          CNT = 0
+          IDX = INDEX(TRIM(oDiagName),' ')
+          DO WHILE ( IDX > 0 ) 
+             CNT = CNT + 1
+             IF ( CNT > 100 ) EXIT
+             oDiagName(IDX:IDX) = '_'
+             IDX = INDEX(TRIM(oDiagName),' ')
+          END DO
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Spc_Info 
 !EOC

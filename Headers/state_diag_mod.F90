@@ -131,14 +131,17 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: DryDepRa2m      (:,:    ) ! Aerodyn resistance @2m 
      REAL(f4),  POINTER :: DryDepRa10m     (:,:    ) ! Aerodyn resistance @10m
      REAL(f4),  POINTER :: MoninObukhov    (:,:    ) ! MoninObukhov length 
+     REAL(f4),  POINTER :: Bry             (:,:,:  ) ! MoninObukhov length 
      LOGICAL :: Archive_DryDepRa2m
      LOGICAL :: Archive_DryDepRa10m
      LOGICAL :: Archive_MoninObukhov
+     LOGICAL :: Archive_Bry
 #endif
 
      ! Chemistry
      REAL(f4),  POINTER :: JVal            (:,:,:,:) ! J-values, instantaneous
      REAL(f4),  POINTER :: JNoon           (:,:,:,:) ! Noon J-values
+     REAL(f4),  POINTER :: JNoonFrac       (:,:    ) ! Frac of when it was noon
      REAL(f4),  POINTER :: RxnRates        (:,:,:,:) ! Reaction rates from KPP
      REAL(f4),  POINTER :: UVFluxDiffuse   (:,:,:  ) ! Diffuse UV flux per bin
      REAL(f4),  POINTER :: UVFluxDirect    (:,:,:  ) ! Direct UV flux per bin
@@ -151,6 +154,7 @@ MODULE State_Diag_Mod
      REAL(f4),  POINTER :: Prod            (:,:,:,:) ! Chemical prod of species
      LOGICAL :: Archive_JVal            
      LOGICAL :: Archive_JNoon           
+     LOGICAL :: Archive_JNoonFrac
      LOGICAL :: Archive_RxnRates        
      LOGICAL :: Archive_UVFluxDiffuse   
      LOGICAL :: Archive_UVFluxDirect    
@@ -283,7 +287,6 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_TotalBiogenicOA 
 
 #if defined( MODEL_GEOS )
-     REAL(f4),  POINTER :: PM25            (:,:,:  ) ! PM (r< 2.5 um) [ug/m3]
      REAL(f4),  POINTER :: PM25ni          (:,:,:  ) ! PM25 nitrates 
      REAL(f4),  POINTER :: PM25su          (:,:,:  ) ! PM25 sulfates 
      REAL(f4),  POINTER :: PM25oc          (:,:,:  ) ! PM25 OC
@@ -400,6 +403,12 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_LossCH4byClinTrop
      LOGICAL :: Archive_LossCH4byOHinTrop
      LOGICAL :: Archive_LossCH4inStrat
+
+     ! CO specialty simulation
+     REAL(f4), POINTER :: ProdCOfromCH4 (:,:,:)
+     REAL(f4), POINTER :: ProdCOfromNMVOC (:,:,:)
+     LOGICAL :: Archive_ProdCOfromCH4
+     LOGICAL :: Archive_ProdCOfromNMVOC
 
      ! Persistent Organic Pollutants (POPS) specialty simulation
      REAL(f4), POINTER :: EmisPOPG                (:,:  )
@@ -818,14 +827,17 @@ CONTAINS
     State_Diag%DryDepRa2m                          => NULL()
     State_Diag%DryDepRa10m                         => NULL()
     State_Diag%MoninObukhov                        => NULL()
+    State_Diag%Bry                                 => NULL()
     State_Diag%Archive_DryDepRa2m                  = .FALSE.
     State_Diag%Archive_DryDepRa10m                 = .FALSE.
     State_Diag%Archive_MoninObukhov                = .FALSE.
+    State_Diag%Archive_Bry                         = .FALSE.
 #endif
 
     ! Chemistry, J-value, Prod/Loss diagnostics
     State_Diag%JVal                                => NULL()
     State_Diag%JNoon                               => NULL()
+    State_Diag%JNoonFrac                           => NULL()
     State_Diag%RxnRates                            => NULL()
     State_Diag%UVFluxDiffuse                       => NULL()
     State_Diag%UVFluxDirect                        => NULL()
@@ -838,6 +850,7 @@ CONTAINS
     State_Diag%Prod                                => NULL()
     State_Diag%Archive_JVal                        = .FALSE.
     State_Diag%Archive_JNoon                       = .FALSE.
+    State_Diag%Archive_JNoonFrac                   = .FALSE.
     State_Diag%Archive_RxnRates                    = .FALSE.
     State_Diag%Archive_UVFluxDiffuse               = .FALSE.
     State_Diag%Archive_UVFluxDirect                = .FALSE.
@@ -1154,6 +1167,12 @@ CONTAINS
     State_Diag%Archive_LossCH4byClinTrop           = .FALSE.
     State_Diag%Archive_LossCH4byOHinTrop           = .FALSE.
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
+
+    ! CO specialtiy simulation diagnostics
+    State_Diag%ProdCOfromCH4                          => NULL()
+    State_Diag%ProdCOfromNMVOC                        => NULL()
+    State_Diag%Archive_ProdCOfromCH4                  = .FALSE.
+    State_Diag%Archive_ProdCOfromNMVOC                = .FALSE.
 
     ! Hg specialty simulation diagnostics
     !  -- emissions quantities (e.g. for HEMCO manual diagnostics)
@@ -1816,6 +1835,24 @@ CONTAINS
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    !--------------------------------------------
+    ! Bry 
+    !-------------------------------------------- 
+    arrayID = 'State_Diag%Bry'
+    diagID  = 'Bry'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF(am_I_Root) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%Bry( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Bry = 0.0_f4
+       State_Diag%Archive_Bry = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%Bry,  &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
 #endif
 
     !-----------------------------------------------------------------------
@@ -2422,6 +2459,24 @@ CONTAINS
           IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
 
+       ! Counter array for noontime J-value boxes
+       ! Must be saved in conjunction with State_Diag%JNoon
+       arrayID = 'State_Diag%JNoonFrac'
+       diagID  = 'JNoonFrac'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%JNoonFrac( IM, JM ), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%JNoonFrac = 0.0_f4
+          State_Diag%Archive_JNoonFrac = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%JNoonFrac,                     &
+                                   State_Chm, State_Diag, RC                )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
        !--------------------------------------------------------------------
        ! Diffuse UV flux per wavelength bin
        !--------------------------------------------------------------------
@@ -2909,7 +2964,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 25
+       DO N = 1, 26
           
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -2920,48 +2975,50 @@ CONTAINS
              CASE( 3  ) 
                 diagID = 'JNoon'
              CASE( 4  ) 
-                diagID = 'UvFluxDiffuse'
+                diagID = 'JNoonFrac'
              CASE( 5  ) 
-                diagID = 'UvFluxDirect'
+                diagID = 'UvFluxDiffuse'
              CASE( 6  ) 
+                diagID = 'UvFluxDirect'
+             CASE( 7  ) 
                 diagID = 'UvFluxNet'
-             CASE( 7  )
-                diagID = 'HO2concAfterChem'
              CASE( 8  )
-                diagID = 'O1DconcAfterChem'
+                diagID = 'HO2concAfterChem'
              CASE( 9  )
-                diagID = 'O3PconcAfterChem'
+                diagID = 'O1DconcAfterChem'
              CASE( 10 )
-                diagID = 'ProdSO4fromHOBrInCloud'
+                diagID = 'O3PconcAfterChem'
              CASE( 11 )
-                diagID = 'ProdSO4fromSRHOBr'
+                diagID = 'ProdSO4fromHOBrInCloud'
              CASE( 12 )
-                diagID = 'AerMassASOA'
+                diagID = 'ProdSO4fromSRHOBr'
              CASE( 13 )
-                diagID = 'AerMassINDIOL'
+                diagID = 'AerMassASOA'
              CASE( 14 )
-                diagID = 'AerMassISN1OA'
+                diagID = 'AerMassINDIOL'
              CASE( 15 )
-                diagID = 'AerMassISOA'
+                diagID = 'AerMassISN1OA'
              CASE( 16 )
-                diagID = 'AerMassLVOCOA'
+                diagID = 'AerMassISOA'
              CASE( 17 )
-                diagID = 'AerMassOPOA'
+                diagID = 'AerMassLVOCOA'
              CASE( 18 )
-                diagID = 'AerMassPOA'
+                diagID = 'AerMassOPOA'
              CASE( 19 )
-                diagID = 'AerMassSOAGX'
+                diagID = 'AerMassPOA'
              CASE( 20 )
-                diagID = 'AerMassSOAIE'
+                diagID = 'AerMassSOAGX'
              CASE( 21 )
-                diagID = 'AerMassSOAME'
+                diagID = 'AerMassSOAIE'
              CASE( 22 )
-                diagID = 'AerMassSOAMG'
+                diagID = 'AerMassSOAME'
              CASE( 23 )
-                diagID = 'AerMassTSOA'
+                diagID = 'AerMassSOAMG'
              CASE( 24 )
-                diagID = 'BetaNO'      
+                diagID = 'AerMassTSOA'
              CASE( 25 )
+                diagID = 'BetaNO'
+             CASE( 26 )
                 diagID = 'TotalBiogenicOA'
           END SELECT
 
@@ -5199,6 +5256,85 @@ CONTAINS
     ENDIF
 
     !=======================================================================
+    ! These diagnostics are only relevant for:
+    !
+    ! THE CO SPECIALTY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+
+       !--------------------------------------------------------------------
+       ! Production of CO from CH4
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdCOfromCH4'
+       diagID  = 'ProdCOfromCH4'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdCOfromCH4(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdCOfromCH4 = 0.0_f4
+          State_Diag%Archive_ProdCOfromCH4 = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdCOfromCH4,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Production of CO from NMVOC
+       !--------------------------------------------------------------------
+       arrayID = 'State_Diag%ProdCOfromNMVOC'
+       diagID  = 'ProdCOfromNMVOC'
+       CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+       IF ( Found ) THEN
+          IF ( am_I_Root ) WRITE( 6, 20 ) ADJUSTL( arrayID ), TRIM( diagID )
+          ALLOCATE( State_Diag%ProdCOfromNMVOC(IM,JM,LM), STAT=RC )
+          CALL GC_CheckVar( arrayID, 0, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+          State_Diag%ProdCOfromNMVOC = 0.0_f4
+          State_Diag%Archive_ProdCOfromNMVOC = .TRUE.
+          CALL Register_DiagField( am_I_Root, diagID,                        &
+                                   State_Diag%ProdCOfromNMVOC,             &
+                                   State_Chm, State_Diag, RC )
+          IF ( RC /= GC_SUCCESS ) RETURN
+       ENDIF
+
+    ELSE
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! Persistent Organic Pollutants (POPS).
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 2
+
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'ProdCOfromCH4'
+             CASE( 2  )
+                diagID = 'ProdCOfromNMVOC'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          ! Force an exact string match to avoid namespace confusion
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID,                 &
+                               Found,     RC,        exact=.TRUE.           )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for the '             // &
+                      'tagged CO specialty simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+
+    ENDIF
+
+    !=======================================================================
     ! The production and loss diagnostics are only relevant for:
     !
     ! THE Hg and TAGGED Hg SPECIALTY SIMULATIONS
@@ -6484,6 +6620,13 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%MoninObukhov => NULL()
     ENDIF
+
+    IF ( ASSOCIATED( State_Diag%Bry ) ) THEN
+       DEALLOCATE( State_Diag%Bry, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%Bry', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%Bry => NULL()
+    ENDIF
 #endif
 
     IF ( ASSOCIATED( State_Diag%JVal ) ) THEN
@@ -6507,6 +6650,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%JNoon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%JNoon => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%JNoonFrac ) ) THEN
+       DEALLOCATE( State_Diag%JNoonFrac, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%JNoonFrac', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%JNoonFrac => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%RxnRates ) ) THEN
@@ -7512,6 +7662,20 @@ CONTAINS
        State_Diag%LossCH4inStrat => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%ProdCOfromCH4 ) ) THEN
+       DEALLOCATE( State_Diag%ProdCOfromCH4, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ProdCOfromCH4', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdCOfromCH4 => NULL()
+    ENDIF 
+
+    IF ( ASSOCIATED( State_Diag%ProdCOfromNMVOC ) ) THEN
+       DEALLOCATE( State_Diag%ProdCOfromNMVOC, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ProdCOfromNMVOC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ProdCOfromNMVOC => NULL()
+    ENDIF 
+
     IF ( ASSOCIATED( State_Diag%EmisHg0anthro ) ) THEN
        DEALLOCATE( State_Diag%EmisHg0anthro, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%EmisHg0anthro', 2, RC )
@@ -8132,6 +8296,11 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Monin-Obukhov length'
        IF ( isUnits   ) Units = 'm'
        IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BRY' ) THEN
+       IF ( isDesc    ) Desc  = 'inorganic_bromine_=_2xBr2_Br_BrO_HOBr_HBr_BrNO2_BrNO3_BrCl_IBr'
+       IF ( isUnits   ) Units = 'mol mol-1'
+       IF ( isRank    ) Rank  = 3
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'JVAL' ) THEN
@@ -8145,6 +8314,11 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'PHO'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'JNOONFRAC' ) THEN
+       IF ( isDesc    ) Desc  = 'Fraction of the time when local noon occurred at each surface location' 
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'RXNRATES' ) THEN
        IF ( isDesc    ) Desc  = 'placeholder'
@@ -8992,6 +9166,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Loss of CH4 in the stratosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMCH4' ) THEN
+       IF ( isDesc    ) Desc  = 'Porduction of CO by CH4'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODCOFROMNMVOC' ) THEN
+       IF ( isDesc    ) Desc  = 'Porduction of CO by NMVOC'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  =  3 
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'EMISHG0ANTHRO' ) THEN
        IF ( isDesc    ) Desc  = 'Anthropogenic emissions of Hg0'

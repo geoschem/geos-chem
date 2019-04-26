@@ -63,7 +63,7 @@ help:
 	@echo 'libcore         Builds GEOS-Chem objs & libs only in GeosCore/'
 	@echo 'libheaders      Builds GEOS-Chem objs & libs only in Headers/'
 	@echo 'libhistory      Builds GEOS-Chem objs & libs only in History/'
-	@echo 'libiso          Builds GEOS-Chem objs & libs only in ISOROPIA/'
+	@echo 'libiso          Builds GEOS-Chem objs & libs only in ISORROPIA/'
 	@echo 'libkpp          Builds GEOS-Chem objs & libs only in KPP/'
 	@echo 'libnc           Builds GEOS-Chem objs & libs only in NcdfUtil/'  
 	@echo 'librad          Builds GEOS-Chem objs & libs only in GeosRad/'  

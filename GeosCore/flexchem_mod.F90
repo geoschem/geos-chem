@@ -225,7 +225,7 @@ CONTAINS
     INTEGER                :: Day
     REAL(fp)               :: Start,     Finish,   rtim,      itim
     REAL(fp)               :: SO4_FRAC,  YLAT,     T,         TIN
-    REAL(fp)               :: JNoon_Fac, TOUT
+    REAL(fp)               :: TOUT
 
     ! Strings
     CHARACTER(LEN=63)      :: OrigUnit
@@ -305,6 +305,17 @@ CONTAINS
     IF ( State_Diag%Archive_Prod  ) State_Diag%Prod  = 0.0_f4
     IF ( State_Diag%Archive_JVal  ) State_Diag%JVal  = 0.0_f4
     IF ( State_Diag%Archive_JNoon ) State_Diag%JNoon = 0.0_f4
+
+    ! Keep track of the boxes where it is local noon in the JNoonFrac
+    ! diagnostic. When time-averaged, this will be the fraction of time
+    ! that local noon occurred at a grid box. (bmy, 4/2/19)
+    IF ( State_Diag%Archive_JNoonFrac ) THEN
+       WHERE( State_Met%IsLocalNoon )
+          State_Diag%JNoonFrac = 1.0_f4
+       ELSEWHERE
+          State_Diag%JNoonFrac = 0.0_f4
+       ENDWHERE
+    ENDIF
 
 #if defined( MODEL_GEOS )
     GLOB_RCONST = 0.0_f4
@@ -573,11 +584,6 @@ CONTAINS
     TIN       = T
     TOUT      = T + DT
 
-    ! Factor that we need to multiply the JNoon netCDF diagnostic by 
-    ! to  account for the number of times the diagnostic array will be 
-    ! divided each day.
-    JNoon_Fac = 86400.0_fp / DT
-
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
     ! Absolute tolerance
@@ -782,18 +788,11 @@ CONTAINS
              ! To match the legacy bpch diagnostic, we archive the sum of 
              ! photolysis rates for a given GEOS-Chem species over all of 
              ! the reaction branches.
-             !
-             !    NOTE: The legacy ND22 bpch diagnostic divides by the
-             !    number of times the when grid box (I,J,L) was between
-             !    11am and 1pm local solar time.  Because the HISTORY
-             !    component can only divide by the number of times the
-             !    diagnostic was updated, we counteract this by multiplying
-             !    by the factor 86400 [sec/day] / chemistry timestep [sec].
              !--------------------------------------------------------------
              
              ! GC photolysis species index
              P = GC_Photo_Id(N)
-             
+
              ! If this FAST_JX photolysis species maps to a valid 
              ! GEOS-Chem photolysis species (for this simulation)...
              IF ( P > 0 ) THEN
@@ -801,18 +800,18 @@ CONTAINS
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
                 IF ( State_Diag%Archive_JVal ) THEN
-                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)    &
+                   State_Diag%JVal(I,J,L,P) = State_Diag%JVal(I,J,L,P)       &
                                             + PHOTOL(N)
                 ENDIF
 
                 ! Archive the noontime photolysis rate
                 ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_JNoon .and. &
-                     State_Met%IsLocalNoon(I,J) ) THEN
-                   State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
-                                             + ( PHOTOL(N) * JNoon_Fac )
+                IF ( State_Met%IsLocalNoon(I,J) ) THEN
+                   IF ( State_Diag%Archive_JNoon ) THEN
+                      State_Diag%JNoon(I,J,L,P) = State_Diag%JNoon(I,J,L,P)  &
+                                                + PHOTOL(N)
+                   ENDIF
                 ENDIF
-
              ENDIF
           ENDDO
        ENDIF
@@ -1491,85 +1490,85 @@ CONTAINS
                State_Diag%O3concAfterChem(I,J,L) = Spc(I,J,L,id_O3)
             ENDIF
             IF ( Archive_RO2concAfterChem ) THEN
-               IF ( id_A3O2 > 0 ) THEN
+               IF ( id_A3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) +  Spc(I,J,L,id_A3O2)
-               IF ( id_ATO2 > 0 ) THEN
+               IF ( id_ATO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ATO2)
-               IF ( id_B3O2 > 0 ) THEN
+               IF ( id_B3O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_B3O2)
-               IF ( id_BRO2 > 0 ) THEN
+               IF ( id_BRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_BRO2)
-               IF ( id_DHPCARP > 0 ) THEN
+               IF ( id_DHPCARP > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DHPCARP)
-               IF ( id_DIBOO > 0 ) THEN
+               IF ( id_DIBOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_DIBOO)
-               IF ( id_ETO2 > 0 ) THEN
+               IF ( id_ETO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ETO2)
-               IF ( id_HC5OO > 0 ) THEN
+               IF ( id_HC5OO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HC5OO)
-               IF ( id_HO2 > 0 ) THEN
+               IF ( id_HO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_HO2)
-               IF ( id_IEPOXOO > 0 ) THEN
+               IF ( id_IEPOXOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_IEPOXOO)
-               IF ( id_INPN > 0 ) THEN
+               IF ( id_INPN > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_INPN)
-               IF ( id_ISNOOA > 0 ) THEN
+               IF ( id_ISNOOA > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOA)
-               IF ( id_ISNOOB > 0 ) THEN
+               IF ( id_ISNOOB > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOOB)
-               IF ( id_ISNOHOO > 0 ) THEN
+               IF ( id_ISNOHOO > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_ISNOHOO)
-               IF ( id_LIMO2 > 0 ) THEN
+               IF ( id_LIMO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_LIMO2)
-               IF ( id_MAOPO2 > 0 ) THEN
+               IF ( id_MAOPO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MAOPO2)
-               IF ( id_MO2 > 0  ) THEN
+               IF ( id_MO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MO2)
-               IF ( id_MRO2 > 0 ) THEN
+               IF ( id_MRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_MRO2)
-               IF ( id_PIO2 > 0 ) THEN
+               IF ( id_PIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PIO2)
-               IF ( id_PO2 > 0  ) THEN
+               IF ( id_PO2 > 0  ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PO2)
-               IF ( id_PRNI > 0 ) THEN
+               IF ( id_PRNI > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_PRNI)
-               IF ( id_R4NI > 0 ) THEN
+               IF ( id_R4NI > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4NI)
-               IF ( id_R4O2 > 0 ) THEN
+               IF ( id_R4O2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_R4O2)
-               IF ( id_RIO2 > 0 ) THEN
+               IF ( id_RIO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_RIO2)
-               IF ( id_TRO2 > 0 ) THEN
+               IF ( id_TRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_TRO2)
-               IF ( id_VRO2 > 0 ) THEN
+               IF ( id_VRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_VRO2)
-               IF ( id_XRO2 > 0 ) THEN
+               IF ( id_XRO2 > 0 ) &
                   State_Diag%RO2concAfterChem(I,J,L) = &
                      State_Diag%RO2concAfterChem(I,J,L) + Spc(I,J,L,id_XRO2)
             ENDIF

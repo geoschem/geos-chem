@@ -220,6 +220,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  29 Feb 2016 - C. Keller - Initial version
+!  19 Nov 2018 - C. Keller - Add option TimeShiftCap
 !
 !EOP
 !------------------------------------------------------------------------------
@@ -228,6 +229,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                        :: nYr, nMt, nDy, nHr, nMn
+    INTEGER                        :: oYr, oMt, oDy
     INTEGER                        :: SHFT, IDX
     INTEGER                        :: YYYYMMDD, HHMMSS
     REAL(dp)                       :: TimeShift, DAY, UTC, JD
@@ -252,6 +254,11 @@ CONTAINS
     nDy = MAX(Dy,1)
     nHr = MAX(Hr,0)
     nMn = MAX(Mn,0)
+
+    ! Archive original values
+    oYr = nYr
+    oMt = nMt
+    oDy = nDy
 
     ! Get time shift in days
     TimeShift = REAL(Lct%Dct%Dta%tShift(2),dp) / 86400.0_dp
@@ -292,6 +299,33 @@ CONTAINS
 
     nHr = FLOOR ( MOD(   HHMMSS, 1000000  ) / 1.0e4_dp )
     nMn = FLOOR ( MOD(   HHMMSS, 10000    ) / 1.0e2_dp )
+
+    ! Eventually cap time shift for the same day.
+    IF ( HcoState%Options%TimeShiftCap ) THEN
+       IF ( ( nYr < oYr                  ) .OR. &
+            ( nMt < oMt .AND. nYr == oYr ) .OR. &
+            ( nDy < oDy .AND. nMt == oMt )       ) THEN
+          nYr = oYr
+          nMt = oMt
+          nDy = oDy
+          nHr = 0
+          nMn = 0
+          IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
+             MSG = 'Options set to cap time shift - set to low bound'
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ELSEIF ( nYr > oYr .OR. nMt > oMt .OR. nDy > oDy ) THEN
+          nYr = oYr
+          nMt = oMt
+          nDy = oDy
+          nHr = 23
+          nMn = 59
+          IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN
+             MSG = 'Options set to cap time shift - set to high bound'
+             CALL HCO_MSG(HcoState%Config%Err,MSG)
+          ENDIF
+       ENDIF
+    ENDIF
 
     ! verbose mode
     IF ( HCO_IsVerb(HcoState%Config%Err,3) ) THEN

@@ -128,7 +128,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AREA_M2       (:,:,:) ! Grid box surface area [cm2]
+     REAL(fp), POINTER :: AREA_M2       (:,:  ) ! Grid box surface area [m2]
      REAL(fp), POINTER :: CLDF          (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC         (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DQRCU         (:,:,:) ! Conv precip production rate 
@@ -203,6 +203,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: AD            (:,:,:) ! Dry air mass [kg] in grid box
      REAL(fp), POINTER :: AIRVOL        (:,:,:) ! Grid box volume [m3] (dry air)
      REAL(fp), POINTER :: DP_DRY_PREV   (:,:,:) ! Previous State_Met%DELP_DRY
+     REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
      ! Age of air for diagnosing transport
@@ -969,7 +970,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
-    ! TSKIN [1]
+    ! TSKIN [K]
     !-------------------------
     ALLOCATE( State_Met%TSKIN( IM, JM ), STAT=RC )
     CALL GC_CheckVar( 'State_Met%TSKIN', 0, RC )
@@ -1265,7 +1266,7 @@ CONTAINS
     !-------------------------
     ! AREA_M2 [m2]
     !-------------------------
-    ALLOCATE( State_Met%AREA_M2( IM, JM, 1 ), STAT=RC )
+    ALLOCATE( State_Met%AREA_M2( IM, JM ), STAT=RC )
     CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN           
     State_Met%AREA_M2  = 0.0_fp
@@ -1347,6 +1348,17 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Met%DP_DRY_PREV= 0.0_fp
     CALL Register_MetField( am_I_Root, 'DPDRYPREV', State_Met%DP_DRY_PREV, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! SPHU_PREV [g/kg]
+    !-------------------------
+    ALLOCATE( State_Met%SPHU_PREV( IM, JM, LM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%SPHU_PREV', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%SPHU_PREV= 0.0_fp
+    CALL Register_MetField( am_I_Root, 'SPHUPREV', State_Met%SPHU_PREV, &
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -3563,8 +3575,7 @@ CONTAINS
        CASE ( 'AREAM2' )
           IF ( isDesc  ) Desc  = 'Surface area of grid box'
           IF ( isUnits ) Units = 'm2'
-          IF ( isRank  ) Rank  = 3
-          IF ( isVLoc  ) VLoc  = VLocationCenter
+          IF ( isRank  ) Rank  = 2
 
        CASE ( 'AVGW' )
           IF ( isDesc  ) Desc  = 'Water vapor mixing ratio (w/r/t dry air)'
@@ -3605,6 +3616,12 @@ CONTAINS
        CASE ( 'DPDRYPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%DELP_DRY'
           IF ( isUnits ) Units = 'hPa'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'SPHUPREV' )
+          IF ( isDesc  ) Desc  = 'Previous State_Met%SPHU_PREV'
+          IF ( isUnits ) Units = 'g kg-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 

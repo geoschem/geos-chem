@@ -47,7 +47,6 @@
       USE GC_GRID_MOD           ! For defining the lons/lats/areas of the grid
       USE Input_Opt_Mod         ! Derived type for Input Options 
       USE INPUT_MOD             ! For reading settings from "input.geos"
-      USE MAPPING_MOD           ! For regridding MODIS LAI
       USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
       USE PhysConstants         ! Physical constants
       USE PRESSURE_MOD          ! For computing pressure at grid boxes
@@ -332,7 +331,6 @@
       LOGICAL                  :: LUCX
       LOGICAL                  :: LWETD
       LOGICAL                  :: LWINDO
-      LOGICAL                  :: wasModisRead
       LOGICAL                  :: prtDebug
       LOGICAL                  :: TimeForEmis
 
@@ -346,7 +344,6 @@
       INTEGER                  :: NYMD,          NYMDb,       NHMS
       INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
       INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE
-      INTEGER                  :: laiYYYY,       laiMM
       INTEGER                  :: id_H2O,        id_CH4,      SECOND
 
       ! Reals
@@ -374,7 +371,6 @@
       !-----------------------------
       ! Derived type objects 
       !-----------------------------
-      TYPE(MapWeight), POINTER :: mapping(:,:)
       TYPE(OptInput)           :: Input_Opt   ! Input Options object
       TYPE(ChmState)           :: State_Chm   ! Chemistry State object
       TYPE(DgnState)           :: State_Diag  ! Diagnostics State object
@@ -427,10 +423,7 @@
 
       ! For error trapping
       ErrMsg                  = ''
-      ThisLoc                 = 'GEOS-Chem (in GeosCore/main.F)'
-
-      ! Initialize pointers
-      mapping => NULL()
+      ThisLoc                 = ' -> at GEOS-Chem (in GeosCore/main.F)'
 
       ! Display current grid resolution and data set type
       CALL Display_Grid_and_Model()
@@ -637,7 +630,7 @@
       ! to the State_Met%AREA_M2 field. (bmy, 8/22/14)
       ! NOTE: Most routines now use either mixing ratio or kg/m2
       ! and are independent of area
-      State_Met%AREA_M2 =  AREA_M2
+      State_Met%AREA_M2 = AREA_M2(:,:,1)
 
       ! Define advected species ID flags for use below
       id_H2O   = Ind_('H2O'     ,'A')
@@ -813,30 +806,20 @@
       CALL GEOS_Timer_End ( "HEMCO", RC )
 #endif
 
-      ! Initialize the derived type object containing
-      ! mapping information for the MODIS LAI routines
-      CALL Init_Mapping( am_I_Root, Input_Opt,
-     &                   1440, 720, IIPAR, JJPAR, mapping, RC )
-
-      ! Trap potential errors
+      ! Populate the State_Met%LandTypeFrac field with data from HEMCO
+      CALL Init_LandTypeFrac( am_I_Root, Input_Opt, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_Mapping"!'
+         ErrMsg = 'Error encountered in "Init_LandTypeFrac"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      ! Compute the Olson land types that occur in each grid box
-      ! (i.e. this is a replacement for rdland.F and vegtype.global)
-      CALL Init_Olson_Landmap( am_I_Root, Input_Opt, RC )
-
-      ! Trap potential errors
+      ! Compute the Olson landmap fields of State_Met
+      ! (e.g. State_Met%IREG, State_Met%ILAND, etc.)
+      CALL Compute_Olson_Landmap( am_I_Root, Input_Opt, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
-         ErrMsg = 'Error encountered in "Init_Olson_Landmap"!'
+         ErrMsg = 'Error encountered in "Compute_Olson_Landmap"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-
-      ! Continue computing the Olson landmap
-      CALL Compute_Olson_Landmap( am_I_Root, mapping,   State_Met )
-      CALL Cleanup_Olson_Landmap( am_I_Root                       )
 
       ! Initialize PBL quantities but do not do mixing
       ! Add option for non-local PBL (Lin, 03/31/09)
@@ -1278,41 +1261,30 @@
          IF ( ITS_TIME_FOR_EXIT() ) GOTO 9999
 
          !==============================================================
-         !              ***** D A I L Y   D A T A *****
+         !        ***** L E A F   A R E A   I N D I C E S *****
          !==============================================================
-         laiMM = -1
-         wasModisRead = .FALSE.
-         IF ( ITS_A_NEW_DAY() ) THEN 
+         IF ( ITS_A_NEW_DAY() ) THEN
 
-            ! Find the proper month and year for LAI  based on the current 
-            ! month & year.  LAI months begin in the middle of the month.
-            CALL Find_Lai_Month( day_of_year, month, year, 
-     &                                        laiMM, laiYYYY )
-            
-            ! Read MODIS LAI from disk (if it is a new LAI month)
-            ! Logical flag MODISREAD determines if data was just read in
-            CALL Read_Modis_Lai( am_I_Root, Input_Opt,    laiYYYY, 
-     &                           laiMM,     wasModisRead, RC       )
+            ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
+            CALL Get_XlaiNative_from_HEMCO( am_I_Root, Input_Opt,
+     &                                      State_Met, RC         )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Read_Modis_LaiI"!'
+               ErrMsg =
+     &           'Error encountered in "Get_XlaiNative_from_HEMCO"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
 
-            ! Interpolate LAI quantities from native grid to GEOS-Chem grid
-            CALL Compute_Modis_Lai( am_I_Root,    Input_Opt, State_Met, 
-     &                              day_of_year,  laiMM,     mapping,
-     &                              wasModisRead, RC )
+            ! Compute State_Met%XLAI (for drydep) and State_Met%MODISLAI,
+            ! which is the average LAI per grid box (for soil NOx emissions)
+            CALL Compute_Xlai( am_I_Root, Input_Opt, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
-               ErrMsg = 'Error encountered in "Compute_Modis_Lai"!'
+               ErrMsg = 'Error encountered in "Compute_Xlai"!'
                CALL Error_Stop( ErrMsg, ThisLoc )
             ENDIF
-
-            !### Debug
-            IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a DAILY DATA' )
          ENDIF
 
          !==============================================================
@@ -2071,23 +2043,27 @@
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
+         ! Increment the timestep values by the heartbeat time
+         ! This is because we need to write out data with the timestamp
+         ! at the end of the heartbeat timestep (i.e. at end of run)
+         !
+         ! NOTE: This should now go before HISTORY_UPDATE, so that we
+         ! can recompute the update alarm interval properly for monthly
+         ! or yearly intervals spanning leap years. (bmy, 3/5/19)
+         CALL History_SetTime( am_I_Root, RC )
+
+         ! Trap potential errors
+         IF ( RC /= GC_SUCCESS ) THEN
+            ErrMsg = 'Error encountered in "History_SetTime"!'
+            CALL Error_Stop( ErrMsg, ThisLoc )
+         ENDIF
+
          ! Update each HISTORY ITEM from its data source
          CALL History_Update( am_I_Root, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in "History_Update"!'
-            CALL Error_Stop( ErrMsg, ThisLoc )
-         ENDIF
-
-         ! Increment the timestep values by the heartbeat time
-         ! This is becasue we need to write out data with the timestamp
-         ! at the end of the heartbeat timestep (i.e. at end of run)
-         CALL History_SetTime( am_I_Root, RC )
-
-         ! Trap potential errors
-         IF ( RC /= GC_SUCCESS ) THEN
-            ErrMsg = 'Error encountered in "History_SetTime"!'
             CALL Error_Stop( ErrMsg, ThisLoc )
          ENDIF
 
@@ -2588,9 +2564,6 @@
          ErrMsg = 'Error encountered in "Cleanup"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
-
-      ! Deallocate the derived type object w/ mapping info
-      CALL Cleanup_Mapping( mapping )
 
       ! Deallocate fields of the diagnostics list object
       CALL Cleanup_DiagList( am_I_Root, Diag_List, RC )
