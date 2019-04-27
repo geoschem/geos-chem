@@ -79,8 +79,6 @@ MODULE State_Grid_Mod
      REAL(fp),  POINTER :: YEdge_R   (:,:) ! Lat edges   [radians]
      REAL(fp),  POINTER :: YSIN      (:,:) ! SIN( lat edges )
      REAL(fp),  POINTER :: Area_M2   (:,:) ! Grid box area [m2]
-     REAL(fp),  POINTER :: DeltaX    (:,:) ! Array of delta-X [degrees]
-     REAL(fp),  POINTER :: DeltaY    (:,:) ! Array of delta-Y [degrees]
 
   END TYPE GrdState
 !
@@ -182,8 +180,6 @@ CONTAINS
     State_Grid%YEdge_R      => NULL()
     State_Grid%YSIN         => NULL()
     State_Grid%Area_M2      => NULL()
-    State_Grid%DeltaX       => NULL()
-    State_Grid%DeltaY       => NULL()
 
    END SUBROUTINE Init_State_Grid
 !EOC
@@ -282,16 +278,6 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%Area_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
-
-    ALLOCATE( State_Grid%DeltaX( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DeltaX', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DeltaX = 0e+0_fp
-
-    ALLOCATE( State_Grid%DeltaY( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DeltaY', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DeltaY = 0e+0_fp
 
   END SUBROUTINE Allocate_State_Grid
 !EOC
@@ -405,20 +391,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Grid%Area_M2', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Grid%Area_M2 => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Grid%DeltaX ) ) THEN
-       DEALLOCATE( State_Grid%DeltaX, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DeltaX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DeltaX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Grid%DeltaY ) ) THEN
-       DEALLOCATE( State_Grid%DeltaY, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DeltaY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DeltaY => NULL()
     ENDIF
 
   END SUBROUTINE Cleanup_State_Grid

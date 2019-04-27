@@ -244,26 +244,6 @@ CONTAINS
     State_Grid%GlobalNX =   360.0_fp / State_Grid%DX
     State_Grid%GlobalNY = ( 180.0_fp / State_Grid%DY ) + 1
 
-    !----------------------------------------
-    ! Arrays of delta-X and delta-Y values
-    !----------------------------------------
-
-    ! Define global array of delta-X and delta-Y values
-    ! Loop over horizontal grid
-    DO J = 1, State_Grid%GlobalNY
-    DO I = 1, State_Grid%GlobalNX
-       State_Grid%DeltaX(I,J) = State_Grid%DX
-       State_Grid%DeltaY(I,J) = State_Grid%DY
-
-       ! If using half-sized polar boxes on a global grid,
-       ! multiply delta-Y by 1/2 at the South and North Poles
-       IF ( (J == 1 .or. J == State_Grid%NY) .and. State_Grid%HalfPolar ) THEN
-          State_Grid%DeltaY(I,J) = State_Grid%DY * 0.5_fp
-       ENDIF
-
-    ENDDO
-    ENDDO
-
     !----------------------------------------------------------------------
     ! Calculate grid box centers on global grid
     !----------------------------------------------------------------------
@@ -288,25 +268,21 @@ CONTAINS
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
-       State_Grid%GlobalXMid(I,J) = ( State_Grid%DeltaX(I,J) * (I-1) ) - &
-                                      180e+0_fp
+       State_Grid%GlobalXMid(I,J) = ( State_Grid%DX * (I-1) ) - 180e+0_fp
 
        !--------------------------------
        ! Latitude centers [degrees]
        !--------------------------------
-       State_Grid%GlobalYMid(I,J) = ( State_Grid%DeltaY(I,J) * (J-1) ) - &
-                                      90e+0_fp
+       State_Grid%GlobalYMid(I,J) = ( State_Grid%DY * (J-1) ) - 90e+0_fp
 
-       ! If using half-sized polar boxes, multiply DY by 1/2 at poles
+       ! If using half-sized polar boxes, multiply DY by 1/4 at poles
        IF ( State_Grid%HalfPolar .and. J == 1)  THEN
           ! South Pole
-          State_Grid%GlobalYMid(I,J) =  &
-             -90e+0_fp + ( 0.5e+0_fp * State_Grid%DeltaY(I,J) )
+          State_Grid%GlobalYMid(I,J) = -90e+0_fp + (0.25e+0_fp * State_Grid%DY)
        ENDIF
        IF ( State_Grid%HalfPolar .and. J == State_Grid%GlobalNY ) THEN
           ! North Pole
-          State_Grid%GlobalYMid(I,J) = &
-             +90e+0_fp - ( 0.5e+0_fp * State_Grid%DeltaY(I,J) )
+          State_Grid%GlobalYMid(I,J) = +90e+0_fp - (0.25e+0_fp * State_Grid%DY)
        ENDIF
 
     ENDDO
@@ -359,38 +335,35 @@ CONTAINS
        !--------------------------------
        ! Longitude centers [degrees]
        !--------------------------------
-       State_Grid%XMid(I,J) = ( State_Grid%DeltaX(I,J) * IG ) - 180e+0_fp
+       State_Grid%XMid(I,J) = ( State_Grid%DX * IG ) - 180e+0_fp
           
        !--------------------------------
        ! Longitude edges [degrees]
        !--------------------------------
        State_Grid%XEdge(I,J) = State_Grid%XMid(I,J) - &
-                             ( State_Grid%DeltaX(I,J) * 0.5e+0_fp )
+                             ( State_Grid%DX * 0.5e+0_fp )
 
        ! Compute the last longitude edge
        IF ( I == State_Grid%NX ) THEN
-          State_Grid%XEdge(I+1,J) = State_Grid%XEdge(I,J) + &
-                                    State_Grid%DeltaX(I,J)
+          State_Grid%XEdge(I+1,J) = State_Grid%XEdge(I,J) + State_Grid%DX
        ENDIF
 
        !--------------------------------
        ! Latitude centers [degrees]
        !--------------------------------
-       State_Grid%YMid(I,J) = ( State_Grid%DeltaY(I,J) * JG ) - 90e+0_fp
+       State_Grid%YMid(I,J) = ( State_Grid%DY * JG ) - 90e+0_fp
 
        ! If using half-sized polar boxes on a global grid,
-       ! multiply DY by 1/2 at poles
+       ! multiply DY by 1/4 at poles
        IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid .and. &
             J == 1 ) THEN
           ! South Pole
-          State_Grid%YMid(I,J) = -90e+0_fp + &
-                                 ( 0.5e+0_fp * State_Grid%DeltaY(I,J) )
+          State_Grid%YMid(I,J) = -90e+0_fp + ( 0.25e+0_fp * State_Grid%DY )
        ENDIF
        IF ( State_Grid%HalfPolar .and. .not. State_Grid%NestedGrid .and. &
             J == State_Grid%NY ) THEN
           ! North Pole
-          State_Grid%YMid(I,J) = +90e+0_fp - &
-                                 ( 0.5e+0_fp * State_Grid%DeltaY(I,J) )
+          State_Grid%YMid(I,J) = +90e+0_fp - ( 0.25e+0_fp * State_Grid%DY )
        ENDIF
 
        !--------------------------------
@@ -402,7 +375,7 @@ CONTAINS
        ! Latitude edges [degrees]
        !--------------------------------
        State_Grid%YEdge(I,J) = State_Grid%YMid(I,J) - &
-                               ( State_Grid%DeltaY(I,J) * 0.5e+0_fp )
+                               ( State_Grid%DY * 0.5e+0_fp )
 
        ! If using half-sized polar boxeson a global grid,
        ! force the northern edge of grid boxes along the SOUTH POLE
@@ -432,8 +405,7 @@ CONTAINS
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
           State_Grid%YEdge(I,State_Grid%NY+1) = &
-          State_Grid%YEdge(I,State_Grid%NY  ) + &
-          State_Grid%DeltaY(I,State_Grid%NY)
+          State_Grid%YEdge(I,State_Grid%NY  ) + State_Grid%DY
 #else
           !----------------------------------------------------------------
           !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
@@ -443,6 +415,8 @@ CONTAINS
           ! be +90 degrees latitude. (bmy, 3/21/13)
           !----------------------------------------------------------------
           State_Grid%YEdge(I,State_Grid%NY+1) = +90e+0_fp
+          State_Grid%YEdge(I,State_Grid%NY  ) = &
+          State_Grid%YEdge(I,State_Grid%NY+1) - ( State_Grid%DY * 0.5e+0_fp )
 #endif
           State_Grid%YEdge_R(I,State_Grid%NY+1) = &
           State_Grid%YEdge  (I,State_Grid%NY+1) * PI_180
@@ -601,7 +575,7 @@ CONTAINS
 #endif
 
        ! Grid box surface areas [m2]
-       State_Grid%Area_M2(I,J) = ( State_Grid%DeltaX(I,J) * PI_180 ) * &
+       State_Grid%Area_M2(I,J) = ( State_Grid%DX * PI_180 ) * &
                                    ( Re**2 ) * SIN_DIFF
 
     ENDDO
