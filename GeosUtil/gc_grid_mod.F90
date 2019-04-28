@@ -404,8 +404,8 @@ CONTAINS
           !
           ! Do not define half-sized polar boxes (bmy, 3/21/13)
           !----------------------------------------------------------------
-          State_Grid%YEdge(I,State_Grid%NY+1) = &
-          State_Grid%YEdge(I,State_Grid%NY  ) + State_Grid%DY
+          State_Grid%YEdge(I,J+1) = State_Grid%YEdge(I,J ) + &
+                                  ( State_Grid%DY * 0.5e+0_fp)
 #else
           !----------------------------------------------------------------
           !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
@@ -414,17 +414,21 @@ CONTAINS
           ! the northern edge of grid boxes along the NORTH POLE to
           ! be +90 degrees latitude. (bmy, 3/21/13)
           !----------------------------------------------------------------
-          State_Grid%YEdge(I,State_Grid%NY+1) = +90e+0_fp
-          State_Grid%YEdge(I,State_Grid%NY  ) = &
-          State_Grid%YEdge(I,State_Grid%NY+1) - ( State_Grid%DY * 0.5e+0_fp )
+          State_Grid%YEdge(I,J+1) = +90e+0_fp
+          State_Grid%YEdge(I,J  ) = State_Grid%YEdge(I,J+1) - &
+                                  ( State_Grid%DY * 0.5e+0_fp )
 #endif
-          State_Grid%YEdge_R(I,State_Grid%NY+1) = &
-          State_Grid%YEdge  (I,State_Grid%NY+1) * PI_180
+          State_Grid%YEdge_R(I,J+1) = State_Grid%YEdge(I,J+1) * PI_180
+          State_Grid%YEdge_R(I,J  ) = State_Grid%YEdge(I,J  ) * PI_180
 
-          ! Also compute sine of last latitude edge! (ckeller, 02/13/12)
-          YEDGE_VAL = State_Grid%YEdge_R(I,State_Grid%NY+1)
+          ! Also compute sine of last two latitude edges! (ckeller, 02/13/12)
+          YEDGE_VAL = State_Grid%YEdge_R(I,J+1)
           YSIN_VAL  = SIN( YEDGE_VAL )
-          State_Grid%YSIN(I,State_Grid%NY+1) = YSIN_VAL
+          State_Grid%YSIN(I,J+1) = YSIN_VAL
+
+          YEDGE_VAL = State_Grid%YEdge_R(I,J)
+          YSIN_VAL  = SIN( YEDGE_VAL )
+          State_Grid%YSIN(I,J) = YSIN_VAL
 
        ENDIF
 
