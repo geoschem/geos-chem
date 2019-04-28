@@ -1294,8 +1294,11 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) State_Grid%NestedGrid
 
-      ! For now hardcode HalfPolar to false when using a nested grid
       IF ( State_Grid%NestedGrid ) THEN
+         ! Increase NX by 1
+         State_Grid%NX        = State_Grid%NX + 1
+
+         ! For now hardcode HalfPolar to false when using a nested grid
          State_Grid%HalfPolar = .FALSE.
       ENDIF
 

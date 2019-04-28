@@ -1327,9 +1327,17 @@
       J0_W1     = State_Grid%SouthBuffer - BUFF_SIZE
 
       ! YMID_R is latitude of grid box center [radians]
-      DO J =0, State_Grid%NY+1
+      DO J = 1, State_Grid%NY
          YMID_R_W(J) = State_Grid%YMid_R(1,J)
       ENDDO
+
+      ! Compute YMID_R_W at southern edge of nested region
+      J = 0
+      YMID_R_W(J) = State_Grid%YMid_R(1,J+1) - (State_Grid%DY * PI_180)
+
+      ! Compute YMID_R_W at northern edge of nested region
+      J = State_Grid%NY+1
+      YMID_R_W(J) = State_Grid%YMid_R(1,J-1) + (State_Grid%DY * PI_180) 
 
       REAL_N_DYN = N_DYN
 
