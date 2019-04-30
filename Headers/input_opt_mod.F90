@@ -29,7 +29,7 @@ MODULE Input_Opt_Mod
 ! !PUBLIC DATA MEMBERS:
 !
   !=========================================================================
-  ! Derived type for Input Options 
+  ! Derived type for Input Options
   !=========================================================================
   TYPE, PUBLIC :: OptInput
 
@@ -51,21 +51,22 @@ MODULE Input_Opt_Mod
      INTEGER                     :: Max_PassiveSpc
 
      !----------------------------------------
-     ! SIMULATION MENU fields 
+     ! SIMULATION MENU fields
      !----------------------------------------
-     INTEGER                     :: NYMDb              
-     INTEGER                     :: NHMSb              
-     INTEGER                     :: NYMDe              
-     INTEGER                     :: NHMSe              
+     INTEGER                     :: NYMDb
+     INTEGER                     :: NHMSb
+     INTEGER                     :: NYMDe
+     INTEGER                     :: NHMSe
      INTEGER                     :: SimLengthSec
-     CHARACTER(LEN=255)          :: RUN_DIR            
-     CHARACTER(LEN=255)          :: DATA_DIR           
+     CHARACTER(LEN=255)          :: RUN_DIR
+     CHARACTER(LEN=255)          :: DATA_DIR
+     CHARACTER(LEN=255)          :: FAST_JX_DIR
      CHARACTER(LEN=255)          :: CHEM_INPUTS_DIR
      CHARACTER(LEN=255)          :: RES_DIR
      LOGICAL                     :: LCAPTROP
      REAL(fp)                    :: OZONOPAUSE
-     INTEGER                     :: NESTED_I0          
-     INTEGER                     :: NESTED_J0          
+     INTEGER                     :: NESTED_I0
+     INTEGER                     :: NESTED_J0
      CHARACTER(LEN=255)          :: HcoConfigFile
 
      !----------------------------------------
@@ -85,7 +86,7 @@ MODULE Input_Opt_Mod
      ! ADVECTED SPECIES MENU fields
      !----------------------------------------
      INTEGER                     :: N_ADVECT
-     CHARACTER(LEN=255), POINTER :: AdvectSpc_Name(:) 
+     CHARACTER(LEN=255), POINTER :: AdvectSpc_Name(:)
      INTEGER                     :: SIM_TYPE
      CHARACTER(LEN=255)          :: SIM_NAME
      LOGICAL                     :: LSPLIT
@@ -106,20 +107,20 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! AEROSOL MENU fields
      !----------------------------------------
-     LOGICAL                     :: LSULF              
+     LOGICAL                     :: LSULF
      LOGICAL                     :: LMETALCATSO2
      LOGICAL                     :: LCARB
-     LOGICAL                     :: LBRC              
+     LOGICAL                     :: LBRC
      LOGICAL                     :: LSOA
      LOGICAL                     :: LMPOA
      LOGICAL                     :: LSVPOA
      LOGICAL                     :: LOMOC
-     LOGICAL                     :: LDUST              
-     LOGICAL                     :: LDEAD              
-     LOGICAL                     :: LSSALT             
+     LOGICAL                     :: LDUST
+     LOGICAL                     :: LDEAD
+     LOGICAL                     :: LSSALT
      LOGICAL                     :: LDSTUP
-     REAL(fp),           POINTER :: SALA_REDGE_um(:)   
-     REAL(fp),           POINTER :: SALC_REDGE_um(:)   
+     REAL(fp),           POINTER :: SALA_REDGE_um(:)
+     REAL(fp),           POINTER :: SALC_REDGE_um(:)
      LOGICAL                     :: LGRAVSTRAT
      LOGICAL                     :: LSOLIDPSC
      LOGICAL                     :: LHOMNUCNAT
@@ -233,7 +234,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDRYD
      LOGICAL                     :: LWETD
      REAL(fp)                    :: WETD_CONV_SCAL
-     LOGICAL                     :: PBL_DRYDEP      
+     LOGICAL                     :: PBL_DRYDEP
 
      !----------------------------------------
      ! GAMAP MENU fields
@@ -317,7 +318,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: TS_DIAG
      LOGICAL                     :: LPRT
      INTEGER,            POINTER :: TINDEX(:,:)
-     INTEGER,            POINTER :: TCOUNT(:) 				  
+     INTEGER,            POINTER :: TCOUNT(:)
      INTEGER,            POINTER :: TMAX(:)
      LOGICAL                     :: DO_DIAG_WRITE
 
@@ -340,7 +341,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: ObsPack_InputFile
      CHARACTER(LEN=255)          :: ObsPack_OutputFile
      INTEGER                     :: ObsPack_nSpc
-     CHARACTER(LEN=255), POINTER :: ObsPack_SpcName(:) 
+     CHARACTER(LEN=255), POINTER :: ObsPack_SpcName(:)
 
      !----------------------------------------
      ! ND48 MENU fields
@@ -479,7 +480,7 @@ MODULE Input_Opt_Mod
 
      !----------------------------------------
      ! MERCURY MENU fields
-     !----------------------------------------     
+     !----------------------------------------
      INTEGER                     :: ANTHRO_Hg_YEAR
      CHARACTER(LEN=255)          :: HG_SCENARIO
      LOGICAL                     :: USE_CHECKS
@@ -492,7 +493,7 @@ MODULE Input_Opt_Mod
 
      !----------------------------------------
      ! CH4 MENU fields
-     !----------------------------------------  
+     !----------------------------------------
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
 
@@ -523,7 +524,7 @@ MODULE Input_Opt_Mod
      INTEGER, POINTER            :: RxnRates_IDs(:)         ! Reaction rate numbers to be diagnosed
      INTEGER                     :: NN_RxnRconst            ! # of diagnosed reaction rates
      INTEGER, POINTER            :: RxnRconst_IDs(:)        ! Reaction rate numbers to be diagnosed
-     INTEGER                     :: NN_Jvals                ! # of diagnosed Jvalues 
+     INTEGER                     :: NN_Jvals                ! # of diagnosed Jvalues
      INTEGER, POINTER            :: Jval_IDs(:)             ! J-values to be diagnosed
      INTEGER                     :: FJX_EXTRAL_ITERMAX = 5
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
@@ -545,7 +546,7 @@ MODULE Input_Opt_Mod
   END TYPE OptInput
 !
 ! !REMARKS:
-!  This will eventually replace the switches in logical_mod.F.  
+!  This will eventually replace the switches in logical_mod.F.
 !
 ! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version, based on logical_mod.F
@@ -648,11 +649,11 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
@@ -662,7 +663,7 @@ CONTAINS
 !
 ! !REMARKS:
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  01 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now add size parameter fields to Input_Opt
 !                              that can be set prior to calling this routine
@@ -690,8 +691,8 @@ CONTAINS
 !  05 Mar 2015 - R. Yantosca - Added RES_DIR, CHEM_INPUTS_DIR fields
 !  06 Mar 2015 - R. Yantosca - Now initialize directory names with './'
 !  01 Apr 2015 - R. Yantosca - Now initialize extra nested-grid fields
-!  04 Mar 2016 - C. Keller   - Added WETD_CONV_SCAL, LSYNOZ, LCAPTROP, and 
-!                              OZONOPAUSE. These are only used within ESMF. 
+!  04 Mar 2016 - C. Keller   - Added WETD_CONV_SCAL, LSYNOZ, LCAPTROP, and
+!                              OZONOPAUSE. These are only used within ESMF.
 !  17 May 2016 - R. Yantosca - Remove TRACER_N_CONST, TRACER_CONST, ID_EMITTED,
 !                              TRACER_COEFF
 !  31 May 2016 - E. Lundgren - Remove TRACER_MW_G, TRACER_MW_KG, and XNUMOL
@@ -745,7 +746,7 @@ CONTAINS
     Input_Opt%FAM_NAME               => NULL()
     Input_Opt%FAM_TYPE               => NULL()
     Input_Opt%LINOZ_TPARM            => NULL()
-    
+
     !----------------------------------------
     ! General Runtime & Distributed Comp Info
     !----------------------------------------
@@ -753,7 +754,7 @@ CONTAINS
     Input_Opt%HPC                    = .false. ! Assume Serial Sim.
     Input_Opt%myCpu                  = -1
     Input_Opt%RootCPU                = .false.
-    
+
     !----------------------------------------
     ! SIZE PARAMETER fields
     !
@@ -769,7 +770,7 @@ CONTAINS
     Input_Opt%Max_PassiveSpc         = 50
 
     !----------------------------------------
-    ! SIMULATION MENU fields 
+    ! SIMULATION MENU fields
     !----------------------------------------
     Input_Opt%NYMDb                  = 0
     Input_Opt%NHMSb                  = 0
@@ -778,11 +779,12 @@ CONTAINS
     Input_Opt%SimLengthSec           = 0
     Input_Opt%RUN_DIR                = './'
     Input_Opt%DATA_DIR               = './'
+    Input_Opt%FAST_JX_DIR               = './'
     Input_Opt%RES_DIR                = './'
     Input_Opt%CHEM_INPUTS_DIR        = './'
     Input_Opt%RES_DIR                = './'
     Input_Opt%LCAPTROP               = .FALSE.
-    Input_Opt%OZONOPAUSE             = -999.0 
+    Input_Opt%OZONOPAUSE             = -999.0
     Input_Opt%NESTED_I0              = 0
     Input_Opt%NESTED_J0              = 0
     Input_Opt%HcoConfigFile          = ''
@@ -794,7 +796,7 @@ CONTAINS
     ALLOCATE( Input_Opt%AdvectSpc_Name( Input_Opt%Max_AdvectSpc ), STAT=RC )
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
+
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
     Input_Opt%SIM_TYPE               = 0
@@ -826,8 +828,8 @@ CONTAINS
     ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%Max_PassiveSpc ), STAT=RC )
     ALLOCATE( Input_Opt%PASSIVE_DECAYID ( Input_Opt%Max_PassiveSpc ), STAT=RC )
 
-    Input_Opt%NPASSIVE               = 0 
-    Input_Opt%NPASSIVE_DECAY         = 0 
+    Input_Opt%NPASSIVE               = 0
+    Input_Opt%NPASSIVE_DECAY         = 0
     Input_Opt%PASSIVE_NAME           = ''
     Input_Opt%PASSIVE_LONGNAME       = ''
     Input_Opt%PASSIVE_ID             = 0
@@ -845,10 +847,10 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     arrayId = 'Input_Opt%SALC_REDGE_um'
-    ALLOCATE( Input_Opt%SALC_REDGE_um( 2 ), STAT=RC )     
+    ALLOCATE( Input_Opt%SALC_REDGE_um( 2 ), STAT=RC )
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
+
     Input_Opt%LSULF                  = .FALSE.
     Input_Opt%LMETALCATSO2           = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
@@ -992,7 +994,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%LDRYD                  = .FALSE.
     Input_Opt%LWETD                  = .FALSE.
-    Input_Opt%WETD_CONV_SCAL         = 1.0_fp 
+    Input_Opt%WETD_CONV_SCAL         = 1.0_fp
     Input_Opt%PBL_DRYDEP             = .FALSE.
 
     !----------------------------------------
@@ -1149,16 +1151,16 @@ CONTAINS
     Input_Opt%LD72                   = 0
     Input_Opt%LD73                   = 0
     Input_Opt%LPRT                   = .FALSE.
-    Input_Opt%TCOUNT(:)              = 0	  
+    Input_Opt%TCOUNT(:)              = 0
     Input_Opt%TMAX(:)	             = 0
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    ! Need to shut off G-C diagnostics when 
+    ! Need to shut off G-C diagnostics when
     ! connecting to an external GCM (bmy, 3/29/13)
     Input_Opt%DO_DIAG_WRITE          = .FALSE.
 #else
     ! For traditional G-C runs, always write diags (bmy, 3/29/13)
     Input_Opt%DO_DIAG_WRITE          = .TRUE.
-#endif   
+#endif
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
@@ -1291,11 +1293,11 @@ CONTAINS
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    arrayId = 'Input_Opt%FAM_TYPE'    
+    arrayId = 'Input_Opt%FAM_TYPE'
     ALLOCATE( Input_Opt%FAM_TYPE( Input_Opt%Max_Families ), STAT=RC )
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
+
     Input_Opt%DO_SAVE_PL             = .FALSE.
     Input_Opt%ND65                   = 0
     Input_Opt%DO_SAVE_O3             = .FALSE.
@@ -1326,9 +1328,9 @@ CONTAINS
     Input_Opt%NESTED_I2              = 0
     Input_Opt%NESTED_J2              = 0
     Input_Opt%NESTED_I0W             = 0
-    Input_Opt%NESTED_J0W             = 0 
+    Input_Opt%NESTED_J0W             = 0
     Input_Opt%NESTED_I0E             = 0
-    Input_Opt%NESTED_J0E             = 0 
+    Input_Opt%NESTED_J0E             = 0
 
     !----------------------------------------
     ! BENCHMARK MENU fields
@@ -1339,7 +1341,7 @@ CONTAINS
 
     !----------------------------------------
     ! MERCURY MENU fields
-    !----------------------------------------     
+    !----------------------------------------
     Input_Opt%ANTHRO_Hg_YEAR         = 0
     Input_Opt%HG_SCENARIO            = ''
     Input_Opt%USE_CHECKS             = .FALSE.
@@ -1350,7 +1352,7 @@ CONTAINS
 
     !----------------------------------------
     ! CH4 MENU fields
-    !----------------------------------------  
+    !----------------------------------------
     Input_Opt%GOSAT_CH4_OBS          = .FALSE.
     Input_Opt%TCCON_CH4_OBS          = .FALSE.
 
@@ -1427,11 +1429,11 @@ CONTAINS
 !
     USE ErrCode_Mod
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
 !
@@ -1440,12 +1442,12 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
-!  NOTE: These arrays are all for bpch diagnostics, and will eventually 
+!  NOTE: These arrays are all for bpch diagnostics, and will eventually
 !  be removed from GEOS-Chem.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  26 Jan 2018 - M. Sulprizio- Initial version
-!  04 Apr 2018 - E. Lundgren - Renamed from Set_Input_Opt_Extra to 
+!  04 Apr 2018 - E. Lundgren - Renamed from Set_Input_Opt_Extra to
 !                              Set_Input_Opt_Advect
 !EOP
 !------------------------------------------------------------------------------
@@ -1505,7 +1507,7 @@ CONTAINS
 !
 ! !IROUTINE: Cleanup_Input_Opt
 !
-! !DESCRIPTION: Subroutine CLEANUP\_INPUT\_OPT deallocates all 
+! !DESCRIPTION: Subroutine CLEANUP\_INPUT\_OPT deallocates all
 !  allocatable fields of the Input Options object.
 !\\
 !\\
@@ -1529,7 +1531,7 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  02 Nov 2012 - R. Yantosca - Initial version
 !  07 Nov 2012 - R. Yantosca - Now deallocate fields from prod/loss menu
 !  26 Feb 2013 - M. Long     - Now deallocate extra fields from input.geos
@@ -1608,7 +1610,7 @@ CONTAINS
        Input_Opt%SALA_REDGE_um => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( Input_Opt%SALC_REDGE_um ) ) THEN 
+    IF ( ASSOCIATED( Input_Opt%SALC_REDGE_um ) ) THEN
        DEALLOCATE( Input_Opt%SALC_REDGE_um, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%SALC_REDGE_um', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -1621,7 +1623,7 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%NJDAY => NULL()
     ENDIF
-    
+
     IF ( ASSOCIATED( Input_Opt%TINDEX ) ) THEN
        DEALLOCATE( Input_Opt%TINDEX, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%TINDEX', 2, RC )
@@ -1656,14 +1658,14 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%ND48_JARR => NULL()
     ENDIF
-     
+
     IF ( ASSOCIATED( Input_Opt%ND48_LARR ) ) THEN
        DEALLOCATE( Input_Opt%ND48_LARR, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%ND48_LARR', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%ND48_LARR => NULL()
     ENDIF
-    
+
     IF ( ASSOCIATED( Input_Opt%ND48_NARR ) ) THEN
        DEALLOCATE( Input_Opt%ND48_NARR, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%ND48_NARR', 2, RC )
