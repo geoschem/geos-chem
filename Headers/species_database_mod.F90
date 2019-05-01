@@ -493,6 +493,7 @@ CONTAINS
 !  14 Sep 2018 - C. Keller   - Created standalone subroutine so that species
 !                              info can be queried independently.
 !  23 Oct 2018 - R. Yantosca - Cosmetic changes (consistent indentation)
+!  10 Apr 2019 - R. Yantosca - DHDC should photolyze, not DHDN
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1211,12 +1212,17 @@ CONTAINS
 #endif
 
           CASE( 'DHDC' )
+             ! NOTE: DHDC should photolyze, since this is from Chris Chan
+             ! Miller's 2017 mechanism.  But we had inadvertently flagged
+             ! DHDN as the photolyzing species instead of DHDC.  This is
+             ! now fixed (kbates, bmy, 4/10/19)
              FullName      = 'Dihydroxyperoxide dicarbonyl'
              Formula       = 'C5H8O6'
              MW_g          = 164.0_fp
              Is_Gas        = T
              Is_Drydep     = F
              Is_Wetdep     = F
+             Is_Photolysis = T
 
           CASE( 'DHDN' )
              ! DHDN uses the same DD_F0 and DD_Hstar_old values as ISOPN
@@ -1227,7 +1233,6 @@ CONTAINS
              Is_Gas        = T
              Is_Drydep     = T
              Is_Wetdep     = T
-             Is_Photolysis = T
              DD_F0         = 1.0_fp
              DD_Hstar_Old  = 2.00e+6_fp
              Henry_K0      = 2.00e+6_f8

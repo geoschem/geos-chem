@@ -3123,7 +3123,7 @@
          IF ( RC /= HCO_SUCCESS ) CALL ERROR_STOP( DiagnName, LOC)
 
          !%%%%% Fertilizer NO %%%%%
-         DiagnName = 'FERTILIZER_NO' 
+         DiagnName = 'EmisNO_Fert' 
          CATEGORY  = 'NO-FERT'
          CALL DIAG2BPCH( am_I_Root, HcoState, DiagnName, CATEGORY,
      &                   UNIT,      N, 0, -1, .TRUE., FACTOR, RC )
@@ -4245,8 +4245,8 @@
 !  (24) CH2Br2 : Dibromomethane             :       kg/m2/s : SCALESRCE
 !  (25) Br2    : Molec. Bromine             :       kg/m2/s : SCALESRCE
 !  (26) CH4    : Methane                    :   molec/cm2/s : SCALE3
-!  (27) ALD2   : ALD2 from senescing plants : atoms C/cm2/s : SCALESRCE
-!  (28) EOH    : EOH  from senescing plants : atoms C/cm2/s : SCALESRCE
+!  (27) ALD2   : ALD2 from decaying plants  : atoms C/cm2/s : SCALESRCE
+!  (28) EOH    : EOH  from decaying plants  : atoms C/cm2/s : SCALESRCE
 !  (29) ALD2   : ALD2 ocean emissions       : atoms C/cm2/s : SCALESRCE
 !
 !  NOTES:
@@ -4759,10 +4759,10 @@
          ENDIF
 
          !-----------------------------------------------------------
-         !%%%%% ACETALDEHYDE FROM SENESCING PLANTS %%%%%
+         !%%%%% ACETALDEHYDE FROM DECAYING PLANTS %%%%%
          !-----------------------------------------------------------
          IF ( id_ALD2 > 0 ) THEN
-            DiagnName = 'ALD2_SENESCING'
+            DiagnName = 'ALD2_PLANTDECAY'
             UNIT      = 'atoms C/cm2/s'
             N         = 27
             SpcInfo  => State_Chm%SpcData(id_ALD2)%Info
@@ -4777,10 +4777,10 @@
          ENDIF
 
          !-----------------------------------------------------------
-         !%%%%% ETHANOL FROM SENESCING PLANTS %%%%%
+         !%%%%% ETHANOL FROM DECAYING PLANTS %%%%%
          !-----------------------------------------------------------
          IF ( id_EOH > 0 ) THEN
-            DiagnName = 'EOH_SENESCING'
+            DiagnName = 'EOH_PLANTDECAY'
             UNIT      = 'atoms C/cm2/s'
             N         = 28
             SpcInfo  => State_Chm%SpcData(id_EOH)%Info

@@ -138,7 +138,8 @@
 
 #if defined( ESMF_ ) || defined( MODEL_WRF )
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
-      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not preprocessed for external grid (hplin, 8/15/18).
+      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not 
+      ! preprocessed for external grid (hplin, 8/15/18).
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
       LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
@@ -1397,12 +1398,12 @@
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0e+0_fp
 
+      ! NOTE: netCDF input isn't used for GCHP, GEOS-5, WRF-GC (bmy, 4/16/19)
       IF (UCXNETCDF) THEN
-#if defined( MODEL_GEOS )
-         TARG_YR_NC = TARGYEAR
-#else
+         !--------------------------------------------
+         ! Read from netCDF
+         !--------------------------------------------
          TARG_YR_NC = SFC_YEAR+OFFSETYEAR
-#endif 
          TARG_MO_NC = SFC_MONTH
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
@@ -1429,7 +1430,6 @@
      &                    TARG_YR_NC,TARG_MO_NC,N)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
-                  ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
@@ -1449,8 +1449,10 @@
             END SELECT
          ENDDO
       ELSE
+         !--------------------------------------------
          ! Read from ASCII
          ! Determine which line needs to be read in
+         !--------------------------------------------
 #if defined( MODEL_GEOS )
          TARG_LINE = (12*(TARGYEAR-1959)) + SFC_MONTH
 #else
@@ -5862,6 +5864,7 @@
 
       ! Determine folder paths from root folder
       ! Regridding of netCDF input data is currently not supported.
+      ! NOTE: netCDF inputs not read by GCHP, GEOS-5, WRF-GC
       IF (UCXNETCDF) THEN
 #if !defined(GRID4x5) && !defined(GRID2x25)
          DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25 and '//
@@ -5871,18 +5874,11 @@
 #endif
          WRITE( NOON_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( MODEL_GEOS )
-     &        'UCX_201710/Init2D/Noontime.nc'
-#else
      &        'UCX_201403/Init2D/Noontime.nc'
-#endif
+
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( MODEL_GEOS )
-     &        'UCX_201710/Init1D/Montreal.nc'
-#else
-     &        'UCX_201403/Init1D/Montreal.nc'
-#endif
+     &        'UCX_201904/Montreal_fix.nc'
 
       ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
       ! This is ok for the NOx coeffs which can be regridded on the fly

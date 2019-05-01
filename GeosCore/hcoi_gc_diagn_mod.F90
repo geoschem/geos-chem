@@ -3859,8 +3859,8 @@ CONTAINS
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !  02 Jun 2016 - R. Yantosca - Bug fix: only save seasalt Br2 diagnostics
 !                              for full-chemistry or aerosol-only simulations
-!  01 Mar 2017 - M. Sulprizio- Add ALD2 senescing, EOH senescing, and ALD2 from
-!                              ocean source
+!  01 Mar 2017 - M. Sulprizio- Add ALD2 from decaying plants, EOH from decaying 
+!                              plants, and ALD2 from ocean source
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4439,7 +4439,7 @@ CONTAINS
          ( Input_Opt%ITS_A_FULLCHEM_SIM ) ) THEN
 
        !----------------------------------------
-       ! %%%%% ALD2 from senescing plants %%%%%
+       ! %%%%% ALD2 from decaying plants %%%%%
        !----------------------------------------
 
        ! HEMCO species ID
@@ -4448,7 +4448,7 @@ CONTAINS
        ! Create diagnostic container
        IF ( HcoID > 0 ) THEN
           ExtNr     = 0
-          DiagnName = 'ALD2_SENESCING'
+          DiagnName = 'ALD2_PLANTDECAY'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
@@ -4466,7 +4466,7 @@ CONTAINS
        ENDIF
 
        !----------------------------------------
-       ! %%%%% EOH from senescing plants %%%%%
+       ! %%%%% EOH from decaying plants %%%%%
        !----------------------------------------
 
        ! HEMCO species ID
@@ -4475,7 +4475,7 @@ CONTAINS
        ! Create diagnostic container
        IF ( HcoID > 0 ) THEN
           ExtNr     = 0
-          DiagnName = 'EOH_SENESCING'
+          DiagnName = 'EOH_PLANTDECAY'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &

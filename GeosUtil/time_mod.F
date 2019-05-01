@@ -68,6 +68,7 @@
       PUBLIC  :: GET_DIAGb
       PUBLIC  :: GET_DIAGe
       PUBLIC  :: GET_LOCALTIME
+      PUBLIC  :: GET_LOCALTIME_IN_SEC
       PUBLIC  :: GET_SEASON
       PUBLIC  :: GET_TS_CHEM
       PUBLIC  :: GET_TS_CONV
@@ -2114,6 +2115,70 @@
 
       ! Return to calling program
       END FUNCTION GET_LOCALTIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_LocalTime_In_Sec
+!
+! !DESCRIPTION: Function GET\_LOCALTIME returns the local time of a grid
+!  box to the calling program. (bmy, 2/5/03)
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION Get_LocalTime_In_Sec( I, J, L ) RESULT( Lt_In_Sec )
+!
+! !USES:
+!
+      USE GC_GRID_MOD, ONLY : GET_XMID
+!
+! !INPUT PARAMETERS:
+!
+      INTEGER,  INTENT(IN)  :: I           ! Longitude index
+      INTEGER,  INTENT(IN)  :: J           ! Latitude index
+      INTEGER,  INTENT(IN)  :: L           ! Level index
+!
+! !RETURN VALUE:
+!
+      INTEGER               :: Lt_In_Sec   ! Local time [s]
+! 
+! !REMARKS:
+!  Local Time = GMT + ( longitude / 15 ) since each hour of time
+!  corresponds to 15 degrees of longitude on the globe
+!
+! !REVISION HISTORY: 
+!  18 Apr 2019 - R. Yantosca - Initial Version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER :: Offset_Sec, UTC_In_Sec
+
+      ! Compute UTC value in seconds
+      UTC_In_Sec = ( Hour * 3600 ) + ( Minute * 60 ) + Second
+
+      ! 15 degrees of longitude on Earth is 1 hour or 3600 sec of time
+      ! Use NINT to avoid roundoff issues
+      Offset_Sec = NINT( ( Get_Xmid( I, J, L ) / 15.0_f8 ) * 3600.0_f8 )
+
+      ! Add offset to UTC to get local time
+      Lt_In_Sec  = UTC_In_Sec + Offset_Sec
+
+      ! Make sure that local time is in the range 0-86400
+      IF ( Lt_In_Sec > 86400 ) THEN
+         Lt_In_Sec = Lt_In_Sec - 86400
+      ENDIF
+
+      IF ( Lt_In_Sec < 0 ) THEN
+         Lt_In_Sec = Lt_In_Sec + 86400
+      ENDIF
+
+      END FUNCTION Get_LocalTime_In_Sec
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
