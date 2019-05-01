@@ -2070,7 +2070,7 @@
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
                RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
-     &                 9999999999999999999999.e+0_f8))
+     &                 999999.e+0_f8))
 
  180        CONTINUE
  190     CONTINUE
