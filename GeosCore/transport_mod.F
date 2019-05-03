@@ -135,7 +135,6 @@
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
-!      USE TPCORE_BC_MOD,  ONLY : INIT_TPCORE_BC
       USE TIME_MOD,       ONLY : GET_TS_DYN
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
@@ -684,9 +683,6 @@
       USE PhysConstants              ! Physical constants
       USE PJC_PFIX_WINDOW_MOD,  ONLY : DO_PJC_PFIX_WINDOW
       USE TIME_MOD,             ONLY : GET_TS_DYN
-!      USE TPCORE_BC_MOD,        ONLY : I0_W, J0_W, I1_W, J1_W
-!      USE TPCORE_BC_MOD,        ONLY : I2_W, J2_W, IM_W, JM_W, IGZD
-!      USE TPCORE_BC_MOD,        ONLY : DO_WINDOW_TPCORE_BC 
       USE TPCORE_WINDOW_MOD,    ONLY : TPCORE_WINDOW
       USE UnitConv_Mod
 !
@@ -820,8 +816,10 @@
 
       ! (lzh, 09/01/2014)
       BUFF_SIZE   =  2
-      IM_W1       =  State_Grid%NX + 2 * BUFF_SIZE
-      JM_W1       =  State_Grid%NY + 2 * BUFF_SIZE
+      IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - 
+     &                 State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
+      JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - 
+     &                 State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
       I0_W1       =  State_Grid%WestBuffer  - BUFF_SIZE
       J0_W1       =  State_Grid%SouthBuffer - BUFF_SIZE
 
@@ -886,10 +884,6 @@
      &                         XMASS,       YMASS )
 
       IF ( LPRT ) CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
-
-!      ! Impose TPCORE boundary conditions at edges of nested grid
-!      CALL DO_WINDOW_TPCORE_BC( am_I_Root,  Input_Opt, State_Chm,
-!     &                          State_Grid, RC )
 
       ! Flip array indices in the vertical using pointer storage
 
@@ -1207,9 +1201,6 @@
       USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_TS_DYN
       USE TPCORE_FVDAS_MOD,   ONLY : INIT_TPCORE
-!      USE TPCORE_BC_MOD,      ONLY : I0_W, J0_W, I1_W, J1_W
-!      USE TPCORE_BC_MOD,      ONLY : I2_W, J2_W, IM_W, JM_W
-!      USE TPCORE_BC_MOD,      ONLY : IGZD, INIT_TPCORE_BC
       USE TPCORE_WINDOW_MOD,  ONLY : INIT_WINDOW
 !
 ! !INPUT PARAMETERS:
@@ -1321,8 +1312,10 @@
 
       ! (lzh, 4/1/2015)
       BUFF_SIZE = 2
-      IM_W1     = State_Grid%NX + 2 * BUFF_SIZE
-      JM_W1     = State_Grid%NY + 2 * BUFF_SIZE
+      IM_W1       =  ( State_Grid%NX - State_Grid%WestBuffer - 
+     &                 State_Grid%EastBuffer  ) + 2 * BUFF_SIZE
+      JM_W1       =  ( State_Grid%NY - State_Grid%SouthBuffer - 
+     &                 State_Grid%NorthBuffer ) + 2 * BUFF_SIZE
       I0_W1     = State_Grid%WestBuffer  - BUFF_SIZE
       J0_W1     = State_Grid%SouthBuffer - BUFF_SIZE
 
@@ -1343,8 +1336,8 @@
 
       ! Call INIT routine from "tpcore_window_mod.F90"
       CALL INIT_WINDOW( State_Grid,
-     &                  State_Grid%NX, 
-     &                  State_Grid%NY,    
+     &                  IM_W1, 
+     &                  JM_W1,    
      &                  State_Grid%NZ, 
      &                  JFIRST, 
      &                  JLAST, 

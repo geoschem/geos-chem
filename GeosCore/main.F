@@ -1497,23 +1497,6 @@
             CALL GEOS_Timer_Start( "Transport", RC )
 #endif
 
-!#if defined( BPCH_TPBC )
-!            ! Output BC's
-!            ! Save boundary conditions (global grid) for future nested run
-!            IF ( LWINDO ) THEN
-!               CALL Save_Global_Tpcore_BC( am_I_Root, Input_Opt,
-!     &                                     State_Chm, State_Grid, RC )
-!
-!               ! Trap potential errors
-!               IF ( RC /= GC_SUCCESS ) THEN
-!                  ErrMsg = 
-!     &               'Error encountered in "Save_Global_Tpcore_BC"!'
-!                  CALL Error_Stop( ErrMsg, ThisLoc )
-!               ENDIF
-!
-!            ENDIF
-!#endif
-
 !-----------------------------------------------------------------------------
 ! TWO-WAY NESTING OPTION
 ! This is only invoked when compiling GEOS-Chem with COUPLE=y
