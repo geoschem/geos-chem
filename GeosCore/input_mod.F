@@ -5,8 +5,8 @@
 !
 ! !MODULE: input_mod.F
 !
-! !DESCRIPTION: Module INPUT\_MOD contains routines that read the GEOS-Chem 
-!  input file at the start of the run and pass the information to several 
+! !DESCRIPTION: Module INPUT\_MOD contains routines that read the GEOS-Chem
+!  input file at the start of the run and pass the information to several
 !  other GEOS-Chem F90 modules.
 !\\
 !\\
@@ -24,17 +24,17 @@
       PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
-!  
+!
       PUBLIC  :: Read_Input_File
       PUBLIC  :: Do_Error_Checks
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-      PRIVATE :: SPLIT_ONE_LINE        
+      PRIVATE :: SPLIT_ONE_LINE
       PRIVATE :: READ_SIMULATION_MENU
       PRIVATE :: READ_GRID_MENU
       PRIVATE :: READ_ADVECTED_SPECIES_MENU
-      PRIVATE :: READ_AEROSOL_MENU     
+      PRIVATE :: READ_AEROSOL_MENU
       PRIVATE :: READ_EMISSIONS_MENU
       PRIVATE :: READ_CHEMISTRY_MENU
       PRIVATE :: READ_RADIATION_MENU
@@ -46,27 +46,27 @@
       PRIVATE :: READ_PLANEFLIGHT_MENU
       PRIVATE :: READ_OBSPACK_MENU
       PRIVATE :: SET_TINDEX
-      PRIVATE :: READ_ND49_MENU      
-      PRIVATE :: READ_ND50_MENU  
-      PRIVATE :: READ_ND51_MENU  
-      PRIVATE :: READ_ND51b_MENU  
+      PRIVATE :: READ_ND49_MENU
+      PRIVATE :: READ_ND50_MENU
+      PRIVATE :: READ_ND51_MENU
+      PRIVATE :: READ_ND51b_MENU
       PRIVATE :: READ_ND63_MENU
-      PRIVATE :: READ_PROD_LOSS_MENU 
-      PRIVATE :: READ_BENCHMARK_MENU  
+      PRIVATE :: READ_PROD_LOSS_MENU
+      PRIVATE :: READ_BENCHMARK_MENU
       PRIVATE :: READ_CH4_MENU
       PRIVATE :: READ_PASSIVE_SPECIES_MENU
-      PRIVATE :: VALIDATE_DIRECTORIES  
+      PRIVATE :: VALIDATE_DIRECTORIES
       PRIVATE :: CHECK_DIRECTORY
-      PRIVATE :: CHECK_TIME_STEPS 
+      PRIVATE :: CHECK_TIME_STEPS
       PRIVATE :: IS_LAST_DAY_GOOD
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
-!  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now 
+!  (2 ) Fixed error checks and assign LSPLIT for tagged Hg.  Also now
 !        refernces LAVHRRLAI from "logical_mod.f" (eck, bmy, 12/20/04)
 !  (3 ) Updated for crystalline/aqueous aerosol tracers.  Also moved routine
-!        IS_LAST_DAY_GOOD here from "main.f".  Also now references 
+!        IS_LAST_DAY_GOOD here from "main.f".  Also now references
 !        "ocean_mercury_mod.f".  Also now open the bpch file for output in
 !        READ_DIAGNOSTIC_MENU instead of in "main.f".  (cas, sas, bmy, 2/3/05)
 !  (4 ) Now references "diag03_mod.f" and "diag41_mod.f".  Fixed minor
@@ -77,7 +77,7 @@
 !  (6 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (7 ) Now read LMEGAN switch for MEGAN biogenics.  Now read variable
 !        DATA_DIR_1x1 for 1x1 emissions files, etc.  Now reference XNUMOL and
-!        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05) 
+!        XNUMOLAIR from "tracer_mod.f" (tmf, bmy, 10/25/05)
 !  (8 ) Now read LEMEP switch for EMEP emissions (bdf, bmy, 11/1/05)
 !  (9 ) Now added MERCURY MENU section.  Also fixed bug in READ_ND48_MENU.
 !        (eck, cdh, bmy, 3/6/06)
@@ -87,10 +87,10 @@
 !  (12) Updated for ND42 SOA concentration diagnostic (dkh, bmy, 5/22/06)
 !  (13) Modified for future emissions (swu, bmy, 6/1/06)
 !  (14) Modified for BRAVO emissions (rjp, kfb, bmy, 6/26/06)
-!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified 
+!  (15) Remove support for GEOS-1 and GEOS-STRAT met fields.  Also modified
 !        for David Streets' emissions. (bmy, 8/17/06)
 !  (16) Modified for variable tropopause.  Also set dimension of ND28 diag
-!        for GFED2 or default biomass burning.  Now read if Time Spent in 
+!        for GFED2 or default biomass burning.  Now read if Time Spent in
 !        Troposphere is wanted (phs, bmy, 10/17/06)
 !  (17) Now modified for OTD-LIS local redistribution.  Remove references
 !        to GEOS-1 and GEOS-STRAT run dirs. (bmy, 11/5/07)
@@ -132,9 +132,9 @@
 !  26 Feb 2013 - M. Long     - Now make INITIALIZE_GEOS_GRID a public routine
 !  04 Mar 2013 - R. Yantosca - Add routine GIGC_Init_Extra to move some init
 !                              calls out of the run stage when using ESMF
-!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to 
+!  23 Apr 2013 - R. Yantosca - For TOMAS, rename READ_MICROPHYSICS_MENU to
 !                              INIT_TOMAS_MICROPHYSICS
-!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA + 
+!  13 Aug 2013 - M. Sulprizio- Add modifications for updated SOA and SOA +
 !                              semivolatile POA simulations (H. Pye)
 !  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
 !  17 Sep 2013 - R. Yantosca - Increase MAXDIM from 255 to 500 for more tracers
@@ -181,7 +181,7 @@
 !
 ! !IROUTINE: read_input_file
 !
-! !DESCRIPTION: Subroutine READ\_INPUT\_FILE is the driver program for 
+! !DESCRIPTION: Subroutine READ\_INPUT\_FILE is the driver program for
 !  reading the GEOS-Chem input file "input.geos" from disk.
 !\\
 !\\
@@ -192,7 +192,7 @@
 !\\
 !\\
 ! !INTERFACE:
-! 
+!
       SUBROUTINE READ_INPUT_FILE( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
@@ -216,8 +216,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now call DO_GAMAP from "gamap_mod.f" to create "diaginfo.dat" and
 !        "tracerinfo.dat" files after all diagnostic menus have been read in
@@ -262,7 +262,7 @@
 
       !=================================================================
       ! READ_INPUT_FILE begins here!
-      !=================================================================  
+      !=================================================================
 
       ! Echo output
       IF ( am_I_Root ) THEN
@@ -280,7 +280,7 @@
 
       ! For error handling
       ErrMsg   = ''
-      ThisLoc  = 
+      ThisLoc  =
      &   ' -> at Read_Input_File (in module GeosCore/input_mod.F)'
 
       ! Open file
@@ -293,26 +293,26 @@
       IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:2' )
 
       ! Loop until EOF
-      DO 
-         
+      DO
+
          ! Read a line from the file, exit if EOF
          LINE = ReadOneLine( IU_GEOS, EOF, IOS )
          IF ( EOF     ) EXIT
          IF ( IOS > 0 ) CALL IOERROR( IOS, IU_GEOS, 'read_input_file:3')
-         
+
          ! Replace tab characters in LINE (if any) w/ spaces
          CALL STRREPL( LINE, TAB, SPACE )
 
          !=============================================================
          ! Call individual subroutines to read sections of the file
-         ! 
+         !
          ! NOTE: You are pretty flexible in setting the order of the
          ! menus in the input file; however, a few guidelines apply:
          !
          ! (1) SIMULATION MENU should be listed first.
          ! (2) TIMESTEP MENU should be listed second.
          ! (3) ADVECTED SPECIES MENU should be listed third.
-         ! (4) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION, 
+         ! (4) EMISSIONS, AEROSOL, CHEMISTRY, TRANSPORT, CONVECTION,
          !      and DEPOSITION menus (in any order) should follow.
          ! (5) Diagnostic menus, including OUTPUT, DIAGNOSTIC,
          !      PLANEFLIGHT, ND48, ND49, ND50, ND51, and PROD_LOSS
@@ -323,7 +323,7 @@
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
-            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )             
+            CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Simulation_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -356,7 +356,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'AEROSOL MENU'     ) > 0 ) THEN
-            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )              
+            CALL READ_AEROSOL_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Aerosol_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -364,7 +364,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'EMISSIONS MENU'   ) > 0 ) THEN
-            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )             
+            CALL READ_EMISSIONS_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Emissions_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -372,31 +372,39 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'CHEMISTRY MENU'   ) > 0 ) THEN
-            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )              
+            CALL READ_CHEMISTRY_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Chemistry_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                 
+
          ELSE IF ( INDEX( LINE, 'TRANSPORT MENU'   ) > 0 ) THEN
-            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )              
+            CALL READ_TRANSPORT_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Transport_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                             
+
+         ELSE IF ( INDEX( LINE, 'PHOTOLYSIS MENU'   ) > 0 ) THEN
+            CALL READ_PHOTOLYSIS_MENU( am_I_Root, Input_Opt, RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Read_Photolysis_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
          ELSE IF ( INDEX( LINE, 'CONVECTION MENU'  ) > 0 ) THEN
-            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )            
+            CALL READ_CONVECTION_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Convection_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                             
+
          ELSE IF ( INDEX( LINE, 'DEPOSITION MENU'  ) > 0 ) THEN
-            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )             
+            CALL READ_DEPOSITION_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Depositon_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -418,7 +426,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                    
+
          ELSE IF ( INDEX( LINE, 'CO2 SIM MENU'     ) > 0 ) THEN
             CALL READ_CO2_SIM_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -426,17 +434,17 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                    
+
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
-            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )                 
+            CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Gamap_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
          ELSE IF ( INDEX( LINE, 'OUTPUT MENU'      ) > 0 ) THEN
-            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )                 
+            CALL READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Output_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -446,7 +454,7 @@
          ! NOTE: This will get always get read, but the various bpch
          ! diagnostics will only be initialized if BPCH_DIAG=y (bmy, 1/16/18)
          ELSE IF ( INDEX( LINE, 'DIAGNOSTIC MENU'  ) > 0 ) THEN
-            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )             
+            CALL READ_DIAGNOSTIC_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Diagnostic_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -454,7 +462,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
-            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )             
+            CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Planeflight_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -462,7 +470,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'OBSPACK MENU' ) > 0 ) THEN
-            CALL READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )   
+            CALL READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ObsPack_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -472,7 +480,7 @@
          ! Read even if BPCH_DIAG=n so that time series diags may be
          ! output if other diagnostics are output as netcdf (ewl, 4/5/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
-            CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )                  
+            CALL READ_ND48_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND48_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -480,31 +488,31 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'ND49 MENU'        ) > 0 ) THEN
-            CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )                   
+            CALL READ_ND49_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND49_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
          ELSE IF ( INDEX( LINE, 'ND50 MENU'        ) > 0 ) THEN
-            CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )                   
+            CALL READ_ND50_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND50_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
          ELSE IF ( INDEX( LINE, 'ND51 MENU'        ) > 0 ) THEN
-            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )                   
+            CALL READ_ND51_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND51_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
          ELSE IF ( INDEX( LINE, 'ND51b MENU'       ) > 0 ) THEN
-            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )  
+            CALL READ_ND51b_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND51b_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -512,7 +520,7 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'ND63 MENU'        ) > 0 ) THEN
-            CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )                   
+            CALL READ_ND63_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_ND63_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -521,7 +529,7 @@
 
 #if defined( BPCH_DIAG )
          ELSE IF ( INDEX( LINE, 'PROD & LOSS MENU' ) > 0 ) THEN
-            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )               
+            CALL READ_PROD_LOSS_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Prod_Loss_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -529,14 +537,14 @@
             ENDIF
 #endif
 
-         ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN 
+         ELSE IF ( INDEX( LINE, 'BENCHMARK MENU'   ) > 0 ) THEN
             CALL READ_BENCHMARK_MENU( am_I_Root, Input_Opt, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error encountered in ""!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-         
+
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
             CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -544,16 +552,16 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-           
-         ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN 
+
+         ELSE IF ( INDEX( LINE, 'MERCURY MENU'     ) > 0 ) THEN
             CALL READ_MERCURY_MENU( am_I_Root, Input_Opt, RC  )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Mercury_Menu"!'
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                   
-         ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN 
+
+         ELSE IF ( INDEX( LINE, 'CH4 MENU'         ) > 0 ) THEN
             CALL READ_CH4_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_CH4_Menu"!'
@@ -561,7 +569,7 @@
                RETURN
             ENDIF
 
-         ELSE IF ( INDEX( LINE, 'PASSIVE SPECIES' ) > 0 ) THEN 
+         ELSE IF ( INDEX( LINE, 'PASSIVE SPECIES' ) > 0 ) THEN
             CALL READ_PASSIVE_SPECIES_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
                ErrMsg = 'Error in "Read_Passive_Species_Menu"!'
@@ -569,10 +577,10 @@
                RETURN
             ENDIF
 
-         ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN 
+         ELSE IF ( INDEX( LINE, 'END OF FILE'      ) > 0 ) THEN
             EXIT
 
-         ENDIF  
+         ENDIF
       ENDDO
 
       ! Close input file
@@ -625,20 +633,20 @@
 !
 ! !IROUTINE: split_one_line
 !
-! !DESCRIPTION: Subroutine SPLIT\_ONE\_LINE reads a line from the input file 
+! !DESCRIPTION: Subroutine SPLIT\_ONE\_LINE reads a line from the input file
 !  (via routine READ\_ONE\_LINE), and separates it into substrings.
 !\\
 !\\
-!  SPLIT\_ONE\_LINE also checks to see if the number of substrings found is 
+!  SPLIT\_ONE\_LINE also checks to see if the number of substrings found is
 !  equal to the number of substrings that we expected to find.  However, if
-!  you don't know a-priori how many substrings to expect a-priori, 
+!  you don't know a-priori how many substrings to expect a-priori,
 !  you can skip the error check.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SPLIT_ONE_LINE( SUBSTRS, N_SUBSTRS, 
-     &                           N_EXP,   LOCATION,  RC ) 
+      SUBROUTINE SPLIT_ONE_LINE( SUBSTRS, N_SUBSTRS,
+     &                           N_EXP,   LOCATION,  RC )
 !
 ! !USES:
 !
@@ -646,7 +654,7 @@
       Use ErrCode_Mod
       USE File_Mod,    ONLY: IoError
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,            INTENT(IN)  :: N_EXP      ! Expected # of substrs
       CHARACTER(LEN=*),   INTENT(IN)  :: LOCATION   ! Name of calling routine
@@ -656,13 +664,13 @@
       ! Array of substrings (separated by " ")
       CHARACTER(LEN=255), INTENT(OUT) :: SUBSTRS(MAXDIM) ! Substrings
       INTEGER,            INTENT(OUT) :: N_SUBSTRS       ! # of substrings
-      INTEGER,            INTENT(OUT) :: RC              ! Success/failure?  
-! 
-! !REVISION HISTORY: 
+      INTEGER,            INTENT(OUT) :: RC              ! Success/failure?
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  17 Sep 2013 - R. Yantosca - Extend LINE to 500 chars to allow more tracers
-!   8 Nov 2017 - R. Yantosca - Now return error conditon to calling routine 
+!   8 Nov 2017 - R. Yantosca - Now return error conditon to calling routine
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -680,7 +688,7 @@
 
       !=================================================================
       ! SPLIT_ONE_LINE begins here!
-      !=================================================================      
+      !=================================================================
 
       ! Initialize
       RC      = GC_SUCCESS
@@ -688,23 +696,23 @@
       EOF     = .FALSE.
       ErrMsg  = 'Error reading the "input.geos" file!'
       ThisLoc = ' -> at Split_One_Line (in module GeosCore/input_mod.F)'
-      
+
       !=================================================================
       ! Read a line from disk
       !=================================================================
       LINE = ReadOneLine( IU_GEOS, EOF, IOS )
-      
+
       ! Trap premature end-of-file error
       IF ( EOF ) THEN
          ErrMsg = 'Unexpected end-of-file reading input.geos!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      
+
       ! Trap other I/O error conditions
       IF ( IOS > 0 ) THEN
          WRITE( IOS_Str, '(i10)' ) IOS
-         ErrMsg = 'I/O error number: ' // TRIM( IOS_STR ) // 
+         ErrMsg = 'I/O error number: ' // TRIM( IOS_STR ) //
      &            'encountered when readiang "input.geos"!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -730,7 +738,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-       
+
       END SUBROUTINE SPLIT_ONE_LINE
 !EOC
 !------------------------------------------------------------------------------
@@ -740,7 +748,7 @@
 !
 ! !IROUTINE: read_simulation_menu
 !
-! !DESCRIPTION: Subroutine READ\_SIMULATION\_MENU reads the SIMULATION MENU 
+! !DESCRIPTION: Subroutine READ\_SIMULATION\_MENU reads the SIMULATION MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -749,7 +757,7 @@
       SUBROUTINE READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!     
+!
       USE Charpak_Mod,        ONLY : To_UpperCase
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -766,15 +774,15 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Bug fix: Read LSVGLB w/ the * format and not w/ '(a)'. (bmy, 2/23/05)
 !  (2 ) Now read GEOS_5_DIR and GCAP_DIR from input.geos (swu, bmy, 5/25/05)
 !  (3 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (4 ) Now references DATA_DIR_1x1 for 1x1 emissions files (bmy, 10/24/05)
 !  (5 ) Now read switch for using variable tropopause or not (phs, 9/14/06)
-!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls 
+!  (6 ) Remove references to GEOS-1 and GEOS-STRAT run dirs.  Now calls
 !        INIT_TRANSFER (bmy, 11/5/07)
 !  (7 ) Fix typo in "print to screen" section  (phs, 6/1/08)
 !  (8 ) Call INIT_TRANSFER w/ (0,0) instead of (I0,J0) (phs, 6/17/08)
@@ -858,7 +866,7 @@
       ! Make sure the starting date NYMDb is valid
       IF ( .not. Valid_Date( Input_Opt%NYMDb ) ) THEN
          WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
-         ErrMsg = 'Input_Opt%NYMDb = ' // DateStr        // 
+         ErrMsg = 'Input%Opt%NYMDb = ' // DateStr        //
      &            ' is not a valid calendar date!'       //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -868,7 +876,7 @@
       ! Make sure the starting time NHMSb is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSb ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
-         ErrMsg = 'Input_Opt%NHMSb = ' // TimeStr        // 
+         ErrMsg = 'Input%Opt%NHMSb = ' // TimeStr        //
      &            ' is not a valid clock time!'          //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -886,7 +894,7 @@
       ! Make sure the starting date NYMDb is valid
       IF ( .not. Valid_Date( Input_Opt%NYMDe ) ) THEN
          WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDe
-         ErrMsg = 'Input_Opt%NYMDe = ' // DateStr        // 
+         ErrMsg = 'Input%Opt%NYMDe = ' // DateStr        //
      &            ' is not a valid calendar date!'       //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -896,7 +904,7 @@
       ! Make sure the ending time NHMSe is valid
       IF ( .not. Valid_Time( Input_Opt%NHMSe ) ) THEN
          WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSe
-         ErrMsg = 'Input_Opt%NHMSe = ' // TimeStr        // 
+         ErrMsg = 'Input%Opt%NHMSe = ' // TimeStr        //
      &            ' is not a valid clock time!'          //
      &            ' Please check your "input.geos" file.'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -936,7 +944,7 @@
       ENDIF
 
       ! Create CHEM_INPUTS directory
-      Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) // 
+      Input_Opt%CHEM_INPUTS_DIR = TRIM( Input_Opt%DATA_DIR ) //
      &                            'CHEM_INPUTS/'
 
       !-----------------------------------------------------------------
@@ -981,7 +989,7 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'SIMULATION MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100 ) 'Start time of run           : ', 
+         WRITE( 6, 100 ) 'Start time of run           : ',
      &                    Input_Opt%NYMDb, Input_Opt%NHMSb
          WRITE( 6, 100 ) 'End time of run             : ',
      &                    Input_Opt%NYMDe, Input_Opt%NHMSe
@@ -1009,17 +1017,17 @@
       !
       ! If we are connecting to the ESMF interface, we need to take
       ! the start & end dates as defined in the ESMF resource file.
-      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in 
+      ! (i.e. GEOSCHEMchem_GridComp_mod.rc) instead of those in
       ! input.geos.  This is because the ESMF Clock object needs to be
-      ! defined at the highest level (in the driver routine), before 
+      ! defined at the highest level (in the driver routine), before
       ! input.geos is ever read.
       !
       ! Therefore, we will assign the start & end date fields (i.e.
-      ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and 
+      ! Input_Opt%NYMDb, Input_Opt%NYMDe, Input_Opt%NHMSb, and
       ! Input_Opt%NHMSe) in the Gridded Component module file
       ! GEOSCHEMchem_GridComp_Mod.F90 (i.e. two levels higher
       ! in the code).  We don'need to define those fields here, so
-      ! we have bracketed this with an #ifdef. 
+      ! we have bracketed this with an #ifdef.
       !-----------------------------------------------------------------
 
       ! Get the starting UTC time from Input_Opt%NHMSb for use below
@@ -1029,7 +1037,7 @@
       ! Pass the values for the start & end times of the simulation directly
       ! to GeosUtil/time_mod.F via subroutine ACCEPT_EXTERNAL_DATE_TIME.
       ! (bmy, 12/6/12)
-      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root, 
+      CALL Accept_External_Date_Time( am_I_Root   = am_I_Root,
      &                                value_NYMDb = Input_Opt%NYMDb,
      &                                value_NHMSb = Input_Opt%NHMSb,
      &                                value_NYMDe = Input_Opt%NYMDe,
@@ -1071,7 +1079,7 @@
 #if defined( BPCH_DIAG )
       ! Set the start of the 1st diagnostic interval
       CALL SET_DIAGb( GET_TAU() )
-#endif     
+#endif
 
       ! Set menu counter
       CT1 = CT1 + 1
@@ -1376,7 +1384,7 @@
 !
 ! !IROUTINE: read_timestep_menu
 !
-! !DESCRIPTION: Subroutine READ\_TIMESTEP\_MENU reads the TIMESTEP MENU 
+! !DESCRIPTION: Subroutine READ\_TIMESTEP\_MENU reads the TIMESTEP MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -1403,8 +1411,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  09 Aug 2017 - M. Sulprizio- Initial version
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
@@ -1421,7 +1429,7 @@
 
       ! Arrays
       CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-     
+
       !=================================================================
       ! READ_TIMESTEP_MENU begins here!
       !=================================================================
@@ -1429,7 +1437,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Timestep_Menu (in module GeosCore/input_mod.F)'
 
       ! Transport/convection timestep
@@ -1450,7 +1458,7 @@
       READ( SUBSTRS(1:N), * ) Input_Opt%TS_CHEM
       Input_Opt%TS_EMIS = Input_Opt%TS_CHEM
 
-      ! Separator line                          
+      ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1466,15 +1474,15 @@
      &     Input_Opt%SimLengthSec < Input_Opt%TS_CHEM ) THEN
          IF ( am_I_Root ) THEN
 
-            WRITE( 6, *   ) '' 
+            WRITE( 6, *   ) ''
             WRITE( 6, *   ) 'The length of the simulation is shorter '
             WRITE( 6, *   ) 'than the transport and/or chemistry '
             WRITE( 6, *   ) 'timesteps. Check the settings in '
             WRITE( 6, *   ) 'the "input.geos" file.'
-            WRITE( 6, *   ) '' 
-            WRITE( 6, 100 ) 'Transport/Convection [sec]  : ', 
+            WRITE( 6, *   ) ''
+            WRITE( 6, 100 ) 'Transport/Convection [sec]  : ',
      &                       Input_Opt%TS_DYN
-            WRITE( 6, 100 ) 'Chemistry/Emissions  [sec]  : ', 
+            WRITE( 6, 100 ) 'Chemistry/Emissions  [sec]  : ',
      &                       Input_Opt%TS_CHEM
             WRITE( 6, 100 ) 'Simulation duration  [sec]  : ',
      &                       Input_Opt%SimLengthSec
@@ -1490,7 +1498,7 @@
          IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 ) THEN
             IF ( am_I_Root ) THEN
 
-            WRITE( 6,* ) '' 
+            WRITE( 6,* ) ''
             WRITE( 6,* ) 'It has been noted that MERRA-2 nested grid'
             WRITE( 6,* ) ' simulations can have very high species'
             WRITE( 6,* ) ' concentrations in the stratosphere caused'
@@ -1524,9 +1532,9 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'TIMESTEP MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100     ) 'Transport/Convection [sec]  : ', 
+         WRITE( 6, 100     ) 'Transport/Convection [sec]  : ',
      &                        Input_Opt%TS_DYN
-         WRITE( 6, 100     ) 'Chemistry/Emissions  [sec]  : ', 
+         WRITE( 6, 100     ) 'Chemistry/Emissions  [sec]  : ',
      &                        Input_Opt%TS_CHEM
       ENDIF
 
@@ -1567,8 +1575,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now set LSPLIT correctly for Tagged Hg simulation (eck, bmy, 12/13/04)
 !  (2 ) Now initialize ocean mercury module (sas, bmy, 1/20/05)
@@ -1587,7 +1595,7 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  21 Aug 2014 - R. Yantosca - Bug fix: add ITS_A_RnPbBe_SIM to the test
 !                              that defines the ITS_A_SPECIALTY_SIM flag
-!  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block 
+!  24 Mar 2015 - E. Lundgren - Move init_tracer to within APM ifdef block
 !  23 Jun 2016 - R. Yantosca - Remove call to TRACERID, it's obsolete
 !  28 Jul 2016 - M. Sulprizio- Rename TRACER MENU to ADVECTED SPECIES MENU;
 !                              Remove ID, MW, and member columns from menu
@@ -1619,7 +1627,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Advected_Species_Menu (in GeosCore/input_mod.F)'
 
       ! Simulation type
@@ -1648,11 +1656,11 @@
       ! Also pick a name corresponding to each simulation type
       ! This replaces function GET_SIM_NAME from tracer_mod.F
       SELECT CASE( Input_Opt%SIM_TYPE )
-         CASE( 1 ) 
+         CASE( 1 )
             Input_Opt%SIM_NAME = 'Rn-Pb-Be'
-         CASE( 2 ) 
+         CASE( 2 )
             Input_Opt%SIM_NAME = 'CH3I'
-         CASE( 3 ) 
+         CASE( 3 )
             Input_Opt%SIM_NAME = 'NOx-Ox-Hydrocarbon-Aerosol'
          CASE( 4 )
             Input_Opt%SIM_NAME = 'HCN'
@@ -1662,13 +1670,13 @@
             Input_Opt%SIM_NAME = 'Tagged O3'
          CASE( 7 )
             Input_Opt%SIM_NAME = 'Tagged CO'
-         CASE( 8 ) 
+         CASE( 8 )
             Input_Opt%SIM_NAME = 'Tagged C2H6'
          CASE( 9 )
             Input_Opt%SIM_NAME = 'CH4'
-         CASE( 10 ) 
+         CASE( 10 )
             Input_Opt%SIM_NAME = 'Offline Aerosol'
-         CASE( 11 ) 
+         CASE( 11 )
             Input_Opt%SIM_NAME = 'Mercury'
          CASE( 12 )
             Input_Opt%SIM_NAME = 'CO2'
@@ -1741,7 +1749,7 @@
 
          ! Need Hg0, Hg2, HgP for tagged Mercury
          Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 3 )
-         
+
       ELSE IF ( Input_Opt%ITS_A_HCN_SIM ) THEN
 
          ! Need HCN, CH3CN for HCN simulation
@@ -1769,8 +1777,8 @@
 !
 ! !IROUTINE: read_aerosol_menu
 !
-! !DESCRIPTION: Subroutine READ\_AEROSOL\_MENU reads the AEROSOL MENU 
-!  section of the GEOS-Chem input file. 
+! !DESCRIPTION: Subroutine READ\_AEROSOL\_MENU reads the AEROSOL MENU
+!  section of the GEOS-Chem input file.
 !\\
 !\\
 ! !INTERFACE:
@@ -1793,20 +1801,20 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
+!
 ! !REMARKS:
 !  Move error checks that depend on species indices to the subroutine
 !  DO_ERROR_CHECKS.  This is now called from GC_INIT_EXTRA, after the
 !  initialization of the species database.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now reference LSOA (bmy, 9/28/04)
 !  (2 ) Now stop run if LSOA=T and SOA tracers are undefined (bmy, 11/19/04)
 !  (3 ) Now reference LCRYST from "logical_mod.f".  Also now check to make
 !        prevent aerosol tracers from being undefined if the corresponding
 !        logical switch is set. (cas, bmy, 1/14/05)
-!  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the 
+!  (4 ) Now also require LSSALT=T when LSULF=T, since we now compute the
 !        production of SO4 and NIT w/in the seasalt aerosol (bec, bmy, 4/13/05)
 !  (5 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (6 ) Now update error check for SOG4, SOA4 (dkh, bmy, 6/1/06)
@@ -1855,18 +1863,18 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Aerosol_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &             'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
 
-      ! Use online sulfate aerosols? 
+      ! Use online sulfate aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSULF', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1882,15 +1890,15 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LMETALCATSO2
 
-      ! Use online carbon aerosols? 
+      ! Use online carbon aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LCARB', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LCARB
-      
-      ! Use brown carbon aerosols? 
+
+      ! Use brown carbon aerosols?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LBRC', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1930,7 +1938,7 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LDUST
 
-      ! Use SO2 and HNO3 uptake on dust aerosols 
+      ! Use SO2 and HNO3 uptake on dust aerosols
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LDSTUP', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1944,7 +1952,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSSALT      
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSSALT
 
       ! Accum mode seasalt radii bin edges [um]
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 2, 'SALA_REDGE_um', RC )
@@ -1980,7 +1988,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LGRAVSTRAT  
+      READ( SUBSTRS(1:N), * ) Input_Opt%LGRAVSTRAT
 
       ! Use solid polar stratospheric clouds (PSCs)?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSOLIDPSC', RC )
@@ -1988,7 +1996,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LSOLIDPSC   
+      READ( SUBSTRS(1:N), * ) Input_Opt%LSOLIDPSC
 
       ! Allow homogeneous nucleation of NAT?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LHOMNUCNAT', RC )
@@ -1996,7 +2004,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LHOMNUCNAT 
+      READ( SUBSTRS(1:N), * ) Input_Opt%LHOMNUCNAT
 
       ! NAT supercooling requirement (K)
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'T_NAT_SUPERCOOL', RC )
@@ -2020,7 +2028,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      READ( SUBSTRS(1:N), * ) Input_Opt%LPSCCHEM 
+      READ( SUBSTRS(1:N), * ) Input_Opt%LPSCCHEM
 
       ! Include stratospheric aerosols optical depths?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'LSTRATOD', RC )
@@ -2066,15 +2074,15 @@
       !=================================================================
 
       ! Make sure that SALA, SALC bins are contiguous
-      IF ( Input_Opt%SALA_REDGE_um(2) /= 
+      IF ( Input_Opt%SALA_REDGE_um(2) /=
      &     Input_Opt%SALC_REDGE_um(1)     ) THEN
          ErrMsg = 'SALA and SALC bin edges are not contiguous!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN         
+         RETURN
       ENDIF
 
       ! Turn off switches for simulations that don't use aerosols
-      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. 
+      IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and.
      &     ( .not. Input_OPt%ITS_AN_AEROSOL_SIM ) ) THEN
          Input_Opt%LSULF        = .FALSE.
          Input_Opt%LMETALCATSO2 = .FALSE.
@@ -2098,7 +2106,7 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'AEROSOL MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ', 
+         WRITE( 6, 100     ) 'Online SULFATE AEROSOLS?    : ',
      &                        Input_Opt%LSULF
          WRITE( 6, 100     ) 'Metal catalyzed SO2 ox.?    : ',
      &                        Input_Opt%LMETALCATSO2
@@ -2118,11 +2126,11 @@
      &                        Input_Opt%LDSTUP
          WRITE( 6, 100     ) 'Online SEA SALT AEROSOLS?   : ',
      &                        Input_Opt%LSSALT
-         WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ', 
-     &                        Input_Opt%SALA_REDGE_um(1), 
+         WRITE( 6, 110     ) 'Accum  SEA SALT radii [um]  : ',
+     &                        Input_Opt%SALA_REDGE_um(1),
      &                        Input_Opt%SALA_REDGE_um(2)
          WRITE( 6, 110     ) 'Coarse SEA SALT radii [um]  : ',
-     &                        Input_Opt%SALC_REDGE_um(1), 
+     &                        Input_Opt%SALC_REDGE_um(1),
      &                        Input_Opt%SALC_REDGE_um(2)
          WRITE( 6, 100     ) 'MARINE ORGANIC AEROSOLS?    : ',
      &                        Input_Opt%LMPOA
@@ -2163,7 +2171,7 @@
 !
 ! !IROUTINE: read_emissions_menu
 !
-! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU 
+! !DESCRIPTION: Subroutine READ\_EMISSIONS\_MENU reads the EMISSIONS MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -2188,13 +2196,13 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
+!
 ! !REMARKS:
 !  The Ind_() function now defines all species ID's.  It returns -1 if
 !  a species cannot be found.  Therefore now test for Ind_() > 0  for a
 !  valid species.
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now read LNEI99 -- switch for EPA/NEI99 emissions (bmy, 11/5/04)
 !  (2 ) Now read LAVHRRLAI-switch for using AVHRR-derived LAI (bmy, 12/20/04)
@@ -2202,7 +2210,7 @@
 !  (4 ) Now read LMEGAN -- switch for MEGAN biogenics (tmf, bmy, 10/20/05)
 !  (5 ) Now read LEMEP -- switch for EMEP emissions (bdf, bmy, 11/1/05)
 !  (6 ) Now read LGFED2BB -- switch for GFED2 biomass emissions (bmy, 4/5/06)
-!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options 
+!  (7 ) Now read LOTDLIS, LCTH, LMFLUX, LPRECON for lightning options
 !        (bmy, 5/10/06)
 !  (8 ) Now read LBRAVO for BRAVO Mexican emissions (rjp, kfb, bmy, 6/26/06)
 !  (9 ) Now read LEDGAR for EDGAR emissions (avd, bmy, 7/11/06)
@@ -2210,7 +2218,7 @@
 !  (11) Kludge: Reset LMFLUX or LPRECON to LCTH, as the MFLUX and PRECON
 !        lightning schemes have not yet been implemented.  Rename LOTDLIS
 !        to LOTDREG.  Also read LOTDLOC for the OTD-LIS local redistribution
-!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and 
+!        of lightning flashes (cf B. Sauvage).  Make sure LOTDREG and
 !        LOTDLOC are not both turned on at the same time. (bmy, 1/31/07)
 !  (12) Add LOTDSCALE to the list of LNOx options (ltm, bmy, 9/24/07)
 !  (13) Add new error traps for OTD-LIS options, dependent on met field type
@@ -2267,7 +2275,7 @@
 !  04 Sep 2014 - R. Yantosca - Bug fix: Now use Input_Opt%OTDLOC since we have
 !                              now removed logical_mod.F
 !  24 Jun 2015 - R. Yantosca - Now always turn off emissions for mass cons test
-!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function 
+!  16 Jun 2016 - K. Travis   - Now define species ID's with the Ind_ function
 !  22 Jun 2016 - R. Yantosca - Move some error checks to DO_ERROR_CHECKS
 !  20 Sep 2016 - R. Yantosca - Use "I4" format to read in CFCYEAR
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
@@ -2293,11 +2301,11 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Emissions_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2312,7 +2320,7 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%LEMIS
 
-      ! HEMCO Input file 
+      ! HEMCO Input file
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'HcoConfigFile', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2437,8 +2445,8 @@
      &                         Input_Opt%LCFCEMIS .or.
      &                         Input_Opt%LBREMIS  .or.
      &                         Input_Opt%LN2OEMIS )
-      
-      ! Turn off full-chem only switches 
+
+      ! Turn off full-chem only switches
       IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
          Input_Opt%LSETH2O = .FALSE.
       ENDIF
@@ -2448,7 +2456,7 @@
       !%%%  MASS CONSERVATION TEST:                                  %%%
       !%%%  Always turn off emissions for the mass conservation      %%%
       !%%%  test.  (ewl, 6/24/15)                                    %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Reset quantities
       Input_Opt%LEMIS = .FALSE.
@@ -2456,7 +2464,7 @@
       ! Print info to stdout stating that rint results
       WRITE( 6, '(a)' )
       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-      WRITE( 6, 200   ) 
+      WRITE( 6, 200   )
       WRITE( 6, 205   )
       WRITE( 6, 210   )
       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
@@ -2516,7 +2524,7 @@
 !
 ! !IROUTINE: read_co_sim_menu
 !
-! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU 
+! !DESCRIPTION: Subroutine READ\_CO\_SIM\_MENU reads the CO SIM MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -2542,8 +2550,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Mar 2017 - J. Fisher   - Initial version
 !EOP
 !------------------------------------------------------------------------------
@@ -2569,7 +2577,7 @@
       LOC = ' -> at READ_CO_SIM_MENU (in GeosCore/input_mod.f)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          MSG = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &         'must be read in first!'
          CALL GC_Error( Msg, RC, Loc )
@@ -2591,12 +2599,12 @@
          WRITE(6,'(/,a)') 'CO SIMULATION MENU ' //
      &        '(overwrites any other settings related to CO)'
          WRITE(6,'(  a)') '-------------------------------------'
-         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:', 
+         WRITE(6,100    ) 'Use full chem. P(CO) from CH4?:',
      &                    Input_Opt%LPCO_CH4
-         WRITE(6,100    ) '                   from NMVOC?:', 
+         WRITE(6,100    ) '                   from NMVOC?:',
      &                    Input_Opt%LPCO_NMVOC
          WRITE(6,'(  a)') '-------------------------------------'
-      ENDIF      
+      ENDIF
 
       ! FORMAT statements
   90  FORMAT( A )
@@ -2612,7 +2620,7 @@
 !
 ! !IROUTINE: read_co2_sim_menu
 !
-! !DESCRIPTION: Subroutine READ\_CO2\_SIM\_MENU reads the CO2 SIM MENU 
+! !DESCRIPTION: Subroutine READ\_CO2\_SIM\_MENU reads the CO2 SIM MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -2636,8 +2644,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  02 Mar 2009 - R. Nassar   - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  07 Sep 2011 - P. Kasibhatla - Modified for GFED3
@@ -2671,11 +2679,11 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_CO2_SIM_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -2801,24 +2809,24 @@
          WRITE(6,100    ) 'Net Terr Exch - Climatology   :',
      &                     Input_Opt%LBIONETCLIM
          WRITE(6,100    ) 'Intl/Domestic Ship emissions  :',
-     &                     Input_Opt%LSHIP 
+     &                     Input_Opt%LSHIP
          WRITE(6,100    ) 'Intl/Domestic Aviation emiss  :',
-     &                     Input_Opt%LPLANE 
+     &                     Input_Opt%LPLANE
          WRITE(6,100    ) 'CO2 from oxidation (CO,CH4,..):',
      &                     Input_Opt%LCHEMCO2
          WRITE(6, 90    ) 'Tagged CO2 settings'
          WRITE(6,100    ) '  Save Fossil CO2 in Bckgrnd  :',
-     &                       Input_Opt%LFFBKGRD 
+     &                       Input_Opt%LFFBKGRD
          WRITE(6,100    ) '  Tag Biosphere/Ocean CO2     :',
-     &                       Input_Opt%LBIOSPHTAG 
+     &                       Input_Opt%LBIOSPHTAG
          WRITE(6,100    ) '  Tag Fossil Fuel CO2         :',
-     &                       Input_Opt%LFOSSILTAG 
+     &                       Input_Opt%LFOSSILTAG
          WRITE(6,100    ) '  Tag Global Ship CO2         :',
      &                       Input_Opt%LSHIPTAG
          WRITE(6,100    ) '  Tag Global Aviation CO2     :',
      &                       Input_Opt%LPLANETAG
          WRITE(6,'(  a)') '-------------------------------------'
-      ENDIF      
+      ENDIF
 
       ! FORMAT statements
   90  FORMAT( A )
@@ -2833,7 +2841,7 @@
 !
 ! !IROUTINE: read_chemistry_menu
 !
-! !DESCRIPTION: Subroutine READ\_CHEMISTRY\_MENU reads the CHEMISTRY MENU 
+! !DESCRIPTION: Subroutine READ\_CHEMISTRY\_MENU reads the CHEMISTRY MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -2857,11 +2865,11 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1) added optional test on KPPTRACER (phs, 6/17/09)
-!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN" 
+!  (2) Remove reference to obsolete embedded chemistry stuff in "CMN"
 !      (bmy, 2/25/10)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  10 Jun 2012 - L. Murray   - Move all strat chemistry switches here
@@ -2904,11 +2912,11 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Chemistry_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3006,7 +3014,7 @@
 
       !=================================================================
       ! Error check settings
-      !=================================================================       
+      !=================================================================
 
       ! Cannot use Synoz with linearized mesospheric chemistry
 #if !defined( MODEL_GEOS )
@@ -3107,7 +3115,7 @@
  100  FORMAT( A, L5  )
  110  FORMAT( A, F4.2 )
 
-      END SUBROUTINE READ_CHEMISTRY_MENU  
+      END SUBROUTINE READ_CHEMISTRY_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3152,7 +3160,7 @@
 !  10 Dec 2014 - M. Sulprizio- Add error checks for RRTMG switches
 !  10 Mar 2017 - C. Keller   - Wrapped print out in am_I_Root statement.
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
-!  23 Mar 2018 - E. Lundgren - Store wavelength data in Input_Opt instead of 
+!  23 Mar 2018 - E. Lundgren - Store wavelength data in Input_Opt instead of
 !                              variables formerly declared in CMN_FJX_MOD.F
 !EOP
 !------------------------------------------------------------------------------
@@ -3176,7 +3184,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Radiation_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
@@ -3188,7 +3196,7 @@
       ENDIF
 
       ! AOD wavelength selection?
-      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%NWVSELECT, -1, 
+      CALL SPLIT_ONE_LINE( SUBSTRS, Input_Opt%NWVSELECT, -1,
      &                     'Wavelengths', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3257,9 +3265,9 @@
 
       !=================================================================
       ! Error check settings
-      !=================================================================       
+      !=================================================================
 
-      ! Use of RRTMG necessitates recompilation 
+      ! Use of RRTMG necessitates recompilation
 #if !defined( RRTMG )
       IF ( Input_Opt%LRAD ) THEN
          ErrMsg = 'LRAD=T but RRTMG not defined at compile time!'
@@ -3302,7 +3310,7 @@
          WRITE( 6, '(/,a)' ) 'RADIATION MENU'
          WRITE( 6, '(  a)' ) '--------------'
          DO N=1, Input_Opt%NWVSELECT
-            WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
+            WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ',
      &                           Input_Opt%WVSELECT(N)
          ENDDO
          WRITE( 6, 100 ) 'Turn on radiation?          : ',
@@ -3321,7 +3329,7 @@
       ! FORMAT statements
  100  FORMAT( A, L5           )
  110  FORMAT( A, I5           )
- 115  FORMAT( A, F7.1         ) 
+ 115  FORMAT( A, F7.1         )
  120  FORMAT( A, 11I1         )
  125  FORMAT( A, L5, A, L5    )
  130  FORMAT( A, 12( A2, 1x ) )
@@ -3335,7 +3343,7 @@
 !
 ! !IROUTINE: read_transport_menu
 !
-! !DESCRIPTION: Subroutine READ\_TRANSPORT\_MENU reads the TRANSPORT MENU 
+! !DESCRIPTION: Subroutine READ\_TRANSPORT\_MENU reads the TRANSPORT MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -3359,8 +3367,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now define MAX_DYN for 1 x 1.25 grid (bmy, 12/1/04)
 !  (2 ) Update text in error message (bmy, 2/23/05)
@@ -3406,7 +3414,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Transport_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
@@ -3461,7 +3469,7 @@
          WRITE( 6, 100     ) 'Let TPCORE Fill negatives?  : ',
      &                        Input_Opt%LFILL
          WRITE( 6, 110     ) 'IORD, JORD, KORD for TPCORE?: ',
-     &                        Input_Opt%TPCORE_IORD, 
+     &                        Input_Opt%TPCORE_IORD,
      &                        Input_Opt%TPCORE_JORD,
      &                        Input_Opt%TPCORE_KORD
       ENDIF
@@ -3469,7 +3477,7 @@
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, 5I5 )
-      
+
       END SUBROUTINE READ_TRANSPORT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3477,10 +3485,112 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_convection_menu 
+! !IROUTINE: read_photolysis_menu
 !
-! !DESCRIPTION: Subroutine READ\_CONVECTION\_MENU reads the CONVECTION MENU 
-!  section of the GEOS-Chem input file. 
+! !DESCRIPTION: Subroutine READ\_PHOTOLYSIS\_MENU reads the SIMULATION MENU
+!  section of the GEOS-Chem input file.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_PHOTOLYSIS_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  26 Jul 2019 - T. Sherwen - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N, C
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_SIMULATION_MENU begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = 'Error reading the "input.geos" file!'
+      ThisLoc = ' -> at Read_Photolysis_Menu (in GeosCore/input_mod.F)'
+
+      !-----------------------------------------------------------------
+      ! Photolysis directory
+      !-----------------------------------------------------------------
+
+      ! Root data dir
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'FAST_JX_DIR', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%FAST_JX_DIR
+
+      ! Make sure PHOTOLYSIS-DIR ends with a "/" character
+      C = LEN_TRIM( Input_Opt%FAST_JX_DIR )
+      IF ( Input_Opt%FAST_JX_DIR(C:C) /= '/' ) THEN
+         Input_Opt%FAST_JX_DIR = TRIM( Input_Opt%FAST_JX_DIR ) // '/'
+      ENDIF
+
+      ! Separator line
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Return success
+      RC = GC_SUCCESS
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF ( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'PHOTOLYSIS MENU'
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, 110 ) 'FAST_JX Directory           : ',
+     &                    TRIM( Input_Opt%FAST_JX_DIR )
+      ENDIF
+
+      ! Format statements
+ 100  FORMAT( A, I8.8, 1X, I6.6 )
+ 110  FORMAT( A, A              )
+
+      END SUBROUTINE READ_PHOTOLYSIS_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_convection_menu
+!
+! !DESCRIPTION: Subroutine READ\_CONVECTION\_MENU reads the CONVECTION MENU
+!  section of the GEOS-Chem input file.
 !\\
 !\\
 ! !INTERFACE:
@@ -3503,21 +3613,21 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Add option for new non-local PBL scheme. And a check on GEOS-5, 
+!  (1 ) Add option for new non-local PBL scheme. And a check on GEOS-5,
 !        LNLPBL turned to false if GEOS-5 is not used (lin, ccc 5/13/09)
 !  27 Aug 2010 - R. Yantosca - Now allow non-local PBL for MERRA met data
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  02 Feb 2012 - R. Yantosca - Added modifications for MERRA met data
-!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_FP ) should have 
+!  13 Apr 2012 - R. Yantosca - Fixed typo ( defined( GEOS_FP ) should have
 !                              been !defined( GEOS_FP ) )
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
 !  01 Mar 2013 - R. Yantosca - Now set TS_CONV to the same value as TS_DYN
-!                              when connecting to the GEOS-5 GCM. 
+!                              when connecting to the GEOS-5 GCM.
 !  12 Aug 2015 - R. Yantosca - Now allow non-local PBL mixing for MERRA2 met
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !EOP
@@ -3541,11 +3651,11 @@
 
       ! Initialize
       RC      = GC_SUCCESS
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Convection_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3604,7 +3714,7 @@
 
       ! FORMAT statements
  100  FORMAT( A, L5 )
-      
+
       END SUBROUTINE READ_CONVECTION_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -3614,7 +3724,7 @@
 !
 ! !IROUTINE: read_deposition_menu
 !
-! !DESCRIPTION: Subroutine READ\_DEPOSITION\_MENU reads the DEPOSITION MENU 
+! !DESCRIPTION: Subroutine READ\_DEPOSITION\_MENU reads the DEPOSITION MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -3638,8 +3748,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now print an informational message for tagged Hg (bmy, 12/15/04)
 !  (2 ) We need to call WETDEPID for both wetdep and cloud convection
@@ -3652,13 +3762,13 @@
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
 !  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
-!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate 
+!  26 Feb 2013 - R. Yantosca - Now call INIT_DUST jere to facilitate
 !                              connecting to the GEOS-5 GCM
 !  23 Jun 2014 - R. Yantosca - Removed references to logical_mod.F
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  25 Jun 2014 - R. Yantosca - Now set USE_OLSON_2001 = T for GEOS-FP met;
 !                              this was originally done in INIT_INPUT
-!  05 Mar 2015 - C. Keller   - Added PBL_DRYDEP to define if dry 
+!  05 Mar 2015 - C. Keller   - Added PBL_DRYDEP to define if dry
 !                              deposition rates are calculated over
 !                              full PBL or 1st model level only.
 !                              Set to .TRUE. (full PBL) if full PBL
@@ -3688,11 +3798,11 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Deposition_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &          'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3738,16 +3848,16 @@
       IF ( Input_Opt%ITS_A_C2H6_SIM    ) Input_Opt%LWETD = .FALSE.
       IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
 
-      ! Set the PBL drydep flag. This determines if dry deposition is 
-      ! applied (and drydep frequencies are calculated) over the entire 
-      ! PBL or the first model layer only. For now, set this value 
-      ! automatically based upon the selected PBL scheme: 1st model layer 
+      ! Set the PBL drydep flag. This determines if dry deposition is
+      ! applied (and drydep frequencies are calculated) over the entire
+      ! PBL or the first model layer only. For now, set this value
+      ! automatically based upon the selected PBL scheme: 1st model layer
       ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
-      IF ( Input_Opt%LNLPBL ) THEN 
+      IF ( Input_Opt%LNLPBL ) THEN
          Input_Opt%PBL_DRYDEP = .FALSE.
       ELSE
          Input_Opt%PBL_DRYDEP = .TRUE.
-      ENDIF 
+      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -3755,11 +3865,11 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'DEPOSITION MENU'
          WRITE( 6, '(  a)' ) '---------------'
-         WRITE( 6, 100     ) 'Turn on dry deposition?     : ', 
+         WRITE( 6, 100     ) 'Turn on dry deposition?     : ',
      &                        Input_Opt%LDRYD
-         WRITE( 6, 100     ) 'Dry dep over full PBL?      : ', 
+         WRITE( 6, 100     ) 'Dry dep over full PBL?      : ',
      &                        Input_Opt%PBL_DRYDEP
-         WRITE( 6, 100     ) 'Turn on wet deposition?     : ', 
+         WRITE( 6, 100     ) 'Turn on wet deposition?     : ',
      &                        Input_Opt%LWETD
       ENDIF
 
@@ -3775,7 +3885,7 @@
 !
 ! !IROUTINE: read_gamap_menu
 !
-! !DESCRIPTION: Subroutine READ\_GAMAP\_MENU reads the GAMAP MENU section 
+! !DESCRIPTION: Subroutine READ\_GAMAP\_MENU reads the GAMAP MENU section
 !  of the GEOS-Chem input file.
 !\\
 !\\
@@ -3799,8 +3909,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  25 Apr 2005 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -3828,7 +3938,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Gamap_Menu (in module GeosCore/input_mod.F)'
 
       ! Background
@@ -3859,8 +3969,8 @@
       !=================================================================
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'GAMAP MENU'
-         WRITE( 6, '(  a)' ) '---------------'            
-         WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ', 
+         WRITE( 6, '(  a)' ) '---------------'
+         WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ',
      &                        TRIM( Input_Opt%GAMAP_DIAGINFO   )
          WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',
      &                        TRIM( Input_Opt%GAMAP_TRACERINFO )
@@ -3875,7 +3985,7 @@
 !
 ! !IROUTINE: read_output_menu
 !
-! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of 
+! !DESCRIPTION: Subroutine READ\_OUTPUT\_MENU reads the OUTPUT MENU section of
 !  the GEOS-Chem input file.
 !\\
 !\\
@@ -3884,7 +3994,7 @@
       SUBROUTINE READ_OUTPUT_MENU( am_I_Root, Input_Opt, RC )
 !
 ! !USES:
-!      
+!
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
 !
@@ -3899,12 +4009,12 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
+!
 ! !REMARKS:
 !  NJDAY is now located in CMN_SIZE_mod.F, so that we can eventually
 !  retire the obsolete CMN_DIAG_mod.F. (bmy, 1/16/18)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -3932,12 +4042,12 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Output_Menu (in module GeosCore/input_mod.F)'
 
       ! Read info
       READ( IU_GEOS, 100, IOSTAT=IOS ) Input_Opt%NJDAY
- 100  FORMAT( 26x, 31i1, /  26x, 29i1, /, 26x, 31i1, /, 26x, 30i1, /, 
+ 100  FORMAT( 26x, 31i1, /  26x, 29i1, /, 26x, 31i1, /, 26x, 30i1, /,
      &        26x, 31i1, /, 26x, 30i1, /, 26x, 31i1, /, 26x, 31i1, /,
      &        26x, 30i1, /  26x, 31i1, /, 26x, 30i1, /, 26x, 31i1 )
 
@@ -3946,7 +4056,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      
+
       !=================================================================
       ! Print to screen
       !=================================================================
@@ -3963,8 +4073,8 @@
  110  FORMAT( '              1111111111222222222233' )
  120  FORMAT( '     1234567890123456789012345678901' )
  130  FORMAT( '     -------------------------------' )
- 140  FORMAT( 'JAN--', 31i1, /, 'FEB--', 29i1, /, 'MAR--', 31i1, /, 
-     &        'APR--', 30i1, /, 'MAY--', 31i1, /, 'JUN--', 30i1, /, 
+ 140  FORMAT( 'JAN--', 31i1, /, 'FEB--', 29i1, /, 'MAR--', 31i1, /,
+     &        'APR--', 30i1, /, 'MAY--', 31i1, /, 'JUN--', 30i1, /,
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
@@ -3974,7 +4084,7 @@
       !
       ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
       ! handle all timing and diagnostic output via the GEOS-5 History
-      ! Component.  Therefore we do not need to make sure that we have 
+      ! Component.  Therefore we do not need to make sure that we have
       ! scheduled output for the last day of the run.  This can cause
       ! a premature exit. (bmy, 2/28/13)
       !-----------------------------------------------------------------
@@ -4008,7 +4118,7 @@
 !
 ! !IROUTINE: read_diagnostic_menu
 !
-! !DESCRIPTION: Subroutine READ\_DIAGNOSTIC\_MENU reads the DIAGNOSTIC MENU 
+! !DESCRIPTION: Subroutine READ\_DIAGNOSTIC\_MENU reads the DIAGNOSTIC MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -4047,7 +4157,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now reference IU_BPCH from "file_mod.f" and OPEN_BPCH2_FOR_WRITE
 !        from "bpch2_mod.f".  Now opens the bpch file for output here
@@ -4061,7 +4171,7 @@
 !  (5 ) Now make sure all USE statements are USE, ONLY.  Also remove reference
 !        to DIAG_MOD, it's not needed. (bmy, 10/3/05)
 !  (6 ) Now remove reference to NBIOTRCE; Replace w/ NBIOMAX. (bmy, 4/5/06)
-!  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f" 
+!  (7 ) Now reference ND56, PD56, INIT_DIAG56 from "diag56_mod.f"
 !        (bmy, 5/10/06)
 !  (8 ) Now reference ND42, PD42, INIT_DIAG42 from "diag42_mod.f"
 !        (dkh, bmy, 5/22/06)
@@ -4074,7 +4184,7 @@
 !  (13) NBIOMAX now in CMN_SIZE (fp, 6/2009)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  26 May 2011 - R. Yantosca - For ND17, ND18, ND37, ND38, ND39, we need to
-!                              set N_TMP = N_TRACERS, or else wetdep tracers 
+!                              set N_TMP = N_TRACERS, or else wetdep tracers
 !                              with indices higher than #32 won't print out.
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
 !                              running with the traditional driver main.F
@@ -4090,7 +4200,7 @@
 !  25 Jun 2014 - R. Yantosca - Removed references to tracer_mod.F
 !  15 Dec 2014 - M. Sulprizio- Moved radiation diagnostic from ND71 to ND72 to
 !                              avoid conflicts with hourly max ppbv diagnostic.
-!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION 
+!  15 Jan 2015 - R. Yantosca - Now define Input_Opt%DIAG_COLLECTION
 !  22 May 2015 - R. Yantosca - Remove variables made obsolete by HEMCO
 !  23 Jun 2016 - R. Yantosca - Now call INIT_DIAG_OH from GIGC_Init_Extra
 !  20 Jul 2016 - R. Yantosca - Remove references to NNPAR
@@ -4135,14 +4245,14 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Diagnostic_Menu (in module GeosCore/input_mod.F)'
 
       ! Get fields from Input_Opt
       N_ADVECT = Input_Opt%N_ADVECT
-      
+
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg= 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &           'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4185,7 +4295,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND01x
       IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM .or.
-     &     .not. Input_Opt%LEMIS ) ND01x = 0 
+     &     .not. Input_Opt%LEMIS ) ND01x = 0
 #if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 01, ND01x, SUBSTRS(2:N), N-1, N_MAX )
 #endif
@@ -4199,7 +4309,7 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1), * ) ND02x
-      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02x = 0 
+      IF ( .not. Input_Opt%ITS_A_RnPbBe_SIM ) ND02x = 0
 #if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 02, ND02x, SUBSTRS(2:N), N-1, N_MAX )
 #endif
@@ -4261,7 +4371,7 @@
 #if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 06, ND06x, SUBSTRS(2:N), N-1, NDSTBIN)
 #endif
- 
+
       !--------------------------
       ! ND07: Carbon/SOA source
       !--------------------------
@@ -4460,7 +4570,7 @@
       CALL SET_TINDEX( am_I_Root, 21, ND21x, SUBSTRS(2:N), N-1, PD21 )
 #endif
 
-      ! Error check 
+      ! Error check
       IF ( ND21x > 0 .and. Input_Opt%SALA_REDGE_um(2) /= 0.5 ) THEN
          ErrMsg = 'Cannot output seasalt AOD''s when radius bin' //
      &            ' is not split at 0.5 um!!'
@@ -4546,7 +4656,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND28x
       IF ( .not. Input_Opt%LEMIS ) ND28x = 0
- 
+
       !--------------------------
       ! ND29: CO sources
       !--------------------------
@@ -4649,7 +4759,7 @@
       READ( SUBSTRS(1), * ) ND36x
       IF ( .not. Input_Opt%LEMIS ) ND36x = 0
 #if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 
+      CALL SET_TINDEX( am_I_Root,
      &                 36, ND36, SUBSTRS(2:N), N-1, N_ADVECT )
 #endif
 
@@ -4783,7 +4893,7 @@
       CALL SET_TINDEX( am_I_Root, 45, ND45x, SUBSTRS(2:N), N-1, N_TMP )
 #endif
 
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'HR1_OTH, HR2_OTH', RC ) 
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 2,  'HR1_OTH, HR2_OTH', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -4814,7 +4924,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND47x
 #if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 
+      CALL SET_TINDEX( am_I_Root,
      &                 47, ND47, SUBSTRS(2:N), N-1, N_ADVECT )
 #endif
 
@@ -4900,7 +5010,7 @@
 #endif
 
       !--------------------------
-      ! ND58: CH4 Emissions 
+      ! ND58: CH4 Emissions
       !--------------------------
       CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ND58', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -5040,7 +5150,7 @@
 #if defined( BPCH_DIAG )
       CALL SET_TINDEX( am_I_Root, 70, ND70x, SUBSTRS(2:N), N-1, 0 )
 #endif
-     
+
       !--------------------------
       ! ND71: Maximum species
       !--------------------------
@@ -5051,7 +5161,7 @@
       ENDIF
       READ( SUBSTRS(1), * ) ND71x
 #if defined( BPCH_DIAG )
-      CALL SET_TINDEX( am_I_Root, 
+      CALL SET_TINDEX( am_I_Root,
      &                 71, ND71x, SUBSTRS(2:N), N-1, N_ADVECT )
 #endif
 
@@ -5105,7 +5215,7 @@
       !=================================================================
       ! %%%%% IF BPCH DIAGNOSTICS ARE ACTIVATED (BPCH_DIAG=y) %%%%%
       !
-      ! Copy shadow variables to diagnostic variables and 
+      ! Copy shadow variables to diagnostic variables and
       ! call various bpch diagnostic setup routines
       !=================================================================
       ND01                         = ND01x
@@ -5235,7 +5345,7 @@
       Input_Opt%ND72               = ND72x
       Input_Opt%ND73               = ND73x
       Input_Opt%LPRT               = ( ND70x > 0 )
-      HR1_JV                       = HR1_JVx 
+      HR1_JV                       = HR1_JVx
       HR2_JV                       = HR2_JVx
       HR1_OH                       = HR1_OHx
       HR2_OH                       = HR2_OHx
@@ -5271,7 +5381,7 @@
       !=================================================================
       ! %%%%% IF BPCH DIAGNOSTICS ARE DEACTIVATED (BPCH_DIAG=n) %%%%%
       !
-      ! When BPCH_DIAG=n, we still need to define the Input_Opt%LPRT 
+      ! When BPCH_DIAG=n, we still need to define the Input_Opt%LPRT
       ! flag for debugging.  We will eventually move this elsewhere.
       ! Also set values for time series diagnostics which can still be
       ! output as binary if other diangostics are netcdf.
@@ -5296,13 +5406,13 @@
 !
 ! !IROUTINE: set_tindex
 !
-! !DESCRIPTION: Subroutine SET\_TINDEX sets the TINDEX and TMAX arrays, 
-!  which determine how many tracers to print to the punch file. 
+! !DESCRIPTION: Subroutine SET\_TINDEX sets the TINDEX and TMAX arrays,
+!  which determine how many tracers to print to the punch file.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_TINDEX( am_I_Root, 
+      SUBROUTINE SET_TINDEX( am_I_Root,
      &                       N_DIAG, L_DIAG, SUBSTRS, N, NMAX )
 !
 ! !USES:
@@ -5315,7 +5425,7 @@
       USE CMN_SIZE_MOD                              ! Size parameters
 #endif
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       INTEGER,            INTENT(IN) :: N_DIAG      ! GEOS-Chem diagnostic #
       INTEGER,            INTENT(IN) :: N           ! # of valid substrs passed
@@ -5325,11 +5435,11 @@
                                                     !  READ_DIAGNOSTIC_MENU
       LOGICAL,            INTENT(IN) :: am_I_Root   ! Is this the root CPU?
 
-! 
+!
 ! !REMARKS:
 !  NOTE: This routine converts to a stub when BPCH_DIAG=n (bmy, 1/16/18)
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Bug fix: now do not drop the last tracer number if "all" is not
 !        explicitly specified (tmf, bmy, 11/15/04)
@@ -5342,7 +5452,7 @@
 !
 #if defined( BPCH_DIAG )
       LOGICAL, SAVE       :: FIRST = .TRUE.
-      LOGICAL             :: IS_ALL 
+      LOGICAL             :: IS_ALL
       INTEGER             :: M
 #if   defined( TOMAS )
       INTEGER             :: NN,     COL,     IFLAG, TC     ! (win, 7/14/09)
@@ -5352,7 +5462,7 @@
 
       !=================================================================
       ! SET_TINDEX begins here!
-      !=================================================================     
+      !=================================================================
 
       ! Error check
       IF ( N < 1 ) THEN
@@ -5369,11 +5479,11 @@
       ! available tracers for the given diagnostic.  Otherwise, just
       ! use the tracers that were read in from the line
       !=================================================================
-      IF ( TRIM( SUBSTRS(1) ) == 'all'  .or. 
-     &     TRIM( SUBSTRS(1) ) == 'ALL' ) THEN 
+      IF ( TRIM( SUBSTRS(1) ) == 'all'  .or.
+     &     TRIM( SUBSTRS(1) ) == 'ALL' ) THEN
 
          ! TMAX is the max # of tracers to print out
-         TMAX(N_DIAG) = NMAX 
+         TMAX(N_DIAG) = NMAX
 
          ! Fill TINDEX with all possible diagnostic tracer numbers
          DO M = 1, TMAX(N_DIAG)
@@ -5381,9 +5491,9 @@
          ENDDO
 
          ! Set flag
-         IS_ALL = .TRUE. 
+         IS_ALL = .TRUE.
 
-      ELSE 
+      ELSE
 
 #if   defined( TOMAS )
 !(win, 7/14/09)  use TXTEXT and split the read in characters by -
@@ -5408,7 +5518,7 @@
 
                READ( TMP1, * ) MINTMP
                READ( TMP2, * ) MAXTMP
-               
+
                DO TC = MINTMP, MAXTMP
                   NN = NN + 1
                   TINDEX( N_DIAG, NN ) = TC
@@ -5421,7 +5531,7 @@
                TMP1 = TRIM( WORD )
                READ( TMP1, * ) TINDEX( N_DIAG, NN )
             ENDIF
-               
+
          ENDDO
 
          ! Set TMAX to the counted # of tracers
@@ -5448,7 +5558,7 @@
 
       ! First-time printing only
       IF ( FIRST ) THEN
-         IF( am_I_Root ) THEN 
+         IF( am_I_Root ) THEN
             WRITE( 6,'(/,a)' ) 'DIAGNOSTIC MENU'
             WRITE( 6,'(  a)' ) '---------------'
             WRITE( 6,'(  a)' ) 'Diag    L   Tracers being saved to disk'
@@ -5464,19 +5574,19 @@
            IF ( am_I_Root ) THEN
               WRITE( 6, 100 ) N_DIAG, L_DIAG, 1, TMAX(N_DIAG)
            ENDIF
- 100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 ) 
+ 100       FORMAT( 'ND', i2.2, 2x, i3, 1x, i3, ' -', i3 )
          ENDIF
 
       ELSE
 
          ! Or just list each tracer
          ! Print each diagnostic and # of tracers that will print out
-         IF ( L_DIAG > 0 ) THEN 
+         IF ( L_DIAG > 0 ) THEN
             IF ( am_I_Root ) THEN
-               WRITE( 6, 110 ) N_DIAG, L_DIAG, 
+               WRITE( 6, 110 ) N_DIAG, L_DIAG,
      &                         ( TINDEX(N_DIAG,M), M=1,TMAX(N_DIAG) )
             ENDIF
- 110        FORMAT( 'ND', i2, 2x, i3, 1x, 100i3 ) 
+ 110        FORMAT( 'ND', i2, 2x, i3, 1x, 100i3 )
          ENDIF
 
       ENDIF
@@ -5491,8 +5601,8 @@
 !
 ! !IROUTINE: read_planeflight_menu
 !
-! !DESCRIPTION: Subroutine READ\_PLANEFLIGHT\_MENU reads the PLANEFLIGHT MENU 
-!  section of the GEOS-Chem input file.  This turns on the ND40 flight track 
+! !DESCRIPTION: Subroutine READ\_PLANEFLIGHT\_MENU reads the PLANEFLIGHT MENU
+!  section of the GEOS-Chem input file.  This turns on the ND40 flight track
 !  diagnostic.
 !\\
 !\\
@@ -5521,7 +5631,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -5551,11 +5661,11 @@
       RC      = GC_SUCCESS
       ND40  = 0
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &  ' -> at Read_Planeflight_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5615,7 +5725,7 @@
       CALL SET_PLANEFLIGHT( Input_Opt%DO_PF,
      &                      Input_Opt%PF_IFILE,
      &                      Input_Opt%PF_OFILE )
-   
+
       END SUBROUTINE READ_PLANEFLIGHT_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -5729,7 +5839,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      
+
       ! Populate the ObsPack species name list
       Input_Opt%ObsPack_nSpc = N
       DO S = 1, Input_Opt%ObsPack_nSpc
@@ -5765,7 +5875,7 @@
 !
 ! !IROUTINE: read_nd48_menu
 !
-! !DESCRIPTION: Subroutine READ\_ND48\_MENU reads the ND48 MENU section of the 
+! !DESCRIPTION: Subroutine READ\_ND48\_MENU reads the ND48 MENU section of the
 !  GEOS-Chem input file.
 !\\
 !\\
@@ -5789,8 +5899,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Bug fix: ND48 stations should now be read correctly. (bmy, 3/6/06)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -5818,11 +5928,11 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND48_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &             'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -5853,21 +5963,21 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%ND48_FREQ
 
-      ! Number of stations 
+      ! Number of stations
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'read_nd48_menu:4', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%ND48_N_STA
-      
+
       ! Read individual stations
       DO S = 1, Input_Opt%ND48_N_STA
          CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'read_nd48_menu:5', RC )
-         READ( SUBSTRS(1), * ) Input_Opt%ND48_IARR(S) 
+         READ( SUBSTRS(1), * ) Input_Opt%ND48_IARR(S)
          READ( SUBSTRS(2), * ) Input_Opt%ND48_JARR(S)
-         READ( SUBSTRS(3), * ) Input_Opt%ND48_LARR(S) 
-         READ( SUBSTRS(4), * ) Input_Opt%ND48_NARR(S) 
+         READ( SUBSTRS(3), * ) Input_Opt%ND48_LARR(S)
+         READ( SUBSTRS(4), * ) Input_Opt%ND48_NARR(S)
       ENDDO
 
       !=================================================================
@@ -5887,14 +5997,14 @@
             WRITE( 6, 130 ) S, Input_Opt%ND48_IARR(S),
      &                         Input_Opt%ND48_JARR(S),
      &                         Input_Opt%ND48_LARR(S),
-     &                         Input_Opt%ND48_NARR(S) 
+     &                         Input_Opt%ND48_NARR(S)
          ENDDO
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5    )
  110  FORMAT( A, A     )
- 120  FORMAT( A, I5    )                   
+ 120  FORMAT( A, I5    )
  130  FORMAT( 'ND48 timeseries station', i4, ' : ', 4i5 )
 
       END SUBROUTINE READ_ND48_MENU
@@ -5906,7 +6016,7 @@
 !
 ! !IROUTINE: read_nd49_menu
 !
-! !DESCRIPTION: Subroutine READ\_ND49\_MENU reads the ND49 MENU section of 
+! !DESCRIPTION: Subroutine READ\_ND49\_MENU reads the ND49 MENU section of
 !  the GEOS-Chem input file.
 !\\
 !\\
@@ -5930,8 +6040,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -5945,7 +6055,7 @@
 ! !LOCAL VARIABLES:
 !
       INTEGER             :: N
- 
+
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
@@ -5960,11 +6070,11 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND49_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg= 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6043,7 +6153,7 @@
       !%%%  Always turn on ND49 for the mass conservation test.      %%%
       !%%%  Also specify a single tracer for ND49 (in this case,     %%%
       !%%%  it will be total CO2). (ewl, 6/24/15)                    %%%
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Reset quantities: Turn on ND49 but with 1 tracer
       Input_Opt%DO_ND49         = .TRUE.
@@ -6053,7 +6163,7 @@
 
       ! Print info to stdout stating that we have changed some quantities
       WRITE( 6, '(a)' ) REPEAT( '%', 79 )
-      WRITE( 6, 200   ) 
+      WRITE( 6, 200   )
       WRITE( 6, 205   )
       WRITE( 6, 210   )
       WRITE( 6, 215   )
@@ -6074,7 +6184,7 @@
      &                    Input_Opt%DO_ND49
          WRITE( 6, 110 ) 'ND49 timeseries file name   : ',
      &                    TRIM( Input_Opt%ND49_FILE )
-         WRITE( 6, 120 ) 'ND49 timeseries tracers     : ', 
+         WRITE( 6, 120 ) 'ND49 timeseries tracers     : ',
      &                    ( Input_Opt%ND49_TRACERS(N), N=1,
      &                      Input_Opt%N_ND49 )
          WRITE( 6, 130 ) 'ND49 save frequency [sec]   : ',
@@ -6102,8 +6212,8 @@
 !
 ! !IROUTINE: read_nd50_menu
 !
-! !DESCRIPTION: Subroutine READ\_ND50\_MENU reads the ND50 MENU section of 
-!  the GEOS-Chem input file. 
+! !DESCRIPTION: Subroutine READ\_ND50\_MENU reads the ND50 MENU section of
+!  the GEOS-Chem input file.
 !\\
 !\\
 ! !INTERFACE:
@@ -6126,8 +6236,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
 !        (amv, bmy, 12/21/09)
@@ -6161,11 +6271,11 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND50_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6256,7 +6366,7 @@
      &                    TRIM( Input_Opt%ND50_FILE )
          WRITE( 6, 100 ) 'Output as HDF?              : ',
      &                    Input_Opt%LND50_HDF
-         WRITE( 6, 120 ) 'ND50 timeseries tracers     : ', 
+         WRITE( 6, 120 ) 'ND50 timeseries tracers     : ',
      &                    ( Input_Opt%ND50_TRACERS(N), N=1,
      &                      Input_Opt%N_ND50 )
          WRITE( 6, 130 ) 'ND50 longitude limits       : ',
@@ -6282,7 +6392,7 @@
 !
 ! !IROUTINE: read_nd51_menu
 !
-! !DESCRIPTION: Subroutine READ\_ND51\_MENU reads the ND51 MENU section of 
+! !DESCRIPTION: Subroutine READ\_ND51\_MENU reads the ND51 MENU section of
 !  the GEOS-Chem input file.
 !\\
 !\\
@@ -6306,8 +6416,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now include option to save ND51 diagnostic to HDF5 file format
 !        (amv, bmy, 12/21/09)
@@ -6341,11 +6451,11 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND51_Menu (in module GeosCore/input_mod.F)'
-      
+
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &           'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6455,7 +6565,7 @@
      &                    TRIM( Input_Opt%ND51_FILE )
          WRITE( 6, 100 ) 'Output as HDF?              : ',
      &                    Input_Opt%LND51_HDF
-         WRITE( 6, 120 ) 'ND41 timeseries tracers     : ', 
+         WRITE( 6, 120 ) 'ND41 timeseries tracers     : ',
      &                    ( Input_Opt%ND51_TRACERS(N), N=1,
      &                      Input_Opt%N_ND51 )
          WRITE( 6, 140 ) 'ND51 hour to write to disk  : ',
@@ -6486,7 +6596,7 @@
 !
 ! !IROUTINE: read_nd51b_menu
 !
-! !DESCRIPTION: Subroutine READ\_ND51b\_MENU reads the ND51 MENU section 
+! !DESCRIPTION: Subroutine READ\_ND51b\_MENU reads the ND51 MENU section
 !  of the GEOS-Chem input file.
 !\\
 !\\
@@ -6511,7 +6621,7 @@
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  21 Dec 2009 - Aaron van D - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -6541,7 +6651,7 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND51b_MENU  (in module GeosCore/input_mod.F)'
 
       ! Error check
@@ -6713,7 +6823,7 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
+!
 ! !REVISION HISTORY:
 !  25 Feb 2011 - G. Vinken   - Initial version
 !  07 Feb 2012 - M. Payer    - Added ProTeX headers
@@ -6746,11 +6856,11 @@
       RC      = GC_SUCCESS
 
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_ND63_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &           'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6831,16 +6941,16 @@
          WRITE( 6, '(  a)' ) '--------------------------------------'
          WRITE( 6, 100 ) 'Turn on ND63 timeseries?    : ',
      &                    Input_Opt%DO_ND63
-         WRITE( 6, 110 ) 'ND63 timeseries file name   : ', 
+         WRITE( 6, 110 ) 'ND63 timeseries file name   : ',
      &                    TRIM( Input_Opt%ND63_FILE )
-         WRITE( 6, 120 ) 'ND63 timeseries tracers     : ', 
+         WRITE( 6, 120 ) 'ND63 timeseries tracers     : ',
      &                    ( Input_Opt%ND63_TRACERS(N), N=1,
      &                      Input_Opt%N_ND63 )
-         WRITE( 6, 130 ) 'ND63 save frequency [sec]   : ', 
+         WRITE( 6, 130 ) 'ND63 save frequency [sec]   : ',
      &                    Input_Opt%ND63_FREQ
-         WRITE( 6, 130 ) 'ND63 longitude limits       : ', 
+         WRITE( 6, 130 ) 'ND63 longitude limits       : ',
      &                    Input_Opt%ND63_IMIN, Input_Opt%ND63_IMAX
-         WRITE( 6, 130 ) 'ND63 latitude  limits       : ', 
+         WRITE( 6, 130 ) 'ND63 latitude  limits       : ',
      &                    Input_Opt%ND63_JMIN, Input_Opt%ND63_JMAX
       ENDIF
 
@@ -6857,10 +6967,10 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: read_prod_loss_menu 
+! !IROUTINE: read_prod_loss_menu
 !
-! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD AND LOSS MENU 
-!  section of the GEOS-Chem input file 
+! !DESCRIPTION: Subroutine READ\_PROD\_LOSS\_MENU reads the PROD AND LOSS MENU
+!  section of the GEOS-Chem input file
 !\\
 !\\
 ! !INTERFACE:
@@ -6888,10 +6998,10 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
-!  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and 
+!  (1 ) Bug fixes.  Only error check # of prod/loss families for TagOx and
 !        TagCO runs if DO_SAVE_PL=T.  Also turn off this diagnostic for
 !        the offline aerosol run. (bmy, 10/29/04)
 !  (2 ) Add error trap is P/L families are asked when using KPP. (ccc, 3/10/10)
@@ -6929,11 +7039,11 @@
 
 #if defined( BPCH_DIAG )
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Prod_Loss_Menu (in module GeosCore/input_mod.F)'
 
       ! Error check
-      IF ( CT1 /= 2 ) THEN 
+      IF ( CT1 /= 2 ) THEN
          ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
      &            'must be read in first!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6952,7 +7062,7 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%DO_SAVE_PL
 
-      ! Read number of levels for ND65 diagnostic 
+      ! Read number of levels for ND65 diagnostic
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ND65', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -6985,7 +7095,7 @@
 
       ! Offline aerosol -- turn off DO_SAVE_PL, since we use ND05,
       ! ND06, ND07, ND08, ND13 etc diagnostics instead of ND65
-      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
+      IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
          Input_Opt%DO_SAVE_PL    = .FALSE.
          Input_Opt%DO_SAVE_O3    = .FALSE.
          Input_Opt%DO_SAVE_PCO   = .FALSE.
@@ -6997,7 +7107,7 @@
       !=================================================================
 
       ! Number of advected species
-      N_ADVECT = Input_Opt%N_ADVECT 
+      N_ADVECT = Input_Opt%N_ADVECT
 
       IF ( Input_Opt%DO_SAVE_PL ) THEN
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
@@ -7031,7 +7141,7 @@
          IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
             ! Fullchem - Obtain FAM_NAME from KPP
-            Input_Opt%FAM_NAME(F) = FAM_NAMES(F) 
+            Input_Opt%FAM_NAME(F) = FAM_NAMES(F)
 
          ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
 
@@ -7080,7 +7190,7 @@
       !=================================================================
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC MENU'
-         WRITE( 6, '(  a)' ) '---------------------------'      
+         WRITE( 6, '(  a)' ) '---------------------------'
          WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ',
      &                    Input_Opt%DO_SAVE_PL
          WRITE( 6, 110 ) '# of levels for P/L diag    : ',
@@ -7089,7 +7199,7 @@
      &                    Input_Opt%DO_SAVE_O3
          WRITE( 6, 100 ) 'Save CO Production?: ',
      &                    Input_Opt%DO_SAVE_PCO
-      
+
          ! Loop over families
          DO F = 1, Input_Opt%NFAM
 
@@ -7116,7 +7226,7 @@
 !
 ! !IROUTINE: read_benchmark_menu
 !
-! !DESCRIPTION: Subroutine READ\_BENCHMARK\_MENU reads the BENCHMARK MENU 
+! !DESCRIPTION: Subroutine READ\_BENCHMARK\_MENU reads the BENCHMARK MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -7140,8 +7250,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -7156,7 +7266,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: N 
+      INTEGER            :: N
 
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -7171,7 +7281,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Benchmark_Menu (in module GeosCore/input_mod.F)'
 
 
@@ -7214,16 +7324,16 @@
          WRITE( 6, '(  a)' ) '--------------'
          WRITE( 6, 100     ) 'Save benchmark diag output?  : ',
      &                        Input_Opt%LSTDRUN
-         WRITE( 6, 110     ) 'File for initial species mass: ',  
+         WRITE( 6, 110     ) 'File for initial species mass: ',
      &                        TRIM( Input_Opt%STDRUN_INIT_FILE )
-         WRITE( 6, 110     ) 'File for final species mass  : ',  
+         WRITE( 6, 110     ) 'File for final species mass  : ',
      &                        TRIM( Input_Opt%STDRUN_FINAL_FILE )
       ENDIF
 
       ! FORMAT statements
  100  FORMAT( A, L5  )
  110  FORMAT( A, A   )
-    
+
       END SUBROUTINE READ_BENCHMARK_MENU
 !EOC
 !------------------------------------------------------------------------------
@@ -7233,7 +7343,7 @@
 !
 ! !IROUTINE: read_mercury_menu
 !
-! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU 
+! !DESCRIPTION: Subroutine READ\_MERCURY\_MENU reads the BENCHMARK MENU
 !  section of the GEOS-Chem input file.
 !\\
 !\\
@@ -7257,8 +7367,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  24 Feb 2006 - R. Yantosca - Initial version
 !  ( 1) Update for Chris Holmes's mercury version. (ccc, 5/6/10)
 !  ( 2) Add options to use GTMM for mercury soil emissions (ccc, 9/16/09)
@@ -7283,7 +7393,7 @@
       LOGICAL            :: LDYNOCEAN,      LPREINDHG
       LOGICAL            :: LGTMM,          USE_CHECKS
       LOGICAL            :: LARCTICRIV,     LKRedUV
-      INTEGER            :: N 
+      INTEGER            :: N
       CHARACTER(LEN=255) :: GTMM_RST_FILE
 
       ! Strings
@@ -7299,7 +7409,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_Mercury_Menu (in module GeosCore/input_mod.F)'
 
       ! Use error check for tag/tot Hg?
@@ -7379,19 +7489,19 @@
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'MERCURY MENU'
          WRITE( 6, '(  a)' ) '------------'
-         WRITE( 6, 110 ) 'Error check tag & total Hg? : ', 
+         WRITE( 6, 110 ) 'Error check tag & total Hg? : ',
      &                    Input_Opt%USE_CHECKS
-         WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ', 
+         WRITE( 6, 110 ) 'Use dynamic ocean Hg model? : ',
      &                    Input_Opt%LDYNOCEAN
-         WRITE( 6, 110 ) 'Preindustrial simulation?   : ', 
+         WRITE( 6, 110 ) 'Preindustrial simulation?   : ',
      &                    Input_Opt%LPREINDHG
-         WRITE( 6, 110 ) 'Use GTMM ?                  : ', 
+         WRITE( 6, 110 ) 'Use GTMM ?                  : ',
      &                    Input_Opt%LGTMM
          WRITE( 6, 120 ) '=> GTMM restart file        : ',
      &                    TRIM( Input_Opt%GTMM_RST_FILE )
-         WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ', 
+         WRITE( 6, 110 ) 'Use Arctic river Hg ?       : ',
      &                    Input_Opt%LARCTICRIV
-         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ', 
+         WRITE( 6, 110 ) 'Tie HgII(aq) red. to UV-B?  : ',
      &                    Input_Opt%LKRedUV
       END IF
 
@@ -7409,8 +7519,8 @@
 !
 ! !IROUTINE: read_ch4_menu
 !
-! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of 
-!  the GEOS-Chem input file; this defines emissions options for CH4 tagged 
+! !DESCRIPTION: Subroutine READ\_CH4\_MENU reads the CH4 MENU section of
+!  the GEOS-Chem input file; this defines emissions options for CH4 tagged
 !  simulations.
 !\\
 !\\
@@ -7434,8 +7544,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  03 Aug 2009 - K. Wecht, C. Pickett-Heaps - Initial version
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
 !  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
@@ -7474,9 +7584,9 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_CH4_Menu (in module GeosCore/input_mod.F)'
-                                                
+
       ! Use GOSAT CH4 observation operator?
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'GOSAT_CH4_OBS', RC )
       IF ( RC /= GC_SUCCESS ) THEN
@@ -7492,13 +7602,13 @@
          RETURN
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%TCCON_CH4_OBS
-                                 
-      ! Separator line   
+
+      ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
-      ENDIF  
+      ENDIF
 
       !=================================================================
       ! Print to screen
@@ -7516,7 +7626,7 @@
  100  FORMAT( A, L5  )
 
       ! Return success
-      RC = GC_SUCCESS         
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_CH4_MENU
 !EOC
@@ -7527,7 +7637,7 @@
 !
 ! !IROUTINE: read_pops_menu
 !
-! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of 
+! !DESCRIPTION: Subroutine READ\_POPS\_MENU reads the POPS MENU section of
 !  the GEOS-Chem input file; this defines emissions options for POPs
 !  simulations.
 !\\
@@ -7552,8 +7662,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  01 Oct 2012 - C. Friedman - Initial version
 !  26 Nov 2012 - M. Payer    - Added ProTeX headers
 !  29 Nov 2012 - M. Payer    - Now pass Input_Opt, RC as arguments
@@ -7586,7 +7696,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Read_POPs_Menu (in module GeosCore/input_mod.F)'
 
       ! POP species
@@ -7711,7 +7821,7 @@
          WRITE( 6, 130     ) 'POP_DEL_H             : ',
      &                        Input_Opt%POP_DEL_H
          WRITE( 6, 130     ) 'POP_DEL_Hw            : ',
-     &                        Input_Opt%POP_DEL_Hw 
+     &                        Input_Opt%POP_DEL_Hw
       ENDIF
 
       ! FORMAT statements
@@ -7720,7 +7830,7 @@
  130  FORMAT( A, ES10.2 )
 
       ! Return success
-      RC = GC_SUCCESS  
+      RC = GC_SUCCESS
 
       END SUBROUTINE READ_POPS_MENU
 !EOC
@@ -7731,9 +7841,9 @@
 !
 ! !IROUTINE: read_passive_species_menu
 !
-! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive 
+! !DESCRIPTION: Subroutine READ\_PASSIVE\_SPECIES\_MENU reads the passive
 !  species menu section of the GEOS-Chem input file; this defines passive
-!  species to be used for this simulation. 
+!  species to be used for this simulation.
 !\\
 !\\
 ! !INTERFACE:
@@ -7756,8 +7866,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  04 Sep 2015 - C. Keller   - Initial version
 !  14 Jul 2017 - E. Lundgren - Store passive species values in Input_Opt and
 !                              remove dependency on passive_species_mod.F90
@@ -7789,7 +7899,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Error reading the "input.geos" file!'
-      ThisLoc = 
+      ThisLoc =
      & ' -> at Read_Passive_Species_Menu (in mod. GeosCore/input_mod.F)'
 
       ! Initialize
@@ -7807,7 +7917,7 @@
          ! Read passive species information for each passive species
          ! Every passive species line is expected to have 4 entries:
          ! - Species name
-         ! - Species molecular weight 
+         ! - Species molecular weight
          ! - Atmospheric lifetime (s)
          ! - Initial atmospheric concentration (v/v)
          CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Passive Species', RC )
@@ -7815,7 +7925,7 @@
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
-     
+
          ! Exit here if separator line is encountered
          IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
 
@@ -7852,7 +7962,7 @@
             READ( SUBSTRS(5), * ) Input_Opt%PASSIVE_LONGNAME(P)
          ENDIF
 
-         ! Determine if the passive species decays (i.e. if it has 
+         ! Determine if the passive species decays (i.e. if it has
          ! an atmospheric lifetime that is not -1).  This will allow
          ! us to skip those passive species that do not decay in
          ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
@@ -7866,13 +7976,13 @@
          ! Verbose
          IF ( am_I_Root ) THEN
             WRITE( 6, '(a)' ) 'Added passive species: '
-            WRITE( 6, 110   ) ' - Species name                : ', 
-     &            TRIM( Input_Opt%PASSIVE_NAME(P) ) 
-            WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
+            WRITE( 6, 110   ) ' - Species name                : ',
+     &            TRIM( Input_Opt%PASSIVE_NAME(P) )
+            WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ',
      &            Input_Opt%PASSIVE_MW(P)
-            WRITE( 6, 130   ) ' - Lifetime [s]                : ', 
+            WRITE( 6, 130   ) ' - Lifetime [s]                : ',
      &            Input_Opt%PASSIVE_TAU(P)
-            WRITE( 6, 130   ) ' - Initial concentration [v/v] : ', 
+            WRITE( 6, 130   ) ' - Initial concentration [v/v] : ',
      &            Input_Opt%PASSIVE_INITCONC(P)
             WRITE( 6, 110   ) ' - Species long name           : ',
      &            TRIM( Input_Opt%PASSIVE_LONGNAME(P) )
@@ -7885,7 +7995,7 @@
      &             TRIM(Input_Opt%PASSIVE_NAME(P) ) //
      &            ': # of passive species is smaller than 1!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN 
+         RETURN
       ENDIF
 
       ! Total number of passive species
@@ -7907,8 +8017,8 @@
 !
 ! !IROUTINE: validate_directories
 !
-! !DESCRIPTION: Subroutine VALIDATE\_DIRECTORIES makes sure that each of the 
-!  directories that we have read from the GEOS-Chem input file are valid.  
+! !DESCRIPTION: Subroutine VALIDATE\_DIRECTORIES makes sure that each of the
+!  directories that we have read from the GEOS-Chem input file are valid.
 !  Also, trailing separator characters will be added.
 !\\
 !\\
@@ -7933,8 +8043,8 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY.  Now also validate
 !        GCAP and GEOS-5 directories. (bmy, 10/3/05)
@@ -7967,7 +8077,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = 'Invalid directory encountered!'
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Validate_Directories (in module GeosCore/input_mod.F)'
 
       ! Check directories
@@ -7998,9 +8108,9 @@
 !
 ! !IROUTINE: check_directory
 !
-! !DESCRIPTION: Subroutine CHECK\_DIRECTORY makes sure that the given 
-!  directory is valid.  Also a trailing slash character will be added if 
-!  necessary. 
+! !DESCRIPTION: Subroutine CHECK\_DIRECTORY makes sure that the given
+!  directory is valid.  Also a trailing slash character will be added if
+!  necessary.
 !\\
 !\\
 ! !INTERFACE:
@@ -8013,16 +8123,16 @@
       USE FILE_MOD,      ONLY : File_Exists
       USE Input_Opt_Mod, ONLY : OptInput
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput),   INTENT(INOUT) :: Input_Opt   ! Input Options object
       CHARACTER(LEN=*), INTENT(INOUT) :: DIR         ! Dir to be checked
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,          INTENT(OUT)   :: RC          ! Success or failure
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Mar 2003 - R. Yantosca - Initial version
 !  (1 ) Now references FILE_EXISTS from "file_mod.f" (bmy, 3/23/05)
 !  27 Aug 2010 - R. Yantosca - Added ProTeX headers
@@ -8048,7 +8158,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Check_Directory (in module GeosCore/input_mod.F)'
 
 
@@ -8056,17 +8166,17 @@
       C = LEN_TRIM( DIR )
 
       ! Add the trailing directory separator if it is not present
-      IF ( DIR(C:C) /= '/' ) THEN 
+      IF ( DIR(C:C) /= '/' ) THEN
          DIR(C+1:C+1) = TRIM( '/' )
       ENDIF
-     
+
       !=================================================================
       ! Test if the directory actually exists
       !=================================================================
 
       ! If the directory does not exist then stop w/ an error message
-      IF ( .not. FILE_EXISTS( DIR ) ) THEN 
-         ErrMsg = 'Invalid directory: ' // TRIM( DIR ) 
+      IF ( .not. FILE_EXISTS( DIR ) ) THEN
+         ErrMsg = 'Invalid directory: ' // TRIM( DIR )
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
@@ -8080,9 +8190,9 @@
 !
 ! !IROUTINE: check_time_steps
 !
-! !DESCRIPTION: Subroutine CHECK\_TIME\_STEPS computes the smallest dynamic 
-!  time step for the model, based on which operation are turned on.  This 
-!  is called from routine READ\_INPUT\_FILE, after all of the timesteps and 
+! !DESCRIPTION: Subroutine CHECK\_TIME\_STEPS computes the smallest dynamic
+!  time step for the model, based on which operation are turned on.  This
+!  is called from routine READ\_INPUT\_FILE, after all of the timesteps and
 !  logical flags have been read from "input.geos".
 !\\
 !\\
@@ -8107,7 +8217,7 @@
 !
       INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now make sure all USE statements are USE, ONLY (bmy, 10/3/05)
 !  (2 ) Add TS_DIAG, the largest time steps used for diagnostics.
@@ -8132,9 +8242,9 @@
 !
 ! !LOCAL VARIABLES:
 !
-      LOGICAL            :: LCONV, LCHEM,       LDRYD 
-      LOGICAL            :: LEMIS, LTRAN,       LTURB 
-      INTEGER            :: I,     J,           K 
+      LOGICAL            :: LCONV, LCHEM,       LDRYD
+      LOGICAL            :: LEMIS, LTRAN,       LTURB
+      INTEGER            :: I,     J,           K
       INTEGER            :: L,     TS_SMALLEST, TS_DIAG
       INTEGER            :: TS_CHEM, TS_EMIS, TS_CONV, TS_DYN
       INTEGER            :: TS_UNIT, TS_RAD,  MAX_DYN
@@ -8149,23 +8259,23 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Check_Time_Steps (in module GeosCore/input_mod.F)'
 
       ! Copy fields from Input_Opt
       LCONV = Input_Opt%LCONV
       LCHEM = Input_Opt%LCHEM
-      LDRYD = Input_Opt%LDRYD 
+      LDRYD = Input_Opt%LDRYD
       LEMIS = Input_Opt%LEMIS
       LTRAN = Input_Opt%LTRAN
-      LTURB = Input_Opt%LTURB 
-     
+      LTURB = Input_Opt%LTURB
+
       TS_CHEM = Input_Opt%TS_CHEM
       TS_EMIS = Input_Opt%TS_EMIS
       TS_CONV = Input_Opt%TS_CONV
-      TS_DYN  = Input_Opt%TS_DYN 
+      TS_DYN  = Input_Opt%TS_DYN
       TS_RAD  = Input_Opt%TS_RAD
- 
+
       ! NUNIT is time step in minutes for unit conversion
       TS_UNIT = -1
 
@@ -8187,7 +8297,7 @@
          IF ( Input_Opt%TS_DYN > MAX_DYN .and. LTRAN ) THEN
             WRITE( ErrMsg, 300 ) 'Transport timestep exceeds max:',
      &                        Input_Opt%TS_DYN, MAX_DYN
- 300        FORMAT( a, i8, ' >', i8 ) 
+ 300        FORMAT( a, i8, ' >', i8 )
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -8208,7 +8318,7 @@
       ! be used as a "heartbeat". This ensures that chemistry always
       ! takes place at the same time, regardless of whether or not
       ! transport is enabled.
-      !IF ( .not. LTRAN                  ) I = 999999 
+      !IF ( .not. LTRAN                  ) I = 999999
       IF ( .not. LCONV .and..not. LTURB ) J = 999999
       IF ( .not. LDRYD .and..not. LEMIS ) K = 999999
       IF ( .not. LCHEM                  ) L = 999999
@@ -8216,22 +8326,22 @@
       ! Get the smallest of all of the above
       TS_SMALLEST = MIN( I, J, K, L )
 
-      ! If all of the operators above are turned off, 
+      ! If all of the operators above are turned off,
       ! then set TS_SMALLEST to TS_DYN.
-      IF ( TS_SMALLEST == 999999 ) THEN 
+      IF ( TS_SMALLEST == 999999 ) THEN
          TS_SMALLEST = TS_DYN
       ENDIF
-       
+
       IF ( LTRAN .and. TS_DYN /= TS_SMALLEST ) THEN
          ErrMsg = 'The transport time step should be the smallest one'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-     
+
       ! If TS_DYN is smaller than TS_SMALLEST, reset TS_DYN
       ! to TS_SMALLEST.
       ! This is useful for runs where transport is turned off,
-      ! but where chemistry is turned on. 
+      ! but where chemistry is turned on.
       IF ( TS_DYN < TS_SMALLEST ) THEN
          TS_DYN = TS_SMALLEST
       ENDIF
@@ -8240,7 +8350,7 @@
       ! Diagnostics should be incremented at the end of multiples of
       ! TS_DIAG, so that the system is at a physical state.
       ! (ccc, 5/13/09)
-      IF ( .not. LTRAN                  ) I = -999999 
+      IF ( .not. LTRAN                  ) I = -999999
       IF ( .not. LCONV .and..not. LTURB ) J = -999999
       IF ( .not. LDRYD .and..not. LEMIS ) K = -999999
       IF ( .not. LCHEM                  ) L = -999999
@@ -8260,7 +8370,7 @@
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-      
+
       IF ( K /= -999999 .and. MOD( TS_EMIS, TS_SMALLEST ) /= 0 ) THEN
          WRITE( ErrMSg, 100 ) 'Emission', TS_EMIS, TS_SMALLEST
          CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -8281,7 +8391,7 @@
 
       ! Initialize timesteps in "time_mod.f"
       CALL SET_TIMESTEPS( am_I_Root,
-     &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS, 
+     &                    CHEMISTRY  = TS_CHEM, EMISSION  = TS_EMIS,
      &                    DYNAMICS   = TS_DYN,  UNIT_CONV = TS_UNIT,
      &                    CONVECTION = TS_CONV, DIAGNOS   = TS_DIAG,
      &                    RADIATION  = TS_RAD )
@@ -8298,8 +8408,8 @@
 !
 ! !IROUTINE: is_last_day_good
 !
-! !DESCRIPTION: Suborutine IS\_LAST\_DAY\_GOOD tests to see if there is 
-!  output scheduled on the last day of the run. 
+! !DESCRIPTION: Suborutine IS\_LAST\_DAY\_GOOD tests to see if there is
+!  output scheduled on the last day of the run.
 !\\
 !\\
 ! !INTERFACE:
@@ -8317,8 +8427,8 @@
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt  ! Input options
       INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
-! 
-! !REVISION HISTORY: 
+!
+! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Moved to "input_mod.f" from "main.f" (bmy, 1/11/05)
 !  (2 ) Now call ITS_A_LEAPYEAR with FORCE=.TRUE. to always return whether
@@ -8347,7 +8457,7 @@
       ! Initialize
       RC      = GC_SUCCESS
       ErrMsg  = ''
-      ThisLoc = 
+      ThisLoc =
      &   ' -> at Is_Last_Day_Good (in module GeosCore/input_mod.F)'
 
       ! Astronomical Julian Day corresponding to NYMDe
@@ -8358,7 +8468,7 @@
       ! Astronomical Julian Day corresponding to the 1st of the year
       JD0 = JULDAY( Y, 1, 0d0 )
 
-      ! LASTDAY is the day of year corresponding to NYMDe      
+      ! LASTDAY is the day of year corresponding to NYMDe
       LASTDAY = JD - JD0
 
       ! Skip past the element of NJDAY for Feb 29, if necessary
@@ -8366,13 +8476,13 @@
          LASTDAY = LASTDAY + 1
       ENDIF
 
-      ! Exit w/ error if THIS_NJDAY = 0 
+      ! Exit w/ error if THIS_NJDAY = 0
       IF ( Input_Opt%NJDAY(LASTDAY) == 0 ) THEN
          ErrMsg = 'No output scheduled on last day of run!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
-     
+
       END SUBROUTINE IS_LAST_DAY_GOOD
 !EOC
 !------------------------------------------------------------------------------
@@ -8397,15 +8507,15 @@
       USE Input_Opt_Mod, ONLY : OptInput
       USE State_Chm_Mod, ONLY : Ind_
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root
 !
-! !INPUT/OUTPUT PARAMETERS: 
+! !INPUT/OUTPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(INOUT) :: Input_Opt
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC
 !
@@ -8417,7 +8527,7 @@
 !  error checks to this routine, which is now called from GC_Init_Extra.
 !                                                                             .
 !  The Ind_() function now defines all species ID's.  It returns -1 if
-!  a species cannot be found.  The prior behavior was to return 0 if a 
+!  a species cannot be found.  The prior behavior was to return 0 if a
 !  species wasn't found.  Therefore, in order to preserve the logic of the
 !  error checks, we must force any -1's returned by Ind_() to 0's in
 !  this subroutine.
@@ -8450,7 +8560,7 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA','A'), 0 ) 
+      I = MAX( Ind_('SALA','A'), 0 )
      &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
@@ -8470,7 +8580,7 @@
       !=================================================================
       ! Error check MARINE ORGANIC AEROSOLS
       !=================================================================
-      I = MAX( Ind_('MOPO','A'), 0 )  
+      I = MAX( Ind_('MOPO','A'), 0 )
      &  + MAX( Ind_('MOPI','A'), 0 )
 
       IF ( Input_Opt%LMPOA ) THEN
@@ -8502,13 +8612,13 @@
      &  + MAX( Ind_('MSA' ,'A'), 0 )
      &  + MAX( Ind_('NH3' ,'A'), 0 )
      &  + MAX( Ind_('NH4' ,'A'), 0 )
-     &  + MAX( Ind_('NITs','A'), 0 ) 
+     &  + MAX( Ind_('NITs','A'), 0 )
 
       IF ( Input_Opt%LSULF ) THEN
 
-         ! We now compute the production of SO4s and NITs, so when 
+         ! We now compute the production of SO4s and NITs, so when
          ! LSULF=T, then we must also have LSSALT=T (bec, bmy, 4/13/05)
-         IF ( .not. Input_Opt%LSSALT ) THEN 
+         IF ( .not. Input_Opt%LSSALT ) THEN
             MSG = 'LSULF=T now also requires LSSALT=T!'
             CALL GC_Error( Msg, RC, Location )
             RETURN
@@ -8567,7 +8677,7 @@
       ! OCPI and OCPO are the non-volatile POA species
       ! POA (along w/ POG, OPOA, and OPOG) are the semivol POA species
       ! You can't have both!
-      I = MAX( Ind_('OCPI','A'), 0 )  
+      I = MAX( Ind_('OCPI','A'), 0 )
      &  + MAX( Ind_('OCPO','A'), 0 )
 
       IF ( Ind_('POA1') > 0 ) THEN
@@ -8577,7 +8687,7 @@
             CALL GC_Error( Msg, RC, Location )
             RETURN
          ENDIF
-         IF ( ( .NOT. Input_Opt%LSOA   ) .or. 
+         IF ( ( .NOT. Input_Opt%LSOA   ) .or.
      &        ( .NOT. Input_Opt%LSVPOA ) ) THEN
             MSG = 'Semivolatile POA requires LSOA=T and LSVPOA=T'
             CALL GC_Error( Msg, RC, Location )
@@ -8649,7 +8759,7 @@
       ! Error check DUST AEROSOLS
       !=================================================================
 
-! JKODROS - Uncomment this if the dust fixes are back working. 
+! JKODROS - Uncomment this if the dust fixes are back working.
 #if defined( TOMAS )
       ! For TOMAS only: If DUST1 is present, the other dust species are too
       I = MAX( Ind_('DUST1','A'), 0 )
@@ -8680,17 +8790,17 @@
       !             DUST SULFATE    AEROSOLS
       !             DUST ALKALINITY AEROSOLS
       !=================================================================
-      I = MAX( Ind_('NITd1'  ,'A'), 0 ) 
-     &  + MAX( Ind_('NITd2'  ,'A'), 0 ) 
+      I = MAX( Ind_('NITd1'  ,'A'), 0 )
+     &  + MAX( Ind_('NITd2'  ,'A'), 0 )
      &  + MAX( Ind_('NITd3'  ,'A'), 0 )
-     &  + MAX( Ind_('NITd4'  ,'A'), 0 ) 
-     &  + MAX( Ind_('SO4d1'  ,'A'), 0 ) 
+     &  + MAX( Ind_('NITd4'  ,'A'), 0 )
+     &  + MAX( Ind_('SO4d1'  ,'A'), 0 )
      &  + MAX( Ind_('SO4d2'  ,'A'), 0 )
-     &  + MAX( Ind_('SO4d3'  ,'A'), 0 ) 
-     &  + MAX( Ind_('SO4d4'  ,'A'), 0 ) 
+     &  + MAX( Ind_('SO4d3'  ,'A'), 0 )
+     &  + MAX( Ind_('SO4d4'  ,'A'), 0 )
      &  + MAX( Ind_('DSTAL1' ,'A'), 0 )
-     &  + MAX( Ind_('DSTAL2' ,'A'), 0 ) 
-     &  + MAX( Ind_('DSTAL3' ,'A'), 0 ) 
+     &  + MAX( Ind_('DSTAL2' ,'A'), 0 )
+     &  + MAX( Ind_('DSTAL3' ,'A'), 0 )
      &  + MAX( Ind_('DSTAL4' ,'A'), 0 )
 
       IF ( Input_Opt%LDSTUP ) THEN
@@ -8710,7 +8820,7 @@
       !=================================================================
       ! Error check SEASALT AEROSOLS
       !=================================================================
-      I = MAX( Ind_('SALA','A'), 0 ) 
+      I = MAX( Ind_('SALA','A'), 0 )
      &  + MAX( Ind_('SALC','A'), 0 )
 
       IF ( Input_Opt%LSSALT ) THEN
@@ -8727,13 +8837,13 @@
          ENDIF
       ENDIF
 
-      
+
       !=================================================================
       ! Error check CFC emissions
       !=================================================================
       IF ( Input_Opt%LCFCEMIS ) THEN
          IF ( Ind_('CFC113') < 0 .or.
-     &        Ind_('CFC114') < 0 .or. 
+     &        Ind_('CFC114') < 0 .or.
      &        Ind_('CFC115') < 0) THEN
             Input_Opt%LCFCEMIS = .FALSE.
             WRITE( 6, '(a)'     ) REPEAT( '=', 79 )
@@ -8816,13 +8926,13 @@
       ! Error check methane emissions
       !=================================================================
       IF ( Input_Opt%LCH4EMIS .AND. Input_Opt%LCH4SBC ) THEN
-         MSG =  
+         MSG =
      &  ' CH4 surface BC & emissions cannot both be turned on!'
          CALL GC_Error( Msg, RC, Location )
          RETURN
       ENDIF
 
-      IF ( Input_Opt%LCH4EMIS   .or. 
+      IF ( Input_Opt%LCH4EMIS   .or.
      &     Input_Opt%LCH4SBC  ) THEN
          IF ( Ind_('CH4') < 0 ) THEN
             Input_Opt%LCH4EMIS = .FALSE.

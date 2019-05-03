@@ -771,7 +771,7 @@ CONTAINS
 !
     LOGICAL            :: Is_DustDead
     LOGICAL            :: Is_DustGinoux
-    INTEGER            :: ExtNr, HcoID, I, N
+    INTEGER            :: ExtNr, Cat, HcoID, I, N
     CHARACTER(LEN=1)   :: ISTR1
     CHARACTER(LEN=2)   :: ISTR2
     CHARACTER(LEN=15)  :: SpcName
@@ -802,15 +802,19 @@ CONTAINS
     Is_DustGinoux = ( ExtState%DustGinoux > 0 )
 
     ! Define diagnostics if dust is used
-    IF ( ( Is_DustDead .OR. Is_DustGinoux )  .AND. &
-         ( ND06 > 0                       ) ) THEN
+    IF ( ND06 > 0 ) THEN
 
-       ! Get Ext. Nr of used extension
-       ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
-       IF ( ExtNr <= 0 ) ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
-       IF ( ExtNr <= 0 ) THEN
-          CALL HCO_Error( 'Cannot find dust extension', RC, THISLOC=LOC )
-          RETURN      
+       ! Get Ext. Nr
+       IF ( Is_DustDead ) THEN
+          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
+          Cat   = -1
+       ELSEIF ( Is_DustGinoux ) THEN
+          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
+          Cat   = -1
+       ELSE
+          ! Use offline dust emissions
+          ExtNr = 0
+          Cat   = CATEGORY_NATURAL
        ENDIF
 
        ! Do for each dust bin
@@ -845,7 +849,7 @@ CONTAINS
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
                              ExtNr     = ExtNr,             &
-                             Cat       = -1,                &
+                             Cat       = Cat,               &
                              Hier      = -1,                &
                              HcoID     = HcoID,             &
                              SpaceDim  = 2,                 &
@@ -1093,7 +1097,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: ExtNr, ExtNrSS, ExtNrMPOA
-    INTEGER            :: HcoID, I, N, NSALT
+    INTEGER            :: Cat,   HcoID, I, N, NSALT
     CHARACTER(LEN=15)  :: SpcName
     CHARACTER(LEN=31)  :: DiagnName
     CHARACTER(LEN=255) :: MSG
@@ -1113,15 +1117,18 @@ CONTAINS
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
        RETURN
     ENDIF
-
+    
     ! Define diagnostics
-    IF ( ND08 > 0 .AND. Input_Opt%LSSALT .AND. ( ExtState%SeaSalt > 0 ) ) THEN
+    IF ( ND08 > 0 .AND. Input_Opt%LSSALT ) THEN
 
        ! Get HEMCO extension # for SeaSalt
        ExtNrSS = GetExtNr( HcoState%Config%ExtList, 'SeaSalt' )
-       IF ( ExtNrSS <= 0 ) THEN
-          CALL HCO_Error( 'Cannot find extension SeaSalt', RC, THISLOC=LOC )
-          RETURN
+       IF ( ExtNrSS > 0 ) THEN
+          Cat = -1
+       ELSE
+          ! Use offline sea salt emissions
+          ExtNrSS = 0
+          Cat     = CATEGORY_NATURAL
        ENDIF
 
        ! Get HEMCO extension # for marine organic aerosols and
@@ -1155,10 +1162,12 @@ CONTAINS
                 ExtNr     = ExtNrMPOA
                 SpcName   = 'MOPO'
                 DiagnName = 'AD08_MOPO'
+                Cat       = -1
              CASE( 4 )
                 ExtNr     = ExtNrMPOA
                 SpcName   = 'MOPI'
                 DiagnName = 'AD08_MOPI'
+                Cat       = -1
           END SELECT
 
           ! HEMCO species ID 
@@ -1170,7 +1179,7 @@ CONTAINS
                               HcoState  = HcoState,          &
                               cName     = TRIM( DiagnName ), &
                               ExtNr     = ExtNr,             &
-                              Cat       = -1,                &
+                              Cat       = Cat,               &
                               Hier      = -1,                &
                               HcoID     = HcoID,             &
                               SpaceDim  = 2,                 &
@@ -2637,56 +2646,60 @@ CONTAINS
       
        !----------------------------------------------
        ! %%%%% Soil and Fertilizer NO %%%%%
-       !
-       ! ==> Only define if SoilNox is turned on
        !----------------------------------------------
-       Cat   = -1
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'SoilNOx')
        IF ( ExtNr > 0 ) THEN
-   
-          ! %%%%%% Soil NO %%%%%%
-          DiagnName = 'SOIL_NO'
-          CALL Diagn_Create ( am_I_Root,                     & 
-                              HcoState  = HcoState,          &
-                              cName     = TRIM( DiagnName ), &
-                              ExtNr     = ExtNr,             &
-                              Cat       = Cat,               &
-                              Hier      = -1,                &
-                              HcoID     = HcoID,             &
-                              SpaceDim  = 2,                 &
-                              LevIDx    = -1,                &
-                              OutUnit   = 'kg/m2/s',         &
-                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                              AutoFill  = 1,                 &
-                              RC        = RC                  )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
-   
-          ! %%%%%% Fertilizer NO %%%%%%
-          CALL GetExtOpt( HcoState%Config, ExtNr, &
-             'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-   
-          IF ( YesOrNo .eqv. .FALSE. ) THEN
-             MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
-             CALL HCO_Warning( MSG, RC, THISLOC=LOC )
-          ENDIF
-   
-          DiagnName = 'FERTILIZER_NO'
-          CALL Diagn_Create ( am_I_Root,                     & 
-                              HcoState  = HcoState,          &
-                              cName     = TRIM( DiagnName ), &
-                              ExtNr     = ExtNr,             &
-                              Cat       = Cat,               &
-                              Hier      = -1,                &
-                              HcoID     = HcoID,             &
-                              SpaceDim  = 2,                 &
-                              LevIDx    = -1,                &
-                              OutUnit   = 'kg/m2/s',         &
-                              COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                              AutoFill  = 0,                 &
-                              RC        = RC                  )
-          IF ( RC /= HCO_SUCCESS ) RETURN 
+          Cat = -1
+       ELSE
+          ! Use offline soil NOx emissions
+          ExtNr = 0
+          Cat   = CATEGORY_NATURAL
        ENDIF
+
+       ! %%%%%% Soil NO %%%%%%
+       DiagnName = 'SOIL_NO'
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState  = HcoState,          &
+                           cName     = TRIM( DiagnName ), &
+                           ExtNr     = ExtNr,             &
+                           Cat       = Cat,               &
+                           Hier      = -1,                &
+                           HcoID     = HcoID,             &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg/m2/s',         &
+                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                           AutoFill  = 1,                 &
+                           RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
+
+       IF ( ExtNr > 0 ) THEN
+       ! %%%%%% Fertilizer NO %%%%%%
+       CALL GetExtOpt( HcoState%Config, ExtNr, &
+          'Use fertilizer NOx', OptValBool=YesOrNo, RC=RC )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+       ENDIF
+
+       IF ( YesOrNo .eqv. .FALSE. ) THEN
+          MSG = 'Fertilizer NOx disabled - diagnostics will be zero!'
+          CALL HCO_Warning( MSG, RC, THISLOC=LOC )
+       ENDIF
+   
+       DiagnName = 'FERTILIZER_NO'
+       CALL Diagn_Create ( am_I_Root,                     & 
+                           HcoState  = HcoState,          &
+                           cName     = TRIM( DiagnName ), &
+                           ExtNr     = ExtNr,             &
+                           Cat       = Cat,               &
+                           Hier      = -1,                &
+                           HcoID     = HcoID,             &
+                           SpaceDim  = 2,                 &
+                           LevIDx    = -1,                &
+                           OutUnit   = 'kg/m2/s',         &
+                           COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                           AutoFill  = 0,                 &
+                           RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN 
   
     ENDIF !ND32
 #endif
@@ -3846,8 +3859,8 @@ CONTAINS
 !  22 Apr 2015 - M. Sulprizio- Now save out hydrocarbons in units kgC/m2/s
 !  02 Jun 2016 - R. Yantosca - Bug fix: only save seasalt Br2 diagnostics
 !                              for full-chemistry or aerosol-only simulations
-!  01 Mar 2017 - M. Sulprizio- Add ALD2 senescing, EOH senescing, and ALD2 from
-!                              ocean source
+!  01 Mar 2017 - M. Sulprizio- Add ALD2 from decaying plants, EOH from decaying 
+!                              plants, and ALD2 from ocean source
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3880,18 +3893,13 @@ CONTAINS
 
     ! Extension and category #'s for MEGAN
     ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN')
-    Cat   = -1
-
-    ! Make sure MEGAN is on if ND46 is used
-    IF ( ExtNr <= 0 .AND. ND46 > 0 ) THEN
-       MSG = 'MEGAN is not enabled - cannot write biogenic diagnostics!'
-       CALL HCO_Error ( MSG, RC, THISLOC=LOC )
-       RETURN
-    ENDIF
- 
-    ! Only if MEGAN is on ... 
     IF ( ExtNr > 0 ) THEN
-
+       Cat   = -1
+    ELSE
+       ! Use offline biogenic emissions
+       ExtNr = 0
+       Cat   = CATEGORY_NATURAL
+    ENDIF
 
 #if ! defined ( TOMAS )
        IF ( ND07 > 0 ) THEN
@@ -4153,7 +4161,7 @@ CONTAINS
                                 RC        = RC                  ) 
              IF ( RC /= HCO_SUCCESS ) RETURN 
           ENDDO
-
+          
        ENDIF
 
        !----------------------------------------
@@ -4190,7 +4198,7 @@ CONTAINS
           !%%% The diagnostics  name defined below must match the names 
           !%%% used in the MEGAN extension!
           IF ( ND11 > 0 ) THEN
-   
+
              ! There are three manual acetone diagnostics in MEGAN
              DO I = 1,3
    
@@ -4224,16 +4232,20 @@ CONTAINS
              ENDDO
           ENDIF
        ENDIF ! ACET
-    ENDIF !MEGAN
 
     !=======================================================================
     ! These diagnostics use the MEGAN Monoterpenes extension
     !=======================================================================
 
-
     ! Extension # of MEGAN monoterpenes
     ExtNr = GetExtNr( HcoState%Config%ExtList, 'MEGAN_Mono')
     IF ( ExtNr > 0 ) THEN
+       Cat   = -1
+    ELSE
+       ! Use offline biogenic emissions
+       ExtNr = 0
+       Cat   = CATEGORY_NATURAL
+    ENDIF
 
        !%%% For ND46 diagnostic %%%
        IF ( ND46 > 0 ) THEN
@@ -4365,7 +4377,6 @@ CONTAINS
                              RC        = RC                  ) 
           IF ( RC /= HCO_SUCCESS ) RETURN 
        ENDIF
-    ENDIF ! Megan mono
 
     !=======================================================================
     ! These diagnostics use the SeaSalt extension
@@ -4375,15 +4386,20 @@ CONTAINS
 
        ! Extension # of SeaSalt
        ExtNr = GetExtNr( HcoState%Config%ExtList, 'SeaSalt')
-       IF ( ExtNr <= 0 ) THEN
-          CALL HCO_Error ( 'SeaSalt extension not enabled', RC, THISLOC=LOC )
-          RETURN      
-       ENDIF
+       IF ( ExtNr > 0 ) THEN
+          Cat = -1
 
-       ! Find out if SeaSalt Br2 is enabled
-       CALL GetExtOpt ( HcoState%Config, ExtNr, &
-                       'Emit Br2', OptValBool=YesOrNo, RC=RC )
-       IF ( RC /= HCO_SUCCESS ) RETURN
+          ! Find out if SeaSalt Br2 is enabled
+          CALL GetExtOpt ( HcoState%Config, ExtNr, &
+                           'Emit Br2', OptValBool=YesOrNo, RC=RC )
+          IF ( RC /= HCO_SUCCESS ) RETURN
+
+       ELSE
+          ! Use offline sea salt emissions
+          ExtNr   = 0
+          Cat     = CATEGORY_NATURAL
+          YesOrNo = .TRUE.
+       ENDIF
 
        ! Only save out SeaSalt Br2 diagnostic if the Br2 option is enabled
        IF ( YesOrNo ) THEN 
@@ -4402,7 +4418,7 @@ CONTAINS
                                 HcoState  = HcoState,         &
                                 cName     = 'SEASALT_BR2',    &
                                 ExtNr     = ExtNr,            &
-                                Cat       = -1,               &
+                                Cat       = Cat,              &
                                 Hier      = -1,               &
                                 HcoID     = HcoID,            &
                                 SpaceDim  = 2,                &
@@ -4423,7 +4439,7 @@ CONTAINS
          ( Input_Opt%ITS_A_FULLCHEM_SIM ) ) THEN
 
        !----------------------------------------
-       ! %%%%% ALD2 from senescing plants %%%%%
+       ! %%%%% ALD2 from decaying plants %%%%%
        !----------------------------------------
 
        ! HEMCO species ID
@@ -4432,7 +4448,7 @@ CONTAINS
        ! Create diagnostic container
        IF ( HcoID > 0 ) THEN
           ExtNr     = 0
-          DiagnName = 'ALD2_SENESCING'
+          DiagnName = 'ALD2_PLANTDECAY'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &
@@ -4450,7 +4466,7 @@ CONTAINS
        ENDIF
 
        !----------------------------------------
-       ! %%%%% EOH from senescing plants %%%%%
+       ! %%%%% EOH from decaying plants %%%%%
        !----------------------------------------
 
        ! HEMCO species ID
@@ -4459,7 +4475,7 @@ CONTAINS
        ! Create diagnostic container
        IF ( HcoID > 0 ) THEN
           ExtNr     = 0
-          DiagnName = 'EOH_SENESCING'
+          DiagnName = 'EOH_PLANTDECAY'
           CALL Diagn_Create( am_I_Root,                     & 
                              HcoState  = HcoState,          &
                              cName     = TRIM( DiagnName ), &

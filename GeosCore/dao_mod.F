@@ -281,6 +281,8 @@
       USE PhysConstants,  ONLY : AIRMW, AVO
       USE Pressure_Mod
       USE Time_Mod,       ONLY : Get_LocalTime
+      USE Time_Mod,       ONLY : Get_LocalTime_In_Sec
+      USE Time_Mod,       ONLY : Get_Ts_Dyn
 !
 ! !INPUT PARAMETERS:
 !
@@ -395,6 +397,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER             :: Dt_Sec
       INTEGER             :: I,         J,          L
       INTEGER             :: L_CG,      L_TP,       N
       REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
@@ -402,11 +405,12 @@
       REAL(fp)            :: EsatB,     EsatC,      EsatD
       REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
       REAL(fp)            :: Pb,        Pt
-      LOGICAL             :: UpdtMR
+      LOGICAL             :: UpdtMR     
 
       ! Arrays
-      LOGICAL             :: IsLocNoon(State_Grid%NX)
-      REAL(f8)            :: LocTime  (State_Grid%NX)
+      LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
+      REAL(f8)            :: LocTime   (State_Grid%NX,State_Grid%NY)
+      INTEGER             :: LocTimeSec(State_Grid%NX,State_Grid%NY)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -443,22 +447,33 @@
       RC       = GC_SUCCESS
       ErrMsg   = ''
       ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
+      Dt_Sec   = Get_Ts_Dyn()
 
       ! Shadow variable for mixing ratio update
       UpdtMR = .TRUE.
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
-      ! NOTE: Local time only depends on longitude
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J   )
+      DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         LocTime(I) = GET_LOCALTIME( I, 1, 1, State_Grid )
 
-         ! Set a flag if the location is within 1hr of local noon,
-         ! which matches what we did for the bpch diagnostics.
-         ! (Avoid roundoff by setting an epsilon of 0.00001.)
-         IsLocNoon(I) = ( LocTime(I) >= 10.99999_f8 .and.
-     &                    LocTime(I) <= 13.00001_f8       )
+         ! Local time only depends on longitude, but longitude is a
+         ! function of (I,J) for cubed-sphere grids.  Therefore, use
+         ! (I,J) in the call to GET_LOCALTIME.  Obtain the local time
+         ! both in hours and in seconds (bmy, 4/18/19)
+         LocTime   (I,J) = Get_LocalTime       ( I, J, 1, State_Grid )
+         LocTimeSec(I,J) = Get_LocalTime_In_Sec( I, J, 1, State_Grid )
+
+         ! Pick the boxes that are closest to local noon (12hr = 43200 s).
+         ! Use local time in seconds, which avoids roundoff issues.
+         IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. 
+     &                      LocTimeSec(I,J) + Dt_Sec >= 43200 )
       ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=============================================================
       ! Update air quantities
@@ -808,8 +823,8 @@
          !--------------------------------------------------------------
          ! Local solar time and box that is nearest to local noon
          !--------------------------------------------------------------
-         State_Met%LocalSolarTime(I,J) = LocTime(I)
-         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
+         State_Met%LocalSolarTime(I,J) = LocTime(I,J)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I,J)
 
          !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere

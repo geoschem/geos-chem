@@ -40,7 +40,13 @@
 
       INTEGER            :: JVL_           ! Vertical levels for J-values
 
-      INTEGER, PARAMETER :: JVN_ = 130     ! Max number of J-values
+      !----------------------------------------------------------------------
+      ! NOTE: In GC 12.3.2, it was discovered that ClNO2 was listed twice
+      ! in FJX_j2j.dat.  We have since removed the duplicate ClNO2 entry,
+      ! which reduces the # of photolyzed species by 1, from 130 to 129.
+      ! (bmy, 4/10/19)
+      INTEGER, PARAMETER :: JVN_ = 129     ! Max number of J-values
+      !----------------------------------------------------------------------
 
       INTEGER            :: AN_            ! # of separate aerosols per layer
                                            ! Now set in Init_CMN_FJX below
@@ -257,11 +263,6 @@
       INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
       INTEGER, PARAMETER :: NALBD   = 2
       INTEGER, PARAMETER :: NEMISS  = 16
-!------------------------------------------------------------------------------
-! Prior to 11/6/18:
-! Moved to Input_Opt (bmy, 11/6/18)
-!      INTEGER, PARAMETER :: NSPECRADMENU = 11!number of choices for RT flux
-!------------------------------------------------------------------------------
 
       ! Now set the following in Init_CMN_FJX below (mps, 1/3/18)
       INTEGER            :: NSPAA            !number of species in LUT
@@ -297,12 +298,6 @@
       !coefficients for interpolation of wavelength (and for RT too)
       REAL*8      :: ACOEF_WV(3),BCOEF_WV(3),CCOEF_WV(3)
       REAL*8      :: ACOEF_RTWV(3),BCOEF_RTWV(3),CCOEF_RTWV(3)
-!------------------------------------------------------------------------------
-! Prior to 11/6/18:
-! Moved to Input_Opt (bmy, 11/6/18)
-!     INTEGER     :: LSPECRADMENU(NSPECRADMENU) !indices for number of species
-!                                                 ! on input menu 
-!------------------------------------------------------------------------------
       INTEGER, ALLOCATABLE :: SPECMASK(:) !list of binary switches for different
                                           !species flux output
 

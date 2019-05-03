@@ -438,7 +438,7 @@ CONTAINS
        ENDIF
 
        ! Check if we need to write manual fertilizer NO diagnostics
-       DiagnName = 'FERTILIZER_NO'
+       DiagnName = 'EmisNO_Fert'
        CALL DiagnCont_Find ( HcoState%Diagn, -1, -1, -1, -1, -1, &
                              DiagnName, 0, DoDiagn, TmpCnt )
        TmpCnt => NULL()
@@ -588,14 +588,12 @@ CONTAINS
        RETURN 
     ENDIF
 
-    ! Eventually add individual diagnostics. These are hardcoded
-    ! by name.
-
-    ! 'FERTILIZER_NO' is the fertilizer NO emissions. If an empty
-    ! pointer (i.e. not associated) is passed to Diagn_Update,
+    ! 'EmisNO_Fert' is the fertilizer NO emissions.
+    ! This is a manual diagnostic created in GeosCore/hcoi_gc_diagn_mod.F90.
+    ! If an empty pointer (i.e. not associated) is passed to Diagn_Update,
     ! diagnostics are treated as zeros!
     IF ( DoDiagn ) THEN
-       DiagnName = 'FERTILIZER_NO'
+       DiagnName = 'EmisNO_Fert'
        CALL Diagn_Update( am_I_Root, HcoState, ExtNr=Inst%ExtNr, & 
                           cName=TRIM(DiagnName), Array2D=DIAG, RC=RC)
        IF ( RC /= HCO_SUCCESS ) RETURN 

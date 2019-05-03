@@ -2375,6 +2375,34 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !%%%%% Flash density %%%%%
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+       Name = 'FLASH_DENS'
+       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%FLASH_DENS,         &
+                        TRIM( Name ), RC,       FIRST=FIRST                 )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
+                   '" for the HEMCO standalone simulation!'
+          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !%%%%% Convective depth %%%%%
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+       Name = 'CONV_DEPTH'
+       CALL ExtDat_Set( am_I_Root,    HcoState, ExtState%CONV_DEPTH,         &
+                        TRIM( Name ), RC,       FIRST=FIRST                 )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Could not find quantity "' // TRIM( Name )            // &
+                   '" for the HEMCO standalone simulation!'
+          CALL HCO_Error( HcoConfig%Err, ErrMsg, RC, ThisLoc )
+          CALL HCO_Leave( HcoState%Config%Err, RC )
+          RETURN
+       ENDIF
+    ENDIF
+    
     !%%%%% Fractional coverage fields %%%%%
     IF ( ExtState%FRCLND%DoUse ) THEN
        Name = 'FRCLND'

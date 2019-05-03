@@ -607,6 +607,9 @@ CONTAINS
        ! Emissions diagnostics are included in HISTORY.rc in GCHP only
        ELSEIF ( nameAllCaps(1:4) == 'EMIS' ) THEN
           state = 'EMISSIONS'
+       ! Emissions inventory diagnostics are included in HISTORY.rc in GCHP only
+       ELSEIF ( nameAllCaps(1:3) == 'INV' ) THEN
+          state = 'EMISSIONS'
 #if defined( MODEL_GEOS )
        ! GEOS uses a different internal state prefix than GCHP and
        ! and also can have custom diagnostics

@@ -87,6 +87,7 @@ MODULE HCOI_GC_Main_Mod
 !                              so that we can define them in HCOI_GC_INIT
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
+!  16 Jan 2019 - L. Murray   - Add offline lightning flash rates for LNOx emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1321,6 +1322,36 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! FLASH_DENS
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%FLASH_DENS%Arr, State_Grid%NX, &
+                           State_Grid%NY, HMRC )
+
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC
+          ErrMsg = 'Error encountered in "HCO_ArrAssert( FLASH_DENS )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! CONV_DEPTH
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+       CALL HCO_ArrAssert( ExtState%CONV_DEPTH%Arr, State_Grid%NX, &
+                           State_Grid%NY, HMRC )
+    
+       ! Trap potential errors
+       IF ( HMRC /= HCO_SUCCESS ) THEN
+          RC     = HMRC 
+          ErrMsg = 'Error encountered in "HCO_ArrAssert( CONV_DEPTH )"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+          CALL Flush( HcoState%Config%Err%Lun )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! SUNCOS: HEMCO now calculates SUNCOS values based on its own
     ! subroutine 
     IF ( ExtState%SUNCOS%DoUse ) THEN
@@ -2179,6 +2210,16 @@ CONTAINS
     IF ( ExtState%SPHU%DoUse ) THEN
        ExtState%SPHU%Arr%Val(:,:,1) = State_Met%SPHU(:,:,1) / 1000.0_hp
     ENDIF
+
+    ! FLASH_DENS: flash density [#/km2/s]
+    IF ( ExtState%FLASH_DENS%DoUse ) THEN
+       ExtState%FLASH_DENS%Arr%Val = State_Met%FLASH_DENS
+    ENDIF
+
+    ! CONV_DEPTH: convective cloud depth [m]
+    IF ( ExtState%CONV_DEPTH%DoUse ) THEN
+       ExtState%CONV_DEPTH%Arr%Val = State_Met%CONV_DEPTH
+    ENDIF    
 
     ! SUNCOS
     IF ( ExtState%SUNCOS%DoUse ) THEN

@@ -530,14 +530,14 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
-      !### DEBUG: Print a few global species sums
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
-     &                                 Input_Opt, State_Chm, 
-     &                                 State_Grid, State_Met,
-     &                                 "do_global_adv: pre-advection", 
-     &                                 RC )
-      ENDIF
+!      !### DEBUG: Print a few global species sums
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
+!     &                                 Input_Opt, State_Chm, 
+!     &                                 State_Grid, State_Met,
+!     &                                 "do_global_adv: pre-advection", 
+!     &                                 RC )
+!      ENDIF
     
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -635,15 +635,16 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
      &             State_Met, RC,        update_mixing_ratio=.FALSE. )
 
-      !### DEBUG: Print a few global species sums
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
-     &                                 Input_Opt, State_Chm, 
-     &                                 State_Grid, State_Met,
-     &                                 "do_global_adv: post-airqnt", 
-     &                                 RC )
-         CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
-      ENDIF
+!      !### DEBUG: Print a few global species sums
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
+!     &                                 Input_Opt, State_Chm, 
+!     &                                 State_Grid, State_Met,
+!     &                                 "do_global_adv: post-airqnt", 
+!     &                                 RC )
+!         CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
+!      ENDIF
+
 
       END SUBROUTINE DO_GLOBAL_ADV
 !EOC
@@ -846,13 +847,13 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                                 Input_Opt,  State_Chm,
-     &                                 State_Grid, State_Met,
-     &                            "do_window_transport: pre-advection", 
-     &                                 RC )
-      ENDIF
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+!     &                                 Input_Opt,  State_Chm,
+!     &                                 State_Grid, State_Met,
+!     &                            "do_window_transport: pre-advection", 
+!     &                                 RC )
+!      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1006,15 +1007,15 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
      &             State_Met, RC,        Update_Mixing_Ratio=.FALSE. )
 
-      !### Debug
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
-     &                                Input_Opt, State_Chm, 
-     &                                State_Grid, State_Met, 
-     &                               "do_window_transport: post-airqnt", 
-     &                                RC )
-         CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
-      ENDIF
+!      !### Debug
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+!     &                                Input_Opt, State_Chm, 
+!     &                                State_Grid, State_Met, 
+!     &                               "do_window_transport: post-airqnt", 
+!     &                                RC )
+!         CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
+!      ENDIF
 
       END SUBROUTINE DO_WINDOW_TRANSPORT
 !EOC
