@@ -489,12 +489,9 @@
          PBL_THICK(I,J)           = BLTHIK
 
          !==============================================================
-         ! Loop over grid levels
+         ! Loop up to edge of chemically-active grid
          !==============================================================
-         DO L = 1, State_Grid%NZ
-
-            ! Skip non-chemistry grid boxes
-            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+         DO L = 1, State_Grid%MaxChemLev
 
             ! Thickness of grid box (I,J,L) [hPa]
             DELP = P(L-1) - P(L)
@@ -893,16 +890,16 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FRAC_OF_PBL( I, J, L, State_Met ) RESULT( FRAC )
+      FUNCTION GET_FRAC_OF_PBL( I, J, L, State_Grid ) RESULT( FRAC )
 !
 ! !USES:
 !
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, lev indices
-      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !RETURN VALUE:
 !
@@ -918,7 +915,7 @@
       !=================================================================
       ! GET_FRAC_OF_PBL begins here!
       !=================================================================
-      IF ( State_Met%InChemGrid(I,J,L) ) THEN
+      IF ( L <= State_Grid%MaxChemLev ) THEN
          FRAC = F_OF_PBL(I,J,L)
       ELSE
          FRAC = 0e+0_fp
@@ -940,17 +937,17 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+      FUNCTION GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
      &     RESULT( FRAC )
 !
 ! !USES:
 !
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
-      TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !RETURN VALUE:
 !
@@ -962,7 +959,7 @@
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-      IF ( State_Met%InChemGrid(I,J,L) ) THEN
+      IF ( L <= State_Grid%MaxChemLev ) THEN
          FRAC = F_UNDER_TOP(I,J,L)
       ELSE
          FRAC = 0e+0_fp
@@ -1202,14 +1199,14 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       FPBL = 0.0_fp
 
-      ALLOCATE( F_OF_PBL( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( F_OF_PBL( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:F_OF_PBL', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       F_OF_PBL = 0.0_fp
 
       ALLOCATE( F_UNDER_TOP( State_Grid%NX, State_Grid%NY,
-     &                       State_Grid%NZ ), STAT=RC )
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'pbl_mix_mod:F_UNDER_TOP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       F_UNDER_TOP = 0.0_fp

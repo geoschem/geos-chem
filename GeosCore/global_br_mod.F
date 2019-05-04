@@ -338,20 +338,9 @@
          RETURN
       ENDIF 
 
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, TPL )
-      DO J=1, State_Grid%NY      
-      DO I=1, State_Grid%NX
-         
-         ! First layer in the stratosphere
-         TPL = State_Met%TropLev(I,J)
-
-         ! Assign data from ARRAY2 to the module variable BR
-         J_BrO(:,:,1:TPL) = JBrO(:,:,1:TPL)
-      ENDDO
-      ENDDO
-!$OMP END PARALLEL DO
+      ! Assign data from ARRAY2 to the module variable BR
+      J_BrO(:,:,1:State_Grid%MaxChemLev) =
+     & JBrO(:,:,1:State_Grid%MaxChemLev)
 
       END SUBROUTINE GET_GLOBAL_Br
 !EOC
@@ -437,8 +426,8 @@
       !-------------------------------------
 
       ! Allocate J_BrO array
-      ALLOCATE( J_BrO( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( J_BrO( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:J_BrO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       J_BrO = 0e+0_fp

@@ -1246,7 +1246,7 @@
      &           State_Met%AIRDEN(I,J,L) * 1e-6_fp
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
 
          ! Define K for the oxidation reaction with POPG [/s]
          K_OH  = K_POPG_OH * C_OH

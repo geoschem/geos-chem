@@ -2395,10 +2395,10 @@ contains
              do L = 1, pbl_top
                 wk1 = wk1 + State_Chm%Species    (I,J,L,N) * & 
                             State_Met%AD         (I,J,L  ) * &
-                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met)
+                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)
 
                 wk2 = wk2 + State_Met%AD         (I,J,L)   * &
-                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met)
+                            GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)
              enddo
              ! since we only use the ratio of wk1 / wk2, there should not be
              ! a problem even if the PBL top is lower than the top of the 

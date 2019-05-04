@@ -1245,7 +1245,7 @@
             DO L = 1, State_Grid%NZ
 
                ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L, State_Met )
+               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
             ENDDO
 !         ELSE
@@ -1857,12 +1857,12 @@
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = State_Grid%MaxTropLev
+         L    = State_Grid%MaxChemLev
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
-         DO L = State_Grid%MaxTropLev-1, 1, -1
+         DO L = State_Grid%MaxChemLev-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
@@ -2438,7 +2438,7 @@
 
       ! Arrays
       REAL*4             :: ARRAY(State_Grid%NX,State_Grid%NY,
-     &                            State_Grid%NZ)
+     &                            State_Grid%MaxChemLev)
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -2866,7 +2866,8 @@
          ELSE
             HOBr0  = 0.e+0_fp
          ENDIF
-         O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
+         O3     = GET_O3( I, J, L, Input_Opt, State_Chm,
+     &                    State_Grid, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
@@ -7475,8 +7476,8 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
-     &                 RESULT( O3_VV )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Grid,
+     &                 State_Met ) RESULT( O3_VV )
 !
 ! !USES:
 !
@@ -7484,6 +7485,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -7491,6 +7493,7 @@
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -7544,7 +7547,7 @@
 
          ! Get O3 [v/v] for this gridbox & month
          ! O3 is defined only in the chemistry grid
-         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+         IF ( L <= State_Grid%MaxChemLev ) THEN
             O3_VV = O3m(I,J,L)
          ELSE
             O3_VV = 0e+0_fp
@@ -7862,7 +7865,7 @@
       IF ( L <= NTOP ) THEN      
 
          ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-         FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Met )
+         FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Grid )
          
          ! Uncomment the following line to reproduce pre-HEMCO code.
          ! FEMIS = 1.0d0
@@ -8138,46 +8141,46 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       DMSo = 0e+0_fp
 
-      ALLOCATE( PMSA_DMS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC ) 
+      ALLOCATE( PMSA_DMS( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC ) 
       CALL GC_CheckVar( 'sulfate_mod.F:PMSA_DMS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PMSA_DMS = 0e+0_fp
 
-      ALLOCATE( PSO2_DMS( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( PSO2_DMS( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO2_DMS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO2_DMS = 0e+0_fp
 
-      ALLOCATE( PSO4_SO2( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( PSO4_SO2( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_SO2 = 0e+0_fp
 
-      ALLOCATE( PSO4_ss( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( PSO4_ss( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_ss', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_ss = 0e+0_fp
 
-      ALLOCATE( PNITs( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
-     &          STAT=RC )
+      ALLOCATE( PNITs( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PNITs', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PNITs = 0e+0_fp
 
       !tdf
-      ALLOCATE( PSO4_dust( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
-     &                     NDSTBIN ), STAT=RC )
+      ALLOCATE( PSO4_dust( State_Grid%NX, State_Grid%NY,
+     &                     State_Grid%MaxChemLev, NDSTBIN ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_dust', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_dust = 0e+0_fp
 
       !tdf
-      ALLOCATE( PNIT_dust( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
-     &                     NDSTBIN ), STAT=RC )
+      ALLOCATE( PNIT_dust( State_Grid%NX, State_Grid%NY,
+     &                     State_Grid%MaxChemLev, NDSTBIN ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PNIT_dust', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PNIT_dust = 0e+0_fp

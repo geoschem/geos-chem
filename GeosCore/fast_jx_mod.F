@@ -3571,29 +3571,27 @@ C-----------------------------------------------------------------------
       enddo
 
       ! Calculate photolysis rates
-      call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,State_Grid%NZ,NJX)
+      call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,State_Grid%MaxChemLev,NJX)
 
-      DO L=1,State_Grid%NZ
-         IF ( State_Met%InChemGrid(ILON,ILAT,L) ) THEN
+      ! Fill out common-block array of J-rates
+      DO L=1,State_Grid%MaxChemLev
+         DO J=1,NRATJ
+            IF (JIND(J).gt.0) THEN
+               ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
+            ELSE
+               ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
+            ENDIF
+         ENDDO
+      ENDDO
 
-            ! Fill out common-block array of J-rates
-            DO J=1,NRATJ
-               IF (JIND(J).gt.0) THEN
-                  ZPJ(L,J,ILON,ILAT) = VALJXX(L,JIND(J))*JFACTA(J)
-               ELSE
-                  ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
-               ENDIF
-            ENDDO
-
-         ELSE
-
-            ! Set J-rates outside the chemgrid to zero
+      ! Set J-rates outside the chemgrid to zero
+      IF (State_Grid%MaxChemLev.lt.L_) THEN
+         DO L=State_Grid%MaxChemLev+1,L_
             DO J=1,NRATJ
                ZPJ(L,J,ILON,ILAT) = 0.e+0_fp
             ENDDO
-
-         ENDIF
-      ENDDO
+         ENDDO
+      ENDIF
 
 #if defined( BPCH_DIAG )
       !=================================================================

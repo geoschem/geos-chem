@@ -1621,7 +1621,8 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, 1,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &               State_Grid%NX, State_Grid%NY,
+     &               State_Grid%MaxChemLev,
      &               IFIRST,        JFIRST,        LFIRST,
      &               ARRAY(:,:,1:LD12) )
       ENDIF

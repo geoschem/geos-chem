@@ -2261,7 +2261,7 @@ CONTAINS
 
        ! Fraction of PBL for each box [unitless]
        IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-          HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL( I, J, L, State_Met )
+          HCO_FRAC_OF_PBL(I,J,L) = GET_FRAC_OF_PBL( I, J, L, State_Grid )
        ENDIF
 
        ! Maximum extent of the PBL [model level]
@@ -4151,7 +4151,7 @@ CONTAINS
 
             ! For non-advected species at levels above chemistry grid,
             ! use a small number for background
-            ELSEIF ( .NOT. State_Met%InChemGrid(I,J,L) .and. &
+            ELSEIF ( L > State_Grid%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
                State_Chm%Species(I,J,L,N) = SMALL_NUM * MW_g / AIRMW 

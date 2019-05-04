@@ -335,11 +335,11 @@ cdbg  print *, dryd(:)
             ENDDO
 
             ! We know the boundary condition at the model top
-            L     = State_Grid%MaxTropLev(I,J)
+            L     = State_Grid%MaxChemLev
             DELZ  = BXHEIGHT(I,J,L)           ![=] meter
             TC(L) = TC(L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-            DO L = State_Grid%MaxTropLev(I,J)-1, 1, -1
+            DO L = State_Grid%MaxChemLev-1, 1, -1
                DELZ  = BXHEIGHT(I,J,L)
                DELZ1 = BXHEIGHT(I,J,L+1)
                TC(L) = 1.d0 / 
@@ -436,7 +436,7 @@ cdbg  print *, dryd(:)
 !$OMP+SCHEDULE( DYNAMIC )
       DO I = 1, State_Grid%NX
       DO J = 1, State_Grid%NY
-      DO L = 1, State_Grid%NZ
+      DO L = 1, State_Grid%MaxChemLev
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
@@ -474,7 +474,7 @@ c     &           'FLUX  AD44'
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
             RKT = DEPSAV(I,J,DRYD(BIN)) *
-     &            GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+     &            GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
 !debug            if(i==ii .and. j==jj .and. L==1) 
 c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF (RKT > 0d0) THEN 
@@ -539,7 +539,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
          RKT = DEPSAV(I,J,H2SO4ID) *
-     &         GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+     &         GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
 #if defined( BPCH_DIAG )

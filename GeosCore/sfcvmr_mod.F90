@@ -119,7 +119,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met)>0e+0_fp) THEN
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 550e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -138,7 +138,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met)>0e+0_fp) THEN
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 20e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -157,7 +157,7 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met)>0e+0_fp) THEN
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 7e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes

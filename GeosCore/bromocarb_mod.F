@@ -200,7 +200,7 @@
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met) > 0e+0_fp ) THEN
+         IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid) > 0e+0_fp ) THEN
 
             ! base lat band selection on midpoint
             ! latitude of the box
@@ -405,7 +405,7 @@
             ENDIF
 
             DO L = 1, State_Grid%NZ
-               IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Met) > 0d0 ) THEN
+               IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid) > 0d0 ) THEN
 
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
                   ! when setting species concentration (ewl, 9/10/15)

@@ -714,12 +714,12 @@
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = State_Grid%MaxTropLev
+         L    = State_Grid%MaxChemLev
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
-         DO L = State_Grid%MaxTropLev-1, 1, -1
+         DO L = State_Grid%MaxChemLev-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
@@ -1415,7 +1415,7 @@
                DO L = 1, NTOP
 
                   ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-                  FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Met )
+                  FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
                !================================================================
                ! Add sea-salt number to the tracer array

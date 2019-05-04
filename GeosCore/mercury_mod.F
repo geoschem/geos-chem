@@ -922,7 +922,7 @@
          !------------------------------------------------------
 
          ! Fraction of box (I,J,L) underneath the PBL top [dimensionless]
-         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met )
+         F_PBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
 
          ! Do dry deposition only for the fraction of the box in the PBL
          IF (F_PBL > 0.1e+0_fp) THEN
@@ -3131,7 +3131,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          DO L = 1, PBL_MAX
 
             ! Fraction of box (I,J,L) w/in the PBL [unitless]
-            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Met )
+            F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
             !-----------------
             ! Total Hg species
@@ -4034,7 +4034,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Met )
+               F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
                ! Partition total Hg2 into box (I,J,L) [kg]
                E_Hg     = F_OF_PBL * EHg2_an(I,J) * DTSRCE
@@ -4288,7 +4288,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             DO L = 1, PBL_MAX
 
                ! Fraction of box (I,J,L) w/in the PBL [unitless]
-               F_OF_PBL           = GET_FRAC_OF_PBL( I, J, L, State_Met)
+               F_OF_PBL           = GET_FRAC_OF_PBL(I, J, L, State_Grid)
 
                ! Partition HgP into box (I,J,L) [kg]
                E_Hg               = F_OF_PBL * EHgP_an(I,J) * DTSRCE
@@ -5465,7 +5465,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       IF ( (L_ADD_MBL_BR) .OR. (LPOLARBR) ) THEN
          ! Fraction of grid box mass which is within the mixed layer
-         FPBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Met) 
+         FPBL = GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid ) 
       ENDIF
       
       IF ( L_ADD_MBL_BR ) THEN

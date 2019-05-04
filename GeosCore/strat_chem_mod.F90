@@ -372,20 +372,17 @@ CONTAINS
     AD                   => NULL()
     T                    => NULL()
 
-!------------------------------------------------------------------------------
-! Comment out to work with FlexGrid (mps, 3/3/19)
-!#if defined( MODEL_GEOS )
-!    ! Skip strat chem if chemistry is over entire vertical domain
-!    SKIP = .FALSE.
-!    IF ( LLCHEM == State_Grid%NZ ) THEN
-!       SKIP = .TRUE.
-!       IF ( FIRST .AND. am_I_Root ) THEN
-!          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
-!       ENDIF 
-!    ENDIF
-!    IF ( .NOT. SKIP ) THEN
-!#endif
-!------------------------------------------------------------------------------
+#if defined( MODEL_GEOS )
+    ! Skip strat chem if chemistry is over entire vertical domain
+    SKIP = .FALSE.
+    IF ( State_Grid%MaxChemLev == State_Grid%NZ ) THEN
+       SKIP = .TRUE.
+       IF ( FIRST .AND. am_I_Root ) THEN
+          WRITE( 6, * ) 'Fullchem up to top of atm - skip linearized strat chemistry'
+       ENDIF 
+    ENDIF
+    IF ( .NOT. SKIP ) THEN
+#endif
 
     ! Set a flag for debug printing
     prtDebug             = ( LPRT .and. am_I_Root )

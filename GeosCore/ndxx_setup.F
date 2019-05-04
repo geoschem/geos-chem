@@ -511,7 +511,7 @@
       !=================================================================
       IF ( Input_Opt%ND21 > 0 ) THEN
          ! Now size diagnostic arrays w/ all vertical levels (bmy, 3/9/18)
-         Input_Opt%LD21 = MIN( Input_Opt%ND21, State_Grid%NZ )
+         Input_Opt%LD21 = MIN( Input_Opt%ND21, State_Grid%MaxChemLev )
          LD21 = Input_Opt%LD21
 
          ! For regular 

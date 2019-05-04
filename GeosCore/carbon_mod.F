@@ -1734,7 +1734,7 @@
 !$OMP+PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  )
 !$OMP+PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC                     )
 !$OMP+PRIVATE( KRO2NO,   KRO2HO2,  JSV                             )  
-      DO L = 1, State_Grid%NZ
+      DO L = 1, State_Grid%MaxChemLev
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -1773,8 +1773,8 @@
          CALL CHEM_NVOC( I,          J,         L,
      &                   KO3,        KOH,       KNO3,
      &                   GM0,        KRO2NO,    KRO2HO2,
-     &                   Input_Opt,  State_Met, State_Chm,
-     &                   State_Diag, RC                    )
+     &                   Input_Opt,  State_Chm, State_Diag,
+     &                   State_Grid, State_Met, RC )
 
          !==============================================================
          ! Equilibrium calculation between GAS (SOG) and Aerosol (SOA)
@@ -2122,8 +2122,10 @@
      &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,2),
      &                           GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,2)
      
-            print*, 'POA to trop', SUM(Spc(:,:,1:State_Grid%NZ,id_POA1)) 
-     &                            +SUM(Spc(:,:,1:State_Grid%NZ,id_POA2))
+            print*, 'POA to trop', SUM(Spc(:,:,1:State_Grid%MaxChemLev,
+     &                                     id_POA1)) 
+     &                            +SUM(Spc(:,:,1:State_Grid%MaxChemLev,
+     &                                     id_POA2))
          ENDIF ! OPOA (hotp 8/24/09)
 
       ENDIF
@@ -3239,8 +3241,8 @@
       SUBROUTINE CHEM_NVOC( I,          J,         L, 
      &                      KO3,        KOH,       KNO3, 
      &                      GM0,        KNO,       KHO2,
-     &                      Input_Opt,  State_Met, State_Chm,
-     &                      State_Diag, RC )
+     &                      Input_Opt,  State_Chm, State_Diag,
+     &                      State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -3251,9 +3253,10 @@
 #endif
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
 !
 ! !INPUT PARAMETERS: 
@@ -3271,6 +3274,7 @@
       REAL(fp),       INTENT(IN)    :: KNO           ! RO2+NO  rate constant
       REAL(fp),       INTENT(IN)    :: KHO2          ! RO2+HO2 rate constant
       TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -3350,7 +3354,8 @@
       ! Get offline OH, NO3, O3 concentrations [molec/cm3]
       OHMC    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met ) 
       TTNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
-      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Chm, State_Met ) 
+      TTO3    = GET_O3(  I, J, L, Input_Opt, State_Chm, State_Grid,
+     &                   State_Met ) 
 
       ! Get RO2+NO, RO2+HO2 branching ratio (hotp 5/7/10)
       NOTEMP  = GET_NO(  I, J, L, Input_Opt, State_Chm, State_Met )
@@ -4467,7 +4472,7 @@
 
       DO L = 1, PBL_MAX
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Met )
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K) 
@@ -4875,7 +4880,7 @@ ccc
       DO I = 1, State_Grid%NX
  
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Met )
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
          ! Add sesquiterpene emissions from HEMCO to ORVC_SESQ array.
          ! We assume all SESQ emissions are placed in surface level.
@@ -5449,7 +5454,7 @@ ccc
       DO K = 1, IBINS
 
          ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Met )
+         F_OF_PBL = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
          ! Hydrophilic ELEMENTAL CARBON
          Spc(I,J,L,id_ECIL1-1+K) =  Spc(I,J,L,id_ECIL1-1+K) +
@@ -5929,8 +5934,8 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met ) 
-     &         RESULT( O3_MOLEC_CM3 )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Grid,
+     &                 State_Met ) RESULT( O3_MOLEC_CM3 )
 !
 ! !USES:
 !
@@ -5938,6 +5943,7 @@ ccc
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -5948,6 +5954,7 @@ ccc
       INTEGER,        INTENT(IN)  :: L           ! Altitude index
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !RETURN VALUE:
@@ -6020,7 +6027,7 @@ ccc
 
          ! Get O3 [v/v] for this gridbox & month
          ! O3 is defined only in the chemistry grid
-         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+         IF ( L <= State_Grid%MaxChemLev ) THEN
 
             ! Get O3 [v/v] and convert it to [kg]
             O3_MOLEC_CM3 = O3(I,J,L) * State_Met%AD(I,J,L) *
@@ -6833,7 +6840,7 @@ ccc
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( NOX, JHC, JSV, I, J, L )
-      DO L = 1, State_Grid%NZ
+      DO L = 1, State_Grid%MaxChemLev
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
@@ -7002,7 +7009,7 @@ ccc
 !$OMP+PRIVATE( NOX,         JHC,        JSV,    IPR )
 !$OMP+PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      )
 !$OMP+PRIVATE( I, J, L                              )
-      DO L = 1, State_Grid%NZ
+      DO L = 1, State_Grid%MaxChemLev
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 

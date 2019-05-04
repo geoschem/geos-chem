@@ -241,7 +241,7 @@
 
          ! Use online O3 values in the chemistry grid if selected
          IF ( (USE_ONLINE_O3) .and.
-     &        (I <= State_Grid%MaxTropLev)  .and.
+     &        (I <= State_Grid%MaxChemLev)  .and.
      &        (O3_CTM(I) > 0e+0_fp) ) THEN
 
             ! Convert from molec/cm3 to molec/cm2

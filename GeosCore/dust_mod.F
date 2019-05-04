@@ -917,12 +917,12 @@
                ENDDO
 
                ! We know the boundary condition at the model top
-               L           = State_Grid%MaxTropLev
+               L           = State_Grid%MaxChemLev
                DELZ        = State_Met%BXHEIGHT(I,J,L)
                TC(I,J,L,NA) = TC(I,J,L,NA) / 
      &                        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
-               DO L = State_Grid%MaxTropLev-1, 1, -1
+               DO L = State_Grid%MaxChemLev-1, 1, -1
                   DELZ         = State_Met%BXHEIGHT(I,J,L)
                   DELZ1        = State_Met%BXHEIGHT(I,J,L+1)
                   TC(I,J,L,NA) = 1.e+0_fp / 
@@ -1379,7 +1379,7 @@
                !--------------------------------------
                ! ND21 tracer #5: Dust surface areas
                !--------------------------------------
-               IF ( State_Met%InChemGrid(I,J,L) ) THEN
+               IF ( L <= State_Grid%MaxChemLev ) THEN
                            
                   ! Add to AD21
                   AD21(I,J,L,5) = AD21(I,J,L,5) + TAREA(I,J,L,N)
@@ -1424,12 +1424,9 @@
 !$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
          DO W = 1, Input_Opt%NWVSELECT 
          DO N = 1, NDUST
-         DO L = 1, State_Grid%NZ
+         DO L = 1, State_Grid%MaxChemLev
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX               
-
-            ! Skip non-chemistry grid boxes
-            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
             IF ( .not. LINTERPARR(W) ) THEN
 
@@ -1476,13 +1473,11 @@
          !---------------------------------------------------
          IF ( State_Diag%Archive_AODDust ) THEN
 !$OMP PARALLEL DO
-
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-            DO L = 1, State_Grid%NZ
+            DO L = 1, State_Grid%MaxChemLev
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
-               IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE 
                State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
             ENDDO
             ENDDO
@@ -1497,10 +1492,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-         DO L = 1, State_Grid%NZ
+         DO L = 1, State_Grid%MaxChemLev
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX
-            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE 
             State_Diag%AerSurfAreaDust(I,J,L) =  
      &                                  SUM( TAREA(I,J,L,1:NDUST) )
          ENDDO
@@ -2045,13 +2039,9 @@
 !!$OMP+PRIVATE( I, J, L, N, W, NOUT, LINTERP )
 !         DO W = 1, Input_Opt%NWVSELECT
 !         DO N = 1, NDUST
-!         DO L = 1, State_Grid%NZ
+!         DO L = 1, State_Grid%MaxChemLev
 !         DO J = 1, State_Grid%NY
 !         DO I = 1, State_Grid%NX
-!
-!            ! Skip non-chemistry boxes
-!            IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
-!
 !            IF ( .not. LINTERPARR(W) ) THEN
 !               tempOD(I,J,L,W,N) = ODMDUST(I,J,L,IWVSELECT(1,W),N)
 !            ELSEIF ((ODMDUST(I,J,L,IWVSELECT(1,W),N).GT.0).AND.
@@ -2098,12 +2088,9 @@
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( I, J, L )
-!            DO L = 1, State_Grid%NZ
+!            DO L = 1, State_Grid%MaxChemLev
 !            DO J = 1, State_Grid%NY
 !            DO I = 1, State_Grid%NX
-!               ! Skip non-chemistry boxes
-!               IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
-!
 !               State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
 !            ENDDO
 !            ENDDO
@@ -2120,12 +2107,9 @@
 !!$OMP PARALLEL DO
 !!$OMP+DEFAULT( SHARED )
 !!$OMP+PRIVATE( I, J, L )
-!         DO L = 1, State_Grid%NZ
+!         DO L = 1, State_Grid%MaxTropLev
 !         DO J = 1, State_Grid%NY
 !         DO I = 1, State_Grid%NX
-!            ! Skip non-tropospheric boxes
-!            IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
-!
 !            State_Diag%AerSurfAreaDust(I,J,L) =  
 !     &                             SUM( TAREA(I,J,L,1:NDUST) )
 !         ENDDO
