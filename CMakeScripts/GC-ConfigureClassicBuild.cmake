@@ -149,7 +149,7 @@ set_dynamic_option(MECH
     DEFAULT "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
-    OPTIONS "Standard" "Tropchem" "SOA_SVPOA" "benchmark"
+    OPTIONS "Standard" "Tropchem" "benchmark" "RRTMG"
 )
 
 if(${MECH} STREQUAL "Tropchem")
@@ -158,8 +158,13 @@ endif()
 
 
 # Build RRTMG?
+if("${MECH}" STREQUAL "RRTMG")
+    set(RRTMG_DEFAULT "TRUE")
+else()
+    set(RRTMG_DEFAULT "FALSE")
+endif()
 set_dynamic_option(RRTMG 
-    DEFAULT "FALSE"
+    DEFAULT ${RRTMG_DEFAULT}
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "TRUE" "FALSE"
