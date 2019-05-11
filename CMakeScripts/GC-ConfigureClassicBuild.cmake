@@ -154,6 +154,8 @@ set_dynamic_option(MECH
 
 if(${MECH} STREQUAL "Tropchem")
     set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
+elseif(${MECH} STREQUAL "RRTMG")
+    set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
 endif()
 
 
