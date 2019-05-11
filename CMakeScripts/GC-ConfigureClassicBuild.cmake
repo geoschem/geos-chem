@@ -113,7 +113,7 @@ if(${NESTED})
         SELECT_EXACTLY 1
         OPTIONS "AS" "CH" "CU" "EU" "NA" 
     )
-    set_dynamic_default(GC_DEFINES DEFAULT NESTED NESTED_${REGION})
+    set_dynamic_default(GC_DEFINES DEFAULT NESTED_${REGION})
 endif()
 
 # Horizontal grid
