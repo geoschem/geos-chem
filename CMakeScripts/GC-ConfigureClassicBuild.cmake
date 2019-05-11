@@ -168,9 +168,14 @@ if(${RRTMG})
     set_dynamic_default(GC_DEFINES DEFAULT "RRTMG")
 endif()
 
+if("${MECH}" STREQUAL "benchmark")
+    set(TIMERS_DEFAULT "TRUE")
+else()
+    set(TIMERS_DEFAULT "FALSE")
+endif()
 # Build with timers?
 set_dynamic_option(TIMERS 
-    DEFAULT "FALSE"
+    DEFAULT ${TIMERS_DEFAULT}
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "TRUE" "FALSE"
