@@ -168,30 +168,62 @@ if(${RRTMG})
     set_dynamic_default(GC_DEFINES DEFAULT "RRTMG")
 endif()
 
-message(STATUS "General settings:")
-dump_log(GENERAL_OPTIONS_LOG)
+# Build with timers?
+set_dynamic_option(TIMERS 
+    DEFAULT "FALSE"
+    LOG GENERAL_OPTIONS_LOG
+    SELECT_EXACTLY 1
+    OPTIONS "TRUE" "FALSE"
+)
+if(${TIMERS})
+    set_dynamic_default(GC_DEFINES DEFAULT "USE_TIMERS")
+endif()
 
 
 # Get diagnostics
-set_dynamic_default(DIAG
-    DEFAULT 
-        "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC" 
-    LOG EXTRA_DEFS_LOG
+set_dynamic_option(DIAG
+    DEFAULT "NC" "BPCH"
+    OPTIONS "NC" "BPCH"
+    LOG GENERAL_OPTIONS_LOG
 )
-set_dynamic_default(GC_DEFINES DEFAULT ${DIAG})
 
+# Add NetCDF diagnostic definitions
+if("${DIAG}" MATCHES ".*NC.*")
+    set_dynamic_default(GC_DEFINES DEFAULT "NC_DIAG")
 
-# Get extra defines
-set_dynamic_default(EXTRA 
-    DEFAULT
-        "UCX" "USE_REAL8" "USE_TIMERS"
-    
-    LOG EXTRA_DEFS_LOG
+    # Read netcdf.inc and search for nf_def_var_deflate
+    foreach(NC_INC_DIR ${NETCDF_INCLUDE_DIRS})
+        if(EXISTS ${NC_INC_DIR}/netcdf.inc)
+            file(READ ${NC_INC_DIR}/netcdf.inc NCINC)
+            if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
+                set_dynamic_default(GC_DEFINES DEFAULT "NC_HAS_COMPRESSION")
+                break()
+            endif()
+        endif()
+    endforeach()
+endif()
+
+# Add BPCH diagnostic definitions
+if("${DIAG}" MATCHES ".*BPCH.*")
+    set_dynamic_default(GC_DEFINES 
+        DEFAULT 
+            "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC" 
+    )
+endif()
+
+# Get flexible precision setting
+set_dynamic_option(PREC
+    DEFAULT "REAL8"
+    SELECT_EXACTLY 1
+    OPTIONS "REAL4" "REAL8"
+    LOG GENERAL_OPTIONS_LOG
 )
-set_dynamic_default(GC_DEFINES DEFAULT ${EXTRA})
+if("${PREC}" STREQUAL "REAL8")
+    set_dynamic_default(GC_DEFINES DEFAULT "USE_REAL8")
+endif()
 
-message(STATUS "Additional definitions:")
-dump_log(EXTRA_DEFS_LOG)
+message(STATUS "General settings:")
+dump_log(GENERAL_OPTIONS_LOG)
 
 # Get resulting GC_DEFINES (overridable)
 string(REPLACE " " ";" GC_DEFINES "${GC_DEFINES}")
@@ -210,10 +242,18 @@ unset(GC_DEFINES)
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_dynamic_default(FC_OPTIONS
         DEFAULT
-            -fPIC -cpp -w -auto -noalign -convert big_endian -vec-report0 
-            -fp-model source -mcmodel=medium -shared-intel -traceback -qopenmp
+            -fPIC                       # Generate position-independent code
+            -cpp                        # Pass through preprocessor before compilation
+            -w                          # Disables	all warning messages [attn:Liam this should be removed]
+            -auto                       # Causes all local, non-SAVEd variables to be allocated to the run-time stack.
+            -noalign                    # Prevents the alignment of data items.
+            -convert big_endian         # Specifies the format for unformatted files to be big endian
+            -fp-model source            # Prevent any optimizations that would change numerical results
+            -mcmodel=medium             # Specifies compilers memory model.
+            -shared-intel               # Causes Intel-provided libraries to be linked in dynamically.
+            -traceback                  # Generate extra info to provide traceback information when a run time error occurs.
+            ${OpenMP_Fortran_FLAGS}
             -DLINUX_IFORT
-
         LOG RESULTING_DEFINES_LOG
     )
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
@@ -238,11 +278,11 @@ target_compile_options(BaseTarget
         ${FC_OPTIONS}
 
         # Debug flags
-        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:DEBUG>>:-g -O0>
+        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:DEBUG>>:-g -O0 b-check arg_temp_created -debug all -DDEBUG>
         $<$<AND:$<CXX_COMPILER_ID:GNU>,  $<CONFIG:DEBUG>>:-g -Og>
 
         # Release flags
-        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:DEBUG>>:-O2>
+        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:RELEASE>>:-vec-report0 -O2>
         $<$<AND:$<CXX_COMPILER_ID:GNU>,  $<CONFIG:DEBUG>>:-O3>
 )
 unset(FC_OPTIONS)
