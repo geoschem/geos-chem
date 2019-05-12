@@ -68,12 +68,63 @@ elseif("${RUNDIR_GRID}" STREQUAL "025x03125")
     set(RUNDIR_GRID "0.25x0.3125")
 endif()
 
-# Inspect MECH
-inspect_rundir(RUNDIR_MECH 2)
-if("${RUNDIR_MECH}" STREQUAL "standard")
+# Inspect SIM and select KPP mech 
+set(STANDARD_MECHS
+    "standard"
+    "benchmark"
+    "aciduptake"
+    "marinePOA"
+    "masscons"
+    "TransportTracers"
+    "POPs"
+    "CH4"
+    "tagCH4"
+    "tagO3"
+    "tagCO"
+    "CO2"
+    "aerosol"
+
+    # TODO: remove
+    "Hg"
+)
+set(TROPCHEM_MECHS
+    "tropchem"
+    "RRTMG"
+    "TOMAS15"
+    "TOMAS40"
+    "complexSOA"
+)
+set(SOA_SVPOA_MECHS
+    "complexSOA_SVPOA"
+)
+set(CUSTOM_MECHS
+    "custom"
+)
+
+inspect_rundir(RUNDIR_SIM 2)
+# Below is an "if in list" switch. Recall CMake lists are ; seperated lists.
+if("${STANDARD_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
     set(RUNDIR_MECH "Standard")
-elseif("${RUNDIR_MECH}" STREQUAL "tropchem")
+elseif("${TROPCHEM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
     set(RUNDIR_MECH "Tropchem")
+elseif("${SOA_SVPOA_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+    set(RUNDIR_MECH "SOA_SVPOA")
+elseif("${CUSTOM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+    set(RUNDIR_MECH "custom")
+else()
+    message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine MECH.")
+endif()
+
+# Misc
+if("${RUNDIR_SIM}" STREQUAL "masscons")
+    set_dynamic_default(GC_DEFINES DEFAULT MASSCONS)
+elseif("${RUNDIR_SIM}" MATCHES ".*Hg.*")
+    set_dynamic_default(GC_DEFINES DEFAULT GTMM_Hg)
+elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
+    set_dynamic_default(GC_DEFINES DEFAULT TOMAS TOMAS15)
+    set(NC_DIAG_GUESS "FALSE")
+elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
+    set_dynamic_default(GC_DEFINES DEFAULT TOMAS TOMAS40)
 endif()
 
 # Inspect NESTED
@@ -149,18 +200,17 @@ set_dynamic_option(MECH
     DEFAULT "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
-    OPTIONS "Standard" "Tropchem" "benchmark" "RRTMG"
+    OPTIONS "Standard" "Tropchem"
 )
 
-if(${MECH} STREQUAL "Tropchem")
-    set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
-elseif(${MECH} STREQUAL "RRTMG")
+# Set GRIDREDUCED for specific simulation types
+if("${MECH}" STREQUAL "Tropchem")
     set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
 endif()
 
 
 # Build RRTMG?
-if("${MECH}" STREQUAL "RRTMG")
+if("${RUNDIR_SIM}" STREQUAL "RRTMG")
     set(RRTMG_DEFAULT "TRUE")
 else()
     set(RRTMG_DEFAULT "FALSE")
@@ -175,7 +225,7 @@ if(${RRTMG})
     set_dynamic_default(GC_DEFINES DEFAULT "RRTMG")
 endif()
 
-if("${MECH}" STREQUAL "benchmark")
+if("${RUNDIR_SIM}" STREQUAL "benchmark")
     set(TIMERS_DEFAULT "TRUE")
 else()
     set(TIMERS_DEFAULT "FALSE")
@@ -193,8 +243,13 @@ endif()
 
 
 # Get diagnostics
+if("${RUNDIR_SIM}" MATCHES "TOMAS")
+    set(DIAG_DEFAULT "BPCH")
+else()
+    set(DIAG_DEFAULT "NC" "BPCH")
+endif()
 set_dynamic_option(DIAG
-    DEFAULT "NC" "BPCH"
+    DEFAULT ${DIAG_DEFAULT}
     OPTIONS "NC" "BPCH"
     LOG GENERAL_OPTIONS_LOG
 )

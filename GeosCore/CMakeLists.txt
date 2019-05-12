@@ -106,7 +106,7 @@ add_library(GeosCore STATIC
 
 	# TODO: when to omit these?
 	# exchange_mod.F
-	$<$<STREQUAL:${MECH},RRTMG>:rrtmg_rad_transfer_mod.F>
+	$<$<STREQUAL:${RUNDIR_SIM},RRTMG>:rrtmg_rad_transfer_mod.F>
 	# tomas_mod.F
 )
 target_link_libraries(GeosCore

@@ -44,5 +44,6 @@ add_subdirectory(History)
 add_subdirectory(HEMCO)
 add_subdirectory(ISOROPIA)
 add_subdirectory(GeosRad)
+add_subdirectory(GTMM)
 add_subdirectory(GeosCore)
 
