@@ -107,7 +107,10 @@ add_library(GeosCore STATIC
 	# TODO: when to omit these?
 	# exchange_mod.F
 	$<$<STREQUAL:${RUNDIR_SIM},RRTMG>:rrtmg_rad_transfer_mod.F>
-	# tomas_mod.F
+
+	
+	$<$<STREQUAL:${RUNDIR_SIM},TOMAS15>:tomas_mod.F>
+	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:tomas_mod.F>
 )
 target_link_libraries(GeosCore
 	PUBLIC Transport

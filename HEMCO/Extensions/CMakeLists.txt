@@ -24,9 +24,8 @@ add_library(HCOX STATIC
 	hcox_tools_mod.F90
 	ocean_toolbox_mod.F90
 
-	# TODO: can these be omitted?
-	# hcox_tomas_dustdead_mod.F
-	# hcox_tomas_jeagle_mod.F90
+	$<$<STREQUAL:${RUNDIR_SIM},TOMAS15>:hcox_tomas_jeagle_mod.F90 hcox_tomas_dustdead_mod.F>
+	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:hcox_tomas_jeagle_mod.F90 hcox_tomas_dustdead_mod.F>
 )
 target_link_libraries(HCOX
 	PUBLIC HCO
