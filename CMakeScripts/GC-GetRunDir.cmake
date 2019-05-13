@@ -1,7 +1,7 @@
 # Get run directory
 message(STATUS "Run directory setup:")
 set(RUNDIR_DEFAULT "..")
-set_dynamic_default(RUNDIR "${RUNDIR_DEFAULT}"
+set_dynamic_default(RUNDIR DEFAULT "${RUNDIR_DEFAULT}"
     LOG RUNDIR_LOG
 	IS_DIRECTORY
 )
