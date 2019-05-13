@@ -180,7 +180,7 @@ function(set_dynamic_default VAR)
 	if(SDD_IS_DIRECTORY)
         # If not absolute, force it to
         if(NOT IS_ABSOLUTE "${${VAR}}")
-            set(${VAR} ${CMAKE_BINARY_DIR}/${${VAR}} ${SDD_DEFAULT})
+            set(${VAR} ${CMAKE_BINARY_DIR}/${${VAR}})
             set(${VAR} ${${VAR}} PARENT_SCOPE)
 		endif()
 
