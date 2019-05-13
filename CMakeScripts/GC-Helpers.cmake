@@ -178,11 +178,6 @@ function(set_dynamic_default VAR)
 
 	# if IS_DIRECTORY, check that the specified path is valid.
 	if(SDD_IS_DIRECTORY)
-		if("${${VAR}}" STREQUAL "${SDD_DEFAULT}")
-			dump_log(${SDD_LOG})
-            message(FATAL_ERROR "You haven't set ${VAR}!")
-        endif()
-
         # If not absolute, force it to
         if(NOT IS_ABSOLUTE "${${VAR}}")
             set(${VAR} ${CMAKE_BINARY_DIR}/${${VAR}} ${SDD_DEFAULT})
