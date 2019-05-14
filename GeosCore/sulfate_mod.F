@@ -2722,7 +2722,8 @@
       REAL(fp)              :: LSTOT,  ALKdst, ALKss, ALKds, NH3, CL,TNA
       REAL(fp)              :: SSCvv,  aSO4,   SO2_sr, SR,    TANIT
       REAL(fp)              :: TFA,  TAA,   TDCA    ! (jmm, 12/03/2018)
-      
+      REAL(fp)              :: DUST      
+
       !tdf 03/02/2K9
       REAL(fp)              :: PSO4d_tot, PNITd_tot
       REAL(fp)              :: SO2_gas,   PH2SO4d_tot
@@ -2739,6 +2740,7 @@
       REAL(fp)              :: SO4H3_vv, SO4H4_vv            !XW
       REAL(fp)              :: fupdateHOCl_0  !XW
       REAL(fp)              :: HCHOCl, KHOCl, f_srhocl, HOCl0 !XW
+      
 
       ! Arrays
       REAL(fp)              :: ALK_d   (NDSTBIN)  ! tdf 04/07/08
@@ -2758,6 +2760,8 @@
       REAL(fp), POINTER     :: Spc(:,:,:,:)
       REAL(fp), POINTER     :: pHCloud(:,:,:)
       REAL(fp), POINTER     :: SSAlk(:,:,:,:)
+      REAL(fp), POINTER     :: QLxpHCloud(:,:,:) !jmm 3/7/19
+      REAL(fp), POINTER     :: isCloud(:,:,:) ! jmm 3/1/19
 
       ! For HEMCO update
       LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -2781,9 +2785,14 @@
       Spc         => State_Chm%Species
       pHCloud     => State_Chm%pHCloud
       SSAlk       => State_Chm%SSAlk
+      QLxpHCloud  => State_Chm%QLxpHCloud
+      isCloud     => State_Chm%isCloud ! jmm 3/1/19
 
       ! Reset cloud pH for safety
-      pHCloud(:,:,:) = 4.5e+0_fp
+      pHCloud(:,:,:) = 0.0e+0_fp
+      QLxpHCloud(:,:,:) = 0.0e+0_fp
+      isCloud(:,:,:) = 0.0e+0_fp ! jmm 3/1/19
+
 
       ! DTCHEM is the chemistry timestep in seconds
       DTCHEM   = GET_TS_CHEM() * 60e+0_fp
@@ -3214,12 +3223,43 @@
             ! no cloud scavenging b/c gases?
             TAA     = Spc(I,J,L,id_ACTA)
 
-            ! Get total sodium (Na) concentration and convert from [v/v]
+            ! Get total sea salt NVC concentration and convert from [v/v]
             ! to [moles/liter]
+            ! NVC is calculated to balance initial Cl- + alkalinity in
+            ! seas salt. Note that we should not consider SO4ss here.
             ! Use a cloud scavenging ratio of 0.7
             TNA      = Spc(I,J,L,id_SALA) * State_Met%AIRDEN(I,J,L) *
-     &                 ( 31.6e+0_fp * 0.378e+0_fp / 23.e+0_fp ) *
+     &                 ( 31.6e+0_fp * 0.359e+0_fp / 23.e+0_fp ) *
      &                 0.7e+0_fp / ( AIRMW * LWC )
+
+            ! Get total dust cation concentration [mol/L]
+            ! Use a cloud scavenging ratio of 1 for dust
+            ! to be consistent for how it was calculated for 
+            ! metal catalyzed SO2 oxidation
+            ! Use asumption of dust being 3% soluble Ca2+ and 
+            ! 0.6% soluble Mg2+ by mass (Fairlie et al., 2010)
+            ! 
+            ! Dust treated at non-volatile cation and charge applied in 
+            ! pH calculation
+            !
+            ! Move dust calculation from SO2 Metal catalzyed oxidation
+            ! up here becasue needed for cloud pH
+            ! jmm (12/3/18)
+            !
+            ! Get dust concentrations [v/v -> ng/m3]
+
+               DUST = ( Spc(I,J,L,id_DST1) + Spc(I,J,L,id_DST2) +
+     &                  Spc(I,J,L,id_DST3) + Spc(I,J,L,id_DST4) ) *
+     &                  1.e+12_fp * State_Met%AD(I,J,L)
+     &                  / ( AIRMW 
+     &                    / State_Chm%SpcData(id_DST1)%Info%emMW_g )
+     &                  / State_Met%AIRVOL(I,J,L)
+
+            ! [ng/m3 -> mol/L]
+            ! Conversion from dust mass to Ca2+ and Mg2+ mol:
+            !     0.03*(1/40.08)+0.006*(1/24.31) = 9.953e-4_fp
+            !     0e-12_fp from m3->L & ng->g
+               TDCA     = DUST * 9.95e-16_fp / LWC
 
 	    ! Get total nitrate (HNO3 + NIT) concentrations [v/v] 
      	    ! Use a cloud scavenging ratio of 0.7 for NIT
@@ -3235,11 +3275,15 @@
 	    ENDIF
 		
             ! Calculate cloud pH
-	    CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL, TNA, TFA, TAA, TK, 
+	    CALL GET_HPLUS( SO4nss, TNH3, TNO3, SO2_ss, CL, TNA, TDCA, 
+     &                        TFA, TAA, TK, 
      &                        PATM,   LWC,  HPLUS_45, HPLUS )
 
             ! Store the cloud pH
             pHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS)
+            QLxpHCloud(I,J,L) = -1.0e+0_fp * log10(HPLUS) *
+     &           State_Met%QL(I,J,L) !jmm 3/7/19
+            isCloud(I,J,L) = 1.0e+0_fp ! jmm 3/1/19
 
             ! Compute aqueous rxn rates for SO2
             CALL AQCHEM_SO2( LWC, TK,    PATM,    SO2_ss, H2O20, 
@@ -5076,8 +5120,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2, CL, TNA, TFA, TAA,
-     &                      T,      PRES, LWC,  iHPLUS, HPLUS )
+      SUBROUTINE GET_HPLUS( SO4nss, TNH3, TNO3, SO2, CL, TNA, TDCA, TFA,
+     &                      TAA,  T, PRES, LWC,  iHPLUS, HPLUS )
 !
 ! !USES:
 !
@@ -5092,6 +5136,7 @@
       REAL(fp),  INTENT(IN)    :: SO2    ! SO2 mixing ratio [v/v] 
       REAL(fp),  INTENT(IN)    :: CL     ! Total chloride (gas+particulate) mixing
       REAL(fp),  INTENT(IN)    :: TNA    ! Sodium (particulate) [v/v]
+      REAL(fp),  INTENT(IN)    :: TDCA   ! Total Ca2+ and Mg2+ mixing ratio [M] ! jmm 12/3/18
       REAL(fp),  INTENT(IN)    :: TAA    ! Acetic acid mixing ratio [v/v] ! jmm 12/3/18
       REAL(fp),  INTENT(IN)    :: TFA    ! Formic acid mixing ratio [v/v] ! jmm 12/3/18
       REAL(fp),  INTENT(IN)    :: T      ! Temperature [K]
@@ -5171,7 +5216,7 @@
 
       ! Non-volatile aerosol concentration [M] 
       ! For now sulfate is the only non-volatile species
-      D = (2.e+0_fp*SO4nss) - TNA
+      D = (2.e+0_fp*SO4nss) - TNA - (2.e+0_fp*TDCA) 
 
       ! Temperature dependent water equilibrium constant
       Kw_T = Kw*exp(DhrKw*((1.e+0_fp/T)-(1.e+0_fp/298.e+0_fp)))

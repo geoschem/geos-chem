@@ -551,8 +551,8 @@
 !     &        ( 22.99e+0_fp  * VOL  )
 
             ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
-            ! increase to account for all positive ions, xnw 11/26/17
-               TNA = Spc(I,J,L,id_SALA) * 0.378e+0_fp * 1.e+3_fp 
+            ! increase to account for all cations, xnw 11/26/17
+               TNA = Spc(I,J,L,id_SALA) * 0.397e+0_fp * 1.e+3_fp 
      &               * AlkR / ( 23.e+0_fp  * VOL  )
 
             ! Total Cl- (55.04% by weight of seasalt) [mole/m3]

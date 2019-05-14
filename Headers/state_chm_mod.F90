@@ -1041,6 +1041,34 @@ CONTAINS
        State_Chm%pHCloud = 0.0_fp
        CALL Register_ChmField( am_I_Root, chmID, State_Chm%pHCloud,          &
                                State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! QLxphCloud
+       ! 3/7/19
+       !--------------------------------------------------------------------
+       chmId = 'QLxpHCloud'
+       ALLOCATE( State_Chm%QLxpHCloud( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%QLxpHCloud', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%QLxpHCloud = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%QLxpHCloud,       &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
+       !--------------------------------------------------------------------
+       ! isCloud
+       ! jmm 3/1/19
+       !--------------------------------------------------------------------
+       chmId = 'isCloud'
+       ALLOCATE( State_Chm%isCloud( IM, JM, LM ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%isCloud', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%isCloud = 0.0_fp
+       CALL Register_ChmField( am_I_Root, chmID, State_Chm%isCloud,          &
+                               State_Chm, RC                                )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
 
        !--------------------------------------------------------------------
        ! SSAlk

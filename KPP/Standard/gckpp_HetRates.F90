@@ -4077,7 +4077,7 @@ MODULE GCKPP_HETRATES
       REAL(fp),  PARAMETER   :: H_HOCl_T  = 298.15
 
       REAL(fp)       :: ab, M_X, k1, k2, H_X, C_Y2, gb_tot
-      REAL(fp)       :: cavg, D_l, gb1, gb2, l_r1, l_r2
+      REAL(fp)       :: cavg, D_l, gb1, gb2, l_r1, l_r2, k_tot
      
       C_Y2 = C_Y3 + C_Y4
       M_X = M_HOCl
@@ -4104,6 +4104,7 @@ MODULE GCKPP_HETRATES
       gb2 = gb2 * REACTODIFF_CORR( Radius, l_r2)
 
       gb_tot = gb1 + gb2
+      k_tot = k1 * C_Hp * C_Y1 + k2 * C_Y2
 
       GAM_HOCl = 1.0e0_fp / (1.0e0_fp/ab  +  1.0e0_fp/gb_tot)
 
@@ -4112,9 +4113,9 @@ MODULE GCKPP_HETRATES
 
 
       IF ( X==1 ) THEN
-         r_gp = gb1/gb_tot
+         r_gp = k1 * C_Hp * C_Y1 /k_tot
       ELSEIF ( X==2 ) THEN
-         r_gp = gb2/gb_tot
+         r_gp = k2 * C_Y2 / k_tot
       ENDIF
 
     END SUBROUTINE GAMMA_HOCl_CLD
@@ -5626,11 +5627,11 @@ MODULE GCKPP_HETRATES
 
       ELSEIF ( X==3 ) THEN
 
-         r_gp = (k_b3 * C_Y3 + k_b4 * C_Y4) / k_tot
+         r_gp = (k_b3 * C_Y3) / k_tot
 
       ELSEIF ( X==4 ) THEN
 
-         r_gp = (k_b3 * C_Y3 + k_b4 * C_Y4) / k_tot
+         r_gp = (k_b4 * C_Y4) / k_tot
 
       ENDIF
 
@@ -5808,7 +5809,7 @@ MODULE GCKPP_HETRATES
 
       REAL(fp)       :: ab, M_X, fCl
       REAL(fp)       :: cavg, D_l
-      REAL(fp)       :: gb1, gb2, gb_tot, gb0
+      REAL(fp)       :: gb1, gb2, gb_tot, gb0, gbr
       
 
       M_X = M_ClNO3
@@ -5835,6 +5836,12 @@ MODULE GCKPP_HETRATES
 
       gb_tot = max(gb0, gb1, gb2)
       
+      IF (gb2 .GT. gb_tot) THEN
+         gbr = 1.0e0_fp
+      ELSE
+         gbr = 0.0e0_fp
+      ENDIF
+
       GAM_ClNO3 = 1.0e0_fp / (1.0e0_fp/ab  +  1.0e0_fp/gb_tot)
 
       IF (M .EQ. 1) THEN
@@ -5846,11 +5853,11 @@ MODULE GCKPP_HETRATES
       ENDIF    
 
       IF ( X==1 ) THEN
-         r_gp = (1.0e0_fp - gb2 / gb_tot) * fCl
+         r_gp = (1.0e0_fp - gbr) * fCl
       ELSEIF ( X==2 ) THEN
-         r_gp = gb2 / gb_tot
+         r_gp = gbr
       ELSEIF ( X==3 ) THEN
-         r_gp = (1.0e0_fp - gb2 / gb_tot) * (1.0e0_fp-fCl)
+         r_gp = (1.0e0_fp - gbr) * (1.0e0_fp-fCl)
       ENDIF
 
     END SUBROUTINE GAMMA_ClNO3_AER
