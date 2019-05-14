@@ -309,7 +309,6 @@ unset(GC_DEFINES)
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_dynamic_default(FC_OPTIONS
         DEFAULT
-            -fPIC                       # Generate position-independent code
             -cpp                        # Pass through preprocessor before compilation
             -w                          # Disables	all warning messages [attn:Liam this should be removed]
             -auto                       # Causes all local, non-SAVEd variables to be allocated to the run-time stack.
@@ -323,6 +322,8 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
             -DLINUX_IFORT
         LOG RESULTING_DEFINES_LOG
     )
+    set(CMAKE_Fortran_FLAGS_RELEASE "-vec-report0 -O2")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "-g -O0 -check arg_temp_created -debug all -DDEBUG")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
         DEFAULT
@@ -343,13 +344,5 @@ dump_log(RESULTING_DEFINES_LOG)
 target_compile_options(BaseTarget 
     INTERFACE 
         ${FC_OPTIONS}
-
-        # Debug flags
-        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:DEBUG>>:-g -O0 b-check arg_temp_created -debug all -DDEBUG>
-        $<$<AND:$<CXX_COMPILER_ID:GNU>,  $<CONFIG:DEBUG>>:-g -Og>
-
-        # Release flags
-        $<$<AND:$<CXX_COMPILER_ID:Intel>,$<CONFIG:RELEASE>>:-vec-report0 -O2>
-        $<$<AND:$<CXX_COMPILER_ID:GNU>,  $<CONFIG:DEBUG>>:-O3>
 )
 unset(FC_OPTIONS)
