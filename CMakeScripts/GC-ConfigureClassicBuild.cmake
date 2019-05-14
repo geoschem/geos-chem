@@ -231,7 +231,7 @@ set(LAYERS_47_SIMS
 )
 if("${LAYERS_72_SIMS}" MATCHES ".*${RUNDIR_SIM}.*")
     set(LAYERS_DEFAULT "72")
-elseif("${TROPCHEM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+elseif("${LAYERS_47_SIMS}" MATCHES ".*${RUNDIR_SIM}.*")
     set(LAYERS_DEFAULT "47")
 else()
     message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine LAYERS.")
