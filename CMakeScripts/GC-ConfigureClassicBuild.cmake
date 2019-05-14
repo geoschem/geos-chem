@@ -83,8 +83,6 @@ set(STANDARD_MECHS
     "tagCO"
     "CO2"
     "aerosol"
-
-    # TODO: remove
     "Hg"
 )
 set(TROPCHEM_MECHS
@@ -203,11 +201,50 @@ set_dynamic_option(MECH
     OPTIONS "Standard" "Tropchem"
 )
 
-# Set GRIDREDUCED for specific simulation types
-if("${MECH}" STREQUAL "Tropchem")
+# Set reduced grid
+set(LAYERS_72_SIMS
+    "standard"
+    "benchmark"
+    "aciduptake"
+    "marinePOA"
+    "TransportTracers"
+    
+    # TODO: unsure about these
+    "custom"
+    "TOMAS15"
+    "TOMAS40"
+    "complexSOA_SVPOA"
+)
+set(LAYERS_47_SIMS
+    "masscons"
+    "POPs"
+    "CH4"
+    "tagCH4"
+    "tagO3"
+    "tagCO"
+    "CO2"
+    "aerosol"
+    "Hg"
+    "tropchem"
+    "RRTMG"
+    "complexSOA"
+)
+if("${LAYERS_72_SIMS}" MATCHES ".*${RUNDIR_SIM}.*")
+    set(LAYERS_DEFAULT "72")
+elseif("${TROPCHEM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+    set(LAYERS_DEFAULT "47")
+else()
+    message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine LAYERS.")
+endif()
+set_dynamic_option(LAYERS 
+    DEFAULT "${LAYERS_DEFAULT}"
+    LOG GENERAL_OPTIONS_LOG
+    SELECT_EXACTLY 1
+    OPTIONS "47" "72"
+)
+if("${LAYERS}" STREQUAL "47")
     set_dynamic_default(GC_DEFINES DEFAULT GRIDREDUCED)
 endif()
-
 
 # Build RRTMG?
 if("${RUNDIR_SIM}" STREQUAL "RRTMG")
