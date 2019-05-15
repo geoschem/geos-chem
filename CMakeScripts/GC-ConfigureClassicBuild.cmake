@@ -117,8 +117,6 @@ endif()
 # Misc
 if("${RUNDIR_SIM}" STREQUAL "masscons")
     set_dynamic_default(GC_DEFINES DEFAULT MASSCONS)
-elseif("${RUNDIR_SIM}" MATCHES ".*Hg.*")
-    set_dynamic_default(GC_DEFINES DEFAULT GTMM_Hg)
 elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
     set_dynamic_default(GC_DEFINES DEFAULT TOMAS TOMAS15)
     set(NC_DIAG_GUESS "FALSE")
@@ -260,6 +258,17 @@ set_dynamic_option(RRTMG
 )
 if(${RRTMG})
     set_dynamic_default(GC_DEFINES DEFAULT "RRTMG")
+endif()
+
+# Build GTMM?
+set_dynamic_option(GTMM 
+    DEFAULT "FALSE"
+    LOG GENERAL_OPTIONS_LOG
+    SELECT_EXACTLY 1
+    OPTIONS "TRUE" "FALSE"
+)
+if(${GTMM})
+    set_dynamic_default(GC_DEFINES DEFAULT "GTMM_Hg")
 endif()
 
 if("${RUNDIR_SIM}" STREQUAL "benchmark")

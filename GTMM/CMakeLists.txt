@@ -1,4 +1,4 @@
-if(NOT "${RUNDIR_SIM}" MATCHES ".*Hg.*")
+if(NOT "${GTMM}")
     return()
 else()
     list(APPEND GC_EXTRA_TARGETS "Hg")
