@@ -198,7 +198,7 @@ set_dynamic_option(MECH
     DEFAULT "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
-    OPTIONS "Standard" "Tropchem"
+    OPTIONS "Standard" "Tropchem" "SOA_SVPOA"
 )
 
 # Set reduced grid
@@ -208,10 +208,7 @@ set(LAYERS_72_SIMS
     "aciduptake"
     "marinePOA"
     "TransportTracers"
-    
-    # TODO: unsure about these
     "custom"
-    "complexSOA_SVPOA"
 )
 set(LAYERS_47_SIMS
     "masscons"
@@ -226,6 +223,7 @@ set(LAYERS_47_SIMS
     "tropchem"
     "RRTMG"
     "complexSOA"
+    "complexSOA_SVPOA"
     "TOMAS15"
     "TOMAS40"
 )
