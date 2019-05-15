@@ -100,14 +100,14 @@ set(CUSTOM_MECHS
 )
 
 inspect_rundir(RUNDIR_SIM 2)
-# Below is an "if in list" switch. Recall CMake lists are ; seperated lists.
-if("${STANDARD_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+
+if("${RUNDIR_SIM}" IN_LIST STANDARD_MECHS)
     set(RUNDIR_MECH "Standard")
-elseif("${TROPCHEM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+elseif("${RUNDIR_SIM}" IN_LIST TROPCHEM_MECHS)
     set(RUNDIR_MECH "Tropchem")
-elseif("${SOA_SVPOA_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+elseif("${RUNDIR_SIM}" IN_LIST SOA_SVPOA_MECHS)
     set(RUNDIR_MECH "SOA_SVPOA")
-elseif("${CUSTOM_MECHS}" MATCHES ".*${RUNDIR_SIM}.*")
+elseif("${RUNDIR_SIM}" IN_LIST CUSTOM_MECHS)
     set(RUNDIR_MECH "custom")
 else()
     message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine MECH.")
@@ -211,8 +211,6 @@ set(LAYERS_72_SIMS
     
     # TODO: unsure about these
     "custom"
-    "TOMAS15"
-    "TOMAS40"
     "complexSOA_SVPOA"
 )
 set(LAYERS_47_SIMS
@@ -228,10 +226,12 @@ set(LAYERS_47_SIMS
     "tropchem"
     "RRTMG"
     "complexSOA"
+    "TOMAS15"
+    "TOMAS40"
 )
-if("${LAYERS_72_SIMS}" MATCHES ".*${RUNDIR_SIM}.*")
+if("${RUNDIR_SIM}" IN_LIST LAYERS_72_SIMS)
     set(LAYERS_DEFAULT "72")
-elseif("${LAYERS_47_SIMS}" MATCHES ".*${RUNDIR_SIM}.*")
+elseif("${RUNDIR_SIM}" IN_LIST LAYERS_47_SIMS)
     set(LAYERS_DEFAULT "47")
 else()
     message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine LAYERS.")

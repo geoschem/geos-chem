@@ -3,6 +3,7 @@ project(GEOS_Chem VERSION 12.0.0 LANGUAGES Fortran C CXX)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
+cmake_policy(SET CMP0057 NEW)
 
 # Add our module path and include our helpers
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/CMakeScripts)
