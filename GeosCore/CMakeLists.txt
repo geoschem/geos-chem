@@ -15,12 +15,11 @@ add_library(Transport STATIC
 target_link_libraries(Transport
 	PUBLIC HCOI ${GC_EXTRA_TARGETS}
 )
-target_compile_options(Transport 
-    PRIVATE     
-        ""
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
-		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8>
-)
+if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
+	set_source_files_properties(tpcore_window_mod.F90 PROPERTIES COMPILE_FLAGS "-r8")
+elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+	set_source_files_properties(tpcore_window_mod.F90 PROPERTIES COMPILE_FLAGS "-fdefault-real-8 -fdefault-double-8")
+endif()
 
 add_library(GeosCore STATIC
 	aero_drydep.F

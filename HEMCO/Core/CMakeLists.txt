@@ -39,8 +39,7 @@ target_link_libraries(HCO
 	PUBLIC History
 )
 target_compile_options(HCO
-    PRIVATE
-        ""
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-form -ffree-line-length-none>
+	PRIVATE
+		""
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-ffree-line-length-none>
 )
-

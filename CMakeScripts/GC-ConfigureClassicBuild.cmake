@@ -373,12 +373,23 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
         DEFAULT
-            -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian -fno-range-check 
-            -funroll-loops -mcmodel=medium -fbacktrace -g 
+            -cpp 
+            -w 
+            -std=legacy 
+            -fautomatic 
+            -fno-align-commons 
+            -fconvert=big-endian 
+            -fno-range-check
+            -mcmodel=medium 
+            -fbacktrace 
+            -g
+            ${OpenMP_Fortran_FLAGS} 
             -DLINUX_GFORTRAN
 
         LOG RESULTING_DEFINES_LOG
     )
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -funroll-loops")
+    set(CMAKE_Fortran_FLAGS_DEBUG "-g -gdwarf-2 -gstrict-dwarf -O0 -Wall -Wextra -Wconversion -Warray-temporaries -fcheck-array-temporaries")
 else()
     message(FATAL_ERROR "${CMAKE_Fortran_COMPILER_ID} Fortran compiler is not currently supported!")
 endif()
