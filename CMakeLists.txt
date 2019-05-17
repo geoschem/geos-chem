@@ -22,6 +22,19 @@ if(NOT CMAKE_BUILD_TYPE)
 	)
 endif()
 
+message(STATUS "Selected compilers:")
+message("    C:       ${CMAKE_C_COMPILER}")
+message("    C++:     ${CMAKE_CXX_COMPILER}")
+message("    Fortran: ${CMAKE_Fortran_COMPILER}")
+message(STATUS "Common CMake variables:")
+message("  + CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+set_dynamic_option(CMAKE_BUILD_TYPE
+	DEFAULT ${CMAKE_BUILD_TYPE}
+	OPTIONS "Release" "Debug"
+	LOG CMAKE_VAR_LOG
+)
+dump_log(CMAKE_VAR_LOG)
+
 # Put all mod files in mod subdirectory
 set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
 target_include_directories(BaseTarget 
