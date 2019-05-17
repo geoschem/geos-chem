@@ -78,7 +78,9 @@ target_link_libraries(RRTMG
 	PUBLIC BaseTarget
 )
 target_compile_options(RRTMG 
-    PRIVATE 
-        -r8 -O1 -override-limits
+	PRIVATE 
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
+		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
+        -O1 -override-limits
 )
 
