@@ -349,3 +349,46 @@ function(get_warning_suppression_flags VARNAME)
         set(${VARNAME} "${FLAGS}" PARENT_SCOPE)     
     endif()
 endfunction()
+
+#[[ file_glob_directories
+
+Returns a list of directories that match globbing expressions.
+
+Usage:
+    file_glob_directories(VAR 
+        [PATTERNS <globbing-expressions> ...]
+        [PATHS    <path 1> ...]
+    )
+
+Options:
+    PATTERNS        Globbing expression to match. Appended to each of PATHS.
+
+    PATHS           Paths to search. Globbing expressions are appended to each.
+    
+]]
+function(file_glob_directories VAR)
+	cmake_parse_arguments(ARGS
+		"" 
+		""
+		"PATTERNS;PATHS" 
+		${ARGN}
+	)
+	set(MATCHED_LIST "")
+	foreach(PREFIX ${ARGS_PATHS})
+        foreach(PATTERN ${ARGS_PATTERNS})
+            if(IS_ABSOLUTE ${PREFIX})
+                file(GLOB MATCHED ${PREFIX}/${PATTERN})
+            else()
+                file(GLOB MATCHED ${CMAKE_BINARY_DIR}/${PREFIX}/${PATTERN})
+            endif()
+            foreach(MATCHED_FILE ${MATCHED})
+                get_filename_component(MATCHED_DIR ${MATCHED_FILE} DIRECTORY)
+                list(APPEND MATCHED_LIST ${MATCHED_DIR})
+            endforeach()
+		endforeach()
+    endforeach()
+    if("${MATCHED_LIST}")
+        list(REMOVE_DUPLICATES MATCHED_LIST)
+    endif()
+	set(${VAR} ${MATCHED_LIST} PARENT_SCOPE)
+endfunction()
