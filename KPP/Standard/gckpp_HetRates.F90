@@ -597,8 +597,8 @@ MODULE GCKPP_HETRATES
       ! Aerosol specific volume, cm3(aerosol)/cm3(air)
       XVOL(1:State_Chm%nAero)  = XAREA(1:State_Chm%nAero) * XRADI(1:State_Chm%nAero) / 3d0
 
-      ! Aerosol water content, cm3(H2O)/cm3(air) 
-      XH2O(1:State_Chm%nAero)  = State_Chm%AeroH2O(I,J,L,:)
+      ! Aerosol water content, cm3(H2O)/cm3(air) [AeroH2O has units g/m3]
+      XH2O(1:State_Chm%nAero)  = State_Chm%AeroH2O(I,J,L,:) * 1e-6_fp
 
       !--------------------------------------------------------------------
       ! Get fields from State_Met, State_Chm, and Input_Opt

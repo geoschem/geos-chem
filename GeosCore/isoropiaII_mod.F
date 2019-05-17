@@ -694,6 +694,7 @@
          ENDIF
 
          ! Additional Info
+         State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
          State_Chm%HplusSav(I,J,L)  = HPLUSTEMP
          State_Chm%WaterSav(I,J,L)  = AERLIQ(8) * 18e+6_fp ! mol/m3 -> ug/m3
          State_Chm%SulratSav(I,J,L) = SULFTEMP
