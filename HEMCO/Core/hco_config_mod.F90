@@ -4714,6 +4714,8 @@ CONTAINS
     SELECT CASE( TRIM( tagId ) )
        CASE( 'ALL'     )
           numTags = HcoConfig%nModelSpc
+       CASE( 'ADV'     )
+          numTags = HcoConfig%nModelAdv
        CASE DEFAULT
           FOUND = .FALSE.
           ErrMsg = 'Handling of tagId ' // TRIM(tagId) // &

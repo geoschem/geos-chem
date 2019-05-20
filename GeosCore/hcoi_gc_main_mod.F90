@@ -280,6 +280,7 @@ CONTAINS
     ! Pass GEOS-Chem species information to HEMCO config object to
     ! facilitate reading GEOS-Chem restart file via HEMCO
     iHcoConfig%nModelSpc = State_Chm%nSpecies
+    iHcoConfig%nModelAdv = State_Chm%nAdvect
     DO N = 1, State_Chm%nSpecies
        ! Get info for this species from the species database
        SpcInfo => State_Chm%SpcData(N)%Info
@@ -826,6 +827,15 @@ CONTAINS
        CALL Get_GC_Restart( am_I_Root, Input_Opt, State_Chm, State_Grid, &
                             State_Met, RC )
     ENDIF
+
+    !=======================================================================
+    ! Get boundary conditions from HEMCO
+    !=======================================================================
+    IF ( State_Grid%NestedGrid .and. (Phase == 0 .or. PHASE == 1) ) THEN
+       CALL Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
+                                     State_Grid, State_Met, RC )
+    ENDIF
+    
 #endif
 
     !=======================================================================
@@ -4656,7 +4666,7 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE Get_Boundary_Conditions( am_I_Root,  Input_Opt, State_Chm, &
-                                     State_Grid, State_Met, Phase,     RC )
+                                     State_Grid, State_Met, RC )
 !
 ! ! USES:
 !
@@ -4676,7 +4686,6 @@ CONTAINS
    LOGICAL,          INTENT(IN   )          :: am_I_Root  ! root CPU?
    TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
    TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
-   INTEGER,          INTENT(IN   )          :: Phase      ! Run phase
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4775,6 +4784,11 @@ CONTAINS
          ! and convert from [mol/mol] to [kg/kg dry]
          State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
 
+         ! Debug
+!         Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
+!                 MINVAL(State_Chm%BoundaryCond(:,:,:,N)), &
+!                 MAXVAL(State_Chm%BoundaryCond(:,:,:,N))
+
          ! Loop over grid boxes and apply BCs to the specified buffer zone
 !$OMP PARALLEL DO                                                       &
 !$OMP DEFAULT( SHARED )                                                 &
@@ -4829,7 +4843,7 @@ CONTAINS
    ! Echo output
    STAMP = TIMESTAMP_STRING()
    WRITE( 6, 110 ) STAMP
-110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at', a )
+110 FORMAT( 'GET_BOUNDARY_CONDITIONS: Found All BCs at ', a )
 
       
  END SUBROUTINE Get_Boundary_Conditions
