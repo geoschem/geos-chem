@@ -558,7 +558,7 @@ CONTAINS
        Inst%CH_DUST = TmpScal
     ELSE
        ! Get global mass flux tuning factor
-       Inst%CH_DUST = HcoX_DustGinoux_GetCHDust( Inst )
+       Inst%CH_DUST = HcoX_DustGinoux_GetCHDust( Inst, HcoState )
        IF ( Inst%CH_DUST < 0.0_dp ) THEN
           RC = HCO_FAIL
           RETURN

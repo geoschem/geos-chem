@@ -177,68 +177,8 @@ CONTAINS
     ThisLoc  = &
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( ESMF_ )
-    !-----------------------------------------------------------------------
-    !          %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-    !
-    ! Pass dimension sizes obtained from the ESMF interface to routine 
-    ! INIT_CMN_SIZE via several optional arguments (i.e. "value_*").  This
-    ! obviates the need to call INIT_CMN_SIZE from a higher level in the
-    ! code (i.e. from GIGC_Chunk_Init in ESMF/gigc_chunk_mod.F90).
-    ! (bmy, 12/3/12)
-    !-----------------------------------------------------------------------
-
-#if defined( MODEL_GEOS )
-    LLTROP = 40
-    ! 132 layers
-    IF ( value_LM==132) LLTROP = 80
-#endif
-
     ! Set dimensions in CMN_SIZE
-    CALL Init_CMN_SIZE( am_I_Root      = am_I_Root,       &
-                        Input_Opt      = Input_Opt,       &
-                        State_Grid     = State_Grid,      &
-                        RC             = RC,              &
-                        value_I_LO     = value_I_LO,      &
-                        value_J_LO     = value_J_LO,      &
-                        value_I_HI     = value_I_HI,      &
-                        value_J_HI     = value_J_HI,      &
-                        value_IM       = value_IM,        &
-                        value_JM       = value_JM,        &
-                        value_LM       = value_LM,        &
-                        value_IM_WORLD = value_IM_WORLD,  &
-                        value_JM_WORLD = value_JM_WORLD,  &
-                        value_LM_WORLD = value_LM_WORLD,  &
-#if defined( MODEL_GEOS )
-                        value_LLTROP   = LLTROP,          &
-                        value_LLSTRAT  = value_LLSTRAT )
-#else
-                        value_LLTROP   = 40,              &
-                        value_LLSTRAT  = 59            )
-#endif
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_Size"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Exit upon error
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-#else
-    !-----------------------------------------------------------------------
-    !          %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-    !
-    ! Current practice in the standard GEOS-Chem is to set dimension sizes
-    ! from parameters IGLOB, JGLOB, LGLOB in CMN_SIZE_mod.F.  Therefore,
-    ! we do not need to call INIT_CMN_SIZE with optional parameters as is
-    ! done when connecting to the ESMF interface.  
-    !-----------------------------------------------------------------------
-
-    ! Set dimensions in CMN_SIZE
-    CALL Init_CMN_SIZE( am_I_Root, Input_Opt, State_Grid, RC )
+    CALL Init_CMN_SIZE( am_I_Root, Input_Opt, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -246,8 +186,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-#endif
 
 #if defined( BPCH_DIAG )
     ! Set dimensions in CMN_DEP_mod.F and allocate arrays
