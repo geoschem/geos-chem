@@ -1005,21 +1005,17 @@
 !               ENDIF
 !            ENDDO
 !
-!#if defined( GRID2x25 )
-!110   FORMAT(91E10.3)
-!#elif defined( GRID4x5 )
-!110   FORMAT(46E10.3)
-!#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-!110   FORMAT(161E10.3)
-!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-!110   FORMAT(202E10.3)
-!#else
-!      ! use 2x25 as default 
-!110   FORMAT(91E10.3)
-!#endif
+!            IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+!110            FORMAT(91E10.3)
+!            ELSE IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+!110            FORMAT(46E10.3)
+!            ELSE
+!               ! use 2x25 as default 
+!110            FORMAT(91E10.3)
+!            ENDIF
 !
 !            CLOSE(IU_FILE)
-
+!
 !            ! Debug
 !            IF (LPRT) THEN
 !               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 

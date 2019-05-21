@@ -1477,11 +1477,11 @@ CONTAINS
 
     ENDWHERE
 
-#if defined( MERRA2 )
-    ! Convert PS2_WET from [Pa] to [hPa]
-    State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
-#endif
-    
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2' ) THEN
+       ! Convert PS2_WET from [Pa] to [hPa]
+       State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+    ENDIF
+
     !======================================================================
     ! Diagnostics, cleanup, and quit
     !======================================================================

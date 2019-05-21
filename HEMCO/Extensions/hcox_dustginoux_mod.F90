@@ -839,11 +839,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION HCOX_DustGinoux_GetChDust( Inst ) RESULT( CH_DUST )
+  FUNCTION HCOX_DustGinoux_GetChDust( Inst, HcoState ) RESULT( CH_DUST )
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(MyInst),    POINTER        :: Inst      ! Instance    
+    TYPE(HCO_State), POINTER        :: HcoState  ! Hemco state 
 !
 ! !RETURN VALUE:
 !
@@ -866,29 +867,29 @@ CONTAINS
     ! Transfer coeff for type natural source  (kg*s2/m5)
     ! Emission reduction factor for China-nested grid domain (win, 4/27/08)
 
-#if defined( GRID4x5 )
+    IF ( TRIM(HcoState%Config%GridRes)  == '4.0x5.0'  ) THEN
 
-    !-----------------------------------------------------------------------
-    ! All 4x5 simulations (including TOMAS)
-    !-----------------------------------------------------------------------
-    Inst%CH_DUST  = 9.375d-10
+       !-----------------------------------------------------------------------
+       ! All 4x5 simulations (including TOMAS)
+       !-----------------------------------------------------------------------
+       Inst%CH_DUST  = 9.375d-10
 
-#else
+    ELSE
 
-    !-----------------------------------------------------------------------
-    ! All other resolutions
-    !-----------------------------------------------------------------------
+       !-----------------------------------------------------------------------
+       ! All other resolutions
+       !-----------------------------------------------------------------------
 
-    ! Start w/ same value as for 4x5
-    Inst%CH_DUST  = 9.375d-10
+       ! Start w/ same value as for 4x5
+       Inst%CH_DUST  = 9.375d-10
 
 #if defined( TOMAS )
-    ! KLUDGE: For TOMAS simulations at grids higher than 4x5 (e.g. 2x25),
-    ! then multiplyCH_DUST by 0.75.  (Sal Farina)
-    Inst%CH_DUST  = Inst%CH_DUST * 0.75d0
+       ! KLUDGE: For TOMAS simulations at grids higher than 4x5 (e.g. 2x25),
+       ! then multiplyCH_DUST by 0.75.  (Sal Farina)
+       Inst%CH_DUST  = Inst%CH_DUST * 0.75d0
 #endif
 
-#endif
+    ENDIF
       
   END FUNCTION HCOX_DustGinoux_GetChDust
 !EOC
