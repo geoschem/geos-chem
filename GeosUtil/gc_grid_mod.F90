@@ -795,8 +795,8 @@ CONTAINS
 !\\
 !\\
 ! This routine does not update the grid box areas (AREA\_M2) of grid\_mod.F90.
-! These need to be updated manually from State_Met%AREA_M2 to maintain consistency
-! with the GEOS-Chem interface to GEOS-5.
+! These need to be updated manually from State\_Grid%AREA\_M2 to maintain
+! consistency with the GEOS-Chem interface to GEOS-5.
 ! !INTERFACE:
 !
   SUBROUTINE SetGridFromCtrEdges( am_I_Root, NX, NY, lonCtr, latCtr, &

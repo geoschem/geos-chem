@@ -72,7 +72,7 @@ CONTAINS
 ! !IROUTINE: get_xlainative_from_hemco
 !
 ! !DESCRIPTION: Copies the MODIS XLAI data from HEMCO pointers into
-!  the State_Met object.
+!  the State\_Met object.
 !\\
 !\\
 ! !INTERFACE:

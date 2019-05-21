@@ -375,7 +375,7 @@
 ! !IROUTINE: Get_Pedge
 !
 ! !DESCRIPTION: Function GET\_PEDGE returns the pressure at the bottom edge 
-!  of level L.  L=1 is the surface, L=State_Grid%NZ+1 is the atm top.
+!  of level L.  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -482,7 +482,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_FULLGRID returns the pressure at the
 !  bottom edge of level L of the unreduced vertical grid.  L=1 is the surface, 
-!  L=LState_Grid%NZ+1 is the atm top.
+!  L=LState\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -529,7 +529,7 @@
 !
 ! !DESCRIPTION: Function GET\_PEDGE\_DRY returns the pressure at the 
 !  bottom edge of level L, reconstructed using the dry surface pressure. 
-!  L=1 is the surface, L=State_Grid%NZ+1 is the atm top.
+!  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:
@@ -574,7 +574,7 @@
 ! !DESCRIPTION: Function GET\_DELP\_DRY returns the delta dry pressure 
 !  between the bottom edge of level L and top edge of level L+1, 
 !  constructed using the dry surface pressure and A and B parameters. 
-!  L=1 is the surface, L=State_Grid%NZ+1 is the atm top.
+!  L=1 is the surface, L=State\_Grid%NZ+1 is the atm top.
 !\\
 !\\
 ! !INTERFACE:

@@ -154,7 +154,7 @@
 ! !IROUTINE: avgpole
 !
 ! !DESCRIPTION: Subroutine AVGPOLE computes average quantity near polar caps, 
-!  defined by (J = 1, 2) and (J = State_Grid%NY-1, State_Grid%NY).  
+!  defined by (J = 1, 2) and (J = State\_Grid%NY-1, State\_Grid%NY).  
 !\\
 !\\
 ! !INTERFACE:

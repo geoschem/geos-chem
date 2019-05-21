@@ -379,7 +379,7 @@ ENDIF
 ! !DESCRIPTION: Subroutine Print\_Global\_Species\_Kg prints the 
 !   global and grid box (I,J,L) mass for species N to log. Species
 !   units can be any unit for which conversion to kg is defined in
-!   the unit conversion module unitconv_mod.
+!   the unit conversion module unitconv\_mod.
 !\\
 !\\
 ! !INTERFACE:

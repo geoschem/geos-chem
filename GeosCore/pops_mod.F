@@ -110,7 +110,7 @@
 !
 ! !DESCRIPTION: Copies manually-archived diagnostic values for the POPs
 !  specialty simulation from the HEMCO state object into the relevant fields 
-!  of the State_Diag object.
+!  of the State\_Diag object.
 !\\
 !\\
 ! !INTERFACE:

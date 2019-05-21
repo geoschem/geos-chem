@@ -10643,7 +10643,7 @@ CONTAINS
 !
 ! !IROUTINE: Init_RRTMG_Indices
 !
-! !DESCRIPTION: Populates fields of State_Diag that are used to keep track
+! !DESCRIPTION: Populates fields of State\_Diag that are used to keep track
 !  of the requested RRTMG flux outputs and their indices.  These are needed
 !  to be able to pass the proper flux output (and corresponding index for
 !  the appropriate netCDF diagnostic arrays) to DO\_RRTMG\_RAD\_TRANSFER.

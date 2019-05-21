@@ -352,7 +352,7 @@ CONTAINS
 ! !IROUTINE: init_landtypefrac
 !
 ! !DESCRIPTION: Attaches pointers from the MODIS XLAI data read in by
-!  HEMCO to the LandTypeFrac field of State_Met.
+!  HEMCO to the LandTypeFrac field of State\_Met.
 !\\
 !\\
 ! !INTERFACE:

@@ -7775,7 +7775,7 @@ ccc
 !
 ! !IROUTINE: sakamoto_size
 !
-! !DESCRIPTION: Function SAKAMOTO_SIZE finds the peak and standard
+! !DESCRIPTION: Function SAKAMOTO\_SIZE finds the peak and standard
 ! deviation of a lognormal distribution parameterized to fit the number
 ! size distribution of the fires in the gridbox 24 hours downwind
 ! of the current fires using K. M. Sakamoto's parameterization from her
