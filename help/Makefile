@@ -78,7 +78,6 @@ help:
 	@echo 'tauclean        Removes *.pdb, *.inst, *.pp, and *.continue.* files produced by TAU'
 	@echo 'help            Displays this help screen'
 #-----------------------------------------------------------------------------
-# Prior to 5/16/18:
 # Comment out until GTMM is restored.  GTMM hasn't worked for a long time.
 # (bmy, 5/16/18)
 #	@echo ''	       

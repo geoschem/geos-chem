@@ -1289,11 +1289,6 @@
                ! Save afternoon points
                Q(X,Y,K,W) = Q(X,Y,K,W) + TMP
 
-!-----------------------------------------------------------------------------
-! Prior to 5/11/18:
-! Only archive ISOPRENE AOD for Complex SOA (bmy, 5/11/18)
-!            ELSE IF ( N == 538 ) THEN
-!-----------------------------------------------------------------------------
             ELSE IF ( N == 538 .and. Input_Opt%LSOA ) THEN
 
                !--------------------------------------
@@ -1619,13 +1614,6 @@
 
          SELECT CASE( Input_Opt%ND51_TRACERS(W) )
 
-            !----------------------------------------------------------
-            ! Prior to 10/4/18:
-            ! NOTE: 91 used to be pure O3, 92 used to be NO2, but
-            ! used to be OH, but these are now species and are saved
-            ! at all levels. (bmy, 10/4/18)
-            !CASE( 91, 92, 76, 77 )
-            !----------------------------------------------------------
             CASE( 502 )
                !--------------------------------------------------------
                ! Avoid div by zero for species which are archived each

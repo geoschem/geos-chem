@@ -59,11 +59,6 @@
       PUBLIC  :: GET_MINUTE
       PUBLIC  :: GET_SECOND
       PUBLIC  :: GET_DAY_OF_YEAR
-!------------------------------------------------------------------------------
-! Prior to 3/11/19:
-!      PUBLIC  :: GET_DAY_OF_WEEK
-!      PUBLIC  :: GET_DAY_OF_WEEK_LT
-!------------------------------------------------------------------------------
       PUBLIC  :: GET_GMT
       PUBLIC  :: GET_TAU
       PUBLIC  :: GET_TAUb
@@ -1754,122 +1749,6 @@
 
       END FUNCTION GET_DAY_OF_YEAR
 !EOC
-!==============================================================================
-! Prior to 3/11/19:
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Get_day_of_week
-!!
-!! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK returns the day of the week (with
-!!  respect to GREENWICH MEAN TIME) as a number: Sun=0, Mon=1, Tue=2, Wed=3,
-!!  Thu=4, Fri=5, Sat=6.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_DAY_OF_WEEK() RESULT( DAY_NUM )
-!!
-!! !USES:
-!!
-!      USE JULDAY_MOD, ONLY : JULDAY
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER :: DAY_NUM   ! Day number of week
-!! 
-!! !REVISION HISTORY: 
-!!  05 Feb 2003 - R. Yantosca - Initial Version
-!!  15 Jan 2010 - R. Yantosca - Added ProTeX headers
-!!  14 Jun 2013 - R. Yantosca - Now move computation to SET_CURRENT_TIME
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!! 
-!      ! Return the day of week w/r/t GMT date
-!      ! (stored in module variable DAY_OF_WEEK)
-!      DAY_NUM = DAY_OF_WEEK
-!
-!      END FUNCTION GET_DAY_OF_WEEK
-!!EOC
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Get_day_of_week_lt
-!!
-!! !DESCRIPTION: Function GET\_DAY\_OF\_WEEK\_LT returns the day of the week
-!!  (with repect to the SOLAR LOCAL TIME AT GRID BOX [I,J,L]) as a number:
-!!  Sun=0, Mon=1, Tue=2, Wed=3, Thu=4, Fri=5, Sat=6.
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_DAY_OF_WEEK_LT( I, J, L, State_Grid ) RESULT( DAY_NUM )
-!!
-!! !USES:
-!!
-!      USE State_Grid_Mod, ONLY : GrdState
-!!
-!! !INPUT PARAMETERS:
-!!
-!      INTEGER, INTENT(IN) :: I         ! Grid box lon index
-!      INTEGER, INTENT(IN) :: J         ! Grid box lat index
-!      INTEGER, INTENT(IN) :: L         ! Grid box level index
-!!
-!! !RETURN VALUE:
-!!
-!      INTEGER             :: DAY_NUM   ! Day of week, w/r/t local time
-!! 
-!! !REMARKS:
-!!  This routine is used by various emissions routines, in order to determine
-!!  whether weekday or weekend emissions need to be applied.
-!!
-!! !REVISION HISTORY: 
-!!  13 Jun 2013 - R. Yantosca - Initial version
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!      REAL(f8) :: DOW_LOCAL, LOCAL_TIME
-!
-!      !=================================================================
-!      ! GET_DAY_OF_WEEK begins here!
-!      !=================================================================
-!
-!      ! Get the local time [hrs] at grid box (I,J,L),
-!      ! but do not force it into the range of [0..24] hours.
-!      LOCAL_TIME = GMT + ( GET_XMID( I, J, L ) / 15e+0_f8 )
-!
-!      ! Add the local fraction of day elapsed to the day of week 
-!      ! obtained w/r/t the GREENWICH MEAN TIME.  This accounts for 
-!      ! the distance of grid box (I,J,L) from the Greenwich meridian.
-!      DOW_LOCAL  = DBLE( DAY_OF_WEEK ) + ( LOCAL_TIME / 24e+0_f8 )
-!
-!      ! If DOW_LOCAL is negative, then we need to add 7.
-!      ! This means that the day of week w/r/t GMT is Sunday
-!      ! but that it is still Saturday at grid box (I,J,L).
-!      IF ( DOW_LOCAL < 0e+0_f8 ) THEN
-!         DOW_LOCAL = DOW_LOCAL + 7e+0_f8
-!      ENDIF
-!
-!      ! Force the day of week w/r/t LOCAL TIME to fall 
-!      ! within the range 0 (Sunday) thru 6 (Saturday).
-!      DOW_LOCAL  = MOD( DOW_LOCAL, 7e+0_f8 ) 
-!
-!      ! Cast to integer and return result
-!      DAY_NUM    = INT( DOW_LOCAL )
-!    
-!      END FUNCTION GET_DAY_OF_WEEK_LT
-!!EOC
-!==============================================================================
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

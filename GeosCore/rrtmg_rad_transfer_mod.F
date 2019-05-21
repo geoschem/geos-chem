@@ -727,14 +727,6 @@
             WRITE(6,*) 'ALBEDO DFNIR OUT OF RANGE',I,J,ALBDIFNIR(I,J)
          ENDIF
 
-         !-------------------------------------------------
-         ! Prior to 11/2/18:
-         ! IB_SW is not used in this loop (bmy, 11/2/18)
-         !DO IB= 1, NBNDS
-         !   IB_SW = IB-NBNDLW
-         !ENDDO
-         !-------------------------------------------------
-
          ! Assign the MODIS emissivity pointers from HEMCO to the
          ! different slots of the RTEMISS array (for each spectral band)
          ! Hardcode the assignments, which is much faster (bmy, 11/2/18)

@@ -28,11 +28,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: CHEM_TAGGED_CO
-!----------------------------------------
-! Prior to 10/11/18:
-! Comment out for now (bmy, 10/11/18)
-!      PUBLIC  :: GET_ALPHA_ISOP
-!----------------------------------------
       PUBLIC  :: INIT_TAGGED_CO
       PUBLIC  :: CLEANUP_TAGGED_CO
 !
@@ -808,16 +803,6 @@
                ! as a constant. (bnd, bmy, 6/14/01)
                !=======================================================
 
-               !--------------------------------------------------------
-               ! Prior to 10/11/18:
-               ! Disable this routine for now, to avoid a call
-               ! to ERROR_STOP within a parallel loop.  We currently
-               ! set ALPHA_ISOP to a constant value anyway.
-               ! (bmy, 10/11/18)
-               !! Get CO yield from isoprene
-               !ALPHA_ISOP = GET_ALPHA_ISOP( .FALSE. )
-               !--------------------------------------------------------
-                             
                ! Get CO yield from ISOPRENE
                ! Use a 30% yield from Miyoshi et al., 1994.
                ! They estimate globally 105 Tg C/yr of CO is produced
@@ -1455,94 +1440,6 @@
       ! Return to calling program
       END SUBROUTINE CALC_DIURNAL
 
-!EOC
-!------------------------------------------------------------------------------
-! Prior to 10/11/18:
-! Comment out this subroutine for now, it's not used (bmy, 10/11/18)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: get_alpha_isop
-!!
-!! !DESCRIPTION: Function GET\_ALPHA\_ISOP returns the CO yield from 
-!!  Isoprene (ALPHA\_ISOP) either as a function of NOx or as a constant. 
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!      FUNCTION GET_ALPHA_ISOP( FROM_NOX, NOX ) RESULT( ALPHA_ISOP )
-!!
-!! !USES:
-!!
-!      USE ERROR_MOD, ONLY : ERROR_STOP
-!!
-!! !INPUT PARAMETERS: 
-!!
-!      LOGICAL,  INTENT(IN)           :: FROM_NOX   ! If =T, will take ALPHA_ISOP
-!                                                   ! as f(NOx).  If =F, will set
-!                                                   ! ALPHA_ISOP to a constant
-!      REAL(fp), INTENT(IN), OPTIONAL :: NOX        ! NOx concentration [ppbv]
-!!
-!!
-!! !RETURN VALUE:
-!!
-!      REAL(fp)                       :: ALPHA_ISOP  ! CO yield from ISOP
-!! 
-!! !REVISION HISTORY: 
-!!  13 Jun 2001 - B. Duncan - Initial version
-!!  01 Oct 1995 - R. Yantosca - Initial version
-!!  (1 ) Now make NOx an optional argument (bmy, 8/28/01)
-!!  (2 ) Now reference ERROR_STOP from "error_mod.f" (bmy, 10/15/02)
-!!  (3 ) Updated comments (bmy, 7/20/04)
-!!  23 Oct 2012 - R. Yantosca - Added ProTeX headers
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!      
-!      ! Assume success
-!      RC = GC_SUCCESS
-!
-!      !=================================================================
-!      ! If FROM_NOX = T, then we are taking the CO yield from Isoprene 
-!      ! as a function of NOx.  Otherwise, we set it to a constant.
-!      !=================================================================
-!      IF ( FROM_NOX ) THEN
-!
-!         ! Make sure NOX is passed if FROM_NOX = TRUE
-!         IF ( PRESENT( NOX ) ) THEN
-!
-!            ! The CO yield here is taken from acf's calculation 
-!            ! (from group meeting (1-20-99).  Assumming linearity, 
-!            ! ALPHA=0.8*[NOx]+0.6, with an upper and lower limit of 2.1 
-!            ! and 0.8, respectively. [NOx] is concentration in ppbv !!
-!            ALPHA_ISOP = ( 0.8e+0_fp * NOX ) + 0.6e+0_fp
-!
-!            ! Force lower & upper limits
-!            IF ( NOX < 0.5e+0_fp ) ALPHA_ISOP = 0.8e+0_fp
-!            IF ( NOX > 1.8e+0_fp ) ALPHA_ISOP = 2.1e+0_fp
-!         
-!         ELSE
-!
-!            ! Stop w/ error message
-!            CALL ERROR_STOP( 'NOx argument not passed!',
-!     &                       ' -> at GET_ALPHA_ISOP (tagged_co_mod.f)' )
-!            RETURN
-!
-!         ENDIF
-!   
-!      ELSE
-!
-!         ! Otherwise, use a 30% yield from Miyoshi et al., 1994.
-!         ! They estimate globally 105 Tg C/yr of CO is produced
-!         ! from isoprene oxidation.
-!         ! ALPHA_ISOP = (0.3 molec CO/atoms C) x (5 atoms C/molec ISOP)
-!         ALPHA_ISOP = 1.5e+0_fp
-!
-!      ENDIF
-!      
-!      END FUNCTION GET_ALPHA_ISOP
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

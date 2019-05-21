@@ -1401,19 +1401,6 @@
             IF ( ND03 > 0 .AND. L <= LD03 ) THEN 
 
                ! Store chemistry diagnostics only for total species
-               !--------------------------------------------------------------
-               ! Prior to 10/24/18:
-               ! According to Colin Thackray, these are Hg2 diagnostics,
-               ! that should only get updated once per timestep, for the
-               ! total Hg2 species (i.e. category N==1).  Therefore, these
-               ! diagnostics will not archive the tagged Hg2 species.
-               !
-               ! Also, the IF ( Hg0_Id_List(N) == ID_Hg_TOT ) is confusing,
-               ! but in essence it is just testing if N ==1.  Therefore we
-               ! have replaced that with IF ( N==1 ) which is much clearer
-               ! to the reader. (bmy, 10/24/18)
-               !IF ( Hg0_Id_List(N) == ID_Hg_TOT) THEN
-               !--------------------------------------------------------------
                IF ( N == 1 ) THEN
 
                   ! Net oxidation [kg]

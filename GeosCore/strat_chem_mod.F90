@@ -68,11 +68,6 @@ MODULE Strat_Chem_Mod
   PUBLIC  :: Init_Strat_Chem
   PUBLIC  :: Do_Strat_Chem
   PUBLIC  :: Cleanup_Strat_Chem
-!----------------------------------------------------------------------------
-! Prior to 8/9/18:
-! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
-!  PUBLIC  :: Calc_STE
-!----------------------------------------------------------------------------
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -193,12 +188,6 @@ MODULE Strat_Chem_Mod
   INTEGER               :: NymdInit, NhmsInit  ! Initial date
   REAL(fp)              :: TpauseL_Cnt         ! Tropopause counter
   REAL(fp), ALLOCATABLE :: TpauseL(:,:)        ! Tropopause level aggregator
-!-----------------------------------------------------------------------------
-! Prior to 3/28/19:
-! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
-! routine, which has likewise been commented out. (bmy, 3/29/18)
-!  REAL(f4), ALLOCATABLE :: MInit(:,:,:,:)      ! Init. atm. state for STE period
-!-----------------------------------------------------------------------------
   REAL(f4), ALLOCATABLE :: SChem_Tend(:,:,:,:) ! Stratospheric chemical tendency
                                                !   (total P - L) [kg period-1]
   ! Species ID flags
@@ -437,27 +426,6 @@ CONTAINS
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### STRAT_CHEM: at DO_STRAT_CHEM' )
     ENDIF
-
-!-----------------------------------------------------------------------------
-! Prior to 3/28/19:
-! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
-! routine, which has likewise been commented out. (bmy, 3/29/18)
-!
-!#if defined( ESMF_ )
-!    ! Eventually set Minit if in ESMF environment (ckeller, 4/6/16)
-!    IF ( .NOT. Minit_Is_Set ) THEN
-!       CALL SET_MINIT( am_I_Root,  Input_Opt, State_Chm, &
-!                       State_Grid, State_Met, errCode )
-!
-!       ! Trap potential errors
-!       IF ( errCode /= GC_SUCCESS ) THEN
-!          ErrMsg = 'Error encountered in "Set_Minit"!'
-!          CALL GC_Error( ErrMsg, errCode, ThisLoc )
-!          RETURN
-!       ENDIF
-!    ENDIF
-!#endif
-!-----------------------------------------------------------------------------
 
     !======================-================================================
     ! FULL CHEMISTRY SIMULATIONS
@@ -1244,255 +1212,6 @@ CONTAINS
   END SUBROUTINE Set_PLVEC
 !EOC
 !------------------------------------------------------------------------------
-! Prior to 8/9/18:
-! Disable CALC_STE routine, which can give misleading STE info (bmy, 8/9/18)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Calc_Ste
-!!
-!! !DESCRIPTION: Subroutine CALC\_STE estimates what the stratosphere-to-
-!!               troposphere exchange flux must have been since the last time
-!!               it was reset
-!!\\
-!!\\
-!! !INTERFACE:
-!!
-!  SUBROUTINE Calc_STE( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
-!!
-!! !USES:
-!!
-!    USE CMN_SIZE_MOD
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod,      ONLY : OptInput
-!    USE Species_Mod,        ONLY : Species
-!    USE State_Chm_Mod,      ONLY : ChmState
-!    USE State_Met_Mod,      ONLY : MetState
-!    USE TIME_MOD,   ONLY : GET_TAU, GET_NYMD, GET_NHMS, EXPAND_DATE
-!    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-!
-!    IMPLICIT NONE
-!!
-!! !INPUT PARAMETERS:
-!!
-!      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
-!      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!!
-!! !REVISION HISTORY: 
-!!  28 Apr 2012 - L. Murray   - Initial version
-!!  18 Jul 2012 - R. Yantosca - Make sure I is the innermost DO loop
-!!                              (wherever expedient)
-!!  20 Jul 2012 - R. Yantosca - Reorganized declarations for clarity
-!!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!!                              running with the traditional driver main.F
-!!  05 Oct 2012 - R. Yantosca - Bug fix for IFORT 12: extend the #if statement
-!!                              to avoid including code for nested-grid sims
-!!  25 Mar 2013 - R. Yantosca - Now accept Input_Opt, State_Chm, RC arguments
-!!  20 Aug 2013 - R. Yantosca - Removed "define.h", this is now obsolete
-!!  10 Aug 2015 - E. Lundgren - Input tracer concentraiton units are now [kg/kg]
-!!  25 May 2016 - E. Lundgren - Replace input_opt%TRACER_MW_KG with species
-!!                              database field emMW_g (emitted species g/mol)
-!!  30 Jun 2016 - R. Yantosca - Remove instances of STT.  Now get the advected
-!!                              species ID from State_Chm%Map_Advect.
-!!  01 Jul 2016 - R. Yantosca - Now rename species DB object ThisSpc to SpcInfo
-!!  10 Aug 2016 - R. Yantosca - Remove temporary tracer-removal code
-!!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!
-!    ! Strings
-!    CHARACTER(LEN=255)     :: dateStart, dateEnd
-!
-!    ! Scalars
-!    INTEGER                :: N,         I,       J,    L
-!    INTEGER                :: nAdvect,   NA,      NN
-!    REAL(fp)               :: dStrat,    STE,     Tend, tauEnd, dt
-!    CHARACTER(LEN=63)      :: OrigUnit
-!
-!    ! Arrays
-!    INTEGER                :: LTP(State_Grid%NX,State_Grid%NY      )
-!    REAL(fp)               :: M1 (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!    REAL(fp)               :: M2 (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-!
-!
-!    ! Pointers
-!    REAL(fp),      POINTER :: Spc(:,:,:,:)
-!    TYPE(Species), POINTER :: SpcInfo
-!
-!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!    ! By simple mass balance, dStrat/dt = P - L - STE,
-!    ! where STE is the net stratosphere-to-troposphere mass exchange. 
-!    !
-!    ! Therefore, we estimate STE as
-!    !   STE = (P-L) - dStrat/dt
-!    !
-!    ! As the tropopause is dynamic, we use the mean tropopause level during
-!    ! the period for determining initial and end stratospheric masses. 
-!    ! (ltm, 04/28/2012)
-!    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!
-!    ! Assume success
-!    RC      = GC_SUCCESS
-!
-!    ! Number of advected species
-!    nAdvect = State_Chm%nAdvect
-!
-!#if defined( NESTED_NA ) || defined( NESTED_CH ) || defined( NESTED_EU ) || defined( NESTED_AS )
-!    ! This method only works for a global domain.
-!    ! It could be modified for nested domains if the total mass flux across the
-!    ! boundaries during the period is taken into account.
-!    RETURN
-!#else
-!
-!    ! Convert State_Chm%SPECIES to [kg] (ewl, 8/10/15)
-!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-!                            State_Grid, State_Met, 'kg',      &
-!                            RC,         OrigUnit=OrigUnit )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error('Unit conversion error', RC, &
-!                     'Calc_STE in strat_chem_mod.F')
-!       RETURN
-!    ENDIF  
-!
-!    ! Point to chemical species array [kg]
-!    Spc => State_Chm%Species
-!
-!    ! Determine mean tropopause level for the period
-!    !$OMP PARALLEL DO                               &
-!    !$OMP DEFAULT( SHARED )                         &
-!    !$OMP PRIVATE( I,  J  )
-!    DO J = 1,State_Grid%NY
-!    DO I = 1,State_Grid%NX
-!       LTP(I,J) = NINT( TPauseL(I,J) / TPauseL_Cnt )
-!    ENDDO
-!    ENDDO
-!    !$OMP END PARALLEL DO
-!
-!    ! Period over which STE is being determined [a]
-!    tauEnd = GET_TAU() ! [h]
-!    dt = ( tauEnd - tauInit ) / 24e+0_fp / 365.25e+0_fp
-!
-!    dateStart = 'YYYY-MM-DD hh:mm'
-!    CALL EXPAND_DATE(dateStart,NymdInit,NhmsInit)
-!    dateEnd = 'YYYY-MM-DD hh:mm'
-!    CALL EXPAND_DATE(dateEnd,GET_NYMD(),GET_NHMS())
-!
-!    ! Print to output
-!    IF ( am_I_Root ) THEN
-!       WRITE( 6, * ) ''
-!       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-!       WRITE( 6, '(a)' ) '  Strat-Trop Exchange'
-!       WRITE( 6, '(a)' ) REPEAT( '-', 79 )
-!       WRITE( 6, '(a)' ) &
-!            '  Global stratosphere-to-troposphere fluxes estimated over'
-!       WRITE( 6, 100 ) TRIM(dateStart), TRIM(dateEnd)
-!       WRITE( 6, * ) ''
-!       WRITE( 6, 110 ) 'Species','[moles a-1]','* [g/mol]','= [Tg a-1]'
-!    ENDIF
-!100 FORMAT( 2x,a16,' to ',a16 )
-!110 FORMAT( 2x,a8,':',4x,a11  ,4x,a9  ,4x,  a11 )
-!
-!    ! Loop over only the advected species
-!    DO NA = 1, nAdvect
-!
-!       ! Get the species ID from the advected species ID
-!       N = State_Chm%Map_Advect(NA)
-!    
-!       ! Populate before (M1) and after (M2) state for the species [kg]
-!       M1 = MInit(:,:,:,NA)             
-!       M2 =   Spc(:,:,:,N )
-!
-!       ! Zero out troposphere and determine total change in the stratospheric
-!       ! burden of species N (dStrat) [kg]
-!       !$OMP PARALLEL DO &
-!       !$OMP DEFAULT( SHARED ) &
-!       !$OMP PRIVATE( I,  J  )
-!       DO J = 1, State_Grid%NY  
-!       DO I = 1, State_Grid%NX
-!          M2(I,J,1:LTP(I,J)) = 0e+0_fp
-!          M1(I,J,1:LTP(I,J)) = 0e+0_fp
-!       ENDDO
-!       ENDDO
-!       !$OMP END PARALLEL DO
-!       dStrat   = SUM(M2)-SUM(M1)
-!
-!       ! The total chemical tendency (P-L) over the period for species N [kg]
-!       ! Schem_tend is computed in this module for tropchem simulations and
-!       ! in flexchem_mod.F90 for UCX simulations
-!       Tend   = SUM(Schem_tend(:,:,:,N))
-!
-!       ! Calculate flux as STE = (P-L) - dStrat/dt
-!       STE = (Tend-dStrat)/dt ! [kg a-1]
-!
-!       ! Get info about this species from the species database
-!       SpcInfo => State_Chm%SpcData(N)%Info
-!
-!       ! Print to standard output
-!       IF ( am_I_Root ) THEN
-!          WRITE(6,120) TRIM( SpcInfo%Name ),                  &
-!               STE / (SpcInfo%emMW_g * 1.e-3_fp),             & ! mol/a-1
-!               SpcInfo%emMW_g,                                & ! g/mol
-!               STE * 1e-9_fp                                  ! Tg a-1
-!       ENDIF 
-!    ENDDO
-!
-!120 FORMAT( 2x,a8,':',4x,e11.3,4x,f9.1,4x,f11.4 )
-!
-!    IF ( am_I_Root ) THEN
-!       WRITE( 6, * ) ''
-!       WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
-!       WRITE( 6, * ) ''
-!    ENDIF
-!
-!    ! Reset variables for next STE period
-!    NymdInit             = GET_NYMD()
-!    NhmsInit             = GET_NHMS()
-!    TauInit              = GET_TAU()
-!    TPauseL_Cnt          = 0e+0_fp
-!    TPauseL(:,:)         = 0e+0_fp
-!    SChem_tend(:,:,:,:)  = 0e+0_fp
-!
-!    ! Loop over only the advected species
-!    DO NA = 1, nAdvect
-!
-!       ! Get the species ID from the advected species ID
-!       N = State_Chm%Map_Advect(NA)
-!       
-!       ! Reset MINIT for next STE period
-!       MInit(:,:,:,NA)  = Spc(:,:,:,N)
-!
-!    ENDDO
-!
-!    ! Convert species units back to original unit 
-!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-!                            State_Grid, State_Met, OrigUnit,  RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       CALL GC_Error('Unit conversion error', RC, &
-!                     'Calc_STE in strat_chem_mod.F')
-!       RETURN
-!    ENDIF  
-!
-!    ! Free pointers
-!    Spc     => NULL()
-!    SpcInfo => NULL()
-!#endif
-!  END SUBROUTINE Calc_STE
-!!EOC
-!------------------------------------------------------------------------------
-!------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -1868,32 +1587,6 @@ CONTAINS
     ! Allocate and initialize arrays for STE calculation !
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 
-!-----------------------------------------------------------------------------
-! Prior to 3/28/19:
-! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
-! routine, which has likewise been commented out. (bmy, 3/29/18)
-!
-!    ! Array to hold initial state of atmosphere at the beginning
-!    ! of the period over which to estimate STE. Populate with
-!    ! initial atm. conditions from restart file converted to [kg/kg].
-!    ALLOCATE( MInit( State_Grid%NX, State_Grid%NY, State_Grid%NZ, nAdvect ), &
-!              STAT=AS )
-!    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MInit' )
-!    MInit = 0.0_fp
-!
-!#if !defined( ESMF_ ) && !defined( MODEL_WRF )
-!    ! Set MINIT. Ignore in ESMF environment because State_Chm%Species
-!    ! is not yet filled during initialization. (ckeller, 4/6/16)
-!    CALL SET_MINIT( am_I_Root,  Input_Opt, State_Chm, &
-!                    State_Grid, State_Met, RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Error encountered in routine "Set_MInit"!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!#endif
-!------------------------------------------------------------------------------
-
     ! Array to determine the mean tropopause level over the period
     ! for which STE is being estimated.
     ALLOCATE( TPAUSEL( State_Grid%NX, State_Grid%NY ), STAT=AS )
@@ -1911,128 +1604,6 @@ CONTAINS
 
   END SUBROUTINE INIT_STRAT_CHEM
 !EOC
-!-----------------------------------------------------------------------------
-! Prior to 3/28/19:
-! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
-! routine, which has likewise been commented out. (bmy, 3/29/18)
-!!------------------------------------------------------------------------------
-!!                  GEOS-Chem Global Chemical Transport Model                  !
-!!------------------------------------------------------------------------------
-!!BOP
-!!
-!! !IROUTINE: Set_Minit 
-!!
-!! !DESCRIPTION: Sets the MINIT array to current values in State\_Chm%Species.
-!!\\
-!!\\
-!! !INTERFACE:
-!!      
-!  SUBROUTINE SET_MINIT( am_I_Root,  Input_Opt, State_Chm, 
-!                        State_Grid, State_Met, RC )
-!!
-!! !USES:
-!!
-!    USE ErrCode_Mod
-!    USE Input_Opt_Mod,  ONLY : OptInput
-!    USE State_Chm_Mod,  ONLY : ChmState
-!    USE State_Grid_Mod, ONLY : GrdState
-!    USE State_Met_Mod,  ONLY : MetState
-!    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
-!
-!    IMPLICIT NONE
-!!
-!! !INPUT PARAMETERS:
-!!
-!    LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
-!    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-!    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-!!
-!! !INPUT/OUTPUT PARAMETERS:
-!!
-!    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!!
-!! !OUTPUT PARAMETERS:
-!!
-!    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!! 
-!! !REVISION HISTORY:
-!!  06 Apr 2016 - C. Keller   - Initial version: moved outside of 
-!!                              INIT_STRAT_CHEM so that it can be called from
-!!                              within DO_STRAT_CHEM (for ESMF applications).
-!!  15 Mar 2017 - E. Lundgren - Add unit catch and error handling
-!!  26 Jun 2017 - R. Yantosca - GC_ERROR is now contained in errcode_mod.F90
-!!  28 Sep 2017 - E. Lundgren - Simplify unit conversions using wrapper routine
-!!EOP
-!!------------------------------------------------------------------------------
-!!BOC
-!!
-!! !LOCAL VARIABLES:
-!!
-!    ! Scalars
-!    INTEGER            :: N, NA
-!    LOGICAL            :: UNITCHANGE
-!
-!    ! Strings
-!    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-!    CHARACTER(LEN=63)  :: OrigUnit
-!
-!    !=================================================================
-!    ! SET_MINIT begins here!
-!    !=================================================================
-!    
-!    ! Initialize
-!    RC      = GC_SUCCESS
-!    ErrMsg  = ''
-!    ThisLoc = '-> Set_MInit (in GeosCore/strat_chem_mod.F90)'
-!
-!    ! Assume no unit change is necessary and species are already in kg
-!    UNITCHANGE = .FALSE.
-!
-!    ! Safety check that the advected species are non-zero.
-!    IF ( SUM( State_Chm%Species(:,:,:,1:State_Chm%nAdvect) ) <= 0.0_fp ) THEN
-!       ErrMsg = 'One or more advected species have negative concentrations!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
-!
-!    ! Convert species to [kg] so that initial state of atmosphere is 
-!    ! in same units as chemistry (ewl, 8/10/15)
-!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-!                            State_Grid, State_Met, 'kg', RC,  &
-!                            OrigUnit=OrigUnit )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Unit conversion error!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF 
-!
-!    ! Loop over only the advected species
-!    DO NA = 1, State_Chm%nAdvect
-!
-!       ! Get the species ID from the advected species ID
-!       N = State_Chm%Map_Advect(NA)
-!
-!       ! Save initial conditions in MINIT
-!       MInit(:,:,:,NA) = State_Chm%Species(:,:,:,N)
-!
-!    ENDDO
-!
-!    ! Convert species units back to original unit 
-!    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
-!                            State_Grid, State_Met, OrigUnit,  RC )
-!    IF ( RC /= GC_SUCCESS ) THEN
-!       ErrMsg = 'Unit conversion error!'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF  
-!
-!    ! Minit is now set
-!    MInit_Is_Set = .TRUE.
-!
-!  END SUBROUTINE SET_MINIT 
-!EOC
-!------------------------------------------------------------------------------
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -2062,12 +1633,6 @@ CONTAINS
     INTEGER :: I
 
     ! Deallocate arrays
-!-----------------------------------------------------------------------------
-! Prior to 3/28/19:
-! To save memory, we can comment out MINIT.  It is only used in the CALC_STE
-! routine, which has likewise been commented out. (bmy, 3/29/18)
-!    IF ( ALLOCATED( MInit          ) ) DEALLOCATE( MInit          )
-!-----------------------------------------------------------------------------
     IF ( ALLOCATED( TPAUSEL        ) ) DEALLOCATE( TPAUSEL        )
     IF ( ALLOCATED( SCHEM_TEND     ) ) DEALLOCATE( SCHEM_TEND     )
     IF ( ALLOCATED( TrName         ) ) DEALLOCATE( TrName         )

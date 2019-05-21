@@ -2247,16 +2247,6 @@
      &                    ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-!--------------------------------------------------------------------------
-! Prior to 1/26/18:
-! NOTE: These will always be zero, so remove (bmy, 1/26/18)
-!            ! Store L(OH) by DMS [kg OH/timestep]
-!            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
-!            
-!            ! Store L(NO3) by DMS [kg NO3/timestep]
-!            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
-!--------------------------------------------------------------------------
-
          ENDIF
 #endif
 
