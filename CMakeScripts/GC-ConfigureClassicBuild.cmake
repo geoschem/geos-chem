@@ -17,7 +17,7 @@ three things:
 #[[--------------------------------------------------------------------------]]
 #[[     Finding dependencies.                                                ]]
 #[[--------------------------------------------------------------------------]]
-find_package(NetCDF REQUIRED COMPONENTS F90)
+find_package(NetCDF REQUIRED)
 find_package(OpenMP REQUIRED)
 
 # Set BaseTarget properties
