@@ -49,6 +49,7 @@ MODULE State_Met_Mod
      ! Surface fields
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: ALBD          (:,:  ) ! Visible surface albedo [1]
+     REAL(fp), POINTER :: AREA_M2       (:,:  ) ! Grid box surface area [m2]
      INTEGER,  POINTER :: ChemGridLev   (:,:  ) ! Chemistry grid level
      REAL(fp), POINTER :: CLDFRC        (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS       (:,:  ) ! Max cloud top height [levels]
@@ -415,7 +416,7 @@ CONTAINS
     ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
 
     ! Shorten grid parameters for readability
-    IM = State_grid%NX ! # latitudes
+    IM = State_Grid%NX ! # latitudes
     JM = State_Grid%NY ! # longitudes
     LM = State_Grid%NZ ! # levels
 
@@ -423,6 +424,7 @@ CONTAINS
     ! Nullify all fields for safety's sake before allocating them
     !=======================================================================
     State_Met%ALBD           => NULL()
+    State_Met%AREA_M2        => NULL()
     State_Met%ChemGridLev    => NULL()
     State_Met%CLDFRC         => NULL()
     State_Met%CLDTOPS        => NULL()
@@ -558,6 +560,16 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-------------------------
+    ! AREA_M2 [m2]
+    !-------------------------
+    ALLOCATE( State_Met%AREA_M2( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%AREA_M2 = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'AREA_M2', State_Met%AREA_M2, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! ChemGridLev [1]
@@ -2036,6 +2048,13 @@ CONTAINS
        State_Met%ALBD => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
+       DEALLOCATE( State_Met%AREA_M2, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AREA_M2 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%ChemGridLev ) ) THEN
        DEALLOCATE( State_Met%ChemGridLev, STAT=RC )
        CALL GC_CheckVar( 'State_Met%ChemGridLev', 2, RC )
@@ -3220,6 +3239,11 @@ CONTAINS
        CASE ( 'ALBD' )
           IF ( isDesc  ) Desc  = 'Visible surface albedo'
           IF ( isUnits ) Units = '1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'AREA' )
+          IF ( isDesc  ) Desc  = 'Surface area of grid box'
+          IF ( isUnits ) Units = 'm2'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'CHEMGRIDLEV' )

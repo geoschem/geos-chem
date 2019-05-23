@@ -505,6 +505,15 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! KLUDGE (mps, 5/23/19):
+      ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks, which
+      ! require the AREA_M2 field saved out to the StateMet diagnostic
+      ! collection for things like computing emission totals.
+      !
+      State_Met%Area_M2 = State_Grid%Area_M2
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem.
