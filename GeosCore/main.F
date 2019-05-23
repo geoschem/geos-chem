@@ -2519,6 +2519,14 @@
       ENDIF
       IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Diag' )
 
+      ! Deallocate fields of the Grid State object
+      CALL Cleanup_State_Grid( am_I_Root, State_Grid, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_State_grid"!'
+         CALL Error_Stop( ErrMsg, ThisLoc )
+      ENDIF
+      IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a cleanup State_Grid' )
+
       ! Deallocate fields of the Meteorology State object
       CALL Cleanup_State_Met( am_I_Root, State_Met, RC )
       IF ( RC /= GC_SUCCESS ) THEN
