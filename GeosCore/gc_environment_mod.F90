@@ -391,7 +391,9 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
     USE GC_Grid_Mod,        ONLY : Compute_Grid
+#endif
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : Allocate_State_Grid
     USE State_Grid_Mod,     ONLY : GrdState

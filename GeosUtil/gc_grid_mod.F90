@@ -29,8 +29,9 @@ MODULE GC_Grid_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
   PUBLIC  :: Compute_Grid
-  PUBLIC  :: DoGridComputation
+#endif
   PUBLIC  :: Get_Bounding_Box
   PUBLIC  :: SetGridFromCtr
 #if defined ( MODEL_WRF )
@@ -63,6 +64,7 @@ MODULE GC_Grid_Mod
 !
 CONTAINS
 !EOC
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -70,8 +72,8 @@ CONTAINS
 !
 ! !IROUTINE: Compute_Grid
 !
-! !DESCRIPTION: Subroutine COMPUTE\_GRID is the wrapper routine to 
-! initializes the longitude, latitude and surface area arrays. 
+! !DESCRIPTION: Subroutine COMPUTE\_GRID initializes the longitude, latitude,
+!  and surface area arrays. 
 !\\
 !\\
 ! !INTERFACE:
@@ -97,104 +99,21 @@ CONTAINS
     INTEGER,        INTENT(OUT)   :: RC                ! Success/failure?
 !
 ! !REMARKS:
-!  (1) Lon/lat loop indices IG, JG are global indices.
-!  (2) Lon/lat loop indices I,  J  are local to each CPU.
-!  (3) We do not need to have global loop indices for vertical levels,
-!       because we will always decompose the grid for MPI parallelization
-!       in longitude and/or latitude.  All vertical levels must be present
-!       on each CPU for the grid-independent GEOS-Chem to function properly.
 !
 ! !REVISION HISTORY:
-!  19 May 2014 - C. Keller   - Initial version: now wrapper routine that
-!                              calls DoGridComputation.
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-  !======================================================================
-  ! Compute_Grid begins here!
-  !======================================================================
-
-  ! Assume success
-  RC = GC_SUCCESS
-
-  ! Compute the GEOS-Chem grid specifications
-  Call DoGridComputation( am_I_Root, Input_Opt, State_Grid, RC )
-
-  END SUBROUTINE COMPUTE_GRID
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: DoGridComputation 
-!
-! !DESCRIPTION: Subroutine DoGridComputation initializes the longitude, 
-!  latitude and surface area arrays. This used to be subroutine COMPUTE\_GRID.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE DoGridComputation( am_I_Root, Input_Opt, State_Grid, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Grid_Mod, ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    LOGICAL,        INTENT(IN)    :: am_I_Root         ! Root CPU?
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt         ! Input Options
-!
-! !INPUT/OUTPUT PARAMETERS:
-!  
-    TYPE(GrdState), INTENT(INOUT) :: State_Grid        ! Grid State object
-!
-! !OUTPUT PARAMETERS:
-!  
-    INTEGER,        INTENT(OUT)   :: RC                ! Success or failure?
-!
-! !REMARKS:
-!
-! !REVISION HISTORY:
-!  23 Feb 2012 - R. Yantosca - Initial version, based on grid_mod.F
-!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
-!                              running with the traditional driver main.F
-!  03 Dec 2012 - R. Yantosca - Add RC to argument list
-!  04 Dec 2012 - R. Yantosca - Now define arrays with local CPU lon/lat bounds
-!  07 Dec 2012 - R. Yantosca - Bug fix: make sure the last longitude edge is
-!                              computed properly.  Test for IG==I2, not I==I2.
-!  07 Dec 2012 - R. Yantosca - Also do not apply half-polar boxes when running
-!                              in ESMF environment
-!  26 Feb 2013 - R. Yantosca - Bug fix: now compute IND_X and IND_Y properly
-!                              when connecting GEOS-Chem to the GEOS-5 GCM
-!  21 Mar 2013 - R. Yantosca - Add fix to prevent zero surface area at poles
-!  21 Mar 2013 - R. Yantosca - Rename loop indices to prevent confusion
-!  06 Jun 2013 - M. Payer    - Add fix to compute sine of last latitude edge
-!                              for MAP_A2A regridding (C. Keller)
-!  19 May 2014 - C. Keller   - Renamed from Compute_grid to DoGridComputation.
-!  06 Nov 2014 - C. Keller   - Now use LBOUND to get leftmost index of YMDRW.
-!  26 Mar 2015 - R. Yantosca - Fix apparent optimization error by using 
-!                              scalars in call to the SIN function
-!  26 Mar 2015 - R. Yantosca - Cosmetic changes; improve indentation
+!  22 May 2019 - M. Sulprizio- Initial version: Consolidated Compute_Grid and
+!                              DoGridComputation into single routine that
+!                              computes fields in State_Grid.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 ! 
-
     ! Scalars
     INTEGER  :: I, J, L, IG, JG
     REAL(fp) :: YEDGE_VAL, YSIN_VAL
     REAL(fp) :: SIN_N, SIN_S, SIN_DIFF
-
-    ! Arrays
-    REAL(fp) :: Ind_X(State_Grid%NX+1)
-    REAL(fp) :: Ind_Y(State_Grid%NY+1)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
@@ -206,7 +125,7 @@ CONTAINS
 
     ! Assume success
     RC = GC_SUCCESS
-    ThisLoc = 'DoGridComputation (gc_grid_mod.F90)'
+    ThisLoc = 'Compute_Grid (gc_grid_mod.F90)'
 
     !======================================================================
     ! Vertical Grid
@@ -401,22 +320,8 @@ CONTAINS
           ! Test for North Pole if using global grid
           IF ( .not. State_Grid%NestedGrid ) THEN
           
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-             !----------------------------------------------------------------
-             !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-             !
-             ! Do not define half-sized polar boxes (bmy, 3/21/13)
-             !----------------------------------------------------------------
-             State_Grid%YEdge(I,J+1) = State_Grid%YEdge(I,J ) + &
-                                     ( State_Grid%DY * 0.5e+0_fp)
-#else
-             !----------------------------------------------------------------
-             !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-             !
-             ! Current practice in the standard GEOS-Chem is to force
-             ! the northern edge of grid boxes along the NORTH POLE to
-             ! be +90 degrees latitude. (bmy, 3/21/13)
-             !----------------------------------------------------------------
+             ! Force the northern edge of grid boxes along the NORTH POLE to
+             ! be +90 degrees latitude
              State_Grid%YEdge(I,J+1) = +90e+0_fp
 
              ! Make adjustment for second-to-last latitude edge
@@ -426,7 +331,6 @@ CONTAINS
              YEDGE_VAL = State_Grid%YEdge_R(I,J)
              YSIN_VAL  = SIN( YEDGE_VAL )
              State_Grid%YSIN(I,J) = YSIN_VAL
-#endif
           ELSE
 
              !----------------------------------------------------------------
@@ -531,67 +435,6 @@ CONTAINS
        ! Difference of sin(latitude) at N and S edges of grid box
        SIN_DIFF = SIN_N - SIN_S
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-       !-------------------------------------------------------------
-       !      %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-       !
-       ! The GEOS-5 GCM is a grid-point model, with the polar
-       ! boxes (+90 & -90 degrees latitude) being grid box
-       ! centers.  But since GEOS-Chem also needs to know the
-       ! latitudes at the north & south edges of each grid box,
-       ! we have to make a kludge.
-       !
-       ! For all grid boxes along the NORTH POLE (+90 lat), we
-       ! let the northern edge be greater than 90 degrees.  For
-       ! example, if the grid spacing is 1 degree in latitude,
-       ! then for all longitudes at the North Pole:
-       !
-       !   * The N. EDGE of each grid box is +90.5 degrees
-       !   * The CENTER  of each grid box is +90   degrees
-       !   * The S. EDGE of each grid box is +89.5 degrees.
-       !
-       ! Similarly, at for all grid boxes along the SOUTH POLE,
-       ! we have this condition (also assuming a grid spacing
-       ! of 1 degree in latitude):
-       !
-       !   * The N. EDGE of each grid box is -89.5 degrees
-       !   * The CENTER  of each grid box is -90   degrees
-       !   * The S. EDGE of each grid box is -90.5 degrees.
-       !
-       ! Therefore, at the poles, the latitudes at the northern
-       ! and southern edges of each grid box are symmetric around
-       ! either +90 degrees or -90 degrees.  When you take the
-       ! difference of the sine of the latitudes at the north and
-       ! south edges of a polar grid box, the terms will cancel
-       ! each other out, resulting in a grid box surface area
-       ! that is zero.
-       !
-       ! We can take advantage of this symmetry around +90 and
-       ! -90 degrees to make a simple fix:
-       !
-       ! (1) AT THE SOUTH POLE: Subtract the sine of the latitude
-       !     at the north edge of the grid box from the sine
-       !     of -90 degrees (which is -1) and then multiply by 2.
-       !
-       ! (2) AT THE NORTH POLE: Subtract the sine of +90 degrees
-       !     (which is 1) from the sine of the latitude at the
-       !     south edge of the grid box, and then multiply by 2.
-       !
-       ! This fix avoids having polar grid boxes with zero area.
-       !    -- Bob Yantosca (21 Mar 2013)
-       !--------------------------------------------------------------
-
-       ! South pole kludge
-       IF ( J == 1 ) THEN
-          SIN_DIFF = 2e+0_fp * ( SIN_N - ( -1e+0_fp ) )
-       ENDIF
-
-       ! North pole kludge
-       IF ( .not. State_Grid%NestedGrid .and. J == State_Grid%NY ) THEN
-          SIN_DIFF = 2e+0_fp * ( 1e+0_fp - SIN_S )
-       ENDIF
-#endif
-
        ! Grid box surface areas [m2]
        State_Grid%Area_M2(I,J) = ( State_Grid%DX * PI_180 ) * &
                                    ( Re**2 ) * SIN_DIFF
@@ -599,14 +442,8 @@ CONTAINS
     ENDDO
     ENDDO
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    WRITE( 6, '(''Call incorrectly made for lat-lon grid comp'')' )
-    WRITE( 6, '(''Should be using external grids only'')' )
-    RC = GC_FAILURE
-#else
     ! Return successfully
     RC = GC_SUCCESS
-#endif
 
     !======================================================================
     ! Echo info to stdout
@@ -647,8 +484,9 @@ CONTAINS
        WRITE( 6, '(8(f8.3,1x))' ) ( State_Grid%YSIN(1,J), J=1,State_Grid%NY+1 )
     ENDIF
 
-  END SUBROUTINE DoGridComputation 
+  END SUBROUTINE Compute_Grid
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -667,8 +505,7 @@ CONTAINS
 ! initialization phase (they are imported from superdynamics).
 ! !INTERFACE:
 !
-  SUBROUTINE SetGridFromCtr( am_I_Root,  NX, NY, lonCtr, latCtr, &
-                             State_Grid, RC ) 
+  SUBROUTINE SetGridFromCtr( am_I_Root,  State_Grid, lonCtr, latCtr, RC ) 
 !
 ! USES
 !
@@ -678,10 +515,8 @@ CONTAINS
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root      ! Root CPU?
-    INTEGER,        INTENT(IN)    :: NX             ! # of lons
-    INTEGER,        INTENT(IN)    :: NY             ! # of lats
-    REAL(f4),       INTENT(IN)    :: lonCtr(NX,NY)  ! Lon ctrs [rad]
-    REAL(f4),       INTENT(IN)    :: latCtr(NX,NY)  ! Lat ctrs [rad]
+    REAL(f4),       INTENT(IN)    :: lonCtr(:,:)    ! Lon ctrs [rad]
+    REAL(f4),       INTENT(IN)    :: latCtr(:,:)    ! Lat ctrs [rad]
     TYPE(GrdState), INTENT(IN)    :: State_Grid     ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -700,8 +535,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I,         J,        L
-    INTEGER            :: NI,        NJ,       NL
+    INTEGER            :: I, J
     REAL(fp)           :: YEDGE_VAL, YSIN_VAL, TMP
 
     ! Strings
@@ -717,21 +551,9 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at SetGridFromCtr (in module GeosUtil/gc_grid_mod.F90)'
 
-    ! Get array size
-    NI = SIZE(State_Grid%XMid,1)
-    NJ = SIZE(State_Grid%XMid,2)
-
-    ! Horizontal dimensions must agree
-    IF ( State_Grid%NX /= NI .OR. State_Grid%NY /= NJ ) THEN
-       WRITE(ErrMsg,*) 'Grid dimension mismatch: ',State_Grid%NX, '/=',NI, &
-                       ' and/or ',State_Grid%NY,'/=',NJ
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     ! Loop over all grid boxes
-    DO J = 1, NJ
-    DO I = 1, NI
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Mid points: get directly from passed value
        State_Grid%XMid(I,J)   = RoundOff( lonCtr(I,J) / PI_180, 4 )
@@ -758,20 +580,20 @@ CONTAINS
        ENDIF
 
        ! Special treatment at uppermost edge
-       IF ( I == NI ) THEN
+       IF ( I == State_Grid%NX ) THEN
           State_Grid%XEdge(I+1,J) = State_Grid%XMid(I,J) + &
              ( ( State_Grid%XMid(I,J) - State_Grid%XMid(I-1,J) ) / 2.0_f4 )
        ENDIF
-       IF ( J == NJ ) THEN
+       IF ( J == State_Grid%NY ) THEN
           State_Grid%YEdge(I,J+1) = State_Grid%YMid(I,J) + &
              ( ( State_Grid%YMid(I,J) - State_Grid%YMid(I,J-1) ) / 2.0_f4 )
        ENDIF
 
        ! Special quantities directly derived from State_Grid%YEdge
        State_Grid%YEdge_R(I,J) = State_Grid%YEdge(I,J) * PI_180
-       YEDGE_VAL                 = State_Grid%YEdge_R(I,J) ! Lat edge[radians]
-       YSIN_VAL                  = SIN( YEDGE_VAL)           ! SIN( lat edge )
-       State_Grid%YSIN(I,J)    = YSIN_VAL                  ! Store in YSIN
+       YEDGE_VAL               = State_Grid%YEdge_R(I,J) ! Lat edge[radians]
+       YSIN_VAL                = SIN( YEDGE_VAL)         ! SIN( lat edge )
+       State_Grid%YSIN(I,J)    = YSIN_VAL                ! Store in YSIN
 
     ENDDO
     ENDDO
@@ -799,8 +621,8 @@ CONTAINS
 ! consistency with the GEOS-Chem interface to GEOS-5.
 ! !INTERFACE:
 !
-  SUBROUTINE SetGridFromCtrEdges( am_I_Root, NX, NY, lonCtr, latCtr, &
-                                  lonEdge, latEdge, State_Grid, RC )
+  SUBROUTINE SetGridFromCtrEdges( am_I_Root, State_Grid, lonCtr, latCtr, &
+                                  lonEdge, latEdge, RC )
 !
 ! USES
 !
@@ -809,14 +631,12 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,        INTENT(IN)    :: am_I_Root         ! Root CPU?
-    INTEGER,        INTENT(IN)    :: NX                ! # of lons
-    INTEGER,        INTENT(IN)    :: NY                ! # of lats
-    REAL(f4),       INTENT(IN)    :: lonCtr (NX,NY)    ! Lon ctrs [rad]
-    REAL(f4),       INTENT(IN)    :: latCtr (NX,NY)    ! Lat ctrs [rad]
-    REAL(f4),       INTENT(IN)    :: lonEdge(NX+1,NY)  ! Lon edges [rad]
-    REAL(f4),       INTENT(IN)    :: latEdge(NX,NY+1)  ! Lat edges [rad]
-    TYPE(GrdState), INTENT(IN)    :: State_Grid        ! Grid State object
+    LOGICAL,        INTENT(IN)    :: am_I_Root      ! Root CPU?
+    REAL(f4),       INTENT(IN)    :: lonCtr (:,:)   ! Lon ctrs [rad]
+    REAL(f4),       INTENT(IN)    :: latCtr (:,:)   ! Lat ctrs [rad]
+    REAL(f4),       INTENT(IN)    :: lonEdge(:,:)   ! Lon edges [rad]
+    REAL(f4),       INTENT(IN)    :: latEdge(:,:)   ! Lat edges [rad]
+    TYPE(GrdState), INTENT(IN)    :: State_Grid     ! Grid State object
 !!
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -830,8 +650,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I,         J,        L
-    INTEGER            :: NI,        NJ,       NL
+    INTEGER            :: I, J
     REAL(fp)           :: YEDGE_VAL, YSIN_VAL
 
     ! Strings
@@ -847,21 +666,9 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at SetGridFromCtrEdges (in module GeosUtil/gc_grid_mod.F90)'
 
-    ! Get array size
-    NI = SIZE(State_Grid%XMid,1)
-    NJ = SIZE(State_Grid%XMid,2)
-
-    ! Horizontal dimensions must agree
-    IF ( State_Grid%NX /= NI .OR. State_Grid%NY /= NJ ) THEN
-       WRITE(ErrMsg,*) 'Grid dimension mismatch: ',State_Grid%NX, '/=',NI, &
-                       ' and/or ',State_Grid%NY,'/=',NJ
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
     ! Loop over all grid boxes
-    DO J = 1, NJ
-    DO I = 1, NI
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Mid points: get directly from passed value
        State_Grid%XMid(I,J)      = RoundOff( lonCtr(I,J) / PI_180, 4 )
@@ -873,11 +680,11 @@ CONTAINS
        State_Grid%YEdge(I,J)     = RoundOff( latEdge(I,J) / PI_180, 4 )
 
        ! Special treatment at uppermost edge
-       IF ( I == NI ) THEN
+       IF ( I == State_Grid%NX ) THEN
           XEDGE(I+1,J) = RoundOff( lonEdge(I+1,J) / PI_180, 4 )
        ENDIF
-       IF ( J == NJ ) THEN
-          State_Grid%YEDdge(I,J+1)   = RoundOff( latEdge(I,J+1) / PI_180, 4 )
+       IF ( J == State_Grid%NY ) THEN
+          State_Grid%YEdge(I,J+1)   = RoundOff( latEdge(I,J+1) / PI_180, 4 )
           State_Grid%YEdge_R(I,J+1) = State_Grid%YEdge(I,J+1) * PI_180
           State_Grid%YSIN(I,J+1)    = SIN( State_Grid%YEdge_R(I,J+1) )
        ENDIF

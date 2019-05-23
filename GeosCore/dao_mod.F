@@ -1138,7 +1138,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root, IM, JM, 
+      SUBROUTINE GIGC_Cap_Tropopause_Prs( am_I_Root,
      &                                    Input_Opt, State_Grid,
      &                                    State_Met, RC  )
 !
@@ -1152,8 +1152,6 @@
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root     ! Are we on the root CPU?
-      INTEGER,        INTENT(IN)    :: IM            ! # of lons on this CPU
-      INTEGER,        INTENT(IN)    :: JM            ! # of lats on this CPU
       TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
       TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
 !
@@ -1197,8 +1195,8 @@
       RC = GC_SUCCESS
       
       ! Loop over grid boxes on this PET
-      DO J = 1, JM
-      DO I = 1, IM
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
       
          ! North & south edges of box
          YSOUTH = State_Grid%YEdge(I,J  )
