@@ -28,38 +28,6 @@
       PUBLIC  :: Read_Input_File
       PUBLIC  :: Do_Error_Checks
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-      PRIVATE :: SPLIT_ONE_LINE
-      PRIVATE :: READ_SIMULATION_MENU
-      PRIVATE :: READ_GRID_MENU
-      PRIVATE :: READ_ADVECTED_SPECIES_MENU
-      PRIVATE :: READ_AEROSOL_MENU
-      PRIVATE :: READ_EMISSIONS_MENU
-      PRIVATE :: READ_CHEMISTRY_MENU
-      PRIVATE :: READ_RADIATION_MENU
-      PRIVATE :: READ_TRANSPORT_MENU
-      PRIVATE :: READ_CONVECTION_MENU
-      PRIVATE :: READ_DEPOSITION_MENU
-      PRIVATE :: READ_OUTPUT_MENU
-      PRIVATE :: READ_DIAGNOSTIC_MENU
-      PRIVATE :: READ_PLANEFLIGHT_MENU
-      PRIVATE :: READ_OBSPACK_MENU
-      PRIVATE :: SET_TINDEX
-      PRIVATE :: READ_ND49_MENU
-      PRIVATE :: READ_ND50_MENU
-      PRIVATE :: READ_ND51_MENU
-      PRIVATE :: READ_ND51b_MENU
-      PRIVATE :: READ_ND63_MENU
-      PRIVATE :: READ_PROD_LOSS_MENU
-      PRIVATE :: READ_BENCHMARK_MENU
-      PRIVATE :: READ_CH4_MENU
-      PRIVATE :: READ_PASSIVE_SPECIES_MENU
-      PRIVATE :: VALIDATE_DIRECTORIES
-      PRIVATE :: CHECK_DIRECTORY
-      PRIVATE :: CHECK_TIME_STEPS
-      PRIVATE :: IS_LAST_DAY_GOOD
-!
 ! !REVISION HISTORY:
 !  20 Jul 2004 - R. Yantosca - Initial version
 !  (1 ) Now references LSOA in READ_AEROSOL_MENU (bmy, 9/28/04)
@@ -322,6 +290,7 @@
          !      place them after the diagnostic menu): NESTED GRID
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -339,6 +308,10 @@
             ENDIF
 
          ELSE IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
+#else
+         IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
+
+#endif
             CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
      &                               RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -435,6 +408,7 @@
                RETURN
             ENDIF
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          ELSE IF ( INDEX( LINE, 'GAMAP MENU'       ) > 0 ) THEN
             CALL READ_GAMAP_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -460,6 +434,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
 
          ELSE IF ( INDEX( LINE, 'PLANEFLIGHT MENU' ) > 0 ) THEN
             CALL READ_PLANEFLIGHT_MENU( am_I_Root, Input_Opt, RC )
@@ -477,6 +452,7 @@
                RETURN
             ENDIF
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          ! Read even if BPCH_DIAG=n so that time series diags may be
          ! output if other diagnostics are output as netcdf (ewl, 4/5/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
@@ -544,6 +520,7 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
 
          ELSE IF ( INDEX( LINE, 'POPS MENU'        ) > 0 ) THEN
             CALL READ_POPS_MENU( am_I_Root, Input_Opt, RC )
@@ -1086,6 +1063,7 @@
 
       END SUBROUTINE READ_SIMULATION_MENU
 !EOC
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1377,6 +1355,7 @@
 
       END SUBROUTINE READ_GRID_MENU
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3878,6 +3857,7 @@
 
       END SUBROUTINE READ_DEPOSITION_MENU
 !EOC
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4078,25 +4058,6 @@
      &        'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /,
      &        'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
 
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem HP (with ESMF & MPI) %%%%%%%
-      !
-      ! When we connect to the GEOS-5 GCM via ESMF, we let the GCM
-      ! handle all timing and diagnostic output via the GEOS-5 History
-      ! Component.  Therefore we do not need to make sure that we have
-      ! scheduled output for the last day of the run.  This can cause
-      ! a premature exit. (bmy, 2/28/13)
-      !-----------------------------------------------------------------
-#else
-      !-----------------------------------------------------------------
-      !         %%%%%%% GEOS-Chem CLASSIC (with OpenMP) %%%%%%%
-      !
-      ! Current practice in the std GEOS-Chem is to not let the run
-      ! proceed unless the user has scheduled output for the last day.
-      ! (bmy, 2/28/13)
-      !-----------------------------------------------------------------
-
 #if defined ( BPCH_DIAG )
       ! Make sure we have output at end of run
       CALL IS_LAST_DAY_GOOD( Input_Opt, RC )
@@ -4107,7 +4068,6 @@
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-#endif
 
       END SUBROUTINE READ_OUTPUT_MENU
 !EOC
@@ -5594,6 +5554,7 @@
 
       END SUBROUTINE SET_TINDEX
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -5868,6 +5829,7 @@
 
       END SUBROUTINE READ_OBSPACK_MENU
 !EOC
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -7336,6 +7298,7 @@
 
       END SUBROUTINE READ_BENCHMARK_MENU
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8401,6 +8364,7 @@
 
       END SUBROUTINE CHECK_TIME_STEPS
 !EOC
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8485,6 +8449,7 @@
 
       END SUBROUTINE IS_LAST_DAY_GOOD
 !EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
