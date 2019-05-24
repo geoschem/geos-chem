@@ -290,7 +290,6 @@
          !      place them after the diagnostic menu): NESTED GRID
          !      UNIX CMDS, ARCHIVED OH, and O3PL menus.
          !=============================================================
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          IF      ( INDEX( LINE, 'SIMULATION MENU'  ) > 0 ) THEN
             CALL READ_SIMULATION_MENU( am_I_Root, Input_Opt, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -299,6 +298,7 @@
                RETURN
             ENDIF
 
+#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
          ELSE IF ( INDEX( LINE, 'GRID MENU' ) > 0 ) THEN
             CALL READ_GRID_MENU( am_I_Root, Input_Opt, State_Grid, RC )
             IF ( RC /= GC_SUCCESS ) THEN
@@ -306,12 +306,9 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
+#endif
 
          ELSE IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
-#else
-         IF ( INDEX( LINE, 'TIMESTEP MENU' ) > 0 ) THEN
-
-#endif
             CALL READ_TIMESTEP_MENU( am_I_Root, Input_Opt, State_Grid,
      &                               RC )
             IF ( RC /= GC_SUCCESS ) THEN
