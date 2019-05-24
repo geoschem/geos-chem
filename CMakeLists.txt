@@ -11,7 +11,6 @@ endif()
 # Add our module path and include our helpers
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/CMakeScripts)
 include(GC-Helpers)
-include(GC-CompilerErrorReport)
 
 # Define the base target (which will store the build configuration properties)
 add_library(BaseTarget INTERFACE)
