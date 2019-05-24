@@ -24,11 +24,8 @@ find_package(OpenMP REQUIRED)
 target_compile_options(BaseTarget 
     INTERFACE ${OpenMP_Fortran_FLAGS}
 )
-target_include_directories(BaseTarget
-	INTERFACE ${NETCDF_F90_INCLUDE_DIR}
-)
 target_link_libraries(BaseTarget 
-	INTERFACE ${NETCDF_LIBRARIES} ${OpenMP_Fortran_FLAGS}
+	INTERFACE NetCDF-F ${OpenMP_Fortran_FLAGS}
 )
 
 # Print message with the repo's last commit
