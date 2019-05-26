@@ -2069,9 +2069,16 @@
             IF (.NOT.LDEP(K)) GOTO 190
             DO 180 LDT = 1, IREG(I,J)
                IF ( IUSE(I,J,LDT) == 0 ) GOTO 180
-               RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
-     &                 999999.e+0_f8))
+                  
+               N_SPC = State_Chm%Map_DryDep(K)
+               IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
 
+                  RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT), 
+     &                 999999.e+0_f8))
+               ELSE
+                  RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),
+     &                 9999.e+0_f8))
+               ENDIF
  180        CONTINUE
  190     CONTINUE
 !*                                 
