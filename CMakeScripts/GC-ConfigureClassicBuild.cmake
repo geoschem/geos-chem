@@ -18,14 +18,10 @@ three things:
 #[[     Finding dependencies.                                                ]]
 #[[--------------------------------------------------------------------------]]
 find_package(NetCDF REQUIRED)
-find_package(OpenMP REQUIRED)
 
 # Set BaseTarget properties
-target_compile_options(BaseTarget 
-    INTERFACE ${OpenMP_Fortran_FLAGS}
-)
 target_link_libraries(BaseTarget 
-	INTERFACE NetCDF-F ${OpenMP_Fortran_FLAGS}
+	INTERFACE NetCDF-F
 )
 
 # Print message with the repo's last commit
@@ -268,6 +264,14 @@ if(${GTMM})
     set_dynamic_default(GC_DEFINES DEFAULT "GTMM_Hg")
 endif()
 
+# Build hemco_standalone?
+set_dynamic_option(HCOSA 
+    DEFAULT "FALSE"
+    LOG GENERAL_OPTIONS_LOG
+    SELECT_EXACTLY 1
+    OPTIONS "TRUE" "FALSE"
+)
+
 if("${RUNDIR_SIM}" STREQUAL "benchmark")
     set(TIMERS_DEFAULT "TRUE")
 else()
@@ -332,6 +336,21 @@ if("${PREC}" STREQUAL "REAL8")
     set_dynamic_default(GC_DEFINES DEFAULT "USE_REAL8")
 endif()
 
+# Single-threaded or multi-threaded
+set_dynamic_option(OMP
+    DEFAULT "TRUE"
+    SELECT_EXACTLY 1
+    OPTIONS "TRUE" "FALSE"
+    LOG GENERAL_OPTIONS_LOG
+)
+if("${OMP}")
+    find_package(OpenMP REQUIRED)
+    set(OMP_FORTRAN_FLAGS "${OpenMP_Fortran_FLAGS}")
+else()
+    set(OMP_FORTRAN_FLAGS "")
+    set_dynamic_default(GC_DEFINES DEFAULT "NO_OMP")
+endif()
+
 message(STATUS "General settings:")
 dump_log(GENERAL_OPTIONS_LOG)
 
@@ -361,7 +380,7 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
             -mcmodel=medium             # Specifies compilers memory model.
             -shared-intel               # Causes Intel-provided libraries to be linked in dynamically.
             -traceback                  # Generate extra info to provide traceback information when a run time error occurs.
-            ${OpenMP_Fortran_FLAGS}
+            ${OMP_FORTRAN_FLAGS}
             -DLINUX_IFORT
         LOG RESULTING_DEFINES_LOG
     )
@@ -380,7 +399,7 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
             -mcmodel=medium 
             -fbacktrace 
             -g
-            ${OpenMP_Fortran_FLAGS} 
+            ${OMP_FORTRAN_FLAGS}
             -DLINUX_GFORTRAN
 
         LOG RESULTING_DEFINES_LOG
