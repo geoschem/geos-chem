@@ -36,7 +36,7 @@ add_library(HCO STATIC
 	messy_ncregrid_mpi.F90
 )
 target_link_libraries(HCO
-	PUBLIC History
+	PUBLIC ObsPack
 )
 target_compile_options(HCO
 	PRIVATE

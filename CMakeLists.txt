@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.2.0 LANGUAGES Fortran C CXX)
+project(GEOS_Chem VERSION 12.3.2 LANGUAGES Fortran C CXX)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
@@ -58,8 +58,9 @@ add_subdirectory(Headers)
 add_subdirectory(GeosUtil)
 add_subdirectory(NcdfUtil)
 add_subdirectory(History)
+add_subdirectory(ObsPack)
 add_subdirectory(HEMCO)
-add_subdirectory(ISOROPIA)
+add_subdirectory(ISORROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GTMM)
 add_subdirectory(GeosCore)

@@ -346,6 +346,7 @@ set_dynamic_option(OMP
 if("${OMP}")
     find_package(OpenMP REQUIRED)
     set(OMP_FORTRAN_FLAGS "${OpenMP_Fortran_FLAGS}")
+    target_link_libraries(BaseTarget INTERFACE ${OpenMP_Fortran_FLAGS})
 else()
     set(OMP_FORTRAN_FLAGS "")
     set_dynamic_default(GC_DEFINES DEFAULT "NO_OMP")

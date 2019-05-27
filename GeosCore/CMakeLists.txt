@@ -67,7 +67,7 @@ add_library(GeosCore STATIC
 	hco_interface_mod.F90
 	initialize.F
 	input_mod.F
-	isoropiaII_mod.F
+	isorropiaII_mod.F
 	land_mercury_mod.F
 	linoz_mod.F
 	mapping_mod.F90
