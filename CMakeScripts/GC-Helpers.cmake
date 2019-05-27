@@ -286,18 +286,18 @@ function(set_dynamic_option VAR)
     set(${VAR} ${${VAR}} PARENT_SCOPE)
 endfunction()
 
-#[[ get_cwd_last_commit_hash
+#[[ get_repo_version
 
 Variable with name ${VARNAME} gets set to first 7 characters of the hash
 of the last commit to the repo at ${DIR}.
 
 Usage:
-    get_cwd_last_commit_hash(VARNAME DIR)
+    get_repo_version(VARNAME DIR)
     
 ]]
-macro(get_cwd_last_commit_hash VARNAME DIR)
+macro(get_repo_version VARNAME DIR)
     execute_process(
-        COMMAND git rev-parse --short HEAD 
+        COMMAND git describe --tags --dirty=.dirty
         WORKING_DIRECTORY ${DIR}
         OUTPUT_VARIABLE ${VARNAME}
         OUTPUT_STRIP_TRAILING_WHITESPACE

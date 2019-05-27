@@ -25,8 +25,8 @@ target_link_libraries(BaseTarget
 )
 
 # Print message with the repo's last commit
-get_cwd_last_commit_hash(GC_LAST_COMMIT ${CMAKE_SOURCE_DIR})
-message(STATUS "GEOS-Chem repository (last commit): ${GC_LAST_COMMIT}")
+get_repo_version(GC_REPO_VERSION ${CMAKE_SOURCE_DIR})
+message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
 
 #[[--------------------------------------------------------------------------]]
 #[[     Setting preprocessor definitions.                                    ]]
