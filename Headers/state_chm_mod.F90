@@ -187,6 +187,16 @@ MODULE State_Chm_Mod
                                                         ! [unitless]
 
      !----------------------------------------------------------------------
+     ! Fields for dry deposition
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: DryDepSav  (:,:,:  ) ! Dry deposition frequencies [s-1]
+
+     !----------------------------------------------------------------------
+     ! Fields for Linoz stratospheric ozone algorithm
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: TLSTT      (:,:,:,:) ! TLSTT (I,J,L,LINOZ_NFIELDS)
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -330,6 +340,7 @@ CONTAINS
 !  02 Aug 2018 - H.P. Lin    - Populate the species object with existing species
 !                              DB if DB is already initialized before
 !  22 Aug 2018 - R. Yantosca - Fixed typo in registration of SSAlk field
+!  23 Jan 2019 - H.P. Lin    - Add TLSTT for Linoz
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -669,7 +680,7 @@ CONTAINS
     IF ( am_I_Root ) THEN
        WRITE( 6,'(/,a)' ) 'ADVECTED SPECIES MENU'
        WRITE( 6,'(  a)' ) REPEAT( '-', 48 )
-       WRITE( 6,'(  a)' ) '  # Species Name  g/mole'
+       WRITE( 6,'(  a)' ) '  #  Species Name'
     ENDIF
 
     ! Loop over all species
@@ -689,7 +700,7 @@ CONTAINS
           
           ! Print to screen
           IF ( am_I_Root ) THEN
-             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name, ThisSpc%MW_g
+             WRITE( 6, 100 ) ThisSpc%ModelId, ThisSpc%Name
           ENDIF
 
        ENDIF
@@ -1225,7 +1236,6 @@ CONTAINS
                                State_Chm, RC                                )
        CALL GC_CheckVar( 'State_Chm%WetDepNitrogen', 1, RC )    
        IF ( RC /= GC_SUCCESS ) RETURN
-
     ENDIF
 
     !=======================================================================
@@ -1513,6 +1523,41 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
 
     ENDIF
+
+
+    !=======================================================================
+    ! Allocate fields for various GeosCore modules
+    !=======================================================================
+    !------------------------------------------------------------------
+    ! DryDepSav
+    !------------------------------------------------------------------
+    IF ( State_Chm%nDryDep > 0 ) THEN
+        chmID = 'DryDepSav'
+        ALLOCATE( State_Chm%DryDepSav( IM, JM, State_Chm%nDryDep ) , STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%DryDepSav', 0, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%DryDepSav = 0.0_fp
+        CALL Register_ChmField( am_I_Root, chmID, State_Chm%DryDepSav,   &
+                                State_Chm, RC                            )
+        CALL GC_CheckVar( 'State_Chm%DryDepSav', 1, RC )    
+        IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+
+    !------------------------------------------------------------------
+    ! TLSTT (Linoz)
+    !------------------------------------------------------------------
+    IF ( Input_Opt%LLINOZ .AND. Input_Opt%LINOZ_NFIELDS > 0 ) THEN
+        chmID = 'TLSTT'
+        ALLOCATE( State_Chm%TLSTT( IM, JM, LM, Input_Opt%LINOZ_NFIELDS ) , STAT=RC )
+        CALL GC_CheckVar( 'State_Chm%TLSTT', 0, RC )
+        IF ( RC /= GC_SUCCESS ) RETURN
+        State_Chm%TLSTT = 0.0_fp
+
+        ! Do not register this field as it is internal
+        ! to the linoz_mod module state. (hplin, 1/24/19)
+        ! Note: We might want to implement support for implementing a 4th
+        ! dimension later.
+    ENDIF
    
     !=======================================================================
     ! Print out the list of registered fields
@@ -1547,7 +1592,7 @@ CONTAINS
     ENDIF 
 
     ! Format statement
-100 FORMAT( I3, 1x, A10, 3x, F7.2 )
+100 FORMAT( I3, 2x, A31 )
 110 FORMAT( 5x, '===> ', f4.1, 1x, A6  )
 120 FORMAT( 5x, '---> ', f4.1, 1x, A4  )
 
@@ -1969,6 +2014,20 @@ CONTAINS
        State_Chm%DryDepRa10m => NULL()
     ENDIF
 #endif
+
+    IF ( ASSOCIATED( State_Chm%DryDepSav ) ) THEN
+       DEALLOCATE( State_Chm%DryDepSav, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%DryDepSav', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%DryDepSav => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%TLSTT ) ) THEN
+       DEALLOCATE( State_Chm%TLSTT, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%TLSTT => NULL()
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -2599,7 +2658,17 @@ CONTAINS
           IF ( isUnits ) Units = 'kg'
           IF ( isRank  ) Rank  = 2
           IF ( isSpecies ) PerSpecies = 'HgCat'
-          
+
+       CASE( 'DRYDEPSAV' )
+          IF ( isDesc  ) Desc  = 'Dry deposition frequencies'
+          IF ( isUnits ) Units = 's-1'
+          IF ( isRank  ) Rank  = 3
+
+       CASE( 'TLSTT' )
+          IF ( isDesc  ) Desc  = 'TLSTT'
+          IF ( isUnits ) Units = ''
+          IF ( isRank  ) Rank  = 4
+
        CASE DEFAULT
           Found = .False.
           ErrMsg = 'Metadata not found for State_Chm field ' // &

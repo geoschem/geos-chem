@@ -38,6 +38,9 @@
 !  (4 ) Lal, D., and B. Peters, Cosmic ray produced radioactivity on the 
 !        Earth. Handbuch der Physik, 46/2, 551-612, edited by K. Sitte, 
 !        Springer-Verlag, New York, 1967. 
+!  (5)  GMI tracer suite, https://gmi.gsfc.nasa.gov/uploads/files/gmi_tracersuite.pdf
+!  (6 ) Koch and Rind, Beryllium 10/beryllium 7 as a tracer of stratospheric
+!        transport, JGR, 103, D4, 3907-3917, 1998.
 !
 ! !REVISION HISTORY:
 !  14 Jun 2001 - H. Liu      - Initial version  
@@ -78,14 +81,18 @@
 !  04 Nov 2014 - M. Yannetti - Added PRECISION_MOD
 !  30 Jan 2015 - E. Lundgren - Add new diagnostics stuctures for netCDF output.
 !  02 May 2016 - R. Yantosca - Now define IDTRn, IDTPb, IDTBe locally
+!  06 Dec 2018 - M. Sulprizio- Add Be10 to mechanism following GMI tracer suite
 !EOP
 !------------------------------------------------------------------------------
 !BOC
       ! Species ID flags
-      INTEGER  :: id_Rn,  id_Pb,  id_Be7
+      INTEGER  :: id_Rn222
+      INTEGER  :: id_Pb210, id_Pb210Strat
+      INTEGER  :: id_Be7,   id_Be7Strat
+      INTEGER  :: id_Be10,  id_Be10Strat
 
       ! Exponential terms
-      REAL(fp) :: EXP_Rn, EXP_Pb, EXP_Be
+      REAL(fp) :: EXP_Rn, EXP_Pb, EXP_Be7, EXP_Be10
 
       CONTAINS
 !EOC   
@@ -97,7 +104,7 @@
 ! !IROUTINE: chemRnPbBe
 !
 ! !DESCRIPTION: Subroutine CHEMRnPbBe performs loss chemistry on 222Rn, 
-!  210Pb, and 7Be.
+!  210Pb, 7Be, and 10Be.
 !\\
 !\\
 ! !INTERFACE:
@@ -178,8 +185,13 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER             :: I,      J,       L,     N
-      REAL(fp)            :: ADD_Pb, Be_LOST, Decay, DTCHEM, Pb_LOST
+      INTEGER             :: I, J, L
+      REAL(fp)            :: ADD_Pb
+      REAL(fp)            :: Decay
+      REAL(fp)            :: DTCHEM
+      REAL(fp)            :: Pb_LOST,   PbStrat_LOST
+      REAL(fp)            :: Be7_LOST,  Be7Strat_LOST
+      REAL(fp)            :: Be10_LOST, Be10Strat_LOST
 
       ! SAVEd scalars
       LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -202,8 +214,11 @@
       ! Ln 2
       REAL(fp), PARAMETER :: ln2         = 0.693147181E+00_fp
 
-      ! Lifetime of Radon-222 in days
-      REAL(fp), PARAMETER :: RnTau       = 3.83E+00_fp
+      ! Half-life in days
+      REAL(fp), PARAMETER :: RnTau       = 3.83E+00_fp ! Liu et al. (2001)
+      REAL(fp), PARAMETER :: Pb210Tau    = 8.25E+03_fp ! Liu et al. (2001)
+      REAL(fp), PARAMETER :: Be7Tau      = 53.3E+00_fp ! Liu et al. (2001)
+      REAL(fp), PARAMETER :: Be10Tau     = 5.84E+08_fp ! GMI "tracer" mechanism
 
       !=================================================================
       ! CHEMRnPbBe begins here!
@@ -225,16 +240,30 @@
       !-----------------------------------------------------------------
       IF ( FIRSTCHEM ) THEN 
 
-         ! Fraction of (222Rn, 210Pb, 7Be) left after radioactive decay
+         ! Fraction of Rn222 left after radioactive decay
          Decay     = ln2 / ( RnTau * 24.E+00_fp * 3600.E+00_fp ) 
          EXP_Rn    = EXP( -DTCHEM * Decay        )
+
+         ! Fraction of Pb210 left after radioactive decay
+         !Decay    = ln2 / ( PbTau * 24.E+00_fp * 3600.E+00_fp ) 
          EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp ) 
-         EXP_Be    = EXP( -DTCHEM * 1.506E-7_fp  )
+
+         ! Fraction of Be7 left after radioactive decay
+         !Decay    = ln2 / ( Be7Tau * 24.E+00_fp * 3600.E+00_fp ) 
+         EXP_Be7   = EXP( -DTCHEM * 1.506E-7_fp  )
+
+         ! Fraction of Be10 left after radioactive decay
+         Decay     = ln2 / ( Be10Tau * 24.E+00_fp * 3600.E+00_fp ) 
+         EXP_Be10  = EXP( -DTCHEM * Decay        )
 
          ! Species ID flags
-         id_Rn     = Ind_('Rn'  )
-         id_Pb     = Ind_('Pb'  )
-         id_Be7    = Ind_('Be7' )
+         id_Rn222      = Ind_('Rn222'      )
+         id_Pb210      = Ind_('Pb210'      )
+         id_Pb210Strat = Ind_('Pb210Strat' )
+         id_Be7        = Ind_('Be7'        )
+         id_Be7Strat   = Ind_('Be7Strat'   )
+         id_Be10       = Ind_('Be10'       )
+         id_Be10Strat  = Ind_('Be10Strat'  )
 
          ! Reset FIRSTCHEM flag
          FIRSTCHEM = .FALSE.
@@ -254,11 +283,8 @@
       ! Radioactive decay of Rn222
       !=================================================================
       
-      ! Species index for Rn222
-      N = id_Rn
-
       ! Make sure Rn222 is a defined species
-      IF ( N > 0 ) THEN
+      IF ( id_Rn222 > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
@@ -267,7 +293,7 @@
          DO I = 1, IIPAR
 
             ! Rn_LOST = amount of 222Rn lost to decay [kg]
-            Rn_LOST(I,J,L) = Spc(I,J,L,N) * ( 1.0_fp - EXP_Rn )
+            Rn_LOST(I,J,L) = Spc(I,J,L,id_Rn222) * ( 1.0_fp - EXP_Rn )
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -283,7 +309,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -294,10 +319,9 @@
             IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,1) = Rn_LOST(I,J,L) / DTCHEM
             ENDIF
-#endif
 
-            ! Subtract Rn_LOST from STT [kg]
-            Spc(I,J,L,N) = Spc(I,J,L,N) - Rn_LOST(I,J,L)
+            ! Subtract Rn_LOST from Spc [kg]
+            Spc(I,J,L,id_Rn222) = Spc(I,J,L,id_Rn222) - Rn_LOST(I,J,L)
          ENDDO
          ENDDO
          ENDDO
@@ -308,14 +332,11 @@
       ! Radioactive decay of Pb210
       !=================================================================
       
-      ! Species index for Pb210
-      N = id_Pb
-
       ! Make sure Pb210 is a defined species
-      IF ( N > 0 ) THEN
+      IF ( id_Pb210 > 0 .or. id_Pb210Strat > 0 ) THEN
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST )
+!$OMP+PRIVATE( I, J, L, ADD_Pb, Pb_LOST, PbStrat_LOST )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
@@ -332,11 +353,14 @@
 
             ! Units: [kg/s]
             IF ( ND01 > 0 .and. L <= LD01 ) THEN
-               AD01(I,J,L) = AD01(I,J,L) + ( ADD_Pb / DTCHEM )
+               AD01(I,J,L,1) = AD01(I,J,L,1) + ( ADD_Pb / DTCHEM )
+
+               IF ( State_Met%InStratosphere(I,J,L) ) THEN
+                  AD01(I,J,L,2) = AD01(I,J,L,2) + ( ADD_Pb / DTCHEM )
+               ENDIF
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -347,14 +371,24 @@
             IF ( State_Diag%Archive_PbFromRnDecay ) THEN
                State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb / DTCHEM ) 
             ENDIF
-#endif
 
-            ! Add 210Pb gained by decay from 222Rn into STT [kg]
-            Spc(I,J,L,N) = Spc(I,J,L,N) + ADD_Pb          
+            ! Add 210Pb gained by decay from 222Rn into Spc [kg]
+            Spc(I,J,L,id_Pb210) = Spc(I,J,L,id_Pb210) + ADD_Pb          
+
+            ! Update stratospheric 210Pb [kg]
+            IF ( State_Met%InStratosphere(I,J,L) .and.
+     &           id_Pb210Strat > 0 ) THEN
+               Spc(I,J,L,id_Pb210Strat) = Spc(I,J,L,id_Pb210Strat) +
+     &                                    ADD_Pb
+            ENDIF
 
             ! Amount of 210Pb lost to radioactive decay [kg]
             ! NOTE: we've already added in the 210Pb gained from 222Rn
-            Pb_LOST      = Spc(I,J,L,N) * ( 1.0_fp - EXP_Pb )
+            Pb_LOST = Spc(I,J,L,id_Pb210) * ( 1.0_fp - EXP_Pb )
+            IF ( id_Pb210Strat > 0 ) THEN
+               PbStrat_LOST = Spc(I,J,L,id_Pb210Strat) *
+     &                        ( 1.0_fp - EXP_Pb)
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -365,11 +399,11 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST / DTCHEM )
+               AD02(I,J,L,2) = AD02(I,J,L,2) + ( Pb_LOST      / DTCHEM )
+               AD02(I,J,L,3) = AD02(I,J,L,3) + ( PbStrat_LOST / DTCHEM )
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -379,11 +413,18 @@
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
                State_Diag%RadDecay(I,J,L,2) = ( Pb_LOST / DTCHEM )
+               State_Diag%RadDecay(I,J,L,3) = ( PbStrat_LOST /DTCHEM )
             ENDIF
-#endif
 
-            ! Subtract 210Pb lost to decay from STT [kg]
-            Spc(I,J,L,N) = Spc(I,J,L,N) - Pb_LOST
+            ! Subtract 210Pb lost to decay from Spc [kg]
+            Spc(I,J,L,id_Pb210) = Spc(I,J,L,id_Pb210) - Pb_LOST
+
+            ! Update stratospheric 210Pb [kg]
+            IF ( id_Pb210Strat > 0 ) THEN
+               Spc(I,J,L,id_Pb210Strat) = Spc(I,J,L,id_Pb210Strat) -
+     &                                    PbStrat_LOST
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
@@ -394,20 +435,21 @@
       ! Radioactive decay of Be7
       !=================================================================
 
-      ! Species index for Be7
-      N = id_Be7
-
       ! Make sure Be7 is a defined species
-      IF ( N > 0 ) THEN 
+      IF ( id_Be7 > 0 .or. id_Be7Strat > 0 ) THEN 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED ) 
-!$OMP+PRIVATE( I, J, L, Be_LOST )
+!$OMP+PRIVATE( I, J, L, Be7_LOST, Be7Strat_LOST )
          DO L = 1, LLPAR
          DO J = 1, JJPAR
          DO I = 1, IIPAR
 
             ! Amount of 7Be lost to decay [kg]
-            Be_LOST = Spc(I,J,L,N) * ( 1d0 - EXP_Be )
+            Be7_LOST = Spc(I,J,L,id_Be7) * ( 1d0 - EXP_Be7 )
+            IF ( id_Be7Strat > 0 ) THEN
+               Be7Strat_LOST = Spc(I,J,L,id_Be7Strat) *
+     &                         ( 1d0 - EXP_Be7 )
+            ENDIF
 
 #if defined( BPCH_DIAG )
             !-----------------------------------------------------------
@@ -418,11 +460,11 @@
 
             ! Units: [kg/s]
             IF ( ND02 > 0 .and. L <= LD02 ) THEN
-               AD02(I,J,L,3) = AD02(I,J,L,3) + ( Be_LOST / DTCHEM )
+               AD02(I,J,L,4) = AD02(I,J,L,4) + ( Be7_LOST      / DTCHEM)
+               AD02(I,J,L,5) = AD02(I,J,L,5) + ( Be7Strat_LOST / DTCHEM)
             ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -431,17 +473,86 @@
 
             ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
             IF ( State_Diag%Archive_RadDecay ) THEN
-               State_Diag%RadDecay(I,J,L,3) = ( Be_LOST / DTCHEM )
+               State_Diag%RadDecay(I,J,L,4) = ( Be7_LOST      / DTCHEM )
+               State_Diag%RadDecay(I,J,L,5) = ( Be7Strat_LOST / DTCHEM )
             ENDIF
-#endif
 
-            ! Subtract amount of 7Be lost to decay from STT [kg]
-            Spc(I,J,L,N) = Spc(I,J,L,N) - Be_LOST
+            ! Subtract amount of 7Be lost to decay from Spc [kg]
+            Spc(I,J,L,id_Be7) = Spc(I,J,L,id_Be7) - Be7_LOST
+
+            ! Update stratospheric 7Be [kg]
+            IF ( id_Be7Strat > 0 ) THEN
+               Spc(I,J,L,id_Be7Strat) = Spc(I,J,L,id_Be7Strat) -
+     &                                  Be7Strat_LOST
+            ENDIF
+
          ENDDO
          ENDDO
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
+
+      !=================================================================
+      ! Radioactive decay of Be10
+      !=================================================================
+
+      ! Make sure Be10 is a defined species
+      IF ( id_Be10 > 0 .or. id_Be10Strat > 0 ) THEN 
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED ) 
+!$OMP+PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST )
+         DO L = 1, LLPAR
+         DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Amount of 10Be lost to decay [kg]
+            Be10_LOST = Spc(I,J,L,id_Be10) * ( 1d0 - EXP_Be10 )
+            IF ( id_Be10Strat > 0 ) THEN
+               Be10Strat_LOST = Spc(I,J,L,id_Be10Strat) *
+     &                          ( 1d0 - EXP_Be10 )
+            ENDIF
+
+#if defined( BPCH_DIAG )
+            !-----------------------------------------------------------
+            ! ND02 (bpch) diagnostic:
+            !
+            ! Be10 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s]
+            IF ( ND02 > 0 .and. L <= LD02 ) THEN
+               AD02(I,J,L,6) = AD02(I,J,L,6) + ( Be10_LOST      /DTCHEM)
+               AD02(I,J,L,7) = AD02(I,J,L,7) + ( Be10Strat_LOST /DTCHEM)
+            ENDIF
+#endif
+
+            !-----------------------------------------------------------
+            ! HISTORY (aka netCDF diagnostics)
+            !
+            ! Be10 lost to radioactive decay
+            !-----------------------------------------------------------
+
+            ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
+            IF ( State_Diag%Archive_RadDecay ) THEN
+               State_Diag%RadDecay(I,J,L,6) = ( Be10_LOST      / DTCHEM)
+               State_Diag%RadDecay(I,J,L,7) = ( Be10Strat_LOST / DTCHEM)
+            ENDIF
+
+            ! Subtract amount of 10Be lost to decay from Spc [kg]
+            Spc(I,J,L,id_Be10) = Spc(I,J,L,id_Be10) - Be10_LOST
+
+            ! Update stratospheric 10Be [kg]
+            IF ( id_Be10Strat > 0 ) THEN
+               Spc(I,J,L,id_Be10Strat) = Spc(I,J,L,id_Be10Strat) -
+     &                                   Be10Strat_LOST
+            ENDIF
+
+         ENDDO
+         ENDDO
+         ENDDO
+!$OMP END PARALLEL DO
+      ENDIF
+
 
       ! Free pointer
       Spc => NULL()

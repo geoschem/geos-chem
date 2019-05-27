@@ -95,7 +95,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     ! Scalars
     INTEGER                 :: I, J, L, N
     REAL(fp)                :: ToPptv
@@ -209,7 +208,6 @@ CONTAINS
                                         * ToPptv
        ENDIF
     ENDIF
-#endif
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
@@ -256,7 +254,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     INTEGER                 :: I, J, L, N
     CHARACTER(LEN=255)      :: ErrMsg, thisLoc
 
@@ -271,7 +268,6 @@ CONTAINS
 
     ! Zero diagnostics here
 
-#endif
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC
 !------------------------------------------------------------------------------
@@ -348,7 +344,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, Units, OrigUnit
     LOGICAL            :: Found
     INTEGER            :: I, J, L, N
@@ -414,7 +409,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-#endif
   END SUBROUTINE Set_SpcConc_Diagnostic
 !EOC
 !------------------------------------------------------------------------------
@@ -475,7 +469,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     INTEGER            :: I, J, M, N, numSpc, region
@@ -569,8 +562,6 @@ CONTAINS
        RETURN
     ENDIF
 
-#endif
-
   END SUBROUTINE Compute_Column_Mass
 !EOC
 !------------------------------------------------------------------------------
@@ -627,7 +618,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-#if defined( NC_DIAG )
     INTEGER            :: I, J, M, N, R, numSpc, numRegions
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     LOGICAL            :: setDiag
@@ -696,7 +686,6 @@ CONTAINS
     ! Zero the mass arrays now that diagnostics are set
     mass_initial = 0.0_f8
     mass_final   = 0.0_f8
-#endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC

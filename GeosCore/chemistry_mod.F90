@@ -104,10 +104,8 @@ CONTAINS
     USE CMN_DIAG_MOD  
 #endif
     USE CMN_SIZE_MOD
-#if defined( NC_DIAG )
     USE Diagnostics_Mod, ONLY : Compute_Column_Mass
     USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-#endif
     USE DUST_MOD,        ONLY : CHEMDUST
     USE DUST_MOD,        ONLY : RDUST_ONLINE
     USE ErrCode_Mod      
@@ -115,7 +113,7 @@ CONTAINS
     USE FlexChem_Mod,    ONLY : Do_FlexChem
     USE GLOBAL_CH4_MOD,  ONLY : CHEMCH4
     USE Input_Opt_Mod,   ONLY : OptInput
-    USE ISOROPIAII_MOD,  ONLY : DO_ISOROPIAII
+    USE ISORROPIAII_MOD, ONLY : DO_ISORROPIAII
     USE MERCURY_MOD,     ONLY : CHEMMERCURY
     USE POPS_MOD,        ONLY : CHEMPOPS
     USE RnPbBe_MOD,      ONLY : CHEMRnPbBe
@@ -179,7 +177,7 @@ CONTAINS
 !        Hg0/Hg2/HgP simulation. (eck, bmy, 12/7/04)
 !  (9 ) Now do not call DO_RPMARES if we are doing an offline aerosol run
 !        with crystalline sulfur & aqueous tracers (cas, bmy, 1/7/05)
-!  (10) Now use ISOROPIA for aer thermodyn equilibrium if we have seasalt 
+!  (10) Now use ISORROPIA for aer thermodyn equilibrium if we have seasalt 
 !        tracers defined, or RPMARES if not.  Now call CHEMSEASALT before
 !        CHEMSULFATE.  Now do aerosol thermodynamic equilibrium before
 !        aerosol chemistry for offline aerosol runs.  Now also reference 
@@ -290,9 +288,7 @@ CONTAINS
     LOGICAL            :: LSOA
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
-#if defined( USE_TEND ) || defined( NC_DIAG )
     REAL(fp)           :: DT_Chem
-#endif
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -340,7 +336,6 @@ CONTAINS
        id_NK1  = Ind_('NK1' )
     ENDIF
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 1 of 2
     !----------------------------------------------------------
@@ -360,7 +355,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
 #if defined( USE_TEND )
     !=======================================================================
@@ -548,13 +542,13 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-                ! ISOROPIA takes Na+, Cl- into account
-                CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,        &
-                                    State_Chm, State_Diag, RC               )
+                ! ISORROPIA takes Na+, Cl- into account
+                CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
+                                     State_Chm, State_Diag, RC              )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_ISOROPIAII"!'
+                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -680,14 +674,14 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
-                ! ISOROPIA takes Na+, Cl- into account
-                CALL Do_IsoropiaII( am_I_Root, Input_Opt,  State_Met,        &
-                                    State_Chm, State_Diag, RC               )
+                ! ISORROPIA takes Na+, Cl- into account
+                CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
+                                     State_Chm, State_Diag, RC              )
 #endif
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_IsoropiaII"!'
+                   ErrMsg = 'Error encountered in "Do_IsorropiaII"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -1021,10 +1015,8 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined( USE_TEND ) || defined( NC_DIAG )
     ! Chemistry timestep [s]
     DT_Chem = Get_Ts_Chem()
-#endif
 
 #if defined( USE_TEND )
     !=======================================================================
@@ -1043,7 +1035,6 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( NC_DIAG )
     !----------------------------------------------------------
     ! Chemistry budget diagnostics - Part 2 of 2
     !----------------------------------------------------------
@@ -1075,7 +1066,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-#endif
 
   END SUBROUTINE DO_CHEMISTRY
 !EOC
@@ -1265,7 +1255,7 @@ CONTAINS
 !
 ! !IROUTINE: chem_passive_species
 !
-! !DESCRIPTION: Subroutine RUN\_PASSIVE\_SPECIES performs loss chemistry 
+! !DESCRIPTION: Subroutine CHEM\_PASSIVE\_SPECIES performs loss chemistry 
 !  on passive species with finite atmospheric lifetimes.
 !\\
 !\\
@@ -1286,17 +1276,17 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    LOGICAL,         INTENT(IN   )  :: am_I_Root   ! root CPU?
-    TYPE(OptInput),  INTENT(IN   )  :: Input_Opt   ! Input options object
-    TYPE(MetState),  INTENT(IN   )  :: State_Met   ! Meteorology state object
+    LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),  INTENT(IN   )  :: State_Chm   ! Chemistry state object 
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,         INTENT(INOUT)  :: RC          ! Failure or success
+    INTEGER,        INTENT(OUT)   :: RC          ! Failure or success
 !
 ! !REMARKS:
 !
@@ -1308,6 +1298,9 @@ CONTAINS
 !  02 Aug 2017 - R. Yantosca - Turn off debug print unless ND70 is activated
 !  13 Dec 2017 - R. Yantosca - Now apply decay only to those passive species
 !                              with finite atmospheric lifetimes
+!  04 Jan 2019 - M. Sulprizio- Add capability to specify TAU in half-life;
+!                              e-folding time will always be used for now
+!  29 Jan 2019 - R. Yantosca - Bug fix: State_Chm should be INTENT(INOUT)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1316,6 +1309,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL             :: prtDebug
+    LOGICAL             :: Is_HalfLife
     INTEGER             :: I,       J,      L
     INTEGER             :: N,       GCId,   Id
     REAL(fp)            :: DT,      Decay,  Rate
@@ -1342,6 +1336,9 @@ CONTAINS
        ' -> at Chem_Passive_Species (in module GeosCore/chemistry_mod.F)'
 
     DT       = GET_TS_CHEM() ! timestep in seconds
+
+    ! For now, always compute decay using e-folding time
+    Is_HalfLife = .FALSE.
 
     !=======================================================================
     ! Apply decay loss rate only to those passive species that have a
@@ -1375,7 +1372,11 @@ CONTAINS
        !----------------------------------
 
        ! Compute the decay rate for each passive species
-       Decay = ln2 / Input_Opt%PASSIVE_TAU(Id)
+       IF ( Is_HalfLife ) THEN
+          Decay = ln2 / Input_Opt%PASSIVE_TAU(Id)
+       ELSE
+          Decay = 1.0 / Input_Opt%PASSIVE_TAU(Id)
+       ENDIF
        Rate  = EXP( - DT * Decay )
 
        !### Debug output
@@ -1383,10 +1384,9 @@ CONTAINS
           IF ( prtDebug ) THEN
              WRITE( 6,100 ) ADJUSTL( Input_Opt%PASSIVE_NAME(Id) ),           &
                             GcId, Rate
- 100         FORMAT( '     -  Pass. species name, Id, loss rate:',           &
+ 100         FORMAT( '     -  Pass. species name, Id, loss rate: ',&
                       a15, i5, 1x, es13.6 )
           ENDIF
-          First = .FALSE.
        ENDIF
 
        !----------------------------------
@@ -1408,6 +1408,9 @@ CONTAINS
 
     ENDDO
  
+    ! Reset after the first time
+    IF ( First) First = .FALSE.
+
   END SUBROUTINE Chem_Passive_Species
 !EOC
 !------------------------------------------------------------------------------

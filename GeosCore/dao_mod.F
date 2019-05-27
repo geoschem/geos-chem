@@ -35,6 +35,7 @@
       PUBLIC  :: IS_ICE
       PUBLIC  :: IS_NEAR      
       PUBLIC  :: SET_DRY_SURFACE_PRESSURE
+      PUBLIC  :: Set_Met_AgeOfAir
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID )
       PUBLIC  :: GIGC_Cap_Tropopause_Prs
 #endif
@@ -139,6 +140,7 @@
 !  29 Nov 2016 - R. Yantosca - grid_mod.F90 is now gc_grid_mod.F90
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  08 Mar 2018 - E. Lundgren - Add GIGC_Cap_Tropopause_Prs from GCHP gchp_util
+!  21 Dec 2018 - M. Sulprizio- Add new routine Set_Met_AgeOfAir
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,6 +275,8 @@
       USE PhysConstants, ONLY : AIRMW, AVO
       USE Pressure_Mod
       USE Time_Mod,      ONLY : Get_LocalTime
+      USE Time_Mod,      ONLY : Get_LocalTime_In_Sec
+      USE Time_Mod,      ONLY : Get_Ts_Dyn
 !
 ! !INPUT PARAMETERS:
 !
@@ -386,6 +390,7 @@
 ! !LOCAL VARIABLES:
 !
       ! Scalars
+      INTEGER             :: Dt_Sec
       INTEGER             :: I,         J,          L
       INTEGER             :: L_CG,      L_TP,       N
       REAL(fp)            :: PEdge_Top, Esat,       Ev_mid,    Ev_edge
@@ -393,12 +398,12 @@
       REAL(fp)            :: EsatB,     EsatC,      EsatD,     AREA_M2
       REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
       REAL(fp)            :: Pb,        Pt
-      LOGICAL             :: UpdtMR
+      LOGICAL             :: UpdtMR     
 
       ! Arrays
-      LOGICAL             :: IsLocNoon(IIPAR)
-      REAL(f8)            :: LocTime  (IIPAR)
-      REAL(f8)            :: Nearest  (IIPAR)
+      LOGICAL             :: IsLocNoon (IIPAR,JJPAR)
+      REAL(f8)            :: LocTime   (IIPAR,JJPAR)
+      INTEGER             :: LocTimeSec(IIPAR,JJPAR)
 
       ! Strings
       CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
@@ -435,21 +440,33 @@
       RC       = GC_SUCCESS
       ErrMsg   = ''
       ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
+      Dt_Sec   = Get_Ts_Dyn()
 
       ! Shadow variable for mixing ratio update
       UpdtMR = .TRUE.
       IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
       ! Pre-compute local solar time = UTC + Lon/15
-      ! NOTE: Local time only depends on longitude
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J   )
+      DO J = 1, JJPAR
       DO I = 1, IIPAR
-         LocTime(I) = GET_LOCALTIME( I, 1, 1 )
-         Nearest(I) = ABS( LocTime(I) - 12.0_fp )
-      ENDDO
 
-      ! Find the box that is nearest to local noon
-      IsLocNoon                      = .FALSE.
-      IsLocNoon( MINLOC( Nearest ) ) = .TRUE.
+         ! Local time only depends on longitude, but longitude is a
+         ! function of (I,J) for cubed-sphere grids.  Therefore, use
+         ! (I,J) in the call to GET_LOCALTIME.  Obtain the local time
+         ! both in hours and in seconds (bmy, 4/18/19)
+         LocTime   (I,J) = Get_LocalTime       ( I, J, 1 )
+         LocTimeSec(I,J) = Get_LocalTime_In_Sec( I, J, 1 )
+
+         ! Pick the boxes that are closest to local noon (12hr = 43200 s).
+         ! Use local time in seconds, which avoids roundoff issues.
+         IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. 
+     &                      LocTimeSec(I,J) + Dt_Sec >= 43200 )
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
 
       !=============================================================
       ! Update air quantities
@@ -594,7 +611,7 @@
          !==============================================================  
                                                                           
 #if defined( ESMF_ )                                                      
-            AREA_M2                = State_Met%AREA_M2(I,J,1)
+            AREA_M2                = State_Met%AREA_M2(I,J)
 #else
             AREA_M2                = GET_AREA_M2( I,J,L )
 #endif                                                                    
@@ -808,8 +825,8 @@
          !--------------------------------------------------------------
          ! Local solar time and box that is nearest to local noon
          !--------------------------------------------------------------
-         State_Met%LocalSolarTime(I,J) = LocTime(I)
-         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I)
+         State_Met%LocalSolarTime(I,J) = LocTime(I,J)
+         State_Met%IsLocalNoon(I,J)    = IsLocNoon(I,J)
 
          !--------------------------------------------------------------
          ! Compute highest level of chemistry grid and the troposphere
@@ -892,16 +909,18 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
             DO N = 1, State_Chm%nSpecies
-            DO L = 1, LLPAR
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+
+               DO L = 1, LLPAR
+               DO J = 1, JJPAR
+               DO I = 1, IIPAR
+
                State_Chm%Species(I,J,L,N) = State_Chm%Species(I,J,L,N)
      &                                    * State_Met%DP_DRY_PREV(I,J,L)
      &                                    / State_Met%DELP_DRY(I,J,L) 
-            ENDDO
-            ENDDO
-            ENDDO
-            ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
+               ENDDO
 !$OMP END PARALLEL DO
 
          ELSE
@@ -2024,5 +2043,72 @@
 !$OMP END PARALLEL DO
 
       END SUBROUTINE COSSZA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: set_met_ageofair
+!
+! !DESCRIPTION: Subroutine Set\_Met\_AgeOfAir adds the time step (in seconds)
+!  to every grid box every time step with a total sink at the surface every 
+!  time step to reproduce GMI tracer mechanism.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Set_Met_AgeOfAir( State_Met )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_DYN
+!
+! !OUTPUT PARAMETERS: 
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met
+!
+! !REVISION HISTORY: 
+!  21 Dec 2018 - M. Sulprizio- Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      INTEGER        :: I, J, L
+      REAL(fp), SAVE :: TimeStep
+
+      !=================================================================
+      ! SET_MET_AGEOFAIR begins here!
+      !=================================================================
+
+      ! Get timestep [s]
+      TimeStep = GET_TS_DYN()
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L )
+      DO L=1,LLPAR
+      DO J=1,JJPAR
+      DO I=1,IIPAR
+
+         IF ( L == 1 ) THEN
+            ! Set the surface to a sink
+            State_Met%AgeOfAir(I,J,L) = 0
+         ELSE
+            ! Otherwise add time step [s]
+            State_Met%AgeOfAir(I,J,L) = State_Met%AgeOfAir(I,J,L) + 
+     &                                  TimeStep
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      END SUBROUTINE Set_Met_AgeOfAir
 !EOC
       END MODULE DAO_MOD

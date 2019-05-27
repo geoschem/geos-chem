@@ -127,10 +127,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-#endif
       USE ErrCode_Mod
       USE GC_GRID_MOD,    ONLY : ITS_A_NESTED_GRID
       USE Input_Opt_Mod,  ONLY : OptInput
@@ -186,10 +184,7 @@
       ! Scalars
       LOGICAL, SAVE      :: FIRST = .TRUE.
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-
-#if defined ( USE_TEND ) || defined ( NC_DIAG )
       REAL(fp)           :: DT_Dyn
-#endif
 
       !=================================================================
       ! DO_TRANSPORT begins here!
@@ -201,7 +196,6 @@
       ThisLoc = 
      &   ' -> at Do_Transport  (in module GeosCore/transport_mod.F)'
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Transport (advection) budget diagnostics - Part 1 of 2
       !----------------------------------------------------------
@@ -221,7 +215,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       ! First-time initialization
       IF ( FIRST ) THEN 
@@ -310,10 +303,8 @@
 
       ENDIF
 
-#if defined ( USE_TEND ) || defined ( NC_DIAG )
       ! Dynamic timestep [s]
       DT_Dyn = GET_TS_DYN()
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -331,7 +322,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Transport (advection) budget diagnostics - Part 2 of 2
       !----------------------------------------------------------
@@ -363,7 +353,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       ! Return to calling program
       END SUBROUTINE DO_TRANSPORT
@@ -539,11 +528,13 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
-      !### DEBUG: Print a few global species sums
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                "pre-advection")
-      ENDIF
+!      !### DEBUG: Print a few global species sums
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
+!     &                                 Input_Opt, State_Met, State_Chm, 
+!     &                                 "do_global_adv: pre-advection", 
+!     &                                 RC )
+!      ENDIF
     
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -605,8 +596,11 @@
      &                   MG,        nAdvect,  Ap,       Bp,
      &                   p_UWND,    p_VWND,   P_TP1,    P_TP2,
      &                   P_TEMP,    p_Spc,    IORD,     JORD,      
-     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS, 
-     &                   LFILL,     p_MFLEW,  p_MFLNS,  p_MFLUP,
+     &                   KORD,      N_ADJ,    p_XMASS,  p_YMASS,
+     &                   LFILL,
+#if defined( BPCH_DIAG )
+     &                   p_MFLEW,   p_MFLNS,  p_MFLUP,
+#endif
      &                   A_M2,      ND24x,    ND25x,    ND26x,
      &                   State_Diag                            )
 
@@ -635,12 +629,14 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
 
-      !### DEBUG: Print a few global species sums
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met,
-     &                                "post-airqnt")
-         CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
-      ENDIF
+!      !### DEBUG: Print a few global species sums
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'O3',
+!     &                                 Input_Opt, State_Met, State_Chm, 
+!     &                                 "do_global_adv: post-airqnt", 
+!     &                                 RC )
+!         CALL DEBUG_MSG( '### G4_G5_GLOB_ADV: a TPCORE' ) 
+!      ENDIF
 
       END SUBROUTINE DO_GLOBAL_ADV
 !EOC
@@ -842,10 +838,12 @@
       ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
       !=================================================================
 
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met, 
-     &                                "pre-advection")
-      ENDIF
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+!     &                            Input_Opt, State_Met, State_Chm, 
+!     &                            "do_window_transport: pre-advection", 
+!     &                            RC )
+!      ENDIF
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -1002,12 +1000,14 @@
       CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
      &             update_mixing_ratio=.FALSE. )
 
-      !### Debug
-      IF ( LPRT ) THEN
-         CALL Print_Global_Species_Kg( State_Chm, State_Met,
-     &                                "post-airqnt")
-         CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
-      ENDIF
+!      !### Debug
+!      IF ( LPRT ) THEN
+!         CALL Print_Global_Species_Kg( am_I_Root, 20, 20, 1, 'SPC_O3',
+!     &                               Input_Opt, State_Met, State_Chm, 
+!     &                               "do_window_transport: post-airqnt", 
+!     &                               RC )
+!         CALL DEBUG_MSG( '### NESTED_ADV: a TPCORE' ) 
+!      ENDIF
 
       END SUBROUTINE DO_WINDOW_TRANSPORT
 !EOC

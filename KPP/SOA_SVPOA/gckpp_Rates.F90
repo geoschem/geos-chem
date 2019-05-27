@@ -13,7 +13,7 @@
 !        R. Sander, Max-Planck Institute for Chemistry, Mainz, Germany
 ! 
 ! File                 : gckpp_Rates.f90
-! Time                 : Thu Jul 19 13:05:55 2018
+! Time                 : Fri Jan  4 10:36:49 2019
 ! Working directory    : /n/home05/msulprizio/GC/Code.Dev/KPP/SOA_SVPOA
 ! Equation file        : gckpp.kpp
 ! Output root filename : gckpp
@@ -156,15 +156,15 @@ CONTAINS
       GCARR =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
   END FUNCTION GCARR    
 
-  REAL(kind=dp) FUNCTION GC_HO2NO3( A0,B0,C0,A1,B1,C1 )
+  REAL(kind=dp) FUNCTION GC_HO2HO2( A0,B0,C0,A1,B1,C1 )
       REAL A0,B0,C0,A1,B1,C1
       REAL(kind=dp) :: R0,R1
       R0 =  DBLE(A0) * EXP(DBLE(C0)/TEMP) * (300._dp/TEMP)**DBLE(B0)
       R1 =  DBLE(A1) * EXP(DBLE(C1)/TEMP) * (300._dp/TEMP)**DBLE(B1)
 
-      GC_HO2NO3 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
+      GC_HO2HO2 = (R0+R1*NUMDEN)*(1.D0+1.4E-21_dp*H2O* &
                    EXP(2200.E+0_dp/TEMP))
-  END FUNCTION GC_HO2NO3    
+  END FUNCTION GC_HO2HO2
   
   REAL(kind=dp) FUNCTION GC_TBRANCH( A0,B0,C0,A1,B1,C1 )
 ! Temperature Dependent Branching Ratio
@@ -493,7 +493,7 @@ SUBROUTINE Update_RCONST ( )
   RCONST(8) = (GCARR(4.80E-11,0.0E+00,250.0))
   RCONST(9) = (GCARR(1.80E-12,0.0E+00,0.0))
   RCONST(10) = (GCARR(3.30E-12,0.0E+00,270.0))
-  RCONST(11) = (GC_HO2NO3(3.00E-13,0.0E+00,460.0,2.1E-33,0.0,920.0))
+  RCONST(11) = (GC_HO2HO2(3.00E-13,0.0E+00,460.0,2.1E-33,0.0,920.0))
   RCONST(12) = (GCARR(2.80E-12,0.0E+00,-1800.0))
   RCONST(13) = (GC_OHCO(1.50E-13,0.0E+00,0.0))
   RCONST(14) = (GCARR(2.45E-12,0.0E+00,-1775.0))

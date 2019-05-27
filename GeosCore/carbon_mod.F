@@ -221,6 +221,9 @@
 ! !DEFINED PARAMETERS:
 !
 !
+      ! Number of BB fires for parameterization (ramnarine 12/27/2018)
+      REAL(f4), POINTER :: FIRE_NUM(:,:) => NULL() 
+
       ! Molecules OH  per kg OH [molec/kg]
       REAL(fp), PARAMETER   :: XNUMOL_OH  = AVO / 17e-3_fp ! hard-coded MW
       REAL(fp), PARAMETER   :: CM3PERM3   = 1.e+6_fp
@@ -890,7 +893,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -902,7 +904,6 @@
          IF ( State_Diag%Archive_ProdBCPIfromBCPO ) THEN
             State_Diag%ProdBCPIfromBCPO(I,J,L) = BcConv(I,J,L)
          ENDIF
-#endif
 
          ! Store new concentration back into species array
          TC(I,J,L) = CNEW
@@ -1152,7 +1153,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !=================================================================
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -1164,7 +1164,6 @@
          IF ( State_Diag%Archive_ProdOCPIfromOCPO ) THEN
             State_Diag%ProdOCPIfromOCPO(I,J,L) = OcConv(I,J,L)
          ENDIF
-#endif
 
          ! Store modified OC concentration back in species array
          TC(I,J,L) = CNEW
@@ -4928,6 +4927,7 @@ ccc
 
       ! HEMCO update
       USE HCO_INTERFACE_MOD,  ONLY : HcoState, GetHcoDiagn
+      USE HCO_EMISLIST_MOD,   ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
 !
 ! !INPUT PARAMETERS:
 !
@@ -4967,6 +4967,7 @@ ccc
       REAL(fp)                 :: OCSRC(IIPAR, JJPAR, IBINS, 2)
       REAL(fp)                 :: NUMBSRC(IIPAR, JJPAR, IBINS)
       REAL(fp)                 :: AREA(IIPAR, JJPAR)
+      REAL(fp)                 :: SIZE_DIST(IIPAR,JJPAR,IBINS,4) !(ramnarine 12/27/2018)
       REAL*4                   :: BOXVOL  ! calculated from State_Met
       REAL*4                   :: TEMPTMS ! calculated from State_Met
       REAL*4                   :: PRES    ! calculated from State_Met
@@ -4976,6 +4977,8 @@ ccc
       INTEGER                  :: L, K, EMTYPE
       INTEGER                  :: ii=53, jj=29
       CHARACTER(LEN=63)        :: OrigUnit
+      LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
+      LOGICAL                  :: FND !(ramnarine 1/2/2019)
 
       ! Strings
       CHARACTER(LEN= 63)       :: DgnName
@@ -5030,7 +5033,8 @@ ccc
          CALL GC_Error( 'Unit conversion error', RC, 
      &                  'Start of EMISSCARBONTOMAS in carbon_mod.F' )
          RETURN
-      ENDIF 
+      ENDIF
+      
 
       ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
       DO EMTYPE = 1,4
@@ -5153,6 +5157,28 @@ ccc
       ENDIF
       Ptr2D => NULL()
 
+      ! ---- Fire Number -------------------------------------
+      ! (ramnarine 12/27/2018)
+      IF ( FIRST ) THEN
+         ! Get a pointer to the fire number field if in use
+         CALL HCO_GetPtr( am_I_root, HcoState, 'FINN_DAILY_NUMBER',
+     &        FIRE_NUM, RC, FOUND=FND )
+            !if biomass burning subgrid coagulation is in use,
+            !FIRE_NUM will not be NULL() and therefore will not be ASSOCIATED()
+
+         !reset first time flag
+         FIRST = .FALSE.
+      ENDIF
+
+      IF ( ASSOCIATED(FIRE_NUM) ) THEN
+         ! ---- Calling BB subgrid coag parameterization --------
+         ! (ramnarine 12/27/2018)
+         SIZE_DIST = SAKAMOTO_SIZE( FIRE_NUM,
+     &                              OCPI_BIOB_BULK, BCPI_BIOB_BULK,
+     &                              OCPO_BIOB_BULK, BCPO_BIOB_BULK,
+     &                              State_Met, AREA )
+      ENDIF
+      
       !2d emis
       BCPI_BIOF_BULK = BCPI_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
       BCPO_BIOF_BULK = BCPO_BIOF_BULK(:,:) * AREA(:,:) * DTSRCE
@@ -5170,12 +5196,23 @@ ccc
       OCBF(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOF_BULK(:,:), 2, 2 ) 
       OCBF(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOF_BULK(:,:), 2, 2 )
 
-      !2d bioburn
-      BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
-      BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
-      OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
-      OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
-
+!2d bioburn
+      IF ( ASSOCIATED(FIRE_NUM) ) THEN
+         DO K = 1, IBINS        !ramnarine 12/27/2018
+            BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
+            BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
+            OCBB(:,:,K,1) = OC2OM *
+     &           SIZE_DIST(:,:,K,3) * AREA(:, :) * DTSRCE
+            OCBB(:,:,K,2) = OC2OM *
+     &           SIZE_DIST(:,:,K,4) * AREA(:, :) * DTSRCE
+         ENDDO
+      ELSE
+         BCBB(:,:,:,1) = SCALECARB( BCPI_BIOB_BULK(:,:), 3, 1 )
+         BCBB(:,:,:,2) = SCALECARB( BCPO_BIOB_BULK(:,:), 3, 1 )
+         OCBB(:,:,:,1) = OC2OM * SCALECARB( OCPI_BIOB_BULK(:,:), 3, 2 )
+         OCBB(:,:,:,2) = OC2OM * SCALECARB( OCPO_BIOB_BULK(:,:), 3, 2 )
+      ENDIF
+      
       ! Add into BCSRC and OCSRC
       BCSRC(:,:,:,1) = BCFF(:,:,:,1) + BCBF(:,:,:,1) + BCBB(:,:,:,1)
       BCSRC(:,:,:,2) = BCFF(:,:,:,2) + BCBF(:,:,:,2) + BCBB(:,:,:,2)
@@ -5211,9 +5248,7 @@ ccc
 #if defined( BPCH_DIAG )
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
-      !%%%% which is only called if BPCH_DIAG=y.  Wrap this block of   %%%%
-      !%%%% code with an #ifdef BPCH_DIAG to prvent compilation issues %%%%
-      !%%%% when NC_DIAG=y.  (bmy, 8/7/18)                             %%%%
+      !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! READ IN directly emitted SOAS (sfarina / jkodros)
       Ptr2D => NULL()
@@ -7650,6 +7685,150 @@ ccc
 
       END FUNCTION GET_ISOPNO3
 !EOC
+#if defined( TOMAS )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: sakamoto_size
+!
+! !DESCRIPTION: Function SAKAMOTO_SIZE finds the peak and standard
+! deviation of a lognormal distribution parameterized to fit the number
+! size distribution of the fires in the gridbox 24 hours downwind
+! of the current fires using K. M. Sakamoto's parameterization from her
+! 2016 paper. Then uses these parameters to seperate the size distributions
+! into lognormal bins.
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION SAKAMOTO_SIZE( FIRE_NUM,
+     &                       OCPIBULKEMIS, BCPIBULKEMIS,
+     &                       OCPOBULKEMIS, BCPOBULKEMIS,
+     &                       State_Met, AREA)
+     &                       RESULT ( VALUE )
+   !USES:
+
+      USE CMN_SIZE_MOD
+      USE TOMAS_MOD,             ONLY : IBINS, Xk
+      USE State_Met_Mod,         ONLY : MetState
+      USE TOMAS_MOD,             ONLY : AVGMASS
+
+   !INPUT PARAMETERS:
+      REAL(sp),        INTENT(IN)  :: FIRE_NUM(IIPAR, JJPAR)
+      REAL(fp),        INTENT(IN)  :: OCPIBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: BCPIBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: OCPOBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: BCPOBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
+      TYPE(MetState),  INTENT(IN)  :: State_Met ! Meteorology State object
+      REAL(fp),        INTENT(IN)  :: AREA(IIPAR, JJPAR) ![m2]
+
+   !RETURN VALUES:
+
+      REAL(fp)                     :: VALUE(IIPAR, JJPAR, IBINS, 4)
+
+   !REMARKS:
+!  This function is adapted from scalecarb by Emily Ramnarine (Jan, 2017)
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+   !LOCAL VARIABLES:
+
+      INTEGER             :: I, J, K
+      REAL(fp)            :: EMIS
+      REAL(fp)            :: W10M, PBLH
+      REAL(fp)            :: dM_dxdz
+      REAL(fp)            :: Dpm, sig
+      REAL(fp)            :: Dl, Dh, Dk
+      REAL(fp)            :: NUM_FRAC(IBINS)
+      REAL(fp)            :: MASS(IBINS)
+      REAL(fp)            :: MASS_FRAC(IBINS)
+      REAL(fp), PARAMETER :: pi=3.14159
+
+
+      ! conditions
+      REAL(fp), PARAMETER            :: D_0=100.0 ![nm] doing 100, 150 with sig_0=2.0
+      REAL(fp), PARAMETER            :: sig_0=2.0 !doing 1.6, 2.0 with D_0=100.0
+      REAL(fp), PARAMETER            :: time= 720.0 !1440.0 ![min] !720 is for a time sensitivity
+
+      ! constants from paper
+      REAL(fp), PARAMETER            :: A_d=84.58
+      REAL(fp), PARAMETER            :: b_d=0.4191
+      REAL(fp), PARAMETER            :: c_d=0.4870
+
+      REAL(fp), PARAMETER            :: A_sig=0.2390
+      REAL(fp), PARAMETER            :: b_sig=0.1889
+      REAL(fp), PARAMETER            :: c_sig=0.3540
+
+      DO J = 1, JJPAR
+         DO I = 1, IIPAR
+
+            ! Kim's parameterization
+            EMIS = (1.8 * (OCPIBULKEMIS(I,J) + OCPOBULKEMIS(I,J)) +
+     &           BCPIBULKEMIS(I,J) + BCPOBULKEMIS(I,J)) !total emissions [kgm-2s-1]
+
+            IF ( EMIS == 0.0 ) THEN
+               DO K = 1, IBINS
+                  VALUE(I,J,K,1) = 0.0
+                  VALUE(I,J,K,2) = 0.0
+                  VALUE(I,J,K,3) = 0.0
+                  VALUE(I,J,K,4) = 0.0
+               ENDDO
+            ELSE
+               W10M = SQRT( State_Met%U10M(I,J)**2
+     &              +       State_Met%V10M(I,J)**2 ) * 60.0 ![m/min]
+               PBLH = State_Met%PBLH(I,J) ![m]
+                   !avg emission per fire [kg/min] (note 320 is from regridding 0.25x0.25 to 4x5)
+               EMIS = ( EMIS * AREA(I,J) * 60.0 ) /
+     &              ( max(1.0, FIRE_NUM(I,J) * 320.0) ) !no plume mixing case
+               !EMIS = EMIS * AREA(I,J) * 60.0 !complete plume mixing case (no longer in use)
+               dM_dxdz = EMIS / ( max(W10M, 2.0) * max(PBLH, 10.0) ) ![kgm-2]
+
+               Dpm = D_0 + (A_D * (dM_dxdz)**b_D * (time)**c_D)
+               sig = sig_0 +
+     &              (A_sig * dM_dxdz**b_sig * time**c_sig * (1.2-sig_0))
+               sig = max(sig, 1.2)
+
+               !Dpm = D_0 ! no coag case
+               !sig = sig_0 !no coag case
+
+               DO K = 1, IBINS
+                  ! splitting into size bins (seinfeld and pandis eq 8.54)
+                  !Calculate diameter of this size bin
+                  Dl=1.0e+9*((6.0*Xk(K))/(1400.0*3.14))**0.3333
+                  Dh=1.0e+9*((6.0*Xk(K+1))/(1400.0*3.14))**0.3333
+                  Dk=sqrt(Dl*Dh)
+
+                  !Calculate number fraction
+                  NUM_FRAC(K) = 1.0 / ( sqrt(2.0*pi)*Dk*log(sig) ) *
+     &                 exp( -( (log(Dk/Dpm))**2.0 /
+     &                 (2.0 * (log(sig))**2.0) ))
+     &                 * (Dh - Dl)
+                  MASS(K) = NUM_FRAC(K) * AVGMASS(K)
+               ENDDO
+
+               DO K = 1, IBINS
+                  !Calculate mass fraction
+                 MASS_FRAC(K) = MASS(K) / SUM( MASS(:) )
+
+                 VALUE(I,J,K,1) = BCPIBULKEMIS(I,J) * MASS_FRAC(K)
+                 VALUE(I,J,K,2) = BCPOBULKEMIS(I,J) * MASS_FRAC(K)
+                 VALUE(I,J,K,3) = 1.8 * OCPIBULKEMIS(I,J) * MASS_FRAC(K)
+                 VALUE(I,J,K,4) = 1.8 * OCPOBULKEMIS(I,J) * MASS_FRAC(K)
+
+               ENDDO
+
+            ENDIF
+
+         ENDDO
+      ENDDO
+
+      END FUNCTION SAKAMOTO_SIZE
+!EOC
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -8063,6 +8242,7 @@ ccc
       IF ( ALLOCATED( OCPO_BIOB_BULK )) DEALLOCATE( OCPO_BIOB_BULK)
       IF ( ALLOCATED( TERP_ORGC      )) DEALLOCATE( TERP_ORGC     )
       IF ( ALLOCATED( CO_ANTH        )) DEALLOCATE( CO_ANTH       )
+      FIRE_NUM                       => NULL() !(ramnarine 12/27/2018)
 #endif
 
       END SUBROUTINE CLEANUP_CARBON

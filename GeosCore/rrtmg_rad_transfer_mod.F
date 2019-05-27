@@ -17,8 +17,7 @@
 ! !USES:
 !
       USE CMN_FJX_MOD,  ONLY : RTODAER, RTSSAER, RTASYMAER,
-     &                         WVAA, SPECMASK, LSPECRADMENU,
-     &                         NSPECRADMENU
+     &                         WVAA,    SPECMASK
       USE CMN_SIZE_MOD, ONLY : IIPAR,JJPAR,LLPAR, NDUST, NAER
 #if defined( BPCH_DIAG )
       USE DIAG_MOD,     ONLY : AD72 !RAD OUTPUT DIAGNOSTIC ARRAY
@@ -32,15 +31,14 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
-      PUBLIC  :: Cleanup_MCICA_Clouds
-      PUBLIC  :: Cleanup_Strat_Clim
-      PUBLIC  :: Cleanup_Surface_Rad
       PUBLIC  :: Do_RRTMG_Rad_Transfer
-      PUBLIC  :: Init_MCICA_Clouds
-      PUBLIC  :: Init_Surface_Rad
+      PUBLIC  :: Init_RRTMG_Rad_Transfer
+      PUBLIC  :: Cleanup_RRTMG_Rad_Transfer
 !
 ! !PRIVATE:
 !
+      PRIVATE :: Init_MCICA_Clouds
+      PRIVATE :: Init_Surface_Rad
       PRIVATE :: AttachPointersFromHemco
 !
 ! !PUBLIC DATA MEMBERS:
@@ -130,17 +128,18 @@
 !
 ! !IROUTINE: do_rrtmg_rad_transfer
 !
-! !DESCRIPTION: INTERNAL SUBROUTINE 
+! !DESCRIPTION: Interface between GEOS-Chem and the RRTMG radiative
+!  transfer model.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  THISDAY,
-     &                                  THISMONTH,  ICLD,
-     &                                  ISPECMENU,  ISEED,
-     &                                  Input_Opt,  State_Met,
-     &                                  State_Chm,  State_Diag,
-     &                                  RC                      )
+      SUBROUTINE DO_RRTMG_RAD_TRANSFER( am_I_Root,  ThisDay,
+     &                                  ThisMonth,  iCld,
+     &                                  iSpecMenu,  iNcDiag,
+     &                                  iSeed,      Input_Opt,
+     &                                  State_Met,  State_Chm,
+     &                                  State_Diag, RC         )
 !
 ! !USES:
 !
@@ -184,21 +183,22 @@
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! root CPU?
-      INTEGER,        INTENT(IN)    :: THISDAY     ! CURRENT DAY
-      INTEGER,        INTENT(IN)    :: THISMONTH   ! CURRENT MONTH
-      INTEGER,        INTENT(IN)    :: ISPECMENU   ! THE SPECIES BEING INCLUDED
-                                                   ! NEEDED FOR OUTPUT PURPOSES
-      INTEGER,        INTENT(IN)    :: ISEED  
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root core?
+      INTEGER,        INTENT(IN)    :: ThisDay    ! CURRENT DAY
+      INTEGER,        INTENT(IN)    :: ThisMonth  ! CURRENT MONTH
+      INTEGER,        INTENT(IN)    :: iSpecMenu  ! THE SPECIES BEING INCLUDED
+                                                  ! NEEDED FOR OUTPUT PURPOSES
+      INTEGER,        INTENT(IN)    :: iNcDiag    ! Index for netCDF diag arrays
+      INTEGER,        INTENT(IN)    :: iSeed      ! Seed value
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-      INTEGER,        INTENT(INOUT) :: ICLD        ! CLOUD FLAG FOR RRTMG
-                                                   ! 0-NOCLOUD, 1-GREY CLOUD
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm  ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
+      INTEGER,        INTENT(INOUT) :: iCld       ! CLOUD FLAG FOR RRTMG
+                                                  ! 0-NOCLOUD, 1-GREY CLOUD
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -544,6 +544,15 @@
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Unit conversion error in DO_RRTMG_RAD_TRANSFER!"'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Also make sure that the ncDiag arguement is valid,
+      ! as this is the index for the netCDF diagnostic arrays.
+      IF ( iNcDiag <= 0 ) THEN
+         ErrMsg = 'The iNcDiag argument is <= 0!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
       ENDIF
@@ -1591,9 +1600,9 @@
 
       !THE NUMBER OF ND72 OUTPUTS PER FIELD
       IF ( Input_Opt%LUCX ) THEN
-         NAD72 = NSPECRADMENU + 1
+         NAD72 = Input_Opt%NSPECRADMENU + 1
       ELSE
-         NAD72 = NSPECRADMENU
+         NAD72 = Input_Opt%NSPECRADMENU
       ENDIF
 
       !FIRST CHECK IF WE HAVE ALREADY OUTPUT AEROSOL DIAGNOSTICS
@@ -1684,7 +1693,6 @@
        ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
        !================================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !
@@ -1699,72 +1707,83 @@
 
           ! All-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWTOA ) THEN
-             State_Diag%RadAllSkySWTOA(I,J) = -SW_UFLUX(I,J,LLPAR+1)
+             State_Diag%RadAllSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUX(I,J,LLPAR+1)
           ENDIF
 
           ! All-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
-             State_Diag%RadAllSkySWSurf(I,J) = SW_DFLUX(I,J,1)
+             State_Diag%RadAllSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUX(I,J,1)
           ENDIF
 
           ! All-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
-             State_Diag%RadAllSkyLWTOA(I,J) = -LW_UFLUX(I,J,LLPAR+1)
+             State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) =
+     &         -LW_UFLUX(I,J,LLPAR+1)
           ENDIF
 
           ! All-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkyLWSurf ) THEN
-             State_Diag%RadAllSkyLWSurf(I,J) = LW_DFLUX(I,J,1)
+             State_Diag%RadAllSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUX(I,J,1)
           ENDIF
 
           ! Clear-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUXC(I,J,LLPAR+1)
           ENDIF
 
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUXC(I,J,1)
           ENDIF
 
           ! Clear-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) =
+     &          -LW_UFLUXC(I,J,LLPAR+1)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUXC(I,J,1)
           ENDIF
 
        ELSE
-     
+
           !-------------------------------------------------------
           ! CLEAR-SKY (RUNNING WITH CLOUDS OFF)
           !-------------------------------------------------------
 
           ! Clear-sky SW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWTOA ) THEN
-             State_Diag%RadClrSkySWTOA(I,J) = -SW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkySWTOA(I,J,iNcDiag) =
+     &          -SW_UFLUXC(I,J,LLPAR+1)
           ENDIF
 
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
-             State_Diag%RadClrSkySWSurf(I,J) = SW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkySWSurf(I,J,iNcDiag) =
+     &          SW_DFLUXC(I,J,1)
           ENDIF
 
           ! Clear-sky LW flux @ TOA [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
-             State_Diag%RadClrSkyLWTOA(I,J) = -LW_UFLUXC(I,J,LLPAR+1)
+             State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) =
+     &          -LW_UFLUXC(I,J,LLPAR+1)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
-             State_Diag%RadClrSkyLWSurf(I,J) = LW_DFLUXC(I,J,1)
+             State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) =
+     &          LW_DFLUXC(I,J,1)
           ENDIF
 
        ENDIF
-#endif
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT 
@@ -1830,7 +1849,6 @@
          RETURN
       ENDIF
 
-!EOC
       END SUBROUTINE DO_RRTMG_RAD_TRANSFER
 !EOC
 !------------------------------------------------------------------------------
@@ -1852,29 +1870,29 @@
 !\\
 ! !INTERFACE:
 !
-
-      SUBROUTINE SET_SPECMASK(ISPECRADMENU)
+      SUBROUTINE Set_SpecMask( iSpecRadMenu )
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD,   ONLY :  SPECMASK,NSPECRAD,NASPECRAD,
-     &                           LSPECRADMENU
+      USE CMN_FJX_MOD, ONLY : SPECMASK, NSPECRAD, NASPECRAD
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER, INTENT(IN)    :: ISPECRADMENU
-! 
+      INTEGER, INTENT(IN) :: iSpecRadMenu  ! Index of RRTMG flux output
+!
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version
 !  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
 !  26 Jun 2015 - E. Lundgren - Fix typo in NXTRA definition
+!  06 Nov 2018 - R. Yantosca - Now get LSPECRADMENU from Input_Opt
+!  08 Nov 2018 - R. Yantosca - Cosmetic changes (indentation & whitespace)
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
 !
-      INTEGER                :: N0,N,I,II,NXTRA
+      INTEGER :: N0,N,I,II,NXTRA
 
       !=================================================================
       ! SET_SPECMASK begins here!
@@ -1882,7 +1900,7 @@
 
       !ISPECRADMENU IS THE INDEX OF THE SPECIES WITHIN THE INPUT MENU
       !THE INDEX OF SPECMASK INDICATES THE POSITION OF THE SPECIES IN
-      !THE RT OPTICS ARRAY FOR THE AEROSOL 
+      !THE RT OPTICS ARRAY FOR THE AEROSOL
       !E.G. SO4 = 1 I.E. RTODAER(*,*,*,*,1)
       !
       !===FUNCTIONALITY FOR ADDING NEW SPECIES===
@@ -1892,67 +1910,210 @@
       !E.G. IF UCX=YES THEN NASPECRAD=18 AND STS AND NAT ARE INCLUDED
       !IN RTODAER INDEX 8 AND 9, BEFORE DUST
       NXTRA=NSPECRAD-16
+
       !CONVERT THE CURRENT SPECIES SELECTION FROM THE INPUT MENU INTO
       !THE REQUIRED SPECIES TO BE INCLUDED IN THE RRTMG CALCULATION
       SPECMASK(:)=1
 
       !IF ISPECRADMENU IS ZERO, WE JUST WANTED BASELINE, I.E. SPECMASK(:)=1
-      IF (ISPECRADMENU.GT.0) THEN
-       !CHECK THIS IS A REQUESTED SPECIES
-       IF(LSPECRADMENU(ISPECRADMENU).EQ.1) THEN 
-       SELECT CASE( ISPECRADMENU )
-       !OZONE
-       CASE( 1 ) 
-        SPECMASK(15+NXTRA)=0
-       !METHANE
-       CASE( 2 )
-        SPECMASK(16+NXTRA)=0
-       !SU
-       CASE( 3 )
-        SPECMASK(1)=3
-       !NI
-       CASE( 4 )
-        SPECMASK(2)=4
-       !AM
-       CASE( 5 )
-        SPECMASK(3)=5
-       !BC
-       CASE( 6 )
-        !Hydrophillic+phobic
-        SPECMASK(4)=6
-       !OA
-       CASE( 7 )
-        !Hydrophillic+phobic
-        SPECMASK(5)=7
-       !SS
-       CASE( 8 )
-        SPECMASK(6)=8
-        SPECMASK(7)=8
-       !DUST
-       CASE( 9 )
-        SPECMASK(8+NXTRA)=9
-        SPECMASK(9+NXTRA)=9
-        SPECMASK(10+NXTRA)=9
-        SPECMASK(11+NXTRA)=9
-        SPECMASK(12+NXTRA)=9
-        SPECMASK(13+NXTRA)=9
-        SPECMASK(14+NXTRA)=9
-       CASE( 10 )
-        !SET ALL BUT GASES TO 10
-        DO II = 1, NASPECRAD
-         SPECMASK(II)=10
-        ENDDO
-       !STRAT AEROSOL 
-       CASE( 11 )
-        !LSA
-        SPECMASK(8) = 11
-        !NAT
-        SPECMASK(9) = 11
-       END SELECT
-       ENDIF    
+      IF ( ISpecRadMenu .GT. 0 ) THEN
+
+         SELECT CASE( ISpecRadMenu )
+
+           ! O3 = Ozone
+           CASE( 1 )
+              SPECMASK(15+NXTRA)=0
+
+           ! ME = Methane
+           CASE( 2 )
+              SPECMASK(16+NXTRA)=0
+
+           ! SU = Sulfate
+           CASE( 3 )
+              SPECMASK(1)=3
+
+           ! NI = Nitrate
+           CASE( 4 )
+              SPECMASK(2)=4
+
+           ! AM = Ammonium
+           CASE( 5 )
+              SPECMASK(3)=5
+
+           ! BC = Black carbon (Hydrophilic+phobic)
+           CASE( 6 )
+              SPECMASK(4)=6
+
+           ! OA = Organic aerosol (!Hydrophilic+phobic)
+           CASE( 7 )
+              SPECMASK(5)=7
+
+           ! SS = Sea salt
+           CASE( 8 )
+              SPECMASK(6)=8
+              SPECMASK(7)=8
+
+           ! DU = Mineral dust
+           CASE( 9 )
+              SPECMASK(8+NXTRA)=9
+              SPECMASK(9+NXTRA)=9
+              SPECMASK(10+NXTRA)=9
+              SPECMASK(11+NXTRA)=9
+              SPECMASK(12+NXTRA)=9
+              SPECMASK(13+NXTRA)=9
+              SPECMASK(14+NXTRA)=9
+
+           ! PM = All particulate matter
+           ! add all aerosols but not gases here
+           CASE( 10 )
+              DO II = 1, NASPECRAD
+                 SPECMASK(II)=10
+              ENDDO
+
+           ! ST = STRAT AEROSOL (UCX only)
+           CASE( 11 )
+
+              !LSA
+              SPECMASK(8) = 11
+
+              !NAT
+              SPECMASK(9) = 11
+
+         END SELECT
       ENDIF
 
-      END SUBROUTINE SET_SPECMASK
+      END SUBROUTINE Set_SpecMask
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: init_rrtmg_rad_transfer
+!
+! !DESCRIPTION: Initializes all RRTMG module varaiables.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE Init_RRTMG_Rad_Transfer( am_I_Root,  Input_Opt,
+     &                                    State_Diag, RC         )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  The index fields Input_Opt%RadFluxCt, Input_Opt%RadFluxName, and
+!  Input_Opt%RadFluxInd are populated from information obtained in
+!  Headers/diaglist_mod.F90.  But the input.geos file is read before
+!  the diaglist is constructed.  Therefore, we have to delay population
+!  of these fields until after the call to Init_DiagList.
+!
+! !REVISION HISTORY:
+!  09 Nov 2018 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER :: N
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc, arrayId
+
+      !=================================================================
+      ! Init_RRTMG_Inputs begins here
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = ''
+      ThisLoc =
+     &   ' -> at Init_RRTMG_Rad_Transfer (in rrtmg_rad_transfer_mod.F)'
+
+      !=================================================================
+      ! For backwards compatibility with existing RRTMG code, we need
+      ! to populate the Input_Opt%LSpecRadMenu based on the flux
+      ! outputs requested in the HISTORY.rc file.  Loop over all
+      ! possible types of RRTMG flux outputs (excluding baseline,
+      ! which is type 0).
+      !
+      ! Save the name of each flux output in Input_Opt%RadFluxName
+      ! and its expected index value in Input_Opt%RadFluxInd.
+      ! Expected index values for flux ouptuts are:
+      !
+      ! Optional outputs (requested via HISTORY.rc)
+      !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
+      !   7=OA  8=SS  9=DU  10=PM  11=ST (UCX only)
+      !
+      ! This is a bit convoluted but we need to do this in order to
+      ! keep track of the slot of the netCDF diagnostic arrays in
+      ! State_Diag in which to archive the various flux outputs.
+      ! Also this allows us to keep backwards compatibility with the
+      ! existing code to the greatest extent.
+      !
+      ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
+      ! the bpch code is removed from GEOS-Chem.  This array is still
+      ! used in diag3.F, so we need to keep it for the time being.
+      ! (bmy, 11/9/18)
+      !=================================================================
+
+      ! Loop over all of the flux outputs requested in HISTORY.rc
+      DO N = 1, State_Diag%nRadFlux
+
+         SELECT CASE( State_Diag%RadFluxName(N) )
+            CASE( 'O3' )
+               Input_Opt%LSpecRadMenu(1)  = 1
+            CASE( 'ME' )
+               Input_Opt%LSpecRadMenu(2)  = 1
+            CASE( 'SU' )
+               Input_Opt%LSpecRadMenu(3)  = 1
+            CASE( 'NI' )
+               Input_Opt%LSpecRadMenu(4)  = 1
+            CASE( 'AM' )
+               Input_Opt%LSpecRadMenu(5)  = 1
+            CASE( 'BC' )
+               Input_Opt%LSpecRadMenu(6)  = 1
+            CASE( 'OA' )
+               Input_Opt%LSpecRadMenu(7)  = 1
+            CASE( 'SS' )
+               Input_Opt%LSpecRadMenu(8)  = 1
+            CASE( 'DU' )
+               Input_Opt%LSpecRadMenu(9)  = 1
+            CASE( 'PM' )
+               Input_Opt%LSpecRadMenu(10) = 1
+            CASE( 'ST' )
+               Input_Opt%LSpecRadMenu(11) = 1
+            CASE DEFAULT
+               ! Nothing
+         END SELECT
+      ENDDO
+
+      !=================================================================
+      ! Allocate arrays
+      !=================================================================
+      CALL Init_Surface_Rad()
+      CALL Init_MCICA_Clouds()
+
+      END SUBROUTINE Init_RRTMG_Rad_Transfer
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1967,7 +2128,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SURFACE_RAD()
+      SUBROUTINE Init_Surface_Rad()
 !
 ! !USES:
 !
@@ -2485,59 +2646,37 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_surface_rad
+! !IROUTINE: cleanup_rrtmg_rad_transfer
 !
-! !DESCRIPTION: Subroutine CLEANUP\_SURFACE\_RAD deallocates all module arrays.
+! !DESCRIPTION: Deallocates all RRTMG module variables.
 !\\
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CLEANUP_SURFACE_RAD
+      SUBROUTINE Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root core?
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
+!  09 Nov 2018 - R. Yantosca - Initial version
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-      !=================================================================
-      ! CLEANUP_SURFACE_RAD begins here!
-      !=================================================================
-      IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
-      IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
-      IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
-      IF ( ALLOCATED( SW_DFLUX        ) ) DEALLOCATE( SW_DFLUX        )
-      IF ( ALLOCATED( LW_UFLUXC       ) ) DEALLOCATE( LW_UFLUXC       )
-      IF ( ALLOCATED( LW_DFLUXC       ) ) DEALLOCATE( LW_DFLUXC       )
-      IF ( ALLOCATED( SW_UFLUXC       ) ) DEALLOCATE( SW_UFLUXC       )
-      IF ( ALLOCATED( SW_DFLUXC       ) ) DEALLOCATE( SW_DFLUXC       )
+      ! Assume success
+      RC = GC_SUCCESS
 
-      END SUBROUTINE CLEANUP_SURFACE_RAD
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_strat_clim
-!
-! !DESCRIPTION: Subroutine CLEANUP\_STRAT\_CLIM deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_STRAT_CLIM
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
       !=================================================================
-      ! CLEANUP_STRAT_CLIM begins here!
+      ! Nullify pointers to HEMCO fields
       !=================================================================
 
       ! Climatology
@@ -2572,31 +2711,20 @@
       MODIS_EMISS_15 => NULL() 
       MODIS_EMISS_16 => NULL() 
 
-      END SUBROUTINE CLEANUP_STRAT_CLIM
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: cleanup_mcica_clouds
-!
-! !DESCRIPTION: Subroutine CLEANUP\_MCICA\_CLOUDS deallocates all module arrays.
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE CLEANUP_MCICA_CLOUDS
-!
-! !REVISION HISTORY:
-!  18 Jun 2013 - D.A. Ridley - Initial version
-!  15 Jan 2015 - M. Sulprizio- Added ProTeX headers
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
       !=================================================================
-      ! CLEANUP_MCICA_CLOUDS begins here!
+      ! Deallocate surface radiation arrays
+      !=================================================================
+      IF ( ALLOCATED( LW_UFLUX        ) ) DEALLOCATE( LW_UFLUX        )
+      IF ( ALLOCATED( LW_DFLUX        ) ) DEALLOCATE( LW_DFLUX        )
+      IF ( ALLOCATED( SW_UFLUX        ) ) DEALLOCATE( SW_UFLUX        )
+      IF ( ALLOCATED( SW_DFLUX        ) ) DEALLOCATE( SW_DFLUX        )
+      IF ( ALLOCATED( LW_UFLUXC       ) ) DEALLOCATE( LW_UFLUXC       )
+      IF ( ALLOCATED( LW_DFLUXC       ) ) DEALLOCATE( LW_DFLUXC       )
+      IF ( ALLOCATED( SW_UFLUXC       ) ) DEALLOCATE( SW_UFLUXC       )
+      IF ( ALLOCATED( SW_DFLUXC       ) ) DEALLOCATE( SW_DFLUXC       )
+
+      !=================================================================
+      ! Deallocate MCICA cloud arrays
       !=================================================================
       IF ( ALLOCATED( CLDFMCL_LW     ) ) DEALLOCATE( CLDFMCL_LW       )
       IF ( ALLOCATED( CIWPMCL_LW     ) ) DEALLOCATE( CIWPMCL_LW       )
@@ -2612,7 +2740,7 @@
       IF ( ALLOCATED( REICMCL        ) ) DEALLOCATE( REICMCL          )
       IF ( ALLOCATED( RELQMCL        ) ) DEALLOCATE( RELQMCL          )
 
-      END SUBROUTINE CLEANUP_MCICA_CLOUDS
+      END SUBROUTINE Cleanup_RRTMG_Rad_Transfer
 !EOC
       END MODULE RRTMG_RAD_TRANSFER_MOD
 #endif

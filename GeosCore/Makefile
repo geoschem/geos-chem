@@ -67,7 +67,7 @@
 # (5) HEMCO/Core/          : HEMCO Core modules
 # (6) HEMCO/Extensions/    : HEMCO Extensions modules
 # (7) HEMCO/Interfaces/    : HEMCO Interface modules
-# (7) ISOROPIA/            : ISORROPIA aerosol thermodyn equilibrium module
+# (7) ISORROPIA/           : ISORROPIA aerosol thermodyn equilibrium module
 # (8) GeosCore/            : "Core" GEOS-Chem modules
 #
 # !REVISION HISTORY: 
@@ -185,11 +185,12 @@ HEMCO   :=$(ROOT)/HEMCO
 HDR     :=$(ROOT)/Headers
 HELP    :=$(ROOT)/help
 HIST    :=$(ROOT)/History
-ISO     :=$(ROOT)/ISOROPIA
+ISO     :=$(ROOT)/ISORROPIA
 LIB     :=$(ROOT)/lib
 KPP     :=$(ROOT)/KPP
 MOD     :=$(ROOT)/mod
 NCDF    :=$(ROOT)/NcdfUtil
+OBSP    :=$(ROOT)/ObsPack
 RAD     :=$(ROOT)/GeosRad
 UTIL    :=$(ROOT)/GeosUtil
 DYN     :=$(GCHP)/FVdycoreCubed_GridComp
@@ -267,6 +268,7 @@ lib:                                               # Build all G-C libraries
 	@$(MAKE) libutil 
 	@$(MAKE) libkpp
 	@$(MAKE) libhistory
+	@$(MAKE) libobspack
 	@$(MAKE) libhemco
 	@$(MAKE) libiso
 	@$(MAKE) librad
@@ -302,7 +304,7 @@ libhemcosa:                                        # Build HEMCO standalone
 libhistory:                                        # Build code in History/
 	@$(MAKE) -C $(HIST) lib
 
-libiso:                                            # Build code in ISOROPIA/
+libiso:                                            # Build code in ISORROPIA/
 	@$(MAKE) -C $(ISO)			  
 
 librad:                                            # Build code in GeosRad/
@@ -318,6 +320,9 @@ kppfirstpass:                                      # Compile some KPP code 1st
 
 libnc:                                             # Build code in NcdfUtil/
 	@$(MAKE) -C $(NCDF) libnc
+
+libobspack:                                        # Build code in ObsPack/
+	@$(MAKE) -C $(OBSP) lib
 
 libutil:                                           # Build code in GeosUtil/
 	@$(MAKE) -C $(UTIL)			  
@@ -356,6 +361,7 @@ realclean:                                         # Remove files everywhere
 	@$(MAKE) -C $(HEMCO) clean
 	@$(MAKE) -C $(HDR)   clean
 	@$(MAKE) -C $(HIST)  clean
+	@$(MAKE) -C $(OBSP)  clean
 	@$(MAKE) -C $(ISO)   clean
 	@$(MAKE) -C $(KPP)   realclean
 	@$(MAKE) -C $(NCDF)  clean
@@ -378,6 +384,7 @@ realclean_except_rrtmg:                            # Don't realclean RRTMG
 	@$(MAKE) -C $(HEMCO) slowclean
 	@$(MAKE) -C $(HDR)   slowclean
 	@$(MAKE) -C $(HIST)  slowclean
+	@$(MAKE) -C $(OBSP)  slowclean
 	@$(MAKE) -C $(ISO)   slowclean
 	@$(MAKE) -C $(KPP)   slowrealclean
 	@$(MAKE) -C $(NCDF)  slowclean
@@ -465,7 +472,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               dao_mod.o
 
 chemistry_mod.o             : chemistry_mod.F90                              \
-                              aerosol_mod.o           isoropiaII_mod.o       \
+                              aerosol_mod.o           isorropiaII_mod.o      \
                               c2h6_mod.o              carbon_mod.o           \
                               dust_mod.o              drydep_mod.o           \
                               global_ch4_mod.o        mercury_mod.o          \
@@ -488,7 +495,7 @@ cleanup.o                   : cleanup.F                                      \
                               diag_oh_mod.o           diag20_mod.o           \
                               drydep_mod.o            dust_mod.o             \
                               global_ch4_mod.o        wetscav_mod.o          \
-                              isoropiaII_mod.o        land_mercury_mod.o     \
+                              isorropiaII_mod.o       land_mercury_mod.o     \
                               seasalt_mod.o           linoz_mod.o            \
                               strat_chem_mod.o        mercury_mod.o          \
                               modis_lai_mod.o         ocean_mercury_mod.o    \
@@ -669,7 +676,8 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               get_ndep_mod.o          drydep_mod.o           \
                               modis_lai_mod.o         fast_jx_mod.o          \
                               hcoi_gc_diagn_mod.o     tomas_mod.o            \
-                              hco_interface_mod.o     flexgrid_read_mod.o
+                              hco_interface_mod.o     flexgrid_read_mod.o    \
+                              ocean_mercury_mod.o
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
@@ -683,7 +691,7 @@ input_mod.o                 : input_mod.F                                    \
                               diag53_mod.o            diag56_mod.o           \
                               drydep_mod.o            planeflight_mod.o
 
-isoropiaII_mod.o            : isoropiaII_mod.F                               \
+isorropiaII_mod.o           : isorropiaII_mod.F                              \
                               hco_interface_mod.o
 
 land_mercury_mod.o          : land_mercury_mod.F      modis_lai_mod.o        \
@@ -704,7 +712,7 @@ main.o                      : main.F                                         \
                               diagnostics_mod.o       toms_mod.o             \
                               gc_environment_mod.o    global_ch4_mod.o       \
                               input_mod.o             linoz_mod.o            \
-                              mapping_mod.o           toms_mod.o             \
+                              toms_mod.o                                     \
                               mercury_mod.o           modis_lai_mod.o        \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
@@ -718,8 +726,6 @@ main.o                      : main.F                                         \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
                               aerosol_mod.o           flexgrid_read_mod.o    \
                               gc_classic_version.H
-
-mapping_mod.o               : mapping_mod.F90                              
 
 mercury_mod.o               : mercury_mod.F                                  \
                               dao_mod.o                                      \
@@ -737,7 +743,7 @@ mixing_mod.o                : mixing_mod.F90                                 \
                               hco_interface_mod.o     vdiff_mod.o
 
 modis_lai_mod.o             : modis_lai_mod.F90                              \
-                              mapping_mod.o
+                              hco_interface_mod.o
 
 ndxx_setup.o                : ndxx_setup.F                                   \
                               diag_mod.o                                     \
@@ -764,7 +770,7 @@ endif
 ##############################################################################
 
 olson_landmap_mod.o         : olson_landmap_mod.F90                          \
-                              mapping_mod.o
+                              hco_interface_mod.o
 
 pbl_mix_mod.o               : pbl_mix_mod.F                                  \
                               tendencies_mod.o        diagnostics_mod.o      \

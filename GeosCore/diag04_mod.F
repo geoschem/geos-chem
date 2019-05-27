@@ -198,7 +198,7 @@
          IF ( N == 1 ) THEN
 
             CATEGORY     = 'CO2-SRCE'
-            UNIT         = 'molec/cm3/s'
+            UNIT         = 'molec/cm2/s'
             LMAX = LD04
             ARRAY(:,:,1:LMAX) = AD04_chem(:,:,1:LMAX) / SCALE
             

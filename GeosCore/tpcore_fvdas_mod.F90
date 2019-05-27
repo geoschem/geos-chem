@@ -428,10 +428,7 @@ CONTAINS
                            ak,       bk,       u,        v,       ps1,      &
                            ps2,      ps,       q,        iord,    jord,     &
                            kord,     n_adj,    XMASS,    YMASS,   FILL,     &
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
- !%%% Adding DiagnArrays for writing diagnostics to netcdf (ewl, 2/12/15).
- !%%% MASSFLEW, MASSFLNS, and MASSFLUP are cumulative when BPCH=y. 
- !%%% They are instantaneous when using NETCDF
+#if defined( BPCH_DIAG )
                            MASSFLEW, MASSFLNS, MASSFLUP,                    &
 #endif
                            AREA_M2, ND24, ND25, ND26, State_Diag )
@@ -521,7 +518,7 @@ CONTAINS
     ! Diagnostics state object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag
 
-#if defined( BPCH_DIAG ) || defined( NC_DIAG )
+#if defined( BPCH_DIAG )
     ! E/W, N/S, and up/down diagnostic mass fluxes
     REAL(fp),  INTENT(INOUT) :: MASSFLEW(:,:,:,:)  ! for ND24 diagnostic
     REAL(fp),  INTENT(INOUT) :: MASSFLNS(:,:,:,:)  ! for ND25 diagnostic
@@ -1070,8 +1067,6 @@ CONTAINS
              ENDIF
 #endif 
 
-
-#if defined( NC_DIAG )
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1087,7 +1082,6 @@ CONTAINS
                 Kflip                                 = KM - K + 1 ! flip vert
                 State_Diag%AdvFluxZonal(I,J,Kflip,IQ) = DTC(I,J,K)
              ENDIF
-#endif
 
           ENDDO
           ENDDO
@@ -1134,7 +1128,6 @@ CONTAINS
              ENDIF
 #endif
 
-#if defined( NC_DIAG )
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1150,7 +1143,6 @@ CONTAINS
                 Kflip                                 = KM - K + 1  ! flip vert
                 State_Diag%AdvFluxMerid(I,J,Kflip,IQ) = DTC(I,J,K) 
              ENDIF
-#endif
 
           ENDDO
           ENDDO
@@ -1217,7 +1209,6 @@ CONTAINS
              ENDIF
 #endif 
 
-#if defined( NC_DIAG )
              !----------------------------------------------------------------
              ! HISTORY (aka netCDF diagnostics)
              !
@@ -1233,7 +1224,7 @@ CONTAINS
                 Kflip                                = KM - K + 1  !flip vert
                 State_Diag%AdvFluxVert(I,J,Kflip,IQ) = DTC(I,J,K) 
              ENDIF
-#endif
+
           ENDDO
           ENDDO
           ENDDO

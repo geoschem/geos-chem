@@ -238,10 +238,8 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-#if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
-#endif
       USE ErrCode_Mod
       USE Error_Mod,       ONLY : Debug_MSG
       USE Input_Opt_Mod,   ONLY : OptInput
@@ -303,9 +301,7 @@
       ! Strings
       CHARACTER(LEN=255)      :: ErrMsg, ThisLoc
 
-#if defined( NC_DIAG )
       REAL(fp)                :: DT_Dyn
-#endif
 
       !=================================================================
       ! Initialize
@@ -327,7 +323,6 @@
       ! Only print output on the root CPU
       doPrt = ( LPRT .and. am_I_Root )
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Wet deposition budget diagnostics - Part 1 of 2
       !----------------------------------------------------------
@@ -342,7 +337,6 @@
      &                             State_Diag%BudgetMass1, 
      &                             RC )
       ENDIF
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -363,7 +357,6 @@
       ! Only do wet deposition for large-scale + anvil precip
       !=================================================================
 
-#if defined( NC_DIAG )
       !------------------------------------------
       ! Zero diagnostic arrays in State_Diag
       ! at the start of a new wetdep cycle
@@ -378,8 +371,6 @@
      &                              State_Diag%WashFracLS   = 0.0_f4
       IF ( State_Diag%Archive_WetLossLS    ) 
      &                              State_Diag%WetLossLS    = 0.0_f4
-#endif
-
 
       !------------------------------------------
       ! Create precip fields
@@ -439,7 +430,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Wet deposition budget diagnostics - Part 2 of 2
       !----------------------------------------------------------
@@ -472,7 +462,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       END SUBROUTINE DO_WETDEP
 !EOC
@@ -3620,7 +3609,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -3640,7 +3628,6 @@
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Rainout
       ENDIF
-#endif
 
       !-----------------------------------------------------------------
       ! Loop over all wet deposition species
@@ -3725,11 +3712,10 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -3752,9 +3738,8 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) =
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
-#endif
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
@@ -4027,7 +4012,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -4047,7 +4031,6 @@
          State_Diag%PrecipFracLS(I,J,L) = 
      &   State_Diag%PrecipFracLS(I,J,L) + F_Washout
       ENDIF
-#endif
 
       ! air temperature [K]
       TK  = State_Met%T(I,J,L)
@@ -4209,7 +4192,7 @@
                ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
                IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
-     &                        * State_Met%AREA_M2(I,J,1)
+     &                        * State_Met%AREA_M2(I,J)
                ELSE
                   ErrorMsg= 'Unexpected species units: ' // 
      &                       TRIM( State_Chm%Spc_Units )
@@ -4252,7 +4235,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -4267,7 +4249,6 @@
      &           F_Washout > 0.0_fp ) THEN
                State_Diag%WashFracLS(I,J,L,NW) = WashFrac / F_Washout
             ENDIF
-#endif
 
          !==============================================================      
          ! Washout of non-aerosol species
@@ -4317,7 +4298,6 @@
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !-----------------------------------------------------------
             ! HISTORY (aka netCDF diagnostics)
             !
@@ -4333,7 +4313,6 @@
             IF ( State_Diag%Archive_WashFracLS ) THEN
                State_Diag%WashFracLS(I,J,L,NW) = WashFrac
             ENDIF
-#endif
 
          ENDIF
 
@@ -4347,12 +4326,11 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
 
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -4366,9 +4344,8 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
-#endif
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
@@ -4596,7 +4573,7 @@
      &                                          'kg/m2' ) THEN
                            REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
      &                                  / 64e+0_fp )
-     &                                  * State_Met%AREA_M2(I,J,1)
+     &                                  * State_Met%AREA_M2(I,J)
                         ELSE
                            Spc    => NULL()
                            ErrorMsg = 'Unexpected species units: ' 
@@ -4630,12 +4607,11 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
 
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -4649,9 +4625,8 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) = 
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
-#endif
 
          ! Archive wet loss in kg/m2/s
          IF ( LSOILNOX ) THEN
@@ -4829,7 +4804,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! HISTORY (aka netCDF diagnostics)
       !
@@ -4850,7 +4824,6 @@
      &   State_Diag%PrecipFracLS(I,J,L) + F
 
       ENDIF
-#endif
 
       ! air temperature [K]
       TK = State_Met%T(I,J,L)
@@ -4922,11 +4895,10 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J,1)
+     &                       * State_Met%AREA_M2(I,J)
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -4960,10 +4932,8 @@
          IF ( State_Diag%Archive_WetLossLS ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J,1)
+     &                                     *  State_Met%Area_M2(I,J)
          ENDIF
-
-#endif
 
          ! Archive wet loss in kg/m2/s (check source code for this routine
          ! - ewl )

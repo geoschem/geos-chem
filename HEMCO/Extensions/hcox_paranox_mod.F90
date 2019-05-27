@@ -921,7 +921,7 @@ CONTAINS
     Inst => NULL()
     CALL InstCreate ( ExtNr, ExtState%ParaNOx, Inst, RC )
     IF ( RC /= HCO_SUCCESS ) THEN
-       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create AeroCom instance', RC )
+       CALL HCO_ERROR ( HcoState%Config%Err, 'Cannot create ParaNOx instance', RC )
        RETURN
     ENDIF
 
@@ -1406,7 +1406,7 @@ CONTAINS
    !=================================================================
    ! HCOX_PARANOX_FINAL begins here!
    !=================================================================
-    CALL InstRemove ( ExtState%AeroCom )
+    CALL InstRemove( ExtState%ParaNOx )
 
    RC = HCO_SUCCESS
 

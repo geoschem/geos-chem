@@ -49,7 +49,6 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
       PUBLIC  :: SET_H2O_TRAC
-      PUBLIC  :: SET_CLOCK_TRAC
       PUBLIC  :: EMISS_BASIC
       PUBLIC  :: SETTLE_STRAT_AER
       PUBLIC  :: SO4_PHOTFRAC
@@ -139,7 +138,8 @@
 
 #if defined( ESMF_ ) || defined( MODEL_WRF )
       ! Never use NETCDF in ESMF environment (ckeller, 12/05/14).
-      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not preprocessed for external grid (hplin, 8/15/18).
+      ! Don't use UCXNETCDF for WRF-GC as NetCDF NOx coeffs not 
+      ! preprocessed for external grid (hplin, 8/15/18).
       LOGICAL, PARAMETER            :: UCXNETCDF = .FALSE.
 #else
       LOGICAL, PARAMETER            :: UCXNETCDF = .TRUE.
@@ -175,7 +175,6 @@
       ! ISR_N2O5           : N2O5 MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOCl           : HOCl MW (inverse sqrt) (kg/kmol)^-0.5
       ! ISR_HOBr           : HOBr MW (inverse sqrt) (kg/kmol)^-0.5
-      ! CLOCKMR            : Current base MR for the clock species
       !
       ! Arrays
       !
@@ -229,7 +228,6 @@
       REAL(fp), PARAMETER  :: ISR_N2O5 =1.e+0_fp/sqrt(108.0e+0_fp)
       REAL(fp), PARAMETER  :: ISR_HOCl =1.e+0_fp/sqrt(52.46e+0_fp)
       REAL(fp), PARAMETER  :: ISR_HOBr =1.e+0_fp/sqrt(96.91e+0_fp)
-      REAL(fp)             :: CLOCKMR
 
       ! Arrays
       REAL(fp),DIMENSION(:,:),ALLOCATABLE     :: UCX_REGRID
@@ -322,7 +320,6 @@
       INTEGER :: id_OClO,    id_OCS,      id_PAN,    id_SO2,   id_SO4
       INTEGER :: id_CFC113,  id_CFC114,   id_CFC115
       INTEGER :: id_HCFC123, id_HCFC141b, id_HCFC142b
-      INTEGER :: id_CLOCK
 
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement 
@@ -1401,12 +1398,12 @@
       ! Re-zero GRID_EMIT
       GRID_EMIT = 0e+0_fp
 
+      ! NOTE: netCDF input isn't used for GCHP, GEOS-5, WRF-GC (bmy, 4/16/19)
       IF (UCXNETCDF) THEN
-#if defined( MODEL_GEOS )
-         TARG_YR_NC = TARGYEAR
-#else
+         !--------------------------------------------
+         ! Read from netCDF
+         !--------------------------------------------
          TARG_YR_NC = SFC_YEAR+OFFSETYEAR
-#endif 
          TARG_MO_NC = SFC_MONTH
          DO N=1,N_EMIT
             LOCAL_NAME = TRIM(TRAC_EMIT(N))
@@ -1433,7 +1430,6 @@
      &                    TARG_YR_NC,TARG_MO_NC,N)
                   ! Ignore HCFC123 for the moment
                CASE ('H2402')
-                  ! Limited data available for H2402
                   LOCAL_NAME = TRIM('C2BR2F4')
                   CALL SET_MONTREAL_NCDF(LOCAL_NAME,
      &                    TARG_YR_NC,TARG_MO_NC,N)
@@ -1453,8 +1449,10 @@
             END SELECT
          ENDDO
       ELSE
+         !--------------------------------------------
          ! Read from ASCII
          ! Determine which line needs to be read in
+         !--------------------------------------------
 #if defined( MODEL_GEOS )
          TARG_LINE = (12*(TARGYEAR-1959)) + SFC_MONTH
 #else
@@ -4760,78 +4758,6 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: set_clock_trac
-!
-! !DESCRIPTION: Subroutine SET\_CLOCK\_TRAC sets the clock species mixing 
-!  ratio within the bottom five grid levels, increasing by a fixed rate of
-!  0.5 ppbv/day
-!\\
-!\\
-! !INTERFACE:
-!
-      SUBROUTINE SET_CLOCK_TRAC( STEPLEN, State_Chm )
-!
-! !USES:
-!
-      USE CMN_SIZE_MOD
-      USE State_Chm_Mod,      ONLY : ChmState
-!
-! !INPUT PARAMETERS:
-!
-      INTEGER,        INTENT(IN)  :: STEPLEN     ! Step length (sec)
-!
-! !OUTPUT PARAMETERS: 
-!
-      TYPE(ChmState), INTENT(OUT) :: State_Chm   ! Chemistry State object
-!
-! !REVISION HISTORY: 
-!  16 Oct 2013 - S. D. Eastham - Initial version
-!  14 Feb 2014 - R. Yantosca   - Reorder DO loop for efficiency
-!  21 Feb 2014 - M. Sulprizio  - Now pass State_Chm object via the arg list
-!  06 Feb 2018 - E. Lundgren   - Update timestep unit from min to sec
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-      INTEGER             :: I,J,L,LCLOCK
-      REAL(fp), PARAMETER :: INCRATE = 0.5e-9_fp ! vv/day increase
-      
-      !=================================================================
-      ! SET_CLOCK_TRAC begins here!
-      !=================================================================
-
-      IF (CLOCKMR.lt.TINY(1e+0_fp)) THEN
-         ! Reset clock species everywhere
-         LCLOCK = LLPAR
-      ELSE
-         ! Only set bottom 5 levels
-         LCLOCK = 5
-      ENDIF
-
-!$OMP PARALLEL DO
-!$OMP+DEFAULT( SHARED )
-!$OMP+PRIVATE( I, J, L )
-      DO L=1,LCLOCK
-      DO J=1,JJPAR
-      DO I=1,IIPAR
-         State_Chm%Species(I,J,L,id_CLOCK) = CLOCKMR
-      ENDDO ! L
-      ENDDO ! I
-      ENDDO ! J
-!$OMP END PARALLEL DO
-
-      ! Increment clock mixing ratio for next step
-      CLOCKMR = CLOCKMR + ( INCRATE * STEPLEN / 86400e+0_fp )
-
-      END SUBROUTINE SET_CLOCK_TRAC
-!EOC
-!------------------------------------------------------------------------------
-!               MIT Laboratory for Aviation and the Environment               !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: set_h2o_trac
 !
 ! !DESCRIPTION: Subroutine SET\_H2O\_TRAC sets the H2O species throughout 
@@ -5820,6 +5746,7 @@
 !  20 Sep 2016 - R. Yantosca   - Now avoid using SIND, convert the argument
 !                                to radians and use the SIN function instead
 !  03 Nov 2017 - R. Yantosca   - Now accept State_Diag as an argument
+!  12 Feb 2019 - C. Keller     - Now point to updated ODS boundary conditions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -5921,7 +5848,6 @@
       id_PAN     = Ind_('PAN'       )
       id_SO2     = Ind_('SO2'       )
       id_SO4     = Ind_('SO4'       )
-      id_CLOCK   = Ind_('CLOCK'     )
       id_N       = Ind_('N'         )
 
       ! Print info
@@ -5938,6 +5864,7 @@
 
       ! Determine folder paths from root folder
       ! Regridding of netCDF input data is currently not supported.
+      ! NOTE: netCDF inputs not read by GCHP, GEOS-5, WRF-GC
       IF (UCXNETCDF) THEN
 #if !defined(GRID4x5) && !defined(GRID2x25)
          DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25 and '//
@@ -5947,18 +5874,11 @@
 #endif
          WRITE( NOON_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( MODEL_GEOS )
-     &        'UCX_201710/Init2D/Noontime.nc'
-#else
      &        'UCX_201403/Init2D/Noontime.nc'
-#endif
+
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
-#if defined( MODEL_GEOS )
-     &        'UCX_201710/Init1D/Montreal.nc'
-#else
-     &        'UCX_201403/Init1D/Montreal.nc'
-#endif
+     &        'UCX_201904/Montreal_fix.nc'
 
       ! For ASCII input, use 2x25 grid for all other grids than 4x5. 
       ! This is ok for the NOx coeffs which can be regridded on the fly
@@ -5981,7 +5901,8 @@
          WRITE( MONTREAL_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
 #if defined( MODEL_GEOS )
-     &      'UCX_201710/Montreal/'
+!!!     &      'UCX_201710/Montreal/'
+     &      'UCX_201902/Montreal/'
 #else
      &      'UCX_201403/Montreal/'
 #endif
@@ -6052,9 +5973,6 @@
       ! Factor to convert volume (m3/m3) to effective
       ! radius (m)
       SLA_VR = (0.357e-6_fp)*(10.e+0_fp**(12.e+0_fp*0.249))
-
-      ! Set clock species mixing ratio to zero
-      CLOCKMR = 0e+0_fp
 
       ! Set "current" month to impossible value
       SFC_MONTH = 0

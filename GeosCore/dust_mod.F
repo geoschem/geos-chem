@@ -484,9 +484,9 @@
                AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
             ENDIF
 #endif
-#if defined( NC_DIAG )
-               ! Add later when TOMAS diagnostics are implemented
-#endif
+
+            ! Add to State_Diag later when TOMAS diagnostics are implemented
+
          ENDDO
          ENDDO
 
@@ -947,7 +947,6 @@
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                IF ( State_Diag%Archive_DryDepChm .OR.
      &              State_Diag%Archive_DryDep        ) THEN
                   !-----------------------------------------------------
@@ -976,7 +975,6 @@
                   ! Drydep flux in chemistry only
                   State_Diag%DryDepChm(I,J,ND) = FLUX
                ENDIF
-#endif
             ENDDO 
          ENDDO    
 
@@ -1096,11 +1094,9 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
-#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
-#endif
 
       !=================================================================
       ! RDUST_ONLINE begins here!
@@ -1388,7 +1384,7 @@
 !#############################################################################
       ENDIF
 #endif
-#if defined( NC_DIAG )
+
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
@@ -1489,7 +1485,6 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif 
 
       ! Free pointers
       ERADIUS  => NULL()
@@ -1667,11 +1662,9 @@
       REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
       REAL(fp), POINTER   :: WTAREA(:,:,:,:)
 
-#if defined( NC_DIAG )
       ! For diagnostics
       REAL(fp)            :: tempOD(IIPAR,JJPAR,LLPAR,NDUST,3)
       LOGICAL             :: LINTERPARR(Input_Opt%NWVSELECT)
-#endif
 
       !=================================================================
       ! RDUST begins here!
@@ -1996,7 +1989,7 @@
 !$OMP END PARALLEL DO
       ENDIF
 #endif
-#if defined( NC_DIAG )
+
       IF ( State_Diag%Archive_AOD .AND. ODSWITCH .EQ. 1 ) THEN
          
          ! Initialize local arrays
@@ -2094,7 +2087,6 @@
          ENDDO
 !$OMP END PARALLEL DO
       ENDIF
-#endif
 
          ! Save the current month
          ! Set diagnostic to aggregate next call time. 
@@ -2769,8 +2761,11 @@
       ENDIF
 #endif 
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ) || defined( TOMAS )
+#if defined( ESMF_ ) || defined( TOMAS )
       ! EXPERIMENTAL: For archiving the dust source for GCHP
+      !
+      ! Changed to use the ESMF_ flag and not EXTERNAL_GRID/EXTERNAL_FORCING, as
+      ! WRF-GC which uses these flags does not require SRCE_FUNC (hplin, 1/22/19)
       ALLOCATE( SRCE_FUNC(IIPAR,JJPAR,3), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SRCE_FUNC' )
       SRCE_FUNC = 0.e+0_fp

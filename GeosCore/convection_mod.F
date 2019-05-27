@@ -104,10 +104,8 @@
       USE DIAG_MOD,        ONLY : AD37
       USE DIAG_MOD,        ONLY : AD38
 #endif
-#if defined( NC_DIAG )
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,       ONLY : GEOS_CHEM_STOP
       USE GC_GRID_MOD,     ONLY : GET_AREA_M2
@@ -217,9 +215,7 @@
       REAL(fp)           :: AREA_M2, DT
       LOGICAL            :: DO_ND14, DoConvFlux
       LOGICAL            :: DO_ND38, DoWetLoss
-#if defined( USE_TEND ) || defined( NC_DIAG )
       REAL(fp)           :: DT_Conv
-#endif
       
       ! Strings
       CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -247,7 +243,6 @@
       ThisLoc = 
      &   ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Convection budget diagnostics - Part 1 of 2
       !----------------------------------------------------------
@@ -267,7 +262,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       !-----------------------------------------------------------------
       ! More initializations
@@ -339,7 +333,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG ) 
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          ! 
@@ -348,7 +341,6 @@
          IF ( State_Diag%Archive_WetLossConvFrac .and. ISOL > 0 ) THEN
             State_Diag%WetLossConvFrac(:,:,:,ISOL) = p_FSOL
          ENDIF
-#endif
 
          ! Free pointer memory
          p_FSOL => NULL()
@@ -450,7 +442,6 @@
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !--------------------------------------------------------------
          ! HISTORY (aka netCDF diagnostics)
          !
@@ -478,7 +469,6 @@
             ENDDO
             ENDDO
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -491,10 +481,8 @@
          RETURN
       ENDIF
 
-#if defined( USE_TEND ) || defined( NC_DIAG )
       ! Convection timestep [s]
       DT_Conv = GET_TS_CONV()
-#endif
 
 #if defined( USE_TEND )
       !=================================================================
@@ -512,7 +500,6 @@
       ENDIF
 #endif
 
-#if defined( NC_DIAG )
       !----------------------------------------------------------
       ! Convection budget diagnostics - Part 2 of 2
       !----------------------------------------------------------
@@ -544,7 +531,6 @@
             RETURN
          ENDIF
       ENDIF
-#endif
 
       END SUBROUTINE DO_CONVECTION
 !EOC

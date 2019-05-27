@@ -42,6 +42,8 @@
       PRIVATE :: READ_DEPOSITION_MENU
       PRIVATE :: READ_OUTPUT_MENU
       PRIVATE :: READ_DIAGNOSTIC_MENU
+      PRIVATE :: READ_PLANEFLIGHT_MENU
+      PRIVATE :: READ_OBSPACK_MENU
       PRIVATE :: SET_TINDEX
       PRIVATE :: READ_ND49_MENU      
       PRIVATE :: READ_ND50_MENU  
@@ -445,7 +447,15 @@
                CALL GC_Error( ErrMsg, RC, ThisLoc )
                RETURN
             ENDIF
-                                                  
+
+         ELSE IF ( INDEX( LINE, 'OBSPACK MENU' ) > 0 ) THEN
+            CALL READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )   
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Error in "Read_ObsPack_Menu"!'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+               RETURN
+            ENDIF
+
          ! Read even if BPCH_DIAG=n so that time series diags may be
          ! output if other diagnostics are output as netcdf (ewl, 4/5/18)
          ELSE IF ( INDEX( LINE, 'ND48 MENU'        ) > 0 ) THEN
@@ -1413,12 +1423,10 @@
          T = T + 1
 
          ! Stop simulation and print warning if we exceed maximum number
-         ! of species currently hardcoded for Input_Opt%AdvectSpc_Name in
-         ! input_opt_mod.F90. Eventually we need to think of a better way
-         ! to do this. (mps, 1/26/18)
-         IF ( T > 600 ) THEN
-            ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
-     &             'must be read in first!'
+         ! of advected species hardcoded in input_opt_mod.F90
+         IF ( T > Input_Opt%Max_AdvectSpc ) THEN
+            ErrMsg = 'Number of advected species exceeds maximum. ' //
+     &             'This value can be modified in input_opt_mod.F90.'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
             RETURN
          ENDIF
@@ -2713,6 +2721,7 @@
       !=================================================================       
 
       ! Cannot use Synoz with linearized mesospheric chemistry
+#if !defined( MODEL_GEOS )
       IF ( Input_Opt%LUCX .and. Input_Opt%LSCHEM ) THEN
          IF (.not.Input_Opt%LLINOZ) THEN
             ErrMsg = 'Cannot use Synoz with linearized meso. chem.!'
@@ -2720,6 +2729,7 @@
             RETURN
          ENDIF
       ENDIF
+#endif
 
       ! Cannot have active H2O without stratospheric chemistry
       IF ( (.not.Input_Opt%LUCX) .and. Input_Opt%LACTIVEH2O ) THEN
@@ -2828,9 +2838,8 @@
 !
 ! !USES:
 !
-      USE CMN_FJX_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod,      ONLY : OptInput
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -2843,6 +2852,11 @@
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REMARKS:
+!  Flux outputs are now scheduled in the HISTORY.rc file, and the relevant
+!  fields of Input_Opt will be populated in the RRTMG module routine
+!  Init_RRTMG_Indices (called at startup).
 !
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D. Ridley   - Initial version
@@ -2946,25 +2960,8 @@
       ENDIF
       READ( SUBSTRS(1:N), * ) Input_Opt%TS_RAD
 
-      ! Selection of species flux changes
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, NSPECRADMENU, 'Fluxes', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      DO N = 1, NSPECRADMENU
-         READ( SUBSTRS(N), * ) LSPECRADMENU(N)
-      ENDDO
-
       ! Separator line
       CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 1', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-
-      ! Separator line
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'separator 2', RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN
@@ -3020,27 +3017,26 @@
             WRITE( 6, 115     ) 'AOD output wavelength (nm)  : ', 
      &                           Input_Opt%WVSELECT(N)
          ENDDO
-         WRITE( 6, 100     ) 'Turn on radiation?          : ',
-     &                        Input_Opt%LRAD
-         WRITE( 6, 100     ) 'Consider LW                 : ',
-     &                        Input_Opt%LLWRAD
-         WRITE( 6, 100     ) 'Consider SW                 : ',
-     &                        Input_Opt%LSWRAD
-         WRITE( 6, 125     ) 'Clear-sky/All-sky           : ',
-     &                        Input_Opt%LSKYRAD(1), '/',
-     &                        Input_Opt%LSKYRAD(2)
-         WRITE( 6, 110     ) 'Radiation timestep [sec]    : ',
-     &                        Input_Opt%TS_RAD
-         WRITE( 6, 120     ) 'Flux output selection       : ', 
-     &                        LSPECRADMENU
+         WRITE( 6, 100 ) 'Turn on radiation?          : ',
+     &                    Input_Opt%LRAD
+         WRITE( 6, 100 ) 'Consider LW                 : ',
+     &                    Input_Opt%LLWRAD
+         WRITE( 6, 100 ) 'Consider SW                 : ',
+     &                    Input_Opt%LSWRAD
+         WRITE( 6, 125 ) 'Clear-sky/All-sky           : ',
+     &                    Input_Opt%LSKYRAD(1), '/',
+     &                    Input_Opt%LSKYRAD(2)
+         WRITE( 6, 110 ) 'Radiation timestep [sec]    : ',
+     &                    Input_Opt%TS_RAD
       ENDIF
 
       ! FORMAT statements
- 100  FORMAT( A, L5  )
- 110  FORMAT( A, I5  )
- 115  FORMAT( A, F7.1)
- 120  FORMAT( A, 11I1 )
- 125  FORMAT( A,L5,A,L5 )
+ 100  FORMAT( A, L5           )
+ 110  FORMAT( A, I5           )
+ 115  FORMAT( A, F7.1         ) 
+ 120  FORMAT( A, 11I1         )
+ 125  FORMAT( A, L5, A, L5    )
+ 130  FORMAT( A, 12( A2, 1x ) )
 
       END SUBROUTINE READ_RADIATION_MENU
 !EOC
@@ -4959,7 +4955,7 @@
       HR2_OTH                      = HR2_OTHx
 
       ! Loop over # of diagnostics
-      DO M = 1, Input_Opt%MAX_DIAG
+      DO M = 1, Input_Opt%Max_BPCH_Diag
          Input_Opt%TCOUNT(M)       = TCOUNT(M)
          Input_Opt%TMAX(M)         = TMAX(M)
 
@@ -5333,6 +5329,146 @@
      &                      Input_Opt%PF_OFILE )
    
       END SUBROUTINE READ_PLANEFLIGHT_MENU
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: read_obspack_menu
+!
+! !DESCRIPTION: Subroutine READ\_OBSPACK\_MENU reads the OBSPACK MENU
+!  section of the GEOS-Chem input file.  This turns on the ObsPack diagnostic.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE READ_OBSPACK_MENU( am_I_Root, Input_Opt, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  20 Jul 2004 - R. Yantosca - Initial version
+!  27 Aug 2010 - R. Yantosca - Added ProTeX headers
+!  30 Jul 2012 - R. Yantosca - Now accept am_I_Root as an argument when
+!                              running with the traditional driver main.F
+!  01 Nov 2012 - R. Yantosca - Now pass Input_Opt, RC as arguments
+!  08 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  04 Jan 2019 - R. Yantosca - Add extra ObsPack fields from Input_Opt
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER            :: N, S
+
+      ! Strings
+      CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+
+      ! Arrays
+      CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
+
+      !=================================================================
+      ! READ_OBSPACK_MENU begins here!
+      !=================================================================
+
+      ! Initialize
+      RC      = GC_SUCCESS
+      ErrMsg  = 'Error reading the "input.geos" file!'
+      ThisLoc =
+     &  ' -> at Read_ObsPack_Menu (in module GeosCore/input_mod.F)'
+
+      ! Error check
+      IF ( CT1 /= 2 ) THEN
+         ErrMsg = 'SIMULATION MENU & ADVECTED SPECIES MENU ' //
+     &            'must be read in first!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+
+      ! Turn on ObsPack diagnostic?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_ObsPack', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%Do_ObsPack
+
+      ! ObsPack quiet output?
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'Do_ObsPack', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), * ) Input_Opt%ObsPack_Quiet
+
+      ! Input file name (w/ coordinates and sampling strategy)
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPack_InputFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPack_InputFile
+
+      ! Output file name
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'ObsPack_OutputFile', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      READ( SUBSTRS(1:N), '(a)' ) Input_Opt%ObsPack_OutputFile
+
+      ! Species names
+      CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'ObsPack_SpecName', RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
+      
+      ! Populate the ObsPack species name list
+      Input_Opt%ObsPack_nSpc = N
+      DO S = 1, Input_Opt%ObsPack_nSpc
+         Input_Opt%ObsPack_SpcName(S) = TRIM( SUBSTRS(S) )
+      ENDDO
+
+      !=================================================================
+      ! Print to screen
+      !=================================================================
+      IF( am_I_Root ) THEN
+         WRITE( 6, '(/,a)' ) 'OBSPACK_MENU'
+         WRITE( 6, '(  a)' ) '----------------'
+         WRITE( 6, 100 ) 'Turn on ObsPack diagnostic? : ',
+     &                    Input_Opt%Do_ObsPack
+         WRITE( 6, 100 ) 'Suppress logfile output?    : ',
+     &                    Input_Opt%ObsPack_Quiet
+         WRITE( 6, 110 ) 'ObsPack input file          : ',
+     &                    TRIM( Input_Opt%ObsPack_InputFile  )
+         WRITE( 6, 110 ) 'ObsPack output file         : ',
+     &                    TRIM( Input_Opt%ObsPack_OutputFile )
+      ENDIF
+
+      ! FORMAT statements
+ 100  FORMAT( A, L5    )
+ 110  FORMAT( A, A     )
+
+      END SUBROUTINE READ_OBSPACK_MENU
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7583,7 +7719,7 @@
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod,  ONLY : OptInput, Set_Input_Opt_Passive
+      USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT PARAMETERS:
 !
@@ -7606,6 +7742,7 @@
 !                              the returned # of substrings
 !  08 Nov 2017 - R. Yantosca - Return error condition to calling program
 !  04 Apr 2018 - E. Lundgren - Call routine to init Input_Opt passive spc arrays
+!  21 Dec 2018 - M. Sulprizio- Update passive species menu to include long name
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -7631,80 +7768,104 @@
       ThisLoc = 
      & ' -> at Read_Passive_Species_Menu (in mod. GeosCore/input_mod.F)'
 
-      ! # of passive species
-      CALL SPLIT_ONE_LINE( SUBSTRS, N, 1, 'NPASSIVE', RC )
-      IF ( RC /= GC_SUCCESS ) THEN
-         CALL GC_Error( ErrMsg, RC, ThisLoc )
-         RETURN
-      ENDIF
-      READ( SUBSTRS(1), * ) Input_Opt%NPASSIVE
-
-      ! Initialize Input_Opt arrays that are dependent on Input_Opt%NPASSIVE
-      CALL Set_Input_Opt_Passive( am_I_Root, Input_Opt, RC )
+      ! Initialize
+      P = 0
+      D = 0
 
       IF ( am_I_Root ) THEN
          WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES MENU'
          WRITE( 6, '(  a)' ) '---------------------'
       ENDIF
 
-      ! Read passive species information for each passive species
-      ! Every passive species line is expected to have 3 entries:
-      ! - Species name
-      ! - Species molecular weight 
-      ! - Atmospheric lifetime (s)
-      ! - Default atmospheric concentration (v/v)
-      IF ( Input_Opt%NPASSIVE > 0 ) THEN
+      ! Do until exit
+      DO
 
-         ! Index for decaying passive species
-         D = 0
-
-         ! Loop over the number of listed passive species
-         DO P = 1, Input_Opt%NPASSIVE
-
-            ! Expect 4 metadata parameters to define the passive species
-            CALL SPLIT_ONE_LINE( SUBSTRS, N, 4, 'Pasv Species', RC )
-            IF ( RC /= GC_SUCCESS ) THEN
-               CALL GC_Error( ErrMsg, RC, ThisLoc )
-               RETURN
-            ENDIF
+         ! Read passive species information for each passive species
+         ! Every passive species line is expected to have 4 entries:
+         ! - Species name
+         ! - Species molecular weight 
+         ! - Atmospheric lifetime (s)
+         ! - Initial atmospheric concentration (v/v)
+         CALL SPLIT_ONE_LINE( SUBSTRS, N, -1, 'Passive Species', RC )
+         IF ( RC /= GC_SUCCESS ) THEN
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
      
-            ! Read and store species information
-            Input_Opt%PASSIVE_ID(P)   = P
-            Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
-            READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
-            READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
-            READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
+         ! Exit here if separator line is encountered
+         IF ( INDEX ( TRIM(SUBSTRS(1)), '-----' ) > 0 ) EXIT
 
-            ! Determine if the passive species decays (i.e. if it has 
-            ! an atmospheric lifetime that is not -1).  This will allow
-            ! us to skip those passive species that do not decay in
-            ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-            IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
-               D                            = D + 1
-               Input_Opt%NPASSIVE_DECAY     = D
-               Input_Opt%PASSIVE_DECAYID(D) = P
-            ENDIF
+         ! Make sure there are at least 4 entries
+         IF ( N < 4 ) THEN
+            ErrMsg = 'Each passive species is expected to have ' //
+     &             'at least four entries: Name, MW, TAU, initial ' //
+     &             'concentration, and long name (optional).'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
 
-            ! Verbose
-            IF ( am_I_Root ) THEN
-               WRITE( 6, '(a)' ) 'Added passive species: '
-               WRITE( 6, 110   ) ' - Species name                : ', 
-     &               TRIM( Input_Opt%PASSIVE_NAME(P) ) 
-               WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
-     &               Input_Opt%PASSIVE_MW(P)
-               WRITE( 6, 120   ) ' - Lifetime [s]                : ', 
-     &               Input_Opt%PASSIVE_TAU(P)
-               WRITE( 6, 130   ) ' - Default concentration [v/v] : ', 
-     &               Input_Opt%PASSIVE_INITCONC(P)
-            ENDIF
-         ENDDO
-      ELSE
+         ! Increase number of passive species by one
+         P = P + 1
+
+         ! Stop simulation and print warning if we exceed maximum number
+         ! of passive species hardcoded in input_opt_mod.F90.
+         IF ( P > Input_Opt%Max_PassiveSpc ) THEN
+            ErrMsg = 'Number of passive species exceeds maximum. ' //
+     &             'This value can be modified in input_opt_mod.F90.'
+            CALL GC_Error( ErrMsg, RC, ThisLoc )
+            RETURN
+         ENDIF
+
+         ! Read and store species information
+         Input_Opt%PASSIVE_ID(P)   = P
+         Input_Opt%PASSIVE_NAME(P) = TRIM( SUBSTRS(1) )
+         READ( SUBSTRS(2), * ) Input_Opt%PASSIVE_MW(P)
+         READ( SUBSTRS(3), * ) Input_Opt%PASSIVE_TAU(P)
+         READ( SUBSTRS(4), * ) Input_Opt%PASSIVE_INITCONC(P)
+
+         ! Check if optional entry for long name is included
+         IF ( N > 4 ) THEN
+            READ( SUBSTRS(5), * ) Input_Opt%PASSIVE_LONGNAME(P)
+         ENDIF
+
+         ! Determine if the passive species decays (i.e. if it has 
+         ! an atmospheric lifetime that is not -1).  This will allow
+         ! us to skip those passive species that do not decay in
+         ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
+         IF ( Input_Opt%PASSIVE_TAU(P) > 0.0_fp ) THEN
+            D                            = D + 1
+            Input_Opt%NPASSIVE_DECAY     = D
+            Input_Opt%PASSIVE_DECAYID(D) = P
+         ENDIF
+
+
+         ! Verbose
+         IF ( am_I_Root ) THEN
+            WRITE( 6, '(a)' ) 'Added passive species: '
+            WRITE( 6, 110   ) ' - Species name                : ', 
+     &            TRIM( Input_Opt%PASSIVE_NAME(P) ) 
+            WRITE( 6, 120   ) ' - Molec. weight [g/mol]       : ', 
+     &            Input_Opt%PASSIVE_MW(P)
+            WRITE( 6, 130   ) ' - Lifetime [s]                : ', 
+     &            Input_Opt%PASSIVE_TAU(P)
+            WRITE( 6, 130   ) ' - Initial concentration [v/v] : ', 
+     &            Input_Opt%PASSIVE_INITCONC(P)
+            WRITE( 6, 110   ) ' - Species long name           : ',
+     &            TRIM( Input_Opt%PASSIVE_LONGNAME(P) )
+         ENDIF
+
+      ENDDO
+
+      IF ( P < 0 ) THEN
          ErrMsg = 'Cannot add passive species ' //
-     &            TRIM(Input_Opt%PASSIVE_NAME(P) ) //
+     &             TRIM(Input_Opt%PASSIVE_NAME(P) ) //
      &            ': # of passive species is smaller than 1!'
          CALL GC_Error( ErrMsg, RC, ThisLoc )
          RETURN 
       ENDIF
+
+      ! Total number of passive species
+      Input_Opt%NPASSIVE = P
 
  110  FORMAT( A, A )
  120  FORMAT( A, F10.2  )

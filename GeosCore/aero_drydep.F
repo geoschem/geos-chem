@@ -21,7 +21,6 @@
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE DRYDEP_MOD,         ONLY : DEPSAV
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
@@ -127,6 +126,7 @@
       REAL(fp), POINTER  :: Spc     (:,:,:,:)
       REAL(fp), POINTER  :: BXHEIGHT(:,:,:  )
       REAL(fp), POINTER  :: T       (:,:,:  )
+      REAL(fp), POINTER  :: DEPSAV  (:,:,:  )                ! IM, JM, nDryDep
 
       ! SAVEd arrays
       INTEGER,  SAVE     :: DRYD(IBINS)
@@ -162,6 +162,7 @@
       Spc      => State_Chm%Species
       BXHEIGHT => State_Met%BXHEIGHT
       T        => State_Met%T
+      DEPSAV   => State_Chm%DryDepSav
 
       ! First-time setup
       IF ( FIRST ) THEN
@@ -570,6 +571,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
       Spc      => NULL()
       BXHEIGHT => NULL()
       T        => NULL()
+      DEPSAV   => NULL()
 
       ! Check that species units are still in [kg] (ewl, 8/13/15)
       IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN

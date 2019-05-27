@@ -365,6 +365,13 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
     IF ( .NOT. Found ) HcoState%Options%ScaleEmis = .TRUE.
 
+    ! Only shift hh/mm when applying time shift? 
+    CALL GetExtOpt ( HcoConfig, CoreNr, 'Cap time shift', &
+                     OptValBool=HcoState%Options%TimeShiftCap, &
+                     Found=Found, RC=RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+    IF ( .NOT. Found ) HcoState%Options%TimeShiftCap = .FALSE.
+
     ! Get MaxDepExp from configuration file. If not found, set to default
     ! value of 20. 
     CALL GetExtOpt ( HcoConfig, CoreNr, 'Maximum dep x ts', &
@@ -424,6 +431,10 @@ CONTAINS
        CALL HCO_MSG(HcoConfig%Err,MSG)
        WRITE(MSG,'(A33,F6.2)') 'Upper limit for deposition x ts: ', HcoState%Options%MaxDepExp
        CALL HCO_MSG(HcoConfig%Err,MSG,SEP2='-')
+       WRITE(MSG,'(A33,L2)') 'Scale emissions                : ', HcoState%Options%ScaleEmis
+       CALL HCO_MSG(HcoConfig%Err,MSG)
+       WRITE(MSG,'(A33,L2)') 'Cap time shift                 : ', HcoState%Options%TimeShiftCap
+       CALL HCO_MSG(HcoConfig%Err,MSG)
     ENDIF
 
     ! Leave w/ success

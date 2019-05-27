@@ -52,9 +52,7 @@
       PUBLIC  :: INIT_MERCURY
       PUBLIC  :: EMISSMERCURY
       PUBLIC  :: PARTITIONHG2
-#if defined( NC_DIAG )
       PUBLIC  :: Reset_Hg_Diags
-#endif
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -620,7 +618,7 @@
       ! To simplify this code, K_RED_JNO2 should be moved to HEMCO_Config.rc
       ! or input.geos since it will vary with MET/GRID/chemistry (cpt)
 
-      REAL(fp), PARAMETER     :: K_RED_JNO2 = 14.0e-2_fp
+      REAL(fp), PARAMETER     :: K_RED_JNO2 = 16.0e-2_fp
 
       ! Set of Hg/Br rate constants to use
       ! Recommended: DonohoueYBBalabanov, GoodsiteY, or DonohoueYB
@@ -1480,7 +1478,6 @@
             ENDIF  
 #endif
 
-#if defined( NC_DIAG ) 
             !===========================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -1662,7 +1659,6 @@
                ENDIF
 
             ENDIF
-#endif
          ENDDO
 
       ENDDO
@@ -3736,7 +3732,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          ENDIF
 #endif
 
-#if defined( NC_DIAG )
          !==============================================================
          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
          !
@@ -3804,7 +3799,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
          IF ( State_Diag%Archive_EmisHg0vegetation ) THEN
             State_Diag%EmisHg0vegetation(I,J) = EHg0_vg(I,J)
          ENDIF
-#endif
 
       ENDDO
       ENDDO
@@ -4024,7 +4018,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF
 #endif
 
-#if defined( NC_DIAG )
             !==============================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             !
@@ -4041,7 +4034,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             IF ( State_Diag%Archive_EmisHg2HgPanthro ) THEN
                State_Diag%EmisHg2HgPanthro(I,J) = EHg2_an(I,J)
             ENDIF
-#endif
 
          ENDDO
          ENDDO
@@ -5295,10 +5287,12 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       !----------------------------------------------------------------
       ! Add Br in the MBL
       !----------------------------------------------------------------
+      IF ( (L_ADD_MBL_BR) .OR. (LPOLARBR) ) THEN
+         ! Fraction of grid box mass which is within the mixed layer
+         FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L) 
+      ENDIF
       
       IF ( L_ADD_MBL_BR ) THEN
-         ! Fraction of grid box mass which is within the mixed layer
-         FPBL = GET_FRAC_UNDER_PBLTOP(I,J,L)
 
          IF ( IS_WATER( I, J, State_Met ) .AND. (FPBL > 0e+0_fp) ) THEN
 
@@ -5475,7 +5469,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             ENDIF ! ND03
 #endif
 
-#if defined( NC_DIAG )
             !==============================================================
             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
             ! 
@@ -5492,7 +5485,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
             IF ( State_Diag%Archive_PolarConcO3 ) THEN
                State_Diag%PolarConcO3(I,J,L) = O3_Polar_PPB
             ENDIF
-#endif
          ENDIF ! Month
 
       ENDIF ! Polar BrO criteria
@@ -6297,7 +6289,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       ! Days in each month (will use later) 9/16/15 hmh
       DN =  (/ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 /)
 
-#if defined( NC_DIAG )
       !-----------------------------------------------------------------
       ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
       !
@@ -6311,7 +6302,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
       ENDIF
-#endif
 
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       ! read monthly ocean evasion  !
@@ -6509,7 +6499,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                ENDIF
 #endif
 
-#if defined( NC_DIAG )
                !--------------------------------------------------------
                ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
                !
@@ -6530,7 +6519,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
                   ENDIF
 
                ENDIF
-#endif
 
             ENDDO
 
@@ -6552,7 +6540,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE OFFLINEOCEAN_READMO
 !EOC
-#if defined( NC_DIAG )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -6670,7 +6657,6 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
 
       END SUBROUTINE Reset_Hg_Diags
 !EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -7275,7 +7261,7 @@ c$$$         k3ano2 = 3.4d-12 * exp(391d0/T)
       L_ADD_MBL_BR=.FALSE.
 
       ! Switch adds bromine explosion in Northern springtime
-      LPOLARBR=.FALSE.
+      LPOLARBR=.TRUE.
 
       ! Switch for only doing reduction in cloud water
       LRED_CLOUDONLY = .TRUE.

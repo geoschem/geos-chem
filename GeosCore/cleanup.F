@@ -46,10 +46,9 @@
       USE HDF_MOD,                 ONLY : CLEANUP_HDF
       USE History_Mod,             ONLY : History_Cleanup
       USE Input_Opt_Mod,           ONLY : OptInput
-      USE ISOROPIAII_MOD,          ONLY : CLEANUP_ISOROPIAII
-      USE LINOZ_MOD,               ONLY : CLEANUP_LINOZ
+      USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
       USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
-      USE MODIS_LAI_MOD,           ONLY : CLEANUP_MODIS_LAI
+      USE ObsPack_Mod,             ONLY : ObsPack_SpeciesMap_Cleanup
       USE OCEAN_MERCURY_MOD,       ONLY : CLEANUP_OCEAN_MERCURY
       USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
       USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
@@ -81,9 +80,7 @@
       USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
 
 #if   defined( RRTMG )
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_SURFACE_RAD
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_STRAT_CLIM
-      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : CLEANUP_MCICA_CLOUDS
+      USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Cleanup_RRTMG_Rad_Transfer
 #endif
 
 
@@ -91,12 +88,12 @@
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root    ! Are we on the root CPU?
-      LOGICAL,        INTENT(IN)  :: ERROR        ! Cleanup after error? 
+      LOGICAL, INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL, INTENT(IN)  :: ERROR       ! Cleanup after error? 
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC           ! Success or failure
+      INTEGER, INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY: 
 !  29 Nov 1999 - R. Yantosca - Initial version
@@ -177,7 +174,7 @@
 !  (41) Now references CLEANUP_VISTAS_ANTHRO (phs, 3/10/08)
 !  (41) Now references CLEANUP_LINOZ (phs, 10/16/09)
 !  (42) Now references CLEANUP_HDF (amv, bmy, 12/21/09)
-!  (43) Now references CLEANUP_ISOROPIAII (ccc, bmy, 1/29/09)
+!  (43) Now references CLEANUP_ISORROPIAII (ccc, bmy, 1/29/09)
 !  (44) Now references CLEANUP_DEPO_MERCURY and CLEANUP_LAND_MERCURY
 !       (ccc, 5/6/10)
 !  (45) Added call to CLEANUP_GLOBAL_OC, which deallocates arrays from
@@ -249,6 +246,7 @@
 !  23 Aug 2017 - R. Yantosca - Now call Cleanup_Grid_Registry
 !  06 Nov 2017 - R. Yantosca - Remove call to Cleanup_Chemgrid
 !  09 Nov 2017 - R. Yantosca - Return error condition to calling program
+!  22 Jan 2019 - H.P. Lin    - Remove call to CLEANUP_LINOZ
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -273,7 +271,6 @@
       ENDIF
  100  FORMAT( '     - CLEANUP: deallocating arrays now...' )
 
-#if defined( NC_DIAG )
       !=================================================================
       !         ***** H I S T O R Y   C L E A N U P *****
       !
@@ -294,8 +291,6 @@
 
 #if defined( USE_TIMERS )
       CALL GEOS_Timer_End( "=> History (netCDF diags)", RC )
-#endif
-
 #endif
 
       ! UCX needs to be cleaned up before emissions, because the UCX 
@@ -361,11 +356,9 @@
       ENDIF
 
       CALL CLEANUP_HDF()  
-      CALL CLEANUP_ISOROPIAII()
-      CALL CLEANUP_LINOZ()
+      CALL CLEANUP_ISORROPIAII()
       CALL CLEANUP_MAP_A2A()
       CALL CLEANUP_MERCURY()
-      CALL CLEANUP_MODIS_LAI()
       CALL CLEANUP_OCEAN_MERCURY()
       CALL CLEANUP_DEPO_MERCURY()
       CALL CLEANUP_LAND_MERCURY()
@@ -402,9 +395,12 @@
 #endif
 
 #if   defined( RRTMG )
-      CALL CLEANUP_SURFACE_RAD()  ! Cleanup arrays for surface properties
-      CALL CLEANUP_STRAT_CLIM()
-      CALL CLEANUP_MCICA_CLOUDS()
+      CALL Cleanup_RRTMG_Rad_Transfer( am_I_Root, RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
+         CALL GC_Error( ErrMsg, RC, ThisLoc )
+         RETURN
+      ENDIF
 #endif
 
 #if   defined( GRID05x0625 ) || defined( GRID025x03125)
