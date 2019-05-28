@@ -505,15 +505,6 @@
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
 
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      ! KLUDGE (mps, 5/23/19):
-      ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks, which
-      ! require the AREA_M2 field saved out to the StateMet diagnostic
-      ! collection for things like computing emission totals.
-      !
-      State_Met%Area_M2 = State_Grid%Area_M2
-      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
       ! Call the routine GC_Allocate_All (located in module file
       ! GeosCore/gc_environment_mod.F90) to allocate all lat/lon
       ! allocatable arrays used by GEOS-Chem.
@@ -620,6 +611,15 @@
          ErrMsg = 'Error encountered in "GC_Init_All!"!'
          CALL Error_Stop( ErrMsg, ThisLoc )
       ENDIF
+
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+      ! KLUDGE (mps, 5/23/19):
+      ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks, which
+      ! require the AREA_M2 field saved out to the StateMet diagnostic
+      ! collection for things like computing emission totals.
+      !
+      State_Met%Area_M2 = State_Grid%Area_M2
+      !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
       ! Also allocate arrays in GEOS-Chem modules that have not yet
       ! been initialized (i.e. SEASALT_MOD, CARBON_MOD,  DUST_MOD, 
@@ -802,15 +802,8 @@
       IF ( RC /= GC_SUCCESS ) THEN
          ErrMsg = 'Error encountered in "Emissions_Run", Phase 0'
          Instr  =
-     &     '(1) This error can indicate a missing GEOS-Chem restart '//
-     &     'file (GEOSChem.Restart.YYYYMMDD_hhmmz.nc4), or that the '//
-     &     'restart file date does not match the start date of the ' //
-     &     'simulation.  Please double-check your run directory to ' //
-     &     'make sure that there is a valid restart file for the '   //
-     &     'simulation you are using.  (2) This error can also '     //
-     &     'indicate that a met field file is missing.  Please '     //
-     &     'make sure that you have all relevant met field data '    //
-     &     'on disk for the start date of your simulation.'
+     &     'This error can indicate a missing file. Please check '//
+     &     'the HEMCO log file for additional error messages! '
          CALL Error_Stop( ErrMsg, ThisLoc, Instr )
       ENDIF
 
