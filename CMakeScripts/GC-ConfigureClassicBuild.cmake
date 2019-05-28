@@ -299,18 +299,12 @@ if(${BPCH_DIAG})
     set_dynamic_default(GC_DEFINES DEFAULT "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC")
 endif()
 
-# Add NetCDF diagnostic definitions
-if("${DIAG}" MATCHES ".*NC.*")
-    # Read netcdf.inc and search for nf_def_var_deflate
-    foreach(NC_INC_DIR ${NETCDF_INCLUDE_DIRS})
-        if(EXISTS ${NC_INC_DIR}/netcdf.inc)
-            file(READ ${NC_INC_DIR}/netcdf.inc NCINC)
-            if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
-                set_dynamic_default(GC_DEFINES DEFAULT "NC_HAS_COMPRESSION")
-                break()
-            endif()
-        endif()
-    endforeach()
+# Read netcdf.inc and search for nf_def_var_deflate
+if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
+    file(READ ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc NCINC)
+    if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
+        set_dynamic_default(GC_DEFINES DEFAULT "NC_HAS_COMPRESSION")
+    endif()
 endif()
 
 # Get flexible precision setting
