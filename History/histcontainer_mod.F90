@@ -60,6 +60,9 @@ MODULE HistContainer_Mod
      INTEGER                     :: nX                  ! X (or lon) dim size
      INTEGER                     :: nY                  ! Y (or lat) dim size
      INTEGER                     :: nZ                  ! Z (or lev) dim size
+     INTEGER                     :: X1, X2              ! X (or lon) extents
+     INTEGER                     :: Y1, Y2              ! Y (or lon) extents
+     INTEGER                     :: Z1, Z2              ! X (or lon) extents
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers

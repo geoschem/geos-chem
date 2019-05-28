@@ -65,7 +65,8 @@ MODULE History_Mod
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubsetDims (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubset     (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLevels     (:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:)
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:)
@@ -406,15 +407,26 @@ CONTAINS
        CollectionDuration = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionSubsetDims
-    IF ( .not. ALLOCATED( CollectionSubsetDims ) ) THEN
-       ALLOCATE( CollectionSubSetDims( CollectionCount ), STAT=RC )
+    ! Allocate CollectionSubset
+    IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
+       ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
           ErrMsg = 'Could not allocate "CollectionSubsetDims"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CollectionSubsetDims = UNDEFINED_STR
+       CollectionSubset = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionLevels
+    IF ( .not. ALLOCATED( CollectionLevels ) ) THEN
+       ALLOCATE( CollectionLevels( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionSubsetDims"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionLevels = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionMode
@@ -545,7 +557,7 @@ CONTAINS
     CHARACTER(LEN=512)           :: ErrMsg
 
     ! Arrays
-    INTEGER                      :: SubsetDims(3)
+    INTEGER                      :: SubsetDims(4)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
     CHARACTER(LEN=255)           :: SubStrs(255)
@@ -864,24 +876,25 @@ CONTAINS
 
        ! "subsetdims": Specifies a subset of the data grid
        ! NOTE: Currently not used at the present time
-       Pattern = 'subsetdims'
+       Pattern = 'subset'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
           IF ( C > 0 ) THEN
-             CollectionSubsetDims(C) = Subs1(2)
+             CollectionSubsets(C) = Subs1(2)
           
              ! Then split by spaces and convert to INTEGER
-             CALL StrSplit( CollectionSubsetDims(C), " ", Subs2, nSubs2 )
-             IF ( nSubs2 > 0 ) THEN
+             CALL StrSplit( CollectionSubsets(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 4 ) THEN
                 DO N = 1, nSubs2
                    READ( Subs2(N), '(i10)' ) SubsetDims(N)
                 ENDDO
-          
-                ! Define the number of dimensions
-                SpaceDim = nSubs2
-                IF ( SpaceDim == 2 ) SubsetDims(3) = 1
+             ELSE
+                ErrMsg = 'Subsets must be specified as '        // &
+                         'lonMin lonMax latMin latMax!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
              ENDIF
           ENDIF
        ENDIF
@@ -1578,8 +1591,8 @@ CONTAINS
                                           State_Chm,    State_Diag,          &
                                           State_Met,    Collection,          &
                                           CollectionId, ItemName,            &
-                                          ItemCount,    SubsetDims,          &
-                                          RC                                )
+                                          ItemCount,    Subsets,             &
+                                          Levels,       RC                  )
 !
 ! !USES:
 !
@@ -1609,8 +1622,8 @@ CONTAINS
     INTEGER,             INTENT(IN)  :: ItemCount      ! Index of HISTORY ITEM
 
     ! Optional arguments
-    INTEGER,             OPTIONAL    :: SubsetDims(3)  ! Dimensions specified
-                                                       !  by the collection
+    INTEGER,             OPTIONAL    :: Subsets(4)     ! X0, X1, Y0, Y1
+    INTEGER,             OPTIONAL    :: Levels(2)      ! Z0, Z1
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1837,20 +1850,38 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! If the optional SUBSETDIMS argument is passed, then use that to
-    ! size the data arrays.  Otherwise assume the data arrays will be
-    ! the same size as the pointer to the data source (as will be true
+    ! If the optional SUBSETS and/or LEVELS arguments are passed, then use 
+    ! these to size the data arrays.  Otherwise assume the data arrays will
+    ! be the same size as the pointer to the data source (as will be true
     ! in most cases.) 
     !=======================================================================
+
+    ! Horizontal subsetting
     IF ( PRESENT( SubsetDims ) ) THEN
-       NX = SubsetDims(1)
-       NY = SubsetDims(2)
-       NZ = SubsetDims(3)
+       X0 = Subset(1)
+       X1 = Subset(2)
+       Y0 = Subset(3) 
+       Y1 = Subset(4)
     ELSE
-       NX = Dimensions(1)
-       NY = Dimensions(2)
-       NZ = Dimensions(3)
+       X0 = 1
+       X1 = Dimensions(1)
+       Y0 = 1
+       Y1 = Dimensions(2)
     ENDIF
+
+    ! Vertical subsetting
+    IF ( PRESENT( Levels ) ) THEN
+       Z0 = Levels(1)
+       Z1 = Levels(2)
+    ELSE
+       Z0 = 1
+       Z1 = Dimensions(3)
+    ENDIF
+
+    ! Compute dimension extent
+    NX = X1 - X0 + 1
+    NY = Y1 - Y0 + 1
+    NZ = Z1 - Z0 + 1
 
     !=======================================================================
     ! Now that we have obtained information (and pointers to the data)
