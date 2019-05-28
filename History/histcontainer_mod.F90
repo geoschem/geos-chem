@@ -60,9 +60,9 @@ MODULE HistContainer_Mod
      INTEGER                     :: nX                  ! X (or lon) dim size
      INTEGER                     :: nY                  ! Y (or lat) dim size
      INTEGER                     :: nZ                  ! Z (or lev) dim size
-     INTEGER                     :: X1, X2              ! X (or lon) extents
-     INTEGER                     :: Y1, Y2              ! Y (or lon) extents
-     INTEGER                     :: Z1, Z2              ! X (or lon) extents
+     INTEGER                     :: X0, X1              ! X (or lon) indices
+     INTEGER                     :: Y0, Y1              ! Y (or lon) indices
+     INTEGER                     :: Z0, Z1              ! Z (or lev) indices
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers
@@ -731,10 +731,16 @@ CONTAINS
     Container%TimeStamp       = 0.0_f8
 
     ! Spatial information fields will be defined according to the
-    ! dimensions of the HISTORY TTEMS belonging to the collection
+    ! dimensions of the HISTORY ITEMS belonging to the collection
     Container%NX              = UNDEFINED_INT
     Container%NY              = UNDEFINED_INT
     Container%NZ              = UNDEFINED_INT
+    Container%X0              = UNDEFINED_INT
+    Container%X1              = UNDEFINED_INT
+    Container%Y0              = UNDEFINED_INT
+    Container%Y1              = UNDEFINED_INT
+    Container%Z0              = UNDEFINED_INT
+    Container%Z1              = UNDEFINED_INT
     Container%OnLevelEdges    = .FALSE.
     
     ! If the collection is instantaneous, then set a flag to denote that

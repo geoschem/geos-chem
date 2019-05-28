@@ -411,7 +411,7 @@ CONTAINS
     IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
        ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
-          ErrMsg = 'Could not allocate "CollectionSubsetDims"!'
+          ErrMsg = 'Could not allocate "CollectionSubset"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -422,7 +422,7 @@ CONTAINS
     IF ( .not. ALLOCATED( CollectionLevels ) ) THEN
        ALLOCATE( CollectionLevels( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
-          ErrMsg = 'Could not allocate "CollectionSubsetDims"!'
+          ErrMsg = 'Could not allocate "CollectionLevels"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -465,6 +465,7 @@ CONTAINS
     USE Charpak_Mod
     USE DiagList_Mod,          ONLY : CollList, Search_CollList
     USE ErrCode_Mod
+    USE Grid_Registry_Mod,     ONLY : Lookup_Grid
     USE HistContainer_Mod
     USE HistItem_Mod
     USE History_Util_Mod
@@ -517,6 +518,7 @@ CONTAINS
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: DeltaYMD,       DeltaHMS
+    INTEGER                      :: X,              Y
     INTEGER                      :: C,              N,             W
     INTEGER                      :: nX,             nY,            nZ
     INTEGER                      :: fId,            IOS,           LineNum
@@ -557,7 +559,10 @@ CONTAINS
     CHARACTER(LEN=512)           :: ErrMsg
 
     ! Arrays
-    INTEGER                      :: SubsetDims(4)
+    REAL(f8)                     :: Subset(4)
+    INTEGER                      :: Level(2)
+    INTEGER                      :: SubsetInd(4)
+    INTEGER                      :: LevelInd(2)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
     CHARACTER(LEN=255)           :: SubStrs(255)
@@ -570,6 +575,8 @@ CONTAINS
     ! Pointer arrays
     REAL(fp),            POINTER :: Ptr3d  (:,:,:)
     REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
+    REAL(f8),            POINTER :: Grid_Lon(:)
+    REAL(f8),            POINTER :: Grid_Lat(:)
 
     !=======================================================================
     ! Initialize
@@ -589,7 +596,6 @@ CONTAINS
     FileWriteHms   =  0
     LineNum        =  0
     SpaceDim       =  0
-    SubsetDims     =  0 
     HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
     yyyymmdd       =  Input_Opt%NymdB
     hhmmss         =  Input_Opt%NhmsB
@@ -617,6 +623,8 @@ CONTAINS
     Ptr3d          => NULL()
     Ptr3d_4        => NULL()
     ThisSpc        => NULL()
+    Grid_Lon       => NULL()
+    Grid_Lat       => NULL()
 
     ! Initialize Strings
     Description    =  ''
@@ -651,6 +659,32 @@ CONTAINS
 
     ! Compute the length of the simulation, in elapsed seconds
     SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
+
+    !=======================================================================
+    ! Get pointers to the grid longitudes and latitudes
+    !=======================================================================
+
+    ! Lookup longitudes
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LON',        &
+                      Ptr1d_8   = Grid_Lon,   RC        = RC                )
+    
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc)
+       RETURN
+    ENDIF
+    
+    ! Lookup latitudes
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LAT',        &
+                      Ptr1d_8   = Grid_Lat,   RC        = RC                )
+
+    ! Trap potential errors
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc)
+       RETURN
+    ENDIF
 
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
@@ -874,25 +908,78 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! "subsetdims": Specifies a subset of the data grid
-       ! NOTE: Currently not used at the present time
-       Pattern = 'subset'
+       ! "subset": Specifies a rectangular subset of the data grid
+       Pattern   = 'subset'
+       Subset    = UNDEFINED_DBL
+       SubsetInd = UNDEFINED_INT 
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
           IF ( C > 0 ) THEN
-             CollectionSubsets(C) = Subs1(2)
+             CollectionSubset(C) = Subs1(2)
           
              ! Then split by spaces and convert to INTEGER
-             CALL StrSplit( CollectionSubsets(C), " ", Subs2, nSubs2 )
+             CALL StrSplit( CollectionSubset(C), " ", Subs2, nSubs2 )
              IF ( nSubs2 == 4 ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(i10)' ) SubsetDims(N)
+                   READ( Subs2(N), '(f13.6)' ) Subset(N)
                 ENDDO
              ELSE
-                ErrMsg = 'Subsets must be specified as '        // &
+                ErrMsg = 'Subsets must be specified as '                  // &
                          'lonMin lonMax latMin latMax!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Find indices corresponding to longitude subsets
+             DO X = 1, SIZE( Grid_Lon )-1
+                IF ( Grid_Lon(X  ) <= Subset(1)  .and.                       &
+                     Grid_Lon(X+1) >  Subset(1) ) THEN
+                   SubsetInd(1) = X
+                ENDIF
+                IF ( Grid_Lon(X  ) <= Subset(2)  .and.                       &
+                     Grid_Lon(X+1) >  Subset(2) ) THEN
+                   SubsetInd(2) = X
+                ENDIF
+             ENDDO
+
+             ! Find indices corresponding to latitude subsets
+             DO Y = 1, SIZE( Grid_Lat )-1
+                IF ( Grid_Lat(Y  ) <= Subset(3)  .and.                       &
+                     Grid_Lat(Y+1) >  Subset(3) ) THEN
+                   SubsetInd(3) = Y
+                ENDIF
+                IF ( Grid_Lat(Y  ) <= Subset(4)  .and.                       &
+                     Grid_Lat(Y+1) >  Subset(4) ) THEN
+                   SubsetInd(4) = Y
+                ENDIF
+             ENDDO
+             
+             print*,'### SUBSETIND: ', subsetInd
+             stop
+          ENDIF
+       ENDIF
+
+       ! "levels: Specifies a vertical subset of the data grid
+       Pattern  = 'levels'
+       Level    =  UNDEFINED_INT
+       LevelInd = UNDEFINED_INT
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+          
+          ! First split the line by colon
+          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+          IF ( C > 0 ) THEN
+             CollectionLevels(C) = Subs1(2)
+          
+             ! Then split by spaces and convert to INTEGER
+             CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 2 ) THEN
+                DO N = 1, nSubs2
+                   READ( Subs2(N), '(i10)' ) Level(N)
+                ENDDO
+             ELSE
+                ErrMsg = 'Levels must be specified as levMin levMax!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -1212,6 +1299,8 @@ CONTAINS
                                      FileWriteHms   = FileWriteHms,          &
                                      FileCloseYmd   = FileCloseYmd,          &
                                      FileCloseHms   = FileCloseHms,          &
+                                     SubsetInd      = SubsetInd,             &
+                                     LevelInd       = LevelInd,              &
                                      Conventions    = 'COARDS',              &
                                      FileName       = CollectionFileName(C), &
                                      FileTemplate   = CollectionTemplate(C), & 
@@ -1394,7 +1483,8 @@ CONTAINS
                             State_Met    = State_Met,                        &
                             Collection   = Container,                        &
                             CollectionId = C,                                &
-                           !SubsetDims   = CollectionSubsetDims(C),          &
+                            SubsetInd    = SubsetInd,                        &
+                            LevelInd     = LevelInd,                         &
                             ItemName     = OutputName,                       &
                             ItemCount    = ItemCount,                        &
                             RC           = RC                               )
@@ -1432,7 +1522,8 @@ CONTAINS
                          State_Met    = State_Met,                           &
                          Collection   = Container,                           &
                          CollectionId = C,                                   &
-                        !SubsetDims   = CollectionSubsetDims(C),             &
+                         SubsetInd    = SubsetInd,                           &
+                         LevelInd     = LevelInd,                            &
                          ItemName     = OutputName,                          &
                          ItemCount    = ItemCount,                           &
                          RC           = RC                                  )
@@ -1531,6 +1622,10 @@ CONTAINS
     !=======================================================================
 999 CONTINUE
 
+    ! Free pointers
+    Grid_Lon => NULL()
+    Grid_Lat => NULL()
+
     ! Close the file
     CLOSE( fId )
 
@@ -1547,7 +1642,7 @@ CONTAINS
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
           print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
-!         print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
+!          print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
 
           ! Trap error if the collection frequency is undefined
@@ -1591,8 +1686,8 @@ CONTAINS
                                           State_Chm,    State_Diag,          &
                                           State_Met,    Collection,          &
                                           CollectionId, ItemName,            &
-                                          ItemCount,    Subsets,             &
-                                          Levels,       RC                  )
+                                          ItemCount,    SubsetInd,           &
+                                          LevelInd,     RC                  )
 !
 ! !USES:
 !
@@ -1622,8 +1717,8 @@ CONTAINS
     INTEGER,             INTENT(IN)  :: ItemCount      ! Index of HISTORY ITEM
 
     ! Optional arguments
-    INTEGER,             OPTIONAL    :: Subsets(4)     ! X0, X1, Y0, Y1
-    INTEGER,             OPTIONAL    :: Levels(2)      ! Z0, Z1
+    INTEGER,             OPTIONAL    :: SubsetInd(2)    ! X0,X1,Y0,Y1 indices
+    INTEGER,             OPTIONAL    :: LevelInd(2)     ! Z0,Z1 indices
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1653,6 +1748,7 @@ CONTAINS
     INTEGER                      :: KindVal
     INTEGER                      :: Rank
     INTEGER                      :: NX, NY, NZ
+    INTEGER                      :: X0, X1, Y0, Y1, Z0, Z1
 
     ! Arrays
     INTEGER                      :: Dimensions(3)
@@ -1857,11 +1953,11 @@ CONTAINS
     !=======================================================================
 
     ! Horizontal subsetting
-    IF ( PRESENT( SubsetDims ) ) THEN
-       X0 = Subset(1)
-       X1 = Subset(2)
-       Y0 = Subset(3) 
-       Y1 = Subset(4)
+    IF ( PRESENT( SubsetInd ) ) THEN
+       X0 = SubsetInd(1)
+       X1 = SubsetInd(2)
+       Y0 = SubsetInd(3) 
+       Y1 = SubsetInd(4)
     ELSE
        X0 = 1
        X1 = Dimensions(1)
@@ -1870,9 +1966,9 @@ CONTAINS
     ENDIF
 
     ! Vertical subsetting
-    IF ( PRESENT( Levels ) ) THEN
-       Z0 = Levels(1)
-       Z1 = Levels(2)
+    IF ( PRESENT( LevelInd ) ) THEN
+       Z0 = LevelInd(1)
+       Z1 = LevelInd(2)
     ELSE
        Z0 = 1
        Z1 = Dimensions(3)
@@ -3027,10 +3123,10 @@ CONTAINS
         ENDIF
      ENDIF
 
-     IF ( ALLOCATED( CollectionSubsetDims ) ) THEN
-        DEALLOCATE( CollectionSubsetDims, STAT=RC )
+     IF ( ALLOCATED( CollectionSubset ) ) THEN
+        DEALLOCATE( CollectionSubset, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionSubsetDims"!'
+           ErrMsg = 'Could not deallocate "CollectionSubset"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF
