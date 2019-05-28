@@ -290,21 +290,17 @@ endif()
 
 
 # Get diagnostics
-if("${RUNDIR_SIM}" MATCHES "TOMAS")
-    set(DIAG_DEFAULT "BPCH")
-else()
-    set(DIAG_DEFAULT "NC" "BPCH")
-endif()
-set_dynamic_option(DIAG
-    DEFAULT ${DIAG_DEFAULT}
-    OPTIONS "NC" "BPCH"
+set_dynamic_option(BPCH_DIAG 
+    DEFAULT "TRUE"
+    OPTIONS "TRUE" "FALSE"
     LOG GENERAL_OPTIONS_LOG
 )
+if(${BPCH_DIAG})
+    set_dynamic_default(GC_DEFINES DEFAULT "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC")
+endif()
 
 # Add NetCDF diagnostic definitions
 if("${DIAG}" MATCHES ".*NC.*")
-    set_dynamic_default(GC_DEFINES DEFAULT "NC_DIAG")
-
     # Read netcdf.inc and search for nf_def_var_deflate
     foreach(NC_INC_DIR ${NETCDF_INCLUDE_DIRS})
         if(EXISTS ${NC_INC_DIR}/netcdf.inc)
@@ -315,14 +311,6 @@ if("${DIAG}" MATCHES ".*NC.*")
             endif()
         endif()
     endforeach()
-endif()
-
-# Add BPCH diagnostic definitions
-if("${DIAG}" MATCHES ".*BPCH.*")
-    set_dynamic_default(GC_DEFINES 
-        DEFAULT 
-            "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC" 
-    )
 endif()
 
 # Get flexible precision setting
