@@ -453,8 +453,8 @@ exehg:                                             # Create Hg/GTMM exec file
 ###############################################################################
 
 aerosol_mod.o               : aerosol_mod.F                                  \
-                              dao_mod.o                                      \
-                              diag_mod.o              ucx_mod.o
+                              dao_mod.o               diag_mod.o             \
+                              tomas_mod.o             ucx_mod.o
 
 benchmark_mod.o             : benchmark_mod.F                              
 

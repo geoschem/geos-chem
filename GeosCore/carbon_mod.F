@@ -646,9 +646,8 @@
       ENDIF
 
 #if   defined( TOMAS )
-      CALL CHECKMN( 0,         0,         0, 
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'CHECKMN from chemcarbon', RC)
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, 
+     &              State_Met, 'CHECKMN from chemcarbon', RC)
       ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
       IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
          CALL AGING_CARB( State_Grid,
@@ -672,9 +671,8 @@
       ! AGE SOAP -> SOA
 
 #if defined ( TOMAS )
-      CALL CHECKMN( 0,         0,         0, 
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'CHECKMN from chemcarbon', RC)
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'CHECKMN from chemcarbon', RC)
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
@@ -689,7 +687,7 @@
             IF ( NEWSOA > 0.d0 ) THEN
                !sfarina16: SOAP -> size Resolved TOMAS SOA
                CALL SOACOND( am_I_Root, NEWSOA, I, J, L,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC)
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, State_Grid, RC)
             ENDIF
             Spc(I,J,L,id_SOAS) = Spc(I,J,L,id_SOAS) + NEWSOA
             Spc(I,J,L,id_SOAP) = Spc(I,J,L,id_SOAP) - NEWSOA
@@ -4358,8 +4356,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMITSGC( EMISMASS,  CTYPE,      Input_Opt
-     &                    State_Chm, State_Grid, State_Met )
+      SUBROUTINE EMITSGC( Input_Opt, State_Chm, State_Grid, State_Met,
+     &                    EMISMASS,  CTYPE )
 !
 ! !USES:
 !
@@ -4386,12 +4384,12 @@
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(IN) :: EMISMASS(State_Grid%NX,
-     &                                       State_Grid%NY, IBINS)
       INTEGER,        INTENT(IN) :: CTYPE       ! 1 = EC and 2 = OC
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      REAL(fp),       INTENT(IN) :: EMISMASS(State_Grid%NX,
+     &                                       State_Grid%NY, IBINS)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -5225,10 +5223,10 @@ ccc
       IF ( ASSOCIATED(FIRE_NUM) ) THEN
          ! ---- Calling BB subgrid coag parameterization --------
          ! (ramnarine 12/27/2018)
-         SIZE_DIST = SAKAMOTO_SIZE( FIRE_NUM,
+         SIZE_DIST = SAKAMOTO_SIZE( State_Grid, State_Met, FIRE_NUM,
      &                              OCPI_BIOB_BULK, BCPI_BIOB_BULK,
      &                              OCPO_BIOB_BULK, BCPO_BIOB_BULK,
-     &                              State_Met, AREA )
+     &                              AREA )
       ENDIF
       
       !2d emis
@@ -5280,12 +5278,12 @@ ccc
 !emitsgc uses total OC or EC mass 
          ! SUM mass terms into TEMP_MASS and pass to EMITSFC
          TMP_MASS = BCSRC(:,:,:,1) + BCSRC(:,:,:,2)
-         CALL EMITSGC( TMP_MASS, 1, Input_Opt, State_Chm, State_Grid,
-     &                 State_Met)
+         CALL EMITSGC( Input_Opt, State_Chm, State_Grid,
+     &                 State_Met, TMP_MASS,  1 )
 
          TMP_MASS = OCSRC(:,:,:,1) + OCSRC(:,:,:,2)
-         CALL EMITSGC( TMP_MASS, 2, Input_Opt, State_Chm, State_Grid,
-     &                 State_Met )
+         CALL EMITSGC( Input_Opt, State_Chm, State_Grid,
+     &                 State_Met, TMP_MASS,  2 )
       ELSE
          !-----------------------------------------
          ! Add emission w/o sub-grid coagulation
@@ -5299,7 +5297,7 @@ ccc
          ENDDO
 
          CALL EMITHIGH2( Input_Opt, State_Chm, State_Grid,
-                         BCSRC,     OCSRC,     NUMBSRC )
+     &                   BCSRC,     OCSRC,     NUMBSRC )
       ENDIF  !sgcoag
 
 !end anthro emissions
@@ -5327,15 +5325,14 @@ ccc
 !$OMP+PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-      CALL CHECKMN( I,         J,         1, 
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'CHECKMN from emisscarbontomas', RC)
+      CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'CHECKMN from emisscarbontomas', RC)
          IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
          CALL SOACOND( am_I_Root, TERP_ORGC(I,J), I, J, 1,
-     &               BOXVOL, TEMPTMS, PRES, State_Chm, RC )
+     &               BOXVOL, TEMPTMS, PRES, State_Chm, State_Grid, RC )
          END IF
       END DO
       END DO
@@ -7785,30 +7782,37 @@ ccc
 !\\
 ! !INTERFACE:
 !
-      FUNCTION SAKAMOTO_SIZE( FIRE_NUM,
+      FUNCTION SAKAMOTO_SIZE( State_Grid, State_Met, FIRE_NUM,
      &                       OCPIBULKEMIS, BCPIBULKEMIS,
      &                       OCPOBULKEMIS, BCPOBULKEMIS,
-     &                       State_Met, AREA)
+     &                       AREA)
      &                       RESULT ( VALUE )
    !USES:
 
-      USE CMN_SIZE_MOD
       USE TOMAS_MOD,             ONLY : IBINS, Xk
+      USE State_Grid_Mod,        ONLY : GrdState
       USE State_Met_Mod,         ONLY : MetState
       USE TOMAS_MOD,             ONLY : AVGMASS
 
    !INPUT PARAMETERS:
-      REAL(sp),        INTENT(IN)  :: FIRE_NUM(IIPAR, JJPAR)
-      REAL(fp),        INTENT(IN)  :: OCPIBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
-      REAL(fp),        INTENT(IN)  :: BCPIBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
-      REAL(fp),        INTENT(IN)  :: OCPOBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
-      REAL(fp),        INTENT(IN)  :: BCPOBULKEMIS(IIPAR, JJPAR) ![kgm-2s-1]
-      TYPE(MetState),  INTENT(IN)  :: State_Met ! Meteorology State object
-      REAL(fp),        INTENT(IN)  :: AREA(IIPAR, JJPAR) ![m2]
+      TYPE(GrdState),  INTENT(IN)  :: State_Grid ! Grid State object
+      TYPE(MetState),  INTENT(IN)  :: State_Met  ! Meteorology State object
+      REAL(sp),        INTENT(IN)  :: FIRE_NUM(State_Grid%NX,
+     &                                         State_Grid%NY)
+      REAL(fp),        INTENT(IN)  :: OCPIBULKEMIS(State_Grid%NX,
+     &                                             State_Grid%NY) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: BCPIBULKEMIS(State_Grid%NX,
+     &                                             State_Grid%NY) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: OCPOBULKEMIS(State_Grid%NX,
+     &                                             State_Grid%NY) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: BCPOBULKEMIS(State_Grid%NX,
+     &                                             State_Grid%NY) ![kgm-2s-1]
+      REAL(fp),        INTENT(IN)  :: AREA(State_Grid%NX,State_Grid%NY) ![m2]
 
    !RETURN VALUES:
 
-      REAL(fp)                     :: VALUE(IIPAR, JJPAR, IBINS, 4)
+      REAL(fp)                     :: VALUE(State_Grid%NX,State_Grid%NY,
+     &                                      IBINS, 4)
 
    !REMARKS:
 !  This function is adapted from scalecarb by Emily Ramnarine (Jan, 2017)
@@ -7845,8 +7849,8 @@ ccc
       REAL(fp), PARAMETER            :: b_sig=0.1889
       REAL(fp), PARAMETER            :: c_sig=0.3540
 
-      DO J = 1, JJPAR
-         DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Kim's parameterization
             EMIS = (1.8 * (OCPIBULKEMIS(I,J) + OCPOBULKEMIS(I,J)) +

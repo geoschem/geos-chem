@@ -137,6 +137,7 @@ CONTAINS
     CHARACTER(LEN=31) :: SpcName
        
     ! Pointers
+    TYPE(MyInst), POINTER :: Inst
     REAL(dp), POINTER :: ptr3D(:,:,:)
 
     ! For debugging
@@ -218,7 +219,7 @@ CONTAINS
           ! Partition TOMAS_Jeagle emissions w/in the boundary layer
           !---------------------------------------------------------------
           DO K = 1, HcoState%MicroPhys%nBins
-             rwet=TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
+             rwet=Inst%TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
          ! jkodros - testing out BETHA 7/29/15
              if (rwet > 0.d0) then
                   A=4.7*(1.+30.*rwet)**(-0.017*rwet**(-1.44))
@@ -232,7 +233,7 @@ CONTAINS
         dfo=0.d0
          endif
 
-             dfo=dfo*DRFAC(k)*BETHA  !hemco units???? jkodros
+             dfo=dfo*Inst%DRFAC(k)*BETHA  !hemco units???? jkodros
          dfo=dfo*focean*SCALE
 
              ! Loop thru the boundary layer
@@ -297,7 +298,7 @@ CONTAINS
     
        ! Add number to the HEMCO data structure
        CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%TC1(:,:,:,K), &
-                         Inst%HcoID, RC)
+                         HcoID, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
@@ -784,11 +785,11 @@ CONTAINS
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
-          IF ( ASSOCIATED( TOMAS_DBIN ) ) DEALLOCATE( TOMAS_DBIN )
-          IF ( ASSOCIATED( DRFAC      ) ) DEALLOCATE( DRFAC      )
-          IF ( ASSOCIATED( TC1        ) ) DEALLOCATE( TC1        )
-          IF ( ASSOCIATED( TC2        ) ) DEALLOCATE( TC2        )
-          IF ( ALLOCATED ( HcoIDs     ) ) DEALLOCATE( HcoIDs     )
+          IF ( ASSOCIATED( Inst%TOMAS_DBIN ) ) DEALLOCATE( Inst%TOMAS_DBIN )
+          IF ( ASSOCIATED( Inst%DRFAC      ) ) DEALLOCATE( Inst%DRFAC      )
+          IF ( ASSOCIATED( Inst%TC1        ) ) DEALLOCATE( Inst%TC1        )
+          IF ( ASSOCIATED( Inst%TC2        ) ) DEALLOCATE( Inst%TC2        )
+          IF ( ALLOCATED ( Inst%HcoIDs     ) ) DEALLOCATE( Inst%HcoIDs     )
 
           PrevInst%NextInst => Inst%NextInst
        ELSE

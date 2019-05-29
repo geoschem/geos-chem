@@ -1013,7 +1013,7 @@
          ALLOCATE( AD61( State_Grid%NX, State_Grid%NY, LD61, PD61 ),
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61' )
-         ALLOCATE( AD61_INST( State_Grid%NX, State_Grid%NY, LD61, PD61 ),
+         ALLOCATE( AD61_INST( State_Grid%NX, State_Grid%NY, LD61, PD61),
      &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD61_INST' )
       ENDIF

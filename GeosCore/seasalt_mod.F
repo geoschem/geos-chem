@@ -1236,7 +1236,7 @@
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE SRCSALT30( TC1, TC2, State_Met )
+      SUBROUTINE SRCSALT30( State_Grid, State_Met, TC1, TC2 )
 !
 ! !USES:
 !
@@ -1246,6 +1246,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IT_IS_NAN
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_EMIS
       USE TOMAS_MOD,          ONLY : IBINS, Xk
@@ -1255,6 +1256,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:

@@ -1345,7 +1345,7 @@
      &                          T(K),      QDOWN,      SDT,
      &                          F_WASHOUT, H2O2s(K),   SO2s(K),
      &                          WASHFRAC,  AER,        Input_Opt,
-     &                          State_Met, State_Chm,  RC           )
+     &                          State_Chm, State_Grid, State_Met,  RC )
 
                   ! Trap potential errors
                   IF ( RC /= GC_SUCCESS ) THEN

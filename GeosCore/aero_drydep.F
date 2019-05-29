@@ -493,7 +493,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
                
                ! Convert from [kg/timestep] to [molec/cm2/s] 
                ! Store in AD44
@@ -549,7 +549,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44

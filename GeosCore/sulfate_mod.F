@@ -973,8 +973,9 @@
      &           Spc(:,:,:,id_AW1:id_AW1+IBINS-1)
 
       !IF ( id_SF1 > 0 ) THEN
-         CALL SRCSF30(  Spc(:,:,:,id_NK1:id_NK1+IBINS-1),
-     &         BINMASS(:,:,:,:), am_I_Root, Input_Opt, State_Met, RC )
+         CALL SRCSF30( am_I_Root, Input_Opt, State_Grid, State_Met,
+     &                 Spc(:,:,:,id_NK1:id_NK1+IBINS-1),
+     &                 BINMASS(:,:,:,:), RC )
 
          ! Return the aerosol mass after emission subroutine to Spc
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
@@ -1002,9 +1003,9 @@
 !                  Jack Kodros re-writing this
 !-----------------------------------------------------------------------------
 #if defined( TOMAS )
-      SUBROUTINE SRCSF30( TC1,        TC2,
-     &                    am_I_Root,  Input_Opt,
-     &                    State_Grid, State_Met, RC )
+      SUBROUTINE SRCSF30( am_I_Root,  Input_Opt,
+     &                    State_Grid, State_Met,
+     &                    TC1, TC2, RC )
 !
 ! !USES:
 !
@@ -1155,7 +1156,7 @@
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
          TSCALE = 1.*3600.
       ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-         TSCALE = 0.5.*3600.
+         TSCALE = 0.5*3600.
       ENDIF
 
       !================================================================

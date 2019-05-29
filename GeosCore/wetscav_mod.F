@@ -1712,19 +1712,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( am_I_Root, I,        J,         L,  
-     &                    N,         BXHEIGHT, TK,        PP, 
-     &                    DT,        F,        H2O2s,     SO2s, 
-     &                    WASHFRAC,  KIN,      Input_Opt, State_Met, 
-     &                    State_Chm, RC                              )
+      SUBROUTINE WASHOUT( am_I_Root,  I,        J,         L,  
+     &                    N,          BXHEIGHT, TK,        PP, 
+     &                    DT,         F,        H2O2s,     SO2s, 
+     &                    WASHFRAC,   KIN,      Input_Opt, State_Chm, 
+     &                    State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE Species_Mod,   ONLY : Species
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 #if defined( TOMAS )
       USE ERROR_MOD
       USE TOMAS_MOD,     ONLY : IBINS,    ICOMP
@@ -1748,6 +1749,7 @@
                                                   !  is precipitating [1]
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -3676,7 +3678,7 @@
          IF ( id_NK1 > 0 ) THEN
             IF ( N >= id_NK1 .and. N < id_NK1 + IBINS ) THEN  
 
-               CALL GETFRACTION( I, J, L, N, LS,  XFRAC, 
+               CALL GETFRACTION( I, J, L, N, LS,
      &                           State_Chm, State_Grid, State_Met,
      &                           XFRAC, SOLFRAC )
  
@@ -4091,7 +4093,7 @@
      &                 State_Chm%H2O2AfterChem(I,J,L),
      &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm,    RC           )
+     &                 State_Chm, State_Grid,   State_Met,    RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -4876,7 +4878,7 @@
      &                 State_Chm%H2O2AfterChem(I,J,L),
      &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm,    RC           )
+     &                 State_Chm, State_Grid,   State_Met,  RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN

@@ -342,8 +342,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_TOMAS( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC )
+      SUBROUTINE DO_TOMAS( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -352,12 +352,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -411,8 +413,8 @@
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:222'
 #endif
-      CALL CHECKMN( 0,         0,         0,     Input_Opt, 
-     &              State_Met, State_Chm, 'Before Aerodrydep', RC)
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met,'Before Aerodrydep', RC)
 
 ! in kg
 
@@ -427,9 +429,8 @@
 #if defined ( DEBUG ) 
       print *, 'call checkmn in tomas_mod:229'
 #endif
-      CALL CHECKMN( 0,         0,         0,    
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'Before exiting DO_TOMAS', RC )
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'Before exiting DO_TOMAS', RC )
 
       END SUBROUTINE DO_TOMAS
 !EOC
@@ -454,6 +455,7 @@
 !
       USE CMN_SIZE_MOD             ! Size parameters
 #if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD61,  AD61_INST
 #endif
       USE ErrCode_Mod
@@ -840,7 +842,8 @@
          MPNUM = 5    
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -943,14 +946,16 @@
             MPNUM = 3
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
             MPNUM = 7
 #if defined( BPCH_DIAG )
             IF ( ND61 > 0 )  THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -971,7 +976,8 @@
             MPNUM = 1
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -1036,7 +1042,8 @@
          MPNUM = 5    
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -1062,7 +1069,8 @@
             MPNUM = 2
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN 
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
 
@@ -1089,7 +1097,8 @@
             MPNUM = 5
 #if defined( BPCH_DIAG )
             IF ( ND60 > 0 ) THEN
-               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+               CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                        State_Grid )
             ENDIF
 #endif
          ENDIF  ! Coagulation
@@ -1131,7 +1140,8 @@
          MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 ) THEN
-            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+            CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
          ENDIF
 #endif
 
@@ -3728,7 +3738,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 5
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
          CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd) 
 
@@ -3861,7 +3872,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 4
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
       ! Fix any inconsistencies in M/N distribution 
@@ -3878,7 +3890,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 5
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
       ! Swap Nk and Mk arrays back to Spc 
@@ -3918,7 +3931,7 @@ C     and get the nucleation rate and critical cluster size
 
       SUBROUTINE SOACOND
      &     ( am_I_Root, MSOA, I, J, L, BOXVOL, TEMPTMS, PRES,
-     &       State_Chm, RC )
+     &       State_Chm, State_Grid, RC )
 !
 !******************************************************************************
 !  Subroutine SOACOND takes the SOA calculated via 10% yeild assumption and 
@@ -3947,12 +3960,14 @@ C     and get the nucleation rate and critical cluster size
       USE ErrCode_Mod
       USE ERROR_MOD
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
 
       ! Arguments
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       REAL(fp)                      :: MSOA
       INTEGER,        INTENT(IN)    :: I, J, L
       REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
       TYPE(ChmState), INTENT(INOUT) :: State_Chm
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
       REAL(fp)                      :: surf_area
@@ -4168,7 +4183,8 @@ C     and get the nucleation rate and critical cluster size
       MPNUM = 6
 #if defined( BPCH_DIAG )
       IF ( ND60 > 0 ) 
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif
 
 
@@ -6053,12 +6069,14 @@ C     and get the nucleation rate and critical cluster size
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+      SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD      ! Size parameters
-#if defined( BPCH_DIAG )
+#if defined( BPCH_DIAG ) 
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD60_COND, AD60_COAG, AD60_NUCL
       USE DIAG_MOD,       ONLY : AD60_AQOX, AD60_ERROR, AD60_SOA
       USE DIAG_MOD,       ONLY : AD61,      AD61_INST  
@@ -6283,7 +6301,7 @@ C     and get the nucleation rate and critical cluster size
       USE inquireMod,         ONLY : findFreeLUN
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
-      USE State_Grid_Mod,     ONLU : GrdState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -7212,9 +7230,8 @@ C     and get the nucleation rate and critical cluster size
       MOCOB = 0e+0_fp
       MDUST = 0e+0_fp
 
-      CALL CHECKMN( 0,         0,         0, 
-     &              Input_Opt, State_Met, State_Chm, 
-     &              'AERO_DIADEN called from DEPVEL', RC )
+      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid,
+     &              State_Met, 'AERO_DIADEN called from DEPVEL', RC )
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -7287,8 +7304,8 @@ C     and get the nucleation rate and critical cluster size
       
 !-----------------------------------------------------------------------------
       
-      SUBROUTINE CHECKMN
-     &  ( II, JJ, LL, Input_Opt, State_Met, State_Chm, LOCATION, RC )
+      SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, 
+     &                    State_Grid, State_Met, LOCATION, RC )
 !      
 !*****************************************************************************
 !  Subroutine CHECKMN use the subroutine MNFIX to check for error in the 
@@ -7318,6 +7335,7 @@ C     and get the nucleation rate and critical cluster size
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 
@@ -7325,6 +7343,7 @@ C     and get the nucleation rate and critical cluster size
       INTEGER                         :: II, JJ, LL
       CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
       INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
@@ -7456,7 +7475,8 @@ C     and get the nucleation rate and critical cluster size
          MPNUM = 5
 #if defined( BPCH_DIAG )
          IF ( ND60 > 0 )
-     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL )
+     &      CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXVOL,
+     &                     State_Grid )
 #endif       
 
          ! Swap Nk and Mk arrays back to Spc 

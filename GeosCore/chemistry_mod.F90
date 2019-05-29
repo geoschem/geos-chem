@@ -603,8 +603,8 @@ CONTAINS
           ! Do TOMAS aerosol microphysics and dry dep
           !--------------------------------------------
           IF ( id_NK1 > 0 ) THEN 
-             CALL Do_TOMAS( am_I_Root, Input_Opt,  State_Met,               &
-                            State_Chm, State_Diag, RC                       )
+             CALL Do_TOMAS( am_I_Root, Input_Opt,  State_Chm,               &
+                           State_Diag, State_Grid, State_Met, RC           )
 
              ! Check units (ewl, 10/5/15)
              IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN

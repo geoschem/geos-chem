@@ -416,10 +416,11 @@
       ENDDO
 
       ! Dust settling
-      CALL DRY_SETTLING( am_I_Root,        Input_Opt,
-     &                   State_Met,        State_Chm,
-     &                   State_Diag,       id_DUST1,
-     &                   id_DUST1-1+IBINS, RC         )
+      CALL DRY_SETTLING( am_I_Root,  Input_Opt,
+     &                   State_Chm,  State_Diag,
+     &                   State_Grid, State_Met,
+     &                   id_DUST1,   id_DUST1-1+IBINS,
+     &                   RC )
    
 
       ! Calculate change in number to correspond with dust redistribution
@@ -596,7 +597,7 @@
       LOGICAL           :: LPRT
       LOGICAL           :: LINTERP 
       INTEGER           :: I, J, K
-      REAL(fp)          :: MEMIS,
+      REAL(fp)          :: MEMIS
       REAL(fp)          :: MINIT(State_Grid%NX,State_Grid%NY,1,IBINS)
 
       ! Pointers
