@@ -72,6 +72,7 @@ MODULE History_Mod
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubset     (:  )
   INTEGER,                 ALLOCATABLE :: CollectionSubsetInd  (:,:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLevels     (:  )
   INTEGER,                 ALLOCATABLE :: CollectionLevelInd   (:,:)
 
   ! Objects
@@ -117,7 +118,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Netcdf_Mod, ONLY : History_Netcdf_Init
     USE History_Util_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod ,     ONLY : ChmState
@@ -144,6 +144,7 @@ CONTAINS
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  06 Nov 2017 - R. Yantosca - Reorder arguments for consistency (Input_Opt, 
 !                              then State_Met, State_Chm, State_Diag).
+!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Init
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -160,16 +161,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = &
      ' -> at History_Init (in module History/history_mod.F90)'
-
-    !=======================================================================
-    ! Initialize the history_netcdf_mod.F90 module
-    !=======================================================================
-    CALL History_Netcdf_Init( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !=======================================================================
     ! First initialize the list of collections
@@ -430,7 +421,7 @@ CONTAINS
        CollectionSubset = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionSubse
+    ! Allocate CollectionSubset
     IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
        ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
        IF ( RC /= GC_SUCCESS ) THEN 
@@ -450,6 +441,17 @@ CONTAINS
           RETURN
        ENDIF
        CollectionSubsetInd = UNDEFINED_INT
+    ENDIF
+
+    ! Allocate CollectionLevels
+    IF ( .not. ALLOCATED( CollectionLevels ) ) THEN
+       ALLOCATE( CollectionLevels( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not allocate "CollectionLevels"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionLevels = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionLevelInd
@@ -1033,9 +1035,10 @@ CONTAINS
 
              ! Replace any commas with spaces
              CALL StrRepl( Subs1(2), ",", " " )
-          
+             CollectionLevels(C) = Subs1(2)
+
              ! Then split by spaces and convert to INTEGER
-             CALL StrSplit( Subs1(2), " ", Subs2, nSubs2 )
+             CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
              IF ( nSubs2 == 2 ) THEN
                 DO N = 1, nSubs2
                    READ( Subs2(N), '(i10)' ) CollectionLevelInd(N,C)
@@ -1702,10 +1705,19 @@ CONTAINS
           print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
           print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
-          print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+          IF ( CollectionAccInterval(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+          ENDIF
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
-!          print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
+          IF ( CollectionSubset(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Subset       ',                                   &
+                  TRIM(ADJUSTL(ADJUSTR( CollectionSubset(C) )))
+             print*, '  -> X0 X1 Y0 Y1  ', ((CollectionSubsetInd(N,C)), N=1,4)
+          ENDIF
+          IF ( CollectionLevels(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Z0 Z1        ', ((CollectionLevelInd(N,C)), N=1,2)
+          ENDIF
 
           ! Trap error if the collection frequency is undefined
           ! This indicates an error in parsing the file
@@ -1816,6 +1828,9 @@ CONTAINS
     ! Arrays
     INTEGER                      :: Dimensions(3)
     INTEGER                      :: ItemDims(3)
+    INTEGER                      :: Subset_X(2)
+    INTEGER                      :: Subset_Y(2)
+    INTEGER                      :: Subset_Z(2)
 
     ! Strings
     CHARACTER(LEN=4  )           :: StateMetUC
@@ -2055,6 +2070,19 @@ CONTAINS
     NY = Y1 - Y0 + 1
     NZ = Z1 - Z0 + 1
 
+    ! Subsets for 
+    Subset_X = (/ X0, X1 /)
+    Subset_Y = (/ Y0, Y1 /)
+    Subset_Z = (/ Z0, Z1 /)
+
+    ! Save the subsets
+    Collection%X0 = X0
+    Collection%X1 = X1
+    Collection%Y0 = Y0
+    Collection%Y1 = Y1
+    Collection%Z0 = Z0
+    Collection%Z1 = Z1
+
     !=======================================================================
     ! Now that we have obtained information (and pointers to the data)
     ! corresponding to the given diagnostic quantity, use that to create
@@ -2070,6 +2098,9 @@ CONTAINS
                           OnLevelEdges   = OnLevelEdges,                     &
                           SpaceDim       = Rank,                             &
                           Operation      = Collection%Operation,             &
+                          Subset_X       = Subset_X,                         &
+                          Subset_Y       = Subset_Y,                         &
+                          Subset_Z       = Subset_Z,                         &
                           Source_KindVal = KindVal,                          &
                           Source_0d_8    = Ptr0d_8,                          &
                           Source_1d      = Ptr1d,                            &
@@ -2128,9 +2159,7 @@ CONTAINS
     IF ( Collection%NX == UNDEFINED_INT ) THEN
        SELECT CASE( Item%DimNames )
           CASE( 'xyz', 'xz', 'xy', 'x' )
-             Collection%NX = NX   !ItemDims(1)
-             Collection%X0 = X0
-             Collection%X1 = X1
+             Collection%NX = ItemDims(1)
           CASE DEFAULT
              ! Nothing
        END SELECT
@@ -2141,13 +2170,9 @@ CONTAINS
     IF ( Collection%NY == UNDEFINED_INT ) THEN
        SELECT CASE( Item%DimNames )
           CASE( 'xyz', 'xy' )
-             Collection%NY = NY !ItemDims(2)
-             Collection%Y0 = Y0
-             Collection%Y1 = Y1
+             Collection%NY = ItemDims(2)
           CASE( 'yz', 'y' )
-             Collection%NY = NY !ItemDims(1)
-             Collection%Y0 = Y0
-             Collection%Y1 = Y1
+             Collection%NY = ItemDims(1)
           CASE DEFAULT
              ! Nothing
        END SELECT
@@ -2159,11 +2184,11 @@ CONTAINS
     IF ( Collection%NZ == UNDEFINED_INT ) THEN
        SELECT CASE( Item%DimNames )
           CASE( 'xyz' )
-             Collection%NZ = NZ  !ItemDims(3)
+             Collection%NZ = ItemDims(3)
           CASE( 'xz', 'yz' )
-             Collection%NZ = NZ  !ItemDims(2)
+             Collection%NZ = ItemDims(2)
           CASE( 'z' )
-             Collection%NZ = NZ  !ItemDims(1)
+             Collection%NZ = ItemDims(1)
           CASE DEFAULT
              ! Nothing
        END SELECT
@@ -3109,7 +3134,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Netcdf_Mod,    ONLY : History_Netcdf_Cleanup
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer_Destroy
 !
 ! !INPUT PARAMETERS: 
@@ -3126,6 +3150,7 @@ CONTAINS
 !  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFiles
 !  26 Sep 2017 - R. Yantosca - Now call MetaHistItem_Destroy to finalize the
 !                              ContainerList object, instead of DEALLOCATE
+!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Cleanup
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -3152,16 +3177,6 @@ CONTAINS
      CALL History_Close_AllFiles( am_I_Root, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error returned from "History_Close_AllFiles"!'
-        CALL GC_Error( ErrMsg, RC, ThisLoc )
-        RETURN
-     ENDIF
-
-     !======================================================================
-     ! Then finalize the history_netcdf_mod.F90 module
-     !======================================================================
-     CALL History_Netcdf_Cleanup( am_I_Root, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error returned from "History_Netcdf_Cleanup"!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
         RETURN
      ENDIF
