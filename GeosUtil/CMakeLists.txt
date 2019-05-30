@@ -1,9 +1,7 @@
-add_library(GeosUtil STATIC
-	henry_mod.F
-	ifort_errmsg.F
+add_library(JulDay STATIC
 	julday_mod.F
 )
-target_link_libraries(GeosUtil
+target_link_libraries(JulDay
 	PUBLIC Headers
 )
 
@@ -15,6 +13,8 @@ add_library(GeosUtil2 STATIC
 	geos_timers_mod.F90
 	grid_registry_mod.F90
 	hdf_mod.F
+	henry_mod.F
+	ifort_errmsg.F
 	pressure_mod.F
 	regrid_a2a_mod.F90
 	roundoff_mod.F90

@@ -8,6 +8,6 @@ add_library(History STATIC
 	metahistitem_mod.F90
 )
 target_link_libraries(History
-	PUBLIC KPP
+	PUBLIC GeosUtil2
 )
 

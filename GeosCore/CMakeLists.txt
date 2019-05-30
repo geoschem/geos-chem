@@ -13,7 +13,7 @@ add_library(Transport STATIC
 	# tendencies_mod.F90
 )
 target_link_libraries(Transport
-	PUBLIC HCOI ${GC_EXTRA_TARGETS}
+	PUBLIC GeosUtil2
 )
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
 	set_source_files_properties(tpcore_window_mod.F90 PROPERTIES COMPILE_FLAGS "-r8")
@@ -112,7 +112,7 @@ add_library(GeosCore STATIC
 	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:tomas_mod.F>
 )
 target_link_libraries(GeosCore
-	PUBLIC Transport
+	PUBLIC Transport ObsPack KPP HCOI History ${GC_EXTRA_TARGETS}
 )
 
 if("${IMPL}" STREQUAL "Classic")

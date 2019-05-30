@@ -13,7 +13,6 @@ add_library(NcdfUtil STATIC
 	ncdf_mod.F90
 )
 target_link_libraries(NcdfUtil 
-	PUBLIC GeosUtil
-	# Note that NetCDF libraries are linked into BaseTarget
+	PUBLIC JulDay
 )
 
