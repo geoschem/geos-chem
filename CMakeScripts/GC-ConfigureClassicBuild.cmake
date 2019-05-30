@@ -1,41 +1,11 @@
-#[[ GC-ConfigureClassicBuild.cmake
-
-This file configures BaseTarget for a GEOS-Chem Classic build. This file does
-three things:
-
-    1) Finds dependencies using find_package. For GEOS-Chem Classic these 
-       dependencies are:
-        a) NetCDF-C and NetCDF-Fortran
-        b) OpenMP
-
-    2) Sets the appropriate preprocessor definitions for the run directory.
-
-    3) Sets the default compiler flags.
-
-]]
-
-#[[--------------------------------------------------------------------------]]
-#[[     Finding dependencies.                                                ]]
-#[[--------------------------------------------------------------------------]]
+# Find NetCDF on the local machine. Make NetCDF-F a dependency of BaseTarget.
 find_package(NetCDF REQUIRED)
-
-# Set BaseTarget properties
 target_link_libraries(BaseTarget 
 	INTERFACE NetCDF-F
 )
 
-# Print message with the repo's last commit
-get_repo_version(GC_REPO_VERSION ${CMAKE_SOURCE_DIR})
-message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
-
-#[[--------------------------------------------------------------------------]]
-#[[     Setting preprocessor definitions.                                    ]]
-#[[--------------------------------------------------------------------------]]
-
-
-#[[     Get defaults for settings by inspecting the run directory.           ]]
-
-# Define a macro to call getRunInfo in the run directory
+# Define a macro for inspecting the run directory. Inspecting the run
+# directory is how we determine which compiler definitions need to be set.
 macro(inspect_rundir VAR ID)
     execute_process(COMMAND perl ${RUNDIR}/getRunInfo ${RUNDIR} ${ID}
         OUTPUT_VARIABLE ${VAR}
@@ -43,15 +13,13 @@ macro(inspect_rundir VAR ID)
     )
 endmacro()
 
-# Inspect MET
+# Inspect the run directory to get the met field type and grid resolution
 inspect_rundir(RUNDIR_MET 0)
 if("${RUNDIR_MET}" STREQUAL "geosfp")
     set(RUNDIR_MET "GEOS_FP")
 elseif("${RUNDIR_MET}" STREQUAL "merra2")
     set(RUNDIR_MET "MERRA2")
 endif()
-
-# Inspect GRID
 inspect_rundir(RUNDIR_GRID 1)
 if("${RUNDIR_GRID}" STREQUAL "2x25")
     set(RUNDIR_GRID "2x2.5")
@@ -61,7 +29,10 @@ elseif("${RUNDIR_GRID}" STREQUAL "025x03125")
     set(RUNDIR_GRID "0.25x0.3125")
 endif()
 
-# Inspect SIM and select KPP mech 
+# Inspect the run directory to get simulation type
+inspect_rundir(RUNDIR_SIM 2)
+
+# Determine the appropriate chemistry mechanism base on the simulation
 set(STANDARD_MECHS
     "standard"
     "benchmark"
@@ -78,6 +49,7 @@ set(STANDARD_MECHS
     "CO2"
     "aerosol"
     "Hg"
+    "HEMCO" # doesn't matter for the HEMCO standalone
 )
 set(TROPCHEM_MECHS
     "tropchem"
@@ -92,9 +64,6 @@ set(SOA_SVPOA_MECHS
 set(CUSTOM_MECHS
     "custom"
 )
-
-inspect_rundir(RUNDIR_SIM 2)
-
 if("${RUNDIR_SIM}" IN_LIST STANDARD_MECHS)
     set(RUNDIR_MECH "Standard")
 elseif("${RUNDIR_SIM}" IN_LIST TROPCHEM_MECHS)
@@ -107,7 +76,7 @@ else()
     message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine MECH.")
 endif()
 
-# Misc
+# Definitions for specific run directories
 if("${RUNDIR_SIM}" STREQUAL "masscons")
     set_dynamic_default(GC_DEFINES DEFAULT MASSCONS)
 elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
@@ -117,7 +86,7 @@ elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
     set_dynamic_default(GC_DEFINES DEFAULT TOMAS TOMAS40)
 endif()
 
-# Inspect NESTED
+# Inspect the run directory to determine if it's a nested simulation
 inspect_rundir(RUNDIR_REGION 3)
 if("${RUNDIR_REGION}" STREQUAL "n")
     set(RUNDIR_NESTED "FALSE")
@@ -127,10 +96,7 @@ else()
     string(TOUPPER "${RUNDIR_REGION}" RUNDIR_REGION)
 endif()
 
-
-#[[     Settings TUI with defaults from the run directory inspection.        ]]
-
-# MET field
+# Make MET an option and set the appropriate definition
 set_dynamic_option(MET 
     DEFAULT ${RUNDIR_MET}
     LOG GENERAL_OPTIONS_LOG
@@ -139,7 +105,7 @@ set_dynamic_option(MET
 )
 set_dynamic_default(GC_DEFINES DEFAULT ${MET})
 
-# Check for nested grid
+# Make NESTED an option and set the appropriate definitions
 set_dynamic_option(NESTED 
     DEFAULT "${RUNDIR_NESTED}"
     LOG GENERAL_OPTIONS_LOG
@@ -157,7 +123,8 @@ if(${NESTED})
     set_dynamic_default(GC_DEFINES DEFAULT NESTED_${REGION})
 endif()
 
-# Horizontal grid
+# Make GRID an option with different options based on MET and NESTED, and
+# set the appropriate definition
 if(${NESTED})
     if("${MET}" STREQUAL "MERRA2") # Nested w/ MERRA2 
         set_dynamic_option(GRID 
@@ -185,7 +152,7 @@ endif()
 string(REPLACE "." "" TEMP "GRID${GRID}")
 set_dynamic_default(GC_DEFINES DEFAULT ${TEMP})
 
-# Chemistry mechanism
+# Make MECH an option. This controls which KPP directory is used.
 set_dynamic_option(MECH 
     DEFAULT "${RUNDIR_MECH}"
     LOG GENERAL_OPTIONS_LOG
@@ -193,7 +160,8 @@ set_dynamic_option(MECH
     OPTIONS "Standard" "Tropchem" "SOA_SVPOA"
 )
 
-# Set reduced grid
+# Make LAYERS an option and set the appropriate definitions. Determine the 
+# default value based on RUNDIR_SIM.
 set(LAYERS_72_SIMS
     "standard"
     "benchmark"
@@ -201,6 +169,7 @@ set(LAYERS_72_SIMS
     "marinePOA"
     "TransportTracers"
     "custom"
+    "HEMCO" # doesn't matter for the HEMCO standalone
 )
 set(LAYERS_47_SIMS
     "masscons"
@@ -265,19 +234,24 @@ if(${GTMM})
 endif()
 
 # Build hemco_standalone?
+if("${RUNDIR_SIM}" STREQUAL "HEMCO")
+    set(HCOSA_DEFAULT "TRUE")
+else()
+    set(HCOSA_DEFAULT "FALSE")
+endif()
 set_dynamic_option(HCOSA 
-    DEFAULT "FALSE"
+    DEFAULT "${HCOSA_DEFAULT}"
     LOG GENERAL_OPTIONS_LOG
     SELECT_EXACTLY 1
     OPTIONS "TRUE" "FALSE"
 )
 
+# Build with timers?
 if("${RUNDIR_SIM}" STREQUAL "benchmark")
     set(TIMERS_DEFAULT "TRUE")
 else()
     set(TIMERS_DEFAULT "FALSE")
 endif()
-# Build with timers?
 set_dynamic_option(TIMERS 
     DEFAULT ${TIMERS_DEFAULT}
     LOG GENERAL_OPTIONS_LOG
@@ -289,7 +263,7 @@ if(${TIMERS})
 endif()
 
 
-# Get diagnostics
+# Build with BPCH diagnostics?
 set_dynamic_option(BPCH_DIAG 
     DEFAULT "TRUE"
     OPTIONS "TRUE" "FALSE"
@@ -299,7 +273,7 @@ if(${BPCH_DIAG})
     set_dynamic_default(GC_DEFINES DEFAULT "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC")
 endif()
 
-# Read netcdf.inc and search for nf_def_var_deflate
+# Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
 if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
     file(READ ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc NCINC)
     if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
@@ -307,7 +281,8 @@ if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
     endif()
 endif()
 
-# Get flexible precision setting
+# Make an option for controlling the flexible precision. Set the appropriate
+# definition
 set_dynamic_option(PREC
     DEFAULT "REAL8"
     SELECT_EXACTLY 1
@@ -318,7 +293,7 @@ if("${PREC}" STREQUAL "REAL8")
     set_dynamic_default(GC_DEFINES DEFAULT "USE_REAL8")
 endif()
 
-# Single-threaded or multi-threaded
+# Build a single-threaded or multi-threaded executable?
 set_dynamic_option(OMP
     DEFAULT "TRUE"
     SELECT_EXACTLY 1
@@ -337,20 +312,16 @@ endif()
 message(STATUS "General settings:")
 dump_log(GENERAL_OPTIONS_LOG)
 
-# Get resulting GC_DEFINES (overridable)
+# By using set_dynamic_default, the resulting GC_DEFINES is overwritable
 string(REPLACE " " ";" GC_DEFINES "${GC_DEFINES}")
 set_dynamic_default(GC_DEFINES LOG RESULTING_DEFINES_LOG)
 
-
-#[[     Set resulting defintions on BaseTarget.                              ]]
+# Set the definitions for the BaseTarget
 target_compile_definitions(BaseTarget INTERFACE ${GC_DEFINES})
 unset(GC_DEFINES)
 
 
-#[[--------------------------------------------------------------------------]]
-#[[     Setting default compiler options.                                    ]]
-#[[--------------------------------------------------------------------------]]
-
+# Set the Fortran compiler options based on the compiler's family
 if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
     set_dynamic_default(FC_OPTIONS
         DEFAULT
@@ -390,15 +361,12 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -funroll-loops")
     set(CMAKE_Fortran_FLAGS_DEBUG "-g -gdwarf-2 -gstrict-dwarf -O0 -Wall -Wextra -Wconversion -Warray-temporaries -fcheck-array-temporaries")
 else()
-    message(FATAL_ERROR "${CMAKE_Fortran_COMPILER_ID} Fortran compiler is not currently supported!")
+    message(FATAL_ERROR "${CMAKE_Fortran_COMPILER_ID} Fortran compiler is currently not supported!")
 endif()
 
 message(STATUS "Resulting definitions/options:")
 dump_log(RESULTING_DEFINES_LOG)
 
-# Set compiler definitions and options in BaseTarget
-target_compile_options(BaseTarget 
-    INTERFACE 
-        ${FC_OPTIONS}
-)
+# Set compiler options for the BaseTarget
+target_compile_options(BaseTarget INTERFACE ${FC_OPTIONS})
 unset(FC_OPTIONS)

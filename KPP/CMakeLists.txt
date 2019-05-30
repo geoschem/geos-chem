@@ -1,4 +1,4 @@
-# Add the correct subdirectory based on ${MECH}
+# Add the subdirectory with desired chemistry mechanism
 if("${MECH}" STREQUAL "Standard")
     add_subdirectory(Standard)
 elseif("${MECH}" STREQUAL "Tropchem")
