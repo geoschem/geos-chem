@@ -338,7 +338,7 @@ if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
             -DLINUX_IFORT
         LOG RESULTING_DEFINES_LOG
     )
-    set(CMAKE_Fortran_FLAGS_RELEASE "-vec-report0 -O2")
+    set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
     set(CMAKE_Fortran_FLAGS_DEBUG   "-g -O0 -check arg_temp_created -debug all -DDEBUG")
 elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
     set_dynamic_default(FC_OPTIONS
