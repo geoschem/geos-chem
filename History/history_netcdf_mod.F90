@@ -1359,6 +1359,8 @@ CONTAINS
     INTEGER                  :: N
     INTEGER                  :: KindVal
     INTEGER                  :: Rank
+    INTEGER                  :: nILev
+    INTEGER                  :: nLev
 
     ! Arrays
     INTEGER                  :: Dimensions(3)
@@ -1445,26 +1447,28 @@ CONTAINS
     ItemDimName(10)  = 'z'
     ItemDimName(11)  = 't'
 
+    !=======================================================================
+    ! Pick the dimensions of the lev and ilev variables properly
+    !=======================================================================
+    IF ( Container%OnLevelEdges ) THEN
+       nILev  = Container%NZ
+       nLev   = nILev - 1
+    ELSE
+       nLev   = Container%NZ
+       nILev  = nLev  + 1
+    ENDIF
+
     ! Subset indices
-    Subset_X         = (/ Container%X0, Container%X1   /)
-    Subset_Y         = (/ Container%Y0, Container%Y1   /)
-    Subset_Zc        = (/ Container%Z0, Container%Z1   /)
-    Subset_Ze        = (/ Container%Z0, Container%Z1+1 /)
+    Subset_X  = (/ Container%X0, Container%X1                 /)
+    Subset_Y  = (/ Container%Y0, Container%Y1                 /)
+    Subset_Zc = (/ Container%Z0, MIN( Container%Z1,   nLev )  /)
+    Subset_Ze = (/ Container%Z0, MIN( Container%Z1+1, nILev ) /)
 
     !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
     ! of grid_registry_mod.F90 and add them to a METAHISTORY ITEM list
     !=======================================================================
     DO N = 1, SIZE( RegistryName )
-
-       ! Pick proper subset indices for index variables placed on
-       ! edges  (hyai, hybi, ilev) or centers (everything else)
-       SELECT CASE( N )
-          CASE( 3, 4, 9 )
-             Subset_Z = Subset_Ze
-          CASE DEFAULT
-             Subset_Z = Subset_Zc
-       END SELECT
 
        !---------------------------------------------------------------------
        ! Look up one of the index fields from gc_grid_mod.F90
@@ -1489,6 +1493,15 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       ! Pick proper subset indices for index variables placed on
+       ! edges  (hyai, hybi, ilev) or centers (everything else)
+       SELECT CASE( N )
+          CASE( 3, 4, 9 )
+             Subset_Z = Subset_Ze
+          CASE DEFAULT
+             Subset_Z = Subset_Zc
+       END SELECT
 
        !---------------------------------------------------------------------
        ! Create a HISTORY ITEM for this index field
