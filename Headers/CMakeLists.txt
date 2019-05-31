@@ -19,6 +19,9 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	state_met_mod.F90
 )
 target_link_libraries(Headers
-	PUBLIC KPPFirstPass
+	PUBLIC 
+	$<$<STREQUAL:${MECH},SOA_SVPOA>:KPPFirstPass_SOA_SVPOA>
+	$<$<STREQUAL:${MECH},Standard>:KPPFirstPass_Standard>
+	$<$<STREQUAL:${MECH},Tropchem>:KPPFirstPass_Tropchem>
 )
 

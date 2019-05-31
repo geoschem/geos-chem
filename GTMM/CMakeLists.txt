@@ -1,10 +1,3 @@
-if(NOT "${GTMM}")
-    return()
-else()
-    list(APPEND GC_EXTRA_TARGETS "Hg")
-    set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
-endif()
-
 add_library(Hg STATIC EXCLUDE_FROM_ALL
     assignAgeClassToRunningPool.F90 
     assignRanPoolToAgeClass.F90

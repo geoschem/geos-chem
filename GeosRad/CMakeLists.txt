@@ -1,11 +1,4 @@
-if(NOT ${RRTMG})
-    return()
-else()
-    list(APPEND GC_EXTRA_TARGETS "RRTMG")
-    set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
-endif()
-
-add_library(RRTMG STATIC EXCLUDE_FROM_ALL
+add_library(GeosRad STATIC EXCLUDE_FROM_ALL
 	mcica_random_numbers.F90
 	mcica_subcol_gen_lw.F90
 	mcica_subcol_gen_sw.F90
@@ -74,10 +67,10 @@ add_library(RRTMG STATIC EXCLUDE_FROM_ALL
 	rrtmg_sw_vrtqdr.F90
 	test_arr_mult.F90
 )
-target_link_libraries(RRTMG
+target_link_libraries(GeosRad
 	PUBLIC BaseTarget
 )
-target_compile_options(RRTMG 
+target_compile_options(GeosRad 
 	PRIVATE 
 		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
 		$<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>

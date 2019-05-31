@@ -112,9 +112,18 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:tomas_mod.F>
 )
 target_link_libraries(GeosCore
-	PUBLIC Transport ObsPack KPP HCOI History ${GC_EXTRA_TARGETS}
-)
+	PUBLIC 
+		Transport ObsPack HCOI History 
 
+		# Add dependency on the correct KPP library
+		$<$<STREQUAL:${MECH},SOA_SVPOA>:KPP_SOA_SVPOA>
+		$<$<STREQUAL:${MECH},Standard>:KPP_Standard>
+		$<$<STREQUAL:${MECH},Tropchem>:KPP_Tropchem>
+
+		$<$<BOOL:${RRTMG}>:GeosRad>			# depends on GeosRad iff RRTMG is true
+		$<$<BOOL:${GTMM}>:Hg>				# depends on Hg iff GTMM is true
+		Isorropia
+)
 
 if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
 	# Add geos executable target

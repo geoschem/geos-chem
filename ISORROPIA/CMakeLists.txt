@@ -11,6 +11,3 @@ target_compile_options(Isorropia
         $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
 )
 
-list(APPEND GC_EXTRA_TARGETS "Isorropia")
-set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
-

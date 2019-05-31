@@ -1,15 +1,15 @@
 # Add libKPPFirstPass.a
-add_library(KPPFirstPass STATIC EXCLUDE_FROM_ALL
+add_library(KPPFirstPass_Standard STATIC EXCLUDE_FROM_ALL
 	gckpp_Precision.F90
     gckpp_Parameters.F90
     gckpp_Monitor.F90
 )
-target_link_libraries(KPPFirstPass
+target_link_libraries(KPPFirstPass_Standard
 	PUBLIC BaseTarget
 )
 
 # Add libKPP.a
-add_library(KPP STATIC EXCLUDE_FROM_ALL
+add_library(KPP_Standard STATIC EXCLUDE_FROM_ALL
 	gckpp_Function.F90
 	gckpp_Global.F90
 	gckpp_HetRates.F90
@@ -25,7 +25,7 @@ add_library(KPP STATIC EXCLUDE_FROM_ALL
 	gckpp_Rates.F90
 	gckpp_Util.F90
 )
-target_link_libraries(KPP
+target_link_libraries(KPP_Standard
 	PUBLIC GeosUtil2
 )
 
