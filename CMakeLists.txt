@@ -17,77 +17,53 @@ include(GC-Helpers)
 # targets (via inheritance). 
 add_library(BaseTarget INTERFACE)
 
-message(STATUS "Selected compilers:")
-message("    C:       ${CMAKE_C_COMPILER}")
-message("    C++:     ${CMAKE_CXX_COMPILER}")
-message("    Fortran: ${CMAKE_Fortran_COMPILER}")
-message(STATUS "Common CMake variables:")
-message("  + CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
-
-# Set CMAKE_BUILD_TYPE to Release by default
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "Release" 
-		CACHE STRING
-		"Choose the type of build, options are: Debug Release."
-		FORCE
-	)
-endif()
-
-# Make CMAKE_BUILD_TYPE an option. This restricts the possible values
-# to Release and Debug.
-set_dynamic_option(CMAKE_BUILD_TYPE
-	DEFAULT ${CMAKE_BUILD_TYPE}
-	OPTIONS "Release" "Debug"
-	LOG CMAKE_VAR_LOG
-)
-dump_log(CMAKE_VAR_LOG)
-
-# Put all mod files in a subdirectory of the build directory called mod
-set(CMAKE_Fortran_MODULE_DIRECTORY ${PROJECT_BINARY_DIR}/mod)
+# Put all of GEOS-Chem's mod files in a subdirectory of the build directory called mod
+set(CMAKE_Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/mod)
 target_include_directories(BaseTarget 
-	INTERFACE ${PROJECT_BINARY_DIR}/mod
+	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
-
-# Set the default value of RUNDIR to the parent directory of the build directory
-message(STATUS "Run directory setup:")
-set(RUNDIR_DEFAULT "..")
-set_dynamic_default(RUNDIR DEFAULT "${RUNDIR_DEFAULT}"
-    LOG RUNDIR_LOG
-	IS_DIRECTORY
-)
-dump_log(RUNDIR_LOG)
-message(STATUS "Bootstrapping ${RUNDIR}")
-get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE)
-
-# Inspect RUNDIR's name to guess the implementation (GCC or GCHP)
-get_filename_component(RUNDIR_NAME "${RUNDIR}" NAME)
-if("${RUNDIR_NAME}" MATCHES "gchp.*")
-    set(IMPL_GUESS "GCHP")
-else()
-    set(IMPL_GUESS "Classic")
-endif()
-
-# Set the default value of the implementation to that guess
-message(STATUS "GEOS-Chem implementation type:")
-set_dynamic_option(IMPL 
-    DEFAULT "${IMPL_GUESS}"
-    LOG IMPL_LOG
-    SELECT_EXACTLY 1
-    OPTIONS "Classic" "GCHP"
-)
-dump_log(IMPL_LOG)
 
 # Print a description of the source code repo's version
 get_repo_version(GC_REPO_VERSION ${CMAKE_SOURCE_DIR})
 message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
 
-# The implementation controls who configures BaseTarget
-if("${IMPL}" STREQUAL "Classic")
-	# Configure BaseTarget for a GC-Classic build
-	include(GC-ConfigureClassicBuild)
-elseif("${IMPL}" STREQUAL "GCHP")
-	# Add GCHP as a subdirectory. The CMake scripts in GCHP setup BaseTarget
-    add_subdirectory(GCHP)
+if(NOT GC_EXTERNAL_CONFIG)
+	# This conditional block configures the GEOS-Chem build for GEOS-Chem 
+	# Classic. As mentioned above, it sets GCCLASSIC_EXE_TARGETS, RRTMG, GTMM
+	# TOMAS, MECH, and GCHP, and it configures the BaseTarget.
+
+	# Set CMAKE_BUILD_TYPE to Release by default
+	if(NOT CMAKE_BUILD_TYPE)
+		set(CMAKE_BUILD_TYPE "Release" 
+			CACHE STRING
+			"Choose the type of build, options are: Debug Release."
+			FORCE
+		)
+	endif()
+
+	# Display the compilers we're using
+	gc_message(SECTION "Selected compilers")
+	gc_message(CONSTANT CMAKE_C_COMPILER DISPLAY_NAME "C")
+	gc_message(CONSTANT CMAKE_CXX_COMPILER DISPLAY_NAME "C++")
+	gc_message(CONSTANT CMAKE_Fortran_COMPILER DISPLAY_NAME "Fortran")
+	
+	# Display CMAKE_PREFIX_PATH and CMAKE_BUILD_TYPE
+	gc_message(SECTION "Common CMake variables")
+	gc_message(VARIABLE CMAKE_PREFIX_PATH)
+	set_dynamic_option(CMAKE_BUILD_TYPE     # making CMAKE_BUILD_TYPE an option restricts it to Release and Debug
+		DEFAULT ${CMAKE_BUILD_TYPE}
+		OPTIONS "Release" "Debug"
+		LOG CMAKE_VAR_LOG
+	)
+	dump_log(CMAKE_VAR_LOG)
+
+	# Configure for GCClassic
+	include(GC-ConfigureClassic)
+	configureGCClassic()
+
+	gc_message(SECTION "Resulting definitions")
+	get_target_property(RESULT_DEFS BaseTarget INTERFACE_COMPILE_DEFINITIONS)
+	gc_message(CONSTANT RESULT_DEFS DISPLAY_NAME "DEFINES")
 endif()
 
 # Add all the subdirectories. Each subdirectory specifies how it should be built.

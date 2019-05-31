@@ -101,15 +101,12 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	YuIMN_Code.F
 
 	# These files are empty for GCHP. Compile them if NOT GCHP.
-	$<$<NOT:$<STREQUAL:${IMPL},GCHP>>:flexgrid_read_mod.F90 get_met_mod.F90>
+	$<$<NOT:$<BOOL:GCHP>>:flexgrid_read_mod.F90 get_met_mod.F90>
 
-	# TODO: when to omit these?
-	# exchange_mod.F
-	$<$<STREQUAL:${RUNDIR_SIM},RRTMG>:rrtmg_rad_transfer_mod.F>
+	# exchange_mod.F TODO: add for debug
 
-	
-	$<$<STREQUAL:${RUNDIR_SIM},TOMAS15>:tomas_mod.F>
-	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:tomas_mod.F>
+	$<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F>
+	$<$<BOOL:${TOMAS}>:tomas_mod.F>
 )
 target_link_libraries(GeosCore
 	PUBLIC 

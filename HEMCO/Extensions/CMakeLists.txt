@@ -20,8 +20,7 @@ add_library(HCOX STATIC EXCLUDE_FROM_ALL
 	hcox_soilnox_mod.F90
 	hcox_state_mod.F90
 	hcox_template_mod.F90x
-	$<$<STREQUAL:${RUNDIR_SIM},TOMAS15>:hcox_tomas_jeagle_mod.F90 hcox_tomas_dustdead_mod.F>
-	$<$<STREQUAL:${RUNDIR_SIM},TOMAS40>:hcox_tomas_jeagle_mod.F90 hcox_tomas_dustdead_mod.F>
+	$<$<BOOL:${TOMAS}>:hcox_tomas_jeagle_mod.F90 hcox_tomas_dustdead_mod.F>
 	hcox_tools_mod.F90
 	hcox_volcano_mod.F90
 	ocean_toolbox_mod.F90

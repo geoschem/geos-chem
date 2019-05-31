@@ -392,3 +392,33 @@ function(file_glob_directories VAR)
     endif()
 	set(${VAR} ${MATCHED_LIST} PARENT_SCOPE)
 endfunction()
+
+function(gc_message)
+    cmake_parse_arguments(ARGS
+        "" 
+        "SECTION;VARIABLE;OPTION;CONSTANT;DISPLAY_NAME"
+        "" 
+        ${ARGN}
+    )
+    if(DEFINED ARGS_SECTION)
+        message(STATUS "${ARGS_SECTION}:")
+    endif()
+    if(DEFINED ARGS_VARIABLE)
+        message("  + ${ARGS_VARIABLE}: ${${ARGS_VARIABLE}}")
+    endif()
+    if(DEFINED ARGS_CONSTANT)
+        if("${${ARGS_CONSTANT}}" MATCHES ";")
+            set(STR "${${ARGS_CONSTANT}}")
+            stringify_list(STR 
+                JOIN "  " 
+                LINE_LENGTH 60
+            )
+            stringify_list(STR 
+                JOIN "    ${ARGS_DISPLAY_NAME}:\t" "\n  ...       \t"
+            )
+            message("${STR}")
+        else()
+            message("    ${ARGS_DISPLAY_NAME}: ${${ARGS_CONSTANT}}")
+        endif()
+    endif()
+endfunction()
