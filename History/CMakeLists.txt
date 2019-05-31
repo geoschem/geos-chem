@@ -1,4 +1,4 @@
-add_library(History STATIC
+add_library(History STATIC EXCLUDE_FROM_ALL
 	histcontainer_mod.F90
 	histitem_mod.F90
 	history_mod.F90

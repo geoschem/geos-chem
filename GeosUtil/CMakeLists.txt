@@ -1,11 +1,11 @@
-add_library(JulDay STATIC
+add_library(JulDay STATIC EXCLUDE_FROM_ALL
 	julday_mod.F
 )
 target_link_libraries(JulDay
 	PUBLIC Headers
 )
 
-add_library(GeosUtil2 STATIC
+add_library(GeosUtil2 STATIC EXCLUDE_FROM_ALL
 	bpch2_mod.F
 	error_mod.F
 	file_mod.F

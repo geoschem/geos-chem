@@ -1,4 +1,4 @@
-add_library(Headers STATIC
+add_library(Headers STATIC EXCLUDE_FROM_ALL
 	charpak_mod.F90
 	CMN_DIAG_mod.F
 	CMN_FJX_MOD.F

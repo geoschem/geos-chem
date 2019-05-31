@@ -1,4 +1,4 @@
-add_library(Transport STATIC
+add_library(Transport STATIC EXCLUDE_FROM_ALL
 	diag_mod.F
 	dao_mod.F
 	diagnostics_mod.F90
@@ -21,7 +21,7 @@ elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
 	set_source_files_properties(tpcore_window_mod.F90 PROPERTIES COMPILE_FLAGS "-fdefault-real-8 -fdefault-double-8")
 endif()
 
-add_library(GeosCore STATIC
+add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	aero_drydep.F
 	aerosol_mod.F
 	benchmark_mod.F
@@ -115,16 +115,16 @@ target_link_libraries(GeosCore
 	PUBLIC Transport ObsPack KPP HCOI History ${GC_EXTRA_TARGETS}
 )
 
-if("${IMPL}" STREQUAL "Classic")
-    # Add geos executable target
-    add_executable(geos
-        main.F
-    )
-    target_link_libraries(geos
-        PUBLIC GeosCore
-    )
-    install(TARGETS geos
-        RUNTIME DESTINATION ${RUNDIR}
-    )
-endif()
 
+if("geos" IN_LIST GCCLASSIC_EXE_TARGETS)
+	# Add geos executable target
+	add_executable(geos
+		main.F
+	)
+	target_link_libraries(geos
+		PUBLIC GeosCore
+	)
+	install(TARGETS geos
+		RUNTIME DESTINATION ${RUNDIR}
+	)
+endif()

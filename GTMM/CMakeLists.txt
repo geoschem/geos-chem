@@ -5,7 +5,7 @@ else()
     set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
 endif()
 
-add_library(Hg STATIC
+add_library(Hg STATIC EXCLUDE_FROM_ALL
     assignAgeClassToRunningPool.F90 
     assignRanPoolToAgeClass.F90
     CasaRegridModule.F90
@@ -48,13 +48,14 @@ target_link_libraries(Hg
 )
 
 
-add_executable(gtmm
-    GTMM.F90
-)
-
-target_link_libraries(gtmm
-    PUBLIC Hg
-)
-install(TARGETS gtmm
-    RUNTIME DESTINATION ${RUNDIR}
-)
+if("gtmm" IN_LIST GCCLASSIC_EXE_TARGETS)
+    add_executable(gtmm
+        GTMM.F90
+    )
+    target_link_libraries(gtmm
+        PUBLIC Hg
+    )
+    install(TARGETS gtmm
+		RUNTIME DESTINATION ${RUNDIR}
+	)
+endif()

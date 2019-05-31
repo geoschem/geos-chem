@@ -1,4 +1,4 @@
-add_library(HCOX STATIC
+add_library(HCOX STATIC EXCLUDE_FROM_ALL
 	drydep_toolbox_mod.F90
 	hcox_ch4wetland_mod.F90
 	hcox_custom_mod.F90

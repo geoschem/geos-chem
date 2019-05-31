@@ -1,4 +1,4 @@
-add_library(HCO STATIC
+add_library(HCO STATIC EXCLUDE_FROM_ALL
 	hco_arr_mod.F90
 	hco_calc_mod.F90
 	hco_chartools_mod.F90

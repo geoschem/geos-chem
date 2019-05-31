@@ -5,7 +5,7 @@ else()
     set(GC_EXTRA_TARGETS "${GC_EXTRA_TARGETS}" PARENT_SCOPE)
 endif()
 
-add_library(RRTMG STATIC
+add_library(RRTMG STATIC EXCLUDE_FROM_ALL
 	mcica_random_numbers.F90
 	mcica_subcol_gen_lw.F90
 	mcica_subcol_gen_sw.F90

@@ -370,3 +370,14 @@ dump_log(RESULTING_DEFINES_LOG)
 # Set compiler options for the BaseTarget
 target_compile_options(BaseTarget INTERFACE ${FC_OPTIONS})
 unset(FC_OPTIONS)
+
+# Determine which executables should be built
+set(GCCLASSIC_EXE_TARGETS "")
+if("${RUNDIR_SIM}" STREQUAL "HEMCO")
+    list(APPEND GCCLASSIC_EXE_TARGETS "hemco_standalone")
+else()
+    list(APPEND GCCLASSIC_EXE_TARGETS "geos")
+endif()
+if(GTMM)
+    list(APPEND GCCLASSIC_EXE_TARGETS "gtmm")
+endif()

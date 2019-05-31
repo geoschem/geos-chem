@@ -1,5 +1,5 @@
 # Add libKPPFirstPass.a
-add_library(KPPFirstPass STATIC
+add_library(KPPFirstPass STATIC EXCLUDE_FROM_ALL
 	gckpp_Precision.F90
     gckpp_Parameters.F90
     gckpp_Monitor.F90
@@ -9,7 +9,7 @@ target_link_libraries(KPPFirstPass
 )
 
 # Add libKPP.a
-add_library(KPP STATIC
+add_library(KPP STATIC EXCLUDE_FROM_ALL
 	gckpp_Function.F90
 	gckpp_Global.F90
 	gckpp_HetRates.F90

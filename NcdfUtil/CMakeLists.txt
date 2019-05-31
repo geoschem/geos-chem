@@ -1,4 +1,4 @@
-add_library(NcdfUtil STATIC
+add_library(NcdfUtil STATIC EXCLUDE_FROM_ALL
 	m_do_err_out.F90
 	m_netcdf_io_checks.F90
 	m_netcdf_io_close.F90
