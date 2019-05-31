@@ -79,26 +79,27 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_CH3Br( am_I_Root, Input_Opt, State_Met,
-     &                      State_Chm, RC         )
+      SUBROUTINE SET_CH3Br( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, State_Met, RC         )
 ! 
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
       USE PhysConstants,      ONLY : AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -196,14 +197,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, LAT_MID, CH3Br_conc )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-         IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0e+0_fp ) THEN
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+         IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid) > 0e+0_fp ) THEN
 
             ! base lat band selection on midpoint
             ! latitude of the box
-            LAT_MID = GET_YMID( I, J, L )
+            LAT_MID = State_Grid%YMid(I,J)
 
             ! Selecting the latitude bands:
             IF ( LAT_MID > 55e+0_fp ) THEN
@@ -250,8 +251,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_BRO( am_I_Root, Input_Opt, State_Met, 
-     &                    State_Chm, RC         )
+      SUBROUTINE SET_BRO( am_I_Root,  Input_Opt, State_Chm, 
+     &                    State_Grid, State_Met, RC         )
 
 ! 
 ! !USES:
@@ -265,13 +266,15 @@
       USE PhysConstants,      ONLY : AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met   ! Met State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -373,8 +376,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, BrO_conc )
-      DO J = 1, JJPAR
-         lon_loop: DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+         lon_loop: DO I = 1, State_Grid%NX
 
             ! -----------------------------------------
             ! 1. Determine if we're in the marine
@@ -401,8 +404,8 @@
                BrO_conc = 0.e+0_fp    ! 0 otherwise
             ENDIF
 
-            DO L = 1, LLPAR
-               IF ( GET_FRAC_UNDER_PBLTOP( I, J, L ) > 0d0 ) THEN
+            DO L = 1, State_Grid%NZ
+               IF ( GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid) > 0d0 ) THEN
 
                   ! Convert the [v/v] BrO conc units (dry air) to [kg/kg] 
                   ! when setting species concentration (ewl, 9/10/15)

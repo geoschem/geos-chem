@@ -318,8 +318,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEMSULFATE( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, FullRun,   RC )
+      SUBROUTINE CHEMSULFATE( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met,
+     &                        FullRun,    RC )
 !
 ! !USES:
 !
@@ -332,6 +333,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -345,6 +347,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       LOGICAL,        INTENT(IN)    :: FullRun     ! Modify species conc?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -516,7 +519,7 @@
          ENDIF
 
          ! And compute time scaling arrays for offline OH, NO3
-         CALL OHNO3TIME
+         CALL OHNO3TIME( State_Grid )
          
       ENDIF
 
@@ -558,8 +561,9 @@
 
          ! SO4s [kg] gravitational settling
          IF ( id_SO4s > 0 ) THEN
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, id_SO4s,   RC )
+            CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met,
+     &                          id_SO4s,    RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
             ENDIF
@@ -567,8 +571,9 @@
 
          ! NITs [kg] gravitational settling
          IF ( id_NITs > 0 ) THEN 
-            CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, id_NITs,   RC )
+            CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met,
+     &                          id_NITs,    RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
             ENDIF
@@ -581,8 +586,9 @@
 
             ! SO4d1 [kg] gravitational settling
             IF ( id_SO4d1 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_SO4d1, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_SO4d1,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
                ENDIF
@@ -590,8 +596,9 @@
 
             ! SO4d2 [kg] gravitational settling
             IF ( id_SO4d2 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_SO4d2, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_SO4d2,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
                ENDIF
@@ -599,8 +606,9 @@
 
             ! SO4d3 [kg] gravitational settling
             IF ( id_SO4d3 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_SO4d3, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_SO4d3,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
                ENDIF
@@ -608,8 +616,9 @@
 
             ! SO4d4 [kg] gravitational settling
             IF ( id_SO4d4 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_SO4d4, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_SO4d4,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
                ENDIF
@@ -617,8 +626,9 @@
 
             ! NITd1 [kg] gravitational settling
             IF ( id_NITd1 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_NITd1, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_NITd1,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
                ENDIF
@@ -626,8 +636,9 @@
 
             ! NITd2 [kg] gravitational settling
             IF ( id_NITd2 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_NITd2, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_NITd2,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
                ENDIF
@@ -635,8 +646,9 @@
 
             ! NITd3 [kg] gravitational settling
             IF ( id_NITd3 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_NITd3, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_NITd3,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
                ENDIF
@@ -644,8 +656,9 @@
 
             ! NITd4 [kg] gravitational settling
             IF ( id_NITd4 > 0 ) THEN
-               CALL GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                             State_Chm, State_Diag, id_NITd4, RC )
+               CALL GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                             State_Diag, State_Grid, State_Met,
+     &                             id_NITd4,   RC )
                IF ( prtDebug ) THEN
                   CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
                ENDIF
@@ -654,17 +667,17 @@
 
          ! Stratospheric aerosol gravitational settling for UCX simulations
          IF ( LUCX .and. LGRAVSTRAT ) THEN
-            CALL SETTLE_STRAT_AER( am_I_Root, Input_Opt, 
-     &                             State_Met, State_Chm, RC )
+            CALL SETTLE_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,
+     &                             State_Grid, State_Met, RC )
             IF ( prtDebug ) THEN
                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
             ENDIF
          ENDIF
 
          ! Convert species to [v/v dry]
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'v/v dry', RC, 
-     &                           OrigUnit=OrigUnit )
+         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                           State_Grid, State_Met, 'v/v dry',
+     &                           RC,         OrigUnit=OrigUnit )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'Start of CHEM_SULFATE in sulfate_mod.F')
@@ -680,8 +693,8 @@
             !--------------------------------
             ! DMS chemistry (offline only)
             !--------------------------------
-            CALL CHEM_DMS( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC         )
+            CALL CHEM_DMS( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -698,8 +711,8 @@
             !--------------------------------
             ! H2O2 (offline only)
             !--------------------------------
-            CALL CHEM_H2O2( am_I_Root, Input_Opt,  State_Met, 
-     &                      State_Chm, State_Diag, RC         )
+            CALL CHEM_H2O2( am_I_Root,  Input_Opt,  State_Chm, 
+     &                      State_Diag, State_Grid, State_Met, RC )
 
             ! Trap potential errors
             IF ( RC /= GC_SUCCESS ) THEN
@@ -717,8 +730,9 @@
          !-----------------------
          ! SO2 chemistry
          !-----------------------
-         CALL CHEM_SO2( am_I_Root, Input_Opt,  State_Met,
-     &                  State_Chm, State_Diag,  .TRUE.,   RC )
+         CALL CHEM_SO2( am_I_Root,  Input_Opt,  State_Chm,
+     &                  State_Diag, State_Grid, State_Met,
+     &                  .TRUE.,     RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -735,8 +749,8 @@
          !-----------------------
          ! SO4 chemistry
          !-----------------------
-         CALL CHEM_SO4( am_I_Root, Input_Opt,  State_Met, 
-     &                  State_Chm, State_Diag, RC         )
+         CALL CHEM_SO4( am_I_Root,  Input_Opt,  State_Chm, 
+     &                  State_Diag, State_Grid, State_Met, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -760,13 +774,14 @@
          ! to tomas_mod.f in the future, but for now it still needs to get
          ! the PSO4_SO2AQ value while CHEMSULFATE is called
          !-----------------------------------------------------------------
-         CALL CHEM_SO4_AQ( am_I_Root, Input_Opt, State_Met, 
-     &                                State_Chm, RC )
+         CALL CHEM_SO4_AQ( am_I_Root,  Input_Opt, State_Chm, 
+     &                     State_Grid, State_Met, RC )
          IF ( LPRT ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
 #endif   
 
          ! MSA
-         CALL CHEM_MSA( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+         CALL CHEM_MSA( am_I_Root,  Input_Opt, State_Chm,
+     &                  State_Grid, State_Met, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
          ENDIF
@@ -774,8 +789,8 @@
          ! Sulfur Nitrate.
          ! CHEM_NIT includes a source term from sea salt aerosols, so keep
          ! here.
-         CALL CHEM_NIT( am_I_Root, Input_Opt, State_Met,
-     &                  State_Chm, RC )
+         CALL CHEM_NIT( am_I_Root,  Input_Opt, State_Chm,
+     &                  State_Grid, State_Met, RC )
          IF ( prtDebug ) THEN
             CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
          ENDIF
@@ -783,9 +798,9 @@
       ELSE
 
          ! Convert species to [v/v dry]
-         CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                           State_Chm, 'v/v dry', RC, 
-     &                           OrigUnit=OrigUnit )
+         CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                           State_Grid, State_Met, 'v/v dry',
+     &                           RC,         OrigUnit=OrigUnit )
          IF ( RC /= GC_SUCCESS ) THEN
             CALL GC_Error('Unit conversion error', RC, 
      &                    'Start of CHEM_SULFATE in sulfate_mod.F')
@@ -796,8 +811,9 @@
          ENDIF
 
          ! Call the SO2 routine to get cloud pH parameters
-         CALL CHEM_SO2( am_I_Root, Input_Opt,  State_Met, 
-     &                  State_Chm, State_Diag, .FALSE.,   RC )
+         CALL CHEM_SO2( am_I_Root,  Input_Opt,  State_Chm, 
+     &                  State_Diag, State_Grid, State_Met,
+     &                  .FALSE.,    RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -813,8 +829,8 @@
       ENDIF ! FullRun
 
       ! Convert species units back to original unit 
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'End of CHEM_SULFATE in sulfate_mod.F')
@@ -844,8 +860,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISSSULFATETOMAS( am_I_Root, Input_Opt,
-     &                              State_Met, State_Chm, RC )
+      SUBROUTINE EMISSSULFATETOMAS( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -854,6 +870,7 @@
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
       USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
@@ -864,6 +881,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -876,7 +894,8 @@
 
 ! Local variables
       ! Fields for TOMAS simulation
-      REAL*8           :: BINMASS(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL*8           :: BINMASS(State_Grid%NX,State_Grid%NY,
+     &                            State_Grid%NZ,IBINS*ICOMP)
       INTEGER          :: TID, I, J, L
       INTEGER          :: ii=53, jj=29, ll=1
       REAL(fp)         :: NH4_CONC
@@ -906,8 +925,9 @@
 
       ! Convert species to [kg] for TOMAS. This will be removed once 
       ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Start of EMISSSULFATETOMAS in sulfate_mod.F')
@@ -930,9 +950,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TEMPNH4, MK_TEMP2, NH4_CONC )
 !$OMP+SCHEDULE( DYNAMIC )
-            DO L=1,LLPAR
-            DO J=1,JJPAR
-            DO I=1,IIPAR
+            DO L=1,State_Grid%NZ
+            DO J=1,State_Grid%NY
+            DO I=1,State_Grid%NX
 
                ! Change pointer to a variable to avoid array temporary
                ! (bmy, 7/7/17)
@@ -953,8 +973,9 @@
      &           Spc(:,:,:,id_AW1:id_AW1+IBINS-1)
 
       !IF ( id_SF1 > 0 ) THEN
-         CALL SRCSF30(  Spc(:,:,:,id_NK1:id_NK1+IBINS-1),
-     &         BINMASS(:,:,:,:), am_I_Root, Input_Opt, State_Met, RC )
+         CALL SRCSF30( am_I_Root, Input_Opt, State_Grid, State_Met,
+     &                 Spc(:,:,:,id_NK1:id_NK1+IBINS-1),
+     &                 BINMASS(:,:,:,:), RC )
 
          ! Return the aerosol mass after emission subroutine to Spc
          ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
@@ -966,8 +987,8 @@
       NULLIFY( Spc )
 
       ! Convert species back to original units (ewl, 9/11/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'End of EMISSSULFATETOMAS in sulfate_mod.F')
@@ -982,8 +1003,9 @@
 !                  Jack Kodros re-writing this
 !-----------------------------------------------------------------------------
 #if defined( TOMAS )
-      SUBROUTINE SRCSF30( TC1, TC2,
-     &     am_I_Root, Input_Opt, State_Met, RC )
+      SUBROUTINE SRCSF30( am_I_Root,  Input_Opt,
+     &                    State_Grid, State_Met,
+     &                    TC1, TC2, RC )
 !
 ! !USES:
 !
@@ -995,6 +1017,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP,  IT_IS_NAN
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : IBINS, AVGMASS, ICOMP
       USE TOMAS_MOD,          ONLY : Xk
@@ -1006,23 +1029,29 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      REAL(fp), INTENT(INOUT) :: TC1(IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp), INTENT(INOUT) :: TC2(IIPAR,JJPAR,LLPAR,IBINS*ICOMP)
+      REAL(fp), INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,
+     &                               State_Grid%NZ,IBINS)
+      REAL(fp), INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,
+     &                               State_Grid%NZ,IBINS*ICOMP)
 ! !OUTPUT PARAMETERS:
 !
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 
 ! Local variables
       INTEGER                :: I, J, K, L, DOW_LT, NTOP, C, Bi
-      REAL*8                 :: SO4(LLPAR), DTSRCE  , EFRAC(LLPAR)
+      REAL*8                 :: SO4(State_Grid%NZ)
+      REAL*8                 :: DTSRCE 
+      REAL*8                 :: EFRAC(State_Grid%NZ)
       REAL*8                 :: TSO4,       FEMIS
       REAL*8                 :: AREA_CM2
-      REAL*8                 :: SO4an(IIPAR,JJPAR,LLPAR)
-      REAL*8                 :: SO4bf(IIPAR,JJPAR)
-      REAL*8                 :: SO4anbf(IIPAR,JJPAR,2)
+      REAL*8                 :: SO4an(State_Grid%NX,State_Grid%NY,
+     &                                State_Grid%NZ)
+      REAL*8                 :: SO4bf(State_Grid%NX,State_Grid%NY)
+      REAL*8                 :: SO4anbf(State_Grid%NX,State_Grid%NY,2)
       REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
 
 #if  defined( TOMAS12) || defined( TOMAS15)
@@ -1056,14 +1085,15 @@
       REAL(fp)               :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
       REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
-!      REAL(fp)               :: N0(LLPAR,IBINS), M0(LLPAR,IBINS)
+!      REAL(fp)               :: N0(State_Grid%NZ,IBINS)
+!      REAL(fp)               :: M0(State_Grid%NZ,IBINS)
       REAL(fp)               :: Ndiag(IBINS), Mdiag(IBINS)
       REAL(fp)               :: MADDTOTAL !optimization variable for diag
 !      REAL(fp)               :: Avginit(IBINS), Avgfinal(IBINS)
 !      REAL(fp)               :: Avginner(IBINS)
 
-      REAL(fp)               :: AREA(IIPAR, JJPAR)
-!      REAL(fp)               :: AREA3D(IIPAR, JJPAR,2)
+      REAL(fp)               :: AREA(State_Grid%NX, State_Grid%NY)
+!      REAL(fp)               :: AREA3D(State_Grid%NX, State_Grid%NY,2)
 
       ! Pointers
       REAL(f4),        POINTER :: Ptr2D(:,:  )
@@ -1119,22 +1149,15 @@
 !      AREA3D(:,:,2) = AREA(:,:)
 
       ! Define subgrid coagulation timescale (win, 10/28/08)
-#if   defined( GRID4x5   )
-            TSCALE = 10.*3600.  ! 10 hours
-#elif defined( GRID2x25  )
-            TSCALE = 5.*3600.
-#elif defined( GRID05x0625 )
-            !%%% KLUDGE, just copied the 0.5 x 0.666 value
-            !%%% Someone needs to add the right value (bmy, 2/16/12)
-            TSCALE = 1.*3600.
-#elif defined( GRID025x03125 )
-            !%%% KLUDGE, just copied the 0.5 x 0.666 value
-            !%%% Someone needs to add the right value (bmy, 2/16/12)
-            !%%% 0.5 sounds about right. (sfarina, 11/14/16)
-            TSCALE = 0.5*3600.
-#endif
-            !Prior to 10/28/08 (win)
-            !TSCALE = 10.*3600.
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+         TSCALE = 10.*3600.  ! 10 hours
+      ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+         TSCALE = 5.*3600.  
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+         TSCALE = 1.*3600.
+      ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+         TSCALE = 0.5*3600.
+      ENDIF
 
       !================================================================
       ! READ IN HEMCO EMISSIONS
@@ -1160,7 +1183,7 @@
       Ptr2D => NULL()
 
       ! convert to kg/box/sec
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
          SO4an(:,:,L) = 0.0d0
          SO4an(:,:,L) = SO4_ANTH(:,:,L) * AREA(:,:)
       END DO
@@ -1181,8 +1204,8 @@
 !$OMP+SCHEDULE( DYNAMIC )
 
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          !initialize diagnostics
          Ndiag(:) = 0.0D0
          Mdiag(:) = 0.0D0
@@ -1191,7 +1214,7 @@
          NTOP = CEILING( GET_PBL_TOP_L( I, J ) )
 
          ! Zero SO4 array at all levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             SO4(L) = 0.0
          ENDDO
 
@@ -1220,10 +1243,10 @@
 !         IF ( NTOP > 2 ) THEN
 
             ! Loop thru boundary layer
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
 
                ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
-               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L )
+               EFRAC(L)  = GET_FRAC_OF_PBL( I, J, L, State_Grid )
 
             ENDDO
 !         ELSE
@@ -1267,7 +1290,7 @@
             !N0(:,:) = TC1(I,J,:,:)
             !M0(:,:) = TC2(I,J,:,1:IBINS)
 
-          DO L = 1, LLPAR
+          DO L = 1, State_Grid%NZ
             !only really need to loop L=1,NTOP
             SO4(L) = TSO4 * EFRAC(L) * DTSRCE
             IF ( SO4(L) == 0.d0 ) CYCLE
@@ -1452,7 +1475,7 @@
          ! For SF: Convert from [kg SO4/box/s] -> [kg SO4/box/timestep]
          ! For NK: Convert from [kg SO4/box/s] -> [No.   /box/timestep]
          !=============================================================
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                SO4(L) = TSO4 * EFRAC(L)
                DO K = 1, IBINS
                   TC1(I,J,L,K) = TC1(I,J,L,K) +
@@ -1510,8 +1533,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GRAV_SETTLING( am_I_Root, Input_Opt,  State_Met,
-     &                          State_Chm, State_Diag, N,         RC )
+      SUBROUTINE GRAV_SETTLING( am_I_Root,  Input_Opt,  State_Chm,
+     &                          State_Diag, State_Grid, State_Met,
+     &                          N,  RC )
 !
 ! !USES:
 !
@@ -1521,10 +1545,10 @@
       USE DIAG_MOD,           ONLY : AD44
 #endif
       USE ErrCode_Mod
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Species_Mod,        ONLY : Species
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
@@ -1534,6 +1558,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)    :: N           ! Species index
 !
@@ -1627,8 +1652,8 @@
       ! Arrays
       REAL(fp)               :: SALA_REDGE_um(2)
       REAL(fp)               :: SALC_REDGE_um(2)
-      REAL(fp)               :: VTS(LLPAR)  
-      REAL(fp)               :: TC0(LLPAR)
+      REAL(fp)               :: VTS(State_Grid%NZ)  
+      REAL(fp)               :: TC0(State_Grid%NZ)
 
       ! Pointers
       REAL(fp),      POINTER :: TC(:,:,:)
@@ -1692,16 +1717,16 @@
 !$OMP+PRIVATE( DELZ,    DELZ1, TOT1, TOT2, AREA_CM2, FLUX             )
 !$OMP+PRIVATE( RHO1,    WTP                                           ) 
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR       
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX       
 
          ! Initialize 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             VTS(L) = 0e+0_fp
          ENDDO
 
          ! Loop over levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Pressure at center of the level [kPa]
             ! Use moist air pressure for mean free path (ewl, 3/2/15)
@@ -1828,17 +1853,17 @@
          ! implicit and first order accurate in z (rjp, 1/24/02)
 
          ! Save initial tracer concentration in column
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             TC0(L) = TC(I,J,L)
          ENDDO
 
          ! We know the boundary condition at the model top
-         L    = LLCHEM
+         L    = State_Grid%MaxChemLev
          DELZ = State_Met%BXHEIGHT(I,J,L)
 
          TC(I,J,L) = TC(I,J,L) / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
 
-         DO L = LLCHEM-1, 1, -1
+         DO L = State_Grid%MaxChemLev-1, 1, -1
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
             TC(I,J,L) = 1.e+0_fp / ( 1.e+0_fp + DTCHEM * VTS(L) / DELZ )
@@ -1864,13 +1889,13 @@
             TOT2 = 0e+0_fp
             
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
             
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
             
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -1899,13 +1924,13 @@
             TOT2 = 0e+0_fp
             
             ! Compute column totals of TCO(:) and TC(I,J,:,N)
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TOT1 = TOT1 + TC0(L)
                TOT2 = TOT2 + TC(I,J,L)
             ENDDO
             
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
             
             ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
             FLUX     = ( TOT1 - TOT2 ) / DTCHEM
@@ -1941,8 +1966,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_DMS( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_DMS( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1955,6 +1980,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
@@ -1962,6 +1988,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2085,9 +2112,9 @@
 !$OMP+PRIVATE( I, J, L, TK, O2, DMS0,OH, XNO3, RK1, RK2, BOXVL )
 !$OMP+PRIVATE( RK3, DMS_OH, DMS, OH0, XNO30, XOH, XN3, XX, LOH, LNO3  )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -2221,16 +2248,6 @@
      &                    ( PMSA_DMS(I,J,L) * State_Met%AD(I,J,L) /
      &                      TCVV_S )
 
-!--------------------------------------------------------------------------
-! Prior to 1/26/18:
-! NOTE: These will always be zero, so remove (bmy, 1/26/18)
-!            ! Store L(OH) by DMS [kg OH/timestep]
-!            AD05(I,J,L,9) = AD05(I,J,L,9) + LOH
-!            
-!            ! Store L(NO3) by DMS [kg NO3/timestep]
-!            AD05(I,J,L,10) = AD05(I,J,L,10) + LNO3
-!--------------------------------------------------------------------------
-
          ENDIF
 #endif
 
@@ -2308,17 +2325,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_H2O2( am_I_Root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_H2O2( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
-      USE PBL_MIX_MOD,    ONLY : GET_FRAC_UNDER_PBLTOP
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD,       ONLY : GET_MONTH
       USE TIME_MOD,       ONLY : GET_TS_CHEM
@@ -2328,6 +2345,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2410,7 +2428,8 @@
       CHARACTER(LEN=255) :: FILENAME
 
       ! Arrays
-      REAL*4             :: ARRAY(IIPAR,JJPAR,LLCHEM)
+      REAL*4             :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                            State_Grid%MaxChemLev)
 
       ! Pointers
       REAL(fp), POINTER  :: Spc(:,:,:,:)
@@ -2440,9 +2459,9 @@
 !$OMP+PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 )
 !$OMP+PRIVATE( PHOTJ )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L  = 1, LLPAR
-      DO J  = 1, JJPAR
-      DO I  = 1, IIPAR
+      DO L  = 1, State_Grid%NZ
+      DO J  = 1, State_Grid%NY
+      DO I  = 1, State_Grid%NX
 
          ! Initialize for safety's sake 
          FREQ = 0e+0_fp
@@ -2511,8 +2530,9 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO2( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, FullRun,   RC )
+      SUBROUTINE CHEM_SO2( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met,
+     &                     FullRun,    RC )
 !
 ! !USES:
 !
@@ -2525,8 +2545,9 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PRESSURE_MOD,       ONLY : GET_PCENTER
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM, GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE HCO_INTERFACE_MOD,  ONLY : GetHcoDiagn
@@ -2540,6 +2561,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       LOGICAL,        INTENT(IN)    :: FullRun     ! Modify species conc?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2814,9 +2836,9 @@
 !$OMP+PRIVATE( Fe_ant, Fe_nat, Fe_tot, Fe_d, Mn_d,   FeIII,  MnII      )
 !$OMP+PRIVATE( Fe_d_ant, Fe_d_nat                                      )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ 
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initialize for safety's sake 
          Ld       = 0.0_fp
@@ -2835,7 +2857,8 @@
          ELSE
             HOBr0  = 0.e+0_fp
          ENDIF
-         O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
+         O3     = GET_O3( I, J, L, Input_Opt, State_Chm,
+     &                    State_Grid, State_Met )
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
@@ -2919,7 +2942,8 @@
 
          ! Get alkalinity of accum (ALK1) and coarse (ALK2) [kg]
          CALL GET_ALK( am_I_Root, I, J, L, ALK1, ALK2, Kt1, Kt2,  
-     &                 Kt1N, Kt2N, Input_Opt, State_Met, State_Chm, RC )
+     &                 Kt1N, Kt2N, Input_Opt, State_Chm, State_Grid,
+     &                 State_Met, RC )
 
          ! Total alkalinity [kg]
          ALK = ALK1 + ALK2
@@ -6367,8 +6391,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4( am_I_Root, Input_Opt,  State_Met,
-     &                     State_Chm, State_Diag, RC         )
+      SUBROUTINE CHEM_SO4( am_I_Root,  Input_Opt,  State_Chm,
+     &                     State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -6377,6 +6401,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
@@ -6384,11 +6409,12 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -6489,9 +6515,9 @@
 !$OMP+PRIVATE( SO4d, SO40d, SO40_dust          ) ! tdf 04/07/08
 !$OMP+PRIVATE( IBIN, PSO4d, IDTRC              )
 !$OMP+SCHEDULE( DYNAMIC ) 
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -6607,8 +6633,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_SO4_AQ( am_I_Root, Input_Opt, 
-     &                        State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_SO4_AQ( am_I_Root,  Input_Opt, State_Chm,
+     &                        State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -6617,6 +6643,7 @@
       USE ERROR_MOD
       USE Input_Opt_Mod,      ONLY : OptINput 
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -6625,6 +6652,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -6672,8 +6700,9 @@
       RC  = GC_SUCCESS
 
       ! Convert species from to [kg]
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'Start of CHEM_SO4_AQ in sulfate_mod.F')
@@ -6685,9 +6714,9 @@
 !$OMP+PRIVATE( I, J, L )
 !$OMP+PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
                   
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -6726,7 +6755,7 @@
             KMIN = ( BINACT1 + BINACT2 )/ 2.
 
             CALL AQOXID( am_I_Root, SO4OXID, KMIN, I, J, L, Input_Opt,
-     &                   State_Met, State_Chm, RC )
+     &                   State_Chm, State_Grid, State_Met, RC )
          ENDIF
       ENDDO
       ENDDO
@@ -6734,8 +6763,8 @@
 !$OMP END PARALLEL DO
 
        ! Convert species back to original units
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL GC_Error('Unit conversion error', RC, 
      &                 'End of CHEM_SO4_AQ in sulfate_mod.F')
@@ -6759,8 +6788,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_MSA( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_MSA( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -6768,12 +6797,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -6856,9 +6887,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, MSA0, MSA )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -6896,8 +6927,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CHEM_NIT( am_I_Root, Input_Opt, 
-     &                     State_Met, State_Chm, RC )
+      SUBROUTINE CHEM_NIT( am_I_Root,  Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -6905,12 +6936,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -7024,9 +7057,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, NITd, NIT0d, IBIN, PNITd )
 !$OMP+SCHEDULE( DYNAMIC, 1 )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -7434,8 +7467,8 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
-     &                 RESULT( O3_VV )
+      FUNCTION GET_O3( I, J, L, Input_Opt, State_Chm, State_Grid,
+     &                 State_Met ) RESULT( O3_VV )
 !
 ! !USES:
 !
@@ -7443,6 +7476,7 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -7450,6 +7484,7 @@
       INTEGER,        INTENT(IN)  :: I, J, L     ! Lon, lat, vertical level
       TYPE(OptInput), INTENT(IN)  :: Input_Opt  
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
@@ -7503,7 +7538,7 @@
 
          ! Get O3 [v/v] for this gridbox & month
          ! O3 is defined only in the chemistry grid
-         IF ( L <= LLCHEM ) THEN
+         IF ( L <= State_Grid%MaxChemLev ) THEN
             O3_VV = O3m(I,J,L)
          ELSE
             O3_VV = 0e+0_fp
@@ -7528,14 +7563,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE OHNO3TIME
+      SUBROUTINE OHNO3TIME( State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD, ONLY : GET_XMID,    GET_YMID_R
-      USE TIME_MOD,    ONLY : GET_NHMSb,   GET_ELAPSED_SEC
-      USE TIME_MOD,    ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE TIME_MOD,       ONLY : GET_NHMSb,   GET_ELAPSED_SEC
+      USE TIME_MOD,       ONLY : GET_TS_CHEM, GET_DAY_OF_YEAR, GET_GMT
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY: 
 !  (1 ) Copy code from COSSZA directly for now, so that we don't get NaN
@@ -7560,7 +7598,7 @@
       INTEGER             :: I, J, L, N, NT, NDYSTEP
       REAL(fp)            :: A0, A1, A2, A3, B1, B2, B3
       REAL(fp)            :: LHR0, R, AHR, DEC, TIMLOC, YMID_R
-      REAL(fp)            :: SUNTMP(IIPAR,JJPAR)
+      REAL(fp)            :: SUNTMP(State_Grid%NX,State_Grid%NY)
       
       !=================================================================
       ! OHNO3TIME begins here!
@@ -7603,14 +7641,14 @@
             SUNTMP = 0e+0_fp
 
             ! Loop over surface grid boxes
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
 
                ! Grid box latitude center [radians]
-               YMID_R = GET_YMID_R( I, J, 1 )
+               YMID_R = State_Grid%YMid_R(I,J)
 
                TIMLOC = real(LHR0) + real(NT)/3600.0 + 
-     &                  GET_XMID( I, J, 1 )/15.0
+     &                  State_Grid%XMid(I,J)/15.0
          
                DO WHILE (TIMLOC .lt. 0)
                   TIMLOC = TIMLOC + 24.0
@@ -7692,8 +7730,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE GET_ALK( am_I_Root, I,J,L, ALK1, ALK2, Kt1, Kt2, 
-     &                    Kt1N, Kt2N, Input_Opt, State_Met, State_Chm,
-     &                    RC)
+     &                    Kt1N, Kt2N, Input_Opt, State_Chm,
+     &                    State_Grid, State_Met, RC)
 !
 ! !USES:
 !
@@ -7706,6 +7744,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PBL_MIX_MOD,        ONLY : GET_FRAC_OF_PBL, GET_PBL_TOP_L
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
@@ -7713,6 +7752,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU? 
       INTEGER,        INTENT(IN)    :: I, J, L     ! Lon-lat-alt indices
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
@@ -7816,7 +7856,7 @@
       IF ( L <= NTOP ) THEN      
 
          ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-         FEMIS = GET_FRAC_OF_PBL( I, J, L )
+         FEMIS = GET_FRAC_OF_PBL( I, J, L, State_Grid )
          
          ! Uncomment the following line to reproduce pre-HEMCO code.
          ! FEMIS = 1.0d0
@@ -7828,9 +7868,9 @@
 
          ! kg/m2/s --> kg. Weight by fraction of PBL
          ALK1 = MAX(ALK1,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
+     &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS 
          ALK2 = MAX(ALK2,0.0e+0_fp) 
-     &        * State_Met%AREA_M2(I,J) * TS_EMIS * FEMIS
+     &        * State_Grid%Area_M2(I,J) * TS_EMIS * FEMIS 
 
          ! Get number densities in # / cm3. Weight by fraction of PBL
 !         IF ( ASSOCIATED(NDENS_SALA) ) THEN
@@ -7989,8 +8029,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_SULFATE( am_I_Root, Input_Opt,
-     &                         State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_SULFATE( am_I_Root,  Input_Opt,  State_Chm,
+     &                         State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -8000,6 +8040,7 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -8007,6 +8048,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -8080,73 +8122,80 @@
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      ALLOCATE( SSTEMP( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SSTEMP( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:SSTEMP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SSTEMP = 0e+0_fp
 
-      ALLOCATE( DMSo( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( DMSo( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:DMSo', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       DMSo = 0e+0_fp
 
-      ALLOCATE( PMSA_DMS( IIPAR, JJPAR, LLCHEM ), STAT=RC ) 
+      ALLOCATE( PMSA_DMS( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC ) 
       CALL GC_CheckVar( 'sulfate_mod.F:PMSA_DMS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PMSA_DMS = 0e+0_fp
 
-      ALLOCATE( PSO2_DMS( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( PSO2_DMS( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO2_DMS', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO2_DMS = 0e+0_fp
 
-      ALLOCATE( PSO4_SO2( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( PSO4_SO2( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_SO2 = 0e+0_fp
 
-      ALLOCATE( PSO4_ss( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( PSO4_ss( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_ss', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_ss = 0e+0_fp
 
-      ALLOCATE( PNITs( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( PNITs( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PNITs', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PNITs = 0e+0_fp
 
       !tdf
-      ALLOCATE( PSO4_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
-     &          STAT=RC )
+      ALLOCATE( PSO4_dust( State_Grid%NX, State_Grid%NY,
+     &                     State_Grid%MaxChemLev, NDSTBIN ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_dust', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_dust = 0e+0_fp
 
       !tdf
-      ALLOCATE( PNIT_dust( IIPAR, JJPAR, LLCHEM, NDSTBIN ),
-     &          STAT=RC )
+      ALLOCATE( PNIT_dust( State_Grid%NX, State_Grid%NY,
+     &                     State_Grid%MaxChemLev, NDSTBIN ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PNIT_dust', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PNIT_dust = 0e+0_fp
 
-      ALLOCATE( SOx_SCALE( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SOx_SCALE( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:SOx_SCALE', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SOx_SCALE = 0e+0_fp
 
 #if   defined( TOMAS )
       ! Allocate for TOMAS microphysics
-      ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( PSO4_SO2AQ( State_Grid%NX, State_Grid%NY,
+     &                      State_Grid%NZ ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2aq', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       PSO4_SO2AQ = 0e+0_fp
 
-      ALLOCATE( SO4_ANTH( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( SO4_ANTH( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:SO4_ANTH', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SO4_ANTH = 0e+0_fp
 
-      ALLOCATE( SO4_BIOF( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( SO4_BIOF( State_Grid%NX, State_Grid%NY ), STAT=RC )
       CALL GC_CheckVar( 'sulfate_mod.F:SO4_BIOF', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       SO4_BIOF = 0e+0_fp
@@ -8157,17 +8206,17 @@
       !=================================================================
       IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
 
-         ALLOCATE( TCOSZ( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( TCOSZ( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'sulfate_mod.F:TCOSZ', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          TCOSZ = 0e+0_fp
 
-         ALLOCATE( TTDAY( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( TTDAY( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'sulfate_mod.F:TTDAY', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          TTDAY = 0e+0_fp
  
-         ALLOCATE( COSZM( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( COSZM( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'sulfate_mod.F:COSZM', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          COSZM = 0e+0_fp

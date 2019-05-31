@@ -95,8 +95,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met,
-     &                   RC )
+      SUBROUTINE DIAG20( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                   State_Met, RC )
 !
 ! !USES:
 !
@@ -110,6 +110,7 @@
       USE PhysConstants,      ONLY : AVO
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE,   GET_NYMD
       USE TIME_MOD,           ONLY : GET_TAU,       GET_TAUb 
@@ -120,6 +121,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -321,9 +323,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, P_Ox, L_Ox, LT, BOXVL, Ox_Mass )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Zero P(Ox), L(Ox) variables for safety's sake
          P_Ox    = 0.0_fp
@@ -339,7 +341,7 @@
             !%%% (bmy, 7/9/15)
             !
             ! Get the local time at box (I,J,L)
-            !LT = GET_LOCALTIME( I, J, L )
+            !LT = GET_LOCALTIME( I, J, L, State_Grid )
             !
             ! Skip processing if we are outside of the desired 
             ! local time range (bmy, 7/9/15)
@@ -475,9 +477,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, N )
          DO N = 1, 2
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
             IF ( COUNT(I,J,L) /= 0 ) THEN
                PL24H(I,J,L,N) = PL24H(I,J,L,N) / COUNT(I,J,L)
             ENDIF
@@ -499,7 +501,7 @@
  110     FORMAT( '     - DIAG20: Writing ', a )
 
          ! Write P(Ox) and L(Ox) to disk
-         CALL WRITE20()
+         CALL WRITE20( Input_Opt, State_Grid )
 
          ! Reset variables for the next diagnostic interval
          COUNT = 0
@@ -524,18 +526,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE20()
+      SUBROUTINE WRITE20( Input_Opt, State_Grid )
 !
 ! !USES:
 !
 #if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD      ! LD65
-      USE BPCH2_MOD,   ONLY : BPCH2,         GET_HALFPOLAR
-      USE BPCH2_MOD,   ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
+      USE CMN_DIAG_MOD         ! LD65
+      USE BPCH2_MOD,      ONLY : BPCH2,         GET_HALFPOLAR
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME, OPEN_BPCH2_FOR_WRITE
 #endif
-      USE CMN_SIZE_MOD      ! Size parameters
-      USE GC_GRID_MOD, ONLY : GET_XOFFSET,   GET_YOFFSET
-      USE inquireMod,  ONLY : findFreeLUN
+      USE CMN_SIZE_MOD         ! Size parameters
+      USE inquireMod,     ONLY : findFreeLUN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
+      TYPE(GrdState), INTENT(IN) :: State_Grid   ! Grid State object
 ! 
 ! !REMARKS:
 !  WRITE20 assumes that ND65 (P-L diagnostics) have been turned on.
@@ -571,7 +579,8 @@
       INTEGER            :: HALFPOLAR 
       INTEGER, PARAMETER :: CENTER180 = 1 
       REAL(f4)           :: LONRES, LATRES
-      REAL(f4)           :: ARRAY(IIPAR,JJPAR,LLPAR)
+      REAL(f4)           :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                            State_Grid%NZ)
       CHARACTER(LEN=20)  :: MODELNAME
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -591,12 +600,12 @@
       TITLE     = 'GEOS-CHEM archived P(Ox) and L(Ox) rates for Tag O3'
       CATEGORY  = 'PORL-L=$'
       RESERVED  = ''
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = 1 + GET_XOFFSET( GLOBAL=.TRUE. )
-      JFIRST    = 1 + GET_YOFFSET( GLOBAL=.TRUE. )
+      IFIRST    = 1 + State_Grid%XMinOffset
+      JFIRST    = 1 + State_Grid%YMinOffset
       LFIRST    = 1
 
       ! Open BPCH file for writing
@@ -619,8 +628,9 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY, 1,           
      &            UNIT,      TAU0,      TAU1,     RESERVED,  
-     &            IIPAR,     JJPAR,     LLPAR,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY               )
+     &            State_Grid%NX, State_Grid%NY, State_Grid%NX,
+     &            IFIRST,        JFIRST,        LFIRST,
+     &            ARRAY )
 
       !=================================================================
       ! Save L(Ox) to disk
@@ -639,8 +649,9 @@
       CALL BPCH2( IU_ND20,   MODELNAME, LONRES,   LATRES,    
      &            HALFPOLAR, CENTER180, CATEGORY, 2,           
      &            UNIT,      TAU0,      TAU1,     RESERVED,  
-     &            IIPAR,     JJPAR,     LLPAR,    IFIRST,
-     &            JFIRST,    LFIRST,    ARRAY               )
+     &            State_Grid%NX, State_Grid%NY, State_Grid%NX,
+     &            IFIRST,        JFIRST,        LFIRST,
+     &            ARRAY )
 
       ! Close BPCH file
       CLOSE( IU_ND20 )
@@ -739,22 +750,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG20( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG20( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-#endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,           INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput),    INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState),    INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -778,19 +787,23 @@
       RC = GC_SUCCESS
 
 #if defined( BPCH_DIAG )
-      ALLOCATE( COUNT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( COUNT( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'COUNT' )
       COUNT = 0
 
-      ALLOCATE( PL24H( IIPAR, JJPAR, LLPAR, 2 ), STAT=RC )
+      ALLOCATE( PL24H( State_Grid%NX, State_Grid%NY, State_Grid%NZ, 2 ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'PL24H' )
       PL24H = 0e+0_fp
 
-      ALLOCATE( POx( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( POx( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'POx' )
       POx = 0e+0_fp
 
-      ALLOCATE( LOx( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( LOx( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'LOx' )
       LOx = 0e+0_fp
 #endif

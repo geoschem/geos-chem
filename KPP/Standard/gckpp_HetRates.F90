@@ -16,7 +16,6 @@ MODULE GCKPP_HETRATES
 !
   USE CMN_FJX_MOD,        ONLY : NDUST
   USE CMN_FJX_MOD,        ONLY : NAER
-  USE CMN_SIZE_MOD,       ONLY : LLSTRAT
   USE ERROR_MOD,          ONLY : ERROR_STOP
   USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
   USE ERROR_MOD,          ONLY : IS_SAFE_DIV, SAFE_DIV
@@ -6713,10 +6712,10 @@ MODULE GCKPP_HETRATES
       !=================================================================
 
       ! Check if box is in the troposphere
-      IS_TROP  = ( State_Met%PEDGE(I,J,L) > State_Met%TROPP(I,J) )
+      IS_TROP  = ( State_Met%InTroposphere(I,J,L) )
 
       ! Check if box is in the stratosphere
-      IS_STRAT = ( ( L .le. LLSTRAT ) .and. ( .not. IS_TROP) )
+      IS_STRAT = ( State_Met%InStratosphere(I,J,L) .and. ( .not. IS_TROP) )
 
       ! Check if there are solid PSCs
       IS_PSC   = ( ( Input_Opt%LPSCCHEM ) .and. &

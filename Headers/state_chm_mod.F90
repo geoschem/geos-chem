@@ -106,9 +106,16 @@ MODULE State_Chm_Mod
      !----------------------------------------------------------------------
      ! Chemical species
      !----------------------------------------------------------------------
-     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species [molec/cm3]
+     REAL(fp),          POINTER :: Species    (:,:,:,:) ! Species concentration
+                                                        !  [kg/kg dry air]
      CHARACTER(LEN=20)          :: Spc_Units            ! Species units
 
+     !----------------------------------------------------------------------
+     ! Boundary conditions
+     !----------------------------------------------------------------------
+     REAL(fp),          POINTER :: BoundaryCond(:,:,:,:)! Boundary conditions
+                                                        !  [kg/kg dry air]
+     
      !----------------------------------------------------------------------
      ! Aerosol quantities
      !----------------------------------------------------------------------
@@ -280,18 +287,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Chm( am_I_Root, Input_Opt, State_Chm, RC )
+  SUBROUTINE Init_State_Chm( am_I_Root,  Input_Opt, State_Chm, &
+                             State_Grid, RC )
 !
 ! !USES:
 !
-    USE CMN_Size_Mod,         ONLY : IIPAR, JJPAR, LLPAR, NDUST, NAER
+    USE CMN_Size_Mod,         ONLY : NDUST, NAER
     USE GCKPP_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
+    USE State_Grid_Mod,       ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -374,12 +384,12 @@ CONTAINS
     nChmState = nChmState + 1
 
     ! Shorten grid parameters for readability
-    IM                    =  IIPAR ! # latitudes
-    JM                    =  JJPAR ! # longitudes
-    LM                    =  LLPAR ! # levels
+    IM                      =  State_Grid%NX ! # latitudes
+    JM                      =  State_Grid%NY ! # longitudes
+    LM                      =  State_Grid%NZ ! # levels
 
     ! Number of aerosols
-    nAerosol              =  NDUST + NAER
+    nAerosol                =  NDUST + NAER
 
     ! Number of each type of species
     State_Chm%nSpecies      =  0
@@ -416,6 +426,9 @@ CONTAINS
     ! Chemical species
     State_Chm%Species       => NULL()
     State_Chm%Spc_Units     = ''
+
+    ! Boundary conditions
+    State_Chm%BoundaryCond  => NULL()
 
     ! Species database
     State_Chm%SpcData       => NULL()
@@ -473,9 +486,9 @@ CONTAINS
     State_Chm%SnowHgLandStored  => NULL()
 
     ! For HOBr + S(IV) chemistry
-    State_Chm%HSO3_AQ     => NULL()
-    State_Chm%SO3_AQ      => NULL()
-    State_Chm%fupdateHOBr => NULL()
+    State_Chm%HSO3_AQ       => NULL()
+    State_Chm%SO3_AQ        => NULL()
+    State_Chm%fupdateHOBr   => NULL()
 
     ! Local variables
     Ptr2data                => NULL()
@@ -804,6 +817,19 @@ CONTAINS
     State_Chm%Species = 0.0_fp
     CALL Register_ChmField( am_I_Root, chmID, State_Chm%Species, State_Chm, RC )
     CALL GC_CheckVar( 'State_Chm%Species', 1, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !=======================================================================
+    ! Allocate and initialize boundary condition fields
+    !======================================================================= 
+    chmID = 'BoundaryCond'
+    ALLOCATE( State_Chm%BoundaryCond( IM, JM, LM, State_Chm%nSpecies ), STAT=RC)
+    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Chm%BoundaryCond = 0.0_fp
+    CALL Register_ChmField( am_I_Root, chmID, State_Chm%BoundaryCond, &
+                            State_Chm, RC )
+    CALL GC_CheckVar( 'State_Chm%BoundaryCond', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
 #if defined( MODEL_GEOS )
@@ -1765,9 +1791,16 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Species ) ) THEN
        DEALLOCATE( State_Chm%Species, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_Species', 2, RC )
+       CALL GC_CheckVar( 'State_Chm%Species', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Species => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%BoundaryCond ) ) THEN
+       DEALLOCATE( State_Chm%BoundaryCond, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%BoundaryCond', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%BoundaryCond => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Hg_Cat_Name ) ) THEN
@@ -2170,6 +2203,12 @@ CONTAINS
        CASE ( 'SPECIES' )
           IF ( isDesc    ) Desc  = 'Concentration for species'
           IF ( isUnits   ) Units = 'varies'
+          IF ( isRank    ) Rank  = 3
+          IF ( isSpecies ) PerSpecies = 'ALL'
+
+       CASE( 'BOUNDARYCOND' )
+          IF ( isDesc    ) Desc  = 'Boundary conditions for species'
+          IF ( isUnits   ) Units = 'v/v'
           IF ( isRank    ) Rank  = 3
           IF ( isSpecies ) PerSpecies = 'ALL'
 

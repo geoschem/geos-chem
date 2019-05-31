@@ -50,11 +50,9 @@
 # Define variables
 ROOT  :=..
 BIN   :=$(ROOT)/bin
-BPCH  :=$(ROOT)/GeosBpch
 CORE  :=$(ROOT)/GeosCore
 DOC   :=$(ROOT)/doc
 ESMF  :=$(ROOT)/ESMF
-GCRT  :=$(ROOT)/GCRT
 GTMM  :=$(ROOT)/GTMM
 HCO   :=$(ROOT)/HEMCO/
 HDR   :=$(ROOT)/Headers

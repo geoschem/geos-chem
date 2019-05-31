@@ -303,23 +303,21 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_OVERHEAD_O3( am_I_Root,       DAY,
+      SUBROUTINE COMPUTE_OVERHEAD_O3( am_I_Root, State_Grid, DAY,
      &                                USE_O3_FROM_MET, TO3 )
+!
+! !USES:
+!
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      ! Root CPU?
-      LOGICAL, INTENT(IN)  :: am_I_Root
-
-      ! Day of month 
-      INTEGER, INTENT(IN)  :: DAY      
-
-      ! Switch to denote if we should use the default TO3
-      ! directly from the met fields
-      LOGICAL, INTENT(IN)  :: USE_O3_FROM_MET
-      
-      ! TO3 from the met fields [Dobsons]
-      REAL(fp),  INTENT(IN)  :: TO3(IIPAR,JJPAR)
+      LOGICAL,        INTENT(IN) :: am_I_Root       ! Root CPU?
+      TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
+      INTEGER,        INTENT(IN) :: DAY             ! Day of month 
+      LOGICAL,        INTENT(IN) :: USE_O3_FROM_MET ! Use TO3 directly from met?
+      REAL(fp),       INTENT(IN) :: TO3(State_Grid%NX,State_Grid%NY) ! Met TO3
+                                                                     ! [Dobsons]
 !
 ! !REMARKS:
 ! Reference for the TOMS/SBUV merged O3 columns:
@@ -434,8 +432,8 @@
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
                  STOMS(I,J) = (TOMS2(I,J)-TOMS1(I,J))/30.0_fp
             ENDDO
             ENDDO
@@ -444,8 +442,8 @@
 !$OMP PARALLEL DO
 !$OMP+PRIVATE( I, J )
 !$OMP+DEFAULT( SHARED )
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
                 TO3_DAILY(I,J) = TOMS1(I,J) + (DAY - 1) * STOMS(I,J)
             ENDDO
             ENDDO
@@ -502,8 +500,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_TOMS( am_I_Root, Input_Opt, 
-     &                      State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_TOMS( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -512,17 +510,22 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL, INTENT(IN)           :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT) :: RC         ! Failure or success
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC          ! Failure or success
 ! 
 ! !REVISION HISTORY: 
 !  14 Jul 2003 - R. Yantosca - Initial version
@@ -547,14 +550,14 @@
       
       ! Allocate arrays
       IF ( .not. ALLOCATED( TO3_DAILY ) ) THEN
-         ALLOCATE( TO3_DAILY( IIPAR, JJPAR ), STAT=RC )        
+         ALLOCATE( TO3_DAILY( State_Grid%NX, State_Grid%NY ), STAT=RC )        
          CALL GC_CheckVar( 'toms_mod.F:TO3_DAILY', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          TO3_DAILY = 0.0_fp
       ENDIF
 
       IF ( .not. ALLOCATED( STOMS ) ) THEN
-         ALLOCATE( STOMS( IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( STOMS( State_Grid%NX, State_Grid%NY ), STAT=RC )
          CALL GC_CheckVar( 'toms_mod.F:STOMS', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          STOMS = 0e+0_fp

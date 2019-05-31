@@ -210,8 +210,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root, Input_Opt, State_Chm,
-     &                              State_Met, RC )
+      SUBROUTINE SETUP_PLANEFLIGHT( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -220,6 +220,7 @@
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput 
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD
@@ -230,6 +231,7 @@
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -306,7 +308,7 @@
       ENDIF
 
       ! Compute # of species and # of points & allocate arrays
-      CALL INIT_PLANEFLIGHT( am_I_Root )
+      CALL INIT_PLANEFLIGHT( am_I_Root, State_Grid )
 
       ! Return if there are no flight track points for today
       IF ( NPOINTS == 0 ) THEN
@@ -330,7 +332,8 @@
      &                     IU_FILE,   RC )
 
       ! Read information about each point (date/time/lon/lat/alt)
-      CALL READ_POINTS( am_I_Root, Input_Opt, State_Met, IU_FILE, RC)
+      CALL READ_POINTS( am_I_Root, Input_Opt, State_Grid, State_Met,
+     &                  IU_FILE,   RC)
 
       ! Close the file
       CLOSE( IU_FILE )
@@ -894,8 +897,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Met,
-     &                        IU_FILE,   RC )
+      SUBROUTINE READ_POINTS( am_I_Root, Input_Opt, State_Grid,
+     &                        State_Met, IU_FILE,   RC )
 !
 ! !USES:
 !
@@ -907,12 +910,14 @@
       USE GC_GRID_MOD,        ONLY : GET_IJ
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
       INTEGER,        INTENT(IN)  :: IU_FILE     ! Logical unit # of file
 !
@@ -1059,55 +1064,13 @@
             CALL GEOS_CHEM_STOP
          ENDIF
         
-         ! Skip observations outside the nested domain
-         ! Now consider all nest domains, lei, 11/24/18
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS)
-         IF ( LAT < -11e0 .OR. LAT > 55e0  .OR.
-     &        LON < 60e0 .OR. LON > 150e0 ) THEN
-            PRINT*, ' Outside the AS nested domain, skipping record ', N
+         ! Skip observations outside the domain
+         IF ( LAT < State_Grid%YMin .OR. LAT > State_Grid%YMax .OR. 
+     &        LON < State_Grid%XMin .OR. LON > State_Grid%XMax ) THEN
+            PRINT*, ' Outside nested domain, skipping record ', N
             CYCLE
          ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
-         IF ( LAT <   10e0 .OR. LAT >  70e0  .OR.
-     &        LON < -140e0 .OR. LON > -40e0 ) THEN
-            PRINT*, ' Outside the NA nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
-         IF ( LAT <   30e0 .OR. LAT >  70e0  .OR.
-     &        LON < -30e0 .OR. LON > 50e0 ) THEN
-            PRINT*, ' Outside the EU nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_CH)
-         IF ( LAT <   15e0 .OR. LAT >  55e0  .OR.
-     &        LON < 70e0 .OR. LON > 140e0 ) THEN
-            PRINT*, ' Outside the CH nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_NA)
-         IF ( LAT <   9.75e0 .OR. LAT >  60e0  .OR.
-     &        LON < -130e0 .OR. LON > -60e0 ) THEN
-            PRINT*, ' Outside the NA nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_EU)
-         IF ( LAT <   32.75e0 .OR. LAT >  61.25e0  .OR.
-     &        LON < -15e0 .OR. LON > 40e0 ) THEN
-            PRINT*, ' Outside the EU nested domain, skipping record ', N
-            CYCLE
-         ENDIF
-#endif         
+ 
          ! Convert from altitude to pressure if we have CCCG data or
          ! tower data
          NAME = ADJUSTL(PTYPE(N))
@@ -1148,8 +1111,8 @@
      &        TRIM(NAME) .EQ. 'Twkt' ) THEN ! NOAA Tower
             ! Change units
             L_ALT = 0
-            IJ = GET_IJ(LON,LAT)
-            DO L = 1, LLPAR
+            IJ = GET_IJ( LON, LAT, State_Grid )
+            DO L = 1, State_Grid%NZ
                MOD_ELEV = State_Met%PHIS(IJ(1),IJ(2))/ g0
      &                  + SUM( State_Met%BXHEIGHT(IJ(1),IJ(2),1:L) )
                IF ( (L_ALT    .EQ.    0)  .AND.
@@ -1540,8 +1503,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE PLANEFLIGHT( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC         )
+      SUBROUTINE PLANEFLIGHT( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1557,6 +1520,7 @@
       USE PhysConstants,      ONLY : CONSVAP, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -1569,6 +1533,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1634,7 +1599,7 @@
       LOGICAL             :: IS_FULLCHEM, LINTERP
       INTEGER             :: I, J, L, M, N, R, PR, V
       INTEGER             :: LL     !eds
-      INTEGER             :: LPLANE, IWV, ISPC, K
+      INTEGER             :: IWV, ISPC, K
       REAL(fp)            :: TK, PTAUS, PTAUE, CONSEXP, VPRESH2O, SAODnm
       REAL(fp)            :: VARI(NPVAR)
       LOGICAL             :: CHEMSTEP
@@ -1744,7 +1709,7 @@
 !            PRINT*, PTAU(M), PTAUS
 
             ! Write all missing values to disk for point #M
-            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )      
+            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )      
 
             ! Increment pointer
             PPOINT = PPOINT + 1
@@ -1772,7 +1737,8 @@
  100        FORMAT( '     - PLANEFLIGHT: Archived ',a7,1x,i8.8,1x,i4.4 )
 
             ! Return grid box indices for the chemistry region
-            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Met )
+            CALL TEST_VALID( M, I, J, L, Input_Opt, State_Grid,
+     &                       State_Met, RC )
 
             ! If this is a surface observation, set L=1
             !
@@ -1804,9 +1770,9 @@
             PR = 0
 
             ! Convert species units to [v/v]
-            CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                              State_Chm, 'v/v dry', RC, 
-     &                              OrigUnit=OrigUnit )
+            CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                              State_Grid, State_Met, 'v/v dry',
+     &                              RC,         OrigUnit=OrigUnit )
 
             ! Initialize GEOS-Chem species array
             Spc => State_Chm%Species
@@ -2058,13 +2024,13 @@
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
                     IF ( .not. LINTERP ) THEN
-                     DO LL = 1, LLPAR
+                     DO LL = 1, State_Grid%NZ
                       ! Accumulate
                       VARI(V) = VARI(V) +
      &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
                      ENDDO
                     ELSE
-                     DO LL = 1, LLPAR
+                     DO LL = 1, State_Grid%NZ
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2082,7 +2048,7 @@
 
                    !now add in the dust
                    IF ( .not. LINTERP ) THEN
-                    DO LL = 1, LLPAR
+                    DO LL = 1, State_Grid%NZ
                      DO ISPC = 1, NDUST
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -2090,7 +2056,7 @@
                      ENDDO
                     ENDDO
                    ELSE
-                    DO LL = 1, LLPAR
+                    DO LL = 1, State_Grid%NZ
                      ! Interpolated using angstrom exponent between
                      ! Closest available wavelengths
                      ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2119,24 +2085,23 @@
                    ! Aerosol number
                    N = PVAR(V) - 3000
 
-                   ! Level of the plane.  AOD's are only computed
-                   ! up to the tropopause, so if the plane goes into
-                   ! the stratosphere, the AOD below plane will be
-                   ! the same as the trop column at that point.
-                   ! (bmy, 10/24/05)
-                   LPLANE  = MIN( L, LLTROP )
-
                    ! Loop over RH bins
                    DO  ISPC= 1, NAER
 
                     IF ( .not. LINTERP ) THEN
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_Grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Accumulate
                       VARI(V) = VARI(V) +
      &                ODAER(I,J,LL,IWVSELECT(1,1),ISPC)
                      ENDDO
                     ELSE
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_Grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2154,7 +2119,9 @@
 
                    !now add in the dust
                    IF ( .not. LINTERP ) THEN
-                    DO LL = 1, LPLANE
+                    DO LL = 1, State_Grid%NZ
+                     ! Skip non-tropospheric boxes
+                     IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
                      DO ISPC = 1, NDUST
                       ! Accumulate
                       VARI(V) = VARI(V) +
@@ -2162,7 +2129,10 @@
                       ENDDO
                      ENDDO
                     ELSE
-                     DO LL = 1, LPLANE
+                     DO LL = 1, State_grid%NZ
+                      ! Skip non-tropospheric boxes
+                      IF ( .not. State_Met%InTroposphere(I,J,L) ) CYCLE
+
                       ! Interpolated using angstrom exponent between
                       ! Closest available wavelengths
                       ! (coefs pre-calculated in CALC_AOD (RD_AOD.F)
@@ -2212,7 +2182,7 @@
                      ! change format from HHMM to HH.MM:
                      FLTGMT = REAL(PTIME(M))*1.d-2
 
-                     VARI(V) = GET_LOCALTIME(I,J,L,FLTGMT)
+                     VARI(V) = GET_LOCALTIME(I,J,L,State_Grid,FLTGMT)
 
                   !--------------------------
                   ! Aqueous aerosol properties (eam, 08/2015)
@@ -2323,14 +2293,15 @@
             ENDDO
 
            ! Convert species units back to original unit 
-           CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                            State_Chm, OrigUnit,  RC )
+           CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                             State_Grid, State_Met, OrigUnit,
+     &                             RC )
 
             ! Free pointer
             NULLIFY( Spc )
 
             ! Write data for the Mth plane point out to disk
-            CALL WRITE_VARS_TO_FILE( State_Met, M, VARI )
+            CALL WRITE_VARS_TO_FILE( State_Grid, State_Met, M, VARI )
 
             ! Increment the record pointer
             PPOINT = PPOINT + 1
@@ -2353,27 +2324,29 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Met ) 
+      SUBROUTINE TEST_VALID( IND, I, J, L, Input_Opt, State_Grid,
+     &                       State_Met, RC ) 
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER,        INTENT(IN) :: IND         ! # of the flight track point
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+      INTEGER,        INTENT(IN ) :: IND         ! # of the flight track point
+      TYPE(OptInput), INTENT(IN ) :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN ) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN ) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER, INTENT(OUT) :: I       ! GEOS-Chem longitude index
-      INTEGER, INTENT(OUT) :: J       ! GEOS-Chem latitude index
-      INTEGER, INTENT(OUT) :: L       ! GEOS-Chem level index
+      INTEGER,        INTENT(OUT) :: I           ! GEOS-Chem longitude index
+      INTEGER,        INTENT(OUT) :: J           ! GEOS-Chem latitude index
+      INTEGER,        INTENT(OUT) :: L           ! GEOS-Chem level index
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -2402,7 +2375,6 @@
 !
       INTEGER :: IL
       LOGICAL :: FOUND
-      INTEGER :: I0, J0 
       
       !=================================================================
       ! TEST_VALID begins here!
@@ -2411,25 +2383,22 @@
       ! We have not found a valid point
       FOUND = .FALSE.
 
-      ! Added correct definitions for I and J based on nested regions 
-      ! (lds, 8/25/11)
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
-
       ! Get I corresponding to PLON(IND)
-      I = INT( ( PLON(IND) + 180e+0_fp - (I0 * DISIZE) ) / DISIZE 
+      I = INT( ( PLON(IND) + 180e+0_fp -
+     &    ( State_Grid%XMinOffset * State_Grid%DX ) ) / State_Grid%DX
      &     + 1.5e+0_fp )
 
       ! Handle date line correctly (bmy, 4/23/04)
-      IF ( I > IIPAR ) I = I - IIPAR
+      IF ( I > State_Grid%nx ) I = I - State_Grid%NX
 
       ! Get J corresponding to PLAT(IND)
-      J = INT( ( PLAT(IND) +  90e+0_fp - (J0 * DJSIZE) ) / DJSIZE 
+      J = INT( ( PLAT(IND) +  90e+0_fp -
+     &    ( State_Grid%YMinOffset * State_Grid%DY ) ) / State_Grid%DY 
      &     + 1.5e+0_fp )
 
       ! Get L corresponding to PRESS(IND)
       L = 1
-      DO IL = 1, LLPAR
+      DO IL = 1, State_Grid%NZ
          IF ( State_Met%PEDGE(I,J,IL) <= PPRESS(IND) 
      &                            .AND..NOT. FOUND ) THEN
             L     = IL-1
@@ -2456,18 +2425,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_VARS_TO_FILE( State_Met, IND, VARI )
+      SUBROUTINE WRITE_VARS_TO_FILE( State_Grid, State_Met, IND, VARI )
 !
 ! !USES:
 !
       USE CMN_SIZE_MOD
-      USE FILE_MOD,      ONLY : IOERROR
-      USE GC_GRID_MOD,   ONLY : GET_IJ
-      USE State_Met_Mod, ONLY : MetState
+      USE FILE_MOD,       ONLY : IOERROR
+      USE GC_GRID_MOD,    ONLY : GET_IJ
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
       USE TIME_MOD
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN) :: State_Grid    ! Grid State object
       TYPE(MetState), INTENT(IN) :: State_Met     ! Meteorology State object
       INTEGER,        INTENT(IN) :: IND           ! # of the flight track point
       REAL(fp),       INTENT(IN) :: VARI(NPVAR)   ! Values to print to file
@@ -2498,67 +2469,26 @@
       LON_TMP = REAL(PLON(IND),4)
       LAT_TMP = REAL(PLAT(IND),4)
 
-      ! Skip observations outside the nested domain
-      ! Add all nested domain, lei, 11/24/18
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_AS)
-      IF ( LAT_TMP < -11e0 .OR. LAT_TMP > 55e0  .OR.
-     &     LON_TMP < 60e0 .OR. LON_TMP > 150e0 ) THEN
-         PRINT*, ' Outside the AS nested domain, skipping record ', IND
+      ! Skip observations outside the domain
+      IF ( LAT_TMP < State_Grid%YMin .OR.
+     &     LAT_TMP > State_Grid%YMax .OR. 
+     &     LON_TMP < State_Grid%XMin .OR.
+     &     LON_TMP > State_Grid%XMax ) THEN
+         PRINT*, ' Outside nested domain, skipping record ', IND
          RETURN
       ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_NA)
-      IF ( LAT_TMP <   10e0 .OR. LAT_TMP >  70e0  .OR.
-     &     LON_TMP < -140e0 .OR. LON_TMP > -40e0 ) THEN
-         PRINT*, ' Outside the NA nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( MERRA2 ) && defined( GRID05x0625 ) && defined( NESTED_EU)
-      IF ( LAT_TMP <   30e0 .OR. LAT_TMP >  70e0  .OR.
-     &     LON_TMP < -30e0 .OR. LON_TMP > 50e0 ) THEN
-         PRINT*, ' Outside the EU nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_CH)
-      IF ( LAT_TMP <   15e0 .OR. LAT_TMP >  55e0  .OR.
-     &     LON_TMP < 70e0 .OR. LON_TMP > 140e0 ) THEN
-         PRINT*, ' Outside the CH nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_NA)
-      IF ( LAT_TMP <   9.75e0 .OR. LAT_TMP >  60e0  .OR.
-     &     LON_TMP < -130e0 .OR. LON_TMP > -60e0 ) THEN
-         PRINT*, ' Outside the NA nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
-
-#if   defined( GEOS_FP ) && defined( GRID025x03125 ) && defined(NESTED_EU)
-      IF ( LAT_TMP <   32.75e0 .OR. LAT_TMP >  61.25e0  .OR.
-     &     LON_TMP < -15e0 .OR. LON_TMP > 40e0 ) THEN
-         PRINT*, ' Outside the EU nested domain, skipping record ', IND
-         RETURN
-      ENDIF
-#endif
 
       ! Get Lat, Lon, and Pressure indicies (ajt, 5/26/13)
-      IIJJ = GET_IJ( LON_TMP, LAT_TMP )
+      IIJJ = GET_IJ( LON_TMP, LAT_TMP, State_Grid )
       II = IIJJ(1)      
       JJ = IIJJ(2)    
       LL = 0
       IF ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,1) ) LL = 1
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
          IF ( ( PPRESS(IND) .LT. State_Met%PEDGE(II,JJ,L)   ) .AND.
      &        ( PPRESS(IND) .GT. State_Met%PEDGE(II,JJ,L+1) ) ) LL = L
       ENDDO
-      IF (LL .EQ. 0) LL = LLPAR
+      IF (LL .EQ. 0) LL = State_Grid%NZ
 
 
       ! Write data to file
@@ -2871,18 +2801,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_PLANEFLIGHT( am_I_Root )
+      SUBROUTINE INIT_PLANEFLIGHT( am_I_Root, State_Grid )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD    ! Size Parameters
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-      USE ERROR_MOD, ONLY : GEOS_CHEM_STOP
-      USE FILE_MOD,  ONLY : IOERROR
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+      USE FILE_MOD,       ONLY : IOERROR
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL, INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      LOGICAL,        INTENT(IN) :: am_I_Root   ! Is this the root CPU?
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  08 Jul 2002 - M. Evans    - Initial version
@@ -3036,8 +2967,8 @@
          ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
 
-         ALLOCATE( PRRATE( IIPAR, JJPAR, LLPAR, MAX( NPREAC, 1 ) ),
-     &             STAT=AS )
+         ALLOCATE( PRRATE( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &             MAX( NPREAC, 1 ) ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
 
          ! ---------------------

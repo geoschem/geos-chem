@@ -48,16 +48,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE fixSfcVMR( am_I_Root, Input_Opt, State_Met, State_Chm, RC ) 
+  SUBROUTINE fixSfcVMR( am_I_Root, Input_Opt, State_Chm, &
+                        State_Grid, State_Met, RC ) 
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE CMN_SIZE_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 
     ! Needed for the new CHxCly boundary condition
     USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
@@ -66,8 +68,9 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN   )  :: am_I_Root  ! root CPU?
-    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Met state
-    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry state 
+    TYPE(ChmState),   INTENT(IN   )  :: State_Chm  ! Chemistry State object
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid State object
+    TYPE(MetState),   INTENT(IN   )  :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -113,10 +116,10 @@ CONTAINS
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L)>0e+0_fp) THEN
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 550e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -132,10 +135,10 @@ CONTAINS
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L)>0e+0_fp) THEN
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 20e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes
@@ -151,10 +154,10 @@ CONTAINS
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
-          IF (GET_FRAC_UNDER_PBLTOP(I,J,L)>0e+0_fp) THEN
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF (GET_FRAC_UNDER_PBLTOP(I,J,L,State_Grid)>0e+0_fp) THEN
              Spc(I,J,L,id_Spc) = 7e-12_fp / ( AIRMW / &
                 State_Chm%SpcData(id_Spc)%Info%emMW_g )
           ENDIF  ! end selection of PBL boxes

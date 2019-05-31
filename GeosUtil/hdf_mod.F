@@ -94,15 +94,12 @@
       !%%%    NOTE: Subroutine is used only when USE_HDF5 is defined!    %%%
       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       SUBROUTINE OPEN_HDF( IU_HDF, FILENAME, IMAX, IMIN, 
-     &                     JMAX,   JMIN,     NI,   NJ    )
+     &                     JMAX,   JMIN,     NI,   NJ, State_Grid    )
 !
 ! !USES:
 !
       USE HDF5
-      USE GC_GRID_MOD, ONLY : GET_XMID
-      USE GC_GRID_MOD, ONLY : GET_YMID
-
-      USE CMN_SIZE_MOD    ! Size parameters
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -113,6 +110,7 @@
       INTEGER,          INTENT(IN)    :: JMAX       ! Max latitude index
       INTEGER,          INTENT(IN)    :: NI         ! # of longitudes
       INTEGER,          INTENT(IN)    :: NJ         ! # of latitudes
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -154,11 +152,11 @@
       ! Write LAT/LON to new file
       ! Does not wrap around date line
       DO I = 0, NI-1
-         LON(I+1) = GET_XMID(I+IMIN,1,1)
+         LON(I+1) = State_Grid%XMid(I+IMIN,1)
       ENDDO
 
       DO J = 0, NJ-1
-         LAT(J+1) = GET_YMID(1,J+JMIN,1)
+         LAT(J+1) = State_Grid%YMid(1,J+JMIN)
       ENDDO
 
       DO I = 1,2

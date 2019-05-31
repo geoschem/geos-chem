@@ -295,8 +295,9 @@
 
 !-------------------------------------------------------------------------
 
-      SUBROUTINE READ_HG2_PARTITIONING( am_I_Root, Input_Opt,
-     &                                  State_Met, THISMONTH, RC )
+      SUBROUTINE READ_HG2_PARTITIONING( am_I_Root,  Input_Opt,
+     &                                  State_Grid, State_Met,
+     &                                  THISMONTH,  RC )
 
 !****************************************************************************  
 !  SUBROUTINE READ_HG2_PARTITIONING calculates the fractions of Hg(II) is the particle 
@@ -410,15 +411,16 @@
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : SET_Hg2_DIAG        
-      USE TRANSFER_MOD,       ONLY : TRANSFER_3D
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
 !
 ! !OUTPUT PARAMETERS:
@@ -439,8 +441,10 @@
       REAL(f4), POINTER       :: ARRAYdst1(:,:,:)
 
       ! Arrays to hold bulk concentration and surface area
-      REAL(f4)                :: ARRAYtemp(IGLOB,JGLOB,LGLOB)
-      REAL(f4)                :: ARRAYconc(IGLOB,JGLOB,LGLOB)  ! concentration
+      REAL(f4)                :: ARRAYtemp(State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ)
+      REAL(f4)                :: ARRAYconc(State_Grid%NX,State_Grid%NY,
+     &                                     State_Grid%NZ)
 
       ! Local variables
       INTEGER                 :: I, J, L, NN, LL
@@ -496,7 +500,8 @@
       ENDIF
 
       ! convert REAL*4 to REAL(fpp) 
-      SO4_GC(:,:,1:LLCHEM_FIX) = ARRAYso4(:,:,1:LLCHEM_FIX)
+      SO4_GC(:,:,1:State_Grid%MaxChemLev) =
+     &   ARRAYso4(:,:,1:State_Grid%MaxChemLev)
 
       !---------------------------
       ! Read NH4 from HEMCO
@@ -507,7 +512,8 @@
       ENDIF
 
       ! convert REAL*4 to REAL(fpp) 
-      NH4_CONC(:,:,1:LLCHEM_FIX) = ARRAYnh4(:,:,1:LLCHEM_FIX)
+      NH4_CONC(:,:,1:State_Grid%MaxChemLev) =
+     &    ARRAYnh4(:,:,1:State_Grid%MaxChemLev)
 
       !---------------------------
       ! Read NIT from HEMCO
@@ -518,7 +524,8 @@
       ENDIF
       
       ! convert REAL*4 to REAL(fpp) 
-      NIT_CONC(:,:,1:LLCHEM_FIX) = ARRAYnit(:,:,1:LLCHEM_FIX)
+      NIT_CONC(:,:,1:State_Grid%MaxChemLev) =
+     &    ARRAYnit(:,:,1:State_Grid%MaxChemLev)
 
       !---------------------------
       ! Read BCPI+BCPO from HEMCO
@@ -543,7 +550,8 @@
       ! convert REAL*4 to REAL(fpp) 
       ARRAYtemp                 = 0.e0_f4
       ARRAYtemp(:,:,1:LL)       = ARRAYbcpi + ARRAYbcpo
-      BC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
+      BC_CONC(:,:,1:State_Grid%MaxChemLev) =
+     &    ARRAYtemp(:,:,1:State_Grid%MaxChemLev)
 
       !---------------------------
       ! Read OCPI+OCPO from HEMCO
@@ -568,7 +576,8 @@
       ! convert REAL*4 to REAL(fpp) 
       ARRAYtemp                 = 0.e0_f4
       ARRAYtemp(:,:,1:LL)       = ARRAYocpi + ARRAYocpo
-      OC_CONC(:,:,1:LLCHEM_FIX) = ARRAYtemp(:,:,1:LLCHEM_FIX)
+      OC_CONC(:,:,1:State_Grid%MaxChemLev) =
+     &    ARRAYtemp(:,:,1:State_Grid%MaxChemLev)
 
       !---------------------------
       ! Read DST1 from HEMCO
@@ -579,15 +588,16 @@
       ENDIF
 
       ! convert REAL*4 to REAL(fpp) 
-      DST_CONC(:,:,1:LLCHEM_FIX) = ARRAYdst1(:,:,1:LLCHEM_FIX)
+      DST_CONC(:,:,1:State_Grid%MaxChemLev) =
+     &    ARRAYdst1(:,:,1:State_Grid%MaxChemLev)
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
 
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
         ! Sum aerosol types (ppbv) to get bulk aerosol                     
         !                                                                  
@@ -601,16 +611,8 @@
      &                     CU(5)*(DST_CONC(I,J,L)*2e+0_fpp)           
       
         ! convert bulk aerosol mass concentration  to ug/m3
-        ! Note: Even though both bpch files say the unit is 'ppb',
-        !       4x5 gets read in as mol/mol and 2x2.5 gets read in
-        !       as ppb, so only 4x5 needs to be scaled by 1d9.
-        !       (hma, 20120104)
-#if defined( GRID4x5 )
         BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) *
      &                     State_Met%AIRDEN(I,J,L)  )
-#elif defined( GRID2x25 )
-        BULK_CONC(I,J,L) = ( BULK_CONC(I,J,L) * State_Met%AIRDEN(I,J,L))
-#endif 
 
         ! Calculate R = HgP_ads/RGM (i.e. the ratio of Hg2
         ! adsorbed onto aerosol to Hg2 in the  gas phase) 
@@ -637,9 +639,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
             ! error check 
             IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
@@ -826,9 +828,9 @@
 !EOC
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root, Input_Opt,  State_Met, 
-     &                               State_Chm, State_Diag, FLUX,     
-     &                               RC                                )
+      SUBROUTINE OCEAN_MERCURY_FLUX( am_I_Root,  Input_Opt,  State_Chm, 
+     &                               State_Diag, State_Grid, State_Met,
+     &                               FLUX,       RC )
 !
 !******************************************************************************
 !  Subroutine OCEAN_MERCURY_FLUX calculates emissions of Hg(0) from 
@@ -1025,12 +1027,12 @@
 #endif
       USE ErrCode_Mod
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_XMID, GET_YMID 
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr 
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD
 !
@@ -1038,6 +1040,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1047,7 +1050,8 @@
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fpp),      INTENT(OUT)   :: FLUX(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp),      INTENT(OUT)   :: FLUX(State_Grid%NX,State_Grid%NY,
+     &                                      N_Hg_CATS)
       INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !LOCAL VARIABLES:
@@ -1069,8 +1073,9 @@
       REAL(fpp)            :: Hg2_RED,  Hg2_GONE, Hg2_CONV  !HgPaq_SUNK
       REAL(fpp)            :: FRAC_L,   FRAC_O,   H,        TOTDEP
       REAL(fpp)            :: oldMLD,   XTAU,     TOTDEPall          
-      REAL(fpp)            :: FUP(IIPAR,JJPAR,N_Hg_CATS)
-      REAL(fpp)            :: FDOWN(IIPAR,JJPAR,N_Hg_CATS)
+      REAL(fpp)            :: FUP(State_Grid%NX,State_Grid%NY,N_Hg_CATS)
+      REAL(fpp)            :: FDOWN(State_Grid%NX,State_Grid%NY,
+     &                              N_Hg_CATS)
       REAL(fpp)            :: X,        Y,        D                  
       REAL(fpp)            :: NPP_tot,  A_ocean,  NPP_avg,  RADz     
       REAL(fpp)            :: EC         
@@ -1190,11 +1195,12 @@
       ! Check tagged & total sums (if necessary)
       !-----------------------------------------------
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-         CALL CHECK_ATMOS_MERCURY( State_Chm,
+         CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid,
      &                             'start of OCEAN_MERCURY_FLUX' )
-         CALL CHECK_OCEAN_MERCURY( State_Chm,
+         CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid,
      &                             'start of OCEAN_MERCURY_FLUX' )
-         CALL CHECK_OCEAN_FLUXES ( 'start of OCEAN_MERCURY_FLUX' )
+         CALL CHECK_OCEAN_FLUXES ( State_Grid,
+     &                             'start of OCEAN_MERCURY_FLUX' )
       ENDIF
 
       !-----------------------------------------------------------------
@@ -1235,8 +1241,8 @@
       IF ( ITS_A_NEW_MONTH() ) THEN
 
          ! Get monthly MLD, NPP, CHL etc.                         
-         CALL OCEAN_MERCURY_READ
-     &      ( am_I_Root, Input_Opt, THISMONTH, THISYEAR, RC ) !jaf
+         CALL OCEAN_MERCURY_READ( am_I_Root, Input_Opt, State_Grid,
+     &                            THISMONTH, THISYEAR, RC )
 
       ENDIF    
 
@@ -1270,14 +1276,14 @@
       A_ocean = 0e+0_fpp
       A_ARCTIC_OCEAN = 0e+0_fpp
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2 = GET_AREA_M2( I, J, 1 )
+         A_M2 = State_Grid%Area_M2(I,J)
 
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
 
          ! Use fractional land type information from met fields (jaf, 4/26/11)
          ! FROCEAN is a constant, so to get correct ocean fraction we
@@ -1330,14 +1336,14 @@
 !$OMP+PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       )
 !$OMP+PRIVATE( Kd_part                                             )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid box surface area [m2]
-         A_M2       = GET_AREA_M2( I, J, 1 )
+         A_M2       = State_Grid%Area_M2(I,J)
 
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( I, J, 1 )
+         Y          = State_Grid%YMid(I,J)
 
          ! Initialize values
          Kw         = 0e+0_fpp
@@ -1405,7 +1411,8 @@
          ! Change ocean mass due to mixed layer depth change
          ! Keep before next IF so that we adjust mass in ice-covered boxes
          CALL MLD_ADJUSTMENT( I, J, OLDMLD*1e-2_fpp, MLDcm*1e-2_fpp, 
-     &                        Input_Opt, State_Chm, State_Met )
+     &                        Input_Opt, State_Chm, State_Grid,
+     &                        State_Met )
 
          !---------------------------------------------------------------
          ! Deliver snowpack Hg to ocean if snow has melted
@@ -1668,10 +1675,10 @@
 
                ! Move to start of loop for use earlier (jaf, 12/8/11)
                ! Grid-box latitude [degrees]
-               !Y = GET_YMID( I, J, 1 )
+               !Y = State_Grid%YMid(I,J)
          
                ! Grid box longitude [degrees]
-               X = GET_XMID( I, J, 1 )
+               X = State_Grid%XMid(I,J)
 
                ! Get Hg category #
                IF ( C == 1 ) NN = ID_Hg_tot
@@ -2379,12 +2386,14 @@
       ! Check tagged & total sums (if necessary)
       !=================================================================
       IF ( USE_CHECKS .and. LSPLIT ) THEN
-         CALL CHECK_ATMOS_MERCURY(  State_Chm, 
+         CALL CHECK_ATMOS_MERCURY(  State_Chm, State_Grid,
      &                              'end of OCEAN_MERCURY_FLUX' )
-         CALL CHECK_OCEAN_MERCURY(  State_Chm,
+         CALL CHECK_OCEAN_MERCURY(  State_Chm, State_Grid,
      &                              'end of OCEAN_MERCURY_FLUX' )
-         CALL CHECK_OCEAN_FLUXES (  'end of OCEAN_MERCURY_FLUX' )
-         CALL CHECK_FLUX_OUT( FLUX, 'end of OCEAN_MERCURY_FLUX' )
+         CALL CHECK_OCEAN_FLUXES (  State_Grid,
+     &                              'end of OCEAN_MERCURY_FLUX' )
+         CALL CHECK_FLUX_OUT( State_Grid, FLUX,
+     &                        'end of OCEAN_MERCURY_FLUX' )
       ENDIF
 
       ! Return to calling program
@@ -2392,7 +2401,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE OCEAN_MERCURY_READ( am_I_Root, Input_Opt,
+      SUBROUTINE OCEAN_MERCURY_READ( am_I_Root, Input_Opt, State_Grid,
      &                               THISMONTH, THISYEAR,  RC  )
 !
 !******************************************************************************
@@ -2425,15 +2434,16 @@
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : Error_Stop
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
-      USE GC_GRID_MOD,        ONLY : GET_XMID, GET_YMID 
       USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,	      ONLY : ITS_A_LEAPYEAR
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       INTEGER,        INTENT(IN)  :: THISMONTH
       INTEGER,        INTENT(IN)  :: THISYEAR    
 !
@@ -2445,7 +2455,7 @@
 !
       ! Local Variables
       LOGICAL, SAVE          :: FIRST = .TRUE.
-      REAL*4                 :: ARRAY(IIPAR,JJPAR,1)
+      REAL*4                 :: ARRAY(State_Grid%NX,State_Grid%NY,1)
       INTEGER                :: I, J, X, Y
 
       ! Add time variables to get correct number of seconds per month
@@ -2586,13 +2596,14 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, X, Y )
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Grid-box longitude [degrees]
-         X = GET_XMID( I, J, 1 )
+         X = State_Grid%XMid(I,J)
+
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
 
           ! In central Arctic, overwrite MLD values where global MLD
           ! dataset is based on very limited information. Instead use
@@ -2678,8 +2689,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, 
-     &                           Input_Opt, State_Chm, State_Met )
+      SUBROUTINE MLD_ADJUSTMENT( I, J, MLDold, MLDnew, Input_Opt,
+     &                           State_Chm, State_Grid, State_Met )
 !
 !******************************************************************************
 !  Subroutine MLD_ADJUSTMENT entrains new water when mixed layer depth deepens
@@ -2718,9 +2729,9 @@
 !
       ! Reference to fortran90 modules
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GC_GRID_MOD,        ONLY : GET_AREA_M2, GET_XMID, GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       
       ! Arguments
@@ -2728,6 +2739,7 @@
       REAL(fpp),      INTENT(IN)  :: MLDold, MLDnew  
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object 
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 
       ! Local variables
@@ -2764,7 +2776,7 @@
       ENDIF
 
       ! Grid box surface area [m2]
-      A_M2   = GET_AREA_M2( I, J, 1 )
+      A_M2   = State_Grid%Area_M2(I,J)
 
       ! Fraction of box that is ocean
       ! Use fractional land type information from met fields (jaf, 4/26/11)
@@ -2798,10 +2810,10 @@
          ! Add Cdeepatl to North Atlantic and Cdeep to rest if the world (anls, 01/05/09)
 
          ! Grid-box latitude [degrees]
-         Y = GET_YMID( I, J, 1 )
+         Y = State_Grid%YMid(I,J)
          
          ! Grid box longitude [degrees]
-         X = GET_XMID( I, J, 1 )
+         X = State_Grid%XMid(I,J)
 
          ! Loop over total Hg (and ocean Hg if necessary)
          DO C = 1, N_tot_oc
@@ -3027,7 +3039,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_ATMOS_MERCURY( State_Chm, LOC )
+      SUBROUTINE CHECK_ATMOS_MERCURY( State_Chm, State_Grid, LOC )
 !
 !******************************************************************************
 !  Subroutine CHECK_ATMOS_MERCURY tests whether the total and tagged tracers 
@@ -3047,9 +3059,11 @@
       USE CMN_SIZE_MOD              ! Size parameters
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE State_Chm_Mod,       ONLY : ChmState
+      USE State_Grid_Mod,      ONLY : GrdState
 
       ! Arguments as Input
       CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
 
       ! Local variables
@@ -3081,9 +3095,9 @@
 ! OMP+PRIVATE( Hg2_tot, RELERR2, ABSERR2                        )
 ! OMP+PRIVATE( HgP_tot, RELERRP, ABSERRP                        )
 ! OMP+REDUCTION( +:     Hg0_tag, Hg2_tag, HgP_tag               )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initialize
          Hg0_tot = 0e+0_fpp
@@ -3223,7 +3237,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_OCEAN_MERCURY( State_Chm, LOC )
+      SUBROUTINE CHECK_OCEAN_MERCURY( State_Chm, State_Grid, LOC )
 !
 !******************************************************************************
 !  Subroutine CHECK_TAGGED_HG_OC tests whether tagged tracers in Hg0aq and
@@ -3240,9 +3254,11 @@
       USE CMN_SIZE_MOD              ! Size parameters
       USE ERROR_MOD,           ONLY : ERROR_STOP
       USE State_Chm_Mod,       ONLY : ChmState
+      USE State_Grid_Mod,      ONLY : GrdState
 
       ! Arguments
-      CHARACTER(LEN=*), INTENT(IN) :: LOC
+      CHARACTER(LEN=*), INTENT(IN)    :: LOC
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm
 
       ! Local variables
@@ -3264,8 +3280,8 @@
 ! OMP+DEFAULT( SHARED )
 ! OMP+PRIVATE( I, J, Hg0_tot, Hg0_tag, RELERR0, ABSERR0 ) 
 ! OMP+PRIVATE        Hg2_tot, Hg2_tag, RELERR2, ABSERR2 )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !--------------------------------------
          ! Relative and absolute errors for Hg0 
@@ -3332,7 +3348,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_OCEAN_FLUXES( LOC )
+      SUBROUTINE CHECK_OCEAN_FLUXES( State_Grid, LOC )
 !
 !******************************************************************************
 !  Subroutine CHECK_OCEAN_FLUXES tests whether the drydep and wetdep fluxes in
@@ -3348,9 +3364,11 @@
       USE CMN_SIZE_MOD
       USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
       USE ERROR_MOD,           ONLY : ERROR_STOP
+      USE State_Grid_Mod,      ONLY : GrdState
 
       ! Arguments
       CHARACTER(LEN=*), INTENT(IN) :: LOC
+      TYPE(GrdState),   INTENT(IN) :: State_Grid
 
       ! Local variables
       LOGICAL                      :: FLAG
@@ -3376,8 +3394,8 @@
 ! OMP+DEFAULT( SHARED )
 ! OMP+PRIVATE( I, J, DD_tot, DD_tag, DD_RELERR, DD_ABSERR )
 ! OMP+PRIVATE(       WD_tot, WD_tag, WD_RELERR, WD_ABSERR )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !---------------------------------------
          ! Absolute & relative errors for DD_Hg2
@@ -3444,7 +3462,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE CHECK_FLUX_OUT( FLUX, LOC )
+      SUBROUTINE CHECK_FLUX_OUT( State_Grid, FLUX, LOC )
 !
 !******************************************************************************
 !  Subroutine CHECK_FLUX_OUT tests whether tagged quantities in FLUX sum 
@@ -3461,9 +3479,12 @@
       ! References to F90 modules
       USE CMN_SIZE_MOD              ! Size parameters
       USE ERROR_MOD,           ONLY : ERROR_STOP
+      USE State_Grid_Mod,      ONLY : GrdState
 
       ! Arguments
-      REAL(fpp),        INTENT(IN) :: FLUX(IIPAR,JJPAR,N_Hg_CATS)       
+      TYPE(GrdState),   INTENT(IN) :: State_Grid
+      REAL(fpp),        INTENT(IN) :: FLUX(State_Grid%NX,State_Grid%NY,
+     &                                     N_Hg_CATS)       
       CHARACTER(LEN=*), INTENT(IN) :: LOC
 
       ! Local variables
@@ -3487,8 +3508,8 @@
 ! OMP PARALLEL DO
 ! OMP+DEFAULT( SHARED )
 ! OMP+PRIVATE( I, J, FLX_tot, FLX_tag, FLX_err )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !----------------------------------------
          ! Absolute & relative errors for FLX_Hg2
@@ -3533,8 +3554,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, 
-     &                               State_Chm, RC         )
+      SUBROUTINE INIT_OCEAN_MERCURY( am_I_Root, Input_Opt, State_Chm,
+     &                               State_Grid, RC         )
 !
 !******************************************************************************
 !  Subroutine INIT_OCEAN_MERCURY allocates and zeroes module arrays.  
@@ -3569,6 +3590,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE TIME_MOD,           ONLY : GET_YEAR,  EXPAND_DATE
 
       ! For Hg indexing (bmy, 4/26/16)
@@ -3587,6 +3609,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3652,52 +3675,64 @@
       ! (bmy, 3/30/15)
       !-----------------------------------------------------------------
 
-      ALLOCATE( BULK_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BULK_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'BULK_CONC' )
       BULK_CONC = 0e+0_fpp  
 
-      ALLOCATE( SO4_GC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( SO4_GC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_GC' )
       SO4_GC = 0e+0_fpp 
 
-      ALLOCATE( NIT_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( NIT_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'NIT_CONC' )
       NIT_CONC = 0e+0_fpp 
 
-      ALLOCATE( NH4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( NH4_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'NH4_CONC' )
       NH4_CONC = 0e+0_fpp 
 
-      ALLOCATE( OC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( OC_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'OC_CONC' )
       OC_CONC = 0e+0_fpp 
 
-      ALLOCATE( BC_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BC_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'BC_CONC' )
       BC_CONC = 0e+0_fpp 
 
-      ALLOCATE( DST_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( DST_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'DST_CONC' )
       DST_CONC = 0e+0_fpp 
 
-      ALLOCATE( R( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( R( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'R' )
       R = 0e+0_fpp 
 
-      ALLOCATE( SO4_CONC( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( SO4_CONC( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'SO4_CONC' )
       SO4_CONC = 0e+0_fpp 
 
-      ALLOCATE( Fg( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( Fg( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fg' )
       Fg = 0e+0_fpp    
 
-      ALLOCATE( Fp( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( Fp( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'Fp' )
       Fp = 0e+0_fpp  
      
       !eds 5/15/12 fix
-      ALLOCATE( Hgaq_tot (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( Hgaq_tot (State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
       Hgaq_tot = 0e+0_fpp
 
@@ -3820,24 +3855,25 @@
       ENDIF
 
       ! Allocate arrays     
-      ALLOCATE( dMLD( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( dMLD( State_Grid%NX, State_Grid%NY ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
       dMLD = 0e+0_fpp
 
-      ALLOCATE( HgPaq_SUNK (IIPAR, JJPAR, N_Hg_CATS ), STAT=RC )
+      ALLOCATE( HgPaq_SUNK (State_Grid%NX, State_Grid%NY, N_Hg_CATS ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
       HgPaq_SUNK = 0e+0_fpp
 
-      ALLOCATE( MLDav( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( MLDav( State_Grid%NX, State_Grid%NY ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'MLDav' )
       MLDav = 0e+0_fpp
 
-      ALLOCATE( newMLD( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( newMLD( State_Grid%NX, State_Grid%NY ), STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'newMLD' )
       newMLD = 0e+0_fpp
 
       !eds 10/19/10 fixing restart bug
-      ALLOCATE( prevMLD( IIPAR, JJPAR ), STAT=RC )
+      ALLOCATE( prevMLD( State_Grid%NX, State_Grid%NY ), STAT=RC )
       IF ( RC /=0 ) CALL ALLOC_ERR( 'prevMLD' )
       prevMLD = 0e+0_fpp
 

@@ -453,8 +453,8 @@ exehg:                                             # Create Hg/GTMM exec file
 ###############################################################################
 
 aerosol_mod.o               : aerosol_mod.F                                  \
-                              dao_mod.o                                      \
-                              diag_mod.o              ucx_mod.o
+                              dao_mod.o               diag_mod.o             \
+                              tomas_mod.o             ucx_mod.o
 
 benchmark_mod.o             : benchmark_mod.F                              
 
@@ -601,7 +601,7 @@ emissions_mod.o             : emissions_mod.F90                              \
                               diagnostics_mod.o       pops_mod.o
 
 exchange_mod.o              : exchange_mod.F                                 \
-	                      tpcore_bc_mod.o         dao_mod.o
+	                      dao_mod.o
 
 fast_jx_mod.o               : fast_jx_mod.F                                  \
                               dao_mod.o               toms_mod.o              
@@ -647,7 +647,7 @@ gc_environment_mod.o        : gc_environment_mod.F90                         \
                               ocean_mercury_mod.o     pops_mod.o             \
                               seasalt_mod.o           sulfate_mod.o          \
                               tagged_co_mod.o         tagged_o3_mod.o        \
-                              toms_mod.o              tpcore_bc_mod.o        \
+                              toms_mod.o                                     \
                               vdiff_pre_mod.o         wetscav_mod.o
 
 get_met_mod.o               : get_met_mod.F90                                \
@@ -717,7 +717,7 @@ main.o                      : main.F                                         \
                               ocean_mercury_mod.o     olson_landmap_mod.o    \
                               pbl_mix_mod.o           planeflight_mod.o      \
                               strat_chem_mod.o        transport_mod.o        \
-                              tpcore_bc_mod.o         uvalbedo_mod.o         \
+                                                      uvalbedo_mod.o         \
                               ucx_mod.o               vdiff_mod.o            \
                               emissions_mod.o         cleanup.o              \
                               mixing_mod.o                                   \
@@ -841,8 +841,6 @@ tendencies_mod.o            : tendencies_mod.F90                             \
 toms_mod.o                  : toms_mod.F                                     \
                               hco_interface_mod.o
 
-tpcore_bc_mod.o             : tpcore_bc_mod.F                              
-
 tpcore_fvdas_mod.o          : tpcore_fvdas_mod.F90
 
 tpcore_window_mod.o         : tpcore_window_mod.F90
@@ -852,7 +850,7 @@ endif
 
 transport_mod.o             : transport_mod.F                                \
                               diag_mod.o              dao_mod.o              \
-                              pjc_pfix_mod.o          tpcore_bc_mod.o        \
+                              pjc_pfix_mod.o                                 \
                               tpcore_fvdas_mod.o      tpcore_window_mod.o    \
                               tendencies_mod.o        pjc_pfix_window_mod.o  \
                               diagnostics_mod.o

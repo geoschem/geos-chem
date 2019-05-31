@@ -232,12 +232,11 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_WETDEP( am_I_Root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_WETDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
       USE Diagnostics_Mod, ONLY : Compute_Column_Mass
       USE ErrCode_Mod
@@ -246,6 +245,7 @@
       USE PhysConstants
       USE State_Chm_Mod,   ONLY : ChmState
       USE State_Diag_Mod,  ONLY : DgnState
+      USE State_Grid_Mod,  ONLY : GrdState
       USE State_Met_Mod,   ONLY : MetState
 #if defined( USE_TEND )
       USE TENDENCIES_MOD
@@ -258,6 +258,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -328,8 +329,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
          ! Get initial column masses
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                             Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                             State_Chm, State_Grid, State_Met,
      &                             State_Chm%Map_WetDep,        
      &                             State_Diag%Archive_BudgetWetDepFull, 
      &                             State_Diag%Archive_BudgetWetDepTrop, 
@@ -342,8 +343,8 @@
       !=================================================================
       ! Archive species concentrations for tendencies (ckeller,7/15/2015)
       !=================================================================
-      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD',    RC         )
+      CALL TEND_STAGE1( am_I_Root, Input_Opt, State_Chm, 
+     &                  State_Met, 'WETD',    RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -376,10 +377,11 @@
       ! Create precip fields
       ! (Always assume large-scale precip)
       !------------------------------------------
-      CALL MAKE_QQ( am_I_Root = am_I_Root,
-     &              State_Met = State_Met,
-     &              LS        =.TRUE.,
-     &              RC        = RC         )
+      CALL MAKE_QQ( am_I_Root  = am_I_Root,
+     &              State_Grid = State_Grid,
+     &              State_Met  = State_Met,
+     &              LS         =.TRUE.,
+     &              RC         = RC         )
 
        ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -397,9 +399,10 @@
       !-----------------------------------------
       CALL WETDEP( am_I_Root  = am_I_Root,
      &             Input_Opt  = Input_Opt, 
-     &             State_Met  = State_Met,
      &             State_Chm  = State_Chm,
      &             State_Diag = State_Diag,
+     &             State_Grid = State_Grid,
+     &             State_Met  = State_Met,
      &             LS         = .TRUE.,
      &             RC         = RC          )
 
@@ -419,8 +422,9 @@
       ! (ckeller,7/15/2015)
       !=================================================================
       DT_TEND = GET_TS_DYN()
-      CALL TEND_STAGE2( am_I_Root, Input_Opt, State_Met, 
-     &                  State_Chm, 'WETD',    DT_TEND,   RC )
+      CALL TEND_STAGE2( am_I_Root,  Input_Opt, State_Chm, 
+     &                  State_Grid, State_Met, 'WETD',
+     &                  DT_TEND,    RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -435,8 +439,8 @@
       !----------------------------------------------------------
       IF ( State_Diag%Archive_BudgetWetDep ) THEN
          ! Get final masses and compute diagnostics
-         CALL Compute_Column_Mass( am_I_Root, 
-     &                          Input_Opt, State_Met, State_Chm, 
+         CALL Compute_Column_Mass( am_I_Root, Input_Opt,
+     &                          State_Chm, State_Grid, State_Met,
      &                          State_Chm%Map_WetDep,        
      &                          State_Diag%Archive_BudgetWetDepFull, 
      &                          State_Diag%Archive_BudgetWetDepTrop, 
@@ -445,6 +449,7 @@
      &                          RC ) 
          DT_Dyn = Get_Ts_Dyn()
          CALL Compute_Budget_Diagnostics( am_I_Root, 
+     &                          State_Grid,
      &                          State_Chm%Map_WetDep,
      &                          DT_Dyn,                                
      &                          State_Diag%Archive_BudgetWetDepFull, 
@@ -478,20 +483,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE MAKE_QQ( am_I_Root, State_Met, LS, RC )
+      SUBROUTINE MAKE_QQ( am_I_Root, State_Grid, State_Met, LS, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_mod
       USE ErrCode_Mod
-      USE State_Met_Mod, ONLY : MetState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
-      LOGICAL,        INTENT(IN)  :: am_I_Root ! Are we on the root CPU
-      TYPE(MetState), INTENT(IN)  :: State_Met ! Meteorology State object
-      LOGICAL,        INTENT(IN)  :: LS        ! =T, denotes large scale precip
-                                               ! =F, denotes convective precip
+      LOGICAL,        INTENT(IN)  :: am_I_Root  ! Are we on the root CPU
+      TYPE(GrdState), INTENT(IN)  :: State_Grid ! Grid State object
+      TYPE(MetState), INTENT(IN)  :: State_Met  ! Meteorology State object
+      LOGICAL,        INTENT(IN)  :: LS         ! =T, denotes large scale precip
+                                                ! =F, denotes convective precip
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -574,6 +580,7 @@
 !                              is moist air density, needed for use with MOISTQ
 !  12 Aug 2015 - R. Yantosca - Add support for MERRA2 meteorology
 !  09 Nov 2017 - R. Yantosca - Move allocations to INIT_WETSCAV
+!  10 Feb 2019 - M. Sulprizio- Fix loop so that L is outermost loops
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -592,9 +599,9 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
-      DO L = 1, LLPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Rate of new precipitation formation in grid box (I,J,L)
          ! [cm3 H2O/cm3 air/s]
@@ -763,17 +770,18 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE COMPUTE_F( am_I_Root, N,         F,         ISOL, 
-     &                      Input_Opt, State_Met, State_Chm, RC    )
+      SUBROUTINE COMPUTE_F( am_I_Root, N,         F,          ISOL, 
+     &                      Input_Opt, State_Chm, State_Grid, State_Met,
+     &                      RC    )
 !
 ! !USES:
 !
-      USE CMN_Size_Mod
       USE ErrCode_Mod
       USE Error_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( TOMAS )
       USE Tomas_Mod,          ONLY : GetFraction
@@ -784,7 +792,8 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root  ! Are we on the root CPU?
       INTEGER,        INTENT(IN)    :: N          ! Species ID
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
-      TYPE(MetState), INTENT(IN)    :: State_Met  ! Met State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+      TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -954,7 +963,8 @@
       IF ( SpcInfo%WD_Is_SO2 ) THEN
 
          ! Compute fraction of SO2 scavenged
-         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met,
+     &                   F )
 
          !--------------------------------------------------------------
          ! Coupled full chemistry/aerosol simulation:
@@ -964,9 +974,9 @@
          ! Scavenge the soluble SO2 at the same rate as the sulfate.
          ! Update H2O2_sav and SO2_sav for use in RAINOUT, WASHOUT
          !--------------------------------------------------------------
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 2, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Make sure to deplete H2O2s the same as SO2s. 
             ! (dkh, rjp, bmy, 11/17/05)
@@ -1015,9 +1025,9 @@
          F(:,:,1) = 0.0_fp
 
          ! Start scavenging at level 2
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 2, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
             ! Set pointers
             p_C_H2O  => C_H2O (I,J,L)
@@ -1038,7 +1048,7 @@
 
             ! Compute F, the fraction of scavenged H2O2.
             ! (Eq. 2, Jacob et al, 2000)
-            F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Ki )
+            F(I,J,L) = GET_F( Input_Opt, State_Met, I, J, L, Ki )
 
          ENDDO
          ENDDO
@@ -1054,14 +1064,16 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met,
+     &                   F )
 
          ! Adjust F for size-resolved aerosol (multiply by XFRAC)
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
-     &                        XFRAC,      SOLFRAC, State_Chm )
+         DO L = 2, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        State_Chm,  State_Grid, State_Met,
+     &                        XFRAC,      SOLFRAC )
             F(I,J,L) = XFRAC * F(I,J,L)
          ENDDO
          ENDDO
@@ -1079,15 +1091,17 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met,
+     &                   F )
 
          ! Adjust F for size-resolved aerosol number
          ! (multiply by XFRAC * SOLFRAC)
-         DO L = 2, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
-            CALL GETFRACTION( I, J, L, N, .FALSE., State_Met,
-     &                              XFRAC,      SOLFRAC, State_Chm )
+         DO L = 2, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
+            CALL GETFRACTION( I, J, L, N, .FALSE., 
+     &                        State_Chm,  State_Grid, State_Met,
+     &                        XFRAC,      SOLFRAC )
             F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
          ENDDO
          ENDDO
@@ -1105,7 +1119,8 @@
          ! Get the fraction of species scavenged in updrafts
          ! NOTE: The surface layer F(:,:,1) will be returned
          ! as zero, to shut off scavenging at the surface
-         CALL F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
+         CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met,
+     &                   F )
 
          ! Multiply by the aerosol scavenging efficiency
          ! For most species this is 1.0
@@ -1248,13 +1263,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE F_AEROSOL( KC, KcScale, State_Met, Input_Opt, F )
+      SUBROUTINE F_AEROSOL( KC, KcScale, Input_Opt, State_Grid,
+     &                      State_Met,   F )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-      USE State_Met_Mod,      ONLY: MetState
       USE Input_Opt_Mod,      ONLY: OptInput
+      USE State_Grid_Mod,     ONLY: GrdState
+      USE State_Met_Mod,      ONLY: MetState
 !
 !
 ! !INPUT PARAMETERS: 
@@ -1265,14 +1281,15 @@
       REAL(fp),       INTENT(IN)  :: KcScale(3)           ! Scale factors for Kc
                                                           !  for 3 temperature
                                                           !  regimes
-      TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
       TYPE(OptInput), INTENT(IN)  :: Input_Opt            ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid           ! Grid State Object
+      TYPE(MetState), INTENT(IN)  :: State_Met            ! Meteorology State
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp),       INTENT(OUT) :: F(IIPAR,JJPAR,LLPAR) ! Fraction of aerosol
-                                                          !  scavenged in 
-                                                          !  convective updrafts
+      REAL(fp),       INTENT(OUT) :: F(State_Grid%NX,     ! Fraction of aerosol
+     &                                 State_Grid%NY,     !  scavenged in 
+     &                                 State_Grid%NZ)     !  convective updrafts
 ! 
 ! !REVISION HISTORY: 
 !  07 Nov 2002 - R. Yantosca - Initial version
@@ -1306,9 +1323,9 @@
       F(:,:,1) = 0.0_fp
 
       ! Apply scavenging in levels 2 and higher
-      DO L = 2, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 2, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Apply temperature-dependent scale factors to the KC rate for ..
          IF ( State_Met%T(I,J,L) < 237.0_fp ) THEN
@@ -1331,7 +1348,7 @@
 
          ! (Eq. 2, Jacob et al, 2000, with K = Kc)
          ! Kc now has been scaled for impaction scavenging (bmy, 9/24/15)
-         F(I,J,L) = GET_F( State_Met, Input_Opt, I, J, L, Scaled_KC )
+         F(I,J,L) = GET_F( Input_Opt, State_Met, I, J, L, Scaled_KC )
             
       ENDDO
       ENDDO
@@ -1358,7 +1375,6 @@
 !
 ! !USES:
 !
-      USE CMN_Size_Mod
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE Species_Mod,   ONLY : Species
@@ -1696,20 +1712,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WASHOUT( am_I_Root, I,        J,         L,  
-     &                    N,         BXHEIGHT, TK,        PP, 
-     &                    DT,        F,        H2O2s,     SO2s, 
-     &                    WASHFRAC,  KIN,      Input_Opt, State_Met, 
-     &                    State_Chm, RC                              )
+      SUBROUTINE WASHOUT( am_I_Root,  I,        J,         L,  
+     &                    N,          BXHEIGHT, TK,        PP, 
+     &                    DT,         F,        H2O2s,     SO2s, 
+     &                    WASHFRAC,   KIN,      Input_Opt, State_Chm, 
+     &                    State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
-      USE Species_Mod,   ONLY : Species
-      USE State_Chm_Mod, ONLY : ChmState
-      USE State_Met_Mod, ONLY : MetState
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE Species_Mod,    ONLY : Species
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
 #if defined( TOMAS )
       USE ERROR_MOD
       USE TOMAS_MOD,     ONLY : IBINS,    ICOMP
@@ -1733,6 +1749,7 @@
                                                   !  is precipitating [1]
 
       TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State
       TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State
 
 ! !INPUT/OUTPUT PARAMETERS:
@@ -1891,7 +1908,7 @@
       ELSE IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
          UNITCHANGE_KGM2 = .TRUE.
          CALL ConvertBox_Kgm2_to_Kg( am_I_Root, I, J, L, 
-     &                               State_Met, State_Chm, RC )
+     &                               State_Chm, State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2050,7 +2067,7 @@
 
       ELSE IF ( UNITCHANGE_KGM2 ) THEN
          CALL ConvertBox_Kg_to_Kgm2( am_I_Root, I, J, L,
-     &                               State_Met, State_Chm, RC )
+     &                               State_Chm, State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -2573,15 +2590,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WETDEP( am_I_Root, Input_Opt,  State_Met,
-     &                   State_Chm, State_Diag, LS,        RC )
+      SUBROUTINE WETDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                   State_Diag, State_Grid, State_Met,
+     &                   LS,         RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
-#if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD
-#endif
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_HgP_WD
       USE DEPO_MERCURY_MOD, ONLY : ADD_Hg2_SNOWPACK
@@ -2590,6 +2604,7 @@
       USE Input_Opt_Mod,    ONLY : OptInput
       USE State_Chm_Mod,    ONLY : ChmState
       USE State_Diag_Mod,   ONLY : DgnState
+      USE State_Grid_Mod,   ONLY : GrdState
       USE State_Met_Mod,    ONLY : MetState
       USE TIME_MOD,         ONLY : GET_TS_DYN
       USE Species_Mod,      ONLY : Species
@@ -2601,6 +2616,7 @@
       LOGICAL,        INTENT(IN)    :: LS          ! =T for large-scale precip
                                                    ! =F for convective precip
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2651,18 +2667,18 @@
 !  of rain coming in through the top of grid box (I,J,L). 
 !                                                                             .
 !  Soluble gases/aerosols are incorporated into the raindrops and are 
-!  completely removed from grid box (I,J,LLPAR).  There is no evaporation 
+!  completely removed from grid box (I,J,NZ).  There is no evaporation 
 !  and "resuspension" of aerosols during a rainout event.
 !                                                                             .
 !  For large-scale (a.k.a. stratiform) precipitation, the first order rate 
-!  constant for rainout in the grid box (I,J,L=LLPAR) (cf. Eq. 12, Jacob 
+!  constant for rainout in the grid box (I,J,L=NZ) (cf. Eq. 12, Jacob 
 !  et al, 2000) is given by:
 !                                                                             .
 !                           Q        
 !       K_RAIN = K_MIN + -------    [units: s^-1]
 !                         L + W    
 !                                                                             .
-!  and the areal fraction of grid box (I,J,L=LLPAR) that is actually 
+!  and the areal fraction of grid box (I,J,L=NZ) that is actually 
 !  experiencing large-scale precipitation (cf. Eq. 11, Jacob et al, 2000) 
 !  is given by: 
 !                                                                             .
@@ -2709,7 +2725,7 @@
 !              = 2.0e-6 [cm3 H2O/cm3 air]
 !                                                                             .
 !  K_RAIN and F' are needed to compute the fraction of species in grid box 
-!  (I,J,L=LLPAR) lost to rainout.  This is done in module routine RAINOUT.
+!  (I,J,L=NZ) lost to rainout.  This is done in module routine RAINOUT.
 !                                                                             .
 !  Washout:
 !  ========   
@@ -2778,7 +2794,9 @@
       ! DSpc is the accumulator array of rained-out 
       ! soluble species for a given (I,J) column
       REAL(fp)               :: DSpc(State_Chm%nWetDep,
-     &                               LLPAR,IIPAR,JJPAR)
+     &                               State_Grid%NZ,
+     &                               State_Grid%NX,
+     &                               State_Grid%NY)
  
       ! Strings
       CHARACTER(LEN=255)     :: ErrMsg, ErrorMsg, ThisLoc
@@ -2803,9 +2821,9 @@
 
       ! Convert species concentration to mass per unit area (kg/m2) for 
       ! wet deposition since computation is done per column (ewl, 9/8/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg/m2', RC, 
-     &                        OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg/m2',
+     &                        RC,         OrigUnit=OrigUnit )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2858,33 +2876,33 @@
 !$OMP+PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) 
 !$OMP+PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         )
 !$OMP+SCHEDULE( DYNAMIC )   
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Initialize PRIVATE error-handling variables
          EC        = GC_SUCCESS
          ErrorMsg  = ''
 
          ! Don't do wetdep in nested-grid buffer zone (lzh, 4/1/15)
-         IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-           IF ( J <=          Input_Opt%NESTED_J0W ) CYCLE
-           IF ( J >   JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-           IF ( I <=          Input_Opt%NESTED_I0W ) CYCLE
-           IF ( I >   IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+         IF ( State_Grid%NestedGrid ) THEN
+           IF ( J <=                  State_Grid%SouthBuffer ) CYCLE
+           IF ( J >   State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+           IF ( I <=                  State_Grid%WestBuffer  ) CYCLE
+           IF ( I >   State_Grid%NX - State_Grid%EastBuffer  ) CYCLE
         ENDIF
 
          ! Zero FTOP
          FTOP = 0e+0_fp
 
          ! Zero accumulator array
-         DO L  = 1, LLPAR
+         DO L  = 1, State_Grid%NZ
          DO NW = 1, State_Chm%nWetDep
             DSpc(NW,L,I,J) = 0e+0_fp
          ENDDO
          ENDDO
 
          !==============================================================
-         ! (3)  R a i n o u t   F r o m   T o p   L a y e r  (L = LLPAR) 
+         ! (3)  R a i n o u t   F r o m   T o p   L a y e r  (L = State_Grid%NZ) 
          !==============================================================
 
          ! Zero variables for this level
@@ -2897,7 +2915,7 @@
          Q           = 0e+0_fp     
 
          ! Start at the top of the atmosphere
-         L = LLPAR
+         L = State_Grid%NZ
 
          ! If precip forms at (I,J,L), assume it all rains out
          IF ( QQ(L,I,J) > 0e+0_fp ) THEN
@@ -2910,7 +2928,7 @@
             K_RAIN  = LS_K_RAIN( Q )
             F_RAINOUT = LS_F_PRIME( Q, K_RAIN )
             
-            ! Set F = F_RAINOUT, since there is no FTOP at L = LLPAR
+            ! Set F = F_RAINOUT, since there is no FTOP at L = State_Grid%NZ
             F = F_RAINOUT
 
             ! Adjust convective large-scale precip (ckeller, 3/4/16)
@@ -2934,9 +2952,10 @@
      &                               DT         = DT,
      &                               DSpc       = DSpc,
      &                               Input_Opt  = Input_Opt,
-     &                               State_Met  = State_Met,
      &                               State_Chm  = State_Chm,
      &                               State_Diag = State_Diag, 
+     &                               State_Grid = State_Grid,
+     &                               State_Met  = State_Met,
      &                               RC         = EC          )
 
                ! Trap potential errors
@@ -2956,7 +2975,7 @@
          ! (4)  R a i n o u t   a n d   W a s h o u t 
          !      i n   t h e   M i d d l e   L e v e l s
          !==============================================================
-         DO L = LLPAR-1, 2, -1
+         DO L = State_Grid%NZ-1, 2, -1
 
             ! Zero variables for each level
             F           = 0e+0_fp
@@ -3076,9 +3095,10 @@
      &                               DT         = DT,
      &                               DSpc       = DSpc,
      &                               Input_Opt  = Input_Opt,
-     &                               State_Met  = State_Met,
      &                               State_Chm  = State_Chm,
      &                               State_Diag = State_Diag, 
+     &                               State_Grid = State_Grid,
+     &                               State_Met  = State_Met,
      &                               RC         = EC          )
 
                ! Trap potential errors
@@ -3115,9 +3135,10 @@
      &                               PDOWN      = PDOWN,     
      &                               DSpc       = DSpc,      
      &                               Input_Opt  = Input_Opt,  
-     &                               State_Met  = State_Met,
      &                               State_Chm  = State_Chm,
      &                               State_Diag = State_Diag,
+     &                               State_Grid = State_Grid,
+     &                               State_Met  = State_Met,
      &                               RC         = EC          )
 
                ! Trap potential errors
@@ -3162,9 +3183,10 @@
      &                                  DT         = DT,
      &                                  DSpc       = DSpc,      
      &                                  Input_Opt  = Input_Opt,
-     &                                  State_Met  = State_Met,
      &                                  State_Chm  = State_Chm, 
      &                                  State_Diag = State_Diag,
+     &                                  State_Grid = State_Grid,
+     &                                  State_Met  = State_Met,
      &                                  RC         = EC         )
 
                ! Trap potential errors
@@ -3219,9 +3241,10 @@
      &                                 DT         = DT,
      &                                 DSpc       = DSpc,
      &                                 Input_Opt  = Input_Opt,
-     &                                 State_Met  = State_Met,
      &                                 State_Chm  = State_Chm, 
      &                                 State_Diag = State_Diag, 
+     &                                 State_Grid = State_Grid,
+     &                                 State_Met  = State_Met,
      &                                 RC         = EC          )
 
                ! Trap potential errors
@@ -3302,8 +3325,8 @@
       ENDIF
 
       ! Convert species concentration back to original unit (ewl, 9/8/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit,  RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit,  RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
@@ -3476,16 +3499,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_RAINOUT_ONLY( am_I_Root,  LS,        I,
-     &                            J,          L,         IDX,
-     &                            ERRMSG,     F_RAINOUT, K_RAIN,
-     &                            DT,         DSpc,      Input_Opt,  
-     &                            State_Met,  State_Chm, State_Diag,
-     &                            RC                                 )
+      SUBROUTINE DO_RAINOUT_ONLY( am_I_Root,  LS,         I,
+     &                            J,          L,          IDX,
+     &                            ERRMSG,     F_RAINOUT,  K_RAIN,
+     &                            DT,         DSpc,       Input_Opt,  
+     &                            State_Chm,  State_Diag, State_Grid,
+     &                            State_Met,  RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                                 ! Size parameters
 #if defined( BPCH_DIAG )
       USE CMN_DIAG_MOD                                 ! Diagnostic flags
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
@@ -3498,9 +3520,10 @@
       USE ERROR_MOD,      ONLY : IT_IS_NAN             ! Test for NaN
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
       USE Input_Opt_Mod,  ONLY : OptInput              ! Input options type
-      USE State_Chm_Mod,  ONLY : ChmState              ! Chemistry State type
-      USE State_Met_Mod,  ONLY : MetState              ! Met State type
-      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Chm_Mod,  ONLY : ChmState              ! Chem State object
+      USE State_Diag_Mod, ONLY : DgnState              ! Diag State object
+      USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
+      USE State_Met_Mod,  ONLY : MetState              ! Met State object
 #if defined( TOMAS )
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
       USE TOMAS_MOD,      ONLY : GETFRACTION
@@ -3523,8 +3546,8 @@
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
-      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
-      
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
+      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object      
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -3655,15 +3678,17 @@
          IF ( id_NK1 > 0 ) THEN
             IF ( N >= id_NK1 .and. N < id_NK1 + IBINS ) THEN  
 
-               CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC, 
-     &                           SOLFRAC, State_Chm )
+               CALL GETFRACTION( I, J, L, N, LS,
+     &                           State_Chm, State_Grid, State_Met,
+     &                           XFRAC, SOLFRAC )
  
                RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
              ELSE IF ( N >= id_SF1             .and. 
      &                 N <  id_DUST1 + IBINS ) THEN
 
-               CALL GETFRACTION( I, J, L, N, LS, State_Met, XFRAC,  
-     &                           SOLFRAC, State_Chm ) 
+               CALL GETFRACTION( I, J, L, N, LS, 
+     &                           State_Chm, State_Grid, State_Met,
+     &                           XFRAC, SOLFRAC ) 
 
                RAINFRAC = RAINFRAC * XFRAC
              ENDIF
@@ -3676,12 +3701,12 @@
          ! Subtract the rainout loss in grid box (I,J,L) from Spc [kg/m2]
          Spc(I,J,L,N) = Spc(I,J,L,N) - WETLOSS
 
-         IF ( L == LLPAR ) THEN
+         IF ( L == State_Grid%NZ ) THEN
            
             ! DSpc is an accumulator array for rained-out species.  
             ! The species in DSpc are in the liquid phase and will 
             ! precipitate to the levels below until a washout occurs.
-            ! Initialize DSpc at (I,J,L=LLPAR) with WETLOSS.
+            ! Initialize DSpc at (I,J,L=State_Grid%NZ) with WETLOSS.
             DSpc(NW,L,I,J) = WETLOSS
 
          ELSE
@@ -3712,7 +3737,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J)
+     &                       * State_Grid%Area_M2(I,J)
          ENDIF
 #endif
 
@@ -3738,7 +3763,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) =
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J)
+     &                                     *  State_Grid%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -3767,6 +3792,7 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,
      &                   LOST        = 0e+0_fp,
+     &                   State_Grid  = State_Grid,
      &                   DSpc        = DSpc(NW,:,I,J),
      &                   Spc         = Spc(I,J,:,N),
      &                   RC          = RC              )
@@ -3803,14 +3829,14 @@
      &                            IDX,        ERRMSG,    QDOWN, 
      &                            Q,          F_WASHOUT, F_RAINOUT,
      &                            DT,         PDOWN,     DSpc, 
-     &                            Input_Opt,  State_Met, State_Chm,
-     &                            State_Diag, RC,        REEVAP     )
+     &                            Input_Opt,  State_Chm, State_Diag,
+     &                            State_Grid, State_Met, RC,
+     &                            REEVAP )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                                 ! Size parameters
 #if defined( BPCH_DIAG )
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
@@ -3825,7 +3851,8 @@
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
       USE Input_Opt_Mod,  ONLY : OptInput              ! Input options
       USE State_Chm_Mod,  ONLY : ChmState              ! Chemistry State object
-      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Diag_Mod, ONLY : DgnState              ! Diagnostic State object
+      USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
       USE State_Met_Mod,  ONLY : MetState              ! Met State object
 #if defined( TOMAS )      
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
@@ -3853,6 +3880,7 @@
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       REAL(fp),         INTENT(IN)    :: PDOWN(:,:,:)  ! Precip 
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -4065,7 +4093,7 @@
      &                 State_Chm%H2O2AfterChem(I,J,L),
      &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm,    RC           )
+     &                 State_Chm, State_Grid,   State_Met,    RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -4192,7 +4220,7 @@
                ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
                IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
-     &                        * State_Met%AREA_M2(I,J)
+     &                        * State_Grid%Area_M2(I,J)
                ELSE
                   ErrorMsg= 'Unexpected species units: ' // 
      &                       TRIM( State_Chm%Spc_Units )
@@ -4200,7 +4228,8 @@
                   RETURN
                ENDIF
                CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, L, 
-     &                      Input_Opt, State_Met, State_Chm, RC  )
+     &                      Input_Opt, State_Chm, State_Grid, State_Met,
+     &                      RC  )
             ENDIF
 !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -4326,7 +4355,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J)
+     &                       * State_Grid%Area_M2(I,J)
 
          ENDIF
 #endif
@@ -4344,7 +4373,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J)
+     &                                     *  State_Grid%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -4373,6 +4402,7 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = GAINED,
      &                   LOST        = LOST,
+     &                   State_Grid  = State_Grid,
      &                   DSpc        = DSpc(NW,:,I,J),
      &                   Spc         = Spc(I,J,:,N),
      &                   RC          = RC              )
@@ -4405,16 +4435,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_COMPLETE_REEVAP( am_I_Root, LS,         I, J, L,
-     &                               IDX,       ERRMSG,     DT,     
-     &                               DSpc,      Input_Opt,  State_Met,
-     &                               State_Chm, State_Diag, RC         ) 
+      SUBROUTINE DO_COMPLETE_REEVAP( am_I_Root,  LS,         I, J, L,
+     &                               IDX,        ERRMSG,     DT,     
+     &                               DSpc,       Input_Opt,  State_Chm,
+     &                               State_Diag, State_Grid, State_Met,
+     &                               RC ) 
 !     
 ! !USES:
 !
-      USE CMN_SIZE_MOD                                 ! Size parameters
 #if defined( BPCH_DIAG )                              
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD05
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
@@ -4430,6 +4460,7 @@
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE State_Met_Mod,  ONLY : MetState
 #if defined( TOMAS )
       USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
@@ -4446,13 +4477,13 @@
       CHARACTER(LEN=*), INTENT(IN)    :: ERRMSG        ! Error message
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
-      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Meteorology State obj
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
+      TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
       TYPE(ChmState),   INTENT(INOUT) :: State_Chm     ! Chemistry State object
-      TYPE(DgnState),   INTENT(INOUT) :: State_Diag    ! Diagnoss State object
-
+      TYPE(DgnState),   INTENT(INOUT) :: State_Diag    ! Diagnostic State object
       REAL(fp),         INTENT(INOUT) :: DSpc(:,:,:,:) ! Accumulator array 
                                                        ! [kg/m2] 
 !
@@ -4573,7 +4604,7 @@
      &                                          'kg/m2' ) THEN
                            REEVAPSO2 =  - ( WETLOSS * 96e+0_fp 
      &                                  / 64e+0_fp )
-     &                                  * State_Met%AREA_M2(I,J)
+     &                                  * State_Grid%Area_M2(I,J)
                         ELSE
                            Spc    => NULL()
                            ErrorMsg = 'Unexpected species units: ' 
@@ -4582,8 +4613,8 @@
                            RETURN
                         ENDIF
                         CALL AQOXID( am_I_Root, REEVAPSO2, KMIN, I, J, 
-     &                               L, Input_Opt, State_Met, 
-     &                               State_Chm, RC )
+     &                               L, Input_Opt, State_Chm,
+     &                               State_Grid, State_Met, RC )
                      ENDIF
 !end- added for TOMAS (win, 7/16/09)
 #endif
@@ -4607,7 +4638,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + ( WETLOSS / DT )
-     &                       * State_Met%AREA_M2(I,J)
+     &                       * State_Grid%Area_M2(I,J)
 
          ENDIF
 #endif
@@ -4625,7 +4656,7 @@
          IF ( State_Diag%Archive_WetLossLs ) THEN
             State_Diag%WetLossLs(I,J,L,NW) = 
      &      State_Diag%WetLossLs(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J)
+     &                                     *  State_Grid%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s
@@ -4654,6 +4685,7 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,
      &                   LOST        = 0e+0_fp,
+     &                   State_Grid  = State_Grid,
      &                   DSpc        = DSpc(NW,:,I,J),
      &                   Spc         = Spc(I,J,:,N),
      &                   RC          = RC              )
@@ -4689,14 +4721,13 @@
       SUBROUTINE DO_WASHOUT_AT_SFC( am_I_Root,  LS,        I, J, L,
      &                              IDX,        ERRMSG,    QDOWN,
      &                              F,          DT,        DSpc,
-     &                              Input_Opt,  State_Met, State_Chm,
-     &                              State_Diag, RC                    )
+     &                              Input_Opt,  State_Chm, State_Diag,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD                                 ! Size parameters
 #if defined( BPCH_DIAG )                               
-      USE CMN_DIAG_MOD                                 ! Diagnostic flags
+      USE CMN_DIAG_MOD
       USE DIAG_MOD,       ONLY : AD16                  ! ND16 diag array
       USE DIAG_MOD,       ONLY : AD17                  ! ND17 diag array
       USE DIAG_MOD,       ONLY : AD18                  ! ND18 diag array
@@ -4710,7 +4741,8 @@
       USE GET_NDEP_MOD,   ONLY : SOIL_WETDEP           ! Wet deposited species
       USE Input_Opt_Mod,  ONLY : OptInput              ! Input options
       USE State_Chm_Mod,  ONLY : ChmState              ! Chm State object
-      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Diag_Mod, ONLY : DgnState              ! Diagnostic State object
+      USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
       USE State_Met_Mod,  ONLY : MetState              ! Met State object
 !
 ! !INPUT PARAMETERS: 
@@ -4728,6 +4760,7 @@
                                                        !  undergoing precip
       REAL(fp),         INTENT(IN)    :: DT            ! Rainout timestep [s]
       TYPE(OptInput),   INTENT(IN)    :: Input_Opt     ! Input options
+      TYPE(GrdState),   INTENT(IN)    :: State_Grid    ! Grid State object
       TYPE(MetState),   INTENT(IN)    :: State_Met     ! Met State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -4845,7 +4878,7 @@
      &                 State_Chm%H2O2AfterChem(I,J,L),
      &                 State_Chm%SO2AfterChem(I,J,L),
      &                 WASHFRAC,  KIN,          Input_Opt,
-     &                 State_Met, State_Chm,    RC           )
+     &                 State_Chm, State_Grid,   State_Met,  RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -4895,7 +4928,7 @@
          ! Add LGTMM in condition for AD39 (ccc, 11/18/09)
          IF ( ( ND39 > 0 .or. LGTMM ) .and. L <= LD39 ) THEN
             AD39(I,J,L,NW) = AD39(I,J,L,NW) + WETLOSS / DT
-     &                       * State_Met%AREA_M2(I,J)
+     &                       * State_Grid%Area_M2(I,J)
          ENDIF
 #endif
 
@@ -4932,7 +4965,7 @@
          IF ( State_Diag%Archive_WetLossLS ) THEN
             State_Diag%WetLossLS(I,J,L,NW) = 
      &      State_Diag%WetLossLS(I,J,L,NW) + ( WetLoss / DT )
-     &                                     *  State_Met%Area_M2(I,J)
+     &                                     *  State_Grid%Area_M2(I,J)
          ENDIF
 
          ! Archive wet loss in kg/m2/s (check source code for this routine
@@ -4979,6 +5012,7 @@
      &                   WETLOSS     = WETLOSS,
      &                   GAINED      = 0e+0_fp,
      &                   LOST        = 0e+0_fp,
+     &                   State_Grid  = State_Grid,
      &                   DSpc        = DSpc(NW,:,I,J),
      &                   Spc         = Spc(I,J,:,N),
      &                   RC          = RC              )
@@ -5015,13 +5049,14 @@
      &                   A,         LS,          PDOWN,    QQ,
      &                   ALPHA,     ALPHA2,      RAINFRAC, WASHFRAC,
      &                   MASS_WASH, MASS_NOWASH, WETLOSS,  GAINED, 
-     &                   LOST,      DSpc,        Spc,      RC        )
+     &                   LOST,      State_Grid,  DSpc,     Spc,
+     &                   RC )
 
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
       USE ErrCode_Mod
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
@@ -5043,8 +5078,9 @@
       REAL(fp),         INTENT(IN)  :: WETLOSS       !
       REAL(fp),         INTENT(IN)  :: GAINED        !
       REAL(fp),         INTENT(IN)  :: LOST          !
-      REAL(fp),         INTENT(IN)  :: DSpc(LLPAR)   !
-      REAL(fp),         INTENT(IN)  :: Spc(LLPAR)    !
+      TYPE(GrdState),   INTENT(IN)  :: State_Grid    ! Grid State object
+      REAL(fp),         INTENT(IN)  :: DSpc(State_Grid%NZ)
+      REAL(fp),         INTENT(IN)  :: Spc(State_Grid%NZ)
 !
 ! ! OUTPUT PARAMETERS:
 !
@@ -5222,18 +5258,18 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_F( State_Met, Input_Opt, I, J, L, K ) RESULT( F )
+      FUNCTION GET_F( Input_Opt, State_Met, I, J, L, K ) RESULT( F )
 !
 ! !USES:
 !
       USE DAO_MOD,            ONLY : IS_WATER
-      USE State_Met_Mod,      ONLY : MetState
       USE Input_Opt_Mod,      ONLY : OptInput 
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(OptInput), INTENT(IN) :: Input_Opt  ! Input Options object
       TYPE(MetState), INTENT(IN) :: State_Met  ! Meteorology State object
-      TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN) :: I, J, L    ! Lon, lat, level indices
       REAL(fp),       INTENT(IN) :: K          ! Rate constant
 !
@@ -5289,18 +5325,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_WETSCAV( am_I_Root, Input_Opt, 
-     &                         State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_WETSCAV( am_I_Root,  Input_Opt, 
+     &                         State_Chm,  State_Diag, 
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_Size_Mod
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -5308,6 +5345,7 @@
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -5370,37 +5408,43 @@
       IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
          ! Allocate PDOWN on first call
-         ALLOCATE( PDOWN( LLPAR, IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( PDOWN( State_Grid%NZ, State_Grid%NX, State_Grid%NY ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:PDOWN', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          PDOWN = 0e+0_fp
       
          ! Allocate QQ on first call
-         ALLOCATE( QQ( LLPAR, IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( QQ( State_Grid%NZ, State_Grid%NX, State_Grid%NY ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:QQ', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          QQ = 0e+0_fp
 
          ! Allocate REEVAP on first call
-         ALLOCATE( REEVAP( LLPAR, IIPAR, JJPAR ), STAT=RC )
+         ALLOCATE( REEVAP( State_Grid%NZ, State_Grid%NX, State_Grid%NY),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:REEVAP', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          REEVAP = 0d0
 
          ! Allocate C_H2O on first call
-         ALLOCATE( C_H2O( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         ALLOCATE( C_H2O( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:C_H2O', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          C_H2O = 0.0_fp
             
          ! Allocate CLDLIQ on first call
-         ALLOCATE( CLDLIQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         ALLOCATE( CLDLIQ( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:CLDLIQ', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          CLDLIQ = 0.0_fp
             
          ! Allocate CLDICE on first call
-         ALLOCATE( CLDICE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+         ALLOCATE( CLDICE( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &             STAT=RC )
          CALL GC_CheckVar( 'wetscav_mod.F:CLDICE', 0, RC )
          IF ( RC /= GC_SUCCESS ) RETURN
          CLDICE = 0.0_fp
@@ -5493,17 +5537,17 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETUP_WETSCAV( am_I_Root, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+      SUBROUTINE SETUP_WETSCAV( am_I_Root,  Input_Opt, State_Chm,
+     &                          State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-      USE CMN_Size_Mod
       USE ErrCode_Mod
       USE Error_Mod,          ONLY : Alloc_Err
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : AIRMW
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod
 !
@@ -5511,6 +5555,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -5598,9 +5643,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, TK, PL )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO L = 1, LLPAR
-         DO J = 1, JJPAR
-         DO I = 1, IIPAR
+         DO L = 1, State_Grid%NZ
+         DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
          
             ! Point to Temp [K] and Pressure [hPa]
             TK => State_Met%T(I,J,L)

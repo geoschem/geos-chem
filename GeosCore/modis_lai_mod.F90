@@ -72,7 +72,7 @@ CONTAINS
 ! !IROUTINE: get_xlainative_from_hemco
 !
 ! !DESCRIPTION: Copies the MODIS XLAI data from HEMCO pointers into
-!  the State_Met object.
+!  the State\_Met object.
 !\\
 !\\
 ! !INTERFACE:
@@ -81,7 +81,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_Size_Mod
+    USE CMN_SIZE_Mod,      ONLY : NSURFTYPE
     USE ErrCode_Mod
     USE HCO_EmisList_Mod,  ONLY : Hco_GetPtr
     USE HCO_Interface_Mod, ONLY : HcoState
@@ -174,20 +174,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Xlai( am_I_Root, Input_Opt, State_Met, RC )
+  SUBROUTINE Compute_Xlai( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Met_Mod, ONLY : MetState
-    USE Time_Mod,      ONLY : Its_A_New_Day
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+    USE Time_Mod,       ONLY : Its_A_New_Day
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -231,8 +232,8 @@ CONTAINS
     State_Met%MODISLAI = 0.0_fp
 
     ! Loop over all grid cells
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Loop over all surface types present in this grid cell
        DO S = 1, State_Met%IREG(I,J)

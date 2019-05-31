@@ -404,15 +404,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UCX_NOX( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
 !
 ! !USES:
 !
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : DEBUG_MSG
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TIME_MOD,           ONLY : GET_DAY_OF_YEAR
@@ -427,6 +427,7 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -500,7 +501,7 @@
       ! Grid indexing
       INTEGER :: I,J,L
       REAL(fp)  :: MIDLAT, ZDEL, ZBASE
-      REAL(fp)  :: ZMID(IIPAR,JJPAR,LLPAR)
+      REAL(fp)  :: ZMID(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
       ! Local daylight fraction
       REAL(fp)             :: DAYFRAC
@@ -529,7 +530,7 @@
       ! Retrieve monthly mean data if necessary
       IF (LASTMONTH.ne.GET_MONTH()) THEN
          LASTMONTH = GET_MONTH()
-         CALL GET_NOXCOEFF( LASTMONTH, Input_Opt, State_Met )
+         CALL GET_NOXCOEFF( LASTMONTH, Input_Opt, State_Grid, State_Met)
       ENDIF
 
       ! Get chemistry step length in seconds
@@ -544,14 +545,14 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, ZBASE, ZDEL )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Zero base height
          ZBASE = 0e+0_fp
 
          ! Compute the array of midpoint heights [m]
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             ZDEL        = State_Met%BXHEIGHT(I,J,L)
             ZMID(I,J,L) = ZBASE + (ZDEL/2.e+0_fp)
             ZBASE       = ZBASE + ZDEL
@@ -574,9 +575,9 @@
 !$OMP+PRIVATE( OLD_NO3,  OLD_NO2,  OLD_NO,   OLD_N         )
 !$OMP+PRIVATE( NEW_NO3,  NEW_NO2,  NEW_NO,   NEW_N         )
 !$OMP+PRIVATE( OLD_N2O,  NEW_N2O,  LMinPhot                )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Calculate daylight fraction
          DAYFRAC = State_Met%SUNCOSmid(I,J)
@@ -803,7 +804,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_NOXCOEFF( TARG_MONTH, Input_Opt, State_Met )
+      SUBROUTINE GET_NOXCOEFF( TARG_MONTH, Input_Opt, State_Grid,
+     &                         State_Met )
 !
 ! !USES:
 !
@@ -811,12 +813,14 @@
       USE ERROR_MOD,          ONLY : ALLOC_ERR
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS: 
 !
       INTEGER,        INTENT(IN)    :: TARG_MONTH
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
@@ -871,7 +875,7 @@
 
       IF (UCXNETCDF) THEN
          ! Allocate and zero 2D data array
-         ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
+         ALLOCATE( NOXDATA2D( State_Grid%NY, 51, 6 ), STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
          NOXDATA2D = 0e+0_fp
 
@@ -923,7 +927,7 @@
 !               ENDDO
 !            ENDIF
 
-            ! Regrid each level from 19 to JJPAR latitudes
+            ! Regrid each level from 19 to State_Grid%NY latitudes
             ! Precalculated matrix for simple linear algebra
             ! Need to reverse levels - have layer 1 = TOA
             DO ILEV = 1,51
@@ -936,7 +940,7 @@
 !               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
 !     &            TRIM(TARG_TRAC), ', regridded: '
 !               CALL DEBUG_MSG( DBGMSG )
-!               DO J=1,JJPAR
+!               DO J=1,State_Grid%NY
 !                  WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
 !                  CALL DEBUG_MSG( DBGMSG )
 !               ENDDO
@@ -953,7 +957,7 @@
           NOXDATA2D => NOXCOEFF(:,:,:,TARG_MONTH)
 
 !         ! Allocate and zero 2D data array
-!         ALLOCATE( NOXDATA2D( JJPAR, 51, 6 ), STAT=AS )
+!         ALLOCATE( NOXDATA2D( State_Grid%NY, 51, 6 ), STAT=AS )
 !         IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOXDATA2D' )
 !         NOXDATA2D = 0d0
 !
@@ -1001,27 +1005,23 @@
 !               ENDIF
 !            ENDDO
 !
-!#if defined( GRID2x25 )
-!110   FORMAT(91E10.3)
-!#elif defined( GRID4x5 )
-!110   FORMAT(46E10.3)
-!#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-!110   FORMAT(161E10.3)
-!#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-!110   FORMAT(202E10.3)
-!#else
-!      ! use 2x25 as default 
-!110   FORMAT(91E10.3)
-!#endif
+!            IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+!110            FORMAT(91E10.3)
+!            ELSE IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+!110            FORMAT(46E10.3)
+!            ELSE
+!               ! use 2x25 as default 
+!110            FORMAT(91E10.3)
+!            ENDIF
 !
 !            CLOSE(IU_FILE)
-
+!
 !            ! Debug
 !            IF (LPRT) THEN
 !               WRITE(DBGMSG,'(a,a,a)') ' ### UCX: Base ', 
 !     &            TRIM(TARG_TRAC), ', regridded: '
 !               CALL DEBUG_MSG( DBGMSG )
-!               DO J=1,JJPAR
+!               DO J=1,State_Grid%NY
 !                  WRITE(DBGMSG,'(I02,x,E16.4)') J,NOXDATA2D(J,1,ITRAC)
 !                  CALL DEBUG_MSG( DBGMSG )
 !               ENDDO
@@ -1036,12 +1036,12 @@
 !$OMP+PRIVATE( I,      J,      L,       VERTCOUNT )
 !$OMP+PRIVATE( EXTRAP, LSTART, PCENTER, FOUNDLEV  )
 !$OMP+PRIVATE( ITRAC,  ISRATE, CURRVAL, JJNOX     )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Get corresponding J value in NOXDATA2D. This can be different
          ! from J if the simulation grid is not 2x25 or 4x5.
-         JJNOX = GET_JJNOX( I, J )
+         JJNOX = GET_JJNOX( I, J, State_Grid )
 
          ! Vertcount is the layer count for the input, where layer 1
          ! is at the *top* of the atmosphere
@@ -1049,7 +1049,7 @@
          EXTRAP = .TRUE.
          LSTART = State_Met%ChemGridLev(I,J)
 
-         DO L = LSTART, LLPAR
+         DO L = LSTART, State_Grid%NZ
             IF ( State_Met%InChemGrid(I,J,L) ) CYCLE
 
             ! Pressure at center of cell
@@ -1119,14 +1119,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE EMISS_BASIC( am_I_Root, Input_Opt, State_Met,
-     &                        State_Chm, RC  )
+      SUBROUTINE EMISS_BASIC( am_I_Root,  Input_Opt, State_Chm,
+     &                        State_Grid, State_Met, RC  )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput     
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -1138,6 +1139,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1273,8 +1275,8 @@
 !$OMP+SCHEDULE( DYNAMIC )
 #if defined( MODEL_GEOS )
       ! Loop over surface grid boxes
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Top level of boundary layer at (I,J)
          !PBL_TOP = CEILING( GET_PBL_TOP_L(I,J) )
@@ -1307,8 +1309,8 @@
          IF ( N_EMITTED /= 0 ) THEN
 
             ! Loop over surface grmid boxes
-            DO J = 1, JJPAR
-            DO I = 1, IIPAR
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
            
                ! Set kg/kg dry air using vol/vol (ewl, 9/10/15)
                Spc(I,J,1,N_EMITTED) = GRID_EMIT(I,J,N)
@@ -1346,7 +1348,6 @@
 !
 ! !USES:
 !
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
 #if defined( MODEL_GEOS )
       USE TIME_MOD,           ONLY : GET_YEAR
@@ -1711,8 +1712,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SETTLE_STRAT_AER( am_I_Root, Input_Opt, State_Met, 
-     &                             State_Chm, RC )
+      SUBROUTINE SETTLE_STRAT_AER( am_I_Root,  Input_Opt, State_Chm, 
+     &                             State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -1722,6 +1723,7 @@
       USE ERROR_MOD,          ONLY : IT_IS_NAN,ERROR_STOP
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_ELAPSED_SEC, GET_TS_CHEM
 !
@@ -1729,6 +1731,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -1775,7 +1778,7 @@
       ! Specific to each class
       REAL(fp)               :: RWET(2),CONST_V(2)
       REAL(fp)               :: RHO(2),RATIO_R(2),REFF(2)
-      REAL(fp)               :: VTS(LLPAR,2)
+      REAL(fp)               :: VTS(State_Grid%NZ,2)
  
       ! Used for old Seinfeld & Pandis slip factor calc
       REAL(fp)               :: sp_Lambda, sp_Num
@@ -1797,7 +1800,7 @@
 
       ! NAT only
       REAL(fp)               :: VFALLMAX
-      REAL(fp)               :: VNAT(LLPAR)
+      REAL(fp)               :: VNAT(State_Grid%NZ)
       INTEGER                :: MAXALT, MINALT
       REAL(fp)               :: BXMIN, SEDSTEP, TEMPREAL, P_0, P_ABOVE
       REAL(fp)               :: PSED0, PSEDABOVE, INVAIR_0, INVAIR_ABOVE
@@ -1809,17 +1812,6 @@
       REAL(fp)               :: SEDH2O, SEDNO3
       REAL(fp)               :: BELOWGRAD, ABOVEGRAD
       INTEGER                :: LOCALPROFILE, NUMSEDSTEPS, STARTPT, ISED
-
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      ! SDE 2013-07-07: Debug variables
-!      REAL(fp)               :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-!      REAL(fp)               :: D_ICE1, D_ICE0, D_H2O1, D_H2O0
-!      REAL(fp)               :: D_NAT1, D_NAT0, D_SEDQ, D_PSED, D_HNO3
-!      REAL(fp)               :: D_RMAX, D_VMAX, MAXLOSS, FRACLOSS
-!------------------------------------------------------------------------------
 
       ! Local variables for quantities from Input_Opt
       LOGICAL                :: LPRT
@@ -1859,30 +1851,6 @@
       ! Chemistry timestep [s]
       DTCHEM = GET_TS_CHEM()
 
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      ! For debugging
-!      MAXLOSS= 0e+0_fp
-!      D_XHNO3= 0e+0_fp
-!      D_XNAT = 0e+0_fp
-!      D_PPA  = 0e+0_fp
-!      D_TK   = 0e+0_fp
-!      D_XH2O = 0e+0_fp
-!      D_SEDQ = 0e+0_fp
-!      D_PSED = 0e+0_fp
-!      D_ICE0 = 0e+0_fp
-!      D_ICE1 = 0e+0_fp
-!      D_H2O0 = 0e+0_fp
-!      D_H2O1 = 0e+0_fp
-!      D_NAT0 = 0e+0_fp
-!      D_NAT1 = 0e+0_fp
-!      D_HNO3 = 0e+0_fp
-!      D_RMAX = 0e+0_fp
-!      D_VMAX = 0e+0_fp
-!------------------------------------------------------------------------------
-
       ! First settle liquid aerosols (SLA) using scheme found
       ! elsewhere in GEOS-Chem
 !$OMP PARALLEL DO
@@ -1903,23 +1871,12 @@
 !$OMP+PRIVATE( P_0,          PSED0,        PSEDABOVE,  BELOWGRAD  )
 !$OMP+PRIVATE( LOCALPROFILE, SEDQUANT,     SEDNO3,     SEDICE     )
 !$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC                 )
-!------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!!$OMP+PRIVATE( SEDH2O,       SEDNAT,       SEDPSC,     FRACLOSS   )
-!!$OMP+PRIVATE( MAXLOSS,      D_ICE0,       D_ICE1,     D_H2O1     )
-!!$OMP+PRIVATE( D_H2O0,       D_NAT1,       D_NAT0,     D_HNO3     )
-!!$OMP+PRIVATE( D_RMAX,       D_VMAX,       D_SEDQ,     D_PSED     )
-!!$OMP+PRIVATE( D_XH2O,       D_XHNO3,      D_XNAT,     D_PPA      )
-!!$OMP+PRIVATE( D_TK                                               )
-!------------------------------------------------------------------------
 !$OMP+SCHEDULE( DYNAMIC )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR       
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX       
 
          ! Initialize 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             VTS(L,:) = 0e+0_fp
             VNAT(L) = 0e+0_fp
          ENDDO
@@ -1927,12 +1884,12 @@
 
          ! Arbitrary limits
          BXMIN = 1.e+20_fp
-         MINALT = LLPAR+1
+         MINALT = State_Grid%NZ+1
          MAXALT = 0
          VFALLMAX = 0e+0_fp
 
          ! Loop over levels
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Temperature [K]
             TEMP    = State_Met%T(I,J,L)
@@ -2041,7 +1998,7 @@
 
          ! First apply simpler SLA sedimentation scheme
          ! Handle model top condition
-         L    = LLPAR
+         L    = State_Grid%NZ
          DELZ = State_Met%BXHEIGHT(I,J,L)
          
          DO IAERO=1,2
@@ -2086,7 +2043,7 @@
          ENDDO
          Spc(I,J,L,id_BCPI)= Spc(I,J,L,id_BCPI)* CONST_V(IBC) 
 
-         DO L = LLPAR-1,1,-1
+         DO L = State_Grid%NZ-1,1,-1
             IF ( State_Met%InTroposphere(I,J,L+1) ) CYCLE
             DELZ  = State_Met%BXHEIGHT(I,J,L)
             DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
@@ -2173,7 +2130,7 @@
                XPSC_0   = XNAT_0 + XICE_0
                P_0      = 100.0e+0_fp * State_Met%PMID(I,J,L) 
                INVAIR_0 = AIRMW/State_Met%AD(I,J,L)
-               IF (L .lt. (LLPAR-1)) THEN
+               IF (L .lt. (State_Grid%NZ-1)) THEN
                   INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+1)
                   IF (STATE_PSC(I,J,L+1) < 2.0e+0_f4 ) THEN
                      XNO3_ABOVE = 0e+0_fp
@@ -2230,7 +2187,7 @@
                   PSED0 = PSEDABOVE
                   INVAIR_0 = INVAIR_ABOVE
                   
-                  IF (L.lt.(LLPAR-1)) THEN
+                  IF (L.lt.(State_Grid%NZ-1)) THEN
                      INVAIR_ABOVE  = AIRMW/State_Met%AD(I,J,L+2)
                      IF (STATE_PSC(I,J,L+2) >= 2.0e+0_f4 ) THEN
                         XNO3_ABOVE = Spc(I,J,L+2,id_NIT)*INVAIR_ABOVE/ 
@@ -2322,7 +2279,7 @@
                   ! across the box being sedimented from
                   ! Note conversion from hPa to Pa for denominator, ie
                   ! multiply numerator by (1/100)
-                  IF (L .ne. LLPAR) THEN
+                  IF (L .ne. State_Grid%NZ) THEN
 
                      ! Replace PEDGE(I,J,L+1) - PEDGE(I,J,L+2) 
                      ! with equivalent State_Met%DELP(I,J,L+1)
@@ -2369,35 +2326,6 @@
                   SEDPSC = MIN(SEDPSC,KG_AER(I,J,L+1,I_SPA))
                   KG_AER(I,J,L,I_SPA) = KG_AER(I,J,L,I_SPA) + SEDPSC
                   KG_AER(I,J,L+1,I_SPA)=KG_AER(I,J,L+1,I_SPA)-SEDPSC
-                  
-!------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!                  ! Store for debug
-!                  IF (LPRT) THEN
-!                     FRACLOSS = SEDH2O/Spc(I,J,L+1,id_H2O)
-!                     IF (FRACLOSS .gt. MAXLOSS) THEN
-!                        MAXLOSS = FRACLOSS
-!                        D_ICE0 = XICE_0*ICEMW/INVAIR_0
-!                        D_ICE1 = D_ICE0 - SEDICE
-!                        D_H2O1 = Spc(I,J,L+1,id_H2O)
-!                        D_H2O0 = D_H2O1 + SEDH2O
-!                        D_NAT1 = Spc(I,J,L+1,id_NIT) * NATMW / NIT_MW_G
-!                        D_NAT0 = D_NAT1 + SEDNAT
-!                        D_HNO3 = Spc(I,J,L+1,id_HNO3)
-!                        D_RMAX = RAD_AER(I,J,L+1,I_SPA)
-!                        D_VMAX = VNAT(L+1)
-!                        D_SEDQ = SEDQUANT
-!                        D_PSED = PSED0
-!                        D_XH2O = D_H2O0*INVAIR_0/ICEMW
-!                        D_XHNO3= D_HNO3*INVAIR_0 / HNO3_MW_G
-!                        D_XNAT = D_NAT0*INVAIR_0/NATMW
-!                        D_PPA  = P_0
-!                        D_TK   = TEMP
-!                     ENDIF
-!                  ENDIF
-!------------------------------------------------------------------------
 
                ENDDO SED_LLOOP
             ENDDO SEDSTEPLOOP
@@ -2406,32 +2334,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-!------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      IF (LPRT) THEN
-!         CALL DEBUG_MSG( '### UCX: after SETTLE_STRAT_AER' )
-!         WRITE(6,'(a)') 'Max ice loss statistics:'
-!         WRITE(6,'(a,1x,2E12.4)') 'Source ice (before/after) (kg): ',
-!     &                         D_ICE0, D_ICE1
-!         WRITE(6,'(a,1x,2E12.4)') 'Source H2O (before/after) (kg): ',
-!    &                         D_H2O0, D_H2O1
-!         WRITE(6,'(a,1x,1E12.4)') 'Source HNO3 (total) (kg)      : ',
-!     &                         D_HNO3
-!         WRITE(6,'(a,1x,2E12.4)') 'Source NAT (before/after) (kg): ',
-!     &                         D_NAT0, D_NAT1
-!         WRITE(6,'(a,1x,3E12.4)') 'Source MR (H2O-HNO3-NAT) (v/v): ',
-!     &                         D_XH2O, D_XHNO3, D_XNAT
-!         WRITE(6,'(a,1x,2E12.4)') 'Source T (K) and P (Pa)       : ',
-!     &                         D_TK,   D_PPA
-!         WRITE(6,'(a,1x,2E12.4)') 'Particle radius (cm) & V (m/s): ',
-!     &                         D_RMAX, D_VMAX
-!         WRITE(6,'(a,1x,2E12.4)') 'Sedquant and PSed variables   : ',
-!     &                         D_SEDQ, D_PSED
-!      ENDIF
-!------------------------------------------------------------------------
 
       ! Free pointers
       Spc       => NULL()
@@ -2453,19 +2355,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE CALC_H2SO4_GAS( Input_Opt, State_Chm, State_Grid,
+     &                           State_Met )
 !
 ! !USES:
 !
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !REVISION HISTORY: 
 !  11 Apr 2013 - S. D. Eastham - Initial version
@@ -2542,9 +2447,9 @@
 !$OMP+PRIVATE( GF_CFACTOR, GF_LOGPSULFATE, GF_PVAP )
 !$OMP+PRIVATE( GF_DIFF                             )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          ! Only interested in low-pressure boxes
          TCENTER = State_Met%T(I,J,L)
 
@@ -2647,8 +2552,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_STRAT_AER( am_I_Root, Input_Opt,
-     &                           State_Met, State_Chm, RC )
+      SUBROUTINE CALC_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,
+     &                           State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -2656,15 +2561,16 @@
       USE ERROR_MOD,          ONLY : DEBUG_MSG
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE ERROR_MOD,          ONLY : IS_SAFE_DIV
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -2777,15 +2683,6 @@
       ! Loop variables
       INTEGER                 :: I, J, L, K
 
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      ! SDE 2013-07-07: Debug variables
-!      REAL(fp)                :: D_XH2O, D_PPA,  D_TK,   D_XHNO3,D_XNAT
-!      REAL(fp)                :: D_MAXN, D_FRACN,D_PP,   D_PS
-!------------------------------------------------------------------------------
-
       ! Local variables for quantities from Input_Opt
       LOGICAL                 :: prtDebug
       LOGICAL                 :: LPRT
@@ -2836,22 +2733,8 @@
       ENDIF
 
       ! Partition H2SO4 before proceeding
-      CALL CALC_H2SO4_GAS( Input_Opt, State_Met, State_Chm )
+      CALL CALC_H2SO4_GAS( Input_Opt, State_Chm, State_Grid, State_Met )
 
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      D_XH2O = 0e+0_fp
-!      D_PPA  = 0e+0_fp
-!      D_TK   = 0e+0_fp
-!      D_XHNO3= 0e+0_fp
-!      D_XNAT = 0e+0_fp
-!      D_MAXN = 0e+0_fp
-!      D_PP   = 0e+0_fp
-!      D_PS   = 0e+0_fp
-!------------------------------------------------------------------------------
-      
       ! Loop over latitude boxes first
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
@@ -2880,24 +2763,16 @@
 !$OMP+PRIVATE( HOCl_BOX_L,   H2SO4_BOX_G,        HBr_BOX_G     )
 !$OMP+PRIVATE( HBr_BOX_L,    HOBr_BOX_G,         HOBr_BOX_L    )
 !$OMP+PRIVATE( H2SO4_BOX_L,  KHET_COMMON,        KHET_SPECIFIC )
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!!$OMP+PRIVATE( D_FRACN,      D_MAXN,             D_XH2O        )
-!!$OMP+PRIVATE( D_XHNO3,      D_XNAT,             D_PPA         )
-!!$OMP+PRIVATE( D_PP,         D_PS,               D_TK          )
-!------------------------------------------------------------------------------
 !$OMP+PRIVATE( VOL_TOT,      BOX_LAT                           )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-         DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+         DO I = 1, State_Grid%NX
 
                ! Now do IS_POLAR check for every grid box separately
                ! and using mid-point instead of edges. This is to be
                ! applicable to cube-sphere systems (ckeller, 1/16/15).
-               BOX_LAT  = GET_YMID(I,J,1)
+               BOX_LAT  = State_Grid%YMid(I,J)
                IS_POLAR = ( (BOX_LAT <= PSC_MINLAT) .OR.
      &                      (BOX_LAT >= PSC_MAXLAT)     )
 
@@ -3078,31 +2953,6 @@
                      KG_NAT  = HNO3_BOX_S * NATMW *
      &                         State_Met%AD(I,J,L) / AIRMW
 
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!                     ! Debug
-!                     IF (HNO3SUM.gt.TINY(0e+0_fp)) THEN
-!                        D_FRACN = HNO3_BOX_S/HNO3SUM
-!                     ELSE
-!                        D_FRACN = 0e+0_fp
-!                     ENDIF
-!!
-!!                     IF (D_FRACN.gt.D_MAXN) THEN
-!!                        D_MAXN = D_FRACN
-!                     IF (HNO3_BOX_S.gt.D_XNAT) THEN
-!                       D_MAXN = D_FRACN
-!                        D_XH2O = H2OSUM
-!                        D_XHNO3= HNO3SUM
-!                        D_XNAT = HNO3_BOX_S
-!                        D_PPA  = PCENTER_PA
-!                        D_PP   = HNO3PP
-!                        D_PS   = PSATHNO3
-!                        D_TK   = TCENTER
-!                     ENDIF
-!------------------------------------------------------------------------------
-                     
                   ELSE
                      HNO3_BOX_S = 0e+0_fp
                      VOL_NAT = 0e+0_fp
@@ -3382,40 +3232,6 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
-
-!------------------------------------------------------------------------------
-! Prior to 8/20/18:
-! Comment out for now, these are PRIVATE but initialized outside the
-! loop, which causes issues with gfortran 8.2.0 (bmy, 8/20/18)
-!      IF ( prtDebug ) THEN
-!         CALL DEBUG_MSG( '### UCX: after CALC_STRAT_AER' )
-!         WRITE(6,'(a)') 'Strat. aerosol diagnostics summary:'
-!         WRITE(6,'(a,1x,E12.4)') 'Peak particle # density (#/m3): ',
-!     &                               MAXVAL(NDENS_AER(:,:,:,I_SPA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak particle density (kg/m3) : ',
-!     &                               MAXVAL(RHO_AER(:,:,:,I_SPA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak particle SAD (cm2/cm3)   : ',
-!     &                               MAXVAL(SAD_AER(:,:,:,I_SPA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak particle radius (cm)     : ',
-!    &                               MAXVAL(RAD_AER(:,:,:,I_SPA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS # density (#/m3) : ',
-!     &                               MAXVAL(NDENS_AER(:,:,:,I_SLA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS density (kg/m3)  : ',
-!     &                               MAXVAL(RHO_AER(:,:,:,I_SLA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS SAD (cm2/cm3)    : ',
-!     &                               MAXVAL(SAD_AER(:,:,:,I_SLA))
-!         WRITE(6,'(a,1x,E12.4)') 'Peak SSA/STS radius (cm)      : ',
-!     &                               MAXVAL(RAD_AER(:,:,:,I_SLA))
-!         WRITE(6,'(a,1x,E12.4)') 'NAT/NO3 fraction in max-NAT box  : ',
-!     &                               D_MAXN                       
-!         WRITE(6,'(a,3(1x,E12.4))') 'Local MR (H2O-HNO3-NAT) (v/v) : ',
-!     &                               D_XH2O,D_XHNO3,D_XNAT        
-!         WRITE(6,'(a,3(1x,E12.4))') 'Pressure (box-HNO3-sat) (Pa)  : ',
-!     &                               D_PPA,D_PP,D_PS        
-!         WRITE(6,'(a,1x,E12.4)') 'Local temperature (K)         : ',
-!     &                               D_TK                    
-!      ENDIF
-!------------------------------------------------------------------------------
 
       ! Free pointers
       NULLIFY( Spc, STATE_PSC, KHETI_SLA )
@@ -4766,8 +4582,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT, Input_Opt, 
-     &                          State_Met, State_Chm, RC )
+      SUBROUTINE SET_H2O_TRAC ( am_I_Root, SETSTRAT,   Input_Opt, 
+     &                          State_Chm, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -4775,9 +4591,9 @@
       USE DAO_MOD,            ONLY : AIRQNT
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GC_GRID_MOD,        ONLY : GET_YMID
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE UnitConv_Mod 
 !
@@ -4786,6 +4602,7 @@
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       LOGICAL,        INTENT(IN)    :: SETSTRAT    ! Set strat H2O?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input options
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
 !
@@ -4893,15 +4710,15 @@
 !$OMP+PRIVATE( I, J, L, TPLEV, READ_SPHU, LEVCPT)
 !$OMP+PRIVATE( SPHU_kgkg, H2OVV_moist, Ev_mid )
 !$OMP+PRIVATE( Esat, EsatA, EsatB, EsatC, EsatD )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Tropopause level for this grid box
          TPLEV = State_Met%TropLev(I,J)
 
          ! Between 30S-30N, find the level of cold point tropopause,
          ! the altitude with the coldest temperature below 10 hPa
-         IF ( ABS(GET_YMID(I,J,1)) <= 30 ) THEN
+         IF ( ABS(State_Grid%YMid(I,J)) <= 30 ) THEN
             ! Level with minimum temperature, 
             ! use MASK to screen for >10 hPa
             LEVCPT = MINLOC( State_Met%T(I,J,:), DIM=1, 
@@ -4910,7 +4727,7 @@
             LEVCPT = -1
          ENDIF
 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
 
             ! Mark as tropospheric air everything that is at current
             ! tropopause or offset levels above. This is to avoid H2O 
@@ -4975,8 +4792,8 @@
       ! If humidity was updated, update all moist-dependent air quantities
       ! and species mixing ratio with the new moisture content (ewl, 4/29/15) 
       IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
-         CALL AIRQNT( am_I_Root, Input_opt, State_Met, State_Chm, RC, 
-     &                update_mixing_ratio=.TRUE. )
+         CALL AIRQNT( am_I_Root, Input_opt, State_Chm, State_Grid,
+     &                State_Met, RC,        Update_Mixing_Ratio=.TRUE. )
       ENDIF
 
       ! Free pointer
@@ -4999,7 +4816,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
+      SUBROUTINE UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid,
+     &                          State_Met )
 !
 ! !USES:
 !
@@ -5007,12 +4825,14 @@
       USE FAST_JX_MOD,        ONLY : RXN_H2SO4
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -5074,8 +4894,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L, DAYCOLUMN, GMU )
 !$OMP+PRIVATE( LMINPHOT, PHOTDELTA, SO4_IN, SO4_DELTA )
-      DO J=1,JJPAR
-      DO I=1,IIPAR
+      DO J=1,State_Grid%NY
+      DO I=1,State_Grid%NX
 
          GMU       = State_Met%SUNCOSmid(I,J)
          DAYCOLUMN = (GMU.gt.0e+0_fp)
@@ -5087,7 +4907,7 @@
             PHOTDELTA = ZPJ(LMINPHOT,RXN_H2SO4,I,J) * DTCHEM
             PHOTDELTA = MIN(1.e+0_fp,PHOTDELTA)
 
-            DO L=LMINPHOT+1,LLPAR
+            DO L=LMINPHOT+1,State_Grid%NZ
                ! Apply photolysis to SO4
                ! First retrieve gaseous fraction
                SO4_IN = Spc(I,J,L,id_SO4)*SO4_PHOTFRAC(I,J,L)
@@ -5492,7 +5312,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE NOXCOEFF_INIT ( am_I_Root, Input_Opt )
+      SUBROUTINE NOXCOEFF_INIT ( am_I_Root, Input_Opt, State_Grid )
 !
 ! !USES:
 !
@@ -5500,11 +5320,13 @@
       USE ERROR_MOD,          ONLY : ERROR_STOP
       USE FILE_MOD,           ONLY : IOERROR
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,          INTENT(IN) :: am_I_Root          ! Root CPU? 
       TYPE(OptInput),   INTENT(IN) :: Input_Opt          ! Input options
+      TYPE(GrdState),   INTENT(IN) :: State_Grid         ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -5536,10 +5358,12 @@
       ! available for 2x25 and 4x5. Use 2x25 for any different grid
       ! and map NOx coeffs onto simulation grid when calling 
       ! GET_NOXCOEFF.
-#if defined ( GRID2x25 ) || defined ( GRID4x5 )
-      JJNOXCOEFF = JJPAR
-#else
-      JJNOXCOEFF = 91
+      IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' .or.
+     &     TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+         JJNOXCOEFF = State_Grid%NY
+      ELSE
+         JJNOXCOEFF = 91
+      ENDIF
 
       ! Fill NOx latitudes
       ALLOCATE(NOXLAT(JJNOXCOEFF+1), STAT=AS )
@@ -5553,7 +5377,6 @@
       ! Overshoot to make sure that a latitude of 90.0 will be properl
       ! matched onto JJNOXCOEFF. 
       NOXLAT(JJNOXCOEFF+1) = 90.5e+0_fp 
-#endif
 
       ! Initialize the NOXCOEFF array. This array holds monthly NOx 
       ! coefficients on 51 levels and for 6 species.
@@ -5599,32 +5422,23 @@
  
          ! Read in data
          DO ILEV = 1,UCX_NLEVS
-            READ(IU_FILE, 110, IOSTAT=IOS ) NOXCOEFF(:,ILEV,ITRAC,IMON)
+
+            IF ( TRIM(State_Grid%GridRes) =='4.0x5.0' ) THEN
+               READ(IU_FILE, 110, IOSTAT=IOS )
+     &            NOXCOEFF(:,ILEV,ITRAC,IMON)
+ 110           FORMAT(46E10.3)
+            ELSE
+               ! Use 2x25 as default 
+               READ(IU_FILE, 120, IOSTAT=IOS )
+     &            NOXCOEFF(:,ILEV,ITRAC,IMON)
+ 120           FORMAT(91E10.3)
+            ENDIF
             IF ( IOS /= 0 ) THEN
                WRITE(6,'(a,a,I4,a,1x,a)') 'UCX_MOD: Error reading '
      & , 'line ', ILEV, ' in file ', TRIM( NOX_FILE )
                CALL IOERROR( IOS, IU_FILE,'UCX_MOD:NOXCOEFF_INIT')
             ENDIF
          ENDDO
-
-#if defined( GRID2x25 )
-110   FORMAT(91E10.3)
-#elif defined( GRID4x5 )
-110   FORMAT(46E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_AS )
-110   FORMAT(133E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_NA )
-110   FORMAT(121E10.3)
-#elif defined( GRID05x0625 )   && defined( NESTED_EU )
-110   FORMAT(81E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_CH )
-110   FORMAT(161E10.3)
-#elif defined( GRID025x03125 ) && defined( NESTED_NA )
-110   FORMAT(202E10.3)
-#else
-      ! use 2x25 as default 
-110   FORMAT(91E10.3)
-#endif
 
          CLOSE(IU_FILE)
 
@@ -5640,7 +5454,7 @@
 !
 ! !IROUTINE: get_jjnox 
 !
-! !DESCRIPTION: Subroutine GET\_JJNOX maps grid box at location IISIM, JJSIM of  
+! !DESCRIPTION: Subroutine GET\_JJNOX maps grid box at location IISIM, JJSIM of
 ! the simulation grid onto the latitude grid of the NOXCOEFF array. JJNOX can
 ! differ from JJSIM if it's not a 4x5 or 2x25 simulation.
 !\\
@@ -5651,16 +5465,17 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_JJNOX( IISIM, JJSIM ) RESULT ( JJNOX )
+      FUNCTION GET_JJNOX( IISIM, JJSIM, State_Grid ) RESULT ( JJNOX )
 !
 ! !USES:
 !
-      USE GC_GRID_MOD, ONLY : GET_YMID
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       INTEGER,          INTENT(IN) :: IISIM    ! Latitude index on simulation grid 
       INTEGER,          INTENT(IN) :: JJSIM    ! Latitude index on simulation grid 
+      TYPE(GrdState),   INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -5682,25 +5497,26 @@
       !=================================================================
 
       ! Nothing to do for 'standard' grids
-#if defined( GRID4x5 ) || defined( GRID2x25 )
-      JJNOX = JJSIM
-#else
+      IF ( .not. State_Grid%NestedGrid ) THEN
+         JJNOX = JJSIM
+      ELSE
 
-      ! Init
-      JJNOX = -1
+         ! Init
+         JJNOX = -1
 
-      ! Get latitude in degrees north on simulation grid
-      LAT = GET_YMID ( IISIM, JJSIM, 1 )
+         ! Get latitude in degrees north on simulation grid
+         LAT = State_Grid%YMid( IISIM, JJSIM )
 
-      ! Loop over all latitudes of the NOx grid until we reach the grid
-      ! box where the simulation latitude sits in. 
-      DO I = 1,JJNOXCOEFF
-         IF ( LAT < NOXLAT(I+1) ) THEN
-            JJNOX = I
-            EXIT
-         ENDIF
-      ENDDO
-#endif
+         ! Loop over all latitudes of the NOx grid until we reach the grid
+         ! box where the simulation latitude sits in. 
+         DO I = 1,JJNOXCOEFF
+            IF ( LAT < NOXLAT(I+1) ) THEN
+               JJNOX = I
+               EXIT
+            ENDIF
+         ENDDO
+
+      ENDIF
 
       END FUNCTION GET_JJNOX
 !EOC
@@ -5716,19 +5532,20 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag )
+      SUBROUTINE INIT_UCX( am_I_Root, Input_Opt, State_Chm, State_Diag,
+     &                     State_Grid )
 !
 ! !USES:
 !
       USE ERROR_MOD,      ONLY : ALLOC_ERR
       USE ERROR_MOD,      ONLY : IS_SAFE_DIV
       USE ERROR_MOD,      ONLY : ERROR_STOP
-      USE GC_GRID_MOD,    ONLY : GET_YEDGE
       USE Input_Opt_Mod,  ONLY : OptInput
       USE PhysConstants,  ONLY : PI_180
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
       USE TIME_MOD,       ONLY : GET_YEAR
 !
 ! !INPUT PARAMETERS:
@@ -5737,6 +5554,7 @@
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
       TYPE(DgnState), INTENT(IN) :: State_Diag  ! Diagnostics State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY: 
 !  04 Apr 2013 - S. D. Eastham - Initial version
@@ -5866,12 +5684,16 @@
       ! Regridding of netCDF input data is currently not supported.
       ! NOTE: netCDF inputs not read by GCHP, GEOS-5, WRF-GC
       IF (UCXNETCDF) THEN
-#if !defined(GRID4x5) && !defined(GRID2x25)
-         DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25 and '//
-     &     ' 4x5 - try setting the module variable UCXNETCDF=.FALSE.'
-         CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
-       RETURN
-#endif
+
+         IF ( TRIM(State_Grid%GridRes) /= '4.0x5.0'   .and.
+     &        TRIM(State_Grid%GridRes) /= '2.0x2.5' ) THEN
+            DBGMSG = 'NetCDF NOx coeffs only preprocessed for 2x25' //
+     &               ' and 4x5 - try setting the module variable'   //
+     &               ' UCXNETCDF=.FALSE.'
+            CALL ERROR_STOP( DBGMSG, 'INIT_UCX (UCX_mod.f)!' )
+            RETURN
+         ENDIF
+
          WRITE( NOON_FILE_ROOT,'(a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
      &        'UCX_201403/Init2D/Noontime.nc'
@@ -5886,11 +5708,12 @@
       ! boundary conditions, but those have been checked in the logical 
       ! check above (USE2DDATA). 
       ELSE
-#if defined(GRID4x5)
-         GRIDSPEC = 'Grid4x5/InitCFC_'
-#else
-         GRIDSPEC = 'Grid2x25/InitCFC_'
-#endif
+
+         IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+            GRIDSPEC = 'Grid4x5/InitCFC_'
+         ELSE
+            GRIDSPEC = 'Grid2x25/InitCFC_'
+         ENDIF
          WRITE(   NOON_FILE_ROOT,'(a,a,a)') 
      &        TRIM(Input_Opt%CHEM_INPUTS_DIR), 
 #if defined( MODEL_GEOS )
@@ -6081,7 +5904,8 @@
       ENDIF
 
       IF (N_EMIT.gt.0) THEN
-         ALLOCATE( GRID_EMIT( IIPAR, JJPAR, N_EMIT ), STAT=AS )
+         ALLOCATE( GRID_EMIT( State_Grid%NX, State_Grid%NY, N_EMIT ),
+     &             STAT=AS )
          IF ( AS /= 0 ) CALL ALLOC_ERR( 'GRID_EMIT' )
          GRID_EMIT = 0e+0_fp
       ENDIF
@@ -6093,32 +5917,39 @@
       ENDDO
 
       ! Initialize NOx coefficient arrays
-      ALLOCATE( NOX_O( IIPAR, JJPAR, LLPAR, 2 ), STAT=AS )
+      ALLOCATE( NOX_O( State_Grid%NX, State_Grid%NY, State_Grid%NZ, 2 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOX_O' )
       NOX_O = 0e+0_fp
 
-      ALLOCATE( NOX_J( IIPAR, JJPAR, LLPAR, 4 ), STAT=AS )
+      ALLOCATE( NOX_J( State_Grid%NX, State_Grid%NY, State_Grid%NZ, 4 ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NOX_J' )
       NOX_J = 0e+0_fp
 
       ! Initialize PSC variables
-      ALLOCATE( RAD_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      ALLOCATE( RAD_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RAD_AER' )
       RAD_AER = 0e+0_fp
       
-      ALLOCATE( KG_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      ALLOCATE( KG_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                  NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'KG_AER' )
       KG_AER = 0e+0_fp
       
-      ALLOCATE( SAD_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      ALLOCATE( SAD_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SAD_AER' )
       SAD_AER = 0e+0_fp
       
-      ALLOCATE( NDENS_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      ALLOCATE( NDENS_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                     NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NDENS_AER' )
       NDENS_AER = 0e+0_fp
       
-      ALLOCATE( RHO_AER( IIPAR, JJPAR, LLPAR, NSTRATAER ), STAT=AS )
+      ALLOCATE( RHO_AER( State_Grid%NX, State_Grid%NY, State_Grid%NZ,
+     &                   NSTRATAER ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'RHO_AER' )
       RHO_AER = 0e+0_fp
             
@@ -6130,7 +5961,8 @@
       !          5 - HBr
       !          6 - HOBr
       !          7 - H2O
-      ALLOCATE( AERFRAC( IIPAR, JJPAR, LLPAR, 7 ), STAT=AS )
+      ALLOCATE( AERFRAC( State_Grid%NX, State_Grid%NY, State_Grid%NZ,7),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AERFRAC' )
       AERFRAC = 0e+0_fp
 
@@ -6145,20 +5977,20 @@
       AERFRACIND(7) = id_H2O
     
       ! H2SO4 photolysis rate at the top of the chemgrid
-      ALLOCATE( SO4_TOPPHOT( IIPAR,JJPAR ), STAT=AS )
+      ALLOCATE( SO4_TOPPHOT( State_Grid%NX,State_Grid%NY ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SO4_TOPPHOT' )
       SO4_TOPPHOT = 0.e+0_fp
 
-      ALLOCATE( UCX_REGRID( JGLOB, UCX_NLAT ), STAT=AS )
+      ALLOCATE( UCX_REGRID( State_Grid%NY, UCX_NLAT ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UCX_REGRID' )
       UCX_REGRID = 0e+0_fp
 
       ! Calculate the scaling matrix
       ! Note cosine (area-weighted)
-      JMAX_OUT = GET_YEDGE(1,1,1)
-      DO JOUT=1,JJPAR
+      JMAX_OUT = State_Grid%YEdge(1,1)
+      DO JOUT=1,State_Grid%NY
          JMIN_OUT = JMAX_OUT
-         JMAX_OUT = GET_YEDGE(1,JOUT+1,1)
+         JMAX_OUT = State_Grid%YEdge(1,JOUT+1)
          JDIF_OUT = SIN( JMAX_OUT * PI_180 )
      &            - SIN( JMIN_OUT * PI_180 )
          DEG_SUM = 0e+0_fp
@@ -6210,7 +6042,7 @@
 
       ! Initialize NOXCOEFF arrays
       IF ( .NOT. UCXNETCDF ) THEN
-         CALL NOXCOEFF_INIT( am_I_Root, Input_Opt ) 
+         CALL NOXCOEFF_INIT( am_I_Root, Input_Opt, State_Grid ) 
       ENDIF
 
       END SUBROUTINE INIT_UCX

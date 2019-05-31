@@ -49,6 +49,7 @@ MODULE State_Met_Mod
      ! Surface fields
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: ALBD          (:,:  ) ! Visible surface albedo [1]
+     REAL(fp), POINTER :: AREA_M2       (:,:  ) ! Grid box surface area [m2]
      INTEGER,  POINTER :: ChemGridLev   (:,:  ) ! Chemistry grid level
      REAL(fp), POINTER :: CLDFRC        (:,:  ) ! Column cloud fraction [1]
      INTEGER,  POINTER :: CLDTOPS       (:,:  ) ! Max cloud top height [levels]
@@ -128,7 +129,6 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields                  
      !----------------------------------------------------------------------
-     REAL(fp), POINTER :: AREA_M2       (:,:  ) ! Grid box surface area [m2]
      REAL(fp), POINTER :: CLDF          (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC         (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DQRCU         (:,:,:) ! Conv precip production rate 
@@ -251,6 +251,12 @@ MODULE State_Met_Mod
                                                 !  and 13 local solar time?
 
      !----------------------------------------------------------------------
+     ! Offline lightning fields
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: FLASH_DENS    (:,:  ) ! Lightning flash density [#/km2/s]
+     REAL(fp), POINTER :: CONV_DEPTH    (:,:  ) ! Convective cloud depth [m]
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Met
      !----------------------------------------------------------------------
      CHARACTER(LEN=3)             :: State     = 'MET'    ! Name of this state
@@ -314,6 +320,7 @@ MODULE State_Met_Mod
 !  07 Nov 2017 - R. Yantosca - Add tropht and troplev fields
 !  08 Jan 2018 - R. Yantosca - Added logical query fields
 !  31 Jan 2018 - E. Lundgren - Remove underscores from diagnostic names
+!  20 Jan 2019 - L. Murray   - Add offline lightning flash rates
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -342,15 +349,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Met( am_I_Root, State_Met, RC )
+  SUBROUTINE Init_State_Met( am_I_Root, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
-    USE CMN_SIZE_MOD, ONLY : IIPAR, JJPAR, LLPAR, NSURFTYPE
+    USE CMN_SIZE_MOD,   ONLY : NSURFTYPE
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -403,18 +412,19 @@ CONTAINS
     !=======================================================================
     ! Initialize
     !=======================================================================
-    RC    =  GC_SUCCESS
+    RC      =  GC_SUCCESS
     ThisLoc = ' -> Init_State_Met (in Headers/state_met_mod.F90)'
 
     ! Shorten grid parameters for readability
-    IM = IIPAR ! # latitudes
-    JM = JJPAR ! # longitudes
-    LM = LLPAR ! # levels
+    IM = State_Grid%NX ! # latitudes
+    JM = State_Grid%NY ! # longitudes
+    LM = State_Grid%NZ ! # levels
 
     !=======================================================================
     ! Nullify all fields for safety's sake before allocating them
     !=======================================================================
     State_Met%ALBD           => NULL()
+    State_Met%AREA_M2        => NULL()
     State_Met%ChemGridLev    => NULL()
     State_Met%CLDFRC         => NULL()
     State_Met%CLDTOPS        => NULL()
@@ -484,7 +494,6 @@ CONTAINS
     State_Met%AIRDEN         => NULL()
     State_Met%MAIRDEN        => NULL()
     State_Met%AIRVOL         => NULL()
-    State_Met%AREA_M2        => NULL()
     State_Met%BXHEIGHT       => NULL()
     State_Met%CLDF           => NULL()
     State_Met%CMFMC          => NULL()
@@ -533,6 +542,8 @@ CONTAINS
     State_Met%IsLocalNoon    => NULL()
     State_Met%LocalSolarTime => NULL()
     State_Met%AgeOfAir       => NULL()
+    State_Met%FLASH_DENS     => NULL()
+    State_Met%CONV_DEPTH     => NULL()
 
     !=======================================================================
     ! Allocate 2-D Fields
@@ -549,6 +560,16 @@ CONTAINS
                             State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-------------------------
+    ! AREA_M2 [m2]
+    !-------------------------
+    ALLOCATE( State_Met%AREA_M2( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%AREA_M2 = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'AREAM2', State_Met%AREA_M2, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
     ! ChemGridLev [1]
@@ -1264,17 +1285,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !-------------------------
-    ! AREA_M2 [m2]
-    !-------------------------
-    ALLOCATE( State_Met%AREA_M2( IM, JM ), STAT=RC )
-    CALL GC_CheckVar( 'State_Met%AREA_M2', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN           
-    State_Met%AREA_M2  = 0.0_fp
-    CALL Register_MetField( am_I_Root, 'AREAM2', State_Met%AREA_M2, &
-                            State_Met, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    !-------------------------
     ! AVGW [v/v]
     !-------------------------
     ALLOCATE( State_Met%AVGW( IM, JM, LM ), STAT=RC )
@@ -1925,6 +1935,28 @@ CONTAINS
                             State_Met, RC                             )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    !-----------------------------
+    ! Lightning density [#/km2/s]
+    !-----------------------------
+    ALLOCATE( State_Met%FLASH_DENS( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%FLASH_DENS', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%FLASH_DENS = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'FLASH_DENS', State_Met%FLASH_DENS, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    !-------------------------
+    ! Convective Depth [m]
+    !-------------------------
+    ALLOCATE( State_Met%CONV_DEPTH( IM, JM ), STAT=RC )
+    CALL GC_CheckVar( 'State_Met%CONV_DEPTH', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Met%CONV_DEPTH = 0.0_fp
+    CALL Register_MetField( am_I_Root, 'CONV_DEPTH', State_Met%CONV_DEPTH, &
+                            State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     !=======================================================================
     ! Print information about the registered fields (short format)
     !=======================================================================
@@ -2014,6 +2046,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%ALBD', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%ALBD => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
+       DEALLOCATE( State_Met%AREA_M2, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%AREA_M2 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%ChemGridLev ) ) THEN
@@ -2443,6 +2482,20 @@ CONTAINS
        State_Met%IREG => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%FLASH_DENS ) ) THEN
+       DEALLOCATE( State_Met%FLASH_DENS, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%FLASH_DENS', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%FLASH_DENS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Met%CONV_DEPTH ) ) THEN
+       DEALLOCATE( State_Met%CONV_DEPTH, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%CONV_DEPTH', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%CONV_DEPTH => NULL()
+    ENDIF
+
     !========================================================================
     ! Deallocate 3-D fields
     !
@@ -2545,17 +2598,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%AIRVOL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%AIRVOL => NULL()
-#endif
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%AREA_M2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
-       State_Met%AREA_M2 => NULL()
-#else
-       DEALLOCATE( State_Met%AREA_M2, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%AREA_M2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%AREA_M2 => NULL()
 #endif
     ENDIF
 
@@ -3199,6 +3241,11 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'AREAM2' )
+          IF ( isDesc  ) Desc  = 'Surface area of grid box'
+          IF ( isUnits ) Units = 'm2'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'CHEMGRIDLEV' )
           IF ( isDesc  ) Desc  = 'Highest level of the chemistry grid'
           IF ( isUnits ) Units = '1'
@@ -3542,6 +3589,16 @@ CONTAINS
           IF ( isUnits ) Units = 'hours'
           IF ( isRank  ) Rank  = 2
 
+       CASE ( 'FLASH_DENS' )
+          IF ( isDesc  ) Desc  = 'Lightning flash density'
+          IF ( isUnits ) Units = 'km-2 s-1'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'CONV_DEPTH' )
+          IF ( isDesc  ) Desc  = 'Convective cloud depth'
+          IF ( isUnits ) Units = 'm'
+          IF ( isRank  ) Rank  = 2
+
        CASE ( 'AD' )
           IF ( isDesc  ) Desc  = 'Dry air mass'
           IF ( isUnits ) Units = 'kg'
@@ -3571,11 +3628,6 @@ CONTAINS
           IF ( isUnits ) Units = 'm3'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
-
-       CASE ( 'AREAM2' )
-          IF ( isDesc  ) Desc  = 'Surface area of grid box'
-          IF ( isUnits ) Units = 'm2'
-          IF ( isRank  ) Rank  = 2
 
        CASE ( 'AVGW' )
           IF ( isDesc  ) Desc  = 'Water vapor mixing ratio (w/r/t dry air)'

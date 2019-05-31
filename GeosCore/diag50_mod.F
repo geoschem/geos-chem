@@ -160,14 +160,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG50( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
+      SUBROUTINE DIAG50( am_I_Root, Input_Opt, State_Chm, State_Grid,
+     &                   State_Met, RC)
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE Time_Mod,           ONLY : ITS_A_NEW_DAY
@@ -177,6 +178,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -207,13 +209,14 @@
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
 
       ! Accumulate data over a 24-hr period in the Q array
-      CALL ACCUMULATE_DIAG50
-     &    ( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+      CALL ACCUMULATE_DIAG50( am_I_Root,  Input_Opt, State_Chm,
+     &                        State_Grid, State_Met, RC )
 
       ! Write data to disk at the end of the day
       IF ( ITS_A_NEW_DAY() .and. 
      &     Input_Opt%DO_DIAG_WRITE    ) THEN
-         CALL WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
+         CALL WRITE_DIAG50( am_I_Root,  Input_Opt, State_Chm,
+     &                      State_Grid, RC )
       ENDIF
 
 #endif
@@ -233,8 +236,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE ACCUMULATE_DIAG50( am_I_Root, Input_Opt,
-     &                              State_Met, State_Chm, RC )
+      SUBROUTINE ACCUMULATE_DIAG50( am_I_Root,  Input_Opt, State_Chm,
+     &                              State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -242,9 +245,9 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH
@@ -259,6 +262,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -433,7 +437,7 @@
 !$OMP+DEFAULT( SHARED ) 
 !$OMP+PRIVATE( X, Y, K, I, J, L )
 !$OMP+SCHEDULE( DYNAMIC )
-         DO K = 1, MIN(ND50_NL, LLPAR)
+         DO K = 1, MIN(ND50_NL, State_Grid%NZ)
             L = LOFF + K
 
          ! Loop over latitudes 
@@ -442,7 +446,7 @@
 
          ! Loop over longitudes
          DO X = 1, ND50_NI
-            I = GET_I( X )
+            I = GET_I( X, State_Grid )
 
             ! Only increment if we were in the chemistry grid
             IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -478,7 +482,7 @@
 
          ! Loop over longitudes
          DO X = 1, ND50_NI
-            I = GET_I( X )
+            I = GET_I( X, State_Grid )
 
             ! Archive by simulation 
             IF ( N <= nAdvect ) THEN
@@ -905,22 +909,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm, RC )
+      SUBROUTINE WRITE_DIAG50( am_I_Root, Input_Opt, State_Chm,
+     &                         State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2
-      USE BPCH2_MOD,          ONLY : GET_MODELNAME
       USE BPCH2_MOD,          ONLY : GET_HALFPOLAR
       USE BPCH2_MOD,          ONLY : OPEN_BPCH2_FOR_WRITE
       USE CMN_SIZE_MOD             ! Size Parameters
       USE ERROR_MOD,          ONLY : ALLOC_ERR
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE inquireMod,         ONLY : findFreeLUN
       USE TIME_MOD,           ONLY : EXPAND_DATE
       USE TIME_MOD,           ONLY : GET_NYMD_DIAG
@@ -948,6 +951,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1037,7 +1041,7 @@
          CALL OPEN_HDF( IU_ND50_HDF,         FILENAME,
      &                  Input_Opt%ND50_IMAX, Input_Opt%ND50_IMIN,   
      &                  Input_Opt%ND50_JMAX, Input_Opt%ND50_JMIN,
-     &                  ND50_NI,             ND50_NJ )
+     &                  ND50_NI,             ND50_NJ , State_Grid)
 #endif
       ELSE
          CALL OPEN_BPCH2_FOR_WRITE( IU_ND50, FILENAME, TITLE )
@@ -1435,19 +1439,20 @@
 !\\
 ! !INTERFACE:
 !
-      FUNCTION GET_I( X ) RESULT( I )
+      FUNCTION GET_I( X, State_Grid ) RESULT( I )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD         ! Size parameters
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-      INTEGER, INTENT(IN) :: X   ! Relative longitude index
+      INTEGER,        INTENT(IN) :: X           ! Relative longitude index
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !RETURN VALUE:
 !
-      INTEGER             :: I   ! Absolute longitude index
+      INTEGER                    :: I           ! Absolute longitude index
 !
 ! !REMARKS:
 ! 
@@ -1466,7 +1471,7 @@
       I = IOFF + X
 
       ! Handle wrapping around the date line, if necessary
-      IF ( I > IIPAR ) I = I - IIPAR
+      IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 #endif
 
       END FUNCTION GET_I
@@ -1484,29 +1489,28 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG50( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG50( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Grid_Mod, ONLY : GrdState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
-      USE BPCH2_MOD,     ONLY : GET_MODELNAME
-      USE BPCH2_MOD,     ONLY : GET_HALFPOLAR
+      USE BPCH2_MOD,      ONLY : GET_MODELNAME
+      USE BPCH2_MOD,      ONLY : GET_HALFPOLAR
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
-      USE ERROR_MOD,     ONLY : ALLOC_ERR
-      USE ERROR_MOD,     ONLY : ERROR_STOP
-      USE GC_GRID_MOD,   ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,   ONLY : GET_YOFFSET
-      USE GC_GRID_MOD,   ONLY : ITS_A_NESTED_GRID
-      USE TIME_MOD,      ONLY : GET_TAUb
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE ERROR_MOD,      ONLY : ERROR_STOP
+      USE TIME_MOD,       ONLY : GET_TAUb
 #endif
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1556,27 +1560,22 @@
       !=================================================================
 
       ! Get grid offsets
-      IF ( ITS_A_NESTED_GRID() ) THEN
-         I0 = GET_XOFFSET()
-         J0 = GET_YOFFSET() 
-      ELSE
-         I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-         J0 = GET_YOFFSET( GLOBAL=.TRUE. ) 
-      ENDIF
+      I0 = State_Grid%XMinOffset
+      J0 = State_Grid%YMaxOffset 
 
       !-----------
       ! Longitude
       !-----------
 
       ! Error check ND50_IMIN
-      IF ( Input_Opt%ND50_IMIN+I0 < 1       .or.
-     &     Input_Opt%ND50_IMIN+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND50_IMIN+I0 < 1 .or.
+     &     Input_Opt%ND50_IMIN+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND50_IMIN value!', LOCATION )
       ENDIF
 
       ! Error check ND50_IMAX
-      IF ( Input_Opt%ND50_IMAX+I0 < 1      .or.
-     &     Input_Opt%ND50_IMAX+I0 > IIPAR ) THEN
+      IF ( Input_Opt%ND50_IMAX+I0 < 1 .or.
+     &     Input_Opt%ND50_IMAX+I0 > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Bad ND50_IMAX value!', LOCATION )
       ENDIF
 
@@ -1585,13 +1584,13 @@
       IF ( Input_Opt%ND50_IMAX >= Input_Opt%ND50_IMIN ) THEN
          ND50_NI = ( Input_Opt%ND50_IMAX - Input_Opt%ND50_IMIN ) + 1
       ELSE 
-         ND50_NI = ( IIPAR - Input_Opt%ND50_IMIN ) + 1 +
+         ND50_NI = ( State_Grid%NX - Input_Opt%ND50_IMIN ) + 1 +
      &               Input_Opt%ND50_IMAX
          WRITE( 6, '(a)' ) 'We are wrapping around the date line!'
       ENDIF
 
-      ! Make sure that ND50_NI <= IIPAR
-      IF ( ND50_NI > IIPAR ) THEN
+      ! Make sure that ND50_NI <= NX
+      IF ( ND50_NI > State_Grid%NX ) THEN
          CALL ERROR_STOP( 'Too many longitudes!', LOCATION )
       ENDIF
 
@@ -1601,13 +1600,13 @@
       
       ! Error check JMIN_AREA
       IF ( Input_Opt%ND50_JMIN+J0 < 1       .or.
-     &     Input_Opt%ND50_JMIN+J0 > JJPAR ) THEN
+     &     Input_Opt%ND50_JMIN+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND50_JMIN value!', LOCATION )
       ENDIF
      
       ! Error check JMAX_AREA
       IF ( Input_Opt%ND50_JMAX+J0 < 1       .or.
-     &     Input_Opt%ND50_JMAX+J0 > JJPAR ) THEN
+     &     Input_Opt%ND50_JMAX+J0 > State_Grid%NY ) THEN
          CALL ERROR_STOP( 'Bad ND50_JMAX value!', LOCATION )
       ENDIF
 
@@ -1624,7 +1623,7 @@
 
       ! Error check ND50_LMIN, ND50_LMAX
       IF ( Input_Opt%ND50_LMIN < 1       .or.
-     &     Input_Opt%ND50_LMAX > LLPAR ) THEN 
+     &     Input_Opt%ND50_LMAX >State_Grid%NZ ) THEN 
          CALL ERROR_STOP( 'Bad ND50 altitude values!', LOCATION )
       ENDIF
 
@@ -1652,14 +1651,10 @@
       !------------
       TAU0      = GET_TAUb()
       TITLE     = 'GEOS-CHEM DIAG50 24hr average time series'
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
-
-      ! Reset offsets to global values for bpch write
-      I0        = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0        = GET_YOFFSET( GLOBAL=.TRUE. ) 
 
       !=================================================================
       ! Allocate arrays

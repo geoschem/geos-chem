@@ -429,7 +429,7 @@ CONTAINS
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
-                             'HCO_EmisAdd error: EmisBe7', RC )
+                             'HCO_EmisAdd error: EmissBe7', RC )
              RETURN 
           ENDIF
        ENDIF
@@ -442,7 +442,7 @@ CONTAINS
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
-                             'HCO_EmisAdd error: EmisBe7Strat', RC )
+                             'HCO_EmisAdd error: EmissBe7Strat', RC )
              RETURN 
           ENDIF
        ENDIF
@@ -455,7 +455,7 @@ CONTAINS
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
-                             'HCO_EmisAdd error: EmisBe10', RC )
+                             'HCO_EmisAdd error: EmissBe10', RC )
              RETURN 
           ENDIF
        ENDIF
@@ -468,7 +468,7 @@ CONTAINS
           Arr3D => NULL()
           IF ( RC /= HCO_SUCCESS ) THEN
              CALL HCO_ERROR( HcoState%Config%Err, &
-                             'HCO_EmisAdd error: EmisBe10Strat', RC )
+                             'HCO_EmisAdd error: EmissBe10Strat', RC )
              RETURN 
           ENDIF
        ENDIF

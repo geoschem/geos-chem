@@ -21,7 +21,7 @@ MODULE State_Diag_Mod
 !
 ! USES:
 
-  USE CMN_Size_Mod,    ONLY : IIPAR, JJPAR, LLPAR, NDUST
+  USE CMN_Size_Mod,    ONLY : NDUST
   USE DiagList_Mod
   USE ErrCode_Mod
   USE Precision_Mod
@@ -59,6 +59,10 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: SpeciesRst      (:,:,:,:) ! Spc Conc for GC restart
      LOGICAL :: Archive_SpeciesRst
 
+     ! Boundary condition fields
+     REAL(f8),  POINTER :: SpeciesBC       (:,:,:,:) ! Spc Conc for BCs
+     LOGICAL :: Archive_SpeciesBC
+     
      ! Concentrations
      REAL(f8),  POINTER :: SpeciesConc     (:,:,:,:) ! Spc Conc for diag output
      LOGICAL :: Archive_SpeciesConc
@@ -676,20 +680,21 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Diag( am_I_Root, Input_Opt,  State_Chm, &
-                              Diag_List, State_Diag, RC )
+  SUBROUTINE Init_State_Diag( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, Diag_List, State_Diag, RC )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod, ONLY : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 ! 
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry state object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid state object
     TYPE(DgnList),  INTENT(IN)    :: Diag_List   ! Diagnostics list object
-
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -741,9 +746,9 @@ CONTAINS
     Is_UCX    = Input_Opt%LUCX
     
     ! Shorten grid parameters for readability
-    IM        = IIPAR ! # latitudes
-    JM        = JJPAR ! # longitudes
-    LM        = LLPAR ! # levels
+    IM        = State_Grid%NX ! # latitudes
+    JM        = State_Grid%NY ! # longitudes
+    LM        = State_Grid%NZ ! # levels
 
     ! Number of species per category
     nSpecies  = State_Chm%nSpecies
@@ -761,6 +766,10 @@ CONTAINS
     ! Restart file fields
     State_Diag%SpeciesRst                          => NULL()
     State_Diag%Archive_SpeciesRst                  = .FALSE.
+
+    ! Boundary condition fields
+    State_Diag%SpeciesBC                           => NULL()
+    State_Diag%Archive_SpeciesBC                   = .FALSE.
 
     ! Species concentration diagnostics
     State_Diag%SpeciesConc                         => NULL()
@@ -1317,6 +1326,24 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! Species Concentration for boundary conditions
+    !------------------------------------------------------------------------
+    arrayID = 'State_Diag%SpeciesBC'
+    diagID  = 'SpeciesBC'
+    CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+    IF ( Found ) THEN
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%SpeciesBC( IM, JM, LM, nSpecies ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesBC = 0.0_f8
+       State_Diag%Archive_SpeciesBC = .TRUE.
+       CALL Register_DiagField( am_I_Root, diagID, State_Diag%SpeciesBC, &
+                                State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+    
     !------------------------------------------------------------------------
     ! Species Concentration
     !------------------------------------------------------------------------
@@ -6424,6 +6451,13 @@ CONTAINS
        State_Diag%SpeciesRst => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%SpeciesBC ) ) THEN
+       DEALLOCATE( State_Diag%SpeciesBC, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%SpeciesBC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SpeciesBC => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%SpeciesConc ) ) THEN
        DEALLOCATE( State_Diag%SpeciesConc, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%SpeciesConc', 2, RC )
@@ -8095,6 +8129,13 @@ CONTAINS
     ! Values for Retrieval (string comparison slow but happens only once)
     !=======================================================================
     IF ( TRIM( Name_AllCaps ) == 'SPECIESRST' ) THEN
+       IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
+       IF ( isUnits   ) Units = 'mol mol-1 dry'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+       IF ( isType    ) Type  = KINDVAL_F8
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
        IF ( isUnits   ) Units = 'mol mol-1 dry'
        IF ( isRank    ) Rank  = 3
@@ -10602,7 +10643,7 @@ CONTAINS
 !
 ! !IROUTINE: Init_RRTMG_Indices
 !
-! !DESCRIPTION: Populates fields of State_Diag that are used to keep track
+! !DESCRIPTION: Populates fields of State\_Diag that are used to keep track
 !  of the requested RRTMG flux outputs and their indices.  These are needed
 !  to be able to pass the proper flux output (and corresponding index for
 !  the appropriate netCDF diagnostic arrays) to DO\_RRTMG\_RAD\_TRANSFER.

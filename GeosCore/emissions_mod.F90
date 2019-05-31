@@ -58,8 +58,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Init( am_I_Root, Input_Opt, State_Met,                &
-                             State_Chm, RC,        HcoConfig                ) 
+  SUBROUTINE Emissions_Init( am_I_Root,  Input_Opt, State_Chm,                &
+                             State_Grid, State_Met, RC,                       &
+                             HcoConfig                                       ) 
 !
 ! !USES:
 !
@@ -67,21 +68,23 @@ CONTAINS
     USE HCOI_GC_Main_Mod,   ONLY : HCoi_GC_Init
     USE HCO_Types_Mod,      ONLY : ConfigObj
     USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,         INTENT(IN   )          :: am_I_Root  ! root CPU?
-    TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
     TYPE(ChmState),  INTENT(IN   )          :: State_Chm  ! Chemistry state 
+    TYPE(GrdState),  INTENT(IN   )          :: State_Grid ! Grid state 
+    TYPE(MetState),  INTENT(IN   )          :: State_Met  ! Met state
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput),  INTENT(INOUT)          :: Input_Opt  ! Input opts
-    TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
     INTEGER,         INTENT(INOUT)          :: RC         ! Failure or success
+    TYPE(ConfigObj), POINTER,      OPTIONAL :: HcoConfig  ! HEMCO config object
 !
 ! !REVISION HISTORY: 
 !  27 Aug 2014 - C. Keller   - Initial version 
@@ -116,8 +119,9 @@ CONTAINS
                            Ind_('GlobSH90dayTracer'  ) > 0 )
 
     ! Initialize the HEMCO environment for this GEOS-Chem run.
-    CALL HCOI_GC_Init( am_I_Root, Input_Opt, State_Met,                      &
-                       State_Chm, RC,        HcoConfig=HcoConfig            ) 
+    CALL HCOI_GC_Init( am_I_Root,  Input_Opt, State_Chm,                      &
+                       State_Grid, State_Met, RC,                             &
+                       HcoConfig=HcoConfig                                   ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -141,8 +145,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( am_I_Root, Input_Opt,  State_Met,                 &
-                            State_Chm, State_Diag, EmisTime,  Phase, RC      ) 
+  SUBROUTINE Emissions_Run( am_I_Root,  Input_Opt, State_Chm, State_Diag, &
+                            State_Grid, State_Met, EmisTime,  Phase, RC   ) 
 !
 ! !USES:
 !
@@ -156,9 +160,10 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Pops_Mod,           ONLY : GetPopsDiagsFromHemco
     USE Precision_Mod
-    USE State_Met_Mod,      ONLY : MetState
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 #if defined ( TOMAS )
     USE CARBON_MOD,         ONLY : EMISSCARBONTOMAS !jkodros
     USE SULFATE_MOD,        ONLY : EMISSSULFATETOMAS !jkodros
@@ -180,14 +185,14 @@ CONTAINS
     LOGICAL,        INTENT(IN   )  :: am_I_Root  ! root CPU?
     LOGICAL,        INTENT(IN   )  :: EmisTime   ! Emissions in this time step
     INTEGER,        INTENT(IN   )  :: Phase      ! Run phase
- 
+    TYPE(GrdState), INTENT(IN   )  :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Met state
-    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry state 
-    TYPE(DgnState), INTENT(INOUT)  :: State_Diag  ! Diagnostics State object
-    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(ChmState), INTENT(INOUT)  :: State_Chm  ! Chemistry State object 
+    TYPE(DgnState), INTENT(INOUT)  :: State_Diag ! Diagnostics State object
+    TYPE(MetState), INTENT(INOUT)  :: State_Met  ! Meteorology State object
+    TYPE(OptInput), INTENT(INOUT)  :: Input_Opt  ! Input Options object
     INTEGER,        INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REVISION HISTORY: 
@@ -223,8 +228,8 @@ CONTAINS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the 
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Met, State_Chm, & 
-                      EmisTime,  Phase,     RC                     ) 
+    CALL HCOI_GC_Run( am_I_Root, Input_Opt, State_Chm, State_Grid, & 
+                      State_Met, EmisTime,  Phase,     RC          ) 
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -242,7 +247,7 @@ CONTAINS
     ! are correctly treated.
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM ) THEN 
-       CALL EmissCarbon( am_I_Root, Input_Opt, State_Met, RC )
+       CALL EmissCarbon( am_I_Root, Input_Opt, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -254,7 +259,8 @@ CONTAINS
 
 #if defined ( TOMAS )
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL EmissCarbonTomas( am_I_Root,  Input_Opt, State_Chm, &
+                           State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -263,7 +269,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    CALL EmissSulfateTomas( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+    CALL EmissSulfateTomas( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -279,8 +286,8 @@ CONTAINS
     ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
     ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
     IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( am_I_Root, Input_Opt,  State_Met,                      &
-                      State_Chm, State_Diag, RC                             )
+       CALL EmissCO2( am_I_Root,  Input_Opt,  State_Chm,                     &
+                      State_Diag, State_Grid, State_Met, RC                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -313,7 +320,8 @@ CONTAINS
    
     ! For UCX, use Seb's routines for stratospheric species for now.
     IF ( Input_Opt%LUCX .and. Input_Opt%LBASICEMIS ) THEN
-       CALL Emiss_Basic( am_I_Root, Input_Opt, State_Met, State_Chm, RC )
+       CALL Emiss_Basic( am_I_Root,  Input_Opt, State_Chm, &
+                         State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -325,8 +333,8 @@ CONTAINS
 
     ! For mercury, use old emissions code for now
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-       CALL EmissMercury( am_I_Root, Input_Opt,  State_Met,                  &
-                          State_Chm, State_Diag, RC                         )
+       CALL EmissMercury( am_I_Root,  Input_Opt,  State_Chm,                 &
+                          State_Diag, State_Grid, State_Met, RC             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -362,8 +370,8 @@ CONTAINS
        !         entirely fixed! Ask around on how to...
        !========================================================
        IF ( Input_Opt%LEMIS .AND. ( id_CH3Br > 0 ) ) THEN
-          CALL Set_CH3Br( am_I_Root, Input_Opt, State_Met, &
-                          State_Chm, RC )
+          CALL Set_CH3Br( am_I_Root,  Input_Opt, State_Chm, &
+                          State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -378,8 +386,8 @@ CONTAINS
        ! concentration of BrO equal to 1 pptv during daytime.
        ! ----------------------------------------------------
        IF ( Input_Opt%LEMIS .AND. ( id_BrO > 0 ) ) THEN
-          CALL Set_BrO( am_I_Root, Input_Opt, State_Met, & 
-                        State_Chm, RC          )
+          CALL Set_BrO( am_I_Root,  Input_Opt, State_Chm, & 
+                        State_Grid, State_Met, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -391,8 +399,8 @@ CONTAINS
    
        ! Set other (non-UCX) fixed VMRs
        If ( Input_Opt%LEMIS ) Then
-          CALL FixSfcVMR( am_I_Root, Input_Opt, State_Met, & 
-                          State_Chm, RC          )
+          CALL FixSfcVMR( am_I_Root,  Input_Opt, State_Chm, & 
+                          State_Grid, State_Met, RC          )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -408,7 +416,8 @@ CONTAINS
     IF ( doMaintainMixRatio ) THEN
 
        ! Compute the surface flux needed to restore the total burden
-       CALL MMR_Compute_Flux( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+       CALL MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                              State_Grid, State_Met, RC )
 
     ENDIF
 
@@ -485,13 +494,13 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MMR_Compute_Flux( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+  SUBROUTINE MMR_Compute_Flux( am_I_Root,  Input_Opt, State_Chm, &
+                               State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE CMN_SIZE_Mod
     USE ErrCode_Mod
-    USE GC_GRID_MOD,        ONLY : GET_YMID
     USE HCO_INTERFACE_MOD,  ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
@@ -499,6 +508,7 @@ CONTAINS
     USE PhysConstants
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
 !
@@ -506,6 +516,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -532,8 +543,8 @@ CONTAINS
     REAL(fp)                   :: YMID
 
     ! Arrays
-    REAL(fp)                   :: Flux(IIPAR,JJPAR)
-    REAL(fp)                   :: Mask(IIPAR,JJPAR)
+    REAL(fp)                   :: Flux(State_Grid%NX,State_Grid%NY)
+    REAL(fp)                   :: Mask(State_Grid%NX,State_Grid%NY)
 
     ! Strings
     CHARACTER(LEN=63)          :: OrigUnit
@@ -567,8 +578,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root,        Input_Opt, State_Met,          &
-                            State_Chm,        'v/v dry',      RC,            &
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,               &
+                            State_Grid, State_Met, 'v/v dry', RC,           &
                             OrigUnit=OrigUnit                               )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
@@ -597,9 +608,9 @@ CONTAINS
           Mask        = 1.0e+0_fp
 
           ! Loop over grid boxes
-          DO L = 1, LLPAR
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
              ! Compute mol of Tracer needed to achieve the desired value
              Total_Spc = Total_Spc + &
@@ -611,7 +622,7 @@ CONTAINS
              IF ( L == 1 ) THEN
 
                 ! Latitude of grid box
-                YMID = GET_YMID( I, J, L )
+                YMID = State_Grid%YMid(I,J)
 
                 ! Define mask if needed
                 IF (TRIM(SpcInfo%Name)=='NHEmis90dayTracer') THEN
@@ -619,7 +630,7 @@ CONTAINS
                 ELSE IF (TRIM(SpcInfo%Name)=='SHEmis90dayTracer') THEN
                    IF ( YMID >= 0.0 ) MASK(I,J) = 0.0e+0_fp
                 ENDIF
-                Total_Area = Total_Area + State_Met%Area_M2(I,J) * MASK(I,J)
+                Total_Area = Total_Area + State_Grid%Area_M2(I,J) * MASK(I,J)
              ENDIF
 
           ENDDO
@@ -643,8 +654,8 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,          &
-                            State_Chm, OrigUnit,  RC                   )
+    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Chm, State_Grid, &
+                            State_Met, OrigUnit,  RC                     )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

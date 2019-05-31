@@ -302,7 +302,7 @@ EOF
 	    $nDims = scalar( @dims );
 
 	    # Create the Fortran dimension string that is used to declare 
-	    # the variable, i.e. (IIPAR,JJPAR,1).  Use the Perl hash %F_DIMS 
+	    # the variable, i.e. (NX,NY,1).  Use the Perl hash %F_DIMS 
 	    # to refer to the correponding value for each netCDF dimension.
 	    $dimDef = "(";
 	    for ( my $i=0; $i<$nDims; $i++ ) { 

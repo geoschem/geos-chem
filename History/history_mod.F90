@@ -452,7 +452,6 @@ CONTAINS
 !
     USE Charpak_Mod
     USE DiagList_Mod,          ONLY : CollList, Search_CollList
-    USE CMN_Size_Mod,          ONLY : IIPAR, JJPAR, LLPAR
     USE ErrCode_Mod
     USE HistContainer_Mod
     USE HistItem_Mod

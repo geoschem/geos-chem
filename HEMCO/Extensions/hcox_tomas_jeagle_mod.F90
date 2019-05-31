@@ -137,6 +137,7 @@ CONTAINS
     CHARACTER(LEN=31) :: SpcName
        
     ! Pointers
+    TYPE(MyInst), POINTER :: Inst
     REAL(dp), POINTER :: ptr3D(:,:,:)
 
     ! For debugging
@@ -218,7 +219,7 @@ CONTAINS
           ! Partition TOMAS_Jeagle emissions w/in the boundary layer
           !---------------------------------------------------------------
           DO K = 1, HcoState%MicroPhys%nBins
-             rwet=TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
+             rwet=Inst%TOMAS_DBIN(k)*1.0E6*BETHA/2. ! convert from dry diameter [m] to wet (80% RH) radius [um]  
          ! jkodros - testing out BETHA 7/29/15
              if (rwet > 0.d0) then
                   A=4.7*(1.+30.*rwet)**(-0.017*rwet**(-1.44))
@@ -232,7 +233,7 @@ CONTAINS
         dfo=0.d0
          endif
 
-             dfo=dfo*DRFAC(k)*BETHA  !hemco units???? jkodros
+             dfo=dfo*Inst%DRFAC(k)*BETHA  !hemco units???? jkodros
          dfo=dfo*focean*SCALE
 
              ! Loop thru the boundary layer
@@ -297,7 +298,7 @@ CONTAINS
     
        ! Add number to the HEMCO data structure
        CALL HCO_EmisAdd( am_I_Root, HcoState, Inst%TC1(:,:,:,K), &
-                         Inst%HcoID, RC)
+                         HcoID, RC)
        IF ( RC /= HCO_SUCCESS ) THEN
           CALL HCO_ERROR( HcoState%Config%Err, 'HCO_EmisAdd error: FLUXSALT', RC )
           RETURN
@@ -532,24 +533,26 @@ CONTAINS
     !=======================================================================
     ! Allocate quantities depending on horizontal resolution
     !=======================================================================
-#if defined( GRID4x5  )
+    IF ( TRIM( HcoState%Config%GridRes) == '4.0x5.0' ) THEN
 
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 4 x 5 global resolution
-    !-----------------------------------------------------------------------
-    Inst%TOMAS_COEF = 1.d0
+       !-----------------------------------------------------------------------
+       ! TOMAS simulations at 4 x 5 global resolution
+       !-----------------------------------------------------------------------
+       Inst%TOMAS_COEF = 1.d0
 
-#elif defined( GRID2x25 )
+    ELSE IF ( TRIM( HcoState%Config%GridRes) == '2.0x2.5' ) THEN
 
-    !-----------------------------------------------------------------------
-    ! TOMAS simulations at 2 x 2.5 global resolution
-    !-----------------------------------------------------------------------
-    Inst%TOMAS_COEF = 1.d0
+       !-----------------------------------------------------------------------
+       ! TOMAS simulations at 2 x 2.5 global resolution
+       !-----------------------------------------------------------------------
+       Inst%TOMAS_COEF = 1.d0
 
-#else
-    MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'
-      call HCO_ERROR(HcoState%Config%Err,MSG, RC )
-#endif
+    ELSE
+
+       MSG = 'Adjust TOMAS_Jeagle emiss coeff (TOMAS_COEF) for your model res: SRCSALT30: hcox_TOMAS_jeagle_mod.F90'
+       CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
+
+    ENDIF
 
     !=======================================================================
     ! Activate this module and the fields of ExtState that it uses
@@ -782,11 +785,11 @@ CONTAINS
        ! Pop off instance from list
        IF ( ASSOCIATED(PrevInst) ) THEN
 
-          IF ( ASSOCIATED( TOMAS_DBIN ) ) DEALLOCATE( TOMAS_DBIN )
-          IF ( ASSOCIATED( DRFAC      ) ) DEALLOCATE( DRFAC      )
-          IF ( ASSOCIATED( TC1        ) ) DEALLOCATE( TC1        )
-          IF ( ASSOCIATED( TC2        ) ) DEALLOCATE( TC2        )
-          IF ( ALLOCATED ( HcoIDs     ) ) DEALLOCATE( HcoIDs     )
+          IF ( ASSOCIATED( Inst%TOMAS_DBIN ) ) DEALLOCATE( Inst%TOMAS_DBIN )
+          IF ( ASSOCIATED( Inst%DRFAC      ) ) DEALLOCATE( Inst%DRFAC      )
+          IF ( ASSOCIATED( Inst%TC1        ) ) DEALLOCATE( Inst%TC1        )
+          IF ( ASSOCIATED( Inst%TC2        ) ) DEALLOCATE( Inst%TC2        )
+          IF ( ALLOCATED ( Inst%HcoIDs     ) ) DEALLOCATE( Inst%HcoIDs     )
 
           PrevInst%NextInst => Inst%NextInst
        ELSE

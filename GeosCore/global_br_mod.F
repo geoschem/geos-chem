@@ -91,7 +91,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_GLOBAL_Br( am_I_Root, Input_Opt, 
+      SUBROUTINE GET_GLOBAL_Br( am_I_Root, Input_Opt, State_Grid,
      &                          State_Met, THISMONTH, RC )
 !
 ! !USES:
@@ -104,12 +104,14 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE OCEAN_MERCURY_MOD,  ONLY : LGCBROMINE     !eds 4/19/12
       USE State_Met_Mod,      ONLY : MetState
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
       INTEGER,        INTENT(IN)  :: THISMONTH   ! Current month
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
@@ -167,7 +169,7 @@
       IF ( FIRST ) THEN
       
          ! Initialize arrays
-         CALL INIT_GLOBAL_BR( am_I_Root, RC )
+         CALL INIT_GLOBAL_BR( am_I_Root, State_Grid, RC )
 
          ! Trap potential errors
          IF ( RC /= GC_SUCCESS ) THEN
@@ -304,23 +306,23 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, TPL )
-!      DO I=1, IIPAR
-!      DO J=1, JJPAR      
-      DO J=1, JJPAR      
-      DO I=1, IIPAR
+      DO J=1, State_Grid%NY      
+      DO I=1, State_Grid%NX
          
          ! First layer in the stratosphere
          TPL = State_Met%TropLev(I,J)
 
-         BR_MERGE(I,J,TPL:LLPAR) = MERGE(
-     &        BR_STRAT(I,J,TPL:LLPAR), 
-     &        BR_TROP(I,J,TPL:LLPAR), 
-     &        MASK=BR_STRAT(I,J,TPL:LLPAR)>BR_TROP(I,J,TPL:LLPAR) )
+         BR_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(
+     &        BR_STRAT(I,J,TPL:State_Grid%NZ), 
+     &        BR_TROP(I,J,TPL:State_Grid%NZ), 
+     &        MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) >
+     &               BR_TROP(I,J,TPL:State_Grid%NZ) )
 
-         BRO_MERGE(I,J,TPL:LLPAR) = MERGE(
-     &        BRO_STRAT(I,J,TPL:LLPAR), 
-     &        BRO_TROP(I,J,TPL:LLPAR), 
-     &        MASK=BR_STRAT(I,J,TPL:LLPAR)>BR_TROP(I,J,TPL:LLPAR) )
+         BRO_MERGE(I,J,TPL:State_Grid%NZ) = MERGE(
+     &        BRO_STRAT(I,J,TPL:State_Grid%NZ), 
+     &        BRO_TROP(I,J,TPL:State_Grid%NZ), 
+     &        MASK = BR_STRAT(I,J,TPL:State_Grid%NZ) >
+     &               BR_TROP(I,J,TPL:State_Grid%NZ) )
 
       ENDDO
       ENDDO
@@ -337,7 +339,8 @@
       ENDIF 
 
       ! Assign data from ARRAY2 to the module variable BR
-      J_BrO(:,:,1:LLCHEM_FIX) = JBrO(:,:,1:LLCHEM_FIX)
+      J_BrO(:,:,1:State_Grid%MaxChemLev) =
+     & JBrO(:,:,1:State_Grid%MaxChemLev)
 
       END SUBROUTINE GET_GLOBAL_Br
 !EOC
@@ -354,20 +357,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_GLOBAL_Br( am_I_Root, RC )
+      SUBROUTINE INIT_GLOBAL_Br( am_I_Root, State_Grid, RC )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD 
       USE ErrCode_Mod
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+      LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?  !
+      INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 ! 
 ! !REVISION HISTORY: 
 !  05 Jul 2006 - C. Holmes   - Copied from "global_oh_mod.f"
@@ -397,19 +401,22 @@
       !-------------------------------------
 
       ! Allocate BR_TROP array
-      ALLOCATE( BR_TROP( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BR_TROP( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BR_TROP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BR_TROP = 0e+0_fp
 
       ! Allocate BR_STRAT array
-      ALLOCATE( BR_STRAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BR_STRAT( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BR_STRAT', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BR_STRAT = 0e+0_fp
 
       ! Allocate BR_MERGE array
-      ALLOCATE( BR_MERGE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BR_MERGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BR_MERGE', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BR_MERGE = 0e+0_fp
@@ -419,25 +426,29 @@
       !-------------------------------------
 
       ! Allocate J_BrO array
-      ALLOCATE( J_BrO( IIPAR, JJPAR, LLCHEM ), STAT=RC )
+      ALLOCATE( J_BrO( State_Grid%NX, State_Grid%NY,
+     &          State_Grid%MaxChemLev ), STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:J_BrO', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       J_BrO = 0e+0_fp
 
       ! Allocate BrO_TROP array
-      ALLOCATE( BrO_TROP( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BrO_TROP( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BRO_TROP', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BrO_TROP = 0e+0_fp
 
       ! Allocate BrO_STRAT array
-      ALLOCATE( BrO_STRAT( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BrO_STRAT( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BRO_STRAT', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BrO_STRAT = 0e+0_fp
 
       ! Allocate BrO_MERGE array
-      ALLOCATE( BrO_MERGE( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      ALLOCATE( BrO_MERGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ),
+     &          STAT=RC )
       CALL GC_CheckVar( 'global_br_mod.F:BrO_MERGE', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       BrO_MERGE = 0e+0_fp

@@ -91,8 +91,8 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE DO_RPMARES( am_I_Root, Input_Opt, 
-     &                       State_Met, State_Chm, RC )
+      SUBROUTINE DO_RPMARES( am_I_Root,  Input_Opt, State_Chm,
+     &                       State_Grid, State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine DO_RPMARES is the interface between the GEOS-CHEM model
@@ -137,27 +137,16 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_ 
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_MONTH
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
-!
-! !LOCAL VARIABLES:
-!
-      ! SAVEd scalars
-      LOGICAL, SAVE          :: FIRST     = .TRUE.
-      INTEGER, SAVE          :: id_SO4, id_NH3, id_NH4, id_NIT, id_HNO3
-      INTEGER, SAVE          :: LASTMONTH = -99
-
-      ! scalars
-      INTEGER                :: I,    J,     L,    N
-      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
-      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
-      CHARACTER(LEN=255)     :: X 
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS: 
@@ -171,7 +160,20 @@
 ! !DEFINED PARAMETERS:
 !
       ! concentration lower limit [ug/m3 ]
-      REAL(fp),  PARAMETER     :: CONMIN = 1.0e-30_fp
+      REAL(fp),  PARAMETER   :: CONMIN = 1.0e-30_fp
+!
+! !LOCAL VARIABLES:
+!
+      ! SAVEd scalars
+      LOGICAL, SAVE          :: FIRST     = .TRUE.
+      INTEGER, SAVE          :: id_SO4, id_NH3, id_NH4, id_NIT, id_HNO3
+      INTEGER, SAVE          :: LASTMONTH = -99
+
+      ! scalars
+      INTEGER                :: I,    J,     L,    N
+      REAL(fp)               :: ARH,  ATEMP, AVOL, SO4,  ASO4, ANO3    
+      REAL(fp)               :: AH2O, ANH4,  GNH3, GNO3, AHSO4   
+      CHARACTER(LEN=255)     :: X 
 
       ! Pointers
       ! We need to define local arrays to hold corresponding values 
@@ -210,7 +212,7 @@
          IF ( id_NIT == 0 ) CALL ERROR_STOP( 'id_NIT is undefined!', X )
     
          ! Initialize arrays
-         CALL INIT_RPMARES
+         CALL INIT_RPMARES( State_Grid )
 
          ! Check to see if we need to get HNO3 from HEMCO
          IF ( id_HNO3 == 0 ) THEN
@@ -249,9 +251,9 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I,    J,    L,    ATEMP, ARH,  AVOL,  SO4  )
 !$OMP+PRIVATE( ANH4, ANO3, GNH3, GNO3,  ASO4, AHSO4, AH2O )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
          
          ! Skip if we are outside the troposphere (bmy, 4/3/08)
          IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
@@ -1957,7 +1959,7 @@
 
 !------------------------------------------------------------------------------
       
-      SUBROUTINE INIT_RPMARES
+      SUBROUTINE INIT_RPMARES( State_Grid )
 !
 !*****************************************************************************
 !  Subroutine INIT_RPMARES initializes all module arrays (bmy, 12/16/02)
@@ -1965,17 +1967,24 @@
 !  NOTES:
 !******************************************************************************
 !
-      ! F90 modules
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD, ONLY : ALLOC_ERR
-
-      ! Local variables
+! !USES:
+!
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid
+!
+! !LOCAL VARIABLES:
+!
       INTEGER :: AS
 
       !=================================================================
       ! INIT_RPMARES begins here!
       !=================================================================
-      ALLOCATE( HNO3_sav( IIPAR, JJPAR, LLPAR ) , STAT=AS )
+      ALLOCATE( HNO3_sav( State_Grid%NX, State_Grid%NY, State_Grid%NZ ),
+     &          STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'HNO3_sav' )
       HNO3_sav = 0e+0_fp
 

@@ -446,6 +446,9 @@ MODULE HCO_TYPES_MOD
      TYPE(HcoErr),       POINTER  :: Err            => NULL()
      TYPE(ModSpc),       POINTER  :: ModelSpc(:)
      INTEGER                      :: nModelSpc
+     INTEGER                      :: nModelAdv
+     CHARACTER(LEN=255)           :: MetField
+     CHARACTER(LEN=255)           :: GridRes
      LOGICAL                      :: ConfigFileRead = .FALSE.
   END TYPE ConfigObj
 

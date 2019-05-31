@@ -23,7 +23,7 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG_2PM( State_Met )
+      SUBROUTINE DIAG_2PM( State_Grid, State_Met )
 !
 ! !USES:
 !
@@ -36,6 +36,7 @@
       USE DIAG_MOD,      ONLY : CTO3_24h
 #endif
       USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
+      USE State_Grid_Mod,ONLY : GrdState
       USE State_Met_Mod, ONLY : MetState
       USE TIME_MOD,      ONLY : GET_LOCALTIME
       USE TIME_MOD,      ONLY : ITS_TIME_FOR_DIAG
@@ -47,6 +48,7 @@
 !
 ! !INPUT PARAMETERS: 
 !
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !REMARKS:
@@ -93,7 +95,7 @@
       LOGICAL  :: IS_CHEM
       INTEGER  :: I,       J,       L
       INTEGER  :: PREV_TS
-      REAL(fp) :: LT(IIPAR)
+      REAL(fp) :: LT(State_Grid%NX)
 
       !=================================================================
       ! DIAG_2PM begins here!
@@ -116,15 +118,15 @@
       ITS_AFTER_DIAG = ( MOD(PREV_TS, GET_TS_DIAG() ) == 0 )
 
       ! Pre-compute local time 
-      DO I = 1, IIPAR
-         LT(I) = GET_LOCALTIME( I, 1, 1 )
+      DO I = 1, State_Grid%NX
+         LT(I) = GET_LOCALTIME( I, 1, 1, State_Grid )
       ENDDO
 
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          !-----------------------------
          ! ND45 -- mixing ratios

@@ -61,8 +61,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Set_Diagnostics_EndofTimestep ( am_I_Root,  Input_Opt,  &
-                                             State_Met,  State_Chm,  &
-                                             State_Diag, RC )
+                                             State_Chm,  State_Diag, &
+                                             State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -70,12 +70,14 @@ CONTAINS
     USE State_Met_Mod,    ONLY : MetState
     USE State_Chm_Mod,    ONLY : ChmState, Ind_
     USE State_Diag_Mod,   ONLY : DgnState
+    USE State_Grid_Mod,   ONLY : GrdState
     USE PhysConstants,    ONLY : AIRMW
 !
 ! !INPUT PARAMETERS:
 !
     LOGICAL,          INTENT(IN)    :: am_I_Root
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid     ! Grid state object
     TYPE(MetState),   INTENT(IN)    :: State_Met      ! Meteorology state object
 !
 ! !INPUT AND OUTPUT PARAMETERS:
@@ -122,8 +124,24 @@ CONTAINS
     IF ( State_Diag%Archive_SpeciesRst ) THEN
        CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesRst',                &
                                     State_Diag%SpeciesRst,                  &
-                                    Input_Opt,  State_Met,                   &
-                                    State_Chm,  RC                          )
+                                    Input_Opt,  State_Chm,                  &
+                                    State_Grid, State_Met, RC              )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered setting species concentration diagnostic'
+          CALL GC_ERROR( ErrMsg, RC, ThisLoc )
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Set species concentration for BC files in units of mol/mol dry air
+    !-----------------------------------------------------------------------
+    IF ( State_Diag%Archive_SpeciesBC ) THEN
+       CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesBC',                 &
+                                    State_Diag%SpeciesBC,                   &
+                                    Input_Opt,  State_Chm,                  &
+                                    State_Grid, State_Met,  RC             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -138,8 +156,8 @@ CONTAINS
     IF ( State_Diag%Archive_SpeciesConc ) THEN
        CALL Set_SpcConc_Diagnostic( am_I_Root, 'SpeciesConc',                &
                                     State_Diag%SpeciesConc,                  &
-                                    Input_Opt,  State_Met,                   &
-                                    State_Chm,  RC                          )
+                                    Input_Opt,  State_Chm,                   &
+                                    State_Grid, State_Met,  RC              )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -156,8 +174,8 @@ CONTAINS
        !$OMP DEFAULT( SHARED  )   &
        !$OMP PRIVATE( I, J, N )
        DO N = 1, State_Chm%nDryDep
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           State_Diag%DryDep(I,J,N) = State_Diag%DryDepChm(I,J,N)             &
                                    + State_Diag%DryDepMix(I,J,N)
        ENDDO
@@ -286,8 +304,8 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Set_SpcConc_Diagnostic( am_I_Root, DiagMetadataID, Ptr2Data,    &
-                                     Input_Opt, State_Met,      State_Chm,   &
-                                     RC                                     ) 
+                                     Input_Opt, State_Chm,      State_Grid,  &
+                                     State_Met, RC                           ) 
 !
 ! !USES:
 !
@@ -295,6 +313,7 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState, Get_Metadata_State_Diag
+    USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
@@ -302,6 +321,7 @@ CONTAINS
     LOGICAL,          INTENT(IN)  :: am_I_Root      ! Are we on the root CPU?
     CHARACTER(LEN=*), INTENT(IN)  :: DiagMetadataID ! Diagnostic id
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt      ! Input Options object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid     ! Grid state object
     TYPE(MetState),   INTENT(IN)  :: State_Met      ! Meteorology state object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -360,9 +380,10 @@ CONTAINS
     ! Exit if species concentration is not a diagnostics in HISTORY.rc
     IF ( ASSOCIATED( Ptr2Data ) ) THEN
 
-       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' ) THEN
+       IF ( TRIM( DiagMetadataID ) == 'SpeciesRst' .or. &
+            TRIM( DiagMetadataID ) == 'SpeciesBC' ) THEN
 
-          ! For GEOS-Chem restart collection force units to v/v dry
+          ! For GEOS-Chem restart and BC collections force units to v/v dry
           Units = 'v/v dry'
 
        ELSE
@@ -380,17 +401,18 @@ CONTAINS
        ENDIF
 
        ! Convert State_Chm%Species unit to diagnostic units
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, State_Chm, &
-                               Units, RC, OrigUnit=OrigUnit )
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                               State_grid, State_Met, Units,     &
+                               RC,         OrigUnit=OrigUnit )
        
        ! Copy species concentrations to diagnostic array
        !$OMP PARALLEL DO           &
        !$OMP DEFAULT( SHARED     ) &
        !$OMP PRIVATE( I, J, L, N )
        DO N = 1, State_Chm%nSpecies
-       DO L = 1, LLPAR
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           Ptr2Data(I,J,L,N) = State_Chm%Species(I,J,L,N)
        ENDDO
        ENDDO
@@ -399,8 +421,8 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        ! Convert State_Chm%Species back to original unit
-       CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                               State_Chm, OrigUnit, RC )
+       CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                               State_Grid, State_Met, OrigUnit, RC )
        
        ! Error handling
        IF ( RC /= GC_SUCCESS ) THEN
@@ -425,10 +447,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Column_Mass( am_I_Root,  Input_Opt,  State_Met,       &
-                                  State_Chm,  SpcMap,     isFull,          &
-                                  isTrop,     isPBL,      colMass,         &
-                                  RC      ) 
+  SUBROUTINE Compute_Column_Mass( am_I_Root,  Input_Opt,  State_Chm,       &
+                                  State_Grid, State_Met,  SpcMap,          &
+                                  isFull,     isTrop,     isPBL,           &
+                                  ColMass,    RC      ) 
 !
 ! !USES:
 !
@@ -436,12 +458,14 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS: 
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root        ! Are we on the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
     TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state object
     INTEGER,        POINTER       :: SpcMap(:)        ! Map to species indexes
     LOGICAL,        INTENT(IN)    :: isFull           ! True if full col diag on
@@ -489,9 +513,9 @@ CONTAINS
     ! that follows to compute the budget diagnostic. Also update the budget 
     ! diagnostic units metadata in state_diag_mod.F90 within subroutine 
     ! Get_Metadata_State_Diag (ewl, 9/26/18)
-    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Met,   &
-                            State_Chm,  'kg',      RC,          &
-                            OrigUnit=OrigUnit                  )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, 'kg',      &
+                            RC,         OrigUnit=OrigUnit     )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
        RETURN
@@ -507,8 +531,8 @@ CONTAINS
        !$OMP DEFAULT( SHARED )  &
        !$OMP PRIVATE( I, J, M, N )
        DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           N = SpcMap(M)
           colMass(I,J,N,region) =    &
                   SUM( State_Chm%Species(I,J,:,N) )
@@ -525,8 +549,8 @@ CONTAINS
        !$OMP DEFAULT( SHARED )  &
        !$OMP PRIVATE( I, J, M, N )
        DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           N = SpcMap(M)
           colMass(I,J,N,region) =    &
              SUM( State_Chm%Species(I,J,1:State_Met%TropLev(I,J),N) )
@@ -543,8 +567,8 @@ CONTAINS
        !$OMP DEFAULT( SHARED )  &
        !$OMP PRIVATE( I, J, M, N )
        DO M = 1, numSpc
-       DO J = 1, JJPAR
-       DO I = 1, IIPAR
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
           N = SpcMap(M)
           colMass(I,J,N,region) =    &
              SUM( State_Chm%Species(I,J,1:State_Met%PBL_TOP_L(I,J),N) )
@@ -555,8 +579,8 @@ CONTAINS
     ENDIF
 
     ! Convert species conc back to original units
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met,  &
-                            State_Chm, OrigUnit,  RC         )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( 'Unit conversion error', RC, ThisLoc )
        RETURN
@@ -579,34 +603,39 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( am_I_Root,    SpcMap,     TS,       &
-                                         isFull,       isTrop,     isPBL,    &
-                                         diagFull,     diagTrop,   diagPBL,  & 
-                                         mass_initial, mass_final, RC        ) 
+  SUBROUTINE Compute_Budget_Diagnostics( am_I_Root,    State_Grid, &
+                                         SpcMap,       TS,         &
+                                         isFull,       isTrop,     &
+                                         isPBL,        diagFull,   &
+                                         diagTrop,     diagPBL,    & 
+                                         mass_initial, mass_final, &
+                                         RC ) 
 !
 ! !USES:
 !
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS: 
 !
-    LOGICAL,  INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
-    INTEGER,  POINTER     :: SpcMap(:)       ! Map to species indexes
-    REAL(fp), INTENT(IN)  :: TS              ! timestep [s]
-    LOGICAL,  INTENT(IN)  :: isFull          ! True if full col diag on
-    LOGICAL,  INTENT(IN)  :: isTrop          ! True if trop col diag on
-    LOGICAL,  INTENT(IN)  :: isPBL           ! True if PBL col diag on
+    LOGICAL,        INTENT(IN)  :: am_I_Root       ! Are we on the root CPU?
+    TYPE(GrdState), INTENT(IN)  :: State_Grid      ! Grid State object
+    INTEGER,        POINTER     :: SpcMap(:)       ! Map to species indexes
+    REAL(fp),       INTENT(IN)  :: TS              ! timestep [s]
+    LOGICAL,        INTENT(IN)  :: isFull          ! True if full col diag on
+    LOGICAL,        INTENT(IN)  :: isTrop          ! True if trop col diag on
+    LOGICAL,        INTENT(IN)  :: isPBL           ! True if PBL col diag on
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(f8), TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
-    REAL(f8), TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag 
-    REAL(f8), TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
-    REAL(f8), POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
-    REAL(f8), POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
+    REAL(f8),       TARGET      :: diagFull(:,:,:)       ! ptr to full col diag
+    REAL(f8),       TARGET      :: diagTrop(:,:,:)       ! ptr to trop col diag 
+    REAL(f8),       TARGET      :: diagPBL(:,:,:)        ! ptr to pbl col diag
+    REAL(f8),       POINTER     :: mass_initial(:,:,:,:) ! ptr to initial mass
+    REAL(f8),       POINTER     :: mass_final(:,:,:,:)   ! ptr to final mass
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,  INTENT(OUT) :: RC              ! Success or failure?
+    INTEGER,        INTENT(OUT) :: RC              ! Success or failure?
 !
 ! !REMARKS:
 !
@@ -667,8 +696,8 @@ CONTAINS
           !$OMP DEFAULT( SHARED )  &
           !$OMP PRIVATE( I, J, M, N )
           DO M = 1, numSpc
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
              N  = SpcMap(M)
              ptr3d(I,J,M) =   &
                    ( mass_final(I,J,N,R) - mass_initial(I,J,N,R) ) / TS

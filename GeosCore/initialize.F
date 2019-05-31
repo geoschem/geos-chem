@@ -16,15 +16,17 @@
 !
 ! !INTERFACE:
 !
-      SUBROUTINE INITIALIZE( am_I_Root, Input_Opt, IFLAG, RC )
+      SUBROUTINE INITIALIZE( am_I_Root, Input_Opt, State_Grid,
+     &                       IFLAG, RC )
 !
 ! !USES:
 !
       ! Modules from Headers subdirectory
       USE CMN_SIZE_MOD          
       USE ErrCode_Mod
-      USE Input_Opt_Mod, ONLY : OptInput
+      USE Input_Opt_Mod,  ONLY : OptInput
       USE PRECISION_MOD
+      USE State_Grid_Mod, ONLY : GrdState
 
       ! Modules from GeosCore subdirectory
 #if defined( BPCH_DIAG )
@@ -47,6 +49,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 
 
       ! If IFLAG=1, zero global CTM arrays 
@@ -264,7 +267,7 @@
 
          ! For ND41 - afternoon PBL heights (bmy, 2/17/05)
          IF ( ND41 > 0 ) THEN
-            CALL ZERO_DIAG41
+            CALL ZERO_DIAG41( State_Grid )
          ENDIF
 
          ! For ND42 - SOA concentrations (dkh, bmy, 5/22/06)

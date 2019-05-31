@@ -17,7 +17,8 @@
 !
       SUBROUTINE SET_PROF_O3( YLAT,     MONTH,   DAY,      T_CTM,
      &                        P_CTM,    O3_CTM,  O3_TOMS,  T_CLIM,
-     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt )
+     &                        O3_CLIM,  Z_CLIM,  AIR_CLIM, Input_Opt,
+     &                        State_Grid )
 
 !
 ! !USES:
@@ -26,6 +27,7 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants            ! Physical constants
       USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
+      USE State_Grid_Mod,     ONLY : GrdState
 
       IMPLICIT NONE
 !
@@ -39,6 +41,7 @@
       REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
       REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
       TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
+      TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
 !
 ! !OUTPUT VARIABLES:
 !
@@ -46,7 +49,6 @@
       REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
       REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
       REAL(fp), INTENT(OUT)      :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
-!
 !
 ! !AUTHOR:
 !  Oliver Wild & Michael Prather
@@ -239,7 +241,8 @@
 
          ! Use online O3 values in the chemistry grid if selected
          IF ( (USE_ONLINE_O3) .and.
-     &         (I.le.LLCHEM)  .and. (O3_CTM(I) > 0e+0_fp) ) THEN
+     &        (I <= State_Grid%MaxChemLev)  .and.
+     &        (O3_CTM(I) > 0e+0_fp) ) THEN
 
             ! Convert from molec/cm3 to molec/cm2
             O3_CLIM(I) = O3_CTM(I) * (Z_CLIM(I+1)-Z_CLIM(I))

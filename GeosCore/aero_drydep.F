@@ -15,8 +15,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE AERO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
-     &                        State_Chm, State_Diag, RC )
+      SUBROUTINE AERO_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -24,7 +24,6 @@
       USE DUST_MOD,           ONLY : SETTLEDUST   
       USE ErrCode_Mod
       USE ERROR_MOD
-      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
       USE Input_Opt_Mod,      ONLY : OptInput
       USE PhysConstants,      ONLY : g0
       USE PhysConstants,      ONLY : AVO
@@ -33,6 +32,7 @@
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Chm_Mod,      ONLY : Ind_
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE TIME_MOD,           ONLY : GET_TS_CHEM
       USE TOMAS_MOD
@@ -47,6 +47,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -113,13 +114,15 @@
       CHARACTER(LEN=255) :: LOC, MSG
 
       ! Arrays
-      REAL(fp)           :: TC     (            LLPAR      )
-      REAL(fp)           :: TC0    (            LLPAR      )
-      REAL(fp)           :: VTS    (            LLPAR      ) ! Settling V [m/s]
-      REAL(fp)           :: NU0    (IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)           :: DU0    (IIPAR,JJPAR,LLPAR,IBINS)
-      REAL(fp)           :: SIZ_DIA(IIPAR,JJPAR,      IBINS)
-      REAL(fp)           :: SIZ_DEN(IIPAR,JJPAR,      IBINS)
+      REAL(fp)           :: TC     (State_Grid%NZ)
+      REAL(fp)           :: TC0    (State_Grid%NZ)
+      REAL(fp)           :: VTS    (State_Grid%NZ) ! Settling V [m/s]
+      REAL(fp)           :: NU0    (State_Grid%NX,State_Grid%NY,
+     &                              State_Grid%NZ,IBINS)
+      REAL(fp)           :: DU0    (State_Grid%NX,State_Grid%NY,
+     &                              State_Grid%NZ,IBINS)
+      REAL(fp)           :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
+      REAL(fp)           :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
       REAL(fp)           :: X0     (IBINS,ICOMP-IDIAG+1    )
 
       ! Pointers
@@ -241,8 +244,8 @@ cdbg  print *, dryd(:)
       IF ( DOSETTLING ) THEN
 
       ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
-      CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
-     &                  State_Chm, SIZ_DIA, SIZ_DEN,   RC         )
+      CALL AERO_DIADEN( am_I_Root,  1,       Input_Opt, State_Chm,
+     &                  State_Grid, State_Met, SIZ_DIA, SIZ_DEN,   RC )
       IF ( RC /= GC_SUCCESS ) THEN
          CALL ERROR_STOP('CALL AERO_DIADEN',
      &                   'AERO_DRYDEP in aero_drydep.F')
@@ -254,8 +257,8 @@ cdbg  print *, dryd(:)
 !$OMP+PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX )
 !$OMP+DEFAULT( SHARED )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
-      DO J = 1, JJPAR
+      DO I = 1, State_Grid%NX
+      DO J = 1, State_Grid%NY
       DO BIN = 1, IBINS
 
          DP    = SIZ_DIA(I,J,BIN) * 1.d6 ![=] um
@@ -267,7 +270,7 @@ cdbg  print *, dryd(:)
 !            endif
 !debug------------
 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             
             ! Get P [kPa], T [K], and P*DP
             ! Use moist pressure for mean free path (ewl, 3/2/2015)
@@ -326,17 +329,17 @@ cdbg  print *, dryd(:)
 
             ! Method is to solve bidiagonal matrix 
             ! which is implicit and first order accurate in Z
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                TC0(L) = Spc(I,J,L,ID)
                TC(L)  = TC0(L)
             ENDDO
 
             ! We know the boundary condition at the model top
-            L     = LLCHEM
+            L     = State_Grid%MaxChemLev
             DELZ  = BXHEIGHT(I,J,L)           ![=] meter
             TC(L) = TC(L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-            DO L = LLCHEM-1, 1, -1
+            DO L = State_Grid%MaxChemLev-1, 1, -1
                DELZ  = BXHEIGHT(I,J,L)
                DELZ1 = BXHEIGHT(I,J,L+1)
                TC(L) = 1.d0 / 
@@ -344,7 +347,7 @@ cdbg  print *, dryd(:)
      &               ( TC(L)  + DTCHEM * VTS(L+1) / DELZ1  *  TC(L+1) )
             ENDDO
 
-            DO L = 1, LLPAR
+            DO L = 1, State_Grid%NZ
                Spc(I,J,L,ID) = TC(L)
 
 !debug            if(i==ix .and. j==jx .and. l==ll ) 
@@ -360,14 +363,14 @@ cdbg  print *, dryd(:)
             IF ( ND44 > 0 ) THEN 
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
                ! Initialize
                TOT1 = 0d0
                TOT2 = 0d0
             
                ! Compute column totals of TCO(:) and TC(:)
-               DO L = 1, LLPAR
+               DO L = 1, State_Grid%NZ
                   TOT1 = TOT1 + TC0(L)
                   TOT2 = TOT2 + TC(L)
                ENDDO
@@ -401,8 +404,8 @@ cdbg  print *, dryd(:)
 
       ! Dust gravitational settling 
       IF ( .not. DOSETTLING ) THEN
-         CALL SETTLEDUST( am_I_Root, Input_Opt,  State_Met,
-     &                    State_Chm, State_Diag, RC )
+         CALL SETTLEDUST( am_I_Root,  Input_Opt,  State_Chm,
+     &                    State_Diag, State_Grid, State_Met, RC )
       ENDIF
 
 
@@ -431,9 +434,9 @@ cdbg  print *, dryd(:)
 !$OMP+PRIVATE( ID, X0, X, Y0, Y )
 !$OMP+DEFAULT( SHARED )
 !$OMP+SCHEDULE( DYNAMIC )
-      DO I = 1, IIPAR
-      DO J = 1, JJPAR
-      DO L = 1, LLCHEM 
+      DO I = 1, State_Grid%NX
+      DO J = 1, State_Grid%NY
+      DO L = 1, State_Grid%MaxChemLev
 
          ! Initialize for safety's sake
          AREA_CM2 = 0d0
@@ -470,7 +473,8 @@ c     &           'FLUX  AD44'
 ! (ckeller, 3/5/15)
             ! RKT is drydep frequency [1/s] -- PBLFRAC accounts for the 
             ! fraction of each vertical level that is located below the PBL top
-            RKT = DEPSAV(I,J,DRYD(BIN))* GET_FRAC_UNDER_PBLTOP( I, J, L)
+            RKT = DEPSAV(I,J,DRYD(BIN)) *
+     &            GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
 !debug            if(i==ii .and. j==jj .and. L==1) 
 c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF (RKT > 0d0) THEN 
@@ -489,7 +493,7 @@ c     &           print *,'JC=',JC,'BIN=',BIN,'ID=',ID,'RKT',RKT
             IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
                ! Surface area [cm2]
-               AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+               AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
                
                ! Convert from [kg/timestep] to [molec/cm2/s] 
                ! Store in AD44
@@ -534,7 +538,8 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
 ! (ckeller, 3/5/15)
          !Dry deposit H2SO4 gas (win, 5/24/06)
          Y0 = Spc(I,J,L,id_H2SO4)
-         RKT = DEPSAV(I,J,H2SO4ID)* GET_FRAC_UNDER_PBLTOP( I, J, L)
+         RKT = DEPSAV(I,J,H2SO4ID) *
+     &         GET_FRAC_UNDER_PBLTOP( I, J, L, State_Grid )
          Y = Y0 * EXP(-RKT)
 ! ******************************************************************************
 #if defined( BPCH_DIAG )
@@ -544,7 +549,7 @@ c     &           AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
 
             ! Surface area [cm2]
-            AREA_CM2 = GET_AREA_CM2( I, J, 1 )
+            AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
 
             ! Convert from [kg/timestep] to [molec/cm2/s] 
             ! Store in AD44

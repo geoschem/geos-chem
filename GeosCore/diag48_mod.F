@@ -135,8 +135,8 @@
       CONTAINS
 
 !------------------------------------------------------------------------------
-      SUBROUTINE DIAG48( am_I_Root, Input_Opt, 
-     &                   State_Met, State_Chm, RC )
+      SUBROUTINE DIAG48( am_I_Root,  Input_Opt, State_Chm,
+     &                   State_Grid, State_Met, RC )
 !
 !******************************************************************************
 !  Subroutine DIAG48 saves station time series diagnostics to disk.
@@ -180,15 +180,14 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState,           Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,          ONLY : BPCH2
-      USE CMN_SIZE_MOD,       ONLY : IIPAR, JJPAR, LLPAR
       USE CMN_FJX_MOD,        ONLY : ODAER, ODMDUST, NRH, NDUST
       USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
 !      USE CMN_O3_MOD               ! SAVEOH, XNUMOLAIR
       USE ERROR_MOD,          ONLY : ERROR_STOP
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET,        GET_YOFFSET
       USE PBL_MIX_MOD,        ONLY : GET_PBL_TOP_L,      GET_PBL_TOP_m
       USE PhysConstants            ! SCALE_HEIGHT, XNUMOLAIR
       USE TIME_MOD,           ONLY : GET_LOCALTIME,      GET_NYMD
@@ -200,6 +199,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -219,7 +219,7 @@
       LOGICAL            :: LINTERP
       INTEGER            :: nAdvect
       INTEGER            :: GMTRC, I, I0, J, J0, L, N, K, R, TMP, W,ISPC
-      REAL(fp)           :: LT, Q(LLPAR), SCALEAODnm
+      REAL(fp)           :: LT, Q(State_Grid%NZ), SCALEAODnm
       REAL(f8)           :: TAU
       CHARACTER(LEN=40)  :: CATEGORY
       CHARACTER(LEN=40)  :: UNIT
@@ -253,8 +253,8 @@
       SPC          => State_Chm%Species
 
       ! Get grid offsets
-      I0 = GET_XOFFSET( GLOBAL=.TRUE. )
-      J0 = GET_YOFFSET( GLOBAL=.TRUE. )
+      I0 = State_Grid%XMinOffset
+      J0 = State_Grid%YMinOffset
 
       ! First-time initialization
       IF ( FIRST ) THEN
@@ -332,7 +332,7 @@
          N = ND48_N(W)
 
          ! Get local time
-         LT = GET_LOCALTIME( I, J, K )
+         LT = GET_LOCALTIME( I, J, K, State_Grid )
 
          ! Initialize
          Q(:) = 0
@@ -1026,7 +1026,7 @@
 
 !------------------------------------------------------------------------------
 
-      SUBROUTINE INIT_DIAG48( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG48( am_I_Root, Input_Opt, State_Grid, RC )
 !
 !******************************************************************************
 !  Subroutine INIT_DIAG48 allocates and zeroes all module arrays (bmy, 7/20/04)
@@ -1042,6 +1042,7 @@
       USE ErrCode_Mod
       USE Input_Opt_Mod,         ONLY : OptInput
       USE State_Chm_Mod,         ONLY : Ind_
+      USE State_Grid_Mod,        ONLY : GrdState
 #if defined( BPCH_DIAG ) || defined( BPCH_TIMESER )
       USE BPCH2_MOD,             ONLY : GET_MODELNAME, GET_HALFPOLAR
       USE CMN_SIZE_MOD                ! Size parameters
@@ -1053,6 +1054,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1104,7 +1106,7 @@
 
          ! Error check longitude
          IF ( Input_Opt%ND48_IARR(N) < 1       .or.
-     &        Input_Opt%ND48_IARR(N) > IIPAR ) THEN
+     &        Input_Opt%ND48_IARR(N) > State_Grid%NX ) THEN
             CALL ERROR_STOP( 'Bad longitude index!', LOCATION )
          ELSE
             ND48_I(N) = Input_Opt%ND48_IARR(N)
@@ -1112,7 +1114,7 @@
 
          ! Error check latitude
          IF ( Input_Opt%ND48_JARR(N) < 1       .or.
-     &        Input_Opt%ND48_JARR(N) > JJPAR ) THEN
+     &        Input_Opt%ND48_JARR(N) > State_Grid%NY ) THEN
             CALL ERROR_STOP( 'Bad latitude index!', LOCATION )
          ELSE
             ND48_J(N) = Input_Opt%ND48_JARR(N)
@@ -1120,7 +1122,7 @@
 
          ! Error check longitude
          IF ( Input_Opt%ND48_LARR(N) < 1       .or.
-     &        Input_Opt%ND48_LARR(N) > LLPAR ) THEN
+     &        Input_Opt%ND48_LARR(N) > State_Grid%NZ ) THEN
             CALL ERROR_STOP( 'Bad altitude index!', LOCATION )
          ELSE
             ND48_L(N) = Input_Opt%ND48_LARR(N)
@@ -1133,9 +1135,9 @@
       !-------------------------------
       ! For bpch file output
       !-------------------------------
-      LONRES    = DISIZE
-      LATRES    = DJSIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      LATRES    = State_Grid%DY
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       HALFPOLAR = GET_HALFPOLAR()
 #endif
 

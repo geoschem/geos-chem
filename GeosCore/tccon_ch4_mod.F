@@ -470,8 +470,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Met,
-     &                                 COST_FUNC )
+      SUBROUTINE CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid,
+     &                                 State_Met, COST_FUNC )
 !
 ! !USES:
 !
@@ -484,6 +484,7 @@
       USE TIME_MOD
       USE PhysConstants,      ONLY : XNUMOLAIR, AIRMW
       USE State_Chm_Mod,      ONLY : ChmState, Ind_
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -504,8 +505,9 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input options
-      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
       TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+      TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -527,15 +529,15 @@
       INTEGER            :: L,       LL,     LTCC
       INTEGER            :: JLOOP,   NOBS,   IND
       INTEGER            :: INDS(MAXTCC)
-      REAL(fp)           :: GC_PRES(LLPAR)
-      REAL(fp)           :: GC_PEDGE(LLPAR+1)
-      REAL(fp)           :: GC_CH4_NATIVE(LLPAR)
-      REAL(fp)           :: GC_H2O_NATIVE(LLPAR)
+      REAL(fp)           :: GC_PRES(State_Grid%NZ)
+      REAL(fp)           :: GC_PEDGE(State_Grid%NZ+1)
+      REAL(fp)           :: GC_CH4_NATIVE(State_Grid%NZ)
+      REAL(fp)           :: GC_H2O_NATIVE(State_Grid%NZ)
       REAL(fp)           :: GC_CH4(MAXLEV)
       REAL(fp)           :: GC_H2O(MAXLEV)
       REAL(fp)           :: GC_CH4_cm2(MAXLEV)
       REAL(fp)           :: GC_PSURF
-      REAL(fp)           :: MAP(LLPAR,MAXLEV)
+      REAL(fp)           :: MAP(State_Grid%NZ,MAXLEV)
       REAL(fp)           :: CH4_HAT(MAXLEV)
       REAL(fp)           :: NEW_COST(MAXTCC)
       REAL(fp)           :: OLD_COST
@@ -565,22 +567,22 @@
 !      REAL(fp)           :: GC_XCH4_ADJ
 !      REAL(fp)           :: GC_CH4_ADJ(MAXLEV)
 !      REAL(fp)           :: GC_CH4_cm2_ADJ(MAXLEV)
-!      REAL(fp)           :: GC_CH4_NATIVE_ADJ(LLPAR)
+!      REAL(fp)           :: GC_CH4_NATIVE_ADJ(State_Grid%NZ)
 !      REAL(fp)           :: S_OBS
 !
 !      ! For the observational error matrix
-!      REAL*4             :: S_OBS_MAT(IIPAR,JJPAR)
+!      REAL*4             :: S_OBS_MAT(State_Grid%NX,State_Grid%NY)
 !      INTEGER            :: FID, VID
 !
 !      ! For Finite Difference Testing
 !      LOGICAL, SAVE      :: DO_FDTEST = .FALSE.
 !      LOGICAL, SAVE      :: FDTEST_MATCH = .FALSE. ! Do not change
-!      REAL(fp)           :: PERT(LLPAR)
+!      REAL(fp)           :: PERT(State_Grid%NZ)
 !      REAL(fp)           :: COST_FUNC_0
 !      REAL(fp)           :: COST_FUNC_pos, COST_FUNC_neg
-!      REAL(fp)           :: ADJ(LLPAR), ADJ_SAVE(LLPAR)
-!      REAL(fp)           :: FD_CEN(LLPAR), FD_POS(LLPAR)
-!      REAL(fp)           :: FD_NEG(LLPAR)
+!      REAL(fp)           :: ADJ(State_Grid%NZ), ADJ_SAVE(State_Grid%NZ)
+!      REAL(fp)           :: FD_CEN(State_Grid%NZ), FD_POS(State_Grid%NZ)
+!      REAL(fp)           :: FD_NEG(State_Grid%NZ)
 !------------------------------------------------------------------------------
 
       ! For miscellaneous
@@ -750,18 +752,18 @@
             CYCLE
          ENDIF
 
-         ! skip Observations outside the nested domain
-         ! Only skip if we're running nested (ajt, 1/26/13)
-#if   defined( NESTED_NA )
-         IF ( TCC(NT)%LAT(1) <   10d0 .OR. TCC(NT)%LAT(1) >  70d0  .OR. 
-     &        TCC(NT)%LON(1) < -140d0 .OR. TCC(NT)%LON(1) > -40d0 ) THEN
+         ! Skip observations outside the nested domain
+         IF ( TCC(NT)%LAT(1) < State_Grid%YMin .OR.
+     &        TCC(NT)%LAT(1) > State_Grid%YMax .OR. 
+     &        TCC(NT)%LON(1) < State_Grid%XMin .OR.
+     &        TCC(NT)%LON(1) > State_Grid%XMax ) THEN
             print*, ' Outside nested domain, skipping record ', NT
             CYCLE
          ENDIF
-#endif
 
          ! Get grid box of current record
-         IIJJ  = GET_IJ( REAL(TCC(NT)%LON(1),4), REAL(TCC(NT)%LAT(1),4))
+         IIJJ  = GET_IJ( REAL(TCC(NT)%LON(1),4), REAL(TCC(NT)%LAT(1),4),
+     &                   State_Grid )
          I     = IIJJ(1)
          J     = IIJJ(2)
 
@@ -791,12 +793,12 @@
          ENDDO
 
          ! Get GC pressure levels (mbar) 
-         DO L = 1, LLPAR
+         DO L = 1, State_Grid%NZ
             GC_PRES(L) = State_Met%PMID(I,J,L)
          ENDDO
 
          ! Get GC pressure edges (mbar) 
-         DO L = 1, LLPAR+1
+         DO L = 1, State_Grid%NZ+1
             GC_PEDGE(L) = State_Met%PEDGE(I,J,L)
          ENDDO
 
@@ -806,7 +808,7 @@
 
          ! Calculate the interpolation weight matrix 
          MAP(:,:) = 0.0_fp
-         CALL GET_INTMAP( GC_PRES, TCC(NT)%PRES, MAP )
+         CALL GET_INTMAP( State_Grid, GC_PRES, TCC(NT)%PRES, MAP )
 
 !------------------------------------------------------------------------------
 ! For adjoint model only:
@@ -815,7 +817,7 @@
 !         print*,'LTCC = ',LTCC
 !         FDTEST_MATCH = .TRUE.
 !         WRITE(6,'(20x,20F16.8)') TCC(NT)%PRES
-!         DO LL=1,LLPAR
+!         DO LL=1,State_Grid%NZ
 !            WRITE(6,'(I4, 73F16.8)') LL, GET_PCENTER(I,J,LL), MAP(LL,:)
 !         ENDDO
 !         print*,'---------------------------------------'
@@ -845,14 +847,14 @@
  
 !         ! Interpolate GC CH4 column to TCCON grid
 !         ! use the method of Parker et al., (2011)
-!         GC_CH4 = INTERP_GC_TCC( LTCC, LLPAR, GC_PRES, GC_PEDGE, 
+!         GC_CH4 = INTERP_GC_TCC( LTCC, State_Grid%NZ, GC_PRES, GC_PEDGE, 
 !     &               TCC(NT)%PRES(1:LTCC), GC_CH4_NATIVE )
 
 ! Old interpolation method from kjw
          DO LL = 1, LTCC
             GC_CH4(LL) = 0.0_fp
             GC_H2O(LL) = 0.0_fp
-            DO L = 1, LLPAR 
+            DO L = 1, State_Grid%NZ 
                GC_CH4(LL) = GC_CH4(LL) 
      &                    + MAP(L,LL) * GC_CH4_NATIVE(L) 
                GC_H2O(LL) = GC_H2O(LL) 
@@ -1059,7 +1061,7 @@
 !
 !! Old interpolation from kjw
 !         ! adjoint of interpolation 
-!         DO L  = 1, LLPAR
+!         DO L  = 1, State_Grid%NZ
 !            GC_CH4_NATIVE_ADJ(L) = 0d0 
 !            DO LL = 1, LTCC
 !               GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
@@ -1069,7 +1071,7 @@
 !         
 !
 !!         ! Updated adjoint of interpolation
-!!         GC_CH4_NATIVE_ADJ = INTERP_GC_TCC( LLPAR, LTCC,
+!!         GC_CH4_NATIVE_ADJ = INTERP_GC_TCC( State_Grid%NZ, LTCC,
 !!     &                       TCC(NT)%PRES(1:LTCC),
 !!     &                       TCC_PEDGE( LTCC, TCC(NT)%PRES(1:LTCC) ),
 !!     &                       GC_PRES, GC_CH4_ADJ )
@@ -1142,7 +1144,7 @@
 !      J     = IIJJ(2)
 !
 !      ! Get GC pressure levels (mbar) 
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
@@ -1165,7 +1167,7 @@
 !
 !      ! Perform finite difference testing at each vertical level
 !      ! and for each horizontal grid box in this observation
-!      DO LL = 1, LLPAR
+!      DO LL = 1, State_Grid%NZ
 !
 !         ! Positive perturbation to GEOS-Chem CH4 columns
 !         PERT(:) = 0.0
@@ -1279,8 +1281,8 @@
 !
 !      ! Arguments
 !      REAL(fp), INTENT(INOUT)       :: COST_FUNC_A
-!      REAL(fp), INTENT(OUT)         :: ADJ(LLPAR)
-!      REAL(fp), INTENT(IN)          :: PERT(LLPAR)
+!      REAL(fp), INTENT(OUT)         :: ADJ(State_Grid%NZ)
+!      REAL(fp), INTENT(IN)          :: PERT(State_Grid%NZ)
 !      INTEGER, INTENT(IN)         :: NT
 !
 !      ! Local variables for observation operator
@@ -1289,14 +1291,14 @@
 !      INTEGER                     :: L,       LL,     LTCC
 !      INTEGER                     :: JLOOP,   NOBS,   IND
 !      INTEGER                     :: INDS(MAXTCC)
-!      REAL(fp)                      :: GC_PRES(LLPAR)
-!      REAL(fp)                      :: GC_PEDGE(LLPAR+1)
-!      REAL(fp)                      :: GC_CH4_NATIVE(LLPAR)
+!      REAL(fp)                      :: GC_PRES(State_Grid%NZ)
+!      REAL(fp)                      :: GC_PEDGE(State_Grid%NZ+1)
+!      REAL(fp)                      :: GC_CH4_NATIVE(State_Grid%NZ)
 !      REAL(fp)                      :: GC_CH4(MAXLEV)
 !      REAL(fp)                      :: GC_H2O(MAXLEV)
 !      REAL(fp)                      :: GC_CH4_cm2(MAXLEV)
 !      REAL(fp)                      :: GC_PSURF
-!      REAL(fp)                      :: MAP(LLPAR,MAXLEV)
+!      REAL(fp)                      :: MAP(State_Grid%NZ,MAXLEV)
 !      REAL(fp)                      :: CH4_HAT(MAXLEV)
 !      REAL(fp)                      :: NEW_COST(MAXTCC)
 !      REAL(fp)                      :: OLD_COST
@@ -1319,12 +1321,12 @@
 !      REAL(fp)                      :: GC_XCH4_ADJ
 !      REAL(fp)                      :: GC_CH4_ADJ(MAXLEV)
 !      REAL(fp)                      :: GC_CH4_cm2_ADJ(MAXLEV)
-!      REAL(fp)                      :: GC_CH4_NATIVE_ADJ(LLPAR)
+!      REAL(fp)                      :: GC_CH4_NATIVE_ADJ(State_Grid%NZ)
 !      REAL(fp)                      :: GC_CH4_ori(MAXLEV)
 !      REAL(fp)                      :: S_OBS
 !
 !      ! For Observational error
-!      REAL(fp)                      :: S_OBS_MAT(IIPAR,JJPAR)
+!      REAL(fp)                      :: S_OBS_MAT(State_Grid%NX,State_Grid%NY)
 !      INTEGER                     :: FID, VID
 !
 !      ! For miscellaneous
@@ -1366,12 +1368,12 @@
 !      J     = IIJJ(2)
 !
 !      ! Get GC pressure levels (mbar) 
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_PRES(L) = GET_PCENTER(I,J,L)
 !      ENDDO
 !
 !      ! Get GC pressure edges (mbar) 
-!      DO L = 1, LLPAR+1           
+!      DO L = 1, State_Grid%NZ+1           
 !         GC_PEDGE(L) = GET_PEDGE(I,J,L)
 !      ENDDO
 !
@@ -1381,7 +1383,7 @@
 !
 !      ! Calculate the interpolation weight matrix 
 !      MAP(:,:) = 0d0
-!      CALL GET_INTMAP( GC_PRES, TCC(NT)%PRES, MAP )
+!      CALL GET_INTMAP( State_Grid, GC_PRES, TCC(NT)%PRES, MAP )
 !
 !      ! Get CH4 values at native model resolution
 !      GC_CH4_NATIVE(:) = 0d0
@@ -1397,7 +1399,7 @@
 !      !print*, 'code too fast here.'
 !
 !      ! Perturb level(s) of GC_CH4_NATIVE, given by input argument PERT
-!      DO L = 1, LLPAR
+!      DO L = 1, State_Grid%NZ
 !         GC_CH4_NATIVE(L) = GC_CH4_NATIVE(L) * ( 1 + PERT(L) )
 !      ENDDO
 !
@@ -1407,7 +1409,7 @@
 ! 
 !!      ! Interpolate GC CH4 column to TCCON grid
 !!      ! use the method of Parker et al., (2011)
-!!      GC_CH4 = INTERP_GC_TCC( LTCC, LLPAR, GC_PRES, GC_PEDGE,
+!!      GC_CH4 = INTERP_GC_TCC( LTCC, State_Grid%NZ, GC_PRES, GC_PEDGE,
 !!     &         TCC(NT)%PRES(1:LTCC), GC_CH4_NATIVE )
 !
 !! Old interpolation method from kjw
@@ -1415,7 +1417,7 @@
 !      DO LL = 1, LTCC
 !         GC_CH4(LL) = 0d0 
 !         GC_H2O(LL) = 0d0 
-!         DO L = 1, LLPAR 
+!         DO L = 1, State_Grid%NZ 
 !            GC_CH4(LL) = GC_CH4(LL) 
 !     &           + MAP(L,LL) * GC_CH4_NATIVE(L) 
 !            GC_H2O(LL) = TCC(NT)%H2O(LL)
@@ -1619,7 +1621,7 @@
 !
 !! Old interpolation from kjw
 !      ! adjoint of interpolation 
-!      DO L  = 1, LLPAR
+!      DO L  = 1, State_Grid%NZ
 !         GC_CH4_NATIVE_ADJ(L) = 0d0 
 !         DO LL = 1, LTCC
 !            GC_CH4_NATIVE_ADJ(L) = GC_CH4_NATIVE_ADJ(L)
@@ -1628,7 +1630,7 @@
 !      ENDDO
 !
 !!      ! Updated adjoint of interpolation
-!!      GC_CH4_NATIVE_ADJ = INTERP_GC_TCC_ADJ( LLPAR, LTCC,
+!!      GC_CH4_NATIVE_ADJ = INTERP_GC_TCC_ADJ( State_Grid%NZ, LTCC,
 !!     &                    TCC(NT)%PRES(1:LTCC),
 !!     &                    TCC_PEDGE( LTCC, TCC(NT)%PRES(1:LTCC) ),
 !!     &                    GC_PRES, GC_CH4_ADJ, MAP )
@@ -1640,7 +1642,7 @@
 !
 !      ! Calculate adjoint sensitivity to values in CHK_STT
 !      ADJ(:) = 0d0
-!      DO LL=1,LLPAR
+!      DO LL=1,State_Grid%NZ
 !         IF (LANAL_INV) THEN
 !            ADJ(LL) = GC_CH4_NATIVE_ADJ(LL) * OBS_STT(I,J,LL,IDTCH4)
 !         ELSE
@@ -1937,20 +1939,21 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE GET_INTMAP( GCPCEN, TCCPCEN, HINTERPZ )
+      SUBROUTINE GET_INTMAP( State_Grid, GCPCEN, TCCPCEN, HINTERPZ )
 !
 ! !USES:
 !
-      USE CMN_SIZE_MOD
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-      REAL(fp), INTENT(IN)  :: GCPCEN(LLPAR)
+      TYPE(GrdState), INTENT(IN) :: State_Grid
+      REAL(fp), INTENT(IN)  :: GCPCEN(State_Grid%NZ)
       REAL(fp), INTENT(IN)  :: TCCPCEN(MAXLEV) 
 !
 ! !OUTPUT PARAMETERS:
 !
-      REAL(fp), INTENT(OUT) :: HINTERPZ(LLPAR,MAXLEV)
+      REAL(fp), INTENT(OUT) :: HINTERPZ(State_Grid%NZ,MAXLEV)
 !
 ! !REVISION HISTORY:
 !  17 Aug 2017 - M. Sulprizio- Initial version based on TCCON CH4 observation
@@ -1972,17 +1975,17 @@
       HINTERPZ(:,:) = 0e+0_fp
 
 !      ! Determine what to map onto
-!      IF ( MAXLEV > LLPAR ) THEN
+!      IF ( MAXLEV > State_Grid%NZ ) THEN
 !         WHICH_MAP = .FALSE.
 !      ENDIF
 
       ! Determine the looping
       IF ( WHICH_MAP ) THEN
-         NGC  = LLPAR-1
+         NGC  = State_Grid%NZ-1
          NSAT = MAXLEV
       ELSE
          NSAT = MAXLEV-1
-         NGC  = LLPAR
+         NGC  = State_Grid%NZ
       ENDIF
 
       ! Loop over each pressure level of TCCON grid
@@ -1992,7 +1995,7 @@
          DO LGC = 1, NGC
 
             ! Find the bounding values
-            IF (MAXLEV > LLPAR) THEN
+            IF (MAXLEV > State_Grid%NZ) THEN
                LOW = GCPCEN(LGC+1)
                HI  = GCPCEN(LGC)
                MID = TCCPCEN(LTM)
@@ -2005,7 +2008,7 @@
             ! Match TCCON level to the GEOS-Chem level
             IF ( ( MID <= HI ) .AND. (  MID  > LOW ) ) THEN 
                DIFF = HI - LOW  
-               IF (MAXLEV > LLPAR) THEN
+               IF (MAXLEV > State_Grid%NZ) THEN
                   HINTERPZ(LGC+1,LTM) = ( HI - MID  ) / DIFF
                   HINTERPZ(LGC  ,LTM) = ( MID - LOW ) / DIFF
                ELSE

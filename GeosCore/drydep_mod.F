@@ -22,7 +22,6 @@
       USE DIAG_MOD,       ONLY : AD44           ! Diagnostic arrays
 #endif
       USE ERROR_MOD                             ! Error handling routines
-      USE GC_GRID_MOD,    ONLY : GET_AREA_CM2   ! Grid box surface areas [cm2]
       USE PBL_MIX_MOD                           ! Boundary layer quantities
 #if   defined( TOMAS )
       USE TOMAS_MOD                             ! For TOMAS microphysics
@@ -309,8 +308,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DO_DRYDEP( am_I_Root, Input_Opt,  State_Met,
-     &                      State_Chm, State_Diag, RC         )
+      SUBROUTINE DO_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                      State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -322,6 +321,7 @@
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
       USE Time_Mod,           ONLY : Get_Ts_Chem
       USE UnitConv_Mod
@@ -330,6 +330,7 @@
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -434,20 +435,20 @@
 
 
       ! Arrays
-      LOGICAL       :: LSNOW (IIPAR,JJPAR       ) ! Flag for snow/ice on the sfc
-      REAL(f8)      :: CZ1   (IIPAR,JJPAR       ) ! Midpt ht of 1st model lev[m]
-      REAL(f8)      :: TC0   (IIPAR,JJPAR       ) ! Grid box sfc temperature [K]
-      REAL(f8)      :: ZH    (IIPAR,JJPAR       ) ! PBL height [m]
-      REAL(f8)      :: OBK   (IIPAR,JJPAR       ) ! Monin-Obhukov Length [m]
-      REAL(f8)      :: CFRAC (IIPAR,JJPAR       ) ! Column cloud frac [unitless]
-      REAL(f8)      :: RADIAT(IIPAR,JJPAR       ) ! Solar radiation [W/m2]
-      REAL(f8)      :: USTAR (IIPAR,JJPAR       ) ! Grid box friction vel [m/s]
-      REAL(f8)      :: RHB   (IIPAR,JJPAR       ) ! Relative humidity [unitless]
-      REAL(f8)      :: DVEL  (IIPAR,JJPAR,NUMDEP) ! Drydep velocities [m/s]
-      REAL(f8)      :: PRESSU(IIPAR,JJPAR       ) ! Local surface pressure [Pa]
-      REAL(f8)      :: W10   (IIPAR,JJPAR       ) ! 10m windspeed [m/s]
-      REAL(f8)      :: AZO   (IIPAR,JJPAR)        ! Z0, per (I,J) square
-      REAL(f8)      :: SUNCOS_MID(IIPAR,JJPAR)    ! COS(SZA) @ midpoint of the
+      LOGICAL       :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for snow/ice on the sfc
+      REAL(f8)      :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st model lev[m]
+      REAL(f8)      :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temperature [K]
+      REAL(f8)      :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
+      REAL(f8)      :: OBK   (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov Length [m]
+      REAL(f8)      :: CFRAC (State_Grid%NX,State_Grid%NY) ! Column cloud frac [unitless]
+      REAL(f8)      :: RADIAT(State_Grid%NX,State_Grid%NY) ! Solar radiation [W/m2]
+      REAL(f8)      :: USTAR (State_Grid%NX,State_Grid%NY) ! Grid box friction vel [m/s]
+      REAL(f8)      :: RHB   (State_Grid%NX,State_Grid%NY) ! Relative humidity [unitless]
+      REAL(f8)      :: DVEL  (State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocities [m/s]
+      REAL(f8)      :: PRESSU(State_Grid%NX,State_Grid%NY) ! Local surface pressure [Pa]
+      REAL(f8)      :: W10   (State_Grid%NX,State_Grid%NY) ! 10m windspeed [m/s]
+      REAL(f8)      :: AZO   (State_Grid%NX,State_Grid%NY)        ! Z0, per (I,J) square
+      REAL(f8)      :: SUNCOS_MID(State_Grid%NX,State_Grid%NY)    ! COS(SZA) @ midpoint of the
                                                   !  current chemistry timestep
 
       ! Pointers
@@ -483,13 +484,13 @@
       ! Call METERO to obtain meterological fields (all 1-D arrays)
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
-      CALL METERO( State_Met, CZ1,    TC0,     OBK,       CFRAC,  
-     &             RADIAT,    AZO,    USTAR,   ZH,        LSNOW, 
-     &             RHB,       PRESSU, W10,     SUNCOS_MID          )
+      CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC,  
+     &             RADIAT,     AZO,       USTAR,   ZH,        LSNOW, 
+     &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
-      CALL DEPVEL( am_I_Root, Input_Opt, State_Met,  State_Chm,     
-     &             State_Diag, RADIAT,   TC0,        SUNCOS_MID,
+      CALL DEPVEL( am_I_Root, Input_Opt, State_Chm,  State_Diag,     
+     &             State_Grid, State_Met, RADIAT,    TC0, SUNCOS_MID,
      &             F0,        HSTAR,     XMW,        AIROSOL,           
      &             USTAR,     CZ1,       OBK,        CFRAC,
      &             ZH,        LSNOW,     DVEL,       AZO,              
@@ -508,8 +509,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! THIK = thickness of surface layer [m]
          THIK   = State_Met%BXHEIGHT(I,J,1)
@@ -680,38 +681,35 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE METERO( State_Met, CZ1,    TC0,  OBK,       CFRAC,  
+      SUBROUTINE METERO( State_Grid, State_Met, CZ1, TC0, OBK, CFRAC,  
      &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
      &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
 !
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-      LOGICAL,  INTENT(OUT) :: LSNOW (IIPAR,JJPAR)  ! Flag for denoting snow/ice
-      REAL(f8), INTENT(OUT) :: CZ1   (IIPAR,JJPAR)  ! Midpt ht of 1st model lev
-                                                    !  [m]
-      REAL(f8), INTENT(OUT) :: TC0   (IIPAR,JJPAR)  ! Grid box sfc temp [K]
-      REAL(f8), INTENT(OUT) :: OBK   (IIPAR,JJPAR)  ! Monin-Obhukov length [m]
-      REAL(f8), INTENT(OUT) :: CFRAC (IIPAR,JJPAR)  ! Column cloud fraction
-                                                    !  [unitless]
-      REAL(f8), INTENT(OUT) :: RADIAT(IIPAR,JJPAR)  ! Solar radiation @ ground
-                                                    !  [W/m2]
-      REAL(f8), INTENT(OUT) :: RHB   (IIPAR,JJPAR)  ! Rel humidity at sfc
-                                                    !  [unitless]
-      REAL(f8), INTENT(OUT) :: USTR  (IIPAR,JJPAR)  ! Friction velocity [m/s]
-      REAL(f8), INTENT(OUT) :: ZH    (IIPAR,JJPAR)  ! PBL height [m]
-      REAL(f8), INTENT(OUT) :: PRESSU(IIPAR,JJPAR)  ! Local surface press [Pa]
-      REAL(f8), INTENT(OUT) :: W10   (IIPAR,JJPAR)  ! 10 meter windspeed [m/s]
-      REAL(f8), INTENT(OUT) :: SUNCOS_MID(IIPAR,JJPAR) ! COS(SZA) @ midpt of
-                                                       !  current chem timestep
-      REAL(f8), INTENT(OUT) :: AZO(IIPAR,JJPAR) ! Roughness heights, by grid box
+      LOGICAL,  INTENT(OUT) :: LSNOW (State_Grid%NX,State_Grid%NY)  ! Flag for denoting snow/ice
+      REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
+      REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
+      REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
+      REAL(f8), INTENT(OUT) :: CFRAC (State_Grid%NX,State_Grid%NY)  ! Column cloud fraction [unitless]
+      REAL(f8), INTENT(OUT) :: RADIAT(State_Grid%NX,State_Grid%NY)  ! Solar radiation @ ground [W/m2]
+      REAL(f8), INTENT(OUT) :: RHB   (State_Grid%NX,State_Grid%NY)  ! Rel humidity at sfc [unitless]
+      REAL(f8), INTENT(OUT) :: USTR  (State_Grid%NX,State_Grid%NY)  ! Friction velocity [m/s]
+      REAL(f8), INTENT(OUT) :: ZH    (State_Grid%NX,State_Grid%NY)  ! PBL height [m]
+      REAL(f8), INTENT(OUT) :: PRESSU(State_Grid%NX,State_Grid%NY)  ! Local surface press [Pa]
+      REAL(f8), INTENT(OUT) :: W10   (State_Grid%NX,State_Grid%NY)  ! 10 meter windspeed [m/s]
+      REAL(f8), INTENT(OUT) :: SUNCOS_MID(State_Grid%NX,State_Grid%NY) ! COS(SZA) @ midpt of current chem timestep
+      REAL(f8), INTENT(OUT) :: AZO(State_Grid%NX,State_Grid%NY) ! Roughness heights, by grid box
 !
 ! !REMARKS:
 !                                                                             .
@@ -774,8 +772,8 @@
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, SP, SFCWINDSQR )
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! THIK = thickness of layer 1 [m]
          THIK        = State_Met%BXHEIGHT(I,J,1)
@@ -853,8 +851,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Met, State_Chm,    
-     &                   State_Diag, RADIAT,   TEMP,      SUNCOS,
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,    
+     &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
      &                   F0,        HSTAR,     XMW,       AIROSOL,     
      &                   USTAR,     CZ1,       OBK,       CFRAC,           
      &                   ZH,        LSNOW,     DVEL,      ZO,            
@@ -868,34 +866,34 @@
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Met_Mod,      ONLY : MetState
       USE State_Diag_Mod,     ONLY : DgnState
+      USE State_Grid_Mod,     ONLY : GrdState
+      USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN) :: am_I_Root      ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN) :: Input_Opt      ! Input Options object
-      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
       TYPE(DgnState), INTENT(IN) :: State_Diag     ! Diagnostics state object
+      TYPE(GrdState), INTENT(IN) :: State_Grid     ! Grid state object
+      TYPE(MetState), INTENT(IN) :: State_Met      ! Meteorology state object
 
-      REAL(f8), INTENT(IN) :: RADIAT (IIPAR,JJPAR) ! Solar radiation [W/m2]
-      REAL(f8), INTENT(IN) :: TEMP   (IIPAR,JJPAR) ! Temperature [K]
-      REAL(f8), INTENT(IN) :: SUNCOS (IIPAR,JJPAR) ! Cos of solar zenith angle
+      REAL(f8), INTENT(IN) :: RADIAT (State_Grid%NX,State_Grid%NY) ! Solar radiation [W/m2]
+      REAL(f8), INTENT(IN) :: TEMP   (State_Grid%NX,State_Grid%NY) ! Temperature [K]
+      REAL(f8), INTENT(IN) :: SUNCOS (State_Grid%NX,State_Grid%NY) ! Cos of solar zenith angle
       LOGICAL,  INTENT(IN) :: AIROSOL(NUMDEP)      ! =T denotes aerosol species
       REAL(f8), INTENT(IN) :: F0     (NUMDEP)      ! React. factor for oxidation
                                                    !  of biological substances
       REAL(f8), INTENT(IN) :: HSTAR  (NUMDEP)      ! Henry's law constant
       REAL(f8), INTENT(IN) :: XMW    (NUMDEP)      ! Molecular weight [kg/mol]
-      REAL(f8), INTENT(IN) :: USTAR  (IIPAR,JJPAR) ! Friction velocity [m/s]
-      REAL(f8), INTENT(IN) :: CZ1    (IIPAR,JJPAR) ! Alt @ which Vd is computed
-                                                   !  [m]
-      REAL(f8), INTENT(IN) :: OBK    (IIPAR,JJPAR) ! Monin-Obhukov length [m]
-      REAL(f8), INTENT(IN) :: CFRAC  (IIPAR,JJPAR) ! Surface cloud fraction
-      REAL(f8), INTENT(IN) :: ZH     (IIPAR,JJPAR) ! Roughness height [m]
-      REAL(f8), INTENT(IN) :: RHB    (IIPAR,JJPAR) ! Relative humidity [%]
-      REAL(f8), INTENT(IN) :: PRESSU (IIPAR,JJPAR) ! Surface pressure [hPa]
-      REAL(f8), INTENT(IN) :: W10    (IIPAR,JJPAR) ! Wind speed @ 10m altitude
-                                                   !  [m/s]
+      REAL(f8), INTENT(IN) :: USTAR  (State_Grid%NX,State_Grid%NY) ! Friction velocity [m/s]
+      REAL(f8), INTENT(IN) :: CZ1    (State_Grid%NX,State_Grid%NY) ! Alt @ which Vd is compute [m]
+      REAL(f8), INTENT(IN) :: OBK    (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov length [m]
+      REAL(f8), INTENT(IN) :: CFRAC  (State_Grid%NX,State_Grid%NY) ! Surface cloud fraction
+      REAL(f8), INTENT(IN) :: ZH     (State_Grid%NX,State_Grid%NY) ! Roughness height [m]
+      REAL(f8), INTENT(IN) :: RHB    (State_Grid%NX,State_Grid%NY) ! Relative humidity [%]
+      REAL(f8), INTENT(IN) :: PRESSU (State_Grid%NX,State_Grid%NY) ! Surface pressure [hPa]
+      REAL(f8), INTENT(IN) :: W10    (State_Grid%NX,State_Grid%NY) ! Wind speed @ 10m altitude [m/s]
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -904,7 +902,7 @@
 ! !OUTPUT PARAMETERS:
 ! 
       INTEGER,  INTENT(OUT) :: RC                  ! Success or failure?
-      REAL(f8), INTENT(OUT) :: DVEL(IIPAR,JJPAR,NUMDEP) ! Drydep velocity [m/s]
+      REAL(f8), INTENT(OUT) :: DVEL(State_Grid%NX,State_Grid%NY,NUMDEP) ! Drydep velocity [m/s]
 !
 ! !REMARKS:
 !  Need as landtype input for each grid square (I,J); see CMN_DEP_mod.F
@@ -1088,11 +1086,11 @@
      2        RSURFC(NUMDEP,NTYPE)       
                                    
       REAL(f8)  C1X(NUMDEP),VD(NUMDEP),VK(NUMDEP)              
-      REAL(f8)  ZO(IIPAR,JJPAR)           
+      REAL(f8)  ZO(State_Grid%NX,State_Grid%NY)           
 
 !      LOGICAL LDEP(MAXDEP)
       LOGICAL LDEP(NUMDEP)
-      LOGICAL LRGERA(IIPAR,JJPAR)
+      LOGICAL LRGERA(State_Grid%NX,State_Grid%NY)
 
       REAL(f8)  VDS
       REAL(f8)  CZ,C1,RT,XNU,RAD0,RIX,GFACT,GFACI
@@ -1108,11 +1106,12 @@
 #if   defined( TOMAS )
       ! For TOMAS aerosol (win, 7/15/09)
       INTEGER  BIN
-      REAL(f8)   SIZ_DIA(IIPAR,JJPAR, IBINS), SIZ_DEN(IIPAR,JJPAR,IBINS)
+      REAL(f8)   SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
+      REAL(f8)   SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
 #endif
 
       ! Logical for snow and sea ice
-      LOGICAL LSNOW(IIPAR,JJPAR)
+      LOGICAL LSNOW(State_Grid%NX,State_Grid%NY)
 
       ! Loop indices (bmy, 3/29/12)
       INTEGER :: I, J
@@ -1246,8 +1245,9 @@
       !=================================================================
 
       IF ( id_NK1 > 0 ) THEN
-         CALL AERO_DIADEN( am_I_Root, 1,       Input_Opt, State_Met,
-     &                     State_Chm, SIZ_DIA, SIZ_DEN,   RC        )
+         CALL AERO_DIADEN( am_I_Root,  1,         Input_Opt, State_Chm,
+     &                     State_Grid, State_Met, SIZ_DIA,   SIZ_DEN,
+     &                     RC )
          IF ( RC /= GC_SUCCESS ) THEN
             ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
             CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1278,8 +1278,8 @@
 #endif
 !$OMP+PRIVATE( SpcId,  SpcInfo                                )
 
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
 !** CZ is Altitude (m) at which deposition velocity is computed
          CZ = CZ1(I,J)
@@ -4003,8 +4003,8 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DRYDEP( am_I_Root, Input_Opt, 
-     &                        State_Chm, State_Diag, RC )
+      SUBROUTINE INIT_DRYDEP( am_I_Root,  Input_Opt,  State_Chm,
+     &                        State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -4014,10 +4014,12 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

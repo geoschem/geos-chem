@@ -99,18 +99,24 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG56
+      SUBROUTINE WRITE_DIAG56( Input_Opt, State_Grid )
 !
 ! !USES:
 !
-      USE BPCH2_MOD,    ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
-      USE FILE_MOD,     ONLY : IU_BPCH
-      USE GC_GRID_MOD,  ONLY : GET_XOFFSET, GET_YOFFSET
-      USE TIME_MOD,     ONLY : GET_CT_A3, GET_CT_I3
-      USE TIME_MOD,     ONLY : GET_DIAGb,  GET_DIAGe
+      USE BPCH2_MOD,       ONLY : BPCH2, GET_MODELNAME, GET_HALFPOLAR
+      USE FILE_MOD,        ONLY : IU_BPCH
+      USE Input_Opt_Mod,   ONLY : OptInput
+      USE State_Grid_Mod,  ONLY : GrdState
+      USE TIME_MOD,        ONLY : GET_CT_A3, GET_CT_I3
+      USE TIME_MOD,        ONLY : GET_DIAGb,  GET_DIAGe
 
       USE CMN_SIZE_MOD     ! Size parameters
       USE CMN_DIAG_MOD     ! TINDEX
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(OptInput), INTENT(IN) :: Input_Opt    ! Input Options object
+      TYPE(GrdState), INTENT(IN) :: State_Grid   ! Grid State object
 !
 ! !REMARKS:
 !   # : Field    : Description              : Units          : Scale factor
@@ -137,7 +143,7 @@
 
       INTEGER               :: CENTER180, HALFPOLAR,   IFIRST
       INTEGER               :: JFIRST,    LFIRST,      M,      N         
-      REAL(f4)              :: ARRAY(IIPAR,JJPAR,1)
+      REAL(f4)              :: ARRAY(State_Grid%NX,State_Grid%NY,1)
       REAL(f4)              :: LONRES,    LATRES
       REAL(fp)              :: SCALE
       REAL(f8)              :: DIAGb,     DIAGe
@@ -156,12 +162,12 @@
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
-      LATRES    = DJSIZE
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
+      LATRES    = State_Grid%DY
       LFIRST    = 1
-      LONRES    = DISIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_I3() ) + 1e-32_fp
   
@@ -182,7 +188,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     1,        IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, 1, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1) )
       ENDDO
 #endif
@@ -201,13 +207,16 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG56
+      SUBROUTINE INIT_DIAG56( State_Grid )
 !
 ! !USES:
 !
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-   
-      USE CMN_SIZE_MOD 
+      USE ERROR_MOD,      ONLY : ALLOC_ERR   
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  11 May 2006 - R. Yantosca - Initial version
@@ -229,7 +238,7 @@
       IF ( ND56 == 0 ) RETURN
 
       ! 2-D array ("LFLASH-$")
-      ALLOCATE( AD56( IIPAR, JJPAR, PD56 ), STAT=AS )
+      ALLOCATE( AD56( State_Grid%NX, State_Grid%NY, PD56 ), STAT=AS )
       IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD56' )
 
       ! Zero arrays

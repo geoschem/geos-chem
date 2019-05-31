@@ -97,21 +97,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Do_FlexChem( am_I_Root, Input_Opt,  State_Met,  &
-                          State_Chm, State_Diag, RC         )
+  SUBROUTINE Do_FlexChem( am_I_Root,  Input_Opt,  State_Chm,  &
+                          State_Diag, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
     USE AEROSOL_MOD,          ONLY : SOILDUST, AEROSOL_CONC, RDAER
     USE CMN_FJX_MOD
-    USE CMN_SIZE_MOD,         ONLY : IIPAR, JJPAR, LLPAR
 #if defined( BPCH_DIAG )
     USE CMN_DIAG_MOD,         ONLY : ND52
     USE DIAG_MOD,             ONLY : AD65,  AD52, ad22
     USE DIAG20_MOD,           ONLY : DIAG20, POx, LOx
 #endif
     USE DIAG_OH_MOD,          ONLY : DO_DIAG_OH
-    USE DUST_MOD,             ONLY : RDUST_ONLINE, RDUST_OFFLINE
+    USE DUST_MOD,             ONLY : RDUST_ONLINE
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FAST_JX_MOD,          ONLY : PHOTRATE_ADJ, FAST_JX
@@ -127,7 +126,6 @@ CONTAINS
 #if defined( MODEL_GEOS )
     USE GcKPP_Util,           ONLY : Get_OHreactivity
 #endif
-    USE GC_GRID_MOD,          ONLY : GET_YMID
     USE GEOS_Timers_Mod
     USE Input_Opt_Mod,        ONLY : OptInput
     USE PhysConstants,        ONLY : AVO
@@ -136,6 +134,7 @@ CONTAINS
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
     USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
@@ -155,6 +154,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root  ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -242,12 +242,16 @@ CONTAINS
     REAL(dp)               :: RCNTRL     (                  20               )
     REAL(dp)               :: RSTATE     (                  20               )
 #if defined( MODEL_GEOS )
-    REAL(f4)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
-    REAL(f4)               :: GLOB_JVAL  (IIPAR,JJPAR,LLPAR,JVN_             )
+    REAL(f4)               :: GLOB_RCONST(State_Grid%NX,State_Grid%NY, &
+                                          State_Grid%NZ,NREACT               )
+    REAL(f4)               :: GLOB_JVAL  (State_Grid%NX,State_Grid%NY, &
+                                          State_Grid%NZ,JVN_                 )
 #else
-    REAL(dp)               :: GLOB_RCONST(IIPAR,JJPAR,LLPAR,NREACT           )
+    REAL(dp)               :: GLOB_RCONST(State_Grid%NX,State_Grid%NY, &
+                                          State_Grid%NZ,NREACT               )
 #endif
-    REAL(fp)               :: Before     (IIPAR,JJPAR,LLPAR,State_Chm%nAdvect)
+    REAL(fp)               :: Before     (State_Grid%NX,State_Grid%NY, &
+                                          State_Grid%NZ,State_Chm%nAdvect    )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -343,8 +347,8 @@ CONTAINS
        IF ( Input_Opt%LUCX ) THEN
 
           ! Calculate stratospheric aerosol properties (SDE 04/18/13)
-          CALL CALC_STRAT_AER( am_I_Root, Input_Opt,                         &
-                               State_Met, State_Chm, RC                     )
+          CALL CALC_STRAT_AER( am_I_Root,  Input_Opt, State_Chm,             &
+                               State_Grid, State_Met, RC                    )
           
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -361,8 +365,8 @@ CONTAINS
        ENDIF
 
        ! Compute aerosol concentrations
-       CALL AEROSOL_CONC( am_I_Root, Input_Opt,  State_Met,                  &
-                          State_Chm, State_Diag, RC                         )
+       CALL AEROSOL_CONC( am_I_Root,  Input_Opt,  State_Chm,                 &
+                          State_Diag, State_Grid, State_Met, RC             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -424,9 +428,9 @@ CONTAINS
 
     ! Call RDAER to compute AOD for FAST-JX (skim, 02/03/11)
     WAVELENGTH = 0
-    CALL RDAER( am_I_Root, Input_Opt,  State_Met,  &
-                State_Chm, State_Diag, RC,         &
-                MONTH,     YEAR,       WAVELENGTH )
+    CALL RDAER( am_I_Root,  Input_Opt,  State_Chm,      &
+                State_Diag, State_Grid, State_Met, RC,  &
+                MONTH,      YEAR,       WAVELENGTH )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -450,8 +454,8 @@ CONTAINS
     ! (rjp, tdf, bmy, 4/1/04)
     !=======================================================================
     IF ( Input_Opt%LDUST ) THEN
-       CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Met,  State_Chm,      &
-                          State_Diag, SOILDUST,  WAVELENGTH, RC             )
+       CALL RDUST_ONLINE( am_I_Root,  Input_Opt, State_Chm,  State_Diag,    &
+                          State_Grid, State_Met, SOILDUST,   WAVELENGTH, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -460,26 +464,32 @@ CONTAINS
           RETURN
        ENDIF
 
-    ELSE
-#if !defined( TOMAS )
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       !%%%% NOTE: RDUST_OFFLINE STILL HAS BPCH CODE AND THEREFORE   %%%% 
-       !%%%% IS PROBABLY NOW OBSOLETE.  THIS WILL BE REMOVED WHEN WE %%%%
-       !%%%% GET HIGH_RESOLUTION DUST EMISSIONS (bmy, 1/18/18)       %%%%
-       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-       ! Don't read dust emissions from disk when using TOMAS,
-       ! because TOMAS uses a different set of dust species than the 
-       ! std code (win, bmy, 1/25/10)
-       CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Met, State_Chm,      &
-                           State_Diag, MONTH,     YEAR,      WAVELENGTH, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "RDUST_OFFLINE"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-#endif
+!------------------------------------------------------------------------------
+! Prior to 3/3/19:
+! Remove RDUST_OFFLINE -- dust should always be on in fullchem and aerosol 
+! simulations (mps, 3/3/19)
+!    ELSE
+!#if !defined( TOMAS )
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       !%%%% NOTE: RDUST_OFFLINE STILL HAS BPCH CODE AND THEREFORE   %%%% 
+!       !%%%% IS PROBABLY NOW OBSOLETE.  THIS WILL BE REMOVED WHEN WE %%%%
+!       !%%%% GET HIGH_RESOLUTION DUST EMISSIONS (bmy, 1/18/18)       %%%%
+!       !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!       ! Don't read dust emissions from disk when using TOMAS,
+!       ! because TOMAS uses a different set of dust species than the 
+!       ! std code (win, bmy, 1/25/10)
+!       CALL RDUST_OFFLINE( am_I_Root,  Input_Opt, State_Chm,  State_Diag,   &
+!                           State_Grid, State_Met, MONTH,      YEAR,         &
+!                           WAVELENGTH, RC )
+!
+!       ! Trap potential errors
+!       IF ( RC /= GC_SUCCESS ) THEN
+!          ErrMsg = 'Error encountered in "RDUST_OFFLINE"!'
+!          CALL GC_Error( ErrMsg, RC, ThisLoc )
+!          RETURN
+!       ENDIF
+!#endif
+!------------------------------------------------------------------------------
     ENDIF
 
     !### Debug
@@ -516,8 +526,9 @@ CONTAINS
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, & 
-                            State_Chm, 'molec/cm3', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm,   & 
+                            State_Grid, State_Met, 'molec/cm3', &
+                            RC,         OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90')
@@ -533,8 +544,8 @@ CONTAINS
 #endif
 
     ! Do Photolysis
-    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, &
-                  State_Met,  State_Chm,  State_Diag, RC )
+    CALL FAST_JX( WAVELENGTH, am_I_Root,  Input_Opt, State_Chm, &
+                  State_Diag, State_Grid, State_Met, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -667,9 +678,9 @@ CONTAINS
     !$OMP REDUCTION( +:TOTREJEC                                             )&
     !$OMP REDUCTION( +:TOTNUMLU                                             )&
     !$OMP SCHEDULE ( DYNAMIC,  1                                            )
-    DO L = 1, LLPAR
-    DO J = 1, JJPAR
-    DO I = 1, IIPAR
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        !====================================================================
        ! For safety sake, initialize certain variables for each grid
@@ -691,7 +702,7 @@ CONTAINS
        PCO_NMVOC  = 0.0_fp  ! Total CO from NMVOC
 
        ! Grid-box latitude [degrees]
-       YLAT      = GET_YMID( I, J, L )
+       YLAT      = State_Grid%YMid(I,J)
 
        ! Temperature [K]
        TEMP      = State_Met%T(I,J,L)
@@ -825,11 +836,11 @@ CONTAINS
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        ! Skipping buffer zone (lzh, 08/10/2014)
-       IF ( Input_Opt%ITS_A_NESTED_GRID ) THEN
-          IF ( J <=         Input_Opt%NESTED_J0W ) CYCLE
-          IF ( J >  JJPAR - Input_Opt%NESTED_J0E ) CYCLE
-          IF ( I <=         Input_Opt%NESTED_I0W ) CYCLE
-          IF ( I >  IIPAR - Input_Opt%NESTED_I0E ) CYCLE
+       IF ( State_Grid%NestedGrid ) THEN
+          IF ( J <=                 State_Grid%SouthBuffer ) CYCLE
+          IF ( J >  State_Grid%NY - State_Grid%NorthBuffer ) CYCLE
+          IF ( I <=                 State_Grid%EastBuffer  ) CYCLE
+          IF ( I >  State_Grid%NX - State_Grid%WestBuffer  ) CYCLE
        ENDIF
 
        !====================================================================
@@ -1227,8 +1238,8 @@ CONTAINS
        ! Save OH, HO2, O1D, O3P for the ND43 diagnostic
        ! NOTE: These might not be needed for netCDF, as they will already
        ! have been archived in State_Chm%Species output.
-       CALL Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,           &
-                                 State_Chm, State_Diag, RC                  )
+       CALL Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,           &
+                                 State_Diag, State_Grid, State_Met, RC       )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1245,7 +1256,7 @@ CONTAINS
     !=======================================================================
     ! Save quantities for computing mean OH lifetime
     !=======================================================================
-    CALL DO_DIAG_OH( State_Met, State_Chm )
+    CALL DO_DIAG_OH( State_Chm, State_Grid, State_Met )
     IF ( prtDebug ) THEN
        CALL DEBUG_MSG( '### Do_FlexChem: after DO_DIAG_OH' )
     ENDIF
@@ -1257,7 +1268,8 @@ CONTAINS
     ! %%%% NOTE: Currently only works when BPCH_DIAG=y %%%%
     !=======================================================================
     IF ( Input_Opt%DO_SAVE_O3 ) THEN
-       CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Met, RC )
+       CALL DIAG20( am_I_Root, Input_Opt, State_Chm, State_Grid, &     
+                    State_Met, RC )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### Do_FlexChem: after DIAG20' )
        ENDIF
@@ -1267,8 +1279,8 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
-    CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, &
-                            State_Chm, OrigUnit,  RC )
+    CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, &
+                            State_Grid, State_Met, OrigUnit,  RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'flexchem_mod.F90' )
@@ -1285,12 +1297,12 @@ CONTAINS
        ! active nitrogen partitioning and H2SO4 photolysis
        ! approximations  outside the chemgrid
        !--------------------------------------------------------------------
-       CALL UCX_NOX( Input_Opt, State_Met, State_Chm )
+       CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
        ENDIF
 
-       CALL UCX_H2SO4PHOT( Input_Opt, State_Met, State_Chm )
+       CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
        IF ( prtDebug ) THEN
           CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
        ENDIF
@@ -1309,9 +1321,9 @@ CONTAINS
           N = State_Chm%Map_Advect(NA)
 
           ! Loop over grid boxes
-          DO L = 1, LLPAR
-          DO J = 1, JJPAR
-          DO I = 1, IIPAR
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
              ! Aggregate stratospheric chemical tendency [kg box-1]
              ! for tropchem simulations
@@ -1358,8 +1370,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root, Input_Opt,  State_Met,          &
-                                  State_Chm, State_Diag, RC                 )
+  SUBROUTINE Diag_OH_HO2_O1D_O3P( am_I_Root,  Input_Opt,  State_Chm,          &
+                                  State_Diag, State_Grid, State_Met, RC      )
 !
 ! !USES:
 !
@@ -1368,6 +1380,7 @@ CONTAINS
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
 #if defined( BPCH_DIAG )
     USE Diag_Mod,       ONLY : AD43
@@ -1378,6 +1391,7 @@ CONTAINS
 !
     LOGICAL,        INTENT(IN)    :: am_I_Root   ! Is this the root CPU?
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1458,9 +1472,9 @@ CONTAINS
 !$OMP DEFAULT( SHARED )  &
 !$OMP PRIVATE( I, J, L ) &
 !$OMP SCHEDULE( DYNAMIC )
-      DO L = 1, LLPAR
-      DO J = 1, JJPAR
-      DO I = 1, IIPAR
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
 
          ! Skip non-chemistry boxes
          IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN

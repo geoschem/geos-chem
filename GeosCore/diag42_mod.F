@@ -72,13 +72,15 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DIAG42( am_I_Root, Input_Opt, State_Met, State_Chm, RC)
+      SUBROUTINE DIAG42( am_I_Root,  Input_Opt, State_Chm, 
+     &                   State_Grid, State_Met, RC)
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Grid_Mod,     ONLY : GrdState
       USE State_Met_Mod,      ONLY : MetState
 #if defined( BPCH_DIAG )
       USE State_Chm_Mod,      ONLY : Ind_
@@ -102,6 +104,7 @@
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Is this the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
       TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS: 
@@ -213,8 +216,9 @@
       FACTOR = 1e+9_fp
 
       ! Convert species units to [kg] for this routine (ewl, 8/12/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, 'kg', RC, OrigUnit=OrigUnit )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, 'kg',
+     &                        RC,         OrigUnit=OrigUnit )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, 'Start of diag42 in diag42_mod.F')
@@ -230,8 +234,8 @@
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, L )  
       DO L = 1, LD42  
-      DO J = 1, JJPAR 
-      DO I = 1, IIPAR
+      DO J = 1, State_Grid%NY 
+      DO I = 1, State_Grid%NX
 
          !--------------------------------------------------------------
          ! TSOA [ug/m3]
@@ -436,8 +440,8 @@
 !$OMP END PARALLEL DO
 
       ! Convert back to original unit (ewl, 8/12/15)
-      CALL Convert_Spc_Units( am_I_Root, Input_Opt, State_Met, 
-     &                        State_Chm, OrigUnit, RC )
+      CALL Convert_Spc_Units( am_I_Root,  Input_Opt, State_Chm, 
+     &                        State_Grid, State_Met, OrigUnit, RC )
       IF ( RC /= GC_SUCCESS ) THEN
          MSG = 'Unit conversion error!'
          CALL GC_Error( MSG, RC, 'End of diag42 in diag42_mod.F')
@@ -498,11 +502,12 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE WRITE_DIAG42( Input_Opt )
+      SUBROUTINE WRITE_DIAG42( Input_Opt, State_Grid )
 !
 ! !USES:
 !
       USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Grid_Mod,     ONLY : GrdState
 #if defined( BPCH_DIAG )
       USE BPCH2_MOD,          ONLY : BPCH2
       USE BPCH2_MOD,          ONLY : GET_MODELNAME
@@ -510,8 +515,6 @@
       USE CMN_DIAG_MOD             ! TINDEX
       USE FILE_MOD,           ONLY : IU_BPCH
       USE CMN_SIZE_MOD             ! Size parameters
-      USE GC_GRID_MOD,        ONLY : GET_XOFFSET
-      USE GC_GRID_MOD,        ONLY : GET_YOFFSET
       USE TIME_MOD,           ONLY : GET_CT_DIAG
       USE TIME_MOD,           ONLY : GET_DIAGb
       USE TIME_MOD,           ONLY : GET_DIAGe
@@ -521,6 +524,7 @@
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY: 
 !  22 May 2006 - D. Henze, R. Yantosca - Initial version
@@ -542,8 +546,8 @@
       INTEGER           :: L,         M,         N
       INTEGER           :: IFIRST,    JFIRST,    LFIRST        
       REAL*4            :: LONRES,    LATRES
-      REAL*4            :: ARRAY(IIPAR,JJPAR,LLPAR)
-      !REAL(fp)         :: SCALE(IIPAR,JJPAR)
+      REAL*4            :: ARRAY(State_Grid%NX,State_Grid%NY,
+     &                           State_Grid%NZ)
       REAL(fp)          :: SCALE
       REAL(f8)          :: DIAGb,     DIAGe
       CHARACTER(LEN=20) :: MODELNAME 
@@ -563,12 +567,12 @@
       DIAGb     = GET_DIAGb()
       DIAGe     = GET_DIAGe()
       HALFPOLAR = GET_HALFPOLAR()
-      IFIRST    = GET_XOFFSET( GLOBAL=.TRUE. ) + 1
-      JFIRST    = GET_YOFFSET( GLOBAL=.TRUE. ) + 1
-      LATRES    = DJSIZE
+      IFIRST    = State_Grid%XMinOffset + 1
+      JFIRST    = State_Grid%YMinOffset + 1
+      LATRES    = State_Grid%DY
       LFIRST    = 1
-      LONRES    = DISIZE
-      MODELNAME = GET_MODELNAME()
+      LONRES    = State_Grid%DX
+      MODELNAME = GET_MODELNAME( Input_Opt, State_Grid )
       RESERVED  = ''
       SCALE     = DBLE( GET_CT_DIAG() ) + TINY( 1e0 )
 
@@ -603,7 +607,7 @@
          CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
      &               HALFPOLAR, CENTER180, CATEGORY, N,
      &               UNIT,      DIAGb,     DIAGe,    RESERVED,   
-     &               IIPAR,     JJPAR,     LD42,     IFIRST,     
+     &               State_Grid%NX, State_Grid%NY, LD42, IFIRST,     
      &               JFIRST,    LFIRST,    ARRAY(:,:,1:LD42) )
       ENDDO
 #endif
@@ -622,22 +626,22 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_DIAG42( am_I_Root, Input_Opt, RC )
+      SUBROUTINE INIT_DIAG42( am_I_Root, Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
 #if defined( BPCH_DIAG )
-
-      USE CMN_SIZE_MOD   
       USE ERROR_MOD,          ONLY : ALLOC_ERR
 #endif
+      USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)  :: am_I_Root   ! Are we on the root CPU?
       TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -673,10 +677,11 @@
       IF ( ND42 == 0 ) RETURN
 
       ! Number of levels to save for this diagnostic
-      LD42 = MIN( ND42, LLPAR )
+      LD42 = MIN( ND42, State_Grid%NZ )
 
       ! 4-D array ("IJ-SOA-$")
-      ALLOCATE( AD42( IIPAR, JJPAR, LD42, PD42 ), STAT=RC )
+      ALLOCATE( AD42( State_Grid%NX, State_Grid%NY, LD42, PD42 ),
+     &          STAT=RC )
       IF ( RC /= 0 ) CALL ALLOC_ERR( 'AD42' )
       AD42 = 0.0_fp
 
