@@ -60,10 +60,6 @@ if(NOT GC_EXTERNAL_CONFIG)
 	# Configure for GCClassic
 	include(GC-ConfigureClassic)
 	configureGCClassic()
-
-	gc_message(SECTION "Resulting definitions")
-	get_target_property(RESULT_DEFS BaseTarget INTERFACE_COMPILE_DEFINITIONS)
-	gc_message(CONSTANT RESULT_DEFS DISPLAY_NAME "DEFINES")
 endif()
 
 # Add all the subdirectories. Each subdirectory specifies how it should be built.

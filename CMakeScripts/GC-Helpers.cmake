@@ -407,18 +407,6 @@ function(gc_message)
         message("  + ${ARGS_VARIABLE}: ${${ARGS_VARIABLE}}")
     endif()
     if(DEFINED ARGS_CONSTANT)
-        if("${${ARGS_CONSTANT}}" MATCHES ";")
-            set(STR "${${ARGS_CONSTANT}}")
-            stringify_list(STR 
-                JOIN "  " 
-                LINE_LENGTH 60
-            )
-            stringify_list(STR 
-                JOIN "    ${ARGS_DISPLAY_NAME}:\t" "\n  ...       \t"
-            )
-            message("${STR}")
-        else()
-            message("    ${ARGS_DISPLAY_NAME}: ${${ARGS_CONSTANT}}")
-        endif()
+        message("    ${ARGS_DISPLAY_NAME}: ${${ARGS_CONSTANT}}")
     endif()
 endfunction()

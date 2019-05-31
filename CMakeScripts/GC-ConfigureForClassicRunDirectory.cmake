@@ -83,13 +83,14 @@ function(configureForClassicRunDirectory)
     endif()
 
     # Definitions for specific run directories
+    set(TOMAS FALSE)
     if("${RUNDIR_SIM}" STREQUAL "masscons")
         target_compile_definitions(BaseTarget INTERFACE MASSCONS)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS15")
         target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS15)
         set(TOMAS TRUE)
     elseif("${RUNDIR_SIM}" MATCHES "TOMAS40")
-    target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS40)
+        target_compile_definitions(BaseTarget INTERFACE TOMAS TOMAS40)
         set(TOMAS TRUE)
     endif()
 
