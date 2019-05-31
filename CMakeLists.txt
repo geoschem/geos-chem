@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(GEOS_Chem VERSION 12.3.2 LANGUAGES Fortran C CXX)
+project(GEOS_Chem VERSION 12.4.0 LANGUAGES Fortran)
 
 # Set policies
 cmake_policy(SET CMP0054 NEW)
@@ -43,8 +43,6 @@ if(NOT GC_EXTERNAL_CONFIG)
 
 	# Display the compilers we're using
 	gc_message(SECTION "Selected compilers")
-	gc_message(CONSTANT CMAKE_C_COMPILER DISPLAY_NAME "C")
-	gc_message(CONSTANT CMAKE_CXX_COMPILER DISPLAY_NAME "C++")
 	gc_message(CONSTANT CMAKE_Fortran_COMPILER DISPLAY_NAME "Fortran")
 	
 	# Display CMAKE_PREFIX_PATH and CMAKE_BUILD_TYPE

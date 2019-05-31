@@ -32,46 +32,21 @@ function(configureGCClassic)
     set(RUNDIR                  ${RUNDIR}                   PARENT_SCOPE)
 
     # Configure the compiler options
-    target_compile_options(BaseTarget INTERFACE
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:
-            -cpp
-            -w
-            -auto
-            -noalign
-            -convert big_endian
-            -fp-model source
-            -mcmodel=medium
-            -shared-intel
-            -traceback
-            -DLINUX_IFORT
-        >
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:
-            -cpp 
-            -w 
-            -std=legacy 
-            -fautomatic 
-            -fno-align-commons 
-            -fconvert=big-endian 
-            -fno-range-check
-            -mcmodel=medium 
-            -fbacktrace 
-            -g
-            ${OMP_FORTRAN_FLAGS}
-            -DLINUX_GFORTRAN
-        >
-    )
-    set(CMAKE_Fortran_FLAGS_RELEASE
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-O2>
-        $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-O3 -funroll-loops>
-        PARENT_SCOPE
-    )
-    set(CMAKE_Fortran_FLAGS_DEBUG
-        $<$<STREQUAL:${CMAKE_Fortran_COMPILER_ID},"Intel">:
-            -g -O0 -check arg_temp_created -debug all -DDEBUG
-        >
-        $<$<STREQUAL:${CMAKE_Fortran_COMPILER_ID},"GNU">:
-            -g -gdwarf-2 -gstrict-dwarf -O0 -Wall -Wextra -Wconversion -Warray-temporaries -fcheck-array-temporaries
-        >
-        PARENT_SCOPE
-    )
+    if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
+        target_compile_options(BaseTarget INTERFACE
+            -cpp -w -auto -noalign -convert big_endian -fp-model source -mcmodel=medium
+            -shared-intel -traceback -DLINUX_IFORT
+        )
+        set(CMAKE_Fortran_FLAGS_RELEASE "-O2" PARENT_SCOPE)
+        set(CMAKE_Fortran_FLAGS_DEBUG "-g -O0 -check arg_temp_created -debug all -DDEBUG" PARENT_SCOPE)
+    elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+        target_compile_options(BaseTarget INTERFACE
+            -cpp -w -std=legacy -fautomatic -fno-align-commons -fconvert=big-endian 
+            -fno-range-check -mcmodel=medium -fbacktrace -g -DLINUX_GFORTRAN
+        )
+        set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -funroll-loops" PARENT_SCOPE)
+        set(CMAKE_Fortran_FLAGS_DEBUG "-g -gdwarf-2 -gstrict-dwarf -O0 -Wall -Wextra -Wconversion -Warray-temporaries -fcheck-array-temporaries" PARENT_SCOPE)
+    else()
+        message(FATAL_ERROR "Unknown Fortran compiler: ${CMAKE_Fortran_COMPILER_ID}")
+    endif()
 endfunction()

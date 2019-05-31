@@ -104,62 +104,6 @@ function(configureForClassicRunDirectory)
         string(TOUPPER "${RUNDIR_REGION}" RUNDIR_REGION)
     endif()
 
-    # Make MET an option and set the appropriate definition
-    set_dynamic_option(MET 
-        DEFAULT ${RUNDIR_MET}
-        LOG GENERAL_OPTIONS_LOG
-        SELECT_EXACTLY 1
-        OPTIONS "GEOS_FP" "MERRA2"
-    )
-    target_compile_definitions(BaseTarget INTERFACE ${MET})
-
-    # Make NESTED an option and set the appropriate definitions
-    set_dynamic_option(NESTED 
-        DEFAULT "${RUNDIR_NESTED}"
-        LOG GENERAL_OPTIONS_LOG
-        SELECT_EXACTLY 1
-        OPTIONS "TRUE" "FALSE"
-    )
-    if(${NESTED})
-        # Which nested grid?
-        set_dynamic_option(REGION 
-            DEFAULT "${RUNDIR_REGION}"
-            LOG GENERAL_OPTIONS_LOG
-            SELECT_EXACTLY 1
-            OPTIONS "AS" "CH" "CU" "EU" "NA" 
-        )
-        target_compile_definitions(BaseTarget INTERFACE NESTED_${REGION})
-    endif()
-
-    # Make GRID an option with different options based on MET and NESTED, and
-    # set the appropriate definition
-    if(${NESTED})
-        if("${MET}" STREQUAL "MERRA2") # Nested w/ MERRA2 
-            set_dynamic_option(GRID 
-                DEFAULT "${RUNDIR_GRID}"
-                LOG GENERAL_OPTIONS_LOG
-                SELECT_EXACTLY 1
-                OPTIONS "0.5x0.625"
-            )
-        else() # Nested w/ GEOS_FP
-            set_dynamic_option(GRID 
-                DEFAULT "${RUNDIR_GRID}"
-                LOG GENERAL_OPTIONS_LOG
-                SELECT_EXACTLY 1
-                OPTIONS "0.25x0.3125"
-            )
-        endif()
-    else() # Not nested
-        set_dynamic_option(GRID 
-            DEFAULT "${RUNDIR_GRID}"
-            LOG GENERAL_OPTIONS_LOG
-            SELECT_EXACTLY 1
-            OPTIONS "4x5" "2x2.5"
-        )
-    endif()
-    string(REPLACE "." "" TEMP "GRID${GRID}")
-    target_compile_definitions(BaseTarget INTERFACE ${TEMP})
-
     # Make MECH an option. This controls which KPP directory is used.
     set_dynamic_option(MECH 
         DEFAULT "${RUNDIR_MECH}"
@@ -214,45 +158,27 @@ function(configureForClassicRunDirectory)
         target_compile_definitions(BaseTarget INTERFACE GRIDREDUCED)
     endif()
 
-    # Build RRTMG?
-    if("${RUNDIR_SIM}" STREQUAL "RRTMG")
-        set(RRTMG_DEFAULT "TRUE")
-    else()
-        set(RRTMG_DEFAULT "FALSE")
-    endif()
-    set_dynamic_option(RRTMG 
-        DEFAULT ${RRTMG_DEFAULT}
+    # Build with BPCH diagnostics?
+    set_dynamic_option(BPCH 
+        DEFAULT "DIAG" "TIMESER" "TPBC"
+        OPTIONS "DIAG" "TIMESER" "TPBC"
         LOG GENERAL_OPTIONS_LOG
-        SELECT_EXACTLY 1
-        OPTIONS "TRUE" "FALSE"
     )
-    if(${RRTMG})
-        target_compile_definitions(BaseTarget INTERFACE "RRTMG")
-    endif()
+    foreach(BPCH_DEFINE ${BPCH})
+        target_compile_definitions(BaseTarget INTERFACE BPCH_${BPCH})
+    endforeach()
 
-    # Build GTMM?
-    set_dynamic_option(GTMM 
-        DEFAULT "FALSE"
-        LOG GENERAL_OPTIONS_LOG
+    # Make an option for controlling the flexible precision. Set the appropriate
+    # definition
+    set_dynamic_option(PREC
+        DEFAULT "REAL8"
         SELECT_EXACTLY 1
-        OPTIONS "TRUE" "FALSE"
-    )
-    if(${GTMM})
-        target_compile_definitions(BaseTarget INTERFACE "GTMM_Hg")
-    endif()
-
-    # Build hemco_standalone?
-    if("${RUNDIR_SIM}" STREQUAL "HEMCO")
-        set(HCOSA_DEFAULT "TRUE")
-    else()
-        set(HCOSA_DEFAULT "FALSE")
-    endif()
-    set_dynamic_option(HCOSA 
-        DEFAULT "${HCOSA_DEFAULT}"
+        OPTIONS "REAL4" "REAL8"
         LOG GENERAL_OPTIONS_LOG
-        SELECT_EXACTLY 1
-        OPTIONS "TRUE" "FALSE"
     )
+    if("${PREC}" STREQUAL "REAL8")
+        target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
+    endif()
 
     # Build with timers?
     if("${RUNDIR_SIM}" STREQUAL "benchmark")
@@ -270,16 +196,48 @@ function(configureForClassicRunDirectory)
         target_compile_definitions(BaseTarget INTERFACE "USE_TIMERS")
     endif()
 
+    gc_message(SECTION "General settings")
+    dump_log(GENERAL_OPTIONS_LOG)
 
-    # Build with BPCH diagnostics?
-    set_dynamic_option(BPCH_DIAG 
-        DEFAULT "TRUE"
-        OPTIONS "TRUE" "FALSE"
-        LOG GENERAL_OPTIONS_LOG
-    )
-    if(${BPCH_DIAG})
-        target_compile_definitions(BaseTarget INTERFACE "BPCH_DIAG" "BPCH_TIMESER" "BPCH_TPBC")
+    # Build RRTMG?
+    if("${RUNDIR_SIM}" STREQUAL "RRTMG")
+        set(RRTMG_DEFAULT "TRUE")
+    else()
+        set(RRTMG_DEFAULT "FALSE")
     endif()
+    set_dynamic_option(RRTMG 
+        DEFAULT ${RRTMG_DEFAULT}
+        LOG ADD_ONS_LOG
+        SELECT_EXACTLY 1
+        OPTIONS "TRUE" "FALSE"
+    )
+    if(${RRTMG})
+        target_compile_definitions(BaseTarget INTERFACE "RRTMG")
+    endif()
+
+    # Build GTMM?
+    set_dynamic_option(GTMM 
+        DEFAULT "FALSE"
+        LOG ADD_ONS_LOG
+        SELECT_EXACTLY 1
+        OPTIONS "TRUE" "FALSE"
+    )
+    if(${GTMM})
+        target_compile_definitions(BaseTarget INTERFACE "GTMM_Hg")
+    endif()
+
+    # Build hemco_standalone?
+    if("${RUNDIR_SIM}" STREQUAL "HEMCO")
+        set(HCOSA_DEFAULT "TRUE")
+    else()
+        set(HCOSA_DEFAULT "FALSE")
+    endif()
+    set_dynamic_option(HCOSA 
+        DEFAULT "${HCOSA_DEFAULT}"
+        LOG ADD_ONS_LOG
+        SELECT_EXACTLY 1
+        OPTIONS "TRUE" "FALSE"
+    )
 
     # Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
     if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
@@ -289,20 +247,8 @@ function(configureForClassicRunDirectory)
         endif()
     endif()
 
-    # Make an option for controlling the flexible precision. Set the appropriate
-    # definition
-    set_dynamic_option(PREC
-        DEFAULT "REAL8"
-        SELECT_EXACTLY 1
-        OPTIONS "REAL4" "REAL8"
-        LOG GENERAL_OPTIONS_LOG
-    )
-    if("${PREC}" STREQUAL "REAL8")
-        target_compile_definitions(BaseTarget INTERFACE "USE_REAL8")
-    endif()
-
-    gc_message(SECTION "General settings")
-    dump_log(GENERAL_OPTIONS_LOG)
+    gc_message(SECTION "Other components")
+    dump_log(ADD_ONS_LOG)
 
     # Determine which executables should be built
     set(GCCLASSIC_EXE_TARGETS "")

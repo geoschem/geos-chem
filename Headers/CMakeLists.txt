@@ -16,6 +16,7 @@ add_library(Headers STATIC EXCLUDE_FROM_ALL
 	species_mod.F90
 	state_chm_mod.F90
 	state_diag_mod.F90
+	state_grid_mod.F90
 	state_met_mod.F90
 )
 target_link_libraries(Headers
