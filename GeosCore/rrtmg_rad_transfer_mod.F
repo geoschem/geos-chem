@@ -782,20 +782,20 @@
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
-       ALBVIS(I,J)   = State_Met%ALBD(I,J)
+       ALBVIS(I,J) = State_Met%ALBD(I,J)
 
        ! Grid box latitude [degrees]
-       YLAT            = State_Grid%YMid( I, J, 1 )
+       YLAT = State_Grid%YMid(I,J)
 
 #if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
        ! Define the P array here, using GCM pressures
        DO L = 1, State_Grid%NZ+1
-          P_CTM(L)     = State_Met%PEDGE( I, J, L )
+          P_CTM(L) = State_Met%PEDGE(I,J,L)
        ENDDO
 #else
        ! Define the P array here, using Ap and Bp from GEOS-Chem
        DO L = 1, State_Grid%NZ+1
-          P_CTM(L)     = GET_PEDGE( I, J, L )
+          P_CTM(L) = GET_PEDGE(I,J,L)
        ENDDO
 #endif
 
@@ -2030,17 +2030,19 @@
 ! !INTERFACE:
 !
       SUBROUTINE Init_RRTMG_Rad_Transfer( am_I_Root,  Input_Opt,
-     &                                    State_Diag, RC         )
+     &                                    State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
       USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
       LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root core?
+      TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2143,8 +2145,8 @@
       !=================================================================
       ! Allocate arrays
       !=================================================================
-      CALL Init_Surface_Rad()
-      CALL Init_MCICA_Clouds()
+      CALL Init_Surface_Rad ( State_Grid )
+      CALL Init_MCICA_Clouds( State_Grid )
 
       END SUBROUTINE Init_RRTMG_Rad_Transfer
 !EOC
@@ -2605,15 +2607,19 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE INIT_MCICA_CLOUDS()
+      SUBROUTINE INIT_MCICA_CLOUDS( State_Grid )
 !
 ! !USES:
 !
       USE CMN_FJX_MOD
-      USE CMN_SIZE_MOD
-      USE ERROR_MOD,    ONLY : ALLOC_ERR
-      USE PARRRTM,      ONLY : NGPTLW
-      USE PARRRSW,      ONLY : NGPTSW
+      USE ERROR_MOD,      ONLY : ALLOC_ERR
+      USE PARRRTM,        ONLY : NGPTLW
+      USE PARRRSW,        ONLY : NGPTSW
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 ! 
 ! !REVISION HISTORY:
 !  18 Jun 2013 - D.A. Ridley - Initial version

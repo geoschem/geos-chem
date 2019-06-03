@@ -666,7 +666,7 @@
 
       ! Initialize module variables
       CALL Init_RRTMG_Rad_Transfer( am_I_Root,  Input_Opt,
-     &                              State_Diag, RC         )
+     &                              State_Diag, State_Grid, RC )
 
       ! Trap potential errors
       IF ( RC /= GC_SUCCESS ) THEN
