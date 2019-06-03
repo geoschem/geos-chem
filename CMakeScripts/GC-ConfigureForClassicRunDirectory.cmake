@@ -112,52 +112,6 @@ function(configureForClassicRunDirectory)
         OPTIONS "Standard" "Tropchem" "SOA_SVPOA"
     )
 
-    # Make LAYERS an option and set the appropriate definitions. Determine the 
-    # default value based on RUNDIR_SIM.
-    set(LAYERS_72_SIMS
-        "standard"
-        "benchmark"
-        "aciduptake"
-        "marinePOA"
-        "TransportTracers"
-        "custom"
-        "HEMCO" # doesn't matter for the HEMCO standalone
-    )
-    set(LAYERS_47_SIMS
-        "masscons"
-        "POPs"
-        "CH4"
-        "tagCH4"
-        "tagO3"
-        "tagCO"
-        "tagHg"
-        "CO2"
-        "aerosol"
-        "Hg"
-        "tropchem"
-        "RRTMG"
-        "complexSOA"
-        "complexSOA_SVPOA"
-        "TOMAS15"
-        "TOMAS40"
-    )
-    if("${RUNDIR_SIM}" IN_LIST LAYERS_72_SIMS)
-        set(LAYERS_DEFAULT "72")
-    elseif("${RUNDIR_SIM}" IN_LIST LAYERS_47_SIMS)
-        set(LAYERS_DEFAULT "47")
-    else()
-        message(FATAL_ERROR "Unknown simulation type \"${RUNDIR_SIM}\". Cannot determine LAYERS.")
-    endif()
-    set_dynamic_option(LAYERS 
-        DEFAULT "${LAYERS_DEFAULT}"
-        LOG GENERAL_OPTIONS_LOG
-        SELECT_EXACTLY 1
-        OPTIONS "47" "72"
-    )
-    if("${LAYERS}" STREQUAL "47")
-        target_compile_definitions(BaseTarget INTERFACE GRIDREDUCED)
-    endif()
-
     # Build with BPCH diagnostics?
     set_dynamic_option(BPCH 
         DEFAULT "DIAG" "TIMESER" "TPBC"
@@ -165,7 +119,7 @@ function(configureForClassicRunDirectory)
         LOG GENERAL_OPTIONS_LOG
     )
     foreach(BPCH_DEFINE ${BPCH})
-        target_compile_definitions(BaseTarget INTERFACE BPCH_${BPCH})
+        target_compile_definitions(BaseTarget INTERFACE BPCH_${BPCH_DEFINE})
     endforeach()
 
     # Make an option for controlling the flexible precision. Set the appropriate
