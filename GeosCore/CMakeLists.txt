@@ -55,10 +55,8 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	emissions_mod.F90
 	fast_jx_mod.F
 	flexchem_mod.F90
-	flexgrid_read_mod.F90
 	gamap_mod.F
 	gc_environment_mod.F90
-	get_met_mod.F90
 	get_ndep_mod.F
 	global_br_mod.F
 	global_ch4_mod.F
