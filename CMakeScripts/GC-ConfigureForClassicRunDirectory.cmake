@@ -1,15 +1,4 @@
 function(configureForClassicRunDirectory)
-    # Get the run directory
-	gc_message(SECTION "Run directory setup")
-	set(RUNDIR_DEFAULT "..")
-	set_dynamic_default(RUNDIR DEFAULT "${RUNDIR_DEFAULT}"
-		LOG RUNDIR_LOG
-		IS_DIRECTORY
-	)
-	dump_log(RUNDIR_LOG)
-	message(STATUS "Bootstrapping ${RUNDIR}")
-	get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE) # Make RUNDIR an absolute path
-
     # Define a macro for inspecting the run directory. Inspecting the run
     # directory is how we determine which compiler definitions need to be set.
     macro(inspect_rundir VAR ID)

@@ -67,9 +67,33 @@ if(NOT GC_EXTERNAL_CONFIG)
 	)
 	dump_log(CMAKE_VAR_LOG)
 
-	# Configure for GCClassic
-	include(GC-ConfigureClassic)
-	configureGCClassic()
+	# Get the run directory
+	gc_message(SECTION "Run directory setup")
+	set(RUNDIR_DEFAULT "..")
+	set_dynamic_default(RUNDIR DEFAULT "${RUNDIR_DEFAULT}"
+		LOG RUNDIR_LOG
+		IS_DIRECTORY
+	)
+	dump_log(RUNDIR_LOG)
+	message(STATUS "Bootstrapping ${RUNDIR}")
+	get_filename_component(RUNDIR "${RUNDIR}" ABSOLUTE) # Make RUNDIR an absolute path
+
+	# Configure the GEOS-Chem build for GCHP or GC-Classic
+	if(EXISTS ${RUNDIR}/input.geos)
+		file(STRINGS ${RUNDIR}/input.geos GCHP REGEX ": *gchp_*")
+		if(GCHP)
+			add_subdirectory(GCHP)
+		else()
+			# Configure for GCClassic
+			include(GC-ConfigureClassic)
+			configureGCClassic()
+		endif()
+	else()
+		message(FATAL_ERROR "Your run directory doesn't have an input.geos! Set RUNDIR to a valid run directory.")
+	endif()
+
+	# Use the default compiler options
+	include(GC-DefaultCompilerOptions)
 endif()
 
 # Add all the subdirectories. Each subdirectory specifies how it should be built.
