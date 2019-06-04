@@ -133,7 +133,7 @@ find_library(NETCDF_F_LIBRARY
 )
 
 # Make a readable error message 
-set(NetCDF_ERRMSG "\nCouldn't find the following directories files:")
+set(GFTL_ERRMSG "\nCounldn't find one or more of NetCDF's files! The following files/directories weren't found:")
 if(NOT NETCDF_F_LIBRARY)
     set(NetCDF_ERRMSG "${NetCDF_ERRMSG}
     NETCDF_F_LIBRARY: Path to \"libnetcdff.so\"")
@@ -154,7 +154,7 @@ if(NOT NETCDF_F77_INCLUDE_DIR)
     set(NetCDF_ERRMSG "${NetCDF_ERRMSG}
     NETCDF_F77_INCLUDE_DIR: Directory containing \"netcdf.inc\"")
 endif()
-set(NetCDF_ERRMSG "${NetCDF_ERRMSG}\n\n Set CMAKE_PREFIX_PATH to a semicolon-separated list of directories with these files.\n\n")
+set(NetCDF_ERRMSG "${NetCDF_ERRMSG}\nFind the directories/files that are listed above. Specify the directories you want CMake to search with the CMAKE_PREFIX_PATH variable (or the NetCDF_ROOT environment variable).\n")
 
 # Conform to the find_package standards
 include (FindPackageHandleStandardArgs)
