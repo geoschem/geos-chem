@@ -19,22 +19,6 @@ function(configureForClassicRunDirectory)
     )
     endmacro()
 
-    # Inspect the run directory to get the met field type and grid resolution
-    inspect_rundir(RUNDIR_MET 0)
-    if("${RUNDIR_MET}" STREQUAL "geosfp")
-        set(RUNDIR_MET "GEOS_FP")
-    elseif("${RUNDIR_MET}" STREQUAL "merra2")
-        set(RUNDIR_MET "MERRA2")
-    endif()
-    inspect_rundir(RUNDIR_GRID 1)
-    if("${RUNDIR_GRID}" STREQUAL "2x25")
-        set(RUNDIR_GRID "2x2.5")
-    elseif("${RUNDIR_GRID}" STREQUAL "05x0625")
-        set(RUNDIR_GRID "0.5x0.625")
-    elseif("${RUNDIR_GRID}" STREQUAL "025x03125")
-        set(RUNDIR_GRID "0.25x0.3125")
-    endif()
-
     # Inspect the run directory to get simulation type
     inspect_rundir(RUNDIR_SIM 2)
 
