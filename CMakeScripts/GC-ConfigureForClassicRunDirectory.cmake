@@ -177,14 +177,6 @@ function(configureForClassicRunDirectory)
         OPTIONS "TRUE" "FALSE"
     )
 
-    # Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
-    if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
-        file(READ ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc NCINC)
-        if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
-            target_compile_definitions(BaseTarget INTERFACE "NC_HAS_COMPRESSION")
-        endif()
-    endif()
-
     gc_message(SECTION "Other components")
     dump_log(ADD_ONS_LOG)
 

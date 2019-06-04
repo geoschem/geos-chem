@@ -1,8 +1,4 @@
 function(configureGCClassic)
-	# Find NetCDF
-	find_package(NetCDF REQUIRED)	
-	target_link_libraries(BaseTarget INTERFACE NetCDF-F)
-
 	# Find OpenMP if we're building a multithreaded executable
 	gc_message(SECTION "Threading")
 	set_dynamic_option(OMP

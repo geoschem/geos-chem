@@ -23,6 +23,18 @@ target_include_directories(BaseTarget
 	INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/mod
 )
 
+# Link NetCDF-F to BaseTarget
+find_package(NetCDF REQUIRED)
+target_link_libraries(BaseTarget INTERFACE NetCDF-F)
+
+# Use the NC_HAS_COMPRESSION definition if nf_def_var_deflate is in netcdf.inc
+if(EXISTS ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc)
+	file(READ ${NETCDF_F77_INCLUDE_DIR}/netcdf.inc NCINC)
+	if("${NCINC}" MATCHES ".*nf_def_var_deflate.*")
+		target_compile_definitions(BaseTarget INTERFACE "NC_HAS_COMPRESSION")
+	endif()
+endif()
+
 # Print a description of the source code repo's version
 get_repo_version(GC_REPO_VERSION ${CMAKE_SOURCE_DIR})
 message(STATUS "GEOS-Chem version: ${GC_REPO_VERSION}")
