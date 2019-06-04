@@ -53,7 +53,11 @@ inspect_netcdf_config(NC_INC_HINTS ${NC_CONFIG} --prefix)
 find_path(NETCDF_C_INCLUDE_DIR
     netcdf.h
     DOC "Directory containing \"netcdf.h\""
-    HINTS ${NC_INC_HINTS}
+    HINTS
+        ${NC_INC_HINTS}
+        $ENV{NetCDF_C_ROOT} $ENV{NETCDF_C_ROOT} # Check for NetCDF-C environment variables
+        $ENV{NetCDF_ROOT} $ENV{NETCDF_ROOT}     # Check for NetCDF_ROOT environment variables
+        $ENV{GC_INCLUDE}                        # Use old GEOS-Chem environment variables as a last resort
     PATH_SUFFIXES
         "include"
 )
@@ -66,7 +70,12 @@ inspect_netcdf_config(NF_INC_HINTS ${NF_CONFIG} --prefix)
 find_path(NETCDF_F90_INCLUDE_DIR
     netcdf.mod
     DOC "Directory containing \"netcdf.mod\""
-    HINTS ${NF_INC_HINTS}
+    HINTS
+        ${NF_INC_HINTS}
+        $ENV{NetCDF_F_ROOT} $ENV{NETCDF_F_ROOT} # Check for NetCDF-F environment variables
+        $ENV{NetCDF_Fortran_ROOT} $ENV{NETCDF_FORTRAN_ROOT}
+        $ENV{NetCDF_ROOT} $ENV{NETCDF_ROOT}     # Check for NetCDF_ROOT environment variables
+        $ENV{GC_F_INCLUDE} $ENV{GC_INCLUDE}     # Use old GEOS-Chem environment variables as a last resort
     PATH_SUFFIXES
         "include"
         "mod"
@@ -76,7 +85,12 @@ find_path(NETCDF_F90_INCLUDE_DIR
 find_path(NETCDF_F77_INCLUDE_DIR
     netcdf.inc
     DOC "Directory containing \"netcdf.inc\""
-    HINTS ${NF_INC_HINTS}
+    HINTS
+        ${NF_INC_HINTS}
+        $ENV{NetCDF_F_ROOT} $ENV{NETCDF_F_ROOT} # Check for NetCDF-F environment variables
+        $ENV{NetCDF_Fortran_ROOT} $ENV{NETCDF_FORTRAN_ROOT}
+        $ENV{NetCDF_ROOT} $ENV{NETCDF_ROOT}     # Check for NetCDF_ROOT environment variables
+        $ENV{GC_F_INCLUDE} $ENV{GC_INCLUDE}     # Use old GEOS-Chem environment variables as a last resort
     PATH_SUFFIXES
         "include"
         "mod"
@@ -91,7 +105,11 @@ inspect_netcdf_config(NC_LIBDIR_HINTS ${NC_CONFIG} --prefix)
 find_library(NETCDF_C_LIBRARY
     netcdf
     DOC "Path to \"libnetcdf\""
-    HINTS ${NC_LIBDIR_HINTS}
+    HINTS
+        ${NC_LIBDIR_HINTS}
+        $ENV{NetCDF_C_ROOT} $ENV{NETCDF_C_ROOT} # Check for NetCDF-C environment variables
+        $ENV{NetCDF_ROOT} $ENV{NETCDF_ROOT}     # Check for NetCDF_ROOT environment variables
+        $ENV{GC_LIB}                            # Use old GEOS-Chem environment variables as a last resort
     PATH_SUFFIXES
         "lib"
 )
@@ -104,7 +122,12 @@ inspect_netcdf_config(NF_LIBDIR_HINTS ${NF_CONFIG} --prefix)
 find_library(NETCDF_F_LIBRARY
     netcdff
     DOC "Path to \"libnetcdff\""
-    HINTS ${NF_LIBDIR_HINTS}
+    HINTS
+        ${NF_LIBDIR_HINTS}
+        $ENV{NetCDF_F_ROOT} $ENV{NETCDF_F_ROOT} # Check for NetCDF-F environment variables
+        $ENV{NetCDF_Fortran_ROOT} $ENV{NETCDF_FORTRAN_ROOT}
+        $ENV{NetCDF_ROOT} $ENV{NETCDF_ROOT}     # Check for NetCDF_ROOT environment variables
+        $ENV{GC_F_LIB} $ENV{GC_LIB}             # Use old GEOS-Chem environment variables as a last resort
     PATH_SUFFIXES
         "lib"
 )
