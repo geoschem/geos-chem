@@ -52,13 +52,9 @@ if(NOT GC_EXTERNAL_CONFIG)
 			FORCE
 		)
 	endif()
-
-	# Display the compilers we're using
-	gc_message(SECTION "Selected compilers")
-	gc_message(CONSTANT CMAKE_Fortran_COMPILER DISPLAY_NAME "Fortran")
 	
 	# Display CMAKE_PREFIX_PATH and CMAKE_BUILD_TYPE
-	gc_message(SECTION "Common CMake variables")
+	gc_message(SECTION "Useful CMake variables")
 	gc_message(VARIABLE CMAKE_PREFIX_PATH)
 	set_dynamic_option(CMAKE_BUILD_TYPE     # making CMAKE_BUILD_TYPE an option restricts it to Release and Debug
 		DEFAULT ${CMAKE_BUILD_TYPE}
