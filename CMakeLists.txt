@@ -108,3 +108,20 @@ add_subdirectory(ISORROPIA)
 add_subdirectory(GeosRad)
 add_subdirectory(GTMM)
 add_subdirectory(GeosCore)
+
+# Write BaseTarget's configuration to a file
+get_target_property(BT_DEFINITIONS  BaseTarget INTERFACE_COMPILE_DEFINITIONS)
+get_target_property(BT_OPTIONS      BaseTarget INTERFACE_COMPILE_OPTIONS)
+get_target_property(BT_LIBRARIES    BaseTarget INTERFACE_LINK_LIBRARIES)
+get_target_property(BT_INCLUDES     BaseTarget INTERFACE_INCLUDE_DIRECTORIES)
+file(WRITE ${CMAKE_BINARY_DIR}/BaseTarget.txt
+    "# This file shows the BaseTarget's configuration.\n"
+    "\n"
+    "BaseTarget::INTERFACE_COMPILE_DEFINITIONS:${BT_DEFINITIONS}\n"
+    "BaseTarget::INTERFACE_COMPILE_OPTIONS:${BT_OPTIONS}\n"
+    "BaseTarget::INTERFACE_LINK_LIBRARIES:${BT_LIBRARIES}\n"
+    "BaseTarget::INTERFACE_INCLUDE_DIRECTORIES:${BT_INCLUDES}\n"
+    "CMAKE_Fortran_FLAGS_RELEASE:${CMAKE_Fortran_FLAGS_RELEASE}\n"
+    "CMAKE_Fortran_FLAGS_DEBUG:${CMAKE_Fortran_FLAGS_DEBUG}\n"
+    "CMAKE_Fortran_FLAGS:${CMAKE_Fortran_FLAGS}\n\n"
+)
