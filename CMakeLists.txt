@@ -7,6 +7,9 @@ cmake_policy(SET CMP0057 NEW)
 if(POLICY CMP0074)
 	cmake_policy(SET CMP0074 NEW)
 endif()
+if(POLICY CMP0079)
+    cmake_policy(SET CMP0079 NEW)
+endif()
 
 # Add CMakeScripts/ to the module path and import helper functions
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_SOURCE_DIR}/CMakeScripts)
