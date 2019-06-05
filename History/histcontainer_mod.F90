@@ -62,7 +62,7 @@ MODULE HistContainer_Mod
      INTEGER                     :: nZ                  ! Z (or lev) dim size
      INTEGER                     :: X0, X1              ! X (or lon) indices
      INTEGER                     :: Y0, Y1              ! Y (or lon) indices
-     INTEGER                     :: Z0, Z1              ! Z (or lev) indices
+     INTEGER                     :: Z0                  ! Z (or lev) indices
      LOGICAL                     :: OnLevelEdges        ! =T if data is defined
                                                         !    on level edges;
                                                         ! =F if on centers
@@ -740,7 +740,6 @@ CONTAINS
     Container%Y0              = UNDEFINED_INT
     Container%Y1              = UNDEFINED_INT
     Container%Z0              = UNDEFINED_INT
-    Container%Z1              = UNDEFINED_INT
     Container%OnLevelEdges    = .FALSE.
     
     ! If the collection is instantaneous, then set a flag to denote that

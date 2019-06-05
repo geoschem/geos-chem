@@ -163,6 +163,9 @@ CONTAINS
     CHARACTER(LEN=*),  INTENT(IN)  :: LongName           ! Item's long name
     CHARACTER(LEN=*),  INTENT(IN)  :: Units              ! Units of the data
     INTEGER,           INTENT(IN)  :: SpaceDim           ! Dimension of data
+    INTEGER,           INTENT(IN)  :: Subset_X(2)        ! X0, X1 indices
+    INTEGER,           INTENT(IN)  :: Subset_Y(2)        ! Y0, Y1 indices
+    INTEGER,           INTENT(IN)  :: Subset_Z(2)        ! Z0, Z1 indices
     
     ! Optional arguments
     LOGICAL,           OPTIONAL    :: OnLevelEdges       ! =T if data defined
@@ -177,9 +180,6 @@ CONTAINS
     CHARACTER(LEN=*),  OPTIONAL    :: DimNames           ! Use this to specify
                                                          !  dimensions of data
                                                          !  ("yz", "z", etc.)
-    INTEGER,           OPTIONAL    :: Subset_X(2)        ! X0, X1 indices
-    INTEGER,           OPTIONAL    :: Subset_Y(2)        ! Y0, Y1 indices
-    INTEGER,           OPTIONAL    :: Subset_Z(2)        ! Z0, Z1 indices
 
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
@@ -295,6 +295,14 @@ CONTAINS
     IF ( Is_3d_8 ) Item%Source_3d_8 => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
+
+    ! Initialize indices
+    X0 = UNDEFINED_INT
+    X1 = UNDEFINED_INT
+    X1 = UNDEFINED_INT
+    Y1 = UNDEFINED_INT
+    Z1 = UNDEFINED_INT
+    Z1 = UNDEFINED_INT
 
     !========================================================================
     ! Required inputs, handle these first

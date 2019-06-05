@@ -33,6 +33,7 @@ MODULE History_Netcdf_Mod
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Expand_Date_Time
+  PRIVATE :: Get_Number_Of_Levels
   PRIVATE :: Get_Var_DimIds
   PRIVATE :: IndexVarList_Create
   PRIVATE :: IndexVarList_Destroy
@@ -358,14 +359,8 @@ CONTAINS
        Container%ProdDateTime = ''
 !------------------------------------------------------------------------------
 
-       ! Pick the dimensions of the lev and ilev variables properly
-       IF ( Container%OnLevelEdges ) THEN
-          nILev = Container%NZ
-          nLev  = nILev - 1
-       ELSE
-          nLev  = Container%NZ
-          nILev = nLev  + 1
-       ENDIF
+       ! Get the number of levels (nLev) and level interfaces (nIlev)
+       CALL Get_Number_Of_Levels( Container, nLev, nIlev )
 
        ! Do not create netCDF file on first timestep if instantaneous collection
        ! and frequency = duration. This will avoid creation of a netCDF file
@@ -1450,19 +1445,15 @@ CONTAINS
     !=======================================================================
     ! Pick the dimensions of the lev and ilev variables properly
     !=======================================================================
-    IF ( Container%OnLevelEdges ) THEN
-       nILev  = Container%NZ
-       nLev   = nILev - 1
-    ELSE
-       nLev   = Container%NZ
-       nILev  = nLev  + 1
-    ENDIF
+
+    ! Get the number of levels (nLev) and level interfaces (nIlev)
+    CALL Get_Number_Of_Levels( Container, nLev, nIlev ) 
 
     ! Subset indices
-    Subset_X  = (/ Container%X0, Container%X1                 /)
-    Subset_Y  = (/ Container%Y0, Container%Y1                 /)
-    Subset_Zc = (/ Container%Z0, MIN( Container%Z1,   nLev )  /)
-    Subset_Ze = (/ Container%Z0, MIN( Container%Z1+1, nILev ) /)
+    Subset_X  = (/ Container%X0, Container%X1 /)
+    Subset_Y  = (/ Container%Y0, Container%Y1 /)
+    Subset_Zc = (/ Container%Z0, nLev         /)
+    Subset_Ze = (/ Container%Z0, nILev        /)
 
     !=======================================================================
     ! Create a HISTORY ITEM for each of the index fields (lon, lat, area)
@@ -1619,5 +1610,57 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE IndexVarList_Destroy
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_Number_Of_Levels
+!
+! !DESCRIPTION: Given the vertical dimension of the container, returns the
+!  values NLEV (number of levels) and NILEV (number of level interfaces).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Get_Number_Of_Levels( Container, nLev, nILev )
+!
+! !USES:
+!
+    USE HistContainer_Mod, ONLY : HistContainer
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(HistContainer), POINTER     :: Container ! Diagnostic collection obj
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT) :: nLev      ! Number of levels
+    INTEGER,             INTENT(OUT) :: nIlev     ! Number of level interfaces
+!
+! !REVISION HISTORY:
+!  05 Jun 2019 - R. Yantosca - Initial version
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=======================================================================
+    ! Pick the dimensions of the lev and ilev variables properly
+    ! so that we can use that for writing to then netCDF files.
+    !
+    ! If the vertical dimension (Container%NZ) is undefined, then
+    ! this indicates that there is only 2-D data in the collection.
+    ! Thus, there will be 1 level (the surface) and 2 level edges.
+    !=======================================================================
+    IF ( Container%OnLevelEdges ) THEN
+       nILev = MAX( Container%NZ, 2 )
+       nLev  = nILev - 1
+    ELSE
+       nLev  = MAX( Container%NZ, 1 )
+       nILev = nLev  + 1
+    ENDIF
+
+  END SUBROUTINE Get_Number_Of_Levels
 !EOC
 END MODULE History_Netcdf_Mod

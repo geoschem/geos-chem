@@ -2037,11 +2037,11 @@ CONTAINS
     ! By default, use the size of the data array to define the
     ! X0, Y0, X1, Y1, Z0, and Z1 indices for the subset region.
     X0 = 1
-    X1 = Dimensions(1)
+    X1 = MAX( Dimensions(1), 1 )
     Y0 = 1
-    Y1 = Dimensions(2)
+    Y1 = MAX( Dimensions(2), 1 )
     Z0 = 1
-    Z1 = Dimensions(3)
+    Z1 = MAX( Dimensions(3), 1 )
 
     !-------------------------
     ! Horizontal subsetting
@@ -2065,23 +2065,47 @@ CONTAINS
        IF ( LevelInd(2) /= UNDEFINED_INT ) Z1 = LevelInd(2)
     ENDIF
 
+    ! Error check X-dimension indices
+    IF ( X1 < X0 ) THEN
+       WRITE( ErrMsg, 100 ) X0, X1, TRIM( Collection%Name )
+ 100   FORMAT(  'Invalid X-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Error-check Y-dimension indices
+    IF ( Y1 < Y0 ) THEN
+       WRITE( ErrMsg, 110 ) Y0, Y1, TRIM( Collection%Name )
+ 110   FORMAT(  'Invalid Y-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Error-check Z-dimension indices
+    IF ( Z1 < Z0 ) THEN
+       WRITE( ErrMsg, 120 ) Z0, Z1, TRIM( Collection%Name )
+ 120   FORMAT(  'Invalid Y-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Compute dimension extent
     NX = X1 - X0 + 1
     NY = Y1 - Y0 + 1
     NZ = Z1 - Z0 + 1
 
-    ! Subsets for 
+    ! Indices for subsetting the data
     Subset_X = (/ X0, X1 /)
     Subset_Y = (/ Y0, Y1 /)
     Subset_Z = (/ Z0, Z1 /)
 
-    ! Save the subsets
+    ! Save the subsets to the collection
     Collection%X0 = X0
     Collection%X1 = X1
     Collection%Y0 = Y0
     Collection%Y1 = Y1
     Collection%Z0 = Z0
-    Collection%Z1 = Z1
+    !NOTE: Z1 is not needed, we compute that later!
 
     !=======================================================================
     ! Now that we have obtained information (and pointers to the data)
