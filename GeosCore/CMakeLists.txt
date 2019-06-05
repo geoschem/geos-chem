@@ -100,7 +100,7 @@ add_library(GeosCore STATIC EXCLUDE_FROM_ALL
 	YuIMN_Code.F
 
 	# These files are empty for GCHP. Compile them if NOT GCHP.
-	$<$<NOT:$<BOOL:GCHP>>:flexgrid_read_mod.F90 get_met_mod.F90>
+	$<$<NOT:$<BOOL:${GCHP}>>:flexgrid_read_mod.F90 get_met_mod.F90>
 
 	# exchange_mod.F TODO: add for debug
 
