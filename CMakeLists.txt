@@ -80,15 +80,17 @@ if(NOT GC_EXTERNAL_CONFIG)
 	# Configure the GEOS-Chem build for GCHP or GC-Classic
 	if(EXISTS ${RUNDIR}/input.geos)
 		file(STRINGS ${RUNDIR}/input.geos GCHP REGEX ": *gchp_*")
-		if(GCHP)
-			add_subdirectory(GCHP)
-		else()
-			# Configure for GCClassic
-			include(GC-ConfigureClassic)
-			configureGCClassic()
-		endif()
+	elseif(EXISTS ${RUNDIR}/getRunInfo)
+		set(GCHP FALSE) # getRunInfo is only in GC-Classic run direcotries
 	else()
-		message(FATAL_ERROR "Your run directory doesn't have an input.geos! Set RUNDIR to a valid run directory.")
+		message(FATAL_ERROR "Your run directory doesn't have an input.geos or getRunInfo! Set RUNDIR to a valid run directory.")
+	endif()
+	if(GCHP)
+		add_subdirectory(GCHP)
+	else()
+		# Configure for GCClassic
+		include(GC-ConfigureClassic)
+		configureGCClassic()
 	endif()
 
 	# Use the default compiler options
