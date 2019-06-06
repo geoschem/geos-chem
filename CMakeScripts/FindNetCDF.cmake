@@ -23,12 +23,7 @@ Resulting variables:
 # Find the nc-config and nf-config programs
 find_program(NC_CONFIG NAMES "nc-config" DOC "Location of nc-config utility")
 find_program(NF_CONFIG NAMES "nf-config" DOC "Location of nf-config utility")
-if(NOT NC_CONFIG)
-    message(WARNING "\nCouldn't find nc-config. Is it in your PATH?\n")
-endif()
-if(NOT NF_CONFIG)
-    message(WARNING "\nCouldn't find nf-config. Is it in your PATH?\n")
-endif()
+
 
 # A function to call nx-config with an argument, and append the resulting path to a list
 function(inspect_netcdf_config VAR NX_CONFIG ARG)
@@ -47,8 +42,8 @@ endfunction()
 
 # Determine HINTS for netcdf.h
 set(NC_INC_HINTS "")
-inspect_netcdf_config(NC_INC_HINTS ${NC_CONFIG} --includedir)
-inspect_netcdf_config(NC_INC_HINTS ${NC_CONFIG} --prefix)
+inspect_netcdf_config(NC_INC_HINTS "${NC_CONFIG}" --includedir)
+inspect_netcdf_config(NC_INC_HINTS "${NC_CONFIG}" --prefix)
 # Find netcdf.h
 find_path(NETCDF_C_INCLUDE_DIR
     netcdf.h
@@ -64,8 +59,8 @@ find_path(NETCDF_C_INCLUDE_DIR
 
 # Determine HINTS for netcdf.mod
 set(NF_INC_HINTS "")
-inspect_netcdf_config(NF_INC_HINTS ${NF_CONFIG} --includedir)
-inspect_netcdf_config(NF_INC_HINTS ${NF_CONFIG} --prefix)
+inspect_netcdf_config(NF_INC_HINTS "${NF_CONFIG}" --includedir)
+inspect_netcdf_config(NF_INC_HINTS "${NF_CONFIG}" --prefix)
 # Find netcdf.mod
 find_path(NETCDF_F90_INCLUDE_DIR
     netcdf.mod
@@ -99,8 +94,8 @@ find_path(NETCDF_F77_INCLUDE_DIR
 
 # Determine HINTS for NetCDF-C's library
 set(NC_LIBDIR_HINTS "")
-inspect_netcdf_config(NC_LIBDIR_HINTS ${NC_CONFIG} --libdir)
-inspect_netcdf_config(NC_LIBDIR_HINTS ${NC_CONFIG} --prefix)
+inspect_netcdf_config(NC_LIBDIR_HINTS "${NC_CONFIG}" --libdir)
+inspect_netcdf_config(NC_LIBDIR_HINTS "${NC_CONFIG}" --prefix)
 # Find libnetcdf.so
 find_library(NETCDF_C_LIBRARY
     netcdf
@@ -116,8 +111,8 @@ find_library(NETCDF_C_LIBRARY
 
 # Determine HINTS for NetCDF-F's library
 set(NF_LIBDIR_HINTS "")
-inspect_netcdf_config(NF_LIBDIR_HINTS ${NF_CONFIG} --libdir)
-inspect_netcdf_config(NF_LIBDIR_HINTS ${NF_CONFIG} --prefix)
+inspect_netcdf_config(NF_LIBDIR_HINTS "${NF_CONFIG}" --libdir)
+inspect_netcdf_config(NF_LIBDIR_HINTS "${NF_CONFIG}" --prefix)
 # Find libnetcdff.so
 find_library(NETCDF_F_LIBRARY
     netcdff
