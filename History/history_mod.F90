@@ -62,15 +62,18 @@ MODULE History_Mod
   INTEGER                              :: CollectionCount
 
   ! Strings
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubsetDims (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:)
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionMode       (:  )
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionSubset     (:  )
+  INTEGER,                 ALLOCATABLE :: CollectionSubsetInd  (:,:)
+  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionLevels     (:  )
+  INTEGER,                 ALLOCATABLE :: CollectionLevelInd   (:,:)
 
   ! Objects
   TYPE(MetaHistContainer), POINTER     :: CollectionList
@@ -115,7 +118,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Netcdf_Mod, ONLY : History_Netcdf_Init
     USE History_Util_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod ,     ONLY : ChmState
@@ -142,6 +144,7 @@ CONTAINS
 !  06 Jan 2015 - R. Yantosca - Initial version
 !  06 Nov 2017 - R. Yantosca - Reorder arguments for consistency (Input_Opt, 
 !                              then State_Met, State_Chm, State_Diag).
+!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Init
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -158,16 +161,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = &
      ' -> at History_Init (in module History/history_mod.F90)'
-
-    !=======================================================================
-    ! Initialize the history_netcdf_mod.F90 module
-    !=======================================================================
-    CALL History_Netcdf_Init( am_I_Root, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "History_NetCdf_Init"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !=======================================================================
     ! First initialize the list of collections
@@ -406,17 +399,6 @@ CONTAINS
        CollectionDuration = UNDEFINED_STR
     ENDIF
 
-    ! Allocate CollectionSubsetDims
-    IF ( .not. ALLOCATED( CollectionSubsetDims ) ) THEN
-       ALLOCATE( CollectionSubSetDims( CollectionCount ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN 
-          ErrMsg = 'Could not allocate "CollectionSubsetDims"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       CollectionSubsetDims = UNDEFINED_STR
-    ENDIF
-
     ! Allocate CollectionMode
     IF ( .not. ALLOCATED( CollectionMode ) ) THEN
        ALLOCATE( CollectionMode( CollectionCount ), STAT=RC )
@@ -426,6 +408,61 @@ CONTAINS
           RETURN
        ENDIF
        CollectionMode = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionSubset
+    IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
+       ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionSubset"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionSubset = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionSubset
+    IF ( .not. ALLOCATED( CollectionSubset ) ) THEN
+       ALLOCATE( CollectionSubset( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionSubset"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionSubset = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionSubsetInd
+    IF ( .not. ALLOCATED( CollectionSubsetInd ) ) THEN
+       ALLOCATE( CollectionSubsetInd( 4, CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionSubsetInd"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionSubsetInd = UNDEFINED_INT
+    ENDIF
+
+    ! Allocate CollectionLevels
+    IF ( .not. ALLOCATED( CollectionLevels ) ) THEN
+       ALLOCATE( CollectionLevels( CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not allocate "CollectionLevels"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionLevels = UNDEFINED_STR
+    ENDIF
+
+    ! Allocate CollectionLevelInd
+    IF ( .not. ALLOCATED( CollectionLevelInd ) ) THEN
+       ALLOCATE( CollectionLevelInd( 2, CollectionCount ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN 
+          ErrMsg = 'Could not allocate "CollectionLevelInt"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CollectionLevelInd = UNDEFINED_INT
     ENDIF
 
   END SUBROUTINE History_ReadCollectionNames
@@ -453,6 +490,7 @@ CONTAINS
     USE Charpak_Mod
     USE DiagList_Mod,          ONLY : CollList, Search_CollList
     USE ErrCode_Mod
+    USE Grid_Registry_Mod,     ONLY : Lookup_Grid
     USE HistContainer_Mod
     USE HistItem_Mod
     USE History_Util_Mod
@@ -505,6 +543,7 @@ CONTAINS
     INTEGER                      :: yyyymmdd,       hhmmss
     INTEGER                      :: yyyymmdd_end,   hhmmss_end
     INTEGER                      :: DeltaYMD,       DeltaHMS
+    INTEGER                      :: X,              Y
     INTEGER                      :: C,              N,             W
     INTEGER                      :: nX,             nY,            nZ
     INTEGER                      :: fId,            IOS,           LineNum
@@ -545,7 +584,7 @@ CONTAINS
     CHARACTER(LEN=512)           :: ErrMsg
 
     ! Arrays
-    INTEGER                      :: SubsetDims(3)
+    REAL(f8)                     :: Subset(4)
     CHARACTER(LEN=255)           :: Subs1(255)
     CHARACTER(LEN=255)           :: Subs2(255)
     CHARACTER(LEN=255)           :: SubStrs(255)
@@ -556,8 +595,12 @@ CONTAINS
     TYPE(Species),       POINTER :: ThisSpc
 
     ! Pointer arrays
-    REAL(fp),            POINTER :: Ptr3d  (:,:,:)
-    REAL(f4),            POINTER :: Ptr3d_4(:,:,:)
+    REAL(f8),            POINTER :: Grid_Lat (:    )
+    REAL(f8),            POINTER :: Grid_LatE(:    )
+    REAL(f8),            POINTER :: Grid_Lon (:    )
+    REAL(f8),            POINTER :: Grid_LonE(:    )
+    REAL(fp),            POINTER :: Ptr3d    (:,:,:)
+    REAL(f4),            POINTER :: Ptr3d_4  (:,:,:)
 
     !=======================================================================
     ! Initialize
@@ -577,7 +620,6 @@ CONTAINS
     FileWriteHms   =  0
     LineNum        =  0
     SpaceDim       =  0
-    SubsetDims     =  0 
     HeartBeatDtSec =  DBLE( Input_Opt%TS_DYN )
     yyyymmdd       =  Input_Opt%NymdB
     hhmmss         =  Input_Opt%NhmsB
@@ -604,7 +646,11 @@ CONTAINS
     Item           => NULL()
     Ptr3d          => NULL()
     Ptr3d_4        => NULL()
-    ThisSpc        => NULL()
+    ThisSpc        => NULL()   
+    Grid_Lat       => NULL()
+    Grid_LatE      => NULL()
+    Grid_Lon       => NULL()
+    Grid_LonE      => NULL()
 
     ! Initialize Strings
     Description    =  ''
@@ -640,6 +686,46 @@ CONTAINS
     ! Compute the length of the simulation, in elapsed seconds
     SimLengthSec   = NINT( ( JulianDateEnd - JulianDate ) * SECONDS_PER_DAY )
 
+    !=======================================================================
+    ! Get pointers to the grid longitudes and latitudes
+    !=======================================================================
+
+    ! Lookup latitude centers
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LAT',        &
+                      Ptr1d_8   = Grid_Lat,   RC        = RC                )
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Lookup latitude edges
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LATE',       &
+                      Ptr1d_8   = Grid_LatE,  RC        = RC                )
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Lookup longitude centers
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LON',        &
+                      Ptr1d_8   = Grid_Lon,   RC        = RC                )
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc)
+       RETURN
+    ENDIF
+    
+    ! Lookup longitude edges
+    CALL Lookup_Grid( am_I_Root = am_I_Root,  Variable  = 'GRID_LONE',       &
+                      Ptr1d_8   = Grid_LonE,  RC        = RC                )
+    IF ( RC /= GC_SUCCESS ) THEN 
+       ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc)
+       RETURN
+    ENDIF
+    
     !=======================================================================
     ! Open the file containing the list of requested diagnostics
     !=======================================================================
@@ -862,26 +948,105 @@ CONTAINS
           ENDIF
        ENDIF
 
-       ! "subsetdims": Specifies a subset of the data grid
-       ! NOTE: Currently not used at the present time
-       Pattern = 'subsetdims'
+       ! "subset": Specifies a rectangular subset of the data grid.
+       ! The required order is: lonMin, lonMax, latMin, latMax
+       Pattern = 'subset'
+       Subset  =  UNDEFINED_DBL
+       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
+
+          ! First split the line by colon
+          CALL StrSplit( Line, ":", Subs1, nSubs1 )
+          IF ( C > 0 ) THEN
+             
+             ! Replace any commas with spaces
+             CALL StrRepl( Subs1(2), ",", " " )
+             CollectionSubset(C) = Subs1(2)
+          
+             ! Then split by spaces and convert to INTEGER
+             CALL StrSplit( CollectionSubset(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 4 ) THEN
+                DO N = 1, nSubs2
+                   READ( Subs2(N), '(f13.6)' ) Subset(N)
+                ENDDO
+             ELSE
+                ErrMsg = 'Subsets must be specified as '                  // &
+                         'lonMin lonMax latMin latMax!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+             
+             ! Find the longitude indices for lonMin and lonMax values
+             DO X = 1, SIZE( Grid_LonE )-1
+                IF ( Grid_LonE(X  ) <= Subset(1)  .and.                      &
+                     Grid_LonE(X+1) >  Subset(1) ) THEN
+                   CollectionSubsetInd(1,C) = X
+                ENDIF
+                IF ( Grid_LonE(X  ) <= Subset(2)  .and.                      &
+                     Grid_LonE(X+1) >  Subset(2) ) THEN
+                   CollectionSubsetInd(2,C) = X
+                ENDIF
+             ENDDO
+
+             ! Find the latitude indices for latMin and latMax values
+             DO Y = 1, SIZE( Grid_LatE )-1
+                IF ( Grid_LatE(Y  ) <= Subset(3)  .and.                      &
+                     Grid_LatE(Y+1) >  Subset(3) ) THEN
+                   CollectionSubsetInd(3,C) = Y
+                ENDIF
+                IF ( Grid_LatE(Y  ) <= Subset(4)  .and.                      &
+                     Grid_LatE(Y+1) >  Subset(4) ) THEN
+                   CollectionSubsetInd(4,C) = Y
+                ENDIF
+             ENDDO
+             
+             ! Error check longitudes
+             DO N = 1, 2
+                IF ( CollectionSubsetInd(N,C) < -180.0_f8  .or.              &
+                     CollectionSubsetInd(N,C) >  180.0_f8 ) THEN 
+                   ErrMsg = 'Invalid longitude subset values for '   //      &
+                            'collection "'// TRIM(CollectionName(C)) // '"!'
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                   RETURN
+                ENDIF
+             ENDDO
+
+             ! Error check latitudes
+             DO N = 3, 4
+                IF ( CollectionSubsetInd(N,C) < -90.0_f8  .or.               &
+                     CollectionSubsetInd(N,C) >  90.0_f8 ) THEN 
+                   ErrMsg = 'Invalid latitude subset values for '     //     &
+                            'collection " '// TRIM(CollectionName(C)) // '"!'
+                   WRITE( ErrorLine, 250 ) LineNum
+                   CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+                   RETURN
+                ENDIF
+             ENDDO
+          ENDIF
+       ENDIF
+
+       ! "levels: Specifies a vertical subset of the data grid
+       Pattern  = 'levels'
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           
           ! First split the line by colon
           CALL StrSplit( Line, ":", Subs1, nSubs1 )
           IF ( C > 0 ) THEN
-             CollectionSubsetDims(C) = Subs1(2)
-          
+
+             ! Replace any commas with spaces
+             CALL StrRepl( Subs1(2), ",", " " )
+             CollectionLevels(C) = Subs1(2)
+
              ! Then split by spaces and convert to INTEGER
-             CALL StrSplit( CollectionSubsetDims(C), " ", Subs2, nSubs2 )
-             IF ( nSubs2 > 0 ) THEN
+             CALL StrSplit( CollectionLevels(C), " ", Subs2, nSubs2 )
+             IF ( nSubs2 == 2 ) THEN
                 DO N = 1, nSubs2
-                   READ( Subs2(N), '(i10)' ) SubsetDims(N)
+                   READ( Subs2(N), '(i10)' ) CollectionLevelInd(N,C)
                 ENDDO
-          
-                ! Define the number of dimensions
-                SpaceDim = nSubs2
-                IF ( SpaceDim == 2 ) SubsetDims(3) = 1
+             ELSE
+                ErrMsg = 'Levels must be specified as levMin levMax!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
              ENDIF
           ENDIF
        ENDIF
@@ -1381,7 +1546,8 @@ CONTAINS
                             State_Met    = State_Met,                        &
                             Collection   = Container,                        &
                             CollectionId = C,                                &
-                           !SubsetDims   = CollectionSubsetDims(C),          &
+                            SubsetInd    = CollectionSubsetInd(:,C),         &
+                            LevelInd     = CollectionLevelInd(:,C),          &
                             ItemName     = OutputName,                       &
                             ItemCount    = ItemCount,                        &
                             RC           = RC                               )
@@ -1419,14 +1585,15 @@ CONTAINS
                          State_Met    = State_Met,                           &
                          Collection   = Container,                           &
                          CollectionId = C,                                   &
-                        !SubsetDims   = CollectionSubsetDims(C),             &
+                         SubsetInd    = CollectionSubsetInd(:,C),            &
+                         LevelInd     = CollectionLevelInd(:,C),             &
                          ItemName     = OutputName,                          &
                          ItemCount    = ItemCount,                           &
                          RC           = RC                                  )
 
                 ! Trap potential error
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Could not add diagnostic "' // TRIM( OutputName ) &
+                   ErrMsg = 'Could not add diagnostic "' // TRIM(OutputName) &
                             // '" to collection: ' // TRIM( CollectionName(C) ) 
                    WRITE( ErrorLine, 250 ) LineNum
                    CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
@@ -1518,6 +1685,12 @@ CONTAINS
     !=======================================================================
 999 CONTINUE
 
+    ! Free pointers
+    Grid_Lat  => NULL()
+    Grid_LatE => NULL()
+    Grid_Lon  => NULL()
+    Grid_LonE => NULL()
+
     ! Close the file
     CLOSE( fId )
 
@@ -1532,10 +1705,19 @@ CONTAINS
           print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
           print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
-          print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+          IF ( CollectionAccInterval(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
+          ENDIF
           print*, '  -> Duration     ', TRIM( CollectionDuration   (C) )
-!         print*, '  -> Subset Dims  ', TRIM( CollectionSubsetDims (C) )
           print*, '  -> Mode         ', TRIM( CollectionMode       (C) )
+          IF ( CollectionSubset(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Subset       ',                                   &
+                  TRIM(ADJUSTL(ADJUSTR( CollectionSubset(C) )))
+             print*, '  -> X0 X1 Y0 Y1  ', ((CollectionSubsetInd(N,C)), N=1,4)
+          ENDIF
+          IF ( CollectionLevels(C) /= UNDEFINED_STR ) THEN
+             print*, '  -> Z0 Z1        ', ((CollectionLevelInd(N,C)), N=1,2)
+          ENDIF
 
           ! Trap error if the collection frequency is undefined
           ! This indicates an error in parsing the file
@@ -1578,8 +1760,8 @@ CONTAINS
                                           State_Chm,    State_Diag,          &
                                           State_Met,    Collection,          &
                                           CollectionId, ItemName,            &
-                                          ItemCount,    SubsetDims,          &
-                                          RC                                )
+                                          ItemCount,    SubsetInd,           &
+                                          LevelInd,     RC                  )
 !
 ! !USES:
 !
@@ -1609,8 +1791,8 @@ CONTAINS
     INTEGER,             INTENT(IN)  :: ItemCount      ! Index of HISTORY ITEM
 
     ! Optional arguments
-    INTEGER,             OPTIONAL    :: SubsetDims(3)  ! Dimensions specified
-                                                       !  by the collection
+    INTEGER,             OPTIONAL    :: SubsetInd(4)    ! X0,X1,Y0,Y1 indices
+    INTEGER,             OPTIONAL    :: LevelInd(2)     ! Z0,Z1 indices
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1639,11 +1821,16 @@ CONTAINS
     LOGICAL                      :: OnLevelEdges
     INTEGER                      :: KindVal
     INTEGER                      :: Rank
-    INTEGER                      :: NX, NY, NZ
+    INTEGER                      :: NX, X0, X1
+    INTEGER                      :: NY, Y0, Y1
+    INTEGER                      :: NZ, Z0, Z1
 
     ! Arrays
     INTEGER                      :: Dimensions(3)
     INTEGER                      :: ItemDims(3)
+    INTEGER                      :: Subset_X(2)
+    INTEGER                      :: Subset_Y(2)
+    INTEGER                      :: Subset_Z(2)
 
     ! Strings
     CHARACTER(LEN=4  )           :: StateMetUC
@@ -1837,20 +2024,88 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! If the optional SUBSETDIMS argument is passed, then use that to
-    ! size the data arrays.  Otherwise assume the data arrays will be
-    ! the same size as the pointer to the data source (as will be true
+    ! If the optional SUBSETS and/or LEVELS arguments are passed, then use 
+    ! these to size the data arrays.  Otherwise assume the data arrays will
+    ! be the same size as the pointer to the data source (as will be true
     ! in most cases.) 
     !=======================================================================
-    IF ( PRESENT( SubsetDims ) ) THEN
-       NX = SubsetDims(1)
-       NY = SubsetDims(2)
-       NZ = SubsetDims(3)
-    ELSE
-       NX = Dimensions(1)
-       NY = Dimensions(2)
-       NZ = Dimensions(3)
+
+    !-------------------------
+    ! Default values
+    !-------------------------
+
+    ! By default, use the size of the data array to define the
+    ! X0, Y0, X1, Y1, Z0, and Z1 indices for the subset region.
+    X0 = 1
+    X1 = MAX( Dimensions(1), 1 )
+    Y0 = 1
+    Y1 = MAX( Dimensions(2), 1 )
+    Z0 = 1
+    Z1 = MAX( Dimensions(3), 1 )
+
+    !-------------------------
+    ! Horizontal subsetting
+    !-------------------------
+
+    ! If SubsetInd has valid values, use them to redefine X0, Y0, X1, and Y1.
+    IF ( PRESENT( SubsetInd ) ) THEN
+       IF ( SubsetInd(1) /= UNDEFINED_INT ) X0 = SubsetInd(1)
+       IF ( SubsetInd(2) /= UNDEFINED_INT ) X1 = SubsetInd(2)
+       IF ( SubsetInd(3) /= UNDEFINED_INT ) Y0 = SubsetInd(3)
+       IF ( SubsetInd(4) /= UNDEFINED_INT ) Y1 = SubsetInd(4)
     ENDIF
+
+    !-------------------------
+    ! Vertical subsetting
+    !-------------------------
+
+    ! If LevelInd has valid values, use them to redefine Z0 and Z1.
+    IF ( PRESENT( LevelInd ) ) THEN
+       IF ( LevelInd(1) /= UNDEFINED_INT ) Z0 = LevelInd(1)
+       IF ( LevelInd(2) /= UNDEFINED_INT ) Z1 = LevelInd(2)
+    ENDIF
+
+    ! Error check X-dimension indices
+    IF ( X1 < X0 ) THEN
+       WRITE( ErrMsg, 100 ) X0, X1, TRIM( Collection%Name )
+ 100   FORMAT(  'Invalid X-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Error-check Y-dimension indices
+    IF ( Y1 < Y0 ) THEN
+       WRITE( ErrMsg, 110 ) Y0, Y1, TRIM( Collection%Name )
+ 110   FORMAT(  'Invalid Y-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Error-check Z-dimension indices
+    IF ( Z1 < Z0 ) THEN
+       WRITE( ErrMsg, 120 ) Z0, Z1, TRIM( Collection%Name )
+ 120   FORMAT(  'Invalid Y-dimension indices: ', 2i6, ' for collection', a )
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    ! Compute dimension extent
+    NX = X1 - X0 + 1
+    NY = Y1 - Y0 + 1
+    NZ = Z1 - Z0 + 1
+
+    ! Indices for subsetting the data
+    Subset_X = (/ X0, X1 /)
+    Subset_Y = (/ Y0, Y1 /)
+    Subset_Z = (/ Z0, Z1 /)
+
+    ! Save the subsets to the collection
+    Collection%X0 = X0
+    Collection%X1 = X1
+    Collection%Y0 = Y0
+    Collection%Y1 = Y1
+    Collection%Z0 = Z0
+    !NOTE: Z1 is not needed, we compute that later!
 
     !=======================================================================
     ! Now that we have obtained information (and pointers to the data)
@@ -1867,6 +2122,9 @@ CONTAINS
                           OnLevelEdges   = OnLevelEdges,                     &
                           SpaceDim       = Rank,                             &
                           Operation      = Collection%Operation,             &
+                          Subset_X       = Subset_X,                         &
+                          Subset_Y       = Subset_Y,                         &
+                          Subset_Z       = Subset_Z,                         &
                           Source_KindVal = KindVal,                          &
                           Source_0d_8    = Ptr0d_8,                          &
                           Source_1d      = Ptr1d,                            &
@@ -2900,7 +3158,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE History_Netcdf_Mod,    ONLY : History_Netcdf_Cleanup
     USE MetaHistContainer_Mod, ONLY : MetaHistContainer_Destroy
 !
 ! !INPUT PARAMETERS: 
@@ -2917,6 +3174,7 @@ CONTAINS
 !  16 Aug 2017 - R. Yantosca - Move netCDF close code to History_Close_AllFiles
 !  26 Sep 2017 - R. Yantosca - Now call MetaHistItem_Destroy to finalize the
 !                              ContainerList object, instead of DEALLOCATE
+!  29 May 2019 - R. Yantosca - Remove call to History_Netcdf_Cleanup
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -2943,16 +3201,6 @@ CONTAINS
      CALL History_Close_AllFiles( am_I_Root, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error returned from "History_Close_AllFiles"!'
-        CALL GC_Error( ErrMsg, RC, ThisLoc )
-        RETURN
-     ENDIF
-
-     !======================================================================
-     ! Then finalize the history_netcdf_mod.F90 module
-     !======================================================================
-     CALL History_Netcdf_Cleanup( am_I_Root, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error returned from "History_Netcdf_Cleanup"!'
         CALL GC_Error( ErrMsg, RC, ThisLoc )
         RETURN
      ENDIF
@@ -2996,10 +3244,10 @@ CONTAINS
         ENDIF
      ENDIF
 
-     IF ( ALLOCATED( CollectionSubsetDims ) ) THEN
-        DEALLOCATE( CollectionSubsetDims, STAT=RC )
+     IF ( ALLOCATED( CollectionSubset ) ) THEN
+        DEALLOCATE( CollectionSubset, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionSubsetDims"!'
+           ErrMsg = 'Could not deallocate "CollectionSubset"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF

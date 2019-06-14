@@ -139,11 +139,12 @@ CONTAINS
                               LongName,     Units,          SpaceDim,        &
                               OnLevelEdges, AddOffset,      MissingValue,    &
                               ScaleFactor,  Source_KindVal, Operation,       &
-                              DimNames,     Dimensions,     Source_0d_8,     &
+                              DimNames,     Dimensions,     Subset_X,        &
+                              Subset_Y,     Subset_Z,       Source_0d_8,     &
                               Source_1d,    Source_1d_8,    Source_1d_4,     &
                               Source_1d_I,  Source_2d,      Source_2d_8,     &
                               Source_2d_4,  Source_2d_I,    Source_3d,       &
-                              Source_3d_8,  Source_3d_4,    Source_3d_I     )  
+                              Source_3d_8,  Source_3d_4,    Source_3d_I     )
 !
 ! !USES:
 !
@@ -162,6 +163,9 @@ CONTAINS
     CHARACTER(LEN=*),  INTENT(IN)  :: LongName           ! Item's long name
     CHARACTER(LEN=*),  INTENT(IN)  :: Units              ! Units of the data
     INTEGER,           INTENT(IN)  :: SpaceDim           ! Dimension of data
+    INTEGER,           INTENT(IN)  :: Subset_X(2)        ! X0, X1 indices
+    INTEGER,           INTENT(IN)  :: Subset_Y(2)        ! Y0, Y1 indices
+    INTEGER,           INTENT(IN)  :: Subset_Z(2)        ! Z0, Z1 indices
     
     ! Optional arguments
     LOGICAL,           OPTIONAL    :: OnLevelEdges       ! =T if data defined
@@ -176,7 +180,7 @@ CONTAINS
     CHARACTER(LEN=*),  OPTIONAL    :: DimNames           ! Use this to specify
                                                          !  dimensions of data
                                                          !  ("yz", "z", etc.)
-                                                       
+
     ! Optional pointers to data targets
     INTEGER,           OPTIONAL    :: Source_KindVal     ! Type of source data
     REAL(fp), POINTER, OPTIONAL    :: Source_0d_8        ! 0D 8-byte    data
@@ -230,7 +234,8 @@ CONTAINS
     LOGICAL            :: Is_1d,      Is_1d_8,  Is_1d_4,  Is_1d_I
     LOGICAL            :: Is_2d,      Is_2d_8,  Is_2d_4,  Is_2d_I
     LOGICAL            :: Is_3d,      Is_3d_8,  Is_3d_4,  Is_3d_I
-    INTEGER            :: N
+    INTEGER            :: X0,         X1,       Y0,       Y1
+    INTEGER            :: Z0,         Z1,       N
 
     ! Arrays
     INTEGER            :: Dims(3)
@@ -290,6 +295,14 @@ CONTAINS
     IF ( Is_3d_8 ) Item%Source_3d_8 => NULL()
     IF ( Is_3d_4 ) Item%Source_3d_4 => NULL()
     IF ( Is_3d_I ) Item%Source_3d_I => NULL()
+
+    ! Initialize indices
+    X0 = UNDEFINED_INT
+    X1 = UNDEFINED_INT
+    X1 = UNDEFINED_INT
+    Y1 = UNDEFINED_INT
+    Z1 = UNDEFINED_INT
+    Z1 = UNDEFINED_INT
 
     !========================================================================
     ! Required inputs, handle these first
@@ -496,35 +509,41 @@ CONTAINS
 
        ! Attach pointer to 3D data source, depending on its type
        CASE( 3 )
+
+          ! Subsets: assume all 3d are xyz
+          X0 = Subset_X(1); X1 = Subset_X(2)
+          Y0 = Subset_Y(1); Y1 = Subset_Y(2)
+          Z0 = Subset_Z(1); Z1 = Subset_Z(2)
+
           IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
              IF ( Is_3d   ) THEN
-                Item%Source_3d => Source_3d
+                Item%Source_3d => Source_3d(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d, N )
+                   Dims(N) = SIZE( Source_3d(X0:X1, Y0:Y1, Z0:Z1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_3d_8 ) THEN
-                Item%Source_3d_8 => Source_3d_8
+                Item%Source_3d_8 => Source_3d_8(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d_8, N )
+                   Dims(N) = SIZE( Source_3d_8(X0:X1, Y0:Y1, Z0:Z1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
              IF ( Is_3d_4 ) THEN
-                Item%Source_3d_4 => Source_3d_4
+                Item%Source_3d_4 => Source_3d_4(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d_4, N )
+                   Dims(N) = SIZE( Source_3d_4(X0:X1, Y0:Y1, Z0:Z1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
              IF ( Is_3d_I ) THEN
-                Item%Source_3d_I => Source_3d_I
+                Item%Source_3d_I => Source_3d_I(X0:X1, Y0:Y1, Z0:Z1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_3d_I, N )
+                   Dims(N) = SIZE( Source_3d_I(X0:X1, Y0:Y1, Z0:Z1), N )
                 ENDDO
                 GOTO 99
              ENDIF
@@ -532,35 +551,40 @@ CONTAINS
 
        ! Attach pointer to 2D data source, depending on its type
        CASE( 2 )
+
+          ! Subsets: assume all 2D are xy (for now)
+          X0 = Subset_X(1); X1 = Subset_X(2)
+          Y0 = Subset_Y(1); Y1 = Subset_Y(2)
+
           IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
              IF ( Is_2d   ) THEN
-                Item%Source_2d => Source_2d
+                Item%Source_2d => Source_2d(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d, N )
+                   Dims(N) = SIZE( Source_2d(X0:X1, Y0:Y1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_2d_8 ) THEN
-                Item%Source_2d_8 => Source_2d_8
+                Item%Source_2d_8 => Source_2d_8(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d_8, N )
+                   Dims(N) = SIZE( Source_2d_8(X0:X1, Y0:Y1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
              IF ( Is_2d_4 ) THEN
-                Item%Source_2d_4 => Source_2d_4
+                Item%Source_2d_4 => Source_2d_4(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d_4, N )
+                   Dims(N) = SIZE( Source_2d_4(X0:X1, Y0:Y1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
              IF ( Is_2d_I ) THEN
-                Item%Source_2d_I => Source_2d_I
+                Item%Source_2d_I => Source_2d_I(X0:X1, Y0:Y1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_2d_I, N )
+                   Dims(N) = SIZE( Source_2d_I(X0:X1, Y0:Y1), N )
                 ENDDO
                 GOTO 99
              ENDIF
@@ -568,35 +592,48 @@ CONTAINS
 
        ! Attach pointer to 1D data source, depending on its type
        CASE( 1 )
+
+          ! Subsets
+          SELECT CASE( TRIM( Item%DimNames ) )
+             CASE( 'x' )
+                X0 = Subset_X(1); X1 = Subset_X(2)
+             CASE( 'y' )
+                X0 = Subset_Y(1); X1 = Subset_Y(2)
+             CASE( 'z' )
+                X0 = Subset_Z(1); X1 = Subset_Z(2)
+             CASE DEFAULT
+                X0 = 1;           X1 = 1
+          END SELECT
+
           IF ( Item%Source_KindVal == KINDVAL_FP ) THEN
              IF ( Is_1d   ) THEN
-                Item%Source_1d   => Source_1d
+                Item%Source_1d   => Source_1d(X0:X1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d, N )
+                   Dims(N) = SIZE( Source_1d(X0:X1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F8 ) THEN
              IF ( Is_1d_8 ) THEN
-                Item%Source_1d_8 => Source_1d_8
+                Item%Source_1d_8 => Source_1d_8(X0:X1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d_8, N )
+                   Dims(N) = SIZE( Source_1d_8(X0:X1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_F4 ) THEN
              IF ( Is_1d_4 ) THEN
-                Item%Source_1d_4 => Source_1d_4
+                Item%Source_1d_4 => Source_1d_4(X0:X1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d_4, N )
+                   Dims(N) = SIZE( Source_1d_4(X0:X1), N )
                 ENDDO
                 GOTO 99
              ENDIF
           ELSE IF ( Item%Source_KindVal == KINDVAL_I4 ) THEN
              IF ( Is_1d_I ) THEN
-                Item%Source_1d_I => Source_1d_I
+                Item%Source_1d_I => Source_1d_I(X0:X1)
                 DO N = 1, Item%SpaceDim
-                   Dims(N) = SIZE( Source_1d_I, N )
+                   Dims(N) = SIZE( Source_1d_I(X0:X1), N )
                 ENDDO
                 GOTO 99
              ENDIF
