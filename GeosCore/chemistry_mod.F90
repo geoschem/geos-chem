@@ -132,6 +132,12 @@ CONTAINS
 #if defined( USE_TEND )  
     USE TENDENCIES_MOD   
 #endif                   
+#if   defined( APM )
+    USE APM_INIT_MOD,    ONLY : APMIDS
+    USE APM_DRIV_MOD,    ONLY : PSO4GAS
+    USE APM_DRIV_MOD,    ONLY : AERONUM
+    USE APM_DRIV_MOD,    ONLY : APM_DRIV
+#endif
 #if defined( TOMAS )     
     USE TOMAS_MOD,       ONLY : DO_TOMAS  !(win, 7/14/09)
 #endif                   
@@ -289,6 +295,10 @@ CONTAINS
     LOGICAL            :: LNLPBL
     LOGICAL            :: LUCX
     REAL(fp)           :: DT_Chem
+#if defined( APM )
+    INTEGER            :: I,J,L
+    REAL*8             :: CONCTMPSO4(IIPAR,JJPAR,LLPAR)
+#endif
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
@@ -410,6 +420,24 @@ CONTAINS
              ENDIF
           ENDIF
 
+#if defined( APM )
+          ! Save SO4 concentration before chemistry
+          !$OMP PARALLEL DO                  &
+          !$OMP DEFAULT( SHARED            ) &
+          !$OMP PRIVATE( I, J, L           ) &
+          !$OMP SCHEDULE( DYNAMIC )
+          DO L=1,LLPAR
+          DO J=1,JJPAR
+          DO I=1,IIPAR
+            CONCTMPSO4(I,J,L) = State_Chm%Species(I,J,L,APMIDS%id_SO4)
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+
+          CALL AERONUM( am_I_Root, Input_Opt, State_Met, State_Chm )
+#endif
+
           !---------------------------
           ! Call gas-phase chemistry
           !---------------------------
@@ -466,6 +494,27 @@ CONTAINS
 #endif
 
           ENDIF
+
+#if defined( APM )
+          ! Obtain SO4 production after chemistry
+          !$OMP PARALLEL DO                  &
+          !$OMP DEFAULT( SHARED            ) &
+          !$OMP PRIVATE( I, J, L           ) &
+          !$OMP SCHEDULE( DYNAMIC )
+          DO L=1,LLPAR
+          DO J=1,JJPAR
+          DO I=1,IIPAR
+            IF(State_Chm%Species(I,J,L,APMIDS%id_SO4)>CONCTMPSO4(I,J,L))THEN
+              PSO4GAS(I,J,L) = State_Chm%Species(I,J,L,APMIDS%id_SO4) -&
+                               CONCTMPSO4(I,J,L)
+            ELSE
+              PSO4GAS(I,J,L) = 0.D0
+            ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+#endif
 
 #if defined( USE_TIMERS )
           CALL GEOS_Timer_Start( "=> All aerosol chem", RC )
@@ -542,9 +591,13 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
+#if   defined( APM )
+                ! DO ISOROPIAII in apm_driv_mod.F
+#else
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
                                      State_Chm, State_Diag, RC              )
+#endif
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -555,6 +608,11 @@ CONTAINS
 #endif
 
              ELSE
+
+#if   defined( APM )
+                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
+                STOP
+#endif
 
                 ! RPMARES does not take Na+, Cl- into account
                 CALL Do_RPMARES( am_I_Root, Input_Opt, State_Met,            &
@@ -594,6 +652,13 @@ CONTAINS
              ENDIF
           ENDIF
  
+#if   defined( APM )
+          !--------------------------------------------
+          ! Do APM aerosol microphysics
+          !--------------------------------------------
+          CALL APM_DRIV( am_I_Root, Input_Opt, State_Met, State_Chm )
+#endif
+
 #if   defined( TOMAS )
           !--------------------------------------------
           ! Do TOMAS aerosol microphysics and dry dep
@@ -674,9 +739,13 @@ CONTAINS
              IF ( LSSALT ) THEN
 
 #if   !defined( NO_ISORROPIA )
+#if   defined( APM )
+                ! DO ISOROPIAII in apm_driv_mod.F
+#else
                 ! ISORROPIA takes Na+, Cl- into account
                 CALL Do_IsorropiaII( am_I_Root, Input_Opt,  State_Met,       &
                                      State_Chm, State_Diag, RC              )
+#endif
 #endif
 
                 ! Trap potential errors
@@ -687,6 +756,11 @@ CONTAINS
                 ENDIF
 
              ELSE
+
+#if   defined( APM )
+                WRITE(*,*)'Warning: APM does not want to use DO_RPMARES'
+                STOP
+#endif
 
                 ! RPMARES does not take Na+, Cl- into account
                 ! (skip for crystalline & aqueous offline run)

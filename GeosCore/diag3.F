@@ -49,6 +49,16 @@
       USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
       USE DRYDEP_MOD                         ! For dry deposition
       USE WETSCAV_MOD                        ! For wet deposition
+
+#if   defined( APM )
+      ! Modules from GeosApm directory
+      USE APM_DRIV_MOD, ONLY : IFTEMPOUT
+      USE APM_DRIV_MOD, ONLY : TEMPOUT
+      USE APM_DRIV_MOD, ONLY : NTEMPOUT
+      USE APM_DRIV_MOD, ONLY : NPOUTSTEPS
+      USE APM_DRIV_MOD, ONLY : APM_RADFOUT
+      USE APM_INIT_MOD, ONLY : IFRADF
+#endif
       
 #if   defined( TOMAS )
       USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
@@ -4211,6 +4221,37 @@
      &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
 
          ENDDO
+
+#if   defined( APM )
+      !-----------------------------------
+      ! Output TEMPOUT for APM (G. Luo)
+      !-----------------------------------
+      IF ( IFTEMPOUT ) THEN
+
+         CATEGORY  = 'IJ-TMP-$'
+         SCALE_TMP = FLOAT( NPOUTSTEPS ) + 1e-20_fp
+         UNIT      = ''
+
+         DO NN = 1, NTEMPOUT
+
+            DO L = 1, LD45
+               ARRAY(:,:,L) = TEMPOUT(:,:,L,NN) / SCALE_TMP(:,:)
+            ENDDO
+
+            CALL BPCH2( IU_BPCH,   MODELNAME, LONRES,   LATRES,
+     &                  HALFPOLAR, CENTER180, CATEGORY, NN,
+     &                  UNIT,      DIAGb,     DIAGe,    RESERVED,
+     &                  IIPAR,     JJPAR,     LD45,     IFIRST,
+     &                  JFIRST,    LFIRST,    ARRAY(:,:,1:LD45) )
+
+         ENDDO
+
+         IF(IFRADF.EQ.1) CALL APM_RADFOUT    !OPT+
+
+         TEMPOUT    = 0.e+0_fp
+         NPOUTSTEPS = 0
+      ENDIF
+#endif
 
       ENDIF
 !

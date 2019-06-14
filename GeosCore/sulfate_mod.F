@@ -26,6 +26,9 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS: 
 !
+#if   defined( APM )
+      PRIVATE :: WET_SETTLINGBIN
+#endif
       PUBLIC :: CHEMSULFATE       
       PUBLIC :: CLEANUP_SULFATE   
       PUBLIC :: INIT_SULFATE
@@ -251,6 +254,10 @@
       REAL(fp),  ALLOCATABLE :: TTDAY(:,:)
       REAL(fp),  ALLOCATABLE :: COSZM(:,:)
 
+#if   defined( APM )
+      REAL(fp),  ALLOCATABLE :: PSO4_SO2APM(:,:,:)
+      REAL(fp),  ALLOCATABLE :: PSO4_SO2SEA(:,:,:)
+#endif
 #if   defined( TOMAS )
       !---------------------------------------------------------------
       ! For TOMAS microphysics: Define PSO4_SO2aq array
@@ -339,6 +346,10 @@
       USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
       USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
       USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if   defined( APM )
+      USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
+      USE APM_DRIV_MOD,       ONLY : EMITNH3,EMITSO2
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -438,6 +449,10 @@
 
       ! Pointers
       REAL(fp),        POINTER :: Spc(:,:,:,:)
+#if   defined( APM )
+      INTEGER           :: IDNH3,IDSO2
+      REAL(fp)          :: A_M2
+#endif
 
       !=================================================================
       ! CHEMSULFATE begins here!
@@ -537,6 +552,48 @@
          TS_EMIS = HcoState%TS_EMIS
       ENDIF
 
+#if   defined( APM )
+      IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, J, I, A_M2 )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+      ! Grid box surface area [m2]
+      A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
+
+      DO L = 1, LLPAR
+         ! Get emissions [kg/m2/s] and convert to [kg/box-sec]
+         EMITNH3(I,J,L) = HcoState%Spc(IDNH3)%Emis%Val(I,J,L)*A_M2
+      ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      IDSO2 = HCO_GetHcoID( 'SO2', HcoState )
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( L, J, I, A_M2 )
+!$OMP+SCHEDULE( DYNAMIC )
+      DO J = 1, JJPAR
+      DO I = 1, IIPAR
+
+      ! Grid box surface area [m2]
+      A_M2 = HcoState%Grid%AREA_M2%Val( I, J )
+
+      DO L = 1, LLPAR
+         ! Get emissions [kg/m2/s] and convert to [kg/box-sec]
+         EMITSO2(I,J,L) = HcoState%Spc(IDSO2)%Emis%Val(I,J,L)*A_M2
+      ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+#endif
+
       ! Initialize module arrays
       PSO2_DMS   = 0e+0_fp
       PMSA_DMS   = 0e+0_fp
@@ -545,6 +602,10 @@
       PNITs      = 0e+0_fp
       PSO4_dust  = 0e+0_fp     ! tdf 04/17/08
       PNIT_dust  = 0e+0_fp     ! tdf 04/17/08
+#if   defined( APM )
+      PSO4_SO2APM = 0d0
+      PSO4_SO2SEA = 0d0
+#endif
 #if   defined( TOMAS )
       PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
 #endif
@@ -2534,6 +2595,10 @@
       USE CMN_DIAG_MOD
       USE DIAG_MOD,           ONLY : AD05
 #endif
+#if   defined( APM )
+      USE APM_DRIV_MOD,       ONLY : PSO4GAS
+      USE APM_DRIV_MOD,       ONLY : XO3
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2836,6 +2901,9 @@
             HOBr0  = 0.e+0_fp
          ENDIF
          O3     = GET_O3( I, J, L, Input_Opt, State_Chm, State_Met )
+#if defined ( APM )
+         XO3(I,J,L)= O3
+#endif
 
          ! PATM  : Atmospheric pressure in atm
          ! Now use dry air partial pressure (ewl, 4/28/15)
@@ -3781,6 +3849,12 @@
          ! Production of sulfate on sea salt
          PSO4_ss (I,J,L) = PSO4F
 
+#if   defined( APM )
+         PSO4_SO2APM(I,J,L) = L2S + L3S + L4S + L5S + SR
+         PSO4_SO2APM(I,J,L) = MAX(0.d0,PSO4_SO2APM(I,J,L))
+         PSO4_SO2SEA(I,J,L) = PSO4E + PSO4F
+         PSO4_SO2SEA(I,J,L) = MAX(0.d0,PSO4_SO2SEA(I,J,L))
+#endif
 #if   defined( TOMAS )
          PSO4_SO2AQ(I,J,L) = L2S + L3S + SR ! For TOMAS microphysics
 #endif
@@ -6378,6 +6452,16 @@
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Diag_Mod, ONLY : DgnState
       USE State_Met_Mod,  ONLY : MetState
+#if   defined( APM )
+      USE APM_INIT_MOD,       ONLY : APMIDS
+      USE APM_INIT_MOD,       ONLY : NGCOND,   NSO4,      NSEA
+      USE APM_INIT_MOD,       ONLY : NCTSO4,NCTBC,NCTOC,NCTDST,NCTSEA
+      USE APM_INIT_MOD,       ONLY : IFEMITBCOCS
+      USE APM_DRIV_MOD,       ONLY : PSO4GAS
+      USE APM_DRIV_MOD,       ONLY : FCLOUD
+      USE PBL_MIX_MOD,        ONLY : GET_FRAC_UNDER_PBLTOP
+      USE WETSCAV_MOD,        ONLY : PSO4_SO2APM2
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -6465,6 +6549,10 @@
 
       ! Pointers
       REAL(fp), POINTER :: Spc(:,:,:,:)
+#if   defined( APM )
+      REAL*8            :: MASS0, MASS, PMASS
+      REAL*8            :: RKTs, E_RKTs, DTCHEM
+#endif
 
       !=================================================================
       ! CHEM_SO4 begins here!
@@ -6479,6 +6567,13 @@
       ! Copy fields from INPUT_OPT to local variables for use below
       LDSTUP    = Input_Opt%LDSTUP
 
+#if defined ( APM )
+      ! Call APM size-resolved drydep algorithm
+      CALL WET_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
+     &                      State_Chm, RC )
+
+#endif
+
       ! Point to chemical species array [kg]
       Spc      => State_Chm%Species
 
@@ -6488,6 +6583,9 @@
 !$OMP+PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s )
 !$OMP+PRIVATE( SO4d, SO40d, SO40_dust          ) ! tdf 04/07/08
 !$OMP+PRIVATE( IBIN, PSO4d, IDTRC              )
+#if   defined( APM )
+!$OMP+PRIVATE( N, MASS0, MASS, PMASS, RKTs, E_RKTs )
+#endif
 !$OMP+SCHEDULE( DYNAMIC ) 
       DO L = 1, LLPAR
       DO J = 1, JJPAR
@@ -6572,6 +6670,60 @@
          Spc(I,J,L,id_SO4)  = SO4
          Spc(I,J,L,id_SO4s) = SO4s
 
+!APM_GanLuo+
+#if      defined( APM )
+         IF(NSO4>=1)THEN
+            DO N=1,NSO4
+            ! Updated SO4 (gas phase) [v/v]
+               Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) =
+     &         Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) +
+     &        (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/
+     &        (g0_100*State_Met%DELP_DRY(I,J,L)))*
+     &         FCLOUD(I,J,L,N)
+            ENDDO
+         ENDIF
+
+         IF(NCTBC>=1)THEN
+            DO N=1,1
+               Spc(I,J,L,(APMIDS%id_CTBC+N-1)) =
+     &         Spc(I,J,L,(APMIDS%id_CTBC+N-1)) +
+     &        (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/
+     &        (g0_100*State_Met%DELP_DRY(I,J,L)))*
+     &         FCLOUD(I,J,L,(NSO4+N))
+            ENDDO
+         ENDIF
+
+         IF(NCTOC>=1)THEN
+            DO N=1,1
+               Spc(I,J,L,(APMIDS%id_CTOC+N-1)) =
+     &         Spc(I,J,L,(APMIDS%id_CTOC+N-1)) +
+     &        (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/
+     &        (g0_100*State_Met%DELP_DRY(I,J,L)))*
+     &         FCLOUD(I,J,L,(NSO4+N))
+            ENDDO
+         ENDIF
+
+         IF(NCTDST>=1)THEN
+            DO N=1,1
+               Spc(I,J,L,(APMIDS%id_CTDST+N-1)) =
+     &         Spc(I,J,L,(APMIDS%id_CTDST+N-1)) +
+     &        (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/
+     &        (g0_100*State_Met%DELP_DRY(I,J,L)))*
+     &         FCLOUD(I,J,L,(NSO4+3))
+            ENDDO
+         ENDIF
+
+         IF(NCTSEA>=1)THEN
+            DO N=1,1
+               Spc(I,J,L,(APMIDS%id_CTSEA+N-1)) =
+     &         Spc(I,J,L,(APMIDS%id_CTSEA+N-1)) +
+     &        (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/
+     &        (g0_100*State_Met%DELP_DRY(I,J,L)))*
+     &         FCLOUD(I,J,L,(NSO4+4)) + PSO4_SO2SEA(I,J,L)
+            ENDDO
+         ENDIF
+#endif
+
          !tdf
          IF ( LDSTUP ) THEN
             DO IBIN = 1, NDSTBIN
@@ -6585,6 +6737,10 @@
       ENDDO
       ENDDO
 !$OMP END PARALLEL DO
+
+#if defined ( APM )
+      PSO4_SO2APM2 = 0.D0
+#endif
 
       ! Free pointers
       Spc => NULL()
@@ -8134,6 +8290,18 @@
       IF ( RC /= GC_SUCCESS ) RETURN
       SOx_SCALE = 0e+0_fp
 
+#if   defined( APM )
+      ! Allocate for APM microphysics
+      ALLOCATE( PSO4_SO2APM( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2APM', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PSO4_SO2APM = 0e+0_fp
+      ALLOCATE( PSO4_SO2SEA( IIPAR, JJPAR, LLPAR ), STAT=RC )
+      CALL GC_CheckVar( 'sulfate_mod.F:PSO4_SO2SEA', 0, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PSO4_SO2SEA = 0e+0_fp
+#endif
+
 #if   defined( TOMAS )
       ! Allocate for TOMAS microphysics
       ALLOCATE( PSO4_SO2AQ( IIPAR, JJPAR, LLPAR ), STAT=RC )
@@ -8297,6 +8465,10 @@
       IF ( ALLOCATED( PNITs      ) ) DEALLOCATE( PNITs      )
       IF ( ALLOCATED( PSO2_DMS   ) ) DEALLOCATE( PSO2_DMS   )
       IF ( ALLOCATED( PSO4_SO2   ) ) DEALLOCATE( PSO4_SO2   )
+#if   defined( APM )
+      IF ( ALLOCATED( PSO4_SO2APM ) ) DEALLOCATE( PSO4_SO2APM )
+      IF ( ALLOCATED( PSO4_SO2SEA ) ) DEALLOCATE( PSO4_SO2SEA )
+#endif
 #if   defined( TOMAS )
       IF ( ALLOCATED( PSO4_SO2AQ ) ) DEALLOCATE( PSO4_SO2AQ ) 
       IF ( ALLOCATED( SO4_ANTH   ))  DEALLOCATE( SO4_ANTH   )
@@ -8324,4 +8496,316 @@
 
       END SUBROUTINE CLEANUP_SULFATE
 !EOC
+#if   defined( APM )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: dry_settlingbin
+!
+! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of 
+!  aerosol tracers. Modified for APM simulation. (G. Luo)
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE WET_SETTLINGBIN( am_I_Root, Input_Opt, State_Met,
+     &                            State_Chm, RC )
+!
+! !USES:
+!
+      USE ErrCode_Mod
+      USE Input_Opt_Mod, ONLY : OptInput
+      USE State_Met_Mod, ONLY : MetState
+      USE State_Met_Mod, ONLY : MetState
+      USE State_Chm_Mod, ONLY : ChmState
+      USE GC_GRID_MOD,        ONLY : GET_AREA_CM2
+      USE PRESSURE_MOD,       ONLY : GET_PCENTER
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+      USE PhysConstants
+      USE APM_INIT_MOD,       ONLY : APMIDS
+      USE APM_INIT_MOD,       ONLY : NCTSO4,NSO4
+      USE APM_INIT_MOD,       ONLY : RDRY
+      USE APM_DRIV_MOD,       ONLY : GFTOT3D,DENWET3D
+
+      USE CMN_SIZE_MOD             ! Size parameters
+!
+! !INPUT PARAMETERS: 
+!
+      LOGICAL,        INTENT(IN)   :: am_I_Root   ! Are we on the root CPU?
+      TYPE(OptInput), INTENT(IN)   :: Input_Opt   ! Input Options object
+      TYPE(MetState), INTENT(IN)   :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)  :: RC          ! Success or failure?
+! 
+! !REVISION HISTORY:
+!  01 Mar 2012 - R. Yantosca - Now use GET_AREA_CM2(I,J,L) from grid_mod.F90
+!  09 Nov 2012 - M. Payer    - Replaced all met field arrays with State_Met
+!                              derived type object
+!  17 Oct 2013 - M. Sulprizio- Now pass STT via the State_Chm object
+!  17 Oct 2013 - M. Sulprizio- Added ProTeX headers
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Local variables
+      INTEGER               :: I, J, L, N, K
+      INTEGER               :: IDTEMP1, IDTEMP2
+      REAL*8                :: DT_SETTL, DELZ,  DELZ1
+      REAL*8                :: REFF,     DEN,   CONST   
+      REAL*8                :: NUM,      LAMDA, FLUX
+      REAL*8                :: AREA_CM2, TC0(LLPAR)
+      REAL*8                :: TOT1,     TOT2
+
+      ! Pressure in Kpa 1 mb = 100 pa = 0.1 kPa      
+      REAL*8                :: P 
+
+      ! Diameter of aerosol [um]
+      REAL*8                :: Dp
+
+      ! Pressure * DP
+      REAL*8                :: PDp 
+
+      ! Temperature (K)    
+      REAL*8                :: TEMP        
+
+      ! Slip correction factor
+      REAL*8                :: Slip        
+
+      ! Viscosity of air (Pa s)
+      REAL*8                :: Visc   
+
+      ! Settling velocity of particle (m/s)
+      REAL*8                :: VTS(LLPAR)
+      REAL*8                :: MASS(LLPAR), OLD(LLPAR,NCTSO4+2)
+
+      ! Make a pointer to the tracer array
+      REAL*8, POINTER :: Spc(:,:,:,:)
+
+      !=================================================================
+      ! WET_SETTLINGBIN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+
+      ! Point to Spc
+      Spc => State_Chm%Species
+
+      ! Aerosol settling timestep [s]
+      DT_SETTL = GET_TS_CHEM()
+
+      IDTEMP1 = APMIDS%id_SO4BIN1
+      IDTEMP2 = APMIDS%id_SO4BIN1+NSO4-1
+
+!$OMP PARALLEL DO
+!$OMP+DEFAULT( SHARED )
+!$OMP+PRIVATE( I, J, L, N, K, DEN, REFF, DP )
+!$OMP+PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )
+!$OMP+PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  )
+!$OMP+SCHEDULE( DYNAMIC )
+
+      ! Loop over latitudes
+      DO J = 1, JJPAR
+      ! Loop over longitudes
+      DO I = 1, IIPAR
+
+         DO L = 1, LLPAR
+            MASS(L) = SUM(Spc(I,J,L,IDTEMP1:IDTEMP2))
+            DO K = 1, NCTSO4
+               OLD(L,K) = Spc(I,J,L,(APMIDS%id_CTSO4+K-1))
+               Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) = 0.D0
+            ENDDO
+            OLD(L,NCTSO4+1) = Spc(I,J,L,APMIDS%id_NIT)
+            OLD(L,NCTSO4+2) = Spc(I,J,L,APMIDS%id_NH4)
+            Spc(I,J,L,APMIDS%id_NIT) = 0.D0
+            Spc(I,J,L,APMIDS%id_NH4) = 0.D0
+         ENDDO
+
+         ! Loop over aerosol bins
+         DO N = 1, NSO4
+
+            DO L = 1, LLPAR
+
+               TC0(L) = Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))
+
+               IF(TC0(L)>1.D-30)THEN
+                  ! Initialize
+                  DEN   = DENWET3D(I,J,L,1)*1.d3
+                  REFF  = RDRY(N)*GFTOT3D(I,J,L,1)
+                  DP    = 2D0 * REFF * 1.D6 ! Dp [um] = particle diameter
+                  CONST = 2D0 * DEN * REFF**2 * g0 / 9D0
+
+                  ! Get P [kPa], T [K], and P*DP
+                  P    = GET_PCENTER(I,J,L) * 0.1d0
+                  TEMP = State_Met%T(I,J,L)
+                  PDP  = P * DP
+
+                  ! Slip correction factor as function of (P*dp)
+                  SLIP = 1d0 + 
+     &                 ( 15.60d0 + 7.0d0 * EXP(-0.059d0*PDP) ) / PDP
+
+                  ! Viscosity [Pa s] of air as a function of temp (K)
+                  VISC = 1.458d-6 * (TEMP)**(1.5d0) / ( TEMP + 110.4d0 )
+
+                  ! Settling velocity [m/s]
+                  VTS(L) = CONST * SLIP / VISC
+               ELSE
+                  VTS(L) = 0.D0
+               ENDIF
+
+            ENDDO
+
+            ! Method is to solve bidiagonal matrix 
+            ! which is implicit and first order accurate in Z
+            L    = LLPAR
+            IF(MASS(L)>1.D-30)THEN
+              DELZ = State_Met%BXHEIGHT(I,J,L)
+              Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) =
+     &        Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+
+              DO K = 1, NCTSO4
+                Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+
+     &          OLD(L,K)*TC0(L)/MASS(L) /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+              ENDDO
+              Spc(I,J,L,APMIDS%id_NIT) =
+     &        Spc(I,J,L,APMIDS%id_NIT)+
+     &        OLD(L,NCTSO4+1)*TC0(L)/MASS(L) /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+              Spc(I,J,L,APMIDS%id_NH4) =
+     &        Spc(I,J,L,APMIDS%id_NH4)+
+     &        OLD(L,NCTSO4+2)*TC0(L)/MASS(L) /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+
+            ENDIF
+
+            DO L = LLPAR-1, 1, -1
+            IF((MASS(L)*MASS(L+1))>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTSO4
+                Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (OLD(L,K)*TC0(L)/MASS(L)
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1) )
+              ENDDO
+              Spc(I,J,L,APMIDS%id_NIT) =
+     &        Spc(I,J,L,APMIDS%id_NIT)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * (OLD(L,NCTSO4+1)*TC0(L)/MASS(L)
+     &        + DT_SETTL * VTS(L+1) / DELZ1
+     &        * OLD(L+1,NCTSO4+1)*TC0(L+1)/MASS(L+1) )
+              Spc(I,J,L,APMIDS%id_NH4) =
+     &        Spc(I,J,L,APMIDS%id_NH4)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * (OLD(L,NCTSO4+2)*TC0(L)/MASS(L)
+     &        + DT_SETTL * VTS(L+1) / DELZ1
+     &        * OLD(L+1,NCTSO4+2)*TC0(L+1)/MASS(L+1) )
+
+            ELSE IF(MASS(L)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTSO4
+                Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * OLD(L,K)*TC0(L)/MASS(L)
+              ENDDO
+              Spc(I,J,L,APMIDS%id_NIT) =
+     &        Spc(I,J,L,APMIDS%id_NIT)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * OLD(L,NCTSO4+1)*TC0(L)/MASS(L)
+              Spc(I,J,L,APMIDS%id_NH4) =
+     &        Spc(I,J,L,APMIDS%id_NH4)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * OLD(L,NCTSO4+2)*TC0(L)/MASS(L)
+
+            ELSE IF(MASS(L+1)>1.D-30)THEN
+              DELZ  = State_Met%BXHEIGHT(I,J,L)
+              DELZ1 = State_Met%BXHEIGHT(I,J,L+1)
+              Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1)) = 1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * (Spc(I,J,L,(APMIDS%id_SO4BIN1+N-1))
+     &          + DT_SETTL * VTS(L+1) / DELZ1
+     &          * TC0(L+1) )
+
+              DO K = 1, NCTSO4
+                Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =
+     &          Spc(I,J,L,(APMIDS%id_CTSO4+K-1))+
+     &          1.e+0_fp /
+     &          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &          * DT_SETTL * VTS(L+1) / DELZ1
+     &          * OLD(L+1,K)*TC0(L+1)/MASS(L+1)
+              ENDDO
+              Spc(I,J,L,APMIDS%id_NIT) =
+     &        Spc(I,J,L,APMIDS%id_NIT)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * DT_SETTL * VTS(L+1) / DELZ1
+     &        * OLD(L+1,NCTSO4+1)*TC0(L+1)/MASS(L+1)
+              Spc(I,J,L,APMIDS%id_NH4) =
+     &        Spc(I,J,L,APMIDS%id_NH4)+
+     &        1.e+0_fp /
+     &        ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
+     &        * DT_SETTL * VTS(L+1) / DELZ1
+     &        * OLD(L+1,NCTSO4+2)*TC0(L+1)/MASS(L+1)
+
+            ENDIF
+
+            ENDDO
+
+         ENDDO
+
+         DO L = 1, LLPAR
+            DO K = 1, NCTSO4
+               Spc(I,J,L,(APMIDS%id_CTSO4+K-1)) =
+     &            MAX(1.d-30,Spc(I,J,L,(APMIDS%id_CTSO4+K-1)))
+            ENDDO
+            Spc(I,J,L,APMIDS%id_NIT) =
+     &         MAX(1.d-30,Spc(I,J,L,APMIDS%id_NIT))
+            Spc(I,J,L,APMIDS%id_NH4) =
+     &         MAX(1.d-30,Spc(I,J,L,APMIDS%id_NH4))
+         ENDDO
+
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+
+      ! Clear the pointer
+      NULLIFY( Spc )
+
+      END SUBROUTINE WET_SETTLINGBIN
+#endif
       END MODULE SULFATE_MOD

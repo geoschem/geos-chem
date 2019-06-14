@@ -3813,6 +3813,10 @@ CONTAINS
    USE State_Met_Mod,      ONLY : MetState
    USE TIME_MOD,           ONLY : EXPAND_DATE
    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+#if defined ( APM )
+   USE APM_INIT_MOD,       ONLY : APMIDS
+#endif
+
 !
 ! !INPUT PARAMETERS: 
 !
@@ -4110,6 +4114,117 @@ CONTAINS
          ENDDO
 !$OMP END PARALLEL DO
 
+#if defined ( APM )
+           WRITE(*,*)'APM run does not find '// TRIM( SpcInfo%Name ),N
+           IF(SpcInfo%Name(1:9)=='APMSPBIN2')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:9)=='APMSPBIN3')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SO4)/20.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+!GanLuotest
+           IF(SpcInfo%Name(1:10)=='APMSEABIN0')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALA)/9.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMSEABIN1')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very
+               ! low
+               State_Chm%Species(I,J,L,N) = &
+               State_Chm%Species(I,J,L,APMIDS%id_SALC)/10.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:10)=='APMDSTBIN1')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = &
+               SUM(State_Chm%Species(I,J,L,APMIDS%id_DST1:APMIDS%id_DST4))/6.D0
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMBCBIN')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+           IF(SpcInfo%Name(1:8)=='APMOCBIN')THEN
+!$OMP PARALLEL DO                                                       &
+!$OMP DEFAULT( SHARED )                                                 &
+!$OMP PRIVATE( I, J, L )
+            DO L = 1, LLPAR
+            DO J = 1, JJPAR
+            DO I = 1, IIPAR
+               ! Apply minimum value threshold where input conc is very low
+               State_Chm%Species(I,J,L,N) = 1.D-30
+            ENDDO
+            ENDDO
+            ENDDO
+!$OMP END PARALLEL DO
+           ENDIF
+#endif
       ENDIF
 
       ! Free pointer

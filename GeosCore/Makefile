@@ -469,6 +469,7 @@ carbon_mod.o                : carbon_mod.F                                   \
                               pbl_mix_mod.o                                  \
                               tomas_mod.o             vdiff_pre_mod.o        \
                               hco_interface_mod.o     aerosol_mod.o          \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               dao_mod.o
 
 chemistry_mod.o             : chemistry_mod.F90                              \
@@ -481,6 +482,7 @@ chemistry_mod.o             : chemistry_mod.F90                              \
                               seasalt_mod.o           strat_chem_mod.o       \
                               sulfate_mod.o           tagged_co_mod.o        \
                               tagged_o3_mod.o         tomas_mod.o            \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               flexchem_mod.o          diagnostics_mod.o
 
 cleanup.o                   : cleanup.F                                      \
@@ -540,6 +542,7 @@ diag3.o                     : diag3.F                                        \
                               diag42_mod.o            diag53_mod.o           \
                               diag56_mod.o            depo_mercury_mod.o     \
                               drydep_mod.o            hco_interface_mod.o    \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               tomas_mod.o             wetscav_mod.o
 
 diag20_mod.o                : diag20_mod.F
@@ -586,10 +589,12 @@ drydep_mod.o                : drydep_mod.F                                   \
                               dao_mod.o                                      \
                               diag_mod.o              get_ndep_mod.o         \
                               pbl_mix_mod.o           tomas_mod.o            \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               hco_interface_mod.o     diagnostics_mod.o
 
 dust_mod.o                  : dust_mod.F                                     \
                               diag_mod.o              drydep_mod.o           \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               hco_interface_mod.o     tomas_mod.o             
 
 emissions_mod.o             : emissions_mod.F90                              \
@@ -677,7 +682,7 @@ hcoi_gc_main_mod.o          : hcoi_gc_main_mod.F90                           \
                               modis_lai_mod.o         fast_jx_mod.o          \
                               hcoi_gc_diagn_mod.o     tomas_mod.o            \
                               hco_interface_mod.o     flexgrid_read_mod.o    \
-                              ocean_mercury_mod.o
+                              ocean_mercury_mod.o     apm_init_mod.o
 
 initialize.o                : initialize.F                                   \
                               diag_mod.o              diag03_mod.o           \
@@ -725,6 +730,7 @@ main.o                      : main.F                                         \
                               rrtmg_rad_transfer_mod.o                       \
                               gosat_ch4_mod.o         tccon_ch4_mod.o        \
                               aerosol_mod.o           flexgrid_read_mod.o    \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               gc_classic_version.H
 
 mercury_mod.o               : mercury_mod.F                                  \
@@ -801,6 +807,7 @@ rpmares_mod.o               : rpmares_mod.F                                  \
 seasalt_mod.o               : seasalt_mod.F           dao_mod.o              \
                               diag_mod.o              drydep_mod.o           \
                               pbl_mix_mod.o           tomas_mod.o            \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               hco_interface_mod.o     vdiff_pre_mod.o
 
 set_global_ch4_mod.o        : set_global_ch4_mod.F90                         \
@@ -821,6 +828,7 @@ sulfate_mod.o               : sulfate_mod.F                                  \
                               pbl_mix_mod.o           wetscav_mod.o          \
                               ucx_mod.o               uvalbedo_mod.o         \
                               vdiff_pre_mod.o         wetscav_mod.o          \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               hco_interface_mod.o                            \
                               tomas_mod.o
 
@@ -881,6 +889,7 @@ wetscav_mod.o               : wetscav_mod.F                                  \
                               dao_mod.o               diag_mod.o             \
                               depo_mercury_mod.o      get_ndep_mod.o         \
                               tendencies_mod.o        hco_interface_mod.o    \
+                              apm_init_mod.o          apm_driv_mod.o         \
                               tomas_mod.o             diagnostics_mod.o
 
 ###############################################################################
@@ -888,6 +897,69 @@ wetscav_mod.o               : wetscav_mod.F                                  \
 ###  Dependencies of files specific to the APM microphysics simulation      ###
 ###                                                                         ###
 ###############################################################################
+apm_ATHN_mod.o              : apm_ATHN_mod.F
+
+apm_TIMN_mod.o              : apm_TIMN_mod.F
+
+apm_icen_mod.o              : apm_icen_mod.F90
+
+apm_rrtmg_mods.o            : apm_rrtmg_mods.F90
+
+apm_rrtmg_src.o             : apm_rrtmg_src.F90                              \
+                              apm_rrtmg_mods.o
+
+apm_rrtmg_sw.o              : apm_rrtmg_sw.F90                               \
+                              apm_rrtmg_mods.o        apm_rrtmg_src.o
+
+apm_mixactivate.o           : apm_mixactivate.F90
+
+apm_nucl_mod.o              : apm_nucl_mod.F
+
+apm_opti_mod.o              : apm_opti_mod.F
+
+apm_radf_mod.o              : apm_radf_mod.F
+
+apm_albd_mod.o              : apm_albd_mod.F                                 \
+                              apm_init_mod.o
+
+apm_init_mod.o              : apm_init_mod.F                                 \
+                              apm_nucl_mod.o          apm_opti_mod.o         \
+                              apm_ATHN_mod.o          apm_TIMN_mod.o
+
+apm_grow_mod.o              : apm_grow_mod.F                                 \
+                              apm_init_mod.o
+
+apm_coag_mod.o              : apm_coag_mod.F90                                 \
+                              apm_init_mod.o
+
+
+apm_phys_mod.o              : apm_phys_mod.F                                 \
+                              apm_coag_mod.o          apm_grow_mod.o         \
+                              apm_init_mod.o          apm_nucl_mod.o         \
+                              apm_opti_mod.o          apm_mixactivate.o      \
+                              apm_ATHN_mod.o          apm_TIMN_mod.o
+
+
+apm_driv_mod.o              : apm_driv_mod.F                                 \
+                              apm_coag_mod.o          apm_init_mod.o         \
+                              apm_nucl_mod.o          apm_phys_mod.o         \
+                              dao_mod.o               pbl_mix_mod.o          \
+                              isorropiaII_mod.o       apm_radf_mod.o         \
+                              apm_albd_mod.o          apm_rrtmg_mods.o       \
+                              apm_rrtmg_sw.o          apm_icen_mod.o         \
+                              apm_ATHN_mod.o          apm_TIMN_mod.o         \
+                              module_mosaic_therm.o
+
+module_data_mosaic_asect.o  : module_data_mosaic_asect.F90
+
+module_data_mosaic_therm.o  : module_data_mosaic_therm.F90
+
+module_data_mosaic_other.o  : module_data_mosaic_other.F90
+
+module_mosaic_therm.o       : module_mosaic_therm.F90                        \
+                              module_data_mosaic_asect.o                     \
+                              module_data_mosaic_therm.o                     \
+                              module_data_mosaic_other.o
 
 ###############################################################################
 ###                                                                         ###
